@@ -196,6 +196,10 @@ extension UIViewController {
             yellowCard.addConstraints([messageLabelLeft, messageLabelRight, messageLabelTop])
             messageLabel.addConstraints([messageLabelHeight])
             
+            // Check whether to stack buttons vertically or horizontally.
+            let titlesFitSideBySide = buttons.allSatisfy { eachButton in eachButton.count < 16 }
+            let stackButtonsVertically = buttons.count > 2 || (buttons.count == 2 && !titlesFitSideBySide)
+            
             // Buttons stack
             let buttonsStack = UIView()
             buttonsStack.translatesAutoresizingMaskIntoConstraints = false
@@ -203,10 +207,10 @@ extension UIViewController {
             buttonsStack.backgroundColor = .clear
             yellowCard.addSubview(buttonsStack)
             let buttonsStackHeight:NSLayoutConstraint = {
-                if buttons.count < 3 {
-                    return NSLayoutConstraint(item: buttonsStack, attribute: .height, relatedBy: .equal, toItem: nil, attribute: .notAnAttribute, multiplier: 1, constant: 50)
-                } else {
+                if stackButtonsVertically {
                     return NSLayoutConstraint(item: buttonsStack, attribute: .height, relatedBy: .equal, toItem: nil, attribute: .notAnAttribute, multiplier: 1, constant: 50*CGFloat(buttons.count))
+                } else {
+                    return NSLayoutConstraint(item: buttonsStack, attribute: .height, relatedBy: .equal, toItem: nil, attribute: .notAnAttribute, multiplier: 1, constant: 50)
                 }
             }()
             let buttonsStackLeft = NSLayoutConstraint(item: buttonsStack, attribute: .leading, relatedBy: .equal, toItem: yellowCard, attribute: .leading, multiplier: 1, constant: 15)
@@ -232,7 +236,7 @@ extension UIViewController {
                 let closeViewHeight = NSLayoutConstraint(item: closeView, attribute: .height, relatedBy: .equal, toItem: nil, attribute: .notAnAttribute, multiplier: 1, constant: 40)
                 
                 let closeViewWidth:NSLayoutConstraint = {
-                    if buttons.count == 2 {
+                    if buttons.count == 2, !stackButtonsVertically {
                         return NSLayoutConstraint(item: closeView, attribute: .width, relatedBy: .equal, toItem: buttonsStack, attribute: .width, multiplier: 0.5, constant: -5)
                     } else {
                         return NSLayoutConstraint(item: closeView, attribute: .width, relatedBy: .equal, toItem: buttonsStack, attribute: .width, multiplier: 1, constant: 0)
@@ -240,7 +244,7 @@ extension UIViewController {
                 }()
                 
                 let closeViewLeft:NSLayoutConstraint = {
-                    if buttons.count == 2, index == 1 {
+                    if buttons.count == 2, !stackButtonsVertically, index == 1 {
                         return NSLayoutConstraint(item: closeView, attribute: .leading, relatedBy: .equal, toItem: buttonsStack, attribute: .leading, multiplier: 1, constant: (buttonsStack.bounds.width/2) + 5)
                     } else {
                         return NSLayoutConstraint(item: closeView, attribute: .leading, relatedBy: .equal, toItem: buttonsStack, attribute: .leading, multiplier: 1, constant: 0)
@@ -248,7 +252,7 @@ extension UIViewController {
                 }()
                 
                 let closeViewBottom:NSLayoutConstraint = {
-                    if buttons.count > 2, index > 0 {
+                    if stackButtonsVertically, index > 0 {
                         return NSLayoutConstraint(item: closeView, attribute: .bottom, relatedBy: .equal, toItem: buttonsStack, attribute: .bottom, multiplier: 1, constant: CGFloat(index)*(-50) - 10)
                     } else {
                         return NSLayoutConstraint(item: closeView, attribute: .bottom, relatedBy: .equal, toItem: buttonsStack, attribute: .bottom, multiplier: 1, constant: -10)
@@ -267,16 +271,12 @@ extension UIViewController {
                 buttonLabel.textColor = Colors.getColor("blackorwhite")
                 buttonLabel.textAlignment = .center
                 buttonLabel.isAccessibilityElement = false
-                buttonLabel.adjustsFontSizeToFitWidth = true
-                buttonLabel.minimumScaleFactor = 0.7
                 closeView.addSubview(buttonLabel)
                 let buttonLabelCenterX = NSLayoutConstraint(item: buttonLabel, attribute: .centerX, relatedBy: .equal, toItem: closeView, attribute: .centerX, multiplier: 1, constant: 0)
                 let buttonLabelCenterY = NSLayoutConstraint(item: buttonLabel, attribute: .centerY, relatedBy: .equal, toItem: closeView, attribute: .centerY, multiplier: 1, constant: 1)
-                let buttonLabelLeft = NSLayoutConstraint(item: buttonLabel, attribute: .leading, relatedBy: .greaterThanOrEqual, toItem: closeView, attribute: .leading, multiplier: 1, constant: 8)
-                let buttonLabelRight = NSLayoutConstraint(item: buttonLabel, attribute: .trailing, relatedBy: .lessThanOrEqual, toItem: closeView, attribute: .trailing, multiplier: 1, constant: -8)
                 let buttonLabelHeight = NSLayoutConstraint(item: buttonLabel, attribute: .height, relatedBy: .greaterThanOrEqual, toItem: nil, attribute: .notAnAttribute, multiplier: 1, constant: 0)
                 let buttonLabelWidth = NSLayoutConstraint(item: buttonLabel, attribute: .width, relatedBy: .greaterThanOrEqual, toItem: nil, attribute: .notAnAttribute, multiplier: 1, constant: 0)
-                closeView.addConstraints([buttonLabelCenterX, buttonLabelCenterY, buttonLabelLeft, buttonLabelRight])
+                closeView.addConstraints([buttonLabelCenterX, buttonLabelCenterY])
                 buttonLabel.addConstraints([buttonLabelHeight, buttonLabelWidth])
                 
                 // Main button
