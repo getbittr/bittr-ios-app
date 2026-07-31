@@ -452,7 +452,20 @@ extension BitcoinManager {
         return bittrAddress
     }
     
+    func revealAddresses(toIndex:Int) {
+        // Make sure peeked addresses are also revealed, so that they're updated in any lightSync.
+        let newlyRevealedAddresses = self.bdkWallet!.revealAddressesTo(keychain: .external, index: UInt32(toIndex))
+        guard newlyRevealedAddresses.count > 0, let connection = self.connection else { return }
+        
+        do {
+            _ = try self.bdkWallet!.persist(connection: connection)
+        } catch {
+            self.handleError(error: error, row: 468)
+        }
+    }
+    
     func getAddress(atIndex:Int) -> String {
+        self.revealAddresses(toIndex: atIndex)
         let thisAddress = self.bdkWallet!.peekAddress(keychain: .external, index: UInt32(atIndex)).address.description
         return thisAddress
     }

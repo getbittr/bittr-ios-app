@@ -219,6 +219,10 @@ extension CoreViewController {
                 // Enough addresses available.
                 Log.info("Onchain address management successful.")
 
+                // Reveal a little beyond the pool.
+                // This is to anticipate any channel closure, which reveals the next address in LDKNode.
+                BitcoinManager.shared.revealAddresses(toIndex: onchainAddresses.count + 4)
+                
                 // Verify the currently cached address.
                 let unusedAddresses = onchainAddresses.filter { !$0.hasBeenUsedByBittr }
                 let cached = CacheManager.getLastAddress()
