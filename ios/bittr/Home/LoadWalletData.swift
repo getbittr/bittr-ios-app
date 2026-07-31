@@ -229,7 +229,7 @@ extension HomeViewController {
     
     func setTotalSats() {
         // Calculate total balance
-        let totalBalanceSats = BitcoinManager.shared.bittrWallet.satoshisOnchain + BitcoinManager.shared.bittrWallet.satoshisLightning
+        let totalBalanceSats = BitcoinManager.shared.bittrWallet.satoshisOnchain + BitcoinManager.shared.bittrWallet.satoshisLightning + BitcoinManager.shared.bittrWallet.pendingBalancesFromChannelClosures
         let totalBalanceSatsString = "\(totalBalanceSats)"
         
         // Load balance label.
