@@ -45,6 +45,9 @@ extension HomeViewController {
         // Gather pending lightning balances.
         let pendingBalancesFromChannelClosures = balances.pendingClosureSatoshis(openChannelIds: lightningChannels.map { $0.channelId })
         
+        // Store channel closure txIDs.
+        CacheManager.storeChannelClosureTxIDs(txIDs: balances.pendingBalancesFromChannelClosures.spendingTxIDs())
+        
         // Apply the snapshot to the shared wallet on the main thread.
         let apply = {
             BitcoinManager.shared.bittrWallet.satoshisLightning = satoshisLightning
@@ -558,6 +561,22 @@ extension [PendingSweepBalance] {
             }
         }
         return totalSatoshis
+    }
+    
+    // The transactions carrying the swept funds.
+    // A sweep that hasn't been broadcast yet doesn't have one.
+    func spendingTxIDs() -> [String] {
+        
+        var txIDs = [String]()
+        for eachBalance in self {
+            switch eachBalance {
+            case .broadcastAwaitingConfirmation(_, _, let latestSpendingTxid, _),
+                 .awaitingThresholdConfirmations(_, let latestSpendingTxid, _, _, _):
+                txIDs += [latestSpendingTxid]
+            case .pendingBroadcast: break
+            }
+        }
+        return txIDs
     }
 }
 

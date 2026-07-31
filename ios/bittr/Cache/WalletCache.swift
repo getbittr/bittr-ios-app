@@ -113,6 +113,7 @@ struct CachedTransaction: Codable {
     var fee: Int
     var channelId: String
     var isFundingTransaction: Bool
+    var isChannelClosure: Bool?
     var lnDescription: String
     var isSwap: Bool
     var swapStatus: String
@@ -139,6 +140,7 @@ struct CachedTransaction: Codable {
         self.fee = transaction.fee
         self.channelId = transaction.channelId
         self.isFundingTransaction = transaction.isFundingTransaction
+        self.isChannelClosure = transaction.isChannelClosure
         self.lnDescription = transaction.lnDescription
         self.isSwap = transaction.isSwap
         switch transaction.swapStatus {
@@ -171,6 +173,7 @@ struct CachedTransaction: Codable {
         transaction.fee = fee
         transaction.channelId = channelId
         transaction.isFundingTransaction = isFundingTransaction
+        transaction.isChannelClosure = isChannelClosure ?? false
         transaction.lnDescription = lnDescription
         transaction.isSwap = isSwap
         switch swapStatus {

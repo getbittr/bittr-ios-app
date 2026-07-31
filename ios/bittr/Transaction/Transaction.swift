@@ -26,6 +26,7 @@ class Transaction: NSObject {
     var lnDescription = ""
     var channelId = ""
     var isFundingTransaction = false
+    var isChannelClosure = false
     
     // Bittr purchases
     var isBittr = false
@@ -79,9 +80,10 @@ extension PaymentDetails {
         
         // Kind, status, and timestamp.
         switch self.kind {
-        case .onchain(txid: _, status: let status):
+        case .onchain(txid: let txid, status: let status):
             // Onchain transaction.
             thisTransaction.isLightning = false
+            thisTransaction.isChannelClosure = CacheManager.getChannelClosureTxIDs().contains(txid)
             
             // Set status and timestamp.
             switch status {

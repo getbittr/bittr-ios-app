@@ -388,14 +388,14 @@ class TransactionViewController: UIViewController {
         }
         
         // Description
-        if self.tappedTransaction.lnDescription.trimmingCharacters(in: .whitespacesAndNewlines) != "", !self.tappedTransaction.isSwap, !self.tappedTransaction.isSuggestedSwap, !self.showConfetti {
+        if self.descriptionText().trimmingCharacters(in: .whitespacesAndNewlines) != "", !self.tappedTransaction.isSwap, !self.tappedTransaction.isSuggestedSwap, !self.showConfetti {
             
             if self.tappedTransaction.isBittr {
                 self.labelDescription.numberOfLines = 1
                 self.labelDescription.lineBreakMode = .byTruncatingMiddle
             }
             
-            self.labelDescription.text = self.tappedTransaction.lnDescription
+            self.labelDescription.text = self.descriptionText()
             NSLayoutConstraint.deactivate([self.descriptionStackHeight])
             self.descriptionStackHeight = NSLayoutConstraint(item: self.descriptionStack, attribute: .height, relatedBy: .greaterThanOrEqual, toItem: nil, attribute: .notAnAttribute, multiplier: 1, constant: 0)
             NSLayoutConstraint.activate([self.descriptionStackHeight])
@@ -685,9 +685,16 @@ class TransactionViewController: UIViewController {
         }
     }
     
+    func descriptionText() -> String {
+        if self.tappedTransaction.lnDescription == "", self.tappedTransaction.isChannelClosure {
+            return Language.getWord(withID: "channelclosuretransaction")
+        }
+        return self.tappedTransaction.lnDescription
+    }
+    
     @IBAction func descriptionButtonTapped(_ sender: UIButton) {
         
-        let copyingText = self.tappedTransaction.lnDescription
+        let copyingText = self.descriptionText()
         UIPasteboard.general.string = copyingText
         self.showAlert(presentingController: self, title: Language.getWord(withID: "copied"), message: copyingText, buttons: [Language.getWord(withID: "okay")], actions: nil)
     }
