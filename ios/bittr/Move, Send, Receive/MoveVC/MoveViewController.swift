@@ -136,7 +136,7 @@ class MoveViewController: UIViewController {
             self.showPendingClosureAlert()
         } else if BitcoinManager.shared.bittrWallet.lightningChannels.count == 0 {
             // There is no Lightning channel.
-            self.coreVC!.launchQuestion(question: Language.getWord(withID: "lightningchannels"), answer: Language.getWord(withID: "lightningexplanation1"), type: nil)
+            self.showAlert(presentingController: self, title: Language.getWord(withID: "lightningchannels"), message: Language.getWord(withID: "lightningexplanation1"), buttons: [Language.getWord(withID: "okay")], actions: nil)
         } else {
             // There's a Lightning channel.
             self.launchChannelQuestion()
