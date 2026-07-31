@@ -267,12 +267,16 @@ extension UIViewController {
                 buttonLabel.textColor = Colors.getColor("blackorwhite")
                 buttonLabel.textAlignment = .center
                 buttonLabel.isAccessibilityElement = false
+                buttonLabel.adjustsFontSizeToFitWidth = true
+                buttonLabel.minimumScaleFactor = 0.7
                 closeView.addSubview(buttonLabel)
                 let buttonLabelCenterX = NSLayoutConstraint(item: buttonLabel, attribute: .centerX, relatedBy: .equal, toItem: closeView, attribute: .centerX, multiplier: 1, constant: 0)
                 let buttonLabelCenterY = NSLayoutConstraint(item: buttonLabel, attribute: .centerY, relatedBy: .equal, toItem: closeView, attribute: .centerY, multiplier: 1, constant: 1)
+                let buttonLabelLeft = NSLayoutConstraint(item: buttonLabel, attribute: .leading, relatedBy: .greaterThanOrEqual, toItem: closeView, attribute: .leading, multiplier: 1, constant: 8)
+                let buttonLabelRight = NSLayoutConstraint(item: buttonLabel, attribute: .trailing, relatedBy: .lessThanOrEqual, toItem: closeView, attribute: .trailing, multiplier: 1, constant: -8)
                 let buttonLabelHeight = NSLayoutConstraint(item: buttonLabel, attribute: .height, relatedBy: .greaterThanOrEqual, toItem: nil, attribute: .notAnAttribute, multiplier: 1, constant: 0)
                 let buttonLabelWidth = NSLayoutConstraint(item: buttonLabel, attribute: .width, relatedBy: .greaterThanOrEqual, toItem: nil, attribute: .notAnAttribute, multiplier: 1, constant: 0)
-                closeView.addConstraints([buttonLabelCenterX, buttonLabelCenterY])
+                closeView.addConstraints([buttonLabelCenterX, buttonLabelCenterY, buttonLabelLeft, buttonLabelRight])
                 buttonLabel.addConstraints([buttonLabelHeight, buttonLabelWidth])
                 
                 // Main button

@@ -70,20 +70,30 @@ class MoveViewController: UIViewController {
         self.addHeader(iconLight: "iconpiggywhite", iconDark: "iconpiggyyellow", title: Language.getWord(withID: "balance"))
     }
     
+    // Calculate the sum of spendable and pending lightning funds.
+    var instantSatoshis:Int {
+        return BitcoinManager.shared.bittrWallet.satoshisLightning + BitcoinManager.shared.bittrWallet.pendingBalancesFromChannelClosures
+    }
+    
+    // Check whether there are pending lightning funds.
+    var hasPendingClosureFunds:Bool {
+        return BitcoinManager.shared.bittrWallet.pendingBalancesFromChannelClosures > 0
+    }
+    
     func updateLabels() {
         
         // Calculate balance values.
         let correctBtcBalance:CGFloat = BitcoinManager.shared.bittrWallet.satoshisOnchain.inBTC()
-        let correctBtclnBalance:CGFloat = BitcoinManager.shared.bittrWallet.satoshisLightning.inBTC()
+        let correctBtclnBalance:CGFloat = self.instantSatoshis.inBTC()
         let bitcoinValue = BitcoinManager.shared.bittrWallet.getCorrectBitcoinValue()
         let balanceValue = String(Int(((correctBtcBalance+correctBtclnBalance)*bitcoinValue.currentValue).rounded())).addSpaces()
         let btcBalanceValue = String(Int(((correctBtcBalance)*bitcoinValue.currentValue).rounded())).addSpaces()
         let btclnBalanceValue = String(Int(((correctBtclnBalance)*bitcoinValue.currentValue).rounded())).addSpaces()
         
         // Show balance values.
-        self.satsTotal.text = "\(BitcoinManager.shared.bittrWallet.satoshisOnchain + BitcoinManager.shared.bittrWallet.satoshisLightning)".addSpaces() + " sats"
+        self.satsTotal.text = "\(BitcoinManager.shared.bittrWallet.satoshisOnchain + self.instantSatoshis)".addSpaces() + " sats"
         self.satsRegular.text = "\(BitcoinManager.shared.bittrWallet.satoshisOnchain)".addSpaces() + " sats"
-        self.satsInstant.text = "\(BitcoinManager.shared.bittrWallet.satoshisLightning)".addSpaces() + " sats"
+        self.satsInstant.text = "\(self.instantSatoshis)".addSpaces() + " sats"
         self.conversionTotal.text = bitcoinValue.chosenCurrency + " " + balanceValue
         self.conversionRegular.text = bitcoinValue.chosenCurrency + " " + btcBalanceValue
         self.conversionInstant.text = bitcoinValue.chosenCurrency + " " + btclnBalanceValue
@@ -122,13 +132,33 @@ class MoveViewController: UIViewController {
     
     @IBAction func channelButtonTapped(_ sender: UIButton) {
         
-        if BitcoinManager.shared.bittrWallet.lightningChannels.count == 0 {
+        if self.hasPendingClosureFunds {
+            self.showPendingClosureAlert()
+        } else if BitcoinManager.shared.bittrWallet.lightningChannels.count == 0 {
             // There is no Lightning channel.
             self.coreVC!.launchQuestion(question: Language.getWord(withID: "lightningchannels"), answer: Language.getWord(withID: "lightningexplanation1"), type: nil)
         } else {
             // There's a Lightning channel.
-            self.coreVC!.launchQuestion(question: Language.getWord(withID: "lightningchannel"), answer: Language.getWord(withID: "lightningexplanation1"), type: "lightningexplanation")
+            self.launchChannelQuestion()
         }
+    }
+    
+    func showPendingClosureAlert() {
+        // Part of the lightning funds are pending.
+        let message = Language.getWord(withID: "pendingclosure").replacingOccurrences(of: "<pendingfunds>", with: "\(BitcoinManager.shared.bittrWallet.pendingBalancesFromChannelClosures)".addSpaces())
+        
+        if BitcoinManager.shared.bittrWallet.satoshisLightning == 0 {
+            // All lightning funds are pending.
+            self.showAlert(presentingController: self, title: Language.getWord(withID: "connectionclosed"), message: message, buttons: [Language.getWord(withID: "okay")], actions: nil)
+        } else {
+            // There is an active channel with spendable lightning funds.
+            self.showAlert(presentingController: self, title: Language.getWord(withID: "connectionclosed"), message: message, buttons: [Language.getWord(withID: "close"), Language.getWord(withID: "viewactiveconnection")], actions: [nil, #selector(self.launchChannelQuestion)])
+        }
+    }
+    
+    @objc func launchChannelQuestion() {
+        self.hideAlert()
+        self.coreVC!.launchQuestion(question: Language.getWord(withID: "lightningchannel"), answer: Language.getWord(withID: "lightningexplanation1"), type: "lightningexplanation")
     }
     
     @IBAction func swapButtonTapped(_ sender: UIButton) {

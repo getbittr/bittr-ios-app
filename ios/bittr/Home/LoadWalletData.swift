@@ -42,9 +42,13 @@ extension HomeViewController {
         let satoshisOnchain = Int(balances.totalOnchainBalanceSats)
         let satoshisOnchainSpendable = Int(balances.spendableOnchainBalanceSats)
         
+        // Get funds from closed channels that are still settling back on-chain.
+        let pendingBalancesFromChannelClosures = balances.pendingBalancesFromChannelClosures.totalSatoshis()
+        
         // Apply the snapshot to the shared wallet on the main thread.
         let apply = {
             BitcoinManager.shared.bittrWallet.satoshisLightning = satoshisLightning
+            BitcoinManager.shared.bittrWallet.pendingBalancesFromChannelClosures = pendingBalancesFromChannelClosures
             BitcoinManager.shared.bittrWallet.lightningChannels = lightningChannels
             BitcoinManager.shared.bittrWallet.allTransactions = allTransactions
             BitcoinManager.shared.bittrWallet.satoshisOnchain = satoshisOnchain
@@ -533,4 +537,21 @@ extension HomeViewController {
         }
     }
 
+}
+
+extension [PendingSweepBalance] {
+    
+    func totalSatoshis() -> Int {
+        
+        var totalSatoshis = 0
+        for eachBalance in self {
+            switch eachBalance {
+            case .pendingBroadcast(_, let amountSatoshis),
+                 .broadcastAwaitingConfirmation(_, _, _, let amountSatoshis),
+                 .awaitingThresholdConfirmations(_, _, _, _, let amountSatoshis):
+                totalSatoshis += Int(amountSatoshis)
+            }
+        }
+        return totalSatoshis
+    }
 }
