@@ -568,6 +568,9 @@ extension [LightningBalance] {
         var totalSatoshis = 0
         for eachBalance in self {
             switch eachBalance {
+            case .claimableAwaitingConfirmations(_, _, _, _, .coopClose):
+                // Don't include cooperative closes, because those funds already count towards the onchain balance.
+                break
             case .claimableOnChannelClose(let channelId, _, let amountSatoshis, _, _, _, _, _),
                  .claimableAwaitingConfirmations(let channelId, _, let amountSatoshis, _, _),
                  .contentiousClaimable(let channelId, _, let amountSatoshis, _, _, _),
