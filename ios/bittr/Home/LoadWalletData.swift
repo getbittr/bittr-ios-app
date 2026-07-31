@@ -42,8 +42,10 @@ extension HomeViewController {
         let satoshisOnchain = Int(balances.totalOnchainBalanceSats)
         let satoshisOnchainSpendable = Int(balances.spendableOnchainBalanceSats)
         
-        // Get funds from closed channels that are still settling back on-chain.
-        let pendingBalancesFromChannelClosures = balances.pendingBalancesFromChannelClosures.totalSatoshis()
+        // Gather pending lightning balances.
+        let openChannelIds = lightningChannels.map { $0.channelId }
+        let pendingBalancesFromChannelClosures = balances.lightningBalances.totalSatoshis(excludingChannels: openChannelIds)
+            + balances.pendingBalancesFromChannelClosures.totalSatoshis()
         
         // Apply the snapshot to the shared wallet on the main thread.
         let apply = {
@@ -550,6 +552,28 @@ extension [PendingSweepBalance] {
                  .broadcastAwaitingConfirmation(_, _, _, let amountSatoshis),
                  .awaitingThresholdConfirmations(_, _, _, _, let amountSatoshis):
                 totalSatoshis += Int(amountSatoshis)
+            }
+        }
+        return totalSatoshis
+    }
+}
+
+extension [LightningBalance] {
+    
+    func totalSatoshis(excludingChannels openChannelIds:[ChannelId]) -> Int {
+        
+        var totalSatoshis = 0
+        for eachBalance in self {
+            switch eachBalance {
+            case .claimableOnChannelClose(let channelId, _, let amountSatoshis, _, _, _, _, _),
+                 .claimableAwaitingConfirmations(let channelId, _, let amountSatoshis, _, _),
+                 .contentiousClaimable(let channelId, _, let amountSatoshis, _, _, _),
+                 .maybeTimeoutClaimableHtlc(let channelId, _, let amountSatoshis, _, _, _),
+                 .maybePreimageClaimableHtlc(let channelId, _, let amountSatoshis, _, _),
+                 .counterpartyRevokedOutputClaimable(let channelId, _, let amountSatoshis):
+                if !openChannelIds.contains(channelId) {
+                    totalSatoshis += Int(amountSatoshis)
+                }
             }
         }
         return totalSatoshis
