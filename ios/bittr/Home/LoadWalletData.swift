@@ -43,9 +43,7 @@ extension HomeViewController {
         let satoshisOnchainSpendable = Int(balances.spendableOnchainBalanceSats)
         
         // Gather pending lightning balances.
-        let openChannelIds = lightningChannels.map { $0.channelId }
-        let pendingBalancesFromChannelClosures = balances.lightningBalances.totalSatoshis(excludingChannels: openChannelIds)
-            + balances.pendingBalancesFromChannelClosures.unbroadcastSatoshis()
+        let pendingBalancesFromChannelClosures = balances.pendingClosureSatoshis(openChannelIds: lightningChannels.map { $0.channelId })
         
         // Apply the snapshot to the shared wallet on the main thread.
         let apply = {
@@ -539,6 +537,13 @@ extension HomeViewController {
         }
     }
 
+}
+
+extension BalanceDetails {
+    func pendingClosureSatoshis(openChannelIds:[ChannelId]) -> Int {
+        return self.lightningBalances.totalSatoshis(excludingChannels: openChannelIds)
+            + self.pendingBalancesFromChannelClosures.unbroadcastSatoshis()
+    }
 }
 
 extension [PendingSweepBalance] {
