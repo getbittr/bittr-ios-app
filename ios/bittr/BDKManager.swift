@@ -441,6 +441,7 @@ extension BitcoinManager {
                 }
                 if spendsFundingOutput {
                     CacheManager.storeChannelClosureTxIDs(txIDs: [eachCanonicalTx.transaction.computeTxid()])
+                    CacheManager.removeChannelFundingOutpoint()
                     return
                 }
             }

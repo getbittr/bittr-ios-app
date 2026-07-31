@@ -24,6 +24,8 @@ class CacheManager: NSObject {
         defaults.removeObject(forKey: EnvironmentConfig.cacheKey(for: "lightning"))
         defaults.removeObject(forKey: EnvironmentConfig.cacheKey(for: "bittraddress"))
         defaults.removeObject(forKey: EnvironmentConfig.cacheKey(for: "onchainaddresses"))
+        defaults.removeObject(forKey: EnvironmentConfig.cacheKey(for: "channelfundingoutpoint"))
+        defaults.removeObject(forKey: EnvironmentConfig.cacheKey(for: "channelclosuretxids"))
 
         // Remove the secrets from the Keychain too — they no longer live in
         // UserDefaults, so the UserDefaults removals above wouldn't clear them.
@@ -1000,6 +1002,12 @@ class CacheManager: NSObject {
     static func storeChannelFundingOutpoint(txID:String, vout:UInt32) {
         let envKey = EnvironmentConfig.cacheKey(for: "channelfundingoutpoint")
         UserDefaults.standard.set("\(txID):\(vout)", forKey: envKey)
+    }
+    
+    // Drop the outpoint once its closing transaction has been found.
+    static func removeChannelFundingOutpoint() {
+        let envKey = EnvironmentConfig.cacheKey(for: "channelfundingoutpoint")
+        UserDefaults.standard.removeObject(forKey: envKey)
     }
     
     static func getChannelFundingOutpoint() -> (txID:String, vout:UInt32)? {
