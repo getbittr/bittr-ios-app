@@ -422,6 +422,31 @@ extension BitcoinManager {
         }
     }
     
+    // Look for the transaction that closed a channel and remember it.
+    func storeChannelClosureTxIDIfFound(openFundingTxIDs:[String]) {
+        
+        // Nothing to look for until a channel has closed.
+        guard let fundingOutpoint = CacheManager.getChannelFundingOutpoint(),
+              !openFundingTxIDs.contains(fundingOutpoint.txID) else { return }
+        
+        DispatchQueue.global(qos: .background).async {
+            
+            // Bind the wallet locally: resetNodeState can clear it while this
+            // closure is parked on the background queue.
+            guard let bdkWallet = self.bdkWallet else { return }
+            
+            for eachCanonicalTx in bdkWallet.transactions() {
+                let spendsFundingOutput = eachCanonicalTx.transaction.input().contains { eachInput in
+                    eachInput.previousOutput.txid == fundingOutpoint.txID && eachInput.previousOutput.vout == fundingOutpoint.vout
+                }
+                if spendsFundingOutput {
+                    CacheManager.storeChannelClosureTxIDs(txIDs: [eachCanonicalTx.transaction.computeTxid()])
+                    return
+                }
+            }
+        }
+    }
+    
     func getBittrAddress() -> String {
         let bittrAddress = self.bdkWallet!.peekAddress(keychain: .external, index: 0).address.description
         return bittrAddress

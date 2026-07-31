@@ -22,8 +22,9 @@ extension HomeViewController {
         var satoshisLightning = 0
         let lightningChannels = BitcoinManager.shared.listChannels()
         if let activeChannel = lightningChannels.getActiveChannel() {
-            if let channelTxoID = activeChannel.fundingTxo?.txid as? String {
-                CacheManager.storeTxoID(txoID: channelTxoID)
+            if let channelTxo = activeChannel.fundingTxo {
+                CacheManager.storeTxoID(txoID: channelTxo.txid)
+                CacheManager.storeChannelFundingOutpoint(txID: channelTxo.txid, vout: channelTxo.vout)
             }
             if Int(activeChannel.outboundCapacityMsat/1000) != 0 {
                 // Channel balance is more than punishment reserve.
@@ -47,6 +48,7 @@ extension HomeViewController {
         
         // Store channel closure txIDs.
         CacheManager.storeChannelClosureTxIDs(txIDs: balances.pendingBalancesFromChannelClosures.spendingTxIDs())
+        BitcoinManager.shared.storeChannelClosureTxIDIfFound(openFundingTxIDs: lightningChannels.compactMap { $0.fundingTxo?.txid })
         
         // Apply the snapshot to the shared wallet on the main thread.
         let apply = {

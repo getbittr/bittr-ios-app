@@ -993,6 +993,25 @@ class CacheManager: NSObject {
         }
     }
     
+    // MARK: - Channel funding outpoint
+    
+    // Store a channel's funding output, kept as "txID:vout".
+    // Upon a cooperative close, we can deduce the onchain transaction from this output.
+    static func storeChannelFundingOutpoint(txID:String, vout:UInt32) {
+        let envKey = EnvironmentConfig.cacheKey(for: "channelfundingoutpoint")
+        UserDefaults.standard.set("\(txID):\(vout)", forKey: envKey)
+    }
+    
+    static func getChannelFundingOutpoint() -> (txID:String, vout:UInt32)? {
+        let envKey = EnvironmentConfig.cacheKey(for: "channelfundingoutpoint")
+        guard let storedOutpoint = UserDefaults.standard.value(forKey: envKey) as? String else { return nil }
+        
+        let components = storedOutpoint.components(separatedBy: ":")
+        guard components.count == 2, let vout = UInt32(components[1]) else { return nil }
+        
+        return (txID: components[0], vout: vout)
+    }
+    
     // MARK: - Channel closure transactions
     
     static func storeChannelClosureTxIDs(txIDs:[String]) {
