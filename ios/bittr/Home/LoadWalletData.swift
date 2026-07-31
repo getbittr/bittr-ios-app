@@ -541,7 +541,7 @@ extension HomeViewController {
 
 extension BalanceDetails {
     func pendingClosureSatoshis(openChannelIds:[ChannelId]) -> Int {
-        return self.lightningBalances.totalSatoshis(excludingChannels: openChannelIds)
+        return self.lightningBalances.forceClosedSatoshis(excludingChannels: openChannelIds)
             + self.pendingBalancesFromChannelClosures.unbroadcastSatoshis()
     }
 }
@@ -563,16 +563,14 @@ extension [PendingSweepBalance] {
 
 extension [LightningBalance] {
     
-    func totalSatoshis(excludingChannels openChannelIds:[ChannelId]) -> Int {
+    func forceClosedSatoshis(excludingChannels openChannelIds:[ChannelId]) -> Int {
         
         var totalSatoshis = 0
         for eachBalance in self {
             switch eachBalance {
-            case .claimableAwaitingConfirmations(_, _, _, _, .coopClose):
-                // Don't include cooperative closes, because those funds already count towards the onchain balance.
-                break
-            case .claimableOnChannelClose(let channelId, _, let amountSatoshis, _, _, _, _, _),
-                 .claimableAwaitingConfirmations(let channelId, _, let amountSatoshis, _, _),
+            case .claimableAwaitingConfirmations(let channelId, _, let amountSatoshis, _, .holderForceClosed),
+                 .claimableAwaitingConfirmations(let channelId, _, let amountSatoshis, _, .counterpartyForceClosed),
+                 .claimableAwaitingConfirmations(let channelId, _, let amountSatoshis, _, .htlc),
                  .contentiousClaimable(let channelId, _, let amountSatoshis, _, _, _),
                  .maybeTimeoutClaimableHtlc(let channelId, _, let amountSatoshis, _, _, _),
                  .maybePreimageClaimableHtlc(let channelId, _, let amountSatoshis, _, _),
@@ -580,6 +578,9 @@ extension [LightningBalance] {
                 if !openChannelIds.contains(channelId) {
                     totalSatoshis += Int(amountSatoshis)
                 }
+            case .claimableOnChannelClose, .claimableAwaitingConfirmations:
+                // Don't include cooperative closes, because those funds already count towards the onchain balance.
+                break
             }
         }
         return totalSatoshis
