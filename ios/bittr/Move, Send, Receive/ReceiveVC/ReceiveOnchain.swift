@@ -35,31 +35,32 @@ extension UIViewController {
 extension [OnchainAddress] {
     
     func getNextUnusedAddress() -> String? {
-        guard self.count != 0 else { return nil }
+        guard !self.isEmpty else { return nil }
         
-        // Check the index of the current cached address.
+        // Get currently shown address.
         let cachedAddress = CacheManager.getLastAddress()
         
-        // Walk down from the top until we hit the current cached address or a
-        // used one, then advance to the address above it.
-        var checkIndex = self.count - 1
-        while checkIndex >= 0 {
-            if (self[checkIndex].onchainAddress == cachedAddress) || self[checkIndex].hasBeenUsed {
-                // This is the current address, or this address has been used.
-                // Return the next unused address.
-                if (checkIndex + 1) < self.count {
-                    CacheManager.storeLastAddress(newAddress: self[checkIndex+1].onchainAddress)
-                    return self[checkIndex+1].onchainAddress
-                } else {
-                    return nil
-                }
-            }
-            // Address hasn't been used.
-            checkIndex -= 1
+        // Get current highest used index and first unused index.
+        let highestUsedIndex = self.lastIndex { $0.hasBeenUsed }
+        let firstUnusedIndex = highestUsedIndex.map { $0 + 1 } ?? 0
+        
+        // Get index of currently shown address.
+        let cachedIndex = self.firstIndex {
+            $0.addressIndex >= firstUnusedIndex && $0.onchainAddress == cachedAddress
         }
         
-        // No cached/used address found in the pool.
-        return nil
+        // Get the index of the next address.
+        let nextIndex = cachedIndex.map { $0 + 1 } ?? firstUnusedIndex
+        
+        // Check whether there are any addresses left.
+        guard nextIndex < self.count else {
+            Log.info("No unused onchain address left to reveal.")
+            return nil
+        }
+        
+        // Update last address.
+        CacheManager.storeLastAddress(newAddress: self[nextIndex].onchainAddress)
+        return self[nextIndex].onchainAddress
     }
 }
 
@@ -275,7 +276,6 @@ extension CoreViewController {
                     break walk
                 } else {
                     // Address hasn't been used.
-                    CacheManager.storeLastAddress(newAddress: thisAddress.onchainAddress)
                     checkIndex -= 1
                 }
             }
