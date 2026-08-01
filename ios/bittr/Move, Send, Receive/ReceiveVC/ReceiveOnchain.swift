@@ -65,6 +65,9 @@ extension [OnchainAddress] {
 
 extension CoreViewController {
     
+    // How far to search for LDK's latest address in our own derivation before giving up.
+    static let maxOnchainAddressSearchIndex = 2500
+    
     func manageOnchainAddresses() {
         
         if CacheManager.getOnchainAddresses().count == 0 {
@@ -77,34 +80,59 @@ extension CoreViewController {
         }
     }
     
+    // Give up on building the pool without leaving the ReceiveVC waiting.
+    func abandonOnchainAddressManagement() {
+        DispatchQueue.main.async {
+            // Mark that onchain address verification has completed.
+            BitcoinManager.shared.bittrWallet.onchainAddressesVerified = true
+            // In case the user has opened the ReceiveVC, make the onchain address spinner stop animating.
+            self.receiveVC?.onchainAddressesReady()
+        }
+    }
+    
     func revealOnchainAddresses() {
         Log.info("Reveal onchain addresses.")
-
         guard let lastRevealedOnchainAddress = self.getNewOnchainAddress() else {
-            // Could not derive an address (e.g. the LDK node is unavailable). The
-            // normal completion path (checkOnchainAddressesWithBittr → "enough
-            // addresses" branch) is what sets onchainAddressesVerified, and we're
-            // bailing before reaching it — so without this, ReceiveVC's onchain
-            // gate would wait forever. Mark verification done and notify so the
-            // screen shows the best-available (cached) address instead of hanging.
-            DispatchQueue.main.async {
-                BitcoinManager.shared.bittrWallet.onchainAddressesVerified = true
-                self.receiveVC?.onchainAddressesReady()
-            }
+            Log.info("Could not derive an address (e.g. LDKNode is unavailable).")
+            self.abandonOnchainAddressManagement()
             return
         }
-
-        var revealedAddresses = [OnchainAddress]()
-        var revealAddressIndex:Int = 0
-        while revealedAddresses.last?.onchainAddress != lastRevealedOnchainAddress {
-            let newAddress = OnchainAddress()
-            newAddress.onchainAddress = BitcoinManager.shared.getAddress(atIndex: revealAddressIndex)
-            newAddress.addressIndex = revealAddressIndex
-            revealAddressIndex += 1
-            revealedAddresses += [newAddress]
+        
+        // Walk up from index 0 until we meet the address LDK just handed us.
+        var peekedAddresses = [String]()
+        var lastRevealedIndex:Int?
+        var searchIndex = 0
+        while searchIndex <= CoreViewController.maxOnchainAddressSearchIndex {
+            let peekedAddress = BitcoinManager.shared.getAddress(atIndex: searchIndex, doReveal: false)
+            peekedAddresses += [peekedAddress]
+            if peekedAddress == lastRevealedOnchainAddress {
+                lastRevealedIndex = searchIndex
+                break
+            }
+            searchIndex += 1
         }
-        revealedAddresses.sort { address1, address2 in
-            address1.addressIndex < address2.addressIndex
+        
+        guard let lastRevealedIndex else {
+            // BDK and LDK are deriving different addresses from the same seed. Bail.
+            Log.info("Could not match LDK's address within \(CoreViewController.maxOnchainAddressSearchIndex) derived addresses.")
+            DispatchQueue.main.async {
+                SentrySDK.capture(message: "BDK could not derive the address LDK reports as latest. Descriptors may have diverged.") { scope in
+                    scope.setExtra(value: CoreViewController.maxOnchainAddressSearchIndex, key: "searchedToIndex")
+                }
+            }
+            self.abandonOnchainAddressManagement()
+            return
+        }
+        
+        // Now reveal the whole range in one write, so these addresses are picked up by any lightSync.
+        BitcoinManager.shared.revealAddresses(toIndex: lastRevealedIndex)
+        
+        var revealedAddresses = [OnchainAddress]()
+        for (index, peekedAddress) in peekedAddresses.enumerated() {
+            let newAddress = OnchainAddress()
+            newAddress.onchainAddress = peekedAddress
+            newAddress.addressIndex = index
+            revealedAddresses += [newAddress]
         }
         
         Log.info("All revealed onchain addresses have been identified.")
@@ -118,16 +146,6 @@ extension CoreViewController {
     }
     
     func checkOnchainAddressesWithBittr() async {
-
-        // Bind the wallet and its address pool ONCE. performWalletReset can
-        // replace bittrWallet while this task is suspended in the network
-        // await below (e.g. a wallet removal resumed on relaunch), so
-        // re-reading the force-unwrapped property mid-run trapped on nil —
-        // this crash reproducibly killed the suite's removal flows. The
-        // identity guards after each suspension also stop post-reset cache
-        // writes: deleteClientInfo deliberately clears the address cache, and
-        // a late write-back here would hand the NEXT wallet its predecessor's
-        // addresses.
         let walletAtStart = BitcoinManager.shared.bittrWallet
         guard var onchainAddresses = walletAtStart.onchainAddresses, !onchainAddresses.isEmpty else {
             Log.info("No onchain addresses to check (pool empty or wallet resetting).")

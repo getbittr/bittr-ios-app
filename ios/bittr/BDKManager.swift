@@ -469,8 +469,8 @@ extension BitcoinManager {
         }
     }
     
-    func getAddress(atIndex:Int) -> String {
-        self.revealAddresses(toIndex: atIndex)
+    func getAddress(atIndex:Int, doReveal:Bool = true) -> String {
+        if doReveal { self.revealAddresses(toIndex: atIndex) }
         let thisAddress = self.bdkWallet!.peekAddress(keychain: .external, index: UInt32(atIndex)).address.description
         return thisAddress
     }
