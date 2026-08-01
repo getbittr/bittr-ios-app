@@ -180,10 +180,9 @@ extension CoreViewController {
                 }
 
                 if checkResult == nil {
-                    Log.info("Did not receive valid API result for onchain address.")
-                    // Treat address as unused.
-                    CacheManager.storeLastAddress(newAddress: thisAddress.onchainAddress)
-                    checkIndex -= 1
+                    Log.info("Could not verify onchain address at index \(checkIndex); stopping the check and keeping the cached pool.")
+                    self.finishOnchainAddressManagement(for: walletAtStart)
+                    return
                 } else if checkResult! == true {
                     // Did find used address. Update cache. (OnchainAddress is
                     // a class, so this mark also lands on the live pool.)
