@@ -93,6 +93,53 @@ extension CoreViewController {
         }
     }
     
+    func alignLDKNodeRevealedAddresses(toIndex targetIndex:Int) {
+        // Recognize an address by its index, a little past the target.
+        
+        var indexByAddress = [String:Int]()
+        // Peek each address using BDK.
+        for index in 0...(targetIndex + 20) {
+            guard let address = BitcoinManager.shared.getAddress(atIndex: index, doReveal: false) else {
+                Log.info("BDK wallet unavailable; could not align LDKNode's revealed addresses.")
+                return
+            }
+            indexByAddress[address] = index
+        }
+        
+        // Get next new LDKNode address.
+        guard let firstAddress = self.getNewOnchainAddress() else {
+            Log.info("LDKNode unavailable; its revealed addresses may lag the pool.")
+            return
+        }
+        
+        // Check whether next new LDKNode address is part of the BDK list.
+        guard var ldkIndex = indexByAddress[firstAddress] else {
+            // LDKNode is deriving addresses we cannot place.
+            Log.info("LDKNode returned an address outside our derivation; cannot align it with the pool.")
+            DispatchQueue.main.async {
+                SentrySDK.capture(message: "LDKNode returned an address BDK cannot place. Descriptors may have diverged.") { scope in
+                    scope.setExtra(value: targetIndex, key: "targetIndex")
+                }
+            }
+            return
+        }
+        
+        // Reveal LDK addresses up to the target index.
+        while ldkIndex < targetIndex {
+            guard let nextAddress = self.getNewOnchainAddress() else {
+                Log.info("LDKNode stopped handing out addresses at index \(ldkIndex); its reveals now lag the pool.")
+                return
+            }
+            guard let nextIndex = indexByAddress[nextAddress], nextIndex > ldkIndex else {
+                // Every call is meant to move LDKNode along by one. If it stops
+                // advancing, stop asking rather than calling forever.
+                Log.info("LDKNode did not advance past index \(ldkIndex); leaving its reveals where they are.")
+                return
+            }
+            ldkIndex = nextIndex
+        }
+    }
+    
     func revealOnchainAddresses() {
         Log.info("Reveal onchain addresses.")
         guard let lastRevealedOnchainAddress = self.getNewOnchainAddress() else {
@@ -225,10 +272,8 @@ extension CoreViewController {
                     let newAddress = OnchainAddress()
                     newAddress.onchainAddress = derivedAddress
                     newAddress.addressIndex = addressIndex
+                    
                     onchainAddresses += [newAddress]
-                    // Also reveal address in LDKNode.
-                    let newLDKAddress = self.getNewOnchainAddress() ?? ""
-                    print("BDK and LDK match: \(newAddress.onchainAddress == newLDKAddress)")
                     addressIndex += 1
                     numberOfUnusedAddresses += 1
                 }
@@ -236,6 +281,9 @@ extension CoreViewController {
                     address1.addressIndex < address2.addressIndex
                 }
 
+                // Make sure LDKNode and BDK are in sync.
+                self.alignLDKNodeRevealedAddresses(toIndex: onchainAddresses.count - 1)
+                
                 // Publish the grown pool — unless the wallet was reset while
                 // we revealed, in which case it belongs to a discarded wallet.
                 guard BitcoinManager.shared.bittrWallet === walletAtStart else {
