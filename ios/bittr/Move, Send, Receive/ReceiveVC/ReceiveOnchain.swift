@@ -80,9 +80,12 @@ extension CoreViewController {
         }
     }
     
-    // Give up on building the pool without leaving the ReceiveVC waiting.
-    func abandonOnchainAddressManagement() {
+    func finishOnchainAddressManagement(for wallet:BittrWallet? = nil) {
         DispatchQueue.main.async {
+            if let wallet, BitcoinManager.shared.bittrWallet !== wallet {
+                Log.info("Wallet was replaced during address management; leaving its successor's gate closed.")
+                return
+            }
             // Mark that onchain address verification has completed.
             BitcoinManager.shared.bittrWallet.onchainAddressesVerified = true
             // In case the user has opened the ReceiveVC, make the onchain address spinner stop animating.
@@ -94,7 +97,7 @@ extension CoreViewController {
         Log.info("Reveal onchain addresses.")
         guard let lastRevealedOnchainAddress = self.getNewOnchainAddress() else {
             Log.info("Could not derive an address (e.g. LDKNode is unavailable).")
-            self.abandonOnchainAddressManagement()
+            self.finishOnchainAddressManagement()
             return
         }
         
@@ -105,7 +108,7 @@ extension CoreViewController {
         while searchIndex <= CoreViewController.maxOnchainAddressSearchIndex {
             guard let peekedAddress = BitcoinManager.shared.getAddress(atIndex: searchIndex, doReveal: false) else {
                 Log.info("BDK wallet went away while identifying revealed onchain addresses.")
-                self.abandonOnchainAddressManagement()
+                self.finishOnchainAddressManagement()
                 return
             }
             peekedAddresses += [peekedAddress]
@@ -124,7 +127,7 @@ extension CoreViewController {
                     scope.setExtra(value: CoreViewController.maxOnchainAddressSearchIndex, key: "searchedToIndex")
                 }
             }
-            self.abandonOnchainAddressManagement()
+            self.finishOnchainAddressManagement()
             return
         }
         
@@ -153,6 +156,7 @@ extension CoreViewController {
         let walletAtStart = BitcoinManager.shared.bittrWallet
         guard var onchainAddresses = walletAtStart.onchainAddresses, !onchainAddresses.isEmpty else {
             Log.info("No onchain addresses to check (pool empty or wallet resetting).")
+            self.finishOnchainAddressManagement(for: walletAtStart)
             return
         }
 
@@ -171,6 +175,7 @@ extension CoreViewController {
                 // The wallet may have been reset while we were suspended.
                 guard BitcoinManager.shared.bittrWallet === walletAtStart else {
                     Log.info("Wallet was reset during the address check — abandoning.")
+                    self.finishOnchainAddressManagement(for: walletAtStart)
                     return
                 }
 
@@ -201,6 +206,7 @@ extension CoreViewController {
         DispatchQueue.global(qos: .background).async {
             guard BitcoinManager.shared.bittrWallet === walletAtStart else {
                 Log.info("Wallet was reset during the address check — abandoning.")
+                self.finishOnchainAddressManagement(for: walletAtStart)
                 return
             }
 
@@ -214,7 +220,7 @@ extension CoreViewController {
                 while numberOfUnusedAddresses < 10 {
                     guard let derivedAddress = BitcoinManager.shared.getAddress(atIndex: addressIndex) else {
                         Log.info("BDK wallet went away while revealing more onchain addresses.")
-                        self.abandonOnchainAddressManagement()
+                        self.finishOnchainAddressManagement(for: walletAtStart)
                         return
                     }
                     let newAddress = OnchainAddress()
@@ -235,6 +241,7 @@ extension CoreViewController {
                 // we revealed, in which case it belongs to a discarded wallet.
                 guard BitcoinManager.shared.bittrWallet === walletAtStart else {
                     Log.info("Wallet was reset during address reveal — abandoning.")
+                    self.finishOnchainAddressManagement(for: walletAtStart)
                     return
                 }
                 BitcoinManager.shared.bittrWallet.onchainAddresses = onchainAddresses
@@ -259,11 +266,7 @@ extension CoreViewController {
                 }
 
                 // Alert ReceiveVC that address management has completed.
-                DispatchQueue.main.async {
-                    guard BitcoinManager.shared.bittrWallet === walletAtStart else { return }
-                    BitcoinManager.shared.bittrWallet.onchainAddressesVerified = true
-                    self.receiveVC?.onchainAddressesReady()
-                }
+                self.finishOnchainAddressManagement(for: walletAtStart)
             }
         }
     }
