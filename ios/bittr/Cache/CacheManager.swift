@@ -1392,11 +1392,7 @@ class CacheManager: NSObject {
         
         if let cachedOnchainAddresses = UserDefaults.standard.value(forKey: EnvironmentConfig.cacheKey(for: "onchainaddresses")) as? [NSDictionary] {
             
-            var addresses = cachedOnchainAddresses.toAddresses()
-            addresses.sort { address1, address2 in
-                address1.addressIndex < address2.addressIndex
-            }
-            return addresses
+            return cachedOnchainAddresses.toAddresses()
         } else {
             return [OnchainAddress]()
         }

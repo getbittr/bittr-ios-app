@@ -55,7 +55,10 @@ extension [NSDictionary] {
                 let onchainAddress = eachDictionary["onchainAddress"] as? String,
                 let addressIndex = eachDictionary["addressIndex"] as? Int,
                 let hasBeenUsed = eachDictionary["hasBeenUsedByBittr"] as? Bool
-            else { break }
+            else {
+                Log.info("Cached onchain addresses could not be read; discarding the cached pool.")
+                return [OnchainAddress]()
+            }
             
             let thisAddress = OnchainAddress()
             thisAddress.onchainAddress = onchainAddress
@@ -67,6 +70,12 @@ extension [NSDictionary] {
         
         onchainAddresses.sort { address1, address2 in
             address1.addressIndex < address2.addressIndex
+        }
+        
+        // Ensure correct address indices.
+        for (position, eachAddress) in onchainAddresses.enumerated() where eachAddress.addressIndex != position {
+            Log.info("Cached onchain addresses are not contiguous from zero; discarding the cached pool.")
+            return [OnchainAddress]()
         }
         
         return onchainAddresses

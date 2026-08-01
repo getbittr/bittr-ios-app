@@ -40,6 +40,9 @@ class BitcoinManager {
     // Bittr wallet
     var bittrWallet = BittrWallet()
     
+    // Onchain address management
+    var isManagingOnchainAddresses = false
+    
     // Event listener
     private var eventListener: Task<Void, Never>?
     

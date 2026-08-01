@@ -70,6 +70,12 @@ extension CoreViewController {
     
     func manageOnchainAddresses() {
         
+        guard !BitcoinManager.shared.isManagingOnchainAddresses else {
+            Log.info("Onchain address management is already running.")
+            return
+        }
+        BitcoinManager.shared.isManagingOnchainAddresses = true
+        
         if CacheManager.getOnchainAddresses().count == 0 {
             Log.info("Onchain addresses need to be cached.")
             self.revealOnchainAddresses()
@@ -82,6 +88,7 @@ extension CoreViewController {
     
     func finishOnchainAddressManagement(for wallet:BittrWallet? = nil) {
         DispatchQueue.main.async {
+            BitcoinManager.shared.isManagingOnchainAddresses = false
             if let wallet, BitcoinManager.shared.bittrWallet !== wallet {
                 Log.info("Wallet was replaced during address management; leaving its successor's gate closed.")
                 return
@@ -275,8 +282,9 @@ extension CoreViewController {
             
             batchTopIndex = batchBottomIndex - 1
         }
-
-        let latestIndexUsedByBittr = highestUsedIndex ?? 0
+        
+        // Get first unused index.
+        let firstUnusedIndex = (highestUsedIndex ?? -1) + 1
         
         DispatchQueue.global(qos: .background).async {
             guard BitcoinManager.shared.bittrWallet === walletAtStart else {
@@ -286,7 +294,7 @@ extension CoreViewController {
             }
 
             // Check whether any additional addresses need to be revealed.
-            var numberOfUnusedAddresses = onchainAddresses.count - (latestIndexUsedByBittr+1)
+            var numberOfUnusedAddresses = onchainAddresses.count - firstUnusedIndex
             if numberOfUnusedAddresses < 10 {
                 // Not enough addresses available.
                 Log.info("Reveal more addresses.")
@@ -306,10 +314,6 @@ extension CoreViewController {
                     addressIndex += 1
                     numberOfUnusedAddresses += 1
                 }
-                onchainAddresses.sort { address1, address2 in
-                    address1.addressIndex < address2.addressIndex
-                }
-
                 // Make sure LDKNode and BDK are in sync.
                 self.alignLDKNodeRevealedAddresses(toIndex: onchainAddresses.count - 1)
                 
@@ -334,11 +338,12 @@ extension CoreViewController {
                 BitcoinManager.shared.revealAddresses(toIndex: onchainAddresses.count + 4)
                 
                 // Verify the currently cached address.
-                let unusedAddresses = onchainAddresses.filter { !$0.hasBeenUsed }
                 let cached = CacheManager.getLastAddress()
-                let cachedIsValidUnused = cached != nil && unusedAddresses.contains { $0.onchainAddress == cached }
-                if !cachedIsValidUnused, let firstUnused = unusedAddresses.first {
-                    CacheManager.storeLastAddress(newAddress: firstUnused.onchainAddress)
+                let cachedIsInUnusedRun = onchainAddresses.contains {
+                    $0.addressIndex >= firstUnusedIndex && $0.onchainAddress == cached
+                }
+                if !cachedIsInUnusedRun, firstUnusedIndex < onchainAddresses.count {
+                    CacheManager.storeLastAddress(newAddress: onchainAddresses[firstUnusedIndex].onchainAddress)
                 }
 
                 // Alert ReceiveVC that address management has completed.
