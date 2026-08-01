@@ -11,7 +11,7 @@ class OnchainAddress: NSObject {
     
     var onchainAddress:String = ""
     var addressIndex:Int = 0
-    var hasBeenUsedByBittr:Bool = false
+    var hasBeenUsed:Bool = false
     
 }
 
@@ -25,7 +25,7 @@ extension [OnchainAddress] {
             let thisAddress = NSMutableDictionary()
             thisAddress.setValue(eachAddress.onchainAddress, forKey: "onchainAddress")
             thisAddress.setValue(eachAddress.addressIndex, forKey: "addressIndex")
-            thisAddress.setValue(eachAddress.hasBeenUsedByBittr, forKey: "hasBeenUsedByBittr")
+            thisAddress.setValue(eachAddress.hasBeenUsed, forKey: "hasBeenUsedByBittr")
             onchainAddresses += [thisAddress]
         }
         
@@ -54,13 +54,13 @@ extension [NSDictionary] {
             guard
                 let onchainAddress = eachDictionary["onchainAddress"] as? String,
                 let addressIndex = eachDictionary["addressIndex"] as? Int,
-                let hasBeenUsedByBittr = eachDictionary["hasBeenUsedByBittr"] as? Bool
+                let hasBeenUsed = eachDictionary["hasBeenUsedByBittr"] as? Bool
             else { break }
             
             let thisAddress = OnchainAddress()
             thisAddress.onchainAddress = onchainAddress
             thisAddress.addressIndex = addressIndex
-            thisAddress.hasBeenUsedByBittr = hasBeenUsedByBittr
+            thisAddress.hasBeenUsed = hasBeenUsed
             
             onchainAddresses += [thisAddress]
         }

@@ -44,7 +44,7 @@ extension [OnchainAddress] {
         // used one, then advance to the address above it.
         var checkIndex = self.count - 1
         while checkIndex >= 0 {
-            if (self[checkIndex].onchainAddress == cachedAddress) || self[checkIndex].hasBeenUsedByBittr {
+            if (self[checkIndex].onchainAddress == cachedAddress) || self[checkIndex].hasBeenUsed {
                 // This is the current address, or this address has been used.
                 // Return the next unused address.
                 if (checkIndex + 1) < self.count {
@@ -206,49 +206,78 @@ extension CoreViewController {
             self.finishOnchainAddressManagement(for: walletAtStart)
             return
         }
-
-        var hasFoundUsedAddress = false
-        var checkIndex = onchainAddresses.count - 1
-        var latestIndexUsedByBittr = 0
-
-        while !hasFoundUsedAddress && checkIndex >= 0 {
-            let thisAddress = onchainAddresses[checkIndex]
-
-            if !thisAddress.hasBeenUsedByBittr {
-                // Address needs to be checked with Bittr.
-
-                let checkResult = await thisAddress.checkHasBeenUsed()
-
-                // The wallet may have been reset while we were suspended.
-                guard BitcoinManager.shared.bittrWallet === walletAtStart else {
-                    Log.info("Wallet was reset during the address check — abandoning.")
-                    self.finishOnchainAddressManagement(for: walletAtStart)
-                    return
+        
+        // Identify the highest used onchain address.
+        var highestUsedIndex:Int?
+        // Highest currently revealed index.
+        var batchTopIndex = onchainAddresses.count - 1
+        
+        walk: while batchTopIndex >= 0 {
+            // Check the usage state of the highest 10 cached addresses.
+            let batchBottomIndex = max(0, batchTopIndex - 9)
+            
+            // Addresses already known to be used need no call.
+            var addressesToCheck = [(index:Int, address:String)]()
+            for index in batchBottomIndex...batchTopIndex where !onchainAddresses[index].hasBeenUsed {
+                addressesToCheck += [(index, onchainAddresses[index].onchainAddress)]
+            }
+            
+            // Make API calls to check address usage state.
+            var outcomes = [Int:Bool?]()
+            await withTaskGroup(of: (Int, Bool?).self) { group in
+                for (index, address) in addressesToCheck {
+                    group.addTask {
+                        return (index, await address.checkHasBeenUsed())
+                    }
                 }
-
-                if checkResult == nil {
+                for await (index, result) in group {
+                    outcomes[index] = result
+                }
+            }
+            
+            // Make sure wallet hasn't been reset while we were suspended.
+            guard BitcoinManager.shared.bittrWallet === walletAtStart else {
+                Log.info("Wallet was reset during the address check — abandoning.")
+                self.finishOnchainAddressManagement(for: walletAtStart)
+                return
+            }
+            
+            // Find the highest used index.
+            var checkIndex = batchTopIndex
+            while checkIndex >= batchBottomIndex {
+                let thisAddress = onchainAddresses[checkIndex]
+                
+                if thisAddress.hasBeenUsed {
+                    // This address was already known to be used.
+                    highestUsedIndex = checkIndex
+                    break walk
+                }
+                
+                // Bail in case no status could be fetched from API call.
+                guard let checkResult = outcomes[checkIndex] ?? nil else {
                     Log.info("Could not verify onchain address at index \(checkIndex); stopping the check and keeping the cached pool.")
                     self.finishOnchainAddressManagement(for: walletAtStart)
                     return
-                } else if checkResult! == true {
-                    // Did find used address. Update cache. (OnchainAddress is
-                    // a class, so this mark also lands on the live pool.)
-                    onchainAddresses[checkIndex].hasBeenUsedByBittr = true
+                }
+                
+                if checkResult {
+                    // Did find a newly used address. Update cache.
+                    onchainAddresses[checkIndex].hasBeenUsed = true
                     CacheManager.storeOnchainAddresses(onchainAddresses)
-                    latestIndexUsedByBittr = checkIndex
-                    hasFoundUsedAddress = true
+                    highestUsedIndex = checkIndex
+                    break walk
                 } else {
                     // Address hasn't been used.
                     CacheManager.storeLastAddress(newAddress: thisAddress.onchainAddress)
                     checkIndex -= 1
                 }
-            } else {
-                // This address has been used.
-                latestIndexUsedByBittr = checkIndex
-                hasFoundUsedAddress = true
             }
+            
+            batchTopIndex = batchBottomIndex - 1
         }
 
+        let latestIndexUsedByBittr = highestUsedIndex ?? 0
+        
         DispatchQueue.global(qos: .background).async {
             guard BitcoinManager.shared.bittrWallet === walletAtStart else {
                 Log.info("Wallet was reset during the address check — abandoning.")
@@ -305,7 +334,7 @@ extension CoreViewController {
                 BitcoinManager.shared.revealAddresses(toIndex: onchainAddresses.count + 4)
                 
                 // Verify the currently cached address.
-                let unusedAddresses = onchainAddresses.filter { !$0.hasBeenUsedByBittr }
+                let unusedAddresses = onchainAddresses.filter { !$0.hasBeenUsed }
                 let cached = CacheManager.getLastAddress()
                 let cachedIsValidUnused = cached != nil && unusedAddresses.contains { $0.onchainAddress == cached }
                 if !cachedIsValidUnused, let firstUnused = unusedAddresses.first {
@@ -319,12 +348,16 @@ extension CoreViewController {
     }
 }
 
-extension OnchainAddress {
+extension String {
     
     func checkHasBeenUsed() async -> Bool? {
+        // Onchain address.
+        let address = self
         
-        let url = "\(EnvironmentConfig.esploraURL)/address/\(self.onchainAddress)"
+        // Esplora URL.
+        let url = "\(EnvironmentConfig.esploraURL)/address/\(address)"
         
+        // Make API call.
         let receivedDict:NSDictionary
         do {
             receivedDict = try await withThrowingTaskGroup(of: NSDictionary.self) { group in
@@ -366,6 +399,7 @@ extension OnchainAddress {
             return nil
         }
         
+        // Parse dictionary.
         guard let chainStats = receivedDict["chain_stats"] as? NSDictionary, let txCount = chainStats["tx_count"] as? Int else {
             // Expected data missing.
             return nil
