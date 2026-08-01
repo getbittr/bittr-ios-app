@@ -103,7 +103,11 @@ extension CoreViewController {
         var lastRevealedIndex:Int?
         var searchIndex = 0
         while searchIndex <= CoreViewController.maxOnchainAddressSearchIndex {
-            let peekedAddress = BitcoinManager.shared.getAddress(atIndex: searchIndex, doReveal: false)
+            guard let peekedAddress = BitcoinManager.shared.getAddress(atIndex: searchIndex, doReveal: false) else {
+                Log.info("BDK wallet went away while identifying revealed onchain addresses.")
+                self.abandonOnchainAddressManagement()
+                return
+            }
             peekedAddresses += [peekedAddress]
             if peekedAddress == lastRevealedOnchainAddress {
                 lastRevealedIndex = searchIndex
@@ -162,7 +166,7 @@ extension CoreViewController {
             if !thisAddress.hasBeenUsedByBittr {
                 // Address needs to be checked with Bittr.
 
-                let checkResult = await thisAddress.checkHasBeenUsedByBittr()
+                let checkResult = await thisAddress.checkHasBeenUsed()
 
                 // The wallet may have been reset while we were suspended.
                 guard BitcoinManager.shared.bittrWallet === walletAtStart else {
@@ -208,8 +212,13 @@ extension CoreViewController {
 
                 var addressIndex = onchainAddresses.count
                 while numberOfUnusedAddresses < 10 {
+                    guard let derivedAddress = BitcoinManager.shared.getAddress(atIndex: addressIndex) else {
+                        Log.info("BDK wallet went away while revealing more onchain addresses.")
+                        self.abandonOnchainAddressManagement()
+                        return
+                    }
                     let newAddress = OnchainAddress()
-                    newAddress.onchainAddress = BitcoinManager.shared.getAddress(atIndex: addressIndex)
+                    newAddress.onchainAddress = derivedAddress
                     newAddress.addressIndex = addressIndex
                     onchainAddresses += [newAddress]
                     // Also reveal address in LDKNode.
@@ -262,7 +271,7 @@ extension CoreViewController {
 
 extension OnchainAddress {
     
-    func checkHasBeenUsedByBittr() async -> Bool? {
+    func checkHasBeenUsed() async -> Bool? {
         
         let url = "\(EnvironmentConfig.esploraURL)/address/\(self.onchainAddress)"
         
@@ -307,16 +316,10 @@ extension OnchainAddress {
             return nil
         }
         
-        if let chainStats = receivedDict["chain_stats"] as? NSDictionary, let txCount = chainStats["tx_count"] as? Int {
-            
-            if txCount == 0 {
-                return false
-            } else {
-                return true
-            }
-        } else {
+        guard let chainStats = receivedDict["chain_stats"] as? NSDictionary, let txCount = chainStats["tx_count"] as? Int else {
             // Expected data missing.
             return nil
         }
+        return txCount > 0
     }
 }
