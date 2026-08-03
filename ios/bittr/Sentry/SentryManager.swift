@@ -226,4 +226,52 @@ extension Error {
         
         return (self as NSError).domain == "Timeout"
     }
+    
+    var isExpectedPaymentFailure:Bool {
+        guard let nodeError = self as? NodeError else { return false }
+        
+        switch nodeError {
+        case .InsufficientFunds,
+             .DuplicatePayment,
+             .PaymentSendingFailed,
+             .LiquidityFeeTooHigh,
+             .LiquiditySourceUnavailable:
+            return true
+        default:
+            return false
+        }
+    }
+    
+    var paymentFailureReason:String {
+        guard let nodeError = self as? NodeError else {
+            return isConnectivityError ? "connectivity" : "other"
+        }
+        switch nodeError {
+            
+        // Either send path can end here.
+        case .NotRunning: return "notRunning"
+        case .PaymentSendingFailed: return "paymentSendingFailed"
+        case .DuplicatePayment: return "duplicatePayment"
+        case .InvalidAmount: return "invalidAmount"
+        case .ConnectionFailed: return "connectionFailed"
+            
+        // BOLT11.
+        case .InvalidInvoice: return "invalidInvoice"
+        case .InvalidPaymentHash: return "invalidPaymentHash"
+        case .InvalidPaymentPreimage: return "invalidPaymentPreimage"
+        case .InvoiceCreationFailed: return "invoiceCreationFailed"
+            
+        // BOLT12.
+        case .InvalidOffer: return "invalidOffer"
+        case .InvalidQuantity: return "invalidQuantity"
+        case .InvalidBlindedPaths: return "invalidBlindedPaths"
+        case .InvoiceRequestCreationFailed: return "invoiceRequestCreationFailed"
+        case .OfferCreationFailed: return "offerCreationFailed"
+        case .UnsupportedCurrency: return "unsupportedCurrency"
+        case .AsyncPaymentServicesDisabled: return "asyncPaymentServicesDisabled"
+            
+        default: return "other"
+        }
+    }
+
 }

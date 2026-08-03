@@ -260,7 +260,7 @@ extension UIViewController {
                         confirmSendVC?.confirmLabel.alpha = 1
                         confirmSendVC?.confirmSpinner.stopAnimating()
                         self.showAlert(presentingController: self, title: Language.getWord(withID: "bittrpeer"), message: Language.getWord(withID: "bittrpeer3"), buttons: [Language.getWord(withID: "close"), Language.getWord(withID: "connect")], actions: [nil, #selector(self.performLightningPayment)])
-                        SentryManager.countMetric("lightning.payment.failure.2")
+                        SentryManager.countMetric("lightning.payment.failure.peerUnreachable")
                     }
                 }
                 return
@@ -283,17 +283,14 @@ extension UIViewController {
                 if let bolt12Offer = invoiceText.bolt12Offer() {
                     Log.info("Perform BOLT12 payment.")
                     let _ = try BitcoinManager.shared.sendBolt12Payment(offer: bolt12Offer, amount: invoiceAmount)
-                    SentryManager.countMetric("lightning.bolt12payment.success")
                 } else {
                     Log.info("Perform BOLT11 payment.")
                     if isZeroAmountInvoice {
                         Log.info("Perform sendZeroAmountPayment.")
                         let _ = try BitcoinManager.shared.sendZeroAmountPayment(invoice: Bolt11Invoice.fromStr(invoiceStr: invoiceText), amount: invoiceAmount)
-                        SentryManager.countMetric("lightning.payment.success")
                     } else {
                         Log.info("Perform sendPayment.")
                         let paymentHash = try BitcoinManager.shared.sendPayment(invoice: Bolt11Invoice.fromStr(invoiceStr: invoiceText))
-                        SentryManager.countMetric("lightning.payment.success")
                         if swapVC?.swapStatusVC != nil {
                             SwapManager.didReceivePaymentHash(paymentHash, swapVC: swapVC!.swapStatusVC!)
                         }
@@ -312,23 +309,33 @@ extension UIViewController {
                     }
                 }()
                 DispatchQueue.main.async {
-                    // General error alert
+                    // Clear UI.
                     sendVC?.nextLabel.alpha = 1
                     sendVC?.arrowIcon.alpha = 1
                     sendVC?.nextSpinner.stopAnimating()
                     confirmSendVC?.confirmLabel.alpha = 1
                     confirmSendVC?.confirmSpinner.stopAnimating()
+                    
+                    // Show alert.
                     self.showAlert(presentingController: sendVC ?? self, title: Language.getWord(withID: "unexpectederror"), message: Language.getWord(withID: "failedinvoicepayment1").replacingOccurrences(of: "<message>", with: errorMessage), buttons: [Language.getWord(withID: "okay")], actions: nil)
+                    
+                    // Slide back from ConfirmSendVC to SendVC.
                     sendVC?.slideFromConfirmToSend()
+                    
+                    // Count Sentry metrics.
                     if swapVC != nil {
                         SentryManager.countMetric("swap.lightningtoonchain.failed")
                     }
                     if invoiceText.bolt12Offer() != nil {
-                        SentryManager.countMetric("lightning.bolt12payment.failure")
+                        SentryManager.countMetric("lightning.bolt12payment.failure.\(error.paymentFailureReason)")
                     } else {
-                        SentryManager.countMetric("lightning.payment.failure.1")
+                        SentryManager.countMetric("lightning.payment.failure.\(error.paymentFailureReason)")
                     }
-                    SentryManager.capture(error, context: "SendLightning row 233")
+                    
+                    // Capture Sentry error.
+                    if !error.isConnectivityError, !error.isExpectedPaymentFailure {
+                        SentryManager.capture(error, context: "SendLightning row 233")
+                    }
                 }
             }
         }

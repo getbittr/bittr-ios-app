@@ -353,7 +353,11 @@ extension CoreViewController {
                 
             case .paymentSuccessful(paymentId: _, paymentHash: let paymentHash, paymentPreimage: _, feePaidMsat: let feePaidMsat):
                 
-                if let paymentDetails = BitcoinManager.shared.getPaymentDetails(paymentHash: paymentHash) {
+                let paymentDetails = BitcoinManager.shared.getPaymentDetails(paymentHash: paymentHash)
+                
+                SentryManager.countMetric(paymentDetails?.kind.isBolt12 == true ? "lightning.bolt12payment.success" : "lightning.payment.success")
+                
+                if let paymentDetails {
                     
                     // Create transaction item.
                     let newTransaction = paymentDetails.createTransaction(bittrTransactions: nil)
