@@ -115,9 +115,7 @@ class BittrService {
                 throw BittrServiceError.serverError(decodedResponse.error ?? "Unknown error")
             }
         } catch {
-            if !error.isConnectivityError {
-                SentryManager.capture(error, context: "BittrService row 114")
-            }
+            SentryManager.capture(error, context: "BittrService row 114")
             throw BittrServiceError.networkError(error)
         }
     }

@@ -313,9 +313,7 @@ class BitcoinManager {
                     }()
                     // Handle UI error showing here, like showing an alert
                     Log.info("Can't connect to peer: \(errorMessage).")
-                    if !error.isConnectivityError {
-                        SentryManager.capture(error, context: "BitcoinManager row 319")
-                    }
+                    SentryManager.capture(error, context: "BitcoinManager row 319")
                     return false
                 }
             }

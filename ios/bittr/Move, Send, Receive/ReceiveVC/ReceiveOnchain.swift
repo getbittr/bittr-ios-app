@@ -276,9 +276,7 @@ extension OnchainAddress {
                 return firstResult
             }
         } catch {
-            if !error.isConnectivityError {
-                SentryManager.capture(error, context: "ReceiveOnchain row 133")
-            }
+            SentryManager.capture(error, context: "ReceiveOnchain row 133")
             return nil
         }
         

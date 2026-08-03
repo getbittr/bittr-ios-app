@@ -539,9 +539,7 @@ extension CoreViewController {
                 } catch {
                     Log.info("channelPending Bittr error: \(error.localizedDescription)")
                     DispatchQueue.main.async {
-                        if !error.isConnectivityError {
-                            SentryManager.capture(error, context: "HandlePaymentNotification row 453")
-                        }
+                        SentryManager.capture(error, context: "HandlePaymentNotification row 453")
                         if paymentDetails != nil {
                             let thisTransaction = paymentDetails!.createTransaction(bittrTransactions: nil)
                             self.launchTransactionVC(thisTransaction: thisTransaction, paymentDetails: paymentDetails!)

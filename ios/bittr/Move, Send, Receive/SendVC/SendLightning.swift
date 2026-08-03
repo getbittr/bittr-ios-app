@@ -328,9 +328,7 @@ extension UIViewController {
                     }
                     
                     // Capture Sentry error.
-                    if !error.isConnectivityError, !error.isExpectedPaymentFailure {
-                        SentryManager.capture(error, context: "SendLightning row 233")
-                    }
+                    SentryManager.capture(error, context: "SendLightning row 233")
                 }
             }
         }

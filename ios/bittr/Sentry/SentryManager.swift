@@ -160,6 +160,7 @@ enum SentryManager {
     }
     
     static func capture(_ error: any Error, context:String? = nil) {
+        guard !error.isConnectivityError, !error.isExpectedPaymentFailure else { return }
         DispatchQueue.main.async {
             SentrySDK.capture(error: error) { scope in
                 if let context { scope.setExtra(value: context, key: "context") }

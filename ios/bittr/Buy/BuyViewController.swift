@@ -224,9 +224,7 @@ class BuyViewController: UIViewController, UITextFieldDelegate, UICollectionView
                         self.parseNewData(receivedDictionary: receivedDictionary)
                     case .failure(let error):
                         Log.info("185 Error. \(error.localizedDescription)")
-                        if !error.isConnectivityError {
-                            SentryManager.capture(error, context: "BuyViewController row 210")
-                        }
+                        SentryManager.capture(error, context: "BuyViewController row 210")
                     }
                 }
             }
