@@ -176,6 +176,7 @@ enum SentryManager {
     }
     
     static func countMetric(_ key:String) {
+        guard EnvironmentConfig.isProduction else { return }
         DispatchQueue.main.async {
             SentrySDK.metrics.count(key: key)
         }
