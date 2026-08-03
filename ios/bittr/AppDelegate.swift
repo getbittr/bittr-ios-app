@@ -25,15 +25,15 @@ class AppDelegate: UIResponder, UIApplicationDelegate, UNUserNotificationCenterD
             options.beforeSend = { sentryEvent in
                 
                 if let eventMessage = sentryEvent.message?.formatted {
-                    sentryEvent.message = SentryMessage(formatted: eventMessage.redactBTCValues())
+                    sentryEvent.message = SentryMessage(formatted: eventMessage.redactSensitiveValues())
                 }
                 
                 if let eventExceptions = sentryEvent.exceptions {
                     for eachException in eventExceptions {
-                        eachException.value = eachException.value?.redactBTCValues()
+                        eachException.value = eachException.value?.redactSensitiveValues()
                         if let exceptionMechanism = eachException.mechanism {
                             if let mechanismDescription = exceptionMechanism.desc {
-                                eachException.mechanism!.desc = mechanismDescription.redactBTCValues()
+                                eachException.mechanism!.desc = mechanismDescription.redactSensitiveValues()
                             }
                         }
                     }
@@ -42,7 +42,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate, UNUserNotificationCenterD
                 if var eventExtra = sentryEvent.extra {
                     for (key, value) in eventExtra {
                         if let valueString = value as? String {
-                            eventExtra[key] = valueString.redactBTCValues()
+                            eventExtra[key] = valueString.redactSensitiveValues()
                         }
                     }
                     sentryEvent.extra = eventExtra
@@ -217,37 +217,3 @@ class AppDelegate: UIResponder, UIApplicationDelegate, UNUserNotificationCenterD
     }
 
 }
-
-extension String {
-    
-    func redactBTCValues() -> String {
-        // Replace any sequence like "0.16450231 BTC" with "[redacted]"
-        let pattern = #"[0-9]+\.[0-9]+(\s*BTC)?"#
-        return self.replacingOccurrences(of: pattern, with: "[redacted]", options: .regularExpression)
-    }
-    
-    func redactURL() -> String {
-        // Regex pattern to catch URLs (both http and https)
-        let pattern = #"(https?:\/\/[^\s]+)"#
-        return self.replacingOccurrences(of: pattern, with: "[redacted URL]", options: .regularExpression)
-    }
-    
-    func redactURLIdentifiers() -> String {
-        
-        // Drop any query and fragment wholesale.
-        var url = self
-        if let queryStart = url.firstIndex(where: { $0 == "?" || $0 == "#" }) {
-            url = String(url[url.startIndex..<queryStart])
-        }
-        
-        return url
-            .split(separator: "/", omittingEmptySubsequences: false)
-            .map { pathSegment in
-                let isIdentifier = pathSegment.count >= 20 && pathSegment.allSatisfy { $0.isLetter || $0.isNumber }
-                return isIdentifier ? "[redacted]" : String(pathSegment)
-            }
-            .joined(separator: "/")
-    }
-    
-}
-

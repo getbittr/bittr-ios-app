@@ -35,7 +35,6 @@
 		05117AF52EAA31C300A5E4E6 /* Button.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05117AF42EAA31C000A5E4E6 /* Button.swift */; };
 		05117AF72EAA754800A5E4E6 /* Demo Data.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05117AF62EAA754500A5E4E6 /* Demo Data.swift */; };
 		05117AF92EAB74A100A5E4E6 /* Image.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05117AF82EAB749F00A5E4E6 /* Image.swift */; };
-		05117B9E2EDEC6AC00A5E4E6 /* Log.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05117B9D2EDEC6AA00A5E4E6 /* Log.swift */; };
 		0514BC5330109C3F00BC05A2 /* PaymentDetails.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0514BC5230109C3B00BC05A2 /* PaymentDetails.swift */; };
 		0514BC553010A17D00BC05A2 /* PaymentKind.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0514BC543010A17B00BC05A2 /* PaymentKind.swift */; };
 		0514BC573010A1AF00BC05A2 /* UILabel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0514BC563010A1AE00BC05A2 /* UILabel.swift */; };
@@ -149,7 +148,6 @@
 		05D80DFF2BA4170800E2F093 /* CodeScanner in Frameworks */ = {isa = PBXBuildFile; productRef = 05D80DFE2BA4170800E2F093 /* CodeScanner */; };
 		05D80E022BA4174E00E2F093 /* BitcoinDevKit in Frameworks */ = {isa = PBXBuildFile; productRef = 05D80E012BA4174E00E2F093 /* BitcoinDevKit */; };
 		05D80E082BA4203600E2F093 /* LightningDevKit in Frameworks */ = {isa = PBXBuildFile; productRef = 05D80E072BA4203600E2F093 /* LightningDevKit */; };
-		05DA7CAF30203F6000157CE9 /* SentryManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05DA7CAE30203F5D00157CE9 /* SentryManager.swift */; };
 		05E2995A2A39CB3700FA0AEE /* IbanCollectionViewCell.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05E299592A39CB3700FA0AEE /* IbanCollectionViewCell.swift */; };
 		05E305372F517F56003DE7CF /* ReloadWallet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05E305362F517F4E003DE7CF /* ReloadWallet.swift */; };
 		05E305392F5189D7003DE7CF /* UIView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05E305382F5189D6003DE7CF /* UIView.swift */; };
@@ -254,7 +252,6 @@
 		05117AF42EAA31C000A5E4E6 /* Button.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Button.swift; sourceTree = "<group>"; };
 		05117AF62EAA754500A5E4E6 /* Demo Data.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Demo Data.swift"; sourceTree = "<group>"; };
 		05117AF82EAB749F00A5E4E6 /* Image.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Image.swift; sourceTree = "<group>"; };
-		05117B9D2EDEC6AA00A5E4E6 /* Log.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Log.swift; sourceTree = "<group>"; };
 		0514BC5230109C3B00BC05A2 /* PaymentDetails.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PaymentDetails.swift; sourceTree = "<group>"; };
 		0514BC543010A17B00BC05A2 /* PaymentKind.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PaymentKind.swift; sourceTree = "<group>"; };
 		0514BC563010A1AE00BC05A2 /* UILabel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UILabel.swift; sourceTree = "<group>"; };
@@ -364,7 +361,6 @@
 		05D5D0E62A66825000A1E771 /* BitcoinManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BitcoinManager.swift; sourceTree = "<group>"; };
 		05D5D0E92A66836300A1E771 /* LightningStorage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LightningStorage.swift; sourceTree = "<group>"; };
 		05D5D0EB2A66843B00A1E771 /* FileManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FileManager.swift; sourceTree = "<group>"; };
-		05DA7CAE30203F5D00157CE9 /* SentryManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SentryManager.swift; sourceTree = "<group>"; };
 		05E299592A39CB3700FA0AEE /* IbanCollectionViewCell.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IbanCollectionViewCell.swift; sourceTree = "<group>"; };
 		05E305362F517F4E003DE7CF /* ReloadWallet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReloadWallet.swift; sourceTree = "<group>"; };
 		05E305382F5189D6003DE7CF /* UIView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UIView.swift; sourceTree = "<group>"; };
@@ -413,6 +409,7 @@
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		05A256542D1155B4009EDC7A /* BittrWidget */ = {isa = PBXFileSystemSynchronizedRootGroup; exceptions = (05A256682D1155B8009EDC7A /* PBXFileSystemSynchronizedBuildFileExceptionSet */, ); explicitFileTypes = {}; explicitFolders = (); path = BittrWidget; sourceTree = "<group>"; };
+		05DA7CBA30205A0900157CE9 /* Sentry */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = Sentry; sourceTree = "<group>"; };
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -853,6 +850,7 @@
 				05C3C0B429CCBFDD00C1E695 /* Helpers */,
 				051015502F973F8D00D3F631 /* Map */,
 				05512F24300F809200E75272 /* Cache */,
+				05DA7CBA30205A0900157CE9 /* Sentry */,
 				05D5D0E62A66825000A1E771 /* BitcoinManager.swift */,
 				05546D282F35B86700512129 /* BDKManager.swift */,
 				05622A682DB61E3700D91066 /* AlertManager.swift */,
@@ -890,7 +888,6 @@
 		05C3C0B429CCBFDD00C1E695 /* Helpers */ = {
 			isa = PBXGroup;
 			children = (
-				05DA7CAE30203F5D00157CE9 /* SentryManager.swift */,
 				053C37532FD28E8800A510DF /* BittrArticles.swift */,
 				37FC16CF2FAD1AF2002578B2 /* TestIDs.swift */,
 				379160592E1D7C6600024560 /* Bip39Words.swift */,
@@ -903,7 +900,6 @@
 				0577C3F82AFA28180047A3DC /* BittrService.swift */,
 				051BE0872B641D41009CED5B /* Reachability.swift */,
 				059704A62E43514F00B56690 /* BitcoinValue.swift */,
-				05117B9D2EDEC6AA00A5E4E6 /* Log.swift */,
 				05CF63B83004ECB800E55351 /* SecureStore.swift */,
 			);
 			path = Helpers;
@@ -999,6 +995,9 @@
 			);
 			dependencies = (
 				05A256632D1155B8009EDC7A /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				05DA7CBA30205A0900157CE9 /* Sentry */,
 			);
 			name = bittr;
 			packageProductDependencies = (
@@ -1244,7 +1243,6 @@
 				051DDEF92C6B185C0002CF2D /* Colors.swift in Sources */,
 				057E6E892A14DBAC00B37026 /* OneArticleTableViewCell.swift in Sources */,
 				379160602E1D99D300024560 /* MnemonicTextField.swift in Sources */,
-				05DA7CAF30203F6000157CE9 /* SentryManager.swift in Sources */,
 				05C5A0ED2A33252C004CC671 /* Transfer1ViewController.swift in Sources */,
 				05AF89762D437073009D629C /* SwapViewController.swift in Sources */,
 				05F31CC32B88009E00AAA342 /* QuestionViewController.swift in Sources */,
@@ -1341,7 +1339,6 @@
 				054D42DF2F7B739E00599720 /* AnimationViewController.swift in Sources */,
 				05FD3AFC2F5EB92A00974FEA /* ScannerViewController.swift in Sources */,
 				05E305372F517F56003DE7CF /* ReloadWallet.swift in Sources */,
-				05117B9E2EDEC6AC00A5E4E6 /* Log.swift in Sources */,
 				05117AE02EA73B6B00A5E4E6 /* LevelTableViewCell.swift in Sources */,
 				37A484BC2E4B7BA70027A348 /* EnvironmentConfig.swift in Sources */,
 				05117AF72EAA754800A5E4E6 /* Demo Data.swift in Sources */,
