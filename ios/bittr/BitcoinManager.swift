@@ -658,6 +658,11 @@ class BitcoinManager {
         // Clear electrum client reference
         self.electrumClient = nil
         
+        // Clear what the scan flags say about the wallet we just discarded.
+        self.bdkWalletIsScanning = false
+        self.bdkWalletHasBeenScanned = false
+        self.bdkFullScanTimedOut = false
+        
         // Reset other state variables
         self.xpub = ""
         
