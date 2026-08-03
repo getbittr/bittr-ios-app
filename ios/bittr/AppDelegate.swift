@@ -19,6 +19,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate, UNUserNotificationCenterD
             options.debug = false
             options.tracesSampleRate = 1.0
             options.sendDefaultPii = false
+            options.environment = EnvironmentConfig.currentEnvironment.rawValue
             
             // Redact sensitive data in Sentry events.
             options.beforeSend = { sentryEvent in
@@ -45,6 +46,14 @@ class AppDelegate: UIResponder, UIApplicationDelegate, UNUserNotificationCenterD
                         }
                     }
                     sentryEvent.extra = eventExtra
+                }
+                
+                if let eventRequest = sentryEvent.request {
+                    eventRequest.url = eventRequest.url?.redactURLIdentifiers()
+                    eventRequest.queryString = nil
+                    eventRequest.fragment = nil
+                    eventRequest.cookies = nil
+                    eventRequest.headers = nil
                 }
                 
                 // Redact sensitive user data.
@@ -84,6 +93,24 @@ class AppDelegate: UIResponder, UIApplicationDelegate, UNUserNotificationCenterD
                 if sentryEvent.extra == nil { sentryEvent.extra = [String:Any]() }
                 
                 return sentryEvent
+            }
+            
+            // Redact sensitive data in traced HTTP spans.
+            options.beforeSendSpan = { span in
+                
+                span.spanDescription = span.spanDescription?.redactURLIdentifiers()
+                
+                if let spanURL = span.data["url"] as? String {
+                    span.setData(value: spanURL.redactURLIdentifiers(), key: "url")
+                }
+                if span.data["http.query"] != nil {
+                    span.setData(value: "[redacted]", key: "http.query")
+                }
+                if span.data["http.fragment"] != nil {
+                    span.setData(value: "[redacted]", key: "http.fragment")
+                }
+                
+                return span
             }
             
             // Redact sensitive data in Sentry breadcrumbs.
@@ -204,5 +231,23 @@ extension String {
         let pattern = #"(https?:\/\/[^\s]+)"#
         return self.replacingOccurrences(of: pattern, with: "[redacted URL]", options: .regularExpression)
     }
+    
+    func redactURLIdentifiers() -> String {
+        
+        // Drop any query and fragment wholesale.
+        var url = self
+        if let queryStart = url.firstIndex(where: { $0 == "?" || $0 == "#" }) {
+            url = String(url[url.startIndex..<queryStart])
+        }
+        
+        return url
+            .split(separator: "/", omittingEmptySubsequences: false)
+            .map { pathSegment in
+                let isIdentifier = pathSegment.count >= 20 && pathSegment.allSatisfy { $0.isLetter || $0.isNumber }
+                return isIdentifier ? "[redacted]" : String(pathSegment)
+            }
+            .joined(separator: "/")
+    }
+    
 }
 
