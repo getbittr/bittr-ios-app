@@ -10,7 +10,6 @@ import LDKNode
 import CodeScanner
 import AVFoundation
 import LightningDevKit
-import Sentry
 
 extension SendViewController {
     
@@ -118,9 +117,7 @@ extension SendViewController {
         guard !(parsedInvoice == nil && bolt12Offer == nil) else {
             // Invalid invoice.
             Log.info("Invalid invoice: \(invoiceText)")
-            SentrySDK.capture(message: "Invalid invoice.") { scope in
-                scope.setExtra(value: "SendLightning row 180", key: "context")
-            }
+            SentryManager.capture("Invalid invoice.", context: "SendLightning row 180")
             self.showAlert(presentingController: self, title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "invalidinvoice2").replacingOccurrences(of: "<invoice>", with: invoiceText), buttons: [Language.getWord(withID: "okay")], actions: nil)
             return
         }
@@ -263,7 +260,7 @@ extension UIViewController {
                         confirmSendVC?.confirmLabel.alpha = 1
                         confirmSendVC?.confirmSpinner.stopAnimating()
                         self.showAlert(presentingController: self, title: Language.getWord(withID: "bittrpeer"), message: Language.getWord(withID: "bittrpeer3"), buttons: [Language.getWord(withID: "close"), Language.getWord(withID: "connect")], actions: [nil, #selector(self.performLightningPayment)])
-                        SentrySDK.metrics.count(key: "lightning.payment.failure.2")
+                        SentryManager.countMetric("lightning.payment.failure.2")
                     }
                 }
                 return
@@ -286,17 +283,17 @@ extension UIViewController {
                 if let bolt12Offer = invoiceText.bolt12Offer() {
                     Log.info("Perform BOLT12 payment.")
                     let _ = try BitcoinManager.shared.sendBolt12Payment(offer: bolt12Offer, amount: invoiceAmount)
-                    SentrySDK.metrics.count(key: "lightning.bolt12payment.success")
+                    SentryManager.countMetric("lightning.bolt12payment.success")
                 } else {
                     Log.info("Perform BOLT11 payment.")
                     if isZeroAmountInvoice {
                         Log.info("Perform sendZeroAmountPayment.")
                         let _ = try BitcoinManager.shared.sendZeroAmountPayment(invoice: Bolt11Invoice.fromStr(invoiceStr: invoiceText), amount: invoiceAmount)
-                        SentrySDK.metrics.count(key: "lightning.payment.success")
+                        SentryManager.countMetric("lightning.payment.success")
                     } else {
                         Log.info("Perform sendPayment.")
                         let paymentHash = try BitcoinManager.shared.sendPayment(invoice: Bolt11Invoice.fromStr(invoiceStr: invoiceText))
-                        SentrySDK.metrics.count(key: "lightning.payment.success")
+                        SentryManager.countMetric("lightning.payment.success")
                         if swapVC?.swapStatusVC != nil {
                             SwapManager.didReceivePaymentHash(paymentHash, swapVC: swapVC!.swapStatusVC!)
                         }
@@ -324,16 +321,14 @@ extension UIViewController {
                     self.showAlert(presentingController: sendVC ?? self, title: Language.getWord(withID: "unexpectederror"), message: Language.getWord(withID: "failedinvoicepayment1").replacingOccurrences(of: "<message>", with: errorMessage), buttons: [Language.getWord(withID: "okay")], actions: nil)
                     sendVC?.slideFromConfirmToSend()
                     if swapVC != nil {
-                        SentrySDK.metrics.count(key: "swap.lightningtoonchain.failed")
+                        SentryManager.countMetric("swap.lightningtoonchain.failed")
                     }
                     if invoiceText.bolt12Offer() != nil {
-                        SentrySDK.metrics.count(key: "lightning.bolt12payment.failure")
+                        SentryManager.countMetric("lightning.bolt12payment.failure")
                     } else {
-                        SentrySDK.metrics.count(key: "lightning.payment.failure.1")
+                        SentryManager.countMetric("lightning.payment.failure.1")
                     }
-                    SentrySDK.capture(error: error) { scope in
-                        scope.setExtra(value: "SendLightning row 233", key: "context")
-                    }
+                    SentryManager.capture(error, context: "SendLightning row 233")
                 }
             }
         }

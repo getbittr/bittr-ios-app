@@ -9,7 +9,6 @@ import UIKit
 import LDKNode
 import UserNotifications
 import LightningDevKit
-import Sentry
 
 class SwapViewController: UIViewController, UITextFieldDelegate, UNUserNotificationCenterDelegate, OnchainSyncFailureReporting {
 
@@ -282,10 +281,10 @@ class SwapViewController: UIViewController, UITextFieldDelegate, UNUserNotificat
         
         // Send payment.
         if self.thisSwap!.swapDirection == .onchainToLightning {
-            SentrySDK.metrics.count(key: "swap.onchaintolightning.initiated")
+            SentryManager.countMetric("swap.onchaintolightning.initiated")
             SwapManager.sendOnchainPayment(swapVC: self)
         } else {
-            SentrySDK.metrics.count(key: "swap.lightningtoonchain.initiated")
+            SentryManager.countMetric("swap.lightningtoonchain.initiated")
             self.performLightningPayment()
         }
     }

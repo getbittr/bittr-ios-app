@@ -7,7 +7,6 @@
 
 import UIKit
 import Foundation
-import Sentry
 
 class WebSocketManager: NSObject, URLSessionWebSocketDelegate {
 
@@ -86,11 +85,7 @@ class WebSocketManager: NSObject, URLSessionWebSocketDelegate {
             }
         } catch {
             Log.info("Failed to serialize message to JSON: \(error)")
-            DispatchQueue.main.async {
-                SentrySDK.capture(error: error) { scope in
-                    scope.setExtra(value: "WebSocketManager row 90", key: "context")
-                }
-            }
+            SentryManager.capture(error, context: "WebSocketManager row 90")
         }
     }
 
@@ -124,11 +119,7 @@ class WebSocketManager: NSObject, URLSessionWebSocketDelegate {
                             }
                         } catch {
                             Log.info("❌ JSON Parsing Error: \(error.localizedDescription)")
-                            DispatchQueue.main.async {
-                                SentrySDK.capture(error: error) { scope in
-                                    scope.setExtra(value: "WebSocketManager row 129", key: "context")
-                                }
-                            }
+                            SentryManager.capture(error, context: "WebSocketManager row 129")
                         }
                     }
 

@@ -8,7 +8,6 @@
 import UIKit
 import CodeScanner
 import AVFoundation
-import Sentry
 
 class ScannerViewController: UIViewController, AVCaptureMetadataOutputObjectsDelegate {
 
@@ -76,11 +75,7 @@ class ScannerViewController: UIViewController, AVCaptureMetadataOutputObjectsDel
         do {
             videoInput = try AVCaptureDeviceInput(device: videoCaptureDevice)
         } catch {
-            DispatchQueue.main.async {
-                SentrySDK.capture(error: error) { scope in
-                    scope.setExtra(value: "QRCodeScanner row 61", key: "context")
-                }
-            }
+            SentryManager.capture(error, context: "QRCodeScanner row 61")
             self.scannerWorks = false
             return false
         }

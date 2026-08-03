@@ -7,7 +7,6 @@
 
 import UIKit
 import LDKNode
-import Sentry
 
 extension CoreViewController {
     
@@ -149,9 +148,7 @@ extension CoreViewController {
             let amountMsat = self.lightningNotification!.amountMsat
         else {
             Log.info("No notification available for handling.")
-            SentrySDK.capture(message: "Required data unavailable while trying to handle notification payout.") { scope in
-                scope.setExtra(value: "HandlePaymentNotification row 108", key: "context")
-            }
+            SentryManager.capture("Required data unavailable while trying to handle notification payout.", context: "HandlePaymentNotification row 108")
             self.hideLoading()
             self.lightningNotification = nil
             self.showAlert(presentingController: self, title: Language.getWord(withID: "bittrpayout"), message: Language.getWord(withID: "bittrpayoutfail"), buttons: [Language.getWord(withID: "close")], actions: nil)
@@ -200,9 +197,7 @@ extension CoreViewController {
                 } catch {
                     // Couldn't sign notification ID.
                     DispatchQueue.main.async {
-                        SentrySDK.capture(error: error) { scope in
-                            scope.setExtra(value: "HandlePaymentNotification row 163", key: "context")
-                        }
+                        SentryManager.capture(error, context: "HandlePaymentNotification row 163")
                         self.hideLoading()
                         self.lightningNotification = nil
                         self.showAlert(presentingController: self, title: Language.getWord(withID: "bittrpayout"), message: Language.getWord(withID: "bittrpayoutfail"), buttons: [Language.getWord(withID: "close")], actions: nil)
@@ -256,9 +251,7 @@ extension CoreViewController {
                         }
                         
                         if sendToSentry {
-                            SentrySDK.capture(error: error) { scope in
-                                scope.setExtra(value: "HandlePaymentNotification row 152", key: "context")
-                            }
+                            SentryManager.capture(error, context: "HandlePaymentNotification row 152")
                         }
                     }
                 }
@@ -427,9 +420,7 @@ extension CoreViewController {
                         }
                         
                         // Inform Sentry.
-                        SentrySDK.capture(message: failureReason) { scope in
-                            scope.setExtra(value: "HandlePaymentNotification row 341", key: "context")
-                        }
+                        SentryManager.capture(failureReason, context: "HandlePaymentNotification row 341")
                     }
                     
                     // Show alert.
@@ -548,9 +539,7 @@ extension CoreViewController {
                 } catch {
                     Log.info("channelPending Bittr error: \(error.localizedDescription)")
                     DispatchQueue.main.async {
-                        SentrySDK.capture(error: error) { scope in
-                            scope.setExtra(value: "HandlePaymentNotification row 453", key: "context")
-                        }
+                        SentryManager.capture(error, context: "HandlePaymentNotification row 453")
                         if paymentDetails != nil {
                             let thisTransaction = paymentDetails!.createTransaction(bittrTransactions: nil)
                             self.launchTransactionVC(thisTransaction: thisTransaction, paymentDetails: paymentDetails!)
@@ -582,11 +571,7 @@ extension CoreViewController {
                     }
                 } catch {
                     Log.info("Could not sync LDK node. \(error.localizedDescription)")
-                    DispatchQueue.main.async {
-                        SentrySDK.capture(error: error) { scope in
-                            scope.setExtra(value: "HandlePaymentNotification row 484", key: "context")
-                        }
-                    }
+                    SentryManager.capture(error, context: "HandlePaymentNotification row 484")
                 }
             }
         }
@@ -710,9 +695,7 @@ extension CoreViewController {
             } catch {
                 Log.info("ERROR: Failed to mark transaction as on-chain: \(error)")
                 DispatchQueue.main.async {
-                    SentrySDK.capture(error: error) { scope in
-                        scope.setExtra(value: "HandlePaymentNotification row 637", key: "context")
-                    }
+                    SentryManager.capture(error, context: "HandlePaymentNotification row 637")
                     self.hideLoading()
                     self.showAlert(
                         presentingController: self,

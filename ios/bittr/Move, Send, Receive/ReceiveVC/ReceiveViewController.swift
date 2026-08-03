@@ -8,7 +8,6 @@
 import UIKit
 import CoreImage.CIFilterBuiltins
 import LDKNode
-import Sentry
 
 class ReceiveViewController: UIViewController, UITextFieldDelegate, UIContextMenuInteractionDelegate {
     

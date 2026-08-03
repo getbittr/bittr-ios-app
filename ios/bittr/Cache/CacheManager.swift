@@ -6,7 +6,6 @@
 //
 
 import UIKit
-import Sentry
 import CryptoKit
 
 class CacheManager: NSObject {
@@ -231,11 +230,7 @@ class CacheManager: NSObject {
             Log.info("Did save image to file.")
         } catch {
             Log.info("Could not save image to file. \(error.localizedDescription)")
-            DispatchQueue.main.async {
-                SentrySDK.capture(error: error) { scope in
-                    scope.setExtra(value: "CacheManager row 232", key: "context")
-                }
-            }
+            SentryManager.capture(error, context: "CacheManager row 232")
         }
     }
     
@@ -253,11 +248,7 @@ class CacheManager: NSObject {
             }
         } catch {
             Log.info("Could not delete images folder. \(error.localizedDescription)")
-            DispatchQueue.main.async {
-                SentrySDK.capture(error: error) { scope in
-                    scope.setExtra(value: "CacheManager row 53", key: "context")
-                }
-            }
+            SentryManager.capture(error, context: "CacheManager row 53")
         }
     }
     
@@ -817,9 +808,7 @@ class CacheManager: NSObject {
         } catch {
             // A Keychain read failed (not a genuine absence). Report it and treat
             // as unavailable so nothing destructive happens.
-            SentrySDK.capture(error: error) { scope in
-                scope.setExtra(value: "reading wallet secrets for presence check", key: "context")
-            }
+            SentryManager.capture(error, context: "reading wallet secrets for presence check")
             return .unavailable
         }
     }
@@ -897,9 +886,7 @@ class CacheManager: NSObject {
                 throw SecureStore.SecureStoreError.writeVerificationFailed
             }
         } catch {
-            SentrySDK.capture(error: error) { scope in
-                scope.setExtra(value: "storing \(label) in keychain", key: "context")
-            }
+            SentryManager.capture(error, context: "storing \(label) in keychain")
             throw error
         }
     }
@@ -958,9 +945,7 @@ class CacheManager: NSObject {
             }
         } catch {
             // Keychain write failed — keep the UserDefaults copy so access isn't lost.
-            SentrySDK.capture(error: error) { scope in
-                scope.setExtra(value: "migrating secret to keychain", key: "context")
-            }
+            SentryManager.capture(error, context: "migrating secret to keychain")
         }
         return legacy
     }
@@ -1264,9 +1249,7 @@ class CacheManager: NSObject {
             }
             return true
         } catch {
-            SentrySDK.capture(error: error) { scope in
-                scope.setExtra(value: "storing swap private key in keychain", key: "context")
-            }
+            SentryManager.capture(error, context: "storing swap private key in keychain")
             return false
         }
     }

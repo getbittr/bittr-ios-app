@@ -7,7 +7,6 @@
 
 import UIKit
 import LDKNode
-import Sentry
 
 class SettingsViewController: UIViewController, UITableViewDelegate, UITableViewDataSource {
 

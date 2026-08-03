@@ -6,7 +6,6 @@
 //
 
 import UIKit
-import Sentry
 import UserNotifications
 
 class BuyViewController: UIViewController, UITextFieldDelegate, UICollectionViewDelegate, UICollectionViewDataSource, UICollectionViewDelegateFlowLayout {
@@ -206,9 +205,7 @@ class BuyViewController: UIViewController, UITextFieldDelegate, UICollectionView
                 Log.info("185 Error: \(error.localizedDescription)")
                 DispatchQueue.main.async {
                     self.updateDataSpinner.stopAnimating()
-                    SentrySDK.capture(error: error) { scope in
-                        scope.setExtra(value: "BuyViewController row 203", key: "context")
-                    }
+                    SentryManager.capture(error, context: "BuyViewController row 203")
                 }
                 return
             }
@@ -227,9 +224,7 @@ class BuyViewController: UIViewController, UITextFieldDelegate, UICollectionView
                         self.parseNewData(receivedDictionary: receivedDictionary)
                     case .failure(let error):
                         Log.info("185 Error. \(error.localizedDescription)")
-                        SentrySDK.capture(error: error) { scope in
-                            scope.setExtra(value: "BuyViewController row 210", key: "context")
-                        }
+                        SentryManager.capture(error, context: "BuyViewController row 210")
                     }
                 }
             }
@@ -300,10 +295,7 @@ class BuyViewController: UIViewController, UITextFieldDelegate, UICollectionView
             }
         } else {
             // Data received in wrong format.
-            SentrySDK.capture(message: "Received BuyVC details in wrong format") { scope in
-                scope.setExtra(value: "BuyViewController row 275", key: "context")
-                scope.setExtra(value: receivedDictionary, key: "received_data")
-            }
+            SentryManager.capture("Received BuyVC details in wrong format", context: "BuyViewController row 275")
         }
     }
     
@@ -388,9 +380,7 @@ class BuyViewController: UIViewController, UITextFieldDelegate, UICollectionView
                             let serverError = (receivedDictionary["error"] as? String) ?? (receivedDictionary["message"] as? String) ?? "Unknown error"
                             
                             // Send to Sentry.
-                            SentrySDK.capture(message: "Error updating payment mode: \(serverError)") { scope in
-                                scope.setExtra(value: "BuyViewController row 367", key: "context")
-                            }
+                            SentryManager.capture("Error updating payment mode: \(serverError)", context: "BuyViewController row 367")
                             
                             // Retry.
                             if serverError.lowercased().contains("expired timestamp"), !isRetry {

@@ -9,7 +9,6 @@ import UIKit
 import CoreImage.CIFilterBuiltins
 import CodeScanner
 import LDKNode
-import Sentry
 
 extension UIViewController {
     
@@ -277,11 +276,7 @@ extension OnchainAddress {
                 return firstResult
             }
         } catch {
-            DispatchQueue.main.async {
-                SentrySDK.capture(error: error) { scope in
-                    scope.setExtra(value: "ReceiveOnchain row 133", key: "context")
-                }
-            }
+            SentryManager.capture(error, context: "ReceiveOnchain row 133")
             return nil
         }
         
