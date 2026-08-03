@@ -18,6 +18,11 @@ struct OnchainDrainPreview {
 extension BitcoinManager {
     
     func didStartBDK() -> Bool {
+        
+        // One start at a time.
+        self.bdkStartLock.lock()
+        defer { self.bdkStartLock.unlock() }
+        
         guard self.bdkWallet == nil else {
             return true
         }
@@ -66,6 +71,7 @@ extension BitcoinManager {
             self.connection = try Connection.createConnection()
         } catch {
             self.handleError(error: error, row: 211)
+            self.clearBDKState()
             return false
         }
         
@@ -73,6 +79,7 @@ extension BitcoinManager {
             self.bdkWallet = try Wallet(descriptor: bip84ExternalDescriptor, changeDescriptor: bip84InternalDescriptor, network: EnvironmentConfig.bitcoinDevKitNetwork, connection: self.connection!)
         } catch {
             self.handleError(error: error, row: 218)
+            self.clearBDKState()
             return false
         }
         
@@ -81,12 +88,20 @@ extension BitcoinManager {
             self.electrumClient = try ElectrumClient(url: EnvironmentConfig.electrumURL)
         } catch {
             self.handleError(error: error, row: 228)
+            self.clearBDKState()
             return false
         }
         
         Log.info("Did initiate wallet and blockchain.")
         SentrySDK.metrics.count(key: "sync.bdk.success")
         return true
+    }
+    
+    private func clearBDKState() {
+        // Leave nothing half-built behind after a failed start.
+        self.bdkWallet = nil
+        self.electrumClient = nil
+        self.connection = nil
     }
     
     func didSyncBdkWallet(completion originalCompletion: @escaping (Bool) -> Void) {

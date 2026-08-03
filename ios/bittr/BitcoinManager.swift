@@ -26,6 +26,7 @@ class BitcoinManager {
     var bdkWallet: BitcoinDevKit.Wallet?
     var electrumClient: BitcoinDevKit.ElectrumClient?
     var connection: BitcoinDevKit.Connection?
+    let bdkStartLock = NSLock()
     var bdkWalletIsScanning = false
     var bdkWalletHasBeenScanned = false
     // Set when the full scan's watchdog fires. The scan can't be cancelled, so
