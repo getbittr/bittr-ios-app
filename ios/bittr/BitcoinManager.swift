@@ -27,11 +27,7 @@ class BitcoinManager {
     var electrumClient: BitcoinDevKit.ElectrumClient?
     var connection: BitcoinDevKit.Connection?
     let bdkStartLock = NSLock()
-    var bdkWalletIsScanning = false
-    var bdkWalletHasBeenScanned = false
-    // Set when the full scan's watchdog fires. The scan can't be cancelled, so
-    // this session stays scan-blocked and only a restart clears it.
-    var bdkFullScanTimedOut = false
+    let bdkScan = BdkScanState()
     
     // General
     private let storageManager = LightningStorage()
@@ -659,9 +655,7 @@ class BitcoinManager {
         self.electrumClient = nil
         
         // Clear what the scan flags say about the wallet we just discarded.
-        self.bdkWalletIsScanning = false
-        self.bdkWalletHasBeenScanned = false
-        self.bdkFullScanTimedOut = false
+        self.clearBdkScanState()
         
         // Reset other state variables
         self.xpub = ""
