@@ -225,6 +225,7 @@ extension CoreViewController {
                             switch bittrServiceError {
                             case .channelFullWithSwapSuggestion(let message, let suggestedAmount):
                                 // Handle channel full with swap suggestion
+                                sendToSentry = false
                                 self.handleChannelFullWithSwapSuggestion(message: message, suggestedAmount: suggestedAmount, notificationId: notificationId)
                             case .serverError(let message):
                                 if message.contains("try again"), self.lightningNotification != nil {
