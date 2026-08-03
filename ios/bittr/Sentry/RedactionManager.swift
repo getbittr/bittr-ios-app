@@ -50,6 +50,8 @@ private enum Redaction {
     static let expressions:[NSRegularExpression] = patterns.compactMap { try? NSRegularExpression(pattern: $0) }
     
     static let wordExpression = try? NSRegularExpression(pattern: #"[A-Za-z]+"#)
+
+    static let urlExpression = try? NSRegularExpression(pattern: #"https?://[^\s]+"#)
     
     static let bip39Words:Set<String> = Set(MnemonicWordListEN)
     
@@ -121,10 +123,21 @@ extension String {
         return redacted as String
     }
     
-    func redactURL() -> String {
-        // Regex pattern to catch URLs (both http and https)
-        let pattern = #"(https?:\/\/[^\s]+)"#
-        return self.replacingOccurrences(of: pattern, with: "[redacted URL]", options: .regularExpression)
+    func redactURLs() -> String {
+        
+        guard let urlPattern = Redaction.urlExpression else { return self }
+        
+        let text = self as NSString
+        let urls = urlPattern.matches(in: self, range: NSRange(location: 0, length: text.length))
+        guard !urls.isEmpty else { return self }
+
+        // Back to front, so each range still points where it did when found.
+        let redacted = NSMutableString(string: self)
+        for url in urls.reversed() {
+            redacted.replaceCharacters(in: url.range, with: text.substring(with: url.range).redactURLIdentifiers())
+        }
+        
+        return redacted as String
     }
     
     func redactURLIdentifiers() -> String {

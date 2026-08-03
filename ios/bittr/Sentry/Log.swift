@@ -20,7 +20,7 @@ struct Log {
             breadcrumb.level = .info
             breadcrumb.category = "log"
             breadcrumb.type = "default"
-            breadcrumb.message = message.redactSensitiveValues().redactURL()
+            breadcrumb.message = message.redactSensitiveValues().redactURLs()
             
             SentrySDK.addBreadcrumb(breadcrumb)
         }
