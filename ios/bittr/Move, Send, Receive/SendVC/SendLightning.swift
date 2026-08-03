@@ -133,8 +133,6 @@ extension SendViewController {
                 
                 // Calculate maximum total routing fees.
                 maximumRoutingFeesSat = self.getLightningFeesInSatoshis(parsedInvoice: parsedInvoice!, amountMsat: nil)
-                
-                self.temporaryIsZeroAmountInvoice = false
             } else {
                 // Zero invoice.
                 invoiceAmount = Int(self.amountTextField.text?.toNumber() ?? 0)
@@ -145,15 +143,11 @@ extension SendViewController {
                 } else {
                     return
                 }
-                
-                self.temporaryIsZeroAmountInvoice = true
             }
         } else {
             // BOLT12 offer.
             invoiceAmount = Int(self.amountTextField.text?.toNumber() ?? 0)
             maximumRoutingFeesSat = Int((CGFloat(invoiceAmount)/100).rounded()) + 50
-            
-            self.temporaryIsZeroAmountInvoice = true
         }
         
         // Check if we have sufficient Lightning balance.
@@ -267,15 +261,13 @@ extension UIViewController {
             }
             // Is connected to peer.
             
-            // Get invoice, amount, and invoice type.
+            // Get invoice and amount.
             let invoiceText = (sendVC?.temporaryInvoiceText ?? swapVC!.thisSwap!.boltzInvoice!).replacingOccurrences(of: " ", with: "")
             let invoiceAmount = sendVC?.temporaryInvoiceAmount ?? 0
-            let isZeroAmountInvoice = sendVC?.temporaryIsZeroAmountInvoice ?? false
             
             // Reset variables.
             sendVC?.temporaryInvoiceText = ""
             sendVC?.temporaryInvoiceAmount = 0
-            sendVC?.temporaryIsZeroAmountInvoice = false
             
             print("Invoice text: " + String(invoiceText))
             
@@ -285,12 +277,15 @@ extension UIViewController {
                     let _ = try BitcoinManager.shared.sendBolt12Payment(offer: bolt12Offer, amount: invoiceAmount)
                 } else {
                     Log.info("Perform BOLT11 payment.")
-                    if isZeroAmountInvoice {
+                    let invoice = try Bolt11Invoice.fromStr(invoiceStr: invoiceText)
+                    
+                    // Check invoice type.
+                    if invoice.amountMilliSatoshis() == nil {
                         Log.info("Perform sendZeroAmountPayment.")
-                        let _ = try BitcoinManager.shared.sendZeroAmountPayment(invoice: Bolt11Invoice.fromStr(invoiceStr: invoiceText), amount: invoiceAmount)
+                        let _ = try BitcoinManager.shared.sendZeroAmountPayment(invoice: invoice, amount: invoiceAmount)
                     } else {
                         Log.info("Perform sendPayment.")
-                        let paymentHash = try BitcoinManager.shared.sendPayment(invoice: Bolt11Invoice.fromStr(invoiceStr: invoiceText))
+                        let paymentHash = try BitcoinManager.shared.sendPayment(invoice: invoice)
                         if swapVC?.swapStatusVC != nil {
                             SwapManager.didReceivePaymentHash(paymentHash, swapVC: swapVC!.swapStatusVC!)
                         }
