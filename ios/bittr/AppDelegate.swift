@@ -17,9 +17,15 @@ class AppDelegate: UIResponder, UIApplicationDelegate, UNUserNotificationCenterD
         SentrySDK.start { options in
             options.dsn = "https://a132893f0e0785733b108592f71efebc@o4507055777120256.ingest.us.sentry.io/4507055778758656"
             options.debug = false
-            options.tracesSampleRate = 1.0
+            
+            // Filter events that get sent to Sentry.
+            options.tracesSampleRate = 0.1
             options.sendDefaultPii = false
             options.environment = EnvironmentConfig.currentEnvironment.rawValue
+            options.enableCaptureFailedRequests = false
+            options.enableWatchdogTerminationTracking = false
+            options.appHangTimeoutInterval = 5.0
+            options.enableReportNonFullyBlockingAppHangs = false
             
             // Redact sensitive data in Sentry events.
             options.beforeSend = { sentryEvent in
