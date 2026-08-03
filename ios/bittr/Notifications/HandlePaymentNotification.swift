@@ -388,13 +388,7 @@ extension CoreViewController {
                     let receiveVC = (self.homeVC!.presentedViewController as? ReceiveViewController ?? self.homeVC!.moveVC?.presentedViewController as? ReceiveViewController)
                     let swapVC = self.swapVC
                     
-                    // Update views. The confirm spinner has to be stopped here
-                    // too, the way addNewPaymentToTable does on success: a
-                    // payment LDK accepts and then fails asynchronously
-                    // (routeNotFound, retriesExhausted, recipientRejected)
-                    // leaves the user on the confirm screen, and the spinner
-                    // now gates the Confirm button — so leaving it running
-                    // would strand them with no way to retry.
+                    // Update views.
                     sendVC?.nextLabel.alpha = 1
                     sendVC?.nextSpinner.stopAnimating()
                     sendVC?.confirmSendVC?.confirmLabel.alpha = 1
@@ -402,26 +396,27 @@ extension CoreViewController {
                     sendVC?.resetFields()
                     
                     // Parse failure reason.
-                    var failureReason = ""
+                    let reasonID:String
                     switch reason {
-                    case .none: break
+                    case .none: reasonID = "noReason"
                     case .some(let receivedReason):
                         switch receivedReason {
-                        case .recipientRejected: failureReason = Language.getWord(withID: "recipientRejected")
-                        case .userAbandoned: failureReason = Language.getWord(withID: "userAbandoned")
-                        case .retriesExhausted: failureReason = Language.getWord(withID: "retriesExhausted")
-                        case .paymentExpired: failureReason = Language.getWord(withID: "paymentExpired")
-                        case .routeNotFound: failureReason = Language.getWord(withID: "routeNotFound")
-                        case .unexpectedError: failureReason = Language.getWord(withID: "unexpectederror")
-                        case .unknownRequiredFeatures: failureReason = Language.getWord(withID: "unknownRequiredFeatures")
-                        case .invoiceRequestExpired: failureReason = Language.getWord(withID: "invoiceRequestExpired")
-                        case .invoiceRequestRejected: failureReason = Language.getWord(withID: "invoiceRequestRejected")
-                        case .blindedPathCreationFailed: failureReason = Language.getWord(withID: "blindedPathCreationFailed")
+                        case .recipientRejected: reasonID = "recipientRejected"
+                        case .userAbandoned: reasonID = "userAbandoned"
+                        case .retriesExhausted: reasonID = "retriesExhausted"
+                        case .paymentExpired: reasonID = "paymentExpired"
+                        case .routeNotFound: reasonID = "routeNotFound"
+                        case .unexpectedError: reasonID = "unexpectederror"
+                        case .unknownRequiredFeatures: reasonID = "unknownRequiredFeatures"
+                        case .invoiceRequestExpired: reasonID = "invoiceRequestExpired"
+                        case .invoiceRequestRejected: reasonID = "invoiceRequestRejected"
+                        case .blindedPathCreationFailed: reasonID = "blindedPathCreationFailed"
                         }
-                        
-                        // Inform Sentry.
-                        SentryManager.capture(failureReason, context: "HandlePaymentNotification row 341")
                     }
+                    let failureReason = Language.getWord(withID: reasonID)
+                    
+                    // Report to Sentry.
+                    SentryManager.countMetric("lightning.payment.failure.\(reasonID)")
                     
                     // Show alert.
                     let reasonText = failureReason.isEmpty ? "" : " \(failureReason)."
