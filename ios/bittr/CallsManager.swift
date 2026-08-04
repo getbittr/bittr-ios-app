@@ -63,6 +63,11 @@ class CallsManager: NSObject {
                             return
                         }
                     } catch {
+                        if let statusCode = (response as? HTTPURLResponse)?.statusCode, !(200..<300).contains(statusCode) {
+                            Log.info("Request failed with status \(statusCode).")
+                            completion(.failure(.requestFailed("HTTP \(statusCode)")))
+                            return
+                        }
                         DispatchQueue.main.async {
                             SentrySDK.capture(error: error) { scope in
                                 scope.setExtra(value: "CallsManager row 60", key: "context")
