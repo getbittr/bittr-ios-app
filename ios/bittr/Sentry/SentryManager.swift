@@ -8,6 +8,7 @@
 import Sentry
 import UIKit
 import LDKNode
+import BitcoinDevKit
 
 enum SentryManager {
     
@@ -214,6 +215,18 @@ extension Error {
                  .WalletOperationTimeout,
                  .TxSyncTimeout,
                  .FeerateEstimationUpdateTimeout:
+                return true
+            default:
+                break
+            }
+        }
+        
+        if let electrumError = self as? ElectrumError {
+            switch electrumError {
+            case .AllAttemptsErrored,
+                 .IoError,
+                 .SharedIoError,
+                 .CouldNotCreateConnection:
                 return true
             default:
                 break
