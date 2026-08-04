@@ -17,9 +17,21 @@ enum APIError: Error {
 
 class CallsManager: NSObject {
     
-    static func makeApiCall(url:String, parameters:[String:Any]?, getOrPost:CallType, completion: @escaping (Result<NSDictionary, APIError>) -> Void) async {
+    // How long a request may go without producing data.
+    static let defaultTimeout:TimeInterval = 30
+    // Ceiling on a whole request, however steadily data trickles in.
+    private static let resourceTimeout:TimeInterval = 60
+    // Our own session.
+    private static let session:URLSession = {
+        let configuration = URLSessionConfiguration.default
+        configuration.timeoutIntervalForRequest = defaultTimeout
+        configuration.timeoutIntervalForResource = resourceTimeout
+        return URLSession(configuration: configuration)
+    }()
+    
+    static func makeApiCall(url:String, parameters:[String:Any]?, getOrPost:CallType, timeout:TimeInterval = defaultTimeout, completion: @escaping (Result<NSDictionary, APIError>) -> Void) async {
         
-        var request = URLRequest(url: URL(string: url.replacingOccurrences(of: "\0", with: "").trimmingCharacters(in: .controlCharacters))!,timeoutInterval: Double.infinity)
+        var request = URLRequest(url: URL(string: url.replacingOccurrences(of: "\0", with: "").trimmingCharacters(in: .controlCharacters))!,timeoutInterval: timeout)
         request.addValue("application/json", forHTTPHeaderField: "Content-Type")
         request.setValue("application/json", forHTTPHeaderField: "Accept")
         request.httpMethod = {
@@ -36,7 +48,7 @@ class CallsManager: NSObject {
                 request.httpBody = postData
             }
             
-            let task = URLSession.shared.dataTask(with: request) { data, response, dataError in
+            let task = Self.session.dataTask(with: request) { data, response, dataError in
                 
                 if let error = dataError {
                     Log.info("Error: \(error.localizedDescription)")
