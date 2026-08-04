@@ -62,6 +62,19 @@ enum BoltzAPIError: Error {
     case decodingFailed
 }
 
+extension BoltzAPIError: LocalizedError {
+    var errorDescription: String? {
+        switch self {
+        case .invalidURL:
+            return "Invalid URL."
+        case .requestFailed(let message):
+            return message
+        case .decodingFailed:
+            return "Could not read the server's response."
+        }
+    }
+}
+
 // MARK: - BoltzAPI Class
 
 class BoltzAPI {

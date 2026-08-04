@@ -15,6 +15,19 @@ enum APIError: Error {
     case decodingFailed
 }
 
+extension APIError: LocalizedError {
+    var errorDescription: String? {
+        switch self {
+        case .invalidURL:
+            return "Invalid URL."
+        case .requestFailed(let message):
+            return message
+        case .decodingFailed:
+            return "Could not read the server's response."
+        }
+    }
+}
+
 class CallsManager: NSObject {
     
     static func makeApiCall(url:String, parameters:[String:Any]?, getOrPost:CallType, completion: @escaping (Result<NSDictionary, APIError>) -> Void) async {
