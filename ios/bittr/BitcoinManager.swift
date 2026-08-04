@@ -206,19 +206,63 @@ class BitcoinManager {
         }
         
         // Start new node.
-        do {
-            try newLdkNode.start()
-        } catch {
-            Log.info("Could not start newLdkNode. \(error)")
-            SentrySDK.capture(error: error) { scope in
-                scope.setExtra(value: "BitcoinManager row 147", key: "context")
-            }
+        guard self.didStartNode(newLdkNode) else {
             return false
         }
         
         // Successful start.
         self.ldkNode = newLdkNode
         return true
+    }
+    
+    // Start an already-built node, retrying for chain source-related failures.
+    private func didStartNode(_ node: Node) -> Bool {
+        
+        // Date and time of 1st attempt.
+        let startedAt = Date()
+        var attempt = 1
+        
+        // Start 2nd and 3rd attempts after 1 and 3 seconds, respectively.
+        let nodeStartRetryDelays: [TimeInterval] = [1, 3]
+        
+        while true {
+            do {
+                try node.start()
+                Log.info("Did start newLdkNode on attempt \(attempt).")
+                return true
+            } catch {
+                Log.info("Could not start newLdkNode (attempt \(attempt)). \(error)")
+                
+                // Check whether we've already done 3 attempts.
+                let hasAttemptsLeft = attempt <= nodeStartRetryDelays.count
+                // Only retry if less than 10 seconds have passed in total.
+                let isWithinDeadline = -startedAt.timeIntervalSinceNow < 10
+                
+                guard hasAttemptsLeft, isWithinDeadline, Self.isRetryableNodeStartError(error) else {
+                    SentrySDK.capture(error: error) { scope in
+                        scope.setExtra(value: "BitcoinManager row 147", key: "context")
+                    }
+                    return false
+                }
+                
+                // Wait 1 or 3 seconds before retrying.
+                Thread.sleep(forTimeInterval: nodeStartRetryDelays[attempt - 1])
+                attempt += 1
+            }
+        }
+    }
+    
+    private static func isRetryableNodeStartError(_ error: Error) -> Bool {
+        // Only retry for errors that are connectivity-related.
+        guard let nodeError = error as? NodeError else { return false }
+        switch nodeError {
+        case .FeerateEstimationUpdateFailed,
+             .FeerateEstimationUpdateTimeout,
+             .ConnectionFailed:
+            return true
+        default:
+            return false
+        }
     }
     
     func getNewMnemonic() throws -> String {
