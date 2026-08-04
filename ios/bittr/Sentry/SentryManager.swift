@@ -208,8 +208,16 @@ extension Error {
             return Connectivity.urlErrorCodes.contains(urlError.code)
         }
         
-        if let nodeError = self as? NodeError, case .ConnectionFailed = nodeError {
-            return true
+        if let nodeError = self as? NodeError {
+            switch nodeError {
+            case .ConnectionFailed,
+                 .WalletOperationTimeout,
+                 .TxSyncTimeout,
+                 .FeerateEstimationUpdateTimeout:
+                return true
+            default:
+                break
+            }
         }
         
         if let serviceError = self as? BittrServiceError {
