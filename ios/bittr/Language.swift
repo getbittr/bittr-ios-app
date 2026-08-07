@@ -249,6 +249,8 @@ class Language: NSObject {
             "stillclosing": "Your Lightning connection is still being closed. For your safety, the wallet can only be reset once the connection is fully closed and the funds have returned on-chain — this can take a while.\n\nPlease reopen the app later to finish the reset. Do not delete the app from your phone, as this will lead to loss of funds.",
             "closeretrylater": "Your Lightning connection could not be closed right now — the bittr node may be temporarily offline. Your wallet has not been reset.\n\nPlease reopen the app to try again later. Do not delete the app from your phone, as this will lead to loss of funds.",
             "removalfailed": "Something went wrong removing your wallet, so it hasn't been removed — your wallet and funds are safe.\n\nPlease reopen the app to try again. Do not delete the app from your phone.",
+            "restoredbackup": "Wallet restored",
+            "restoredbackup2": "It seems that this wallet was restored from a backup. Your Lightning connection could not be carried over.\n\nIf you need our help, please contact support@getbittr.com.",
             "pinlength": "PIN Length",
             "pincanbeupto8": "PIN can be up to 8 digits",
             "pinrequired": "PIN Required",

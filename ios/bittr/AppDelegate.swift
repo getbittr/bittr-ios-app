@@ -144,6 +144,9 @@ class AppDelegate: UIResponder, UIApplicationDelegate, UNUserNotificationCenterD
         // getters also self-heal on first read, so this is just eager cleanup.
         CacheManager.migrateSecretsToKeychainIfNeeded()
 
+        // Keep Documents out of iCloud/Finder backups.
+        LightningStorage.excludeFromBackup()
+        
         UNUserNotificationCenter.current().delegate = self
         
         return true
