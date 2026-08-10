@@ -6,7 +6,6 @@
 //
 
 import UIKit
-import Sentry
 import LDKNode
 
 extension CoreViewController {
@@ -63,9 +62,7 @@ extension CoreViewController {
             Log.info("Missing required data in lightning address notification")
             self.hideLoading()
             self.lightningNotification = nil
-            SentrySDK.capture(message: "Required data unavailable while trying to handle LNURL payout.") { scope in
-                scope.setExtra(value: "HandlePaymentNotification row 108", key: "context")
-            }
+            SentryManager.capture("Required data unavailable while trying to handle LNURL payout.", context: "HandlePaymentNotification row 108")
             self.showAlert(presentingController: self, title: Language.getWord(withID: "paymentrequest"), message: Language.getWord(withID: "paymentrequestfailed2"), buttons: [Language.getWord(withID: "close")], actions: nil)
             return
         }
@@ -93,9 +90,7 @@ extension CoreViewController {
                     self.lightningNotification = nil
                     
                     // Capture Sentry error.
-                    SentrySDK.capture(error: error) { scope in
-                        scope.setExtra(value: "HandleLightningAddressNotification row 98", key: "context")
-                    }
+                    SentryManager.capture(error, context: "HandleLightningAddressNotification row 98")
                     
                     // Show error message with support contact
                     self.showAlert(presentingController: self, title: Language.getWord(withID: "paymentrequestfailed"), message: Language.getWord(withID: "paymentrequestfailed2"), buttons: [Language.getWord(withID: "okay")], actions: nil)

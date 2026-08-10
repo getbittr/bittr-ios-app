@@ -122,6 +122,11 @@ enum SecureStore {
         }
     }
 
+    /// Retry schedule (seconds) for a transient read failure — see below.
+    /// Three retries with escalating backoff, ~210 ms of blocking in the worst
+    /// case, which only ever elapses when every attempt fails.
+    private static let readRetryDelays: [TimeInterval] = [0.03, 0.06, 0.12]
+
     static func getData(account: String) throws -> Data? {
         let query: [String: Any] = [
             kSecClass as String:                     kSecClassGenericPassword,
@@ -132,16 +137,30 @@ enum SecureStore {
             kSecUseDataProtectionKeychain as String: true,
         ]
 
-        var result: CFTypeRef?
-        let status = SecItemCopyMatching(query as CFDictionary, &result)
+        // errSecMissingEntitlement (-34018) is returned spuriously when the
+        // Keychain is queried very early in the launch cycle — a cold launch,
+        // or an OS background launch — before securityd has finished wiring up the
+        // app's keychain-access-group entitlement. It is transient and clears
+        // within a few tens of milliseconds, so we briefly retry rather than
+        // surfacing a failure that isn't real. Every other status (including a
+        // genuine, persistent -34018) is thrown on the final attempt.
+        var attempt = 0
+        while true {
+            var result: CFTypeRef?
+            let status = SecItemCopyMatching(query as CFDictionary, &result)
 
-        switch status {
-        case errSecSuccess:
-            return result as? Data
-        case errSecItemNotFound:
-            return nil
-        default:
-            throw SecureStoreError.unexpectedStatus(status)
+            switch status {
+            case errSecSuccess:
+                return result as? Data
+            case errSecItemNotFound:
+                return nil
+            case errSecMissingEntitlement where attempt < readRetryDelays.count:
+                Thread.sleep(forTimeInterval: readRetryDelays[attempt])
+                attempt += 1
+                continue
+            default:
+                throw SecureStoreError.unexpectedStatus(status)
+            }
         }
     }
 

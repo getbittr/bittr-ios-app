@@ -8,7 +8,6 @@
 import UIKit
 import CoreImage.CIFilterBuiltins
 import LDKNode
-import Sentry
 
 class ReceiveViewController: UIViewController, UITextFieldDelegate, UIContextMenuInteractionDelegate {
     
@@ -497,16 +496,7 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate, UIContextMen
         if (type == .onchain || type == .bitcoinqr) && !newAddress && BitcoinManager.shared.bittrWallet.onchainAddressesVerified == false {
             self.currentType = type
             self.updateCards(for: type)
-
-            // SAFETY NET: never wait forever. Verification can fail to complete —
-            // e.g. revealOnchainAddresses() bails when getNewOnchainAddress()
-            // returns nil, or manageOnchainAddresses() never ran because startup
-            // didn't reach it — and there's otherwise no path that clears this
-            // gate, so the QR/address would spin indefinitely. After a timeout,
-            // give up waiting and show the best-available (cached) address. Guarded
-            // on `verified == false` so it no-ops if onchainAddressesReady() already
-            // fired (the normal, fast path), and on currentType so it doesn't fire
-            // after the user switched to a different receive type.
+            
             DispatchQueue.main.asyncAfter(deadline: .now() + 8) { [weak self] in
                 guard let self = self,
                       BitcoinManager.shared.bittrWallet.onchainAddressesVerified == false,

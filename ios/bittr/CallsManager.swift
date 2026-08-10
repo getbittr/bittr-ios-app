@@ -7,12 +7,24 @@
 
 import UIKit
 import LDKNode
-import Sentry
 
 enum APIError: Error {
     case invalidURL
     case requestFailed(String)
     case decodingFailed
+}
+
+extension APIError: LocalizedError {
+    var errorDescription: String? {
+        switch self {
+        case .invalidURL:
+            return "Invalid URL."
+        case .requestFailed(let message):
+            return message
+        case .decodingFailed:
+            return "Could not read the server's response."
+        }
+    }
 }
 
 class CallsManager: NSObject {
@@ -75,12 +87,12 @@ class CallsManager: NSObject {
                             return
                         }
                     } catch {
-                        DispatchQueue.main.async {
-                            SentrySDK.capture(error: error) { scope in
-                                scope.setExtra(value: "CallsManager row 60", key: "context")
-                                scope.setExtra(value: receivedData, key: "received_data")
-                            }
+                        if let statusCode = (response as? HTTPURLResponse)?.statusCode, !(200..<300).contains(statusCode) {
+                            Log.info("Request failed with status \(statusCode).")
+                            completion(.failure(.requestFailed("HTTP \(statusCode)")))
+                            return
                         }
+                        SentryManager.capture(error, context: "CallsManager row 60")
                         completion(.failure(.decodingFailed))
                         return
                     }
@@ -91,11 +103,7 @@ class CallsManager: NSObject {
             }
             task.resume()
         } catch {
-            DispatchQueue.main.async {
-                SentrySDK.capture(error: error) { scope in
-                    scope.setExtra(value: "CallsManager row 75", key: "context")
-                }
-            }
+            SentryManager.capture(error, context: "CallsManager row 75")
             let errorMessage:String = {
                 if let nodeError = error as? NodeError {
                     return handleNodeError(nodeError).title + ", " + handleNodeError(nodeError).detail
