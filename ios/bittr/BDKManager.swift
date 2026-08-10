@@ -14,9 +14,93 @@ struct OnchainDrainPreview {
     let vsize:UInt64
 }
 
+final class BdkScanState {
+    
+    private let lock = NSLock()
+    private var _isScanning = false
+    private var _hasBeenScanned = false
+    private var _timedOut = false
+    private var waiters = [(Bool) -> Void]()
+    
+    var isScanning: Bool {
+        // A full scan is running right now.
+        lock.lock()
+        defer { lock.unlock() }
+        return _isScanning
+    }
+    
+    var hasBeenScanned: Bool {
+        // A full scan has finished at least once since launch.
+        lock.lock()
+        defer { lock.unlock() }
+        return _hasBeenScanned
+    }
+    
+    var timedOut: Bool {
+        // The running scan passed its watchdog.
+        lock.lock()
+        defer { lock.unlock() }
+        return _timedOut
+    }
+    
+    func claim(orWaitWith waiter: @escaping (Bool) -> Void) -> Bool {
+        // Claims the right to run a full scan.
+        lock.lock()
+        defer { lock.unlock() }
+
+        if _isScanning {
+            waiters += [waiter]
+            return false
+        }
+        _isScanning = true
+        _timedOut = false
+        return true
+    }
+    
+    func end(scanned: Bool) {
+        // Releases the claim and hands the outcome to whoever was waiting on it.
+        lock.lock()
+        _isScanning = false
+        if scanned { _hasBeenScanned = true }
+        let waiting = waiters
+        waiters.removeAll()
+        lock.unlock()
+
+        guard !waiting.isEmpty else { return }
+        DispatchQueue.main.async { waiting.forEach { $0(scanned) } }
+    }
+
+    func markTimedOut() {
+        // The watchdog fired.
+        lock.lock()
+        defer { lock.unlock() }
+        guard _isScanning else { return }
+        _timedOut = true
+    }
+
+    func clear() {
+        // Forgets all of it.
+        lock.lock()
+        _isScanning = false
+        _hasBeenScanned = false
+        _timedOut = false
+        let waiting = waiters
+        waiters.removeAll()
+        lock.unlock()
+
+        guard !waiting.isEmpty else { return }
+        DispatchQueue.main.async { waiting.forEach { $0(false) } }
+    }
+}
+
 extension BitcoinManager {
     
     func didStartBDK() -> Bool {
+        
+        // One start at a time.
+        self.bdkStartLock.lock()
+        defer { self.bdkStartLock.unlock() }
+        
         guard self.bdkWallet == nil else {
             return true
         }
@@ -65,6 +149,7 @@ extension BitcoinManager {
             self.connection = try Connection.createConnection()
         } catch {
             self.handleError(error: error, row: 211)
+            self.clearBdkWalletReferences()
             return false
         }
         
@@ -72,6 +157,7 @@ extension BitcoinManager {
             self.bdkWallet = try Wallet(descriptor: bip84ExternalDescriptor, changeDescriptor: bip84InternalDescriptor, network: EnvironmentConfig.bitcoinDevKitNetwork, connection: self.connection!)
         } catch {
             self.handleError(error: error, row: 218)
+            self.clearBdkWalletReferences()
             return false
         }
         
@@ -80,6 +166,7 @@ extension BitcoinManager {
             self.electrumClient = try ElectrumClient(url: EnvironmentConfig.electrumURL)
         } catch {
             self.handleError(error: error, row: 228)
+            self.clearBdkWalletReferences()
             return false
         }
         
@@ -88,21 +175,35 @@ extension BitcoinManager {
         return true
     }
     
-    func didSyncBdkWallet(completion originalCompletion: @escaping (Bool) -> Void) {
-        Log.info("Will sync BDK wallet.")
-        self.bdkWalletIsScanning = true
-        self.bdkFullScanTimedOut = false
+    private func clearBdkWalletReferences() {
+        // Leave nothing half-built behind after a failed start.
+        self.bdkWallet = nil
+        self.electrumClient = nil
+        self.connection = nil
+    }
+    
+    // MARK: Manage BDK scanning.
+    
+    var bdkWalletIsScanning: Bool { self.bdkScan.isScanning }
+    var bdkWalletHasBeenScanned: Bool { self.bdkScan.hasBeenScanned }
+    var bdkFullScanTimedOut: Bool { self.bdkScan.timedOut }
 
-        // The watchdog below hands the caller a failure, but it cannot stop the
-        // scan — so `bdkWalletIsScanning` stays set and every scan-gated screen
-        // stays blocked until the app is restarted. Callers surface that via
-        // `bdkFullScanTimedOut` rather than the generic "try again later" copy,
-        // which would be a lie: nothing the user does in this session will help.
-        //
-        // NOTE: `timeout` must stay comfortably above a legitimately slow scan
-        // (the fullScan below is documented as "seconds to minutes"), or slow
-        // syncs get reported as failures. Tune before shipping.
-        let timeout: TimeInterval = 180
+    func claimBdkScan(orWaitWith waiter: @escaping (Bool) -> Void) -> Bool {
+        return self.bdkScan.claim(orWaitWith: waiter)
+    }
+    func endBdkScan(scanned: Bool) {
+        self.bdkScan.end(scanned: scanned)
+    }
+    func markBdkScanTimedOut() {
+        self.bdkScan.markTimedOut()
+    }
+    func clearBdkScanState() {
+        self.bdkScan.clear()
+    }
+    
+    func didSyncBdkWallet(completion originalCompletion: @escaping (Bool) -> Void) {
+        
+        // Handle sync completion.
         var didComplete = false
         func completion(_ success: Bool) {
             DispatchQueue.main.async {
@@ -111,57 +212,56 @@ extension BitcoinManager {
                 originalCompletion(success)
             }
         }
-        DispatchQueue.global(qos: .background).asyncAfter(deadline: .now() + timeout) {
-            Log.info("BDK full scan timed out after \(Int(timeout))s; failing so callers don't hang.")
-            self.bdkFullScanTimedOut = true
+        
+        // Take the scan, or wait on the one already running.
+        guard self.claimBdkScan(orWaitWith: completion) else {
+            Log.info("A BDK full scan is already running. Waiting on it.")
+            return
+        }
+        Log.info("Will sync BDK wallet.")
+        
+        // TODO: Consider a higher timeout limit for mainnet wallets.
+        DispatchQueue.global(qos: .background).asyncAfter(deadline: .now() + 180) {
+            Log.info("BDK full scan timed out after 180s; failing so callers don't hang.")
+            self.markBdkScanTimedOut()
             completion(false)
         }
-
-        // Synchronize the wallet with the blockchain, ensuring transaction data is up to date.
         
         DispatchQueue.global(qos: .background).async {
-            // Check Electrum Client.
+            // Get Electrum Client.
             if self.electrumClient == nil {
                 do {
                     self.electrumClient = try ElectrumClient(url: EnvironmentConfig.electrumURL)
                 } catch {
                     self.handleError(error: error, row: 222)
-                    self.bdkWalletIsScanning = false
+                    self.endBdkScan(scanned: false)
                     completion(false)
                     return
                 }
             }
-
-            // Bind references locally so the rest of the closure works on
-            // a consistent snapshot. resetNodeState (from performWalletReset)
-            // can clear bdkWallet / electrumClient / connection while this
-            // closure is parked on the background queue mid-fullScan; the
-            // earlier `self.bdkWallet!` force-unwraps would then trap with
-            // a Swift _assertionFailure when the closure resumed.
+            
+            // Bind references locally.
             guard let bdkWallet = self.bdkWallet,
                   let electrumClient = self.electrumClient,
                   let connection = self.connection else {
-                self.bdkWalletIsScanning = false
+                self.endBdkScan(scanned: false)
                 completion(false)
                 return
             }
-
-            // Perform a full scan.
             Log.info("Will perform a full scan.")
-
+            
             // Build request.
             let syncRequest:FullScanRequest
             do {
                 syncRequest = try bdkWallet.startFullScan().build()
             } catch {
                 self.handleError(error: error, row: 212)
-                self.bdkWalletIsScanning = false
+                self.endBdkScan(scanned: false)
                 completion(false)
                 return
             }
-
-            // Run full scan. This is the long pole — seconds to minutes —
-            // and the most likely window for resetNodeState to run.
+            
+            // Run full scan.
             let update:Update
             do {
                 update = try electrumClient.fullScan(
@@ -172,55 +272,45 @@ extension BitcoinManager {
                 )
             } catch {
                 self.handleError(error: error, row: 236)
-                self.bdkWalletIsScanning = false
+                self.endBdkScan(scanned: false)
                 completion(false)
                 return
             }
-
-            // If resetNodeState ran during fullScan above, our local
-            // bdkWallet now points at a torn-down wallet whose on-disk
-            // SQLite files were removed by deleteDocuments. Applying and
-            // persisting the update against it would either fail or
-            // corrupt the next install's state — bail cleanly instead.
+            
+            // Ensure bdkWallet still exists.
             guard self.bdkWallet === bdkWallet else {
-                self.bdkWalletIsScanning = false
+                self.endBdkScan(scanned: false)
                 completion(false)
                 return
             }
-
+            
             // Apply update to BDK wallet.
             do {
                 try bdkWallet.applyUpdate(update: update)
             } catch {
                 self.handleError(error: error, row: 243)
-                self.bdkWalletIsScanning = false
+                self.endBdkScan(scanned: false)
                 completion(false)
                 return
             }
-
+            
             // Persist wallet changes.
             do {
                 let _ = try bdkWallet.persist(connection: connection)
             } catch {
                 self.handleError(error: error, row: 250)
             }
-
+            
             // Update syncing status.
             Log.info("Did sync BDK wallet.")
-            self.bdkWalletIsScanning = false
-            self.bdkWalletHasBeenScanned = true
+            self.endBdkScan(scanned: true)
             self.storeChannelClosureTxIDIfFound()
             completion(true)
         }
     }
     
     func lightSyncBdkWallet() -> Bool {
-        // Stand down while a full scan is running. Both work through the same
-        // wallet, electrum client and SQLite connection, which serialize
-        // internally — so overlapping them doesn't corrupt anything, it starves
-        // the scan behind a light sync that re-fires every 30s until the scan's
-        // watchdog gives up. BackgroundSync has no idea a scan is in flight, so
-        // the check has to live here.
+        // Stand down while a full scan is running.
         guard !self.bdkWalletIsScanning else {
             Log.info("Skipping light sync — a BDK full scan is in progress.")
             return false
