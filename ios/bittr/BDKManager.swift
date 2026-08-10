@@ -7,7 +7,6 @@
 
 import Foundation
 import BitcoinDevKit
-import Sentry
 
 struct OnchainDrainPreview {
     let sendableSats:UInt64
@@ -85,7 +84,7 @@ extension BitcoinManager {
         }
         
         Log.info("Did initiate wallet and blockchain.")
-        SentrySDK.metrics.count(key: "sync.bdk.success")
+        SentryManager.countMetric("sync.bdk.success")
         return true
     }
     

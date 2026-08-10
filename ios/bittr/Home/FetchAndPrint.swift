@@ -6,7 +6,6 @@
 //
 
 import UIKit
-import Sentry
     
 func isConnectedToPeer() -> Bool {
     

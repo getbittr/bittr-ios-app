@@ -9,7 +9,6 @@ import UIKit
 import CoreImage.CIFilterBuiltins
 import CodeScanner
 import LDKNode
-import Sentry
 
 extension ReceiveViewController {
     
@@ -29,9 +28,7 @@ extension ReceiveViewController {
             }()
             DispatchQueue.main.async {
                 self.showAlert(presentingController: self, title: Language.getWord(withID: "unexpectederror"), message: errorMessage, buttons: [Language.getWord(withID: "okay")], actions: nil)
-                SentrySDK.capture(error: error) { scope in
-                    scope.setExtra(value: "ReceiveLightning row 45", key: "context")
-                }
+                SentryManager.capture(error, context: "ReceiveLightning row 45")
             }
             return nil
         }

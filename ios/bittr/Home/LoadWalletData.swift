@@ -7,7 +7,6 @@
 
 import UIKit
 import LDKNode
-import Sentry
 
 extension HomeViewController {
 
@@ -209,11 +208,7 @@ extension HomeViewController {
             Log.info("Bittr transactions: \(bittrApiTransactions.count)")
         } catch {
             Log.info("Bittr error: \(error.localizedDescription)")
-            DispatchQueue.main.async {
-                SentrySDK.capture(error: error) { scope in
-                    scope.setExtra(value: "LoadWalletData row 266", key: "context")
-                }
-            }
+            SentryManager.capture(error, context: "LoadWalletData row 266")
             return false
         }
         
@@ -297,11 +292,7 @@ extension HomeViewController {
             attributedText = try NSAttributedString(data: htmlData, options: [NSAttributedString.DocumentReadingOptionKey.documentType : NSAttributedString.DocumentType.html], documentAttributes: nil)
         } catch {
             Log.info("Couldn't fetch text: \(error.localizedDescription)")
-            DispatchQueue.main.async {
-                SentrySDK.capture(error: error) { scope in
-                    scope.setExtra(value: "LoadWalletData row 360", key: "context")
-                }
-            }
+            SentryManager.capture(error, context: "LoadWalletData row 360")
             return
         }
         
@@ -346,11 +337,7 @@ extension HomeViewController {
                 }
             }
         } catch {
-            DispatchQueue.main.async {
-                SentrySDK.capture(error: error) { scope in
-                    scope.setExtra(value: "LoadWalletData row 394", key: "context")
-                }
-            }
+            SentryManager.capture(error, context: "LoadWalletData row 394")
             Log.info("Could not download conversion rates.")
             return false
         }
@@ -360,7 +347,7 @@ extension HomeViewController {
             let actualChfValue = receivedDictionary["btc_chf"] as? String
         else {
             Log.info("Could not download conversion rates.")
-            SentrySDK.capture(message: "Received unexpected data from conversion API.")
+            SentryManager.capture("Received unexpected data from conversion API.")
             return false
         }
             
@@ -417,11 +404,7 @@ extension HomeViewController {
                 self.noTransactionsLabel.alpha = 1
             } catch {
                 Log.info("Couldn't fetch text: \(error.localizedDescription)")
-                DispatchQueue.main.async {
-                    SentrySDK.capture(error: error) { scope in
-                        scope.setExtra(value: "LoadWalletData row 489", key: "context")
-                    }
-                }
+                SentryManager.capture(error, context: "LoadWalletData row 489")
             }
         }
     }
