@@ -730,7 +730,33 @@ class CacheManager: NSObject {
     // MARK: - Mnemonic
     
     static func storeMnemonic(_ mnemonic:String) throws {
+        
+        // Make sure no foreign LDK Node data remains available when creating or restoring a wallet.
+        // Foreign LDK Node data can never restore a channel, and may lead to loss of funds.
+        try quarantineLightningStateBeforeSeedImport()
+        
+        // Store new or restored mnemonic.
         try persistSecret(mnemonic, account: EnvironmentConfig.cacheKey(for: "mnemonic"), label: "mnemonic", accessibility: .afterFirstUnlockThisDeviceOnly)
+    }
+    
+    private static func quarantineLightningStateBeforeSeedImport() throws {
+        
+        guard try readSecretOrThrow(account: EnvironmentConfig.cacheKey(for: "mnemonic")) == nil else {
+            // A mnemonic already exists on this device, or is unreadable. Don't touch anything.
+            return
+        }
+        guard LightningStorage.hasLightningState() else {
+            // There is no LDK Node data on this device. Nothing to quarantine.
+            return
+        }
+        Log.info("Foreign LDK Node data found while importing a seed.")
+        
+        // Quarantine foreign LDK Node data.
+        // If this fails somehow, prevent the creation or restoration of the wallet.
+        try LightningStorage.quarantineLightningState()
+        
+        // Inform the user about the discovery of foreign LDK Node data.
+        BitcoinManager.shared.didQuarantineForeignState = true
     }
     
     static func getMnemonic() -> String? {

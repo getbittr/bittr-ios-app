@@ -33,6 +33,9 @@ class BitcoinManager {
     var xpub = ""
     var coreVC:CoreViewController?
 
+    // Prevent reconstructing foreign LDK Node data
+    var didQuarantineForeignState = false
+    
     // Bittr wallet
     var bittrWallet = BittrWallet()
     
@@ -117,6 +120,9 @@ class BitcoinManager {
         
         // Rotate the previous LDK Node log.
         try? FileManager.rotateLDKNodeLog()
+        
+        // Keep the channel state out of iCloud/Finder backups.
+        LightningStorage.excludeFromBackup()
         
         // Congifure LDK Node settings.
         let correctListeningAddresses = EnvironmentConfig.isDevelopment ? ["0.0.0.0:19735"] : ["0.0.0.0:9735"]

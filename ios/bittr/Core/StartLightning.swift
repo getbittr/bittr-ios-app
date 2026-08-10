@@ -97,6 +97,14 @@ extension CoreViewController {
 
         self.completeSync(.ldk)
         
+        if BitcoinManager.shared.didQuarantineForeignState {
+            Log.info("User has restored a backup on a new device. Their channel will not be available.")
+            // This is only reachable for users with Lightning connections before these stopped being synced.
+            // Newer users will never encounter this issue.
+            BitcoinManager.shared.didQuarantineForeignState = false
+            self.showAlert(presentingController: self, title: Language.getWord(withID: "restoredbackup"), message: Language.getWord(withID: "restoredbackup2"), buttons: [Language.getWord(withID: "okay")], actions: nil)
+        }
+        
         // Start final calculations.
         self.startSync(.final)
         
