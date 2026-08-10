@@ -14,6 +14,19 @@ enum APIError: Error {
     case decodingFailed
 }
 
+extension APIError: LocalizedError {
+    var errorDescription: String? {
+        switch self {
+        case .invalidURL:
+            return "Invalid URL."
+        case .requestFailed(let message):
+            return message
+        case .decodingFailed:
+            return "Could not read the server's response."
+        }
+    }
+}
+
 class CallsManager: NSObject {
     
     static func makeApiCall(url:String, parameters:[String:Any]?, getOrPost:CallType, completion: @escaping (Result<NSDictionary, APIError>) -> Void) async {
@@ -62,6 +75,11 @@ class CallsManager: NSObject {
                             return
                         }
                     } catch {
+                        if let statusCode = (response as? HTTPURLResponse)?.statusCode, !(200..<300).contains(statusCode) {
+                            Log.info("Request failed with status \(statusCode).")
+                            completion(.failure(.requestFailed("HTTP \(statusCode)")))
+                            return
+                        }
                         SentryManager.capture(error, context: "CallsManager row 60")
                         completion(.failure(.decodingFailed))
                         return
