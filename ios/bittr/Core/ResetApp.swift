@@ -7,7 +7,6 @@
 
 import UIKit
 import LDKNode
-import Sentry
 
 extension CoreViewController {
     
@@ -205,9 +204,7 @@ extension CoreViewController {
             } catch {
                 Log.info("Unsuccessful channel closure.")
                 DispatchQueue.main.async {
-                    SentrySDK.capture(error: error) { scope in
-                        scope.setExtra(value: "ResetApp row 170", key: "context")
-                    }
+                    SentryManager.capture(error, context: "ResetApp row 170")
                     if self.removingWalletForIncorrectPin {
                         // Close attempt failed — release the single-flight guard.
                         self.isRemovalInFlight = false
@@ -278,9 +275,7 @@ extension CoreViewController {
             } catch {
                 Log.info("Unsuccessful channel closure.")
                 DispatchQueue.main.async {
-                    SentrySDK.capture(error: error) { scope in
-                        scope.setExtra(value: "ResetApp row 213", key: "context")
-                    }
+                    SentryManager.capture(error, context: "ResetApp row 213")
                     if !self.removingWalletForIncorrectPin {
                         self.genericSpinner.stopAnimating()
                         self.fullViewCover.alpha = 0
@@ -348,11 +343,7 @@ extension CoreViewController {
                 cleanupSucceeded = true
             } catch {
                 Log.info("Error during cleanup: \(error.localizedDescription)")
-                DispatchQueue.main.async {
-                    SentrySDK.capture(error: error) { scope in
-                        scope.setExtra(value: "ResetApp row 269", key: "context")
-                    }
-                }
+                SentryManager.capture(error, context: "ResetApp row 269")
                 
                 // Even if everything fails, try to clean up documents (and state).
                 do {
@@ -363,11 +354,7 @@ extension CoreViewController {
                     cleanupSucceeded = true
                 } catch {
                     Log.info("Final fallback document cleanup failed: \(error.localizedDescription)")
-                    DispatchQueue.main.async {
-                        SentrySDK.capture(error: error) { scope in
-                            scope.setExtra(value: "ResetApp row 282", key: "context")
-                        }
-                    }
+                    SentryManager.capture(error, context: "ResetApp row 282")
                 }
             }
             
@@ -437,11 +424,7 @@ extension CoreViewController {
                 try BitcoinManager.shared.syncWallets()
             } catch {
                 Log.info("Error syncing after channel closure: \(error)")
-                DispatchQueue.main.async {
-                    SentrySDK.capture(error: error) { scope in
-                        scope.setExtra(value: "ResetApp row 347", key: "context")
-                    }
-                }
+                SentryManager.capture(error, context: "ResetApp row 347")
                 return
             }
             

@@ -7,7 +7,6 @@
 
 import UIKit
 import LDKNode
-import Sentry
 
 extension HomeViewController {
 
@@ -22,8 +21,9 @@ extension HomeViewController {
         var satoshisLightning = 0
         let lightningChannels = BitcoinManager.shared.listChannels()
         if let activeChannel = lightningChannels.getActiveChannel() {
-            if let channelTxoID = activeChannel.fundingTxo?.txid as? String {
-                CacheManager.storeTxoID(txoID: channelTxoID)
+            if let channelTxo = activeChannel.fundingTxo {
+                CacheManager.storeTxoID(txoID: channelTxo.txid)
+                CacheManager.storeChannelFundingOutpoint(txID: channelTxo.txid, vout: channelTxo.vout)
             }
             if Int(activeChannel.outboundCapacityMsat/1000) != 0 {
                 // Channel balance is more than punishment reserve.
@@ -42,9 +42,26 @@ extension HomeViewController {
         let satoshisOnchain = Int(balances.totalOnchainBalanceSats)
         let satoshisOnchainSpendable = Int(balances.spendableOnchainBalanceSats)
         
+        // Gather pending lightning balances.
+        let pendingBalancesFromChannelClosures = balances.pendingClosureSatoshis(openChannelIds: lightningChannels.map { $0.channelId })
+        
+        // Store channel closure txIDs.
+        CacheManager.storeChannelClosureTxIDs(txIDs: balances.pendingBalancesFromChannelClosures.spendingTxIDs())
+
+        // A force close is recognised via the sweep txIDs above; its commitment
+        // tx never appears in the BDK wallet, so storeChannelClosureTxIDIfFound's
+        // cooperative-close scan would keep re-scanning for it on every sync
+        // forever. Pending closure funds (> 0) only ever come from a force close,
+        // so drop the cached funding outpoint here to end that scan. A
+        // cooperative close leaves this at 0 and keeps the outpoint for the scan.
+        if pendingBalancesFromChannelClosures > 0 {
+            CacheManager.removeChannelFundingOutpoint()
+        }
+
         // Apply the snapshot to the shared wallet on the main thread.
         let apply = {
             BitcoinManager.shared.bittrWallet.satoshisLightning = satoshisLightning
+            BitcoinManager.shared.bittrWallet.pendingBalancesFromChannelClosures = pendingBalancesFromChannelClosures
             BitcoinManager.shared.bittrWallet.lightningChannels = lightningChannels
             BitcoinManager.shared.bittrWallet.allTransactions = allTransactions
             BitcoinManager.shared.bittrWallet.satoshisOnchain = satoshisOnchain
@@ -191,11 +208,7 @@ extension HomeViewController {
             Log.info("Bittr transactions: \(bittrApiTransactions.count)")
         } catch {
             Log.info("Bittr error: \(error.localizedDescription)")
-            DispatchQueue.main.async {
-                SentrySDK.capture(error: error) { scope in
-                    scope.setExtra(value: "LoadWalletData row 266", key: "context")
-                }
-            }
+            SentryManager.capture(error, context: "LoadWalletData row 266")
             return false
         }
         
@@ -223,7 +236,7 @@ extension HomeViewController {
     
     func setTotalSats() {
         // Calculate total balance
-        let totalBalanceSats = BitcoinManager.shared.bittrWallet.satoshisOnchain + BitcoinManager.shared.bittrWallet.satoshisLightning
+        let totalBalanceSats = BitcoinManager.shared.bittrWallet.satoshisOnchain + BitcoinManager.shared.bittrWallet.satoshisLightning + BitcoinManager.shared.bittrWallet.pendingBalancesFromChannelClosures
         let totalBalanceSatsString = "\(totalBalanceSats)"
         
         // Load balance label.
@@ -279,11 +292,7 @@ extension HomeViewController {
             attributedText = try NSAttributedString(data: htmlData, options: [NSAttributedString.DocumentReadingOptionKey.documentType : NSAttributedString.DocumentType.html], documentAttributes: nil)
         } catch {
             Log.info("Couldn't fetch text: \(error.localizedDescription)")
-            DispatchQueue.main.async {
-                SentrySDK.capture(error: error) { scope in
-                    scope.setExtra(value: "LoadWalletData row 360", key: "context")
-                }
-            }
+            SentryManager.capture(error, context: "LoadWalletData row 360")
             return
         }
         
@@ -328,11 +337,7 @@ extension HomeViewController {
                 }
             }
         } catch {
-            DispatchQueue.main.async {
-                SentrySDK.capture(error: error) { scope in
-                    scope.setExtra(value: "LoadWalletData row 394", key: "context")
-                }
-            }
+            SentryManager.capture(error, context: "LoadWalletData row 394")
             Log.info("Could not download conversion rates.")
             return false
         }
@@ -342,7 +347,7 @@ extension HomeViewController {
             let actualChfValue = receivedDictionary["btc_chf"] as? String
         else {
             Log.info("Could not download conversion rates.")
-            SentrySDK.capture(message: "Received unexpected data from conversion API.")
+            SentryManager.capture("Received unexpected data from conversion API.")
             return false
         }
             
@@ -399,11 +404,7 @@ extension HomeViewController {
                 self.noTransactionsLabel.alpha = 1
             } catch {
                 Log.info("Couldn't fetch text: \(error.localizedDescription)")
-                DispatchQueue.main.async {
-                    SentrySDK.capture(error: error) { scope in
-                        scope.setExtra(value: "LoadWalletData row 489", key: "context")
-                    }
-                }
+                SentryManager.capture(error, context: "LoadWalletData row 489")
             }
         }
     }
@@ -533,4 +534,71 @@ extension HomeViewController {
         }
     }
 
+}
+
+extension BalanceDetails {
+    func pendingClosureSatoshis(openChannelIds:[ChannelId]) -> Int {
+        return self.lightningBalances.forceClosedSatoshis(excludingChannels: openChannelIds)
+            + self.pendingBalancesFromChannelClosures.unbroadcastSatoshis()
+    }
+}
+
+extension [PendingSweepBalance] {
+    
+    func unbroadcastSatoshis() -> Int {
+        
+        var totalSatoshis = 0
+        for eachBalance in self {
+            switch eachBalance {
+            case .pendingBroadcast(_, let amountSatoshis): totalSatoshis += Int(amountSatoshis)
+            case .broadcastAwaitingConfirmation, .awaitingThresholdConfirmations: break
+            }
+        }
+        return totalSatoshis
+    }
+
+    // The transactions carrying the swept funds.
+    // A sweep that hasn't been broadcast yet doesn't have one.
+    func spendingTxIDs() -> [String] {
+
+        var txIDs = [String]()
+        for eachBalance in self {
+            switch eachBalance {
+            case .broadcastAwaitingConfirmation(_, _, let latestSpendingTxid, _),
+                 .awaitingThresholdConfirmations(_, let latestSpendingTxid, _, _, _):
+                txIDs += [latestSpendingTxid]
+            case .pendingBroadcast: break
+            }
+        }
+        return txIDs
+    }
+}
+
+extension [LightningBalance] {
+    
+    func forceClosedSatoshis(excludingChannels openChannelIds:[ChannelId]) -> Int {
+        
+        var totalSatoshis = 0
+        for eachBalance in self {
+            switch eachBalance {
+            case .claimableAwaitingConfirmations(let channelId, _, let amountSatoshis, _, .holderForceClosed),
+                 .claimableAwaitingConfirmations(let channelId, _, let amountSatoshis, _, .counterpartyForceClosed),
+                 .claimableAwaitingConfirmations(let channelId, _, let amountSatoshis, _, .htlc),
+                 .contentiousClaimable(let channelId, _, let amountSatoshis, _, _, _),
+                 .maybeTimeoutClaimableHtlc(let channelId, _, let amountSatoshis, _, _, _),
+                 .maybePreimageClaimableHtlc(let channelId, _, let amountSatoshis, _, _),
+                 .counterpartyRevokedOutputClaimable(let channelId, _, let amountSatoshis):
+                if !openChannelIds.contains(channelId) {
+                    totalSatoshis += Int(amountSatoshis)
+                }
+            case .claimableOnChannelClose,
+                 .claimableAwaitingConfirmations(_, _, _, _, .coopClose):
+                // Don't include cooperative closes, because those funds already count towards the onchain balance.
+                // Matching .coopClose explicitly (rather than a catch-all) keeps this switch exhaustive over
+                // BalanceSource, so a future LDK case is a compile error to classify rather than a silent exclusion.
+                break
+            }
+        }
+        return totalSatoshis
+    }
 }

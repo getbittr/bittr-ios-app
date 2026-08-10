@@ -8,7 +8,6 @@
 import UIKit
 import LDKNode
 import LightningDevKit
-import Sentry
 
 class SendViewController: UIViewController, UITextFieldDelegate, OnchainSyncFailureReporting {
     
@@ -117,7 +116,6 @@ class SendViewController: UIViewController, UITextFieldDelegate, OnchainSyncFail
     var temporaryInvoiceText = ""
     var temporaryInvoiceAmount = 0
     var temporaryInvoiceNote:String?
-    var temporaryIsZeroAmountInvoice = false
     
     // Confirm variables
     var confirmSendVC:ConfirmSendViewController?

@@ -7,7 +7,6 @@
 
 import UIKit
 import LDKNode
-import Sentry
 
 class CoreViewController: UIViewController {
     
@@ -55,11 +54,6 @@ class CoreViewController: UIViewController {
     var allArticles:[String:Article]?
     var tappedArticle:String?
     var downloadedAcademy:[Level]?
-    
-    // QuestionVC
-    var tappedQuestion = ""
-    var tappedAnswer = ""
-    var tappedType:String?
     
     // Top bar
     @IBOutlet weak var animationContainer: UIView!
@@ -138,7 +132,7 @@ class CoreViewController: UIViewController {
         super.viewDidLoad()
         
         // Count app opening.
-        SentrySDK.metrics.count(key: "app.launch.open")
+        SentryManager.countMetric("app.launch.open")
         
         // Load Bittr wallet details.
         BitcoinManager.shared.bittrWallet = CacheManager.parseDevice()

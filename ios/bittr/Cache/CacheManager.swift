@@ -6,7 +6,6 @@
 //
 
 import UIKit
-import Sentry
 import CryptoKit
 
 class CacheManager: NSObject {
@@ -24,6 +23,8 @@ class CacheManager: NSObject {
         defaults.removeObject(forKey: EnvironmentConfig.cacheKey(for: "lightning"))
         defaults.removeObject(forKey: EnvironmentConfig.cacheKey(for: "bittraddress"))
         defaults.removeObject(forKey: EnvironmentConfig.cacheKey(for: "onchainaddresses"))
+        defaults.removeObject(forKey: EnvironmentConfig.cacheKey(for: "channelfundingoutpoint"))
+        defaults.removeObject(forKey: EnvironmentConfig.cacheKey(for: "channelclosuretxids"))
 
         // Remove the secrets from the Keychain too — they no longer live in
         // UserDefaults, so the UserDefaults removals above wouldn't clear them.
@@ -231,11 +232,7 @@ class CacheManager: NSObject {
             Log.info("Did save image to file.")
         } catch {
             Log.info("Could not save image to file. \(error.localizedDescription)")
-            DispatchQueue.main.async {
-                SentrySDK.capture(error: error) { scope in
-                    scope.setExtra(value: "CacheManager row 232", key: "context")
-                }
-            }
+            SentryManager.capture(error, context: "CacheManager row 232")
         }
     }
     
@@ -253,11 +250,7 @@ class CacheManager: NSObject {
             }
         } catch {
             Log.info("Could not delete images folder. \(error.localizedDescription)")
-            DispatchQueue.main.async {
-                SentrySDK.capture(error: error) { scope in
-                    scope.setExtra(value: "CacheManager row 53", key: "context")
-                }
-            }
+            SentryManager.capture(error, context: "CacheManager row 53")
         }
     }
     
@@ -843,9 +836,7 @@ class CacheManager: NSObject {
         } catch {
             // A Keychain read failed (not a genuine absence). Report it and treat
             // as unavailable so nothing destructive happens.
-            SentrySDK.capture(error: error) { scope in
-                scope.setExtra(value: "reading wallet secrets for presence check", key: "context")
-            }
+            SentryManager.capture(error, context: "reading wallet secrets for presence check")
             return .unavailable
         }
     }
@@ -923,9 +914,7 @@ class CacheManager: NSObject {
                 throw SecureStore.SecureStoreError.writeVerificationFailed
             }
         } catch {
-            SentrySDK.capture(error: error) { scope in
-                scope.setExtra(value: "storing \(label) in keychain", key: "context")
-            }
+            SentryManager.capture(error, context: "storing \(label) in keychain")
             throw error
         }
     }
@@ -984,9 +973,7 @@ class CacheManager: NSObject {
             }
         } catch {
             // Keychain write failed — keep the UserDefaults copy so access isn't lost.
-            SentrySDK.capture(error: error) { scope in
-                scope.setExtra(value: "migrating secret to keychain", key: "context")
-            }
+            SentryManager.capture(error, context: "migrating secret to keychain")
         }
         return legacy
     }
@@ -1013,6 +1000,54 @@ class CacheManager: NSObject {
         } else {
             return nil
         }
+    }
+    
+    // MARK: - Channel funding outpoint
+    
+    // Store a channel's funding output, kept as "txID:vout".
+    // Upon a cooperative close, we can deduce the onchain transaction from this output.
+    static func storeChannelFundingOutpoint(txID:String, vout:UInt32) {
+        let envKey = EnvironmentConfig.cacheKey(for: "channelfundingoutpoint")
+        UserDefaults.standard.set("\(txID):\(vout)", forKey: envKey)
+    }
+    
+    // Drop the outpoint once its closing transaction has been found.
+    static func removeChannelFundingOutpoint() {
+        let envKey = EnvironmentConfig.cacheKey(for: "channelfundingoutpoint")
+        UserDefaults.standard.removeObject(forKey: envKey)
+    }
+    
+    static func getChannelFundingOutpoint() -> (txID:String, vout:UInt32)? {
+        let envKey = EnvironmentConfig.cacheKey(for: "channelfundingoutpoint")
+        guard let storedOutpoint = UserDefaults.standard.value(forKey: envKey) as? String else { return nil }
+        
+        let components = storedOutpoint.components(separatedBy: ":")
+        guard components.count == 2, let vout = UInt32(components[1]) else { return nil }
+        
+        return (txID: components[0], vout: vout)
+    }
+    
+    // MARK: - Channel closure transactions
+    
+    static func storeChannelClosureTxIDs(txIDs:[String]) {
+        
+        let envKey = EnvironmentConfig.cacheKey(for: "channelclosuretxids")
+        
+        let defaults = UserDefaults.standard
+        let cachedTxIDs = defaults.value(forKey: envKey) as? [String] ?? [String]()
+        let newTxIDs = txIDs.filter { !cachedTxIDs.contains($0) }
+        
+        if newTxIDs.count > 0 {
+            defaults.set(cachedTxIDs + newTxIDs, forKey: envKey)
+        }
+    }
+    
+    static func getChannelClosureTxIDs() -> [String] {
+        
+        let envKey = EnvironmentConfig.cacheKey(for: "channelclosuretxids")
+        
+        let defaults = UserDefaults.standard
+        return defaults.value(forKey: envKey) as? [String] ?? [String]()
     }
     
     // MARK: - Sent to Bittr
@@ -1290,9 +1325,7 @@ class CacheManager: NSObject {
             }
             return true
         } catch {
-            SentrySDK.capture(error: error) { scope in
-                scope.setExtra(value: "storing swap private key in keychain", key: "context")
-            }
+            SentryManager.capture(error, context: "storing swap private key in keychain")
             return false
         }
     }
@@ -1368,11 +1401,7 @@ class CacheManager: NSObject {
         
         if let cachedOnchainAddresses = UserDefaults.standard.value(forKey: EnvironmentConfig.cacheKey(for: "onchainaddresses")) as? [NSDictionary] {
             
-            var addresses = cachedOnchainAddresses.toAddresses()
-            addresses.sort { address1, address2 in
-                address1.addressIndex < address2.addressIndex
-            }
-            return addresses
+            return cachedOnchainAddresses.toAddresses()
         } else {
             return [OnchainAddress]()
         }

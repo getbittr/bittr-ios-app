@@ -7,7 +7,6 @@
 
 import UIKit
 import LDKNode
-import Sentry
 
 extension CoreViewController {
     
@@ -129,11 +128,7 @@ extension CoreViewController {
                 try BitcoinManager.shared.syncWallets()
             } catch {
                 Log.info("startWallet syncWallets failed: \(error.localizedDescription)")
-                DispatchQueue.main.async {
-                    SentrySDK.capture(error: error) { scope in
-                        scope.setExtra(value: "StartLightning syncWallets", key: "context")
-                    }
-                }
+                SentryManager.capture(error, context: "StartLightning syncWallets")
             }
             
             // Load wallet data — mixed data + UI work (balance labels, table
@@ -163,7 +158,7 @@ extension CoreViewController {
         }
 
         Log.info("Did start Node: \(didStartNode)")
-        SentrySDK.metrics.count(key: didStartNode ? "sync.ldk.success" : "sync.ldk.failure")
+        SentryManager.countMetric(didStartNode ? "sync.ldk.success" : "sync.ldk.failure")
         return didStartNode
     }
     

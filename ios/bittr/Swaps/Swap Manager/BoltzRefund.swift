@@ -249,7 +249,10 @@ class BoltzRefund {
             
         if let swapOutput = detectSwap(tweakedKey: tweakedKey, transactionHex: lockupTxHex) {
                 
-            let destinationAddress = BitcoinManager.shared.bittrWallet.onchainAddresses?.getNextUnusedAddress() ?? BitcoinManager.shared.getAddress(atIndex: 0)
+            guard let destinationAddress = BitcoinManager.shared.bittrWallet.onchainAddresses?.getNextUnusedAddress() ?? BitcoinManager.shared.getAddress(atIndex: 0) else {
+                Log.info("No destination address available for the refund.")
+                return ClaimResult(success: false, transactionId: nil)
+            }
             
             // Calculate refund transaction fee
             let refundFee = try await calculateClaimOrRefundTransactionFee()
