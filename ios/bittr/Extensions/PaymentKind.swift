@@ -35,5 +35,14 @@ extension PaymentKind {
             return false
         }
     }
+
+    var isBolt12: Bool {
+        switch self {
+        case .bolt12Offer, .bolt12Refund:
+            return true
+        default:
+            return false
+        }
+    }
     
 }

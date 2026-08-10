@@ -5,7 +5,6 @@
 //  Created by Ruben Waterman on 19/03/2025.
 //
 import Foundation
-import Sentry
 
 // MARK: - Refund Models
 
@@ -97,11 +96,7 @@ class BoltzAPI {
         do {
             request.httpBody = try JSONEncoder().encode(body)
         } catch {
-            DispatchQueue.main.async {
-                SentrySDK.capture(error: error) { scope in
-                    scope.setExtra(value: "BoltzAPI row 89", key: "context")
-                }
-            }
+            SentryManager.capture(error, context: "BoltzAPI row 89")
             completion(.failure(.decodingFailed))
             return
         }
@@ -121,11 +116,7 @@ class BoltzAPI {
                 let decodedResponse = try JSONDecoder().decode(U.self, from: data)
                 completion(.success(decodedResponse))
             } catch {
-                DispatchQueue.main.async {
-                    SentrySDK.capture(error: error) { scope in
-                        scope.setExtra(value: "BoltzAPI row 113", key: "context")
-                    }
-                }
+                SentryManager.capture(error, context: "BoltzAPI row 113")
                 completion(.failure(.decodingFailed))
             }
         }
@@ -148,11 +139,7 @@ class BoltzAPI {
         do {
             request.httpBody = try JSONEncoder().encode(body)
         } catch {
-            DispatchQueue.main.async {
-                SentrySDK.capture(error: error) { scope in
-                    scope.setExtra(value: "BoltzAPI row 140", key: "context")
-                }
-            }
+            SentryManager.capture(error, context: "BoltzAPI row 140")
             completion(.failure(.decodingFailed))
             return
         }
@@ -172,11 +159,7 @@ class BoltzAPI {
                 let decodedResponse = try JSONDecoder().decode(U.self, from: data)
                 completion(.success(decodedResponse))
             } catch {
-                DispatchQueue.main.async {
-                    SentrySDK.capture(error: error) { scope in
-                        scope.setExtra(value: "BoltzAPI row 164", key: "context")
-                    }
-                }
+                SentryManager.capture(error, context: "BoltzAPI row 164")
                 completion(.failure(.decodingFailed))
             }
         }
@@ -212,11 +195,7 @@ class BoltzAPI {
         do {
             request.httpBody = try JSONEncoder().encode(broadcastRequest)
         } catch {
-            DispatchQueue.main.async {
-                SentrySDK.capture(error: error) { scope in
-                    scope.setExtra(value: "BoltzAPI row 204", key: "context")
-                }
-            }
+            SentryManager.capture(error, context: "BoltzAPI row 204")
             completion(.failure(.decodingFailed))
             return
         }
@@ -257,11 +236,7 @@ class BoltzAPI {
                 completion(.success(decodedResponse))
             } catch {
                 Log.info("❌ Failed to decode broadcast response: \(error)")
-                DispatchQueue.main.async {
-                    SentrySDK.capture(error: error) { scope in
-                        scope.setExtra(value: "BoltzAPI row 249", key: "context")
-                    }
-                }
+                SentryManager.capture(error, context: "BoltzAPI row 249")
                 // Try to decode as a simple string response
                 if let responseString = String(data: data, encoding: .utf8) {
                     // If it's just a transaction ID string, create a response

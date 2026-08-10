@@ -6,7 +6,6 @@
 //
 
 import UIKit
-import Sentry
 import UserNotifications
 
 @main
@@ -14,130 +13,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate, UNUserNotificationCenterD
 
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
         
-        SentrySDK.start { options in
-            options.dsn = "https://a132893f0e0785733b108592f71efebc@o4507055777120256.ingest.us.sentry.io/4507055778758656"
-            options.debug = false
-            options.tracesSampleRate = 1.0
-            options.sendDefaultPii = false
-            
-            // Redact sensitive data in Sentry events.
-            options.beforeSend = { sentryEvent in
-                
-                if let eventMessage = sentryEvent.message?.formatted {
-                    sentryEvent.message = SentryMessage(formatted: eventMessage.redactBTCValues())
-                }
-                
-                if let eventExceptions = sentryEvent.exceptions {
-                    for eachException in eventExceptions {
-                        eachException.value = eachException.value?.redactBTCValues()
-                        if let exceptionMechanism = eachException.mechanism {
-                            if let mechanismDescription = exceptionMechanism.desc {
-                                eachException.mechanism!.desc = mechanismDescription.redactBTCValues()
-                            }
-                        }
-                    }
-                }
-                
-                if var eventExtra = sentryEvent.extra {
-                    for (key, value) in eventExtra {
-                        if let valueString = value as? String {
-                            eventExtra[key] = valueString.redactBTCValues()
-                        }
-                    }
-                    sentryEvent.extra = eventExtra
-                }
-                
-                // Redact sensitive user data.
-                
-                if sentryEvent.user != nil {
-                    
-                    // Redact IP address.
-                    sentryEvent.user!.ipAddress = "[redacted]"
-                    
-                    // Redact geo data.
-                    sentryEvent.user!.geo = Geo()
-                    sentryEvent.user!.geo!.countryCode = "[redacted]"
-                    sentryEvent.user!.geo!.city = "[redacted]"
-                    sentryEvent.user!.geo!.region = "[redacted]"
-                }
-                
-                if sentryEvent.context != nil {
-                    if sentryEvent.context!["culture"] != nil {
-                        for (key, _) in sentryEvent.context!["culture"]! {
-                            sentryEvent.context!["culture"]![key]! = "[redacted]"
-                        }
-                    }
-                    if sentryEvent.context!["device"] != nil {
-                        if sentryEvent.context!["device"]!["locale"] != nil {
-                            sentryEvent.context!["device"]!["locale"]! = "[redacted]"
-                        }
-                    }
-                }
-                
-                // Send device token to Sentry.
-                if let deviceToken = CacheManager.getRegistrationToken() {
-                    if sentryEvent.extra == nil { sentryEvent.extra = [String:Any]() }
-                    sentryEvent.extra!["device_token"] = deviceToken
-                }
-                
-                // Send hardcoded build number to Sentry.
-                if sentryEvent.extra == nil { sentryEvent.extra = [String:Any]() }
-                
-                return sentryEvent
-            }
-            
-            // Redact sensitive data in Sentry breadcrumbs.
-            options.beforeBreadcrumb = { breadCrumb in
-                
-                let newBreadcrumb = breadCrumb
-                
-                // Redact HTTP query contents from breadcrumb.
-                if var breadcrumbData = newBreadcrumb.data {
-                    
-                    // Redact http.query from breadcrumb.
-                    if breadcrumbData["http.query"] != nil {
-                        breadcrumbData["http.query"] = "[redacted]"
-                    }
-                    
-                    // Redact UIButton tag from view data.
-                    if let view = breadcrumbData["view"] as? String {
-                        let redactedTag = view.replacingOccurrences(of: #"tag\s*=\s*\d+\s*;?"#, with: "tag = [redacted];", options: .regularExpression)
-                        breadcrumbData["view"] = redactedTag
-                    }
-                    
-                    // Redact UIButton tag from target data.
-                    if let breadcrumbTarget = breadcrumbData["target"] as? String {
-                        let redactedTarget = breadcrumbTarget.replacingOccurrences(of: #"tag\s*=\s*\d+\s*;?"#, with: "tag = [redacted];", options: .regularExpression)
-                        breadcrumbData["target"] = redactedTarget
-                    }
-                    
-                    // Redact URL.
-                    if let url = breadcrumbData["url"] as? String {
-                        breadcrumbData["url"] = url.redactURL()
-                    }
-                    // Redact HTTP query.
-                    if breadcrumbData["http.query"] != nil {
-                        breadcrumbData["http.query"] = "[redacted]"
-                    }
-                    
-                    // Redact UIButton tag from breadcrumb.
-                    if breadcrumbData["tag"] != nil {
-                        breadcrumbData["tag"] = "[redacted]"
-                    }
-                    
-                    // Redact accessibility identifier from UIButton.
-                    if breadcrumbData["accessibilityIdentifier"] != nil {
-                        breadcrumbData["accessibilityIdentifier"] = "[redacted]"
-                    }
-                    
-                    newBreadcrumb.data = breadcrumbData
-                }
-                
-                newBreadcrumb.message = newBreadcrumb.message?.replacingOccurrences(of: #"tag\s*=\s*\d+"#, with: "tag = [redacted]", options: .regularExpression).redactURL()
-                
-                return newBreadcrumb
-            }
-        }
+        SentryManager.start()
 
         // Migrate any legacy UserDefaults-stored secrets (mnemonic, PIN) into the
         // Keychain. Safe to call on every launch; a no-op once migrated. The
@@ -190,19 +66,3 @@ class AppDelegate: UIResponder, UIApplicationDelegate, UNUserNotificationCenterD
     }
 
 }
-
-extension String {
-    
-    func redactBTCValues() -> String {
-        // Replace any sequence like "0.16450231 BTC" with "[redacted]"
-        let pattern = #"[0-9]+\.[0-9]+(\s*BTC)?"#
-        return self.replacingOccurrences(of: pattern, with: "[redacted]", options: .regularExpression)
-    }
-    
-    func redactURL() -> String {
-        // Regex pattern to catch URLs (both http and https)
-        let pattern = #"(https?:\/\/[^\s]+)"#
-        return self.replacingOccurrences(of: pattern, with: "[redacted URL]", options: .regularExpression)
-    }
-}
-

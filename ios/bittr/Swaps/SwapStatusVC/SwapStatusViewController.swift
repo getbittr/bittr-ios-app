@@ -6,7 +6,6 @@
 //
 
 import UIKit
-import Sentry
 
 class SwapStatusViewController: UIViewController {
     
@@ -165,11 +164,7 @@ class SwapStatusViewController: UIViewController {
                     print("Result: \(result)")
                 } catch {
                     Log.info("Error: \(error)")
-                    DispatchQueue.main.async {
-                        SentrySDK.capture(error: error) { scope in
-                            scope.setExtra(value: "SwapViewController row 584", key: "context")
-                        }
-                    }
+                    SentryManager.capture(error, context: "SwapViewController row 584")
                 }
             }
         } else if status == "transaction.mempool", self.thisSwap!.swapDirection == .lightningToOnchain {
@@ -216,7 +211,7 @@ class SwapStatusViewController: UIViewController {
                         self.confirmStatusLabel.text = Language.getWord(withID: "swapstatusswapcomplete")
                         self.confirmStatusSpinner.stopAnimating()
                         self.webSocketManager?.disconnect()
-                        SentrySDK.metrics.count(key: "swap.lightningtoonchain.success")
+                        SentryManager.countMetric("swap.lightningtoonchain.success")
                         
                         // Add the onchain transaction to the UI
                         if let transactionId = claimResult.transactionId {
@@ -230,10 +225,8 @@ class SwapStatusViewController: UIViewController {
                 Log.info("Error claiming transaction: \(error)")
                 DispatchQueue.main.async {
                     self.confirmStatusLabel.text = Language.getWord(withID: "swapstatusfailed")
-                    SentrySDK.metrics.count(key: "swap.lightningtoonchain.failed")
-                    SentrySDK.capture(error: error) { scope in
-                        scope.setExtra(value: "SwapViewController row 839", key: "context")
-                    }
+                    SentryManager.countMetric("swap.lightningtoonchain.failed")
+                    SentryManager.capture(error, context: "SwapViewController row 839")
                 }
             }
         }
@@ -358,11 +351,7 @@ class SwapStatusViewController: UIViewController {
             
         } catch {
             Log.info("Error loading lockup transaction from file: \(error)")
-            DispatchQueue.main.async {
-                SentrySDK.capture(error: error) { scope in
-                    scope.setExtra(value: "SwapViewController row 1009", key: "context")
-                }
-            }
+            SentryManager.capture(error, context: "SwapViewController row 1009")
             return nil
         }
     }
@@ -390,11 +379,7 @@ class SwapStatusViewController: UIViewController {
             self.present(vc, animated: true, completion: nil)
         } catch {
             Log.info("Error loading swap details from file: \(error)")
-            DispatchQueue.main.async {
-                SentrySDK.capture(error: error) { scope in
-                    scope.setExtra(value: "SwapViewController row 870", key: "context")
-                }
-            }
+            SentryManager.capture(error, context: "SwapViewController row 870")
         }
     }
     
