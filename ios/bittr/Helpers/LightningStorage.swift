@@ -96,8 +96,14 @@ struct LightningStorage {
             try fileManager.removeItem(at: quarantineURL)
         }
         
-        // Create quarantine directory.
+        // Create the quarantine directory and keep it out of backups. Its name
+        // isn't matched by excludeFromBackup's state-file prefix, so without this
+        // the quarantined data could be re-synced and re-restored onto the next
+        // device — defeating the whole point of quarantining it. Excluding the
+        // directory covers everything moved into it below.
         try fileManager.createDirectory(at: quarantineURL, withIntermediateDirectories: true)
+        setExcludedFromBackup(quarantineURL)
+
         // Add all foreign LDK Node data into quarantine.
         for file in stateFiles {
             try fileManager.moveItem(at: file, to: quarantineURL.appendingPathComponent(file.lastPathComponent))
