@@ -92,13 +92,6 @@ extension CoreViewController {
                 homeVC.coreVC = self
                 self.homeVC = homeVC
             }
-        } else if segue.identifier == "CoreToQuestion" {
-            if let questionVC = segue.destination as? QuestionViewController {
-                questionVC.headerText = self.tappedQuestion
-                questionVC.answerText = self.tappedAnswer
-                questionVC.coreVC = self
-                questionVC.questionType = self.tappedType
-            }
         } else if segue.identifier == "CoreToArticle" {
             if let oneArticleVC = segue.destination as? ArticleViewController, self.tappedArticle != nil {
                 let article = self.allArticles?[self.tappedArticle!] ?? Article()

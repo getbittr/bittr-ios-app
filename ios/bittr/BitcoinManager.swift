@@ -39,6 +39,9 @@ class BitcoinManager {
     // Bittr wallet
     var bittrWallet = BittrWallet()
     
+    // Onchain address management
+    var isManagingOnchainAddresses = false
+    
     // Event listener
     private var eventListener: Task<Void, Never>?
     
@@ -115,8 +118,8 @@ class BitcoinManager {
     
     func didStartLDK() -> Bool {
         
-        // Delete previous LDK Node log.
-        try? FileManager.deleteLDKNodeLogLatestFile()
+        // Rotate the previous LDK Node log.
+        try? FileManager.rotateLDKNodeLog()
         
         // Congifure LDK Node settings.
         let correctListeningAddresses = EnvironmentConfig.isDevelopment ? ["0.0.0.0:19735"] : ["0.0.0.0:9735"]
@@ -438,8 +441,12 @@ class BitcoinManager {
             // Light sync BDK.
             _ = self.lightSyncBdkWallet()
             
+            // Check pending balances.
+            let balances = node.listBalances()
+            let pendingClosureSatoshis = balances.pendingClosureSatoshis(openChannelIds: self.listChannels().map { $0.channelId })
+            
             // Check if any changes have been found.
-            if self.bittrWallet.satoshisOnchain != Int(node.listBalances().totalOnchainBalanceSats) || self.bittrWallet.allTransactions.count != self.listPayments().count {
+            if self.bittrWallet.satoshisOnchain != Int(balances.totalOnchainBalanceSats) || self.bittrWallet.pendingBalancesFromChannelClosures != pendingClosureSatoshis || self.bittrWallet.allTransactions.count != self.listPayments().count {
                 Log.info("Did find updates in light sync.")
                 
                 Task {

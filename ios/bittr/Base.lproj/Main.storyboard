@@ -829,7 +829,6 @@
                         <outlet property="walletView" destination="LZ5-LN-ll3" id="YCy-ng-lAQ"/>
                         <outlet property="yearLabel" destination="IaO-Gf-3C2" id="OrV-1q-QoO"/>
                         <outlet property="yearView" destination="gSx-Va-0OK" id="zr4-cO-epd"/>
-                        <segue destination="b12-fa-pJV" kind="show" identifier="CoreToQuestion" id="KXI-1X-aAi"/>
                         <segue destination="4ca-QY-6dF" kind="show" identifier="CoreToArticle" id="o32-HH-NM5"/>
                         <segue destination="SiB-n5-gpJ" kind="show" identifier="CoreToSwap" id="ahR-EC-NqA"/>
                     </connections>
@@ -8163,7 +8162,7 @@
         <!--Question View Controller-->
         <scene sceneID="ZcY-D9-jzP">
             <objects>
-                <viewController id="b12-fa-pJV" customClass="QuestionViewController" customModule="bittr" customModuleProvider="target" sceneMemberID="viewController">
+                <viewController id="b12-fa-pJV" storyboardIdentifier="Question" customClass="QuestionViewController" customModule="bittr" customModuleProvider="target" sceneMemberID="viewController">
                     <view key="view" contentMode="scaleToFill" id="1jQ-RR-3Ix">
                         <rect key="frame" x="0.0" y="0.0" width="393" height="793"/>
                         <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>

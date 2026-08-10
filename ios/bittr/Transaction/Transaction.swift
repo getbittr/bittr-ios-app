@@ -25,6 +25,7 @@ class Transaction: NSObject {
     var lnDescription = ""
     var channelId = ""
     var isFundingTransaction = false
+    var isChannelClosure:Bool { return CacheManager.getChannelClosureTxIDs().contains(self.id) }
     
     // Bittr purchases
     var isBittr = false

@@ -55,11 +55,6 @@ class CoreViewController: UIViewController {
     var tappedArticle:String?
     var downloadedAcademy:[Level]?
     
-    // QuestionVC
-    var tappedQuestion = ""
-    var tappedAnswer = ""
-    var tappedType:String?
-    
     // Top bar
     @IBOutlet weak var animationContainer: UIView!
     @IBOutlet weak var finalLogoDarkMode: UIImageView!

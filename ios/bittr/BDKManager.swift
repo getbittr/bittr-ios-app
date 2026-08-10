@@ -209,6 +209,7 @@ extension BitcoinManager {
             Log.info("Did sync BDK wallet.")
             self.bdkWalletIsScanning = false
             self.bdkWalletHasBeenScanned = true
+            self.storeChannelClosureTxIDIfFound()
             completion(true)
         }
     }
@@ -272,6 +273,8 @@ extension BitcoinManager {
         } catch {
             self.handleError(error: error, row: 603)
         }
+        
+        self.storeChannelClosureTxIDIfFound()
         
         return true
     }
@@ -421,13 +424,65 @@ extension BitcoinManager {
         }
     }
     
+    // Look for the transaction that closed a channel and remember it.
+    func storeChannelClosureTxIDIfFound() {
+        
+        // Nothing to look for until a channel has closed.
+        let openFundingTxIDs = self.listChannels().compactMap { $0.fundingTxo?.txid }
+        guard let fundingOutpoint = CacheManager.getChannelFundingOutpoint(),
+              !openFundingTxIDs.contains(fundingOutpoint.txID) else { return }
+        
+        DispatchQueue.global(qos: .background).async {
+            
+            // Bind the wallet locally: resetNodeState can clear it while this
+            // closure is parked on the background queue.
+            guard let bdkWallet = self.bdkWallet else { return }
+            
+            for eachCanonicalTx in bdkWallet.transactions() {
+                let spendsFundingOutput = eachCanonicalTx.transaction.input().contains { eachInput in
+                    eachInput.previousOutput.txid == fundingOutpoint.txID && eachInput.previousOutput.vout == fundingOutpoint.vout
+                }
+                if spendsFundingOutput {
+                    CacheManager.storeChannelClosureTxIDs(txIDs: [eachCanonicalTx.transaction.computeTxid()])
+                    CacheManager.removeChannelFundingOutpoint()
+                    return
+                }
+            }
+        }
+    }
+    
     func getBittrAddress() -> String {
         let bittrAddress = self.bdkWallet!.peekAddress(keychain: .external, index: 0).address.description
         return bittrAddress
     }
     
-    func getAddress(atIndex:Int) -> String {
-        let thisAddress = self.bdkWallet!.peekAddress(keychain: .external, index: UInt32(atIndex)).address.description
+    func revealAddresses(toIndex:Int) {
+        guard let bdkWallet = self.bdkWallet else {
+            Log.info("BDK wallet unavailable; not revealing addresses to index \(toIndex).")
+            return
+        }
+        // Make sure peeked addresses are also revealed, so that they're updated in any lightSync.
+        let newlyRevealedAddresses = bdkWallet.revealAddressesTo(keychain: .external, index: UInt32(toIndex))
+        guard newlyRevealedAddresses.count > 0 else { return }
+        guard let connection = self.connection else {
+            Log.info("No BDK connection; \(newlyRevealedAddresses.count) revealed addresses were not persisted.")
+            return
+        }
+
+        do {
+            _ = try bdkWallet.persist(connection: connection)
+        } catch {
+            self.handleError(error: error, row: 468)
+        }
+    }
+    
+    func getAddress(atIndex:Int, doReveal:Bool = true) -> String? {
+        if doReveal { self.revealAddresses(toIndex: atIndex) }
+        guard let bdkWallet = self.bdkWallet else {
+            Log.info("BDK wallet unavailable; could not derive address at index \(atIndex).")
+            return nil
+        }
+        let thisAddress = bdkWallet.peekAddress(keychain: .external, index: UInt32(atIndex)).address.description
         return thisAddress
     }
 }
