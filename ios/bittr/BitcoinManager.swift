@@ -116,8 +116,8 @@ class BitcoinManager {
     
     func didStartLDK() -> Bool {
         
-        // Delete previous LDK Node log.
-        try? FileManager.deleteLDKNodeLogLatestFile()
+        // Rotate the previous LDK Node log.
+        try? FileManager.rotateLDKNodeLog()
         
         // Congifure LDK Node settings.
         let correctListeningAddresses = EnvironmentConfig.isDevelopment ? ["0.0.0.0:19735"] : ["0.0.0.0:9735"]

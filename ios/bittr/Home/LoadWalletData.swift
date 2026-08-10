@@ -573,11 +573,11 @@ extension [PendingSweepBalance] {
         }
         return totalSatoshis
     }
-    
+
     // The transactions carrying the swept funds.
     // A sweep that hasn't been broadcast yet doesn't have one.
     func spendingTxIDs() -> [String] {
-        
+
         var txIDs = [String]()
         for eachBalance in self {
             switch eachBalance {
