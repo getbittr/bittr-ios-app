@@ -8,7 +8,6 @@
 import Foundation
 import LDKNode
 import BitcoinDevKit
-import Sentry
 import CryptoKit
 
 class BitcoinManager {
@@ -26,19 +25,22 @@ class BitcoinManager {
     var bdkWallet: BitcoinDevKit.Wallet?
     var electrumClient: BitcoinDevKit.ElectrumClient?
     var connection: BitcoinDevKit.Connection?
-    var bdkWalletIsScanning = false
-    var bdkWalletHasBeenScanned = false
-    // Set when the full scan's watchdog fires. The scan can't be cancelled, so
-    // this session stays scan-blocked and only a restart clears it.
-    var bdkFullScanTimedOut = false
+    let bdkStartLock = NSLock()
+    let bdkScan = BdkScanState()
     
     // General
     private let storageManager = LightningStorage()
     var xpub = ""
     var coreVC:CoreViewController?
 
+    // Prevent reconstructing foreign LDK Node data
+    var didQuarantineForeignState = false
+    
     // Bittr wallet
     var bittrWallet = BittrWallet()
+    
+    // Onchain address management
+    var isManagingOnchainAddresses = false
     
     // Event listener
     private var eventListener: Task<Void, Never>?
@@ -116,8 +118,11 @@ class BitcoinManager {
     
     func didStartLDK() -> Bool {
         
-        // Delete previous LDK Node log.
-        try? FileManager.deleteLDKNodeLogLatestFile()
+        // Rotate the previous LDK Node log.
+        try? FileManager.rotateLDKNodeLog()
+        
+        // Keep the channel state out of iCloud/Finder backups.
+        LightningStorage.excludeFromBackup()
         
         // Congifure LDK Node settings.
         let correctListeningAddresses = EnvironmentConfig.isDevelopment ? ["0.0.0.0:19735"] : ["0.0.0.0:9735"]
@@ -139,9 +144,7 @@ class BitcoinManager {
         // Set mnemonic string.
         guard let mnemonicString = CacheManager.getMnemonic() else {
             Log.info("Could not get mnemonic from cache.")
-            SentrySDK.capture(message: "Could not get mnemonic from cache.") { scope in
-                scope.setExtra(value: "BitcoinManager row 71", key: "context")
-            }
+            SentryManager.capture("Could not get mnemonic from cache.", context: "BitcoinManager row 71")
             return false
         }
         
@@ -199,26 +202,66 @@ class BitcoinManager {
             newLdkNode = try nodeBuilder.build()
         } catch {
             Log.info("Could not build newLdkNode. \(error)")
-            SentrySDK.capture(error: error) { scope in
-                scope.setExtra(value: "BitcoinManager row 130", key: "context")
-            }
+            SentryManager.capture(error, context: "BitcoinManager row 130")
             return false
         }
         
         // Start new node.
-        do {
-            try newLdkNode.start()
-        } catch {
-            Log.info("Could not start newLdkNode. \(error)")
-            SentrySDK.capture(error: error) { scope in
-                scope.setExtra(value: "BitcoinManager row 147", key: "context")
-            }
+        guard self.didStartNode(newLdkNode) else {
             return false
         }
         
         // Successful start.
         self.ldkNode = newLdkNode
         return true
+    }
+    
+    // Start an already-built node, retrying for chain source-related failures.
+    private func didStartNode(_ node: Node) -> Bool {
+        
+        // Date and time of 1st attempt.
+        let startedAt = Date()
+        var attempt = 1
+        
+        // Start 2nd and 3rd attempts after 1 and 3 seconds, respectively.
+        let nodeStartRetryDelays: [TimeInterval] = [1, 3]
+        
+        while true {
+            do {
+                try node.start()
+                Log.info("Did start newLdkNode on attempt \(attempt).")
+                return true
+            } catch {
+                Log.info("Could not start newLdkNode (attempt \(attempt)). \(error)")
+                
+                // Check whether we've already done 3 attempts.
+                let hasAttemptsLeft = attempt <= nodeStartRetryDelays.count
+                // Only retry if less than 10 seconds have passed in total.
+                let isWithinDeadline = -startedAt.timeIntervalSinceNow < 10
+                
+                guard hasAttemptsLeft, isWithinDeadline, Self.isRetryableNodeStartError(error) else {
+                    SentryManager.capture(error, context: "BitcoinManager row 147")
+                    return false
+                }
+                
+                // Wait 1 or 3 seconds before retrying.
+                Thread.sleep(forTimeInterval: nodeStartRetryDelays[attempt - 1])
+                attempt += 1
+            }
+        }
+    }
+    
+    private static func isRetryableNodeStartError(_ error: Error) -> Bool {
+        // Only retry for errors that are connectivity-related.
+        guard let nodeError = error as? NodeError else { return false }
+        switch nodeError {
+        case .FeerateEstimationUpdateFailed,
+             .FeerateEstimationUpdateTimeout,
+             .ConnectionFailed:
+            return true
+        default:
+            return false
+        }
     }
     
     func getNewMnemonic() throws -> String {
@@ -247,11 +290,7 @@ class BitcoinManager {
                 }
             }
         } catch {
-            DispatchQueue.main.async {
-                SentrySDK.capture(error: error) { scope in
-                    scope.setExtra(value: "BitcoinManager row 385", key: "context")
-                }
-            }
+            SentryManager.capture(error, context: "BitcoinManager row 385")
             Log.info("Could not download latest block height.")
             return false
         }
@@ -262,11 +301,7 @@ class BitcoinManager {
             CacheManager.cachedHeight = blockHeight
             return true
         } else {
-            DispatchQueue.main.async {
-                SentrySDK.capture(message: "Could not get latest block height. \(receivedDictionary)") { scope in
-                    scope.setExtra(value: "BitcoinManager row 377", key: "context")
-                }
-            }
+            SentryManager.capture("Could not get latest block height. \(receivedDictionary)", context: "BitcoinManager row 377")
             Log.info("Could not download latest block height.")
             return false
         }
@@ -274,12 +309,8 @@ class BitcoinManager {
     
     func handleError(error:Error, row:Int) {
         Log.info("Some error occurred. \(error.localizedDescription)")
-        DispatchQueue.main.async {
-            SentrySDK.capture(error: error) { scope in
-                scope.setExtra(value: "BitcoinManager row \(row)", key: "context")
-            }
-            SentrySDK.metrics.count(key: "sync.walletsync.failure")
-        }
+        SentryManager.capture(error, context: "BitcoinManager row \(row)")
+        SentryManager.countMetric("sync.walletsync.failure")
     }
     
     
@@ -299,12 +330,8 @@ class BitcoinManager {
                         return "No error message"
                     }
                 }()
-                DispatchQueue.main.async {
-                    Log.info("Can't disconnect from peer: \(errorMessage).")
-                    SentrySDK.capture(error: error) { scope in
-                        scope.setExtra(value: "BitcoinManager row 277", key: "context")
-                    }
-                }
+                Log.info("Can't disconnect from peer: \(errorMessage).")
+                SentryManager.capture(error, context: "BitcoinManager row 277")
             }
         }
         
@@ -334,13 +361,9 @@ class BitcoinManager {
                             return "No error message"
                         }
                     }()
-                    DispatchQueue.main.async {
-                        // Handle UI error showing here, like showing an alert
-                        Log.info("Can't connect to peer: \(errorMessage).")
-                        SentrySDK.capture(error: error) { scope in
-                            scope.setExtra(value: "BitcoinManager row 319", key: "context")
-                        }
-                    }
+                    // Handle UI error showing here, like showing an alert
+                    Log.info("Can't connect to peer: \(errorMessage).")
+                    SentryManager.capture(error, context: "BitcoinManager row 319")
                     return false
                 }
             }
@@ -465,8 +488,12 @@ class BitcoinManager {
             // Light sync BDK.
             _ = self.lightSyncBdkWallet()
             
+            // Check pending balances.
+            let balances = node.listBalances()
+            let pendingClosureSatoshis = balances.pendingClosureSatoshis(openChannelIds: self.listChannels().map { $0.channelId })
+            
             // Check if any changes have been found.
-            if self.bittrWallet.satoshisOnchain != Int(node.listBalances().totalOnchainBalanceSats) || self.bittrWallet.allTransactions.count != self.listPayments().count {
+            if self.bittrWallet.satoshisOnchain != Int(balances.totalOnchainBalanceSats) || self.bittrWallet.pendingBalancesFromChannelClosures != pendingClosureSatoshis || self.bittrWallet.allTransactions.count != self.listPayments().count {
                 Log.info("Did find updates in light sync.")
                 
                 Task {
@@ -511,11 +538,7 @@ class BitcoinManager {
                 }
             }
         } catch {
-            DispatchQueue.main.async {
-                SentrySDK.capture(error: error) { scope in
-                    scope.setExtra(value: "BitcoinManager row 385", key: "context")
-                }
-            }
+            SentryManager.capture(error, context: "BitcoinManager row 385")
             return nil
         }
 
@@ -547,11 +570,7 @@ class BitcoinManager {
             return invoice
         } catch {
             Log.info("Couldn't create invoice.")
-            DispatchQueue.main.async {
-                SentrySDK.capture(error: error) { scope in
-                    scope.setExtra(value: "BitcoinManager row 470", key: "context")
-                }
-            }
+            SentryManager.capture(error, context: "BitcoinManager row 470")
             return nil
         }
     }
@@ -656,6 +675,9 @@ class BitcoinManager {
         
         // Clear electrum client reference
         self.electrumClient = nil
+        
+        // Clear what the scan flags say about the wallet we just discarded.
+        self.clearBdkScanState()
         
         // Reset other state variables
         self.xpub = ""

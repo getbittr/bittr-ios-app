@@ -9,7 +9,6 @@ import UIKit
 import BitcoinDevKit
 import LNURLDecoder
 import LightningDevKit
-import Sentry
 
 extension SendViewController {
     

@@ -8,7 +8,6 @@
 import Foundation
 import BitcoinDevKit
 import LDKNode
-import Sentry
 
 extension SwapViewController {
     
@@ -147,9 +146,7 @@ extension SwapViewController {
                                 self.bdkWalletUnavailable()
                             } else {
                                 self.bdkSpinner.stopAnimating()
-                                SentrySDK.capture(error: error) { scope in
-                                    scope.setExtra(value: "SwapVC row 308", key: "context")
-                                }
+                                SentryManager.capture(error, context: "SwapVC row 308")
                                 self.availableAmountLabel.text = Language.getWord(withID: "satsatatime").replacingOccurrences(of: "<amount>", with: "0")
                             }
                         }

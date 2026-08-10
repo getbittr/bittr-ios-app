@@ -7,7 +7,6 @@
 
 import UIKit
 import LDKNode
-import Sentry
 
 enum APIError: Error {
     case invalidURL
@@ -15,11 +14,36 @@ enum APIError: Error {
     case decodingFailed
 }
 
+extension APIError: LocalizedError {
+    var errorDescription: String? {
+        switch self {
+        case .invalidURL:
+            return "Invalid URL."
+        case .requestFailed(let message):
+            return message
+        case .decodingFailed:
+            return "Could not read the server's response."
+        }
+    }
+}
+
 class CallsManager: NSObject {
     
-    static func makeApiCall(url:String, parameters:[String:Any]?, getOrPost:CallType, completion: @escaping (Result<NSDictionary, APIError>) -> Void) async {
+    // How long a request may go without producing data.
+    static let defaultTimeout:TimeInterval = 30
+    // Ceiling on a whole request, however steadily data trickles in.
+    private static let resourceTimeout:TimeInterval = 60
+    // Our own session.
+    private static let session:URLSession = {
+        let configuration = URLSessionConfiguration.default
+        configuration.timeoutIntervalForRequest = defaultTimeout
+        configuration.timeoutIntervalForResource = resourceTimeout
+        return URLSession(configuration: configuration)
+    }()
+    
+    static func makeApiCall(url:String, parameters:[String:Any]?, getOrPost:CallType, timeout:TimeInterval = defaultTimeout, completion: @escaping (Result<NSDictionary, APIError>) -> Void) async {
         
-        var request = URLRequest(url: URL(string: url.replacingOccurrences(of: "\0", with: "").trimmingCharacters(in: .controlCharacters))!,timeoutInterval: Double.infinity)
+        var request = URLRequest(url: URL(string: url.replacingOccurrences(of: "\0", with: "").trimmingCharacters(in: .controlCharacters))!,timeoutInterval: timeout)
         request.addValue("application/json", forHTTPHeaderField: "Content-Type")
         request.setValue("application/json", forHTTPHeaderField: "Accept")
         request.httpMethod = {
@@ -36,7 +60,7 @@ class CallsManager: NSObject {
                 request.httpBody = postData
             }
             
-            let task = URLSession.shared.dataTask(with: request) { data, response, dataError in
+            let task = Self.session.dataTask(with: request) { data, response, dataError in
                 
                 if let error = dataError {
                     Log.info("Error: \(error.localizedDescription)")
@@ -63,12 +87,12 @@ class CallsManager: NSObject {
                             return
                         }
                     } catch {
-                        DispatchQueue.main.async {
-                            SentrySDK.capture(error: error) { scope in
-                                scope.setExtra(value: "CallsManager row 60", key: "context")
-                                scope.setExtra(value: receivedData, key: "received_data")
-                            }
+                        if let statusCode = (response as? HTTPURLResponse)?.statusCode, !(200..<300).contains(statusCode) {
+                            Log.info("Request failed with status \(statusCode).")
+                            completion(.failure(.requestFailed("HTTP \(statusCode)")))
+                            return
                         }
+                        SentryManager.capture(error, context: "CallsManager row 60")
                         completion(.failure(.decodingFailed))
                         return
                     }
@@ -79,11 +103,7 @@ class CallsManager: NSObject {
             }
             task.resume()
         } catch {
-            DispatchQueue.main.async {
-                SentrySDK.capture(error: error) { scope in
-                    scope.setExtra(value: "CallsManager row 75", key: "context")
-                }
-            }
+            SentryManager.capture(error, context: "CallsManager row 75")
             let errorMessage:String = {
                 if let nodeError = error as? NodeError {
                     return handleNodeError(nodeError).title + ", " + handleNodeError(nodeError).detail

@@ -8,7 +8,6 @@
 import UIKit
 import LDKNode
 import UserNotifications
-import Sentry
 
 class HomeViewController: UIViewController, UITableViewDelegate, UITableViewDataSource, UNUserNotificationCenterDelegate {
     

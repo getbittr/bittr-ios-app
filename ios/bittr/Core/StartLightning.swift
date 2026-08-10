@@ -7,7 +7,6 @@
 
 import UIKit
 import LDKNode
-import Sentry
 
 extension CoreViewController {
     
@@ -98,6 +97,14 @@ extension CoreViewController {
 
         self.completeSync(.ldk)
         
+        if BitcoinManager.shared.didQuarantineForeignState {
+            Log.info("User has restored a backup on a new device. Their channel will not be available.")
+            // This is only reachable for users with Lightning connections before these stopped being synced.
+            // Newer users will never encounter this issue.
+            BitcoinManager.shared.didQuarantineForeignState = false
+            self.showAlert(presentingController: self, title: Language.getWord(withID: "restoredbackup"), message: Language.getWord(withID: "restoredbackup2"), buttons: [Language.getWord(withID: "okay")], actions: nil)
+        }
+        
         // Start final calculations.
         self.startSync(.final)
         
@@ -121,11 +128,7 @@ extension CoreViewController {
                 try BitcoinManager.shared.syncWallets()
             } catch {
                 Log.info("startWallet syncWallets failed: \(error.localizedDescription)")
-                DispatchQueue.main.async {
-                    SentrySDK.capture(error: error) { scope in
-                        scope.setExtra(value: "StartLightning syncWallets", key: "context")
-                    }
-                }
+                SentryManager.capture(error, context: "StartLightning syncWallets")
             }
             
             // Load wallet data — mixed data + UI work (balance labels, table
@@ -155,7 +158,7 @@ extension CoreViewController {
         }
 
         Log.info("Did start Node: \(didStartNode)")
-        SentrySDK.metrics.count(key: didStartNode ? "sync.ldk.success" : "sync.ldk.failure")
+        SentryManager.countMetric(didStartNode ? "sync.ldk.success" : "sync.ldk.failure")
         return didStartNode
     }
     
