@@ -35,7 +35,10 @@ class LessonCollectionViewCell: UICollectionViewCell {
         
         // Resistance priority.
         self.lessonTitle.setContentCompressionResistancePriority(.required, for: .vertical)
-        
+
+        // Repaint on dark-mode change, like the app's other list cells.
+        NotificationCenter.default.addObserver(self, selector: #selector(changeColors), name: NSNotification.Name(rawValue: "changecolors"), object: nil)
+
         // Color management.
         self.changeColors()
     }
@@ -64,8 +67,8 @@ class LessonCollectionViewCell: UICollectionViewCell {
         }
     }
     
-    func changeColors() {
-        
+    @objc func changeColors() {
+
         self.lessonTitle.textColor = Colors.getColor("blackorwhite")
         
         if CacheManager.darkModeIsOn() {

@@ -31,6 +31,9 @@ class AcademyViewController: UIViewController, UITableViewDelegate, UITableViewD
         self.academyTableView.rowHeight = UITableView.automaticDimension
         self.academyTableView.estimatedRowHeight = 300
         
+        // Repaint on dark-mode change, like the app's other screens.
+        NotificationCenter.default.addObserver(self, selector: #selector(changeColors), name: NSNotification.Name(rawValue: "changecolors"), object: nil)
+
         // Get Academy levels.
         self.getLevels()
         self.changeColors()
@@ -132,7 +135,7 @@ class AcademyViewController: UIViewController, UITableViewDelegate, UITableViewD
         }
     }
     
-    func changeColors() {
+    @objc func changeColors() {
         self.view.backgroundColor = Colors.getColor("yelloworblue3")
         self.headerLabel.textColor = Colors.getColor("blackorwhite")
     }

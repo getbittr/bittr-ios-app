@@ -37,7 +37,8 @@ class LevelTableViewCell: UITableViewCell, UICollectionViewDelegate, UICollectio
         
         // Notification management.
         NotificationCenter.default.addObserver(self, selector: #selector(reloadCollectionView), name: NSNotification.Name(rawValue: "reloadcollectionview"), object: nil)
-        
+        NotificationCenter.default.addObserver(self, selector: #selector(changeColors), name: NSNotification.Name(rawValue: "changecolors"), object: nil)
+
         // Color management.
         self.changeColors()
     }
@@ -182,8 +183,8 @@ class LevelTableViewCell: UITableViewCell, UICollectionViewDelegate, UICollectio
         }
     }
     
-    func changeColors() {
-        
+    @objc func changeColors() {
+
         self.cardView.backgroundColor = Colors.getColor("yelloworblue2")
         self.levelLabel.textColor = Colors.getColor("whiteoryellow")
         self.countLabel.textColor = Colors.getColor("whiteoryellow")
