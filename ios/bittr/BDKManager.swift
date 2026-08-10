@@ -469,7 +469,7 @@ extension BitcoinManager {
             Log.info("No BDK connection; \(newlyRevealedAddresses.count) revealed addresses were not persisted.")
             return
         }
-        
+
         do {
             _ = try bdkWallet.persist(connection: connection)
         } catch {
