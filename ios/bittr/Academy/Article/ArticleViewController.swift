@@ -6,7 +6,6 @@
 //
 
 import UIKit
-import Sentry
 
 class ArticleViewController: UIViewController, UITableViewDelegate, UITableViewDataSource {
 
@@ -119,16 +118,8 @@ extension UIViewController {
             return image.resizeImage()
         } catch {
             Log.info("Some error occurred fetching image. \(error.localizedDescription)")
-            DispatchQueue.main.async {
-                SentrySDK.capture(error: error) { scope in
-                    scope.setExtra(value: "InfoViewController row 294", key: "context")
-                }
-            }
-            if let actualData = CacheManager.getImage(key: urlString) {
-                return actualData
-            } else {
-                return nil
-            }
+            SentryManager.capture(error, context: "InfoViewController row 294")
+            return CacheManager.getImage(key: urlString)
         }
     }
     

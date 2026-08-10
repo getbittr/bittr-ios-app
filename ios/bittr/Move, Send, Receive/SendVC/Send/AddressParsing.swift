@@ -8,7 +8,6 @@
 import UIKit
 import LNURLDecoder
 import LightningDevKit
-import Sentry
 
 extension SendViewController {
     

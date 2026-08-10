@@ -10,7 +10,6 @@ import LDKNode
 import BitcoinDevKit
 import CodeScanner
 import AVFoundation
-import Sentry
 
 extension SendViewController {
     
@@ -158,9 +157,7 @@ extension SendViewController {
                     self.nextSpinner.stopAnimating()
                     self.showAlert(presentingController: self, title: Language.getWord(withID: "oops"), message: "\(Language.getWord(withID: "cannotproceed")). Error: \(errorMessage)", buttons: [Language.getWord(withID: "okay")], actions: nil)
                     if sendToSentry {
-                        SentrySDK.capture(error: error) { scope in
-                            scope.setExtra(value: "SendOnchain row 167", key: "context")
-                        }
+                        SentryManager.capture(error, context: "SendOnchain row 167")
                     }
                 }
                 return
@@ -261,10 +258,8 @@ extension ConfirmSendViewController {
                 self.confirmLabel.alpha = 1
                 self.confirmSpinner.stopAnimating()
                 self.showAlert(presentingController: self, title: Language.getWord(withID: "error"), message: Language.getWord(withID: "transactionerror") + ": " + errorMessage, buttons: [Language.getWord(withID: "okay")], actions: nil)
-                SentrySDK.capture(error: error) { scope in
-                    scope.setExtra(value: "SendOnchain row 349", key: "context")
-                }
-                SentrySDK.metrics.count(key: "onchain.transaction.failure.2")
+                SentryManager.capture(error, context: "SendOnchain row 349")
+                SentryManager.countMetric("onchain.transaction.failure.2")
             }
             return
         }
@@ -272,7 +267,7 @@ extension ConfirmSendViewController {
         
         DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
             Log.info("Successful transaction.")
-            SentrySDK.metrics.count(key: "onchain.transaction.success")
+            SentryManager.countMetric("onchain.transaction.success")
             self.confirmLabel.alpha = 1
             self.confirmSpinner.stopAnimating()
             self.newTxId = txid
@@ -317,9 +312,7 @@ extension UIViewController {
                         Log.info("BDK looks stale (LDK Node onchain balance: \(BitcoinManager.shared.bittrWallet.satoshisOnchain), BDK rejected the drain).")
                     }
                 default:
-                    SentrySDK.capture(error: error) { scope in
-                        scope.setExtra(value: "getMaximumSendableSats", key: "context")
-                    }
+                    SentryManager.capture(error, context: "getMaximumSendableSats")
                 }
             }
             return nil

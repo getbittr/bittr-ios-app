@@ -7,7 +7,6 @@
 
 import UIKit
 import LDKNode
-import Sentry
 
 class RestoreViewController: UIViewController, UITextFieldDelegate {
 

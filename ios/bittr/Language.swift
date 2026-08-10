@@ -199,7 +199,7 @@ class Language: NSObject {
             "fundingtx": "Channel funding transaction",
             "questionvc1": "There's a limit to the amount of satoshis you can receive per invoice.\n\nThe size of your bitcoin lightning connection is <b><channelsize> satoshis</b>. You've already received <b><channelbalance> sats</b>, so you can still receive up to <b><receivelimit> sats</b> in total.\n\nWhen the connection is full, we'll invite you to move your funds to your regular bitcoin wallet to make space for future transactions.",
             "questionvc6": "why can't I send instant payments?",
-            "questionvc7": "Your bittr wallet consists of a bitcoin wallet (for regular payments) and a bitcoin lightning connection (for instant payments).\n\nYou've already received <b><channelbalance> satoshis</b> into your lightning connection. Your lightning connection needs to contain a minimum of <b><channelreserve> sats</b>, so the maximum amount you can send in total is <b><sendlimit> sats</b>.\n\nWhen the connection is full, we invite you to empty its funds into your bitcoin wallet so that you have space again.",
+            "questionvc7": "As part of your bittr wallet, you have a <b>bitcoin wallet</b> (for regular payments) and a <b>bitcoin lightning connection</b> (for instant payments).\n\nYour lightning balance is <b><channelbalance> satoshis</b>. The connection needs to contain a minimum of <b><channelreserve> sats</b>, so you can send up to <b><sendlimit> sats</b>.",
             "questionvc12": "why can't I receive instant payments?",
             "questionvc13": "Your bittr wallet consists of a bitcoin wallet (for regular payments) and a bitcoin lightning connection (for instant payments).\n\nYou don't currently have a lightning connection.\n\nTo open a connection with bittr, buy bitcoin worth between 20 and 100 €. Check your wallet's Buy section or getbittr.com for all information.",
             "reserve": "reserve",
@@ -573,7 +573,11 @@ class Language: NSObject {
             "buyvclightning": "Lightning",
             "buyvclightningexplanation": "Purchases up to 100 EUR/CHF go into your Lightning connection. Spend and receive instantly, with very low fees.\n\nTurn this off to receive your bittr purchases on-chain instead, in the regular part of your wallet.",
             "lightningnotready": "Lightning not ready",
-            "paymentmodeupdateerror": "Couldn't update payout mode"
+            "paymentmodeupdateerror": "Couldn't update payout mode",
+            "connectionclosed": "Connection closed",
+            "pendingclosure": "Your lightning connection was recently closed. These funds (<pendingfunds> satoshis) will be deposited into your regular wallet.",
+            "viewactiveconnection": "View active connection",
+            "channelclosuretransaction": "These are the funds from your closed lightning connection, returning to your regular wallet."
             
         ]
         

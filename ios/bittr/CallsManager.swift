@@ -7,7 +7,6 @@
 
 import UIKit
 import LDKNode
-import Sentry
 
 enum APIError: Error {
     case invalidURL
@@ -63,12 +62,7 @@ class CallsManager: NSObject {
                             return
                         }
                     } catch {
-                        DispatchQueue.main.async {
-                            SentrySDK.capture(error: error) { scope in
-                                scope.setExtra(value: "CallsManager row 60", key: "context")
-                                scope.setExtra(value: receivedData, key: "received_data")
-                            }
-                        }
+                        SentryManager.capture(error, context: "CallsManager row 60")
                         completion(.failure(.decodingFailed))
                         return
                     }
@@ -79,11 +73,7 @@ class CallsManager: NSObject {
             }
             task.resume()
         } catch {
-            DispatchQueue.main.async {
-                SentrySDK.capture(error: error) { scope in
-                    scope.setExtra(value: "CallsManager row 75", key: "context")
-                }
-            }
+            SentryManager.capture(error, context: "CallsManager row 75")
             let errorMessage:String = {
                 if let nodeError = error as? NodeError {
                     return handleNodeError(nodeError).title + ", " + handleNodeError(nodeError).detail

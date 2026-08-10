@@ -6,7 +6,6 @@
 //
 
 import UIKit
-import Sentry
 
 class Signup7ViewController: UIViewController {
 
@@ -76,7 +75,7 @@ class Signup7ViewController: UIViewController {
         
         if self.coreVC!.buyVC == nil {
             // Count initial signup skip.
-            SentrySDK.metrics.count(key: "app.launch.newwallet.signup.skip")
+            SentryManager.countMetric("app.launch.newwallet.signup.skip")
         }
         
         // Close sign up and proceed into wallet.
@@ -92,7 +91,7 @@ class Signup7ViewController: UIViewController {
         
         if self.coreVC!.buyVC == nil {
             // Count initial signup start.
-            SentrySDK.metrics.count(key: "app.launch.newwallet.signup.start")
+            SentryManager.countMetric("app.launch.newwallet.signup.start")
         }
         
         // Proceed to bittr signup.

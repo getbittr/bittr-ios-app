@@ -7,7 +7,6 @@
 
 import UIKit
 import UserNotifications
-import Sentry
 
 class Transfer2ViewController: UIViewController, UITextFieldDelegate, UNUserNotificationCenterDelegate {
     
@@ -281,9 +280,7 @@ class Transfer2ViewController: UIViewController, UITextFieldDelegate, UNUserNoti
                                     self.showAlert(presentingController: self.signupVC?.coreVC ?? self.signupVC ?? self.ibanVC ?? self, title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "transfer15vc2").replacingOccurrences(of: "<error>", with: "unavailable."), buttons: [Language.getWord(withID: "okay")], actions: nil)
                                 }
                             case .failure(let error):
-                                SentrySDK.capture(error: error) { scope in
-                                    scope.setExtra(value: "Transfer2ViewController row 178", key: "context")
-                                }
+                                SentryManager.capture(error, context: "Transfer2ViewController row 178")
                                 self.showAlert(presentingController: self.signupVC?.coreVC ?? self.signupVC ?? self.ibanVC ?? self, title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "verificationfail"), buttons: [Language.getWord(withID: "okay")], actions: nil)
                             }
                         }
@@ -311,11 +308,7 @@ class Transfer2ViewController: UIViewController, UITextFieldDelegate, UNUserNoti
                 lightningSignature = try await BitcoinManager.shared.signMessage(message: message)
             } catch {
                 Log.info("310 Error: \(error.localizedDescription)")
-                DispatchQueue.main.async {
-                    SentrySDK.capture(error: error) { scope in
-                        scope.setExtra(value: "Transfer2ViewController row 313", key: "context")
-                    }
-                }
+                SentryManager.capture(error, context: "Transfer2ViewController row 313")
                 return
             }
             
@@ -404,9 +397,7 @@ class Transfer2ViewController: UIViewController, UITextFieldDelegate, UNUserNoti
                     switch result {
                     case .failure(let error):
                         self.showAlert(presentingController: self.signupVC?.coreVC ?? self.signupVC ?? self.ibanVC ?? self, title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "bittrsignupfail"), buttons: [Language.getWord(withID: "okay")], actions: nil)
-                        SentrySDK.capture(error: error) { scope in
-                            scope.setExtra(value: "Transfer15ViewController258", key: "context")
-                        }
+                        SentryManager.capture(error, context: "Transfer15ViewController258")
                     case .success(let receivedDictionary):
                         if let actualDataItems = receivedDictionary["data"] as? NSDictionary,
                             let dataOurIban = actualDataItems["iban"] as? String,
