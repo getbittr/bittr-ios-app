@@ -8,7 +8,6 @@
 import UIKit
 import BitcoinDevKit
 import LDKNode
-import Sentry
 import P256K
 import CryptoKit
 import LightningDevKit
@@ -281,9 +280,7 @@ class SwapManager: NSObject {
                             buttons: [Language.getWord(withID: "okay")],
                             actions: nil
                         )
-                        SentrySDK.capture(error: error) { scope in
-                            scope.setExtra(value: "SwapManager row 249", key: "context")
-                        }
+                        SentryManager.capture(error, context: "SwapManager row 249")
                     }
                 }
                 return
@@ -323,10 +320,8 @@ class SwapManager: NSObject {
                     buttons: [Language.getWord(withID: "okay")],
                     actions: nil
                 )
-                SentrySDK.metrics.count(key: "swap.onchaintolightning.failed")
-                SentrySDK.capture(error: error) { scope in
-                    scope.setExtra(value: "SwapManager row 308", key: "context")
-                }
+                SentryManager.countMetric("swap.onchaintolightning.failed")
+                SentryManager.capture(error, context: "SwapManager row 308")
             }
             return
         }
@@ -414,6 +409,17 @@ class SwapManager: NSObject {
         } else {
             Log.info("DEBUG - Getting new unused address for payout")
             destinationAddress = BitcoinManager.shared.bittrWallet.onchainAddresses?.getNextUnusedAddress() ?? BitcoinManager.shared.getAddress(atIndex: 0)
+        }
+        
+        guard let destinationAddress else {
+            Log.info("No payout address available; not starting the swap.")
+            DispatchQueue.main.async {
+                swapVC.nextLabel.alpha = 1
+                swapVC.arrowIcon.alpha = 1
+                swapVC.nextSpinner.stopAnimating()
+                swapVC.showAlert(presentingController: swapVC, title: Language.getWord(withID: "error"), message: Language.getWord(withID: "swaperror2"), buttons: [Language.getWord(withID: "okay")], actions: nil)
+            }
+            return
         }
         
         print("randomPreimage: \(randomPreimage.hexEncodedString())")
@@ -575,11 +581,7 @@ class SwapManager: NSObject {
             print("Swap details saved to: \(fileURL.path)")
         } catch {
             Log.info("Error saving swap details to file: \(error)")
-            DispatchQueue.main.async {
-                SentrySDK.capture(error: error) { scope in
-                    scope.setExtra(value: "SwapManager row 519", key: "context")
-                }
-            }
+            SentryManager.capture(error, context: "SwapManager row 519")
         }
     }
     
@@ -598,11 +600,7 @@ class SwapManager: NSObject {
             }
         } catch {
             Log.info("Error loading swap details from file: \(error)")
-            DispatchQueue.main.async {
-                SentrySDK.capture(error: error) { scope in
-                    scope.setExtra(value: "SwapManager row 542", key: "context")
-                }
-            }
+            SentryManager.capture(error, context: "SwapManager row 542")
         }
         return nil
     }
@@ -705,9 +703,7 @@ class SwapManager: NSObject {
                     
                     // Confirm fees with user.
                     swapVC.confirmExpectedFees()
-                    SentrySDK.capture(error: error) { scope in
-                        scope.setExtra(value: "SwapManager row 654", key: "context")
-                    }
+                    SentryManager.capture(error, context: "SwapManager row 654")
                 }
             }
         }

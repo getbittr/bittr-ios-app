@@ -12,11 +12,9 @@ class BittrWallet: NSObject {
 
     // Balance
     var satoshisLightning:Int = 0
+    var pendingBalancesFromChannelClosures:Int = 0
     var satoshisOnchain:Int = 0
-    // nil until loadWalletData has read it from LDK Node. Kept optional so
-    // "not loaded yet" stays distinguishable from "genuinely nothing spendable"
-    // — the two need opposite handling when clamping a drain.
-    var satoshisOnchainSpendable:Int?
+    var satoshisOnchainSpendable:Int? // nil until loadWalletData has read it from LDK Node.
     
     // Channels
     var lightningChannels = [ChannelDetails]()

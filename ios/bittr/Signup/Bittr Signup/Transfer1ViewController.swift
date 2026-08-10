@@ -6,7 +6,6 @@
 //
 
 import UIKit
-import Sentry
 
 class Transfer1ViewController: UIViewController, UITextFieldDelegate {
 
@@ -357,9 +356,7 @@ extension UIViewController {
                     }
             case .failure(let error):
                 self.showAlert(presentingController: presentingController, title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "bittrsignupfail4"), buttons: [Language.getWord(withID: "okay")], actions: nil)
-                SentrySDK.capture(error: error) { scope in
-                    scope.setExtra(value: "Transfer1ViewController row 194", key: "context")
-                }
+                SentryManager.capture(error, context: "Transfer1ViewController row 194")
                 completion(false)
             }
         }

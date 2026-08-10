@@ -8,7 +8,6 @@
 import Foundation
 import LDKNode
 import BitcoinDevKit
-import Sentry
 import CryptoKit
 
 class BitcoinManager {
@@ -26,11 +25,8 @@ class BitcoinManager {
     var bdkWallet: BitcoinDevKit.Wallet?
     var electrumClient: BitcoinDevKit.ElectrumClient?
     var connection: BitcoinDevKit.Connection?
-    var bdkWalletIsScanning = false
-    var bdkWalletHasBeenScanned = false
-    // Set when the full scan's watchdog fires. The scan can't be cancelled, so
-    // this session stays scan-blocked and only a restart clears it.
-    var bdkFullScanTimedOut = false
+    let bdkStartLock = NSLock()
+    let bdkScan = BdkScanState()
     
     // General
     private let storageManager = LightningStorage()
@@ -39,6 +35,9 @@ class BitcoinManager {
 
     // Bittr wallet
     var bittrWallet = BittrWallet()
+    
+    // Onchain address management
+    var isManagingOnchainAddresses = false
     
     // Event listener
     private var eventListener: Task<Void, Never>?
@@ -116,8 +115,8 @@ class BitcoinManager {
     
     func didStartLDK() -> Bool {
         
-        // Delete previous LDK Node log.
-        try? FileManager.deleteLDKNodeLogLatestFile()
+        // Rotate the previous LDK Node log.
+        try? FileManager.rotateLDKNodeLog()
         
         // Congifure LDK Node settings.
         let correctListeningAddresses = EnvironmentConfig.isDevelopment ? ["0.0.0.0:19735"] : ["0.0.0.0:9735"]
@@ -139,9 +138,7 @@ class BitcoinManager {
         // Set mnemonic string.
         guard let mnemonicString = CacheManager.getMnemonic() else {
             Log.info("Could not get mnemonic from cache.")
-            SentrySDK.capture(message: "Could not get mnemonic from cache.") { scope in
-                scope.setExtra(value: "BitcoinManager row 71", key: "context")
-            }
+            SentryManager.capture("Could not get mnemonic from cache.", context: "BitcoinManager row 71")
             return false
         }
         
@@ -199,9 +196,7 @@ class BitcoinManager {
             newLdkNode = try nodeBuilder.build()
         } catch {
             Log.info("Could not build newLdkNode. \(error)")
-            SentrySDK.capture(error: error) { scope in
-                scope.setExtra(value: "BitcoinManager row 130", key: "context")
-            }
+            SentryManager.capture(error, context: "BitcoinManager row 130")
             return false
         }
         
@@ -239,9 +234,7 @@ class BitcoinManager {
                 let isWithinDeadline = -startedAt.timeIntervalSinceNow < 10
                 
                 guard hasAttemptsLeft, isWithinDeadline, Self.isRetryableNodeStartError(error) else {
-                    SentrySDK.capture(error: error) { scope in
-                        scope.setExtra(value: "BitcoinManager row 147", key: "context")
-                    }
+                    SentryManager.capture(error, context: "BitcoinManager row 147")
                     return false
                 }
                 
@@ -291,11 +284,7 @@ class BitcoinManager {
                 }
             }
         } catch {
-            DispatchQueue.main.async {
-                SentrySDK.capture(error: error) { scope in
-                    scope.setExtra(value: "BitcoinManager row 385", key: "context")
-                }
-            }
+            SentryManager.capture(error, context: "BitcoinManager row 385")
             Log.info("Could not download latest block height.")
             return false
         }
@@ -306,11 +295,7 @@ class BitcoinManager {
             CacheManager.cachedHeight = blockHeight
             return true
         } else {
-            DispatchQueue.main.async {
-                SentrySDK.capture(message: "Could not get latest block height. \(receivedDictionary)") { scope in
-                    scope.setExtra(value: "BitcoinManager row 377", key: "context")
-                }
-            }
+            SentryManager.capture("Could not get latest block height. \(receivedDictionary)", context: "BitcoinManager row 377")
             Log.info("Could not download latest block height.")
             return false
         }
@@ -318,12 +303,8 @@ class BitcoinManager {
     
     func handleError(error:Error, row:Int) {
         Log.info("Some error occurred. \(error.localizedDescription)")
-        DispatchQueue.main.async {
-            SentrySDK.capture(error: error) { scope in
-                scope.setExtra(value: "BitcoinManager row \(row)", key: "context")
-            }
-            SentrySDK.metrics.count(key: "sync.walletsync.failure")
-        }
+        SentryManager.capture(error, context: "BitcoinManager row \(row)")
+        SentryManager.countMetric("sync.walletsync.failure")
     }
     
     
@@ -343,12 +324,8 @@ class BitcoinManager {
                         return "No error message"
                     }
                 }()
-                DispatchQueue.main.async {
-                    Log.info("Can't disconnect from peer: \(errorMessage).")
-                    SentrySDK.capture(error: error) { scope in
-                        scope.setExtra(value: "BitcoinManager row 277", key: "context")
-                    }
-                }
+                Log.info("Can't disconnect from peer: \(errorMessage).")
+                SentryManager.capture(error, context: "BitcoinManager row 277")
             }
         }
         
@@ -378,13 +355,9 @@ class BitcoinManager {
                             return "No error message"
                         }
                     }()
-                    DispatchQueue.main.async {
-                        // Handle UI error showing here, like showing an alert
-                        Log.info("Can't connect to peer: \(errorMessage).")
-                        SentrySDK.capture(error: error) { scope in
-                            scope.setExtra(value: "BitcoinManager row 319", key: "context")
-                        }
-                    }
+                    // Handle UI error showing here, like showing an alert
+                    Log.info("Can't connect to peer: \(errorMessage).")
+                    SentryManager.capture(error, context: "BitcoinManager row 319")
                     return false
                 }
             }
@@ -509,8 +482,12 @@ class BitcoinManager {
             // Light sync BDK.
             _ = self.lightSyncBdkWallet()
             
+            // Check pending balances.
+            let balances = node.listBalances()
+            let pendingClosureSatoshis = balances.pendingClosureSatoshis(openChannelIds: self.listChannels().map { $0.channelId })
+            
             // Check if any changes have been found.
-            if self.bittrWallet.satoshisOnchain != Int(node.listBalances().totalOnchainBalanceSats) || self.bittrWallet.allTransactions.count != self.listPayments().count {
+            if self.bittrWallet.satoshisOnchain != Int(balances.totalOnchainBalanceSats) || self.bittrWallet.pendingBalancesFromChannelClosures != pendingClosureSatoshis || self.bittrWallet.allTransactions.count != self.listPayments().count {
                 Log.info("Did find updates in light sync.")
                 
                 Task {
@@ -555,11 +532,7 @@ class BitcoinManager {
                 }
             }
         } catch {
-            DispatchQueue.main.async {
-                SentrySDK.capture(error: error) { scope in
-                    scope.setExtra(value: "BitcoinManager row 385", key: "context")
-                }
-            }
+            SentryManager.capture(error, context: "BitcoinManager row 385")
             return nil
         }
 
@@ -591,11 +564,7 @@ class BitcoinManager {
             return invoice
         } catch {
             Log.info("Couldn't create invoice.")
-            DispatchQueue.main.async {
-                SentrySDK.capture(error: error) { scope in
-                    scope.setExtra(value: "BitcoinManager row 470", key: "context")
-                }
-            }
+            SentryManager.capture(error, context: "BitcoinManager row 470")
             return nil
         }
     }
@@ -700,6 +669,9 @@ class BitcoinManager {
         
         // Clear electrum client reference
         self.electrumClient = nil
+        
+        // Clear what the scan flags say about the wallet we just discarded.
+        self.clearBdkScanState()
         
         // Reset other state variables
         self.xpub = ""
