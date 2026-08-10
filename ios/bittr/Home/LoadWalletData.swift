@@ -48,7 +48,17 @@ extension HomeViewController {
         
         // Store channel closure txIDs.
         CacheManager.storeChannelClosureTxIDs(txIDs: balances.pendingBalancesFromChannelClosures.spendingTxIDs())
-        
+
+        // A force close is recognised via the sweep txIDs above; its commitment
+        // tx never appears in the BDK wallet, so storeChannelClosureTxIDIfFound's
+        // cooperative-close scan would keep re-scanning for it on every sync
+        // forever. Pending closure funds (> 0) only ever come from a force close,
+        // so drop the cached funding outpoint here to end that scan. A
+        // cooperative close leaves this at 0 and keeps the outpoint for the scan.
+        if pendingBalancesFromChannelClosures > 0 {
+            CacheManager.removeChannelFundingOutpoint()
+        }
+
         // Apply the snapshot to the shared wallet on the main thread.
         let apply = {
             BitcoinManager.shared.bittrWallet.satoshisLightning = satoshisLightning
@@ -598,8 +608,11 @@ extension [LightningBalance] {
                 if !openChannelIds.contains(channelId) {
                     totalSatoshis += Int(amountSatoshis)
                 }
-            case .claimableOnChannelClose, .claimableAwaitingConfirmations:
+            case .claimableOnChannelClose,
+                 .claimableAwaitingConfirmations(_, _, _, _, .coopClose):
                 // Don't include cooperative closes, because those funds already count towards the onchain balance.
+                // Matching .coopClose explicitly (rather than a catch-all) keeps this switch exhaustive over
+                // BalanceSource, so a future LDK case is a compile error to classify rather than a silent exclusion.
                 break
             }
         }
