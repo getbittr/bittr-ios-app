@@ -24,6 +24,8 @@ class CacheManager: NSObject {
         defaults.removeObject(forKey: EnvironmentConfig.cacheKey(for: "lightning"))
         defaults.removeObject(forKey: EnvironmentConfig.cacheKey(for: "bittraddress"))
         defaults.removeObject(forKey: EnvironmentConfig.cacheKey(for: "onchainaddresses"))
+        defaults.removeObject(forKey: EnvironmentConfig.cacheKey(for: "channelfundingoutpoint"))
+        defaults.removeObject(forKey: EnvironmentConfig.cacheKey(for: "channelclosuretxids"))
 
         // Remove the secrets from the Keychain too — they no longer live in
         // UserDefaults, so the UserDefaults removals above wouldn't clear them.
@@ -987,6 +989,54 @@ class CacheManager: NSObject {
         } else {
             return nil
         }
+    }
+    
+    // MARK: - Channel funding outpoint
+    
+    // Store a channel's funding output, kept as "txID:vout".
+    // Upon a cooperative close, we can deduce the onchain transaction from this output.
+    static func storeChannelFundingOutpoint(txID:String, vout:UInt32) {
+        let envKey = EnvironmentConfig.cacheKey(for: "channelfundingoutpoint")
+        UserDefaults.standard.set("\(txID):\(vout)", forKey: envKey)
+    }
+    
+    // Drop the outpoint once its closing transaction has been found.
+    static func removeChannelFundingOutpoint() {
+        let envKey = EnvironmentConfig.cacheKey(for: "channelfundingoutpoint")
+        UserDefaults.standard.removeObject(forKey: envKey)
+    }
+    
+    static func getChannelFundingOutpoint() -> (txID:String, vout:UInt32)? {
+        let envKey = EnvironmentConfig.cacheKey(for: "channelfundingoutpoint")
+        guard let storedOutpoint = UserDefaults.standard.value(forKey: envKey) as? String else { return nil }
+        
+        let components = storedOutpoint.components(separatedBy: ":")
+        guard components.count == 2, let vout = UInt32(components[1]) else { return nil }
+        
+        return (txID: components[0], vout: vout)
+    }
+    
+    // MARK: - Channel closure transactions
+    
+    static func storeChannelClosureTxIDs(txIDs:[String]) {
+        
+        let envKey = EnvironmentConfig.cacheKey(for: "channelclosuretxids")
+        
+        let defaults = UserDefaults.standard
+        let cachedTxIDs = defaults.value(forKey: envKey) as? [String] ?? [String]()
+        let newTxIDs = txIDs.filter { !cachedTxIDs.contains($0) }
+        
+        if newTxIDs.count > 0 {
+            defaults.set(cachedTxIDs + newTxIDs, forKey: envKey)
+        }
+    }
+    
+    static func getChannelClosureTxIDs() -> [String] {
+        
+        let envKey = EnvironmentConfig.cacheKey(for: "channelclosuretxids")
+        
+        let defaults = UserDefaults.standard
+        return defaults.value(forKey: envKey) as? [String] ?? [String]()
     }
     
     // MARK: - Sent to Bittr

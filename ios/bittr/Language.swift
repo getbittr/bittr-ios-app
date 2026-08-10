@@ -576,7 +576,8 @@ class Language: NSObject {
             "paymentmodeupdateerror": "Couldn't update payout mode",
             "connectionclosed": "Connection closed",
             "pendingclosure": "Your lightning connection was recently closed. These funds (<pendingfunds> satoshis) will be deposited into your regular wallet.",
-            "viewactiveconnection": "View active connection"
+            "viewactiveconnection": "View active connection",
+            "channelclosuretransaction": "These are the funds from your closed lightning connection, returning to your regular wallet."
             
         ]
         
