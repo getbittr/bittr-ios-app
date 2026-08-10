@@ -578,8 +578,11 @@ extension [LightningBalance] {
                 if !openChannelIds.contains(channelId) {
                     totalSatoshis += Int(amountSatoshis)
                 }
-            case .claimableOnChannelClose, .claimableAwaitingConfirmations:
+            case .claimableOnChannelClose,
+                 .claimableAwaitingConfirmations(_, _, _, _, .coopClose):
                 // Don't include cooperative closes, because those funds already count towards the onchain balance.
+                // Matching .coopClose explicitly (rather than a catch-all) keeps this switch exhaustive over
+                // BalanceSource, so a future LDK case is a compile error to classify rather than a silent exclusion.
                 break
             }
         }
