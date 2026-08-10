@@ -416,6 +416,17 @@ class SwapManager: NSObject {
             destinationAddress = BitcoinManager.shared.bittrWallet.onchainAddresses?.getNextUnusedAddress() ?? BitcoinManager.shared.getAddress(atIndex: 0)
         }
         
+        guard let destinationAddress else {
+            Log.info("No payout address available; not starting the swap.")
+            DispatchQueue.main.async {
+                swapVC.nextLabel.alpha = 1
+                swapVC.arrowIcon.alpha = 1
+                swapVC.nextSpinner.stopAnimating()
+                swapVC.showAlert(presentingController: swapVC, title: Language.getWord(withID: "error"), message: Language.getWord(withID: "swaperror2"), buttons: [Language.getWord(withID: "okay")], actions: nil)
+            }
+            return
+        }
+        
         print("randomPreimage: \(randomPreimage.hexEncodedString())")
         
         let dateFormatter = DateFormatter()
