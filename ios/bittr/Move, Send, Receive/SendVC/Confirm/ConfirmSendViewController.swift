@@ -78,8 +78,18 @@ class ConfirmSendViewController: UIViewController {
     // Fee variables
     var selectedFee:SelectedFee = .medium
     var selectedFeeInSats = 0
-    var maxAvailableFeePerVb:Float?
+    var maxAvailableFeePerVb:Double?
     var newTxId = ""
+    
+    // The sat/vB rate behind the currently selected fee tier.
+    func selectedFeeRatePerVb() -> Double {
+        guard let sendVC = self.sendVC else { return 1 }
+        switch self.selectedFee {
+        case .high: return sendVC.feePerVbHigh
+        case .medium: return sendVC.feePerVbMedium
+        case .low, .custom: return self.maxAvailableFeePerVb ?? sendVC.feePerVbLow
+        }
+    }
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -142,13 +152,14 @@ class ConfirmSendViewController: UIViewController {
             self.onchainFeesStack.alpha = 1
             
             // Check fee availability
-            let lowestSats:Float = self.sendVC!.feePerVbLow*self.sendVC!.confirmTxSize
-            let availableSatsForFee:Float = Float((BitcoinManager.shared.bittrWallet.satoshisOnchainSpendable ?? 0) - self.sendVC!.confirmSatoshis)
+            let transactionSize = self.sendVC!.confirmTxSize
+            let lowestSats = self.sendVC!.feePerVbLow.feeSats(forVsize: transactionSize)
+            let availableSatsForFee = (BitcoinManager.shared.bittrWallet.satoshisOnchainSpendable ?? 0) - self.sendVC!.confirmSatoshis
             if lowestSats > availableSatsForFee {
                 // There aren't enough sats available to pay for the cheapest fee.
                 // Calculate the cheapest possible fee (minimum 1sat/Vbyte).
-                let availableSatsPerVb:Float = availableSatsForFee / self.sendVC!.confirmTxSize
-                self.maxAvailableFeePerVb = max(Float(Int(availableSatsPerVb * 10))/10, 1)
+                let availableSatsPerVb = transactionSize > 0 ? Double(availableSatsForFee) / transactionSize : 1
+                self.maxAvailableFeePerVb = max(availableSatsPerVb, 1)
                 
                 self.timeSlow.text = Language.getWord(withID: "slow")
                 self.highlightFee(.low)
@@ -156,9 +167,9 @@ class ConfirmSendViewController: UIViewController {
             }
             
             // Fees
-            self.feesFast.text = "\(Int(self.sendVC!.feePerVbHigh * self.sendVC!.confirmTxSize)) sats"
-            self.feesMedium.text = "\(Int(self.sendVC!.feePerVbMedium * self.sendVC!.confirmTxSize)) sats"
-            self.feesSlow.text = "\(Int(self.sendVC!.feePerVbLow * self.sendVC!.confirmTxSize)) sats"
+            self.feesFast.text = "\(self.sendVC!.feePerVbHigh.feeSats(forVsize: transactionSize)) sats"
+            self.feesMedium.text = "\(self.sendVC!.feePerVbMedium.feeSats(forVsize: transactionSize)) sats"
+            self.feesSlow.text = "\(self.sendVC!.feePerVbLow.feeSats(forVsize: transactionSize)) sats"
             
             // Set converted fees
             self.feesFiatFast.text = self.convertFees(.high) + " " + bitcoinValue.chosenCurrency
@@ -166,25 +177,25 @@ class ConfirmSendViewController: UIViewController {
             self.feesFiatSlow.text = self.convertFees(.low) + " " + bitcoinValue.chosenCurrency
             
             // Custom fee
-            if self.maxAvailableFeePerVb != nil {
-                self.feesSlow.text = "\(Int(self.maxAvailableFeePerVb! * self.sendVC!.confirmTxSize)) sats"
-                self.feesFiatSlow.text = self.convertFees(.custom, customFees: self.maxAvailableFeePerVb!)  + " " + bitcoinValue.chosenCurrency
+            if let maxAvailableFeePerVb = self.maxAvailableFeePerVb {
+                self.feesSlow.text = "\(maxAvailableFeePerVb.feeSats(forVsize: transactionSize)) sats"
+                self.feesFiatSlow.text = self.convertFees(.custom, customFees: maxAvailableFeePerVb)  + " " + bitcoinValue.chosenCurrency
             }
         }
         
     }
     
-    func convertFees(_ selectedFee: SelectedFee, customFees:Float? = nil) -> String {
+    func convertFees(_ selectedFee: SelectedFee, customFees:Double? = nil) -> String {
         guard self.sendVC != nil else { return "error" }
         let transactionSize = self.sendVC!.confirmTxSize
-        let satsPerVbyte:Float
+        let satsPerVbyte:Double
         switch selectedFee {
         case .high: satsPerVbyte = self.sendVC!.feePerVbHigh
         case .medium: satsPerVbyte = self.sendVC!.feePerVbMedium
         case .low: satsPerVbyte = self.sendVC!.feePerVbLow
         case .custom: satsPerVbyte = customFees ?? 0
         }
-        let satsValue = CGFloat(satsPerVbyte*transactionSize)
+        let satsValue = CGFloat(satsPerVbyte.feeSats(forVsize: transactionSize))
         let bitcoinValue = BitcoinManager.shared.bittrWallet.getCorrectBitcoinValue()
         // Fiat fee, rounded to two decimals and formatted with the device's
         // decimal separator (e.g. "0,50" in comma locales).
@@ -213,15 +224,8 @@ class ConfirmSendViewController: UIViewController {
     
     func switchToFee(_ tappedFee:SelectedFee) {
         // Switch selected fee rate.
-        
-        switch tappedFee {
-        case .high:
-            self.selectedFeeInSats = Int(self.sendVC!.confirmTxSize * self.sendVC!.feePerVbHigh)
-        case .medium:
-            self.selectedFeeInSats = Int(self.sendVC!.confirmTxSize * self.sendVC!.feePerVbMedium)
-        default:
-            self.selectedFeeInSats = Int(self.sendVC!.confirmTxSize * (self.maxAvailableFeePerVb ?? self.sendVC!.feePerVbLow))
-        }
+        self.selectedFee = tappedFee
+        self.selectedFeeInSats = self.selectedFeeRatePerVb().feeSats(forVsize: self.sendVC!.confirmTxSize)
         
         // A drain sends whatever is left after the fee, so its amount moves with
         // the selected rate. Restate it, otherwise picking a higher fee leaves
@@ -232,7 +236,6 @@ class ConfirmSendViewController: UIViewController {
             self.amountFiatLabel.text = self.formattedFiatAmount()
         }
 
-        self.selectedFee = tappedFee
         self.highlightFee(tappedFee)
         guard self.canAffordFees() else { return }
         self.checkHighFeeRate()

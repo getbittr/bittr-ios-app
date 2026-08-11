@@ -24,8 +24,8 @@ extension SendViewController {
         }
         
         // Check amount.
-        let enteredAmount = (self.amountTextField.text ?? "0").toNumber()
-        if enteredAmount == 0 {
+        let enteredAmount = (self.amountTextField.text ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+        if enteredAmount.isEmpty {
             self.showAlert(presentingController: self, title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "enteramount"), buttons: [Language.getWord(withID: "okay")], actions: nil)
             return
         }
@@ -37,14 +37,13 @@ extension SendViewController {
             return
         }
         
-        // Transfer to bitcoin.
-        var divideBy:CGFloat
-        switch self.selectedCurrency {
-        case .bitcoin: divideBy = 1
-        case .satoshis: divideBy = 100000000
-        case .currency: divideBy = BitcoinManager.shared.bittrWallet.getCorrectBitcoinValue().currentValue
+        // Convert the entered amount to satoshis.
+        guard let enteredSatoshis = self.getSatoshisFrom(enteredAmount: enteredAmount) else { return }
+        guard enteredSatoshis > 0 else {
+            self.showAlert(presentingController: self, title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "enteramount"), buttons: [Language.getWord(withID: "okay")], actions: nil)
+            return
         }
-        self.onchainAmountInSatoshis = (enteredAmount/divideBy).inSatoshis()
+        self.onchainAmountInSatoshis = enteredSatoshis
         
         // Check whether user intends to empty their onchain funds.
         if let quotedMaximum = self.maximumSendableOnchainSats, self.onchainAmountInSatoshis == quotedMaximum {
@@ -100,12 +99,12 @@ extension SendViewController {
                 }
                 return
             }
-            self.feePerVbLow = Float(feeEstimates.economy)
-            self.feePerVbMedium = Float(feeEstimates.hour)
-            self.feePerVbHigh = Float(feeEstimates.fastest)
+            self.feePerVbLow = feeEstimates.economy
+            self.feePerVbMedium = feeEstimates.hour
+            self.feePerVbHigh = feeEstimates.fastest
             
             // Check the maximum sendable onchain amount.
-            let drain = try? BitcoinManager.shared.maximumSendableOnchainDrain(toAddress: enteredAddress, satPerVb: UInt64(max(self.feePerVbMedium, 1)))
+            let drain = try? BitcoinManager.shared.maximumSendableOnchainDrain(toAddress: enteredAddress, satPerVb: self.feePerVbMedium.wholeSatPerVb)
             
             // Check whether the user intends to empty their onchain funds —
             // either by tapping the quoted maximum, or by typing an amount at or
@@ -162,7 +161,7 @@ extension SendViewController {
                 }
                 return
             }
-            self.confirmTxSize = Float(size)
+            self.confirmTxSize = Double(size)
             
             // Animation from main view to confirm view.
             DispatchQueue.main.async {
@@ -195,12 +194,7 @@ extension ConfirmSendViewController {
     @objc func proceedWithOnchainConfirmation() {
         self.hideAlert()
         
-        var feeSatoshis:Int
-        switch self.selectedFee {
-        case .medium: feeSatoshis = Int(self.sendVC!.feePerVbMedium * self.sendVC!.confirmTxSize)
-        case .high: feeSatoshis = Int(self.sendVC!.feePerVbHigh * self.sendVC!.confirmTxSize)
-        default: feeSatoshis = Int((self.maxAvailableFeePerVb ?? self.sendVC!.feePerVbLow) * self.sendVC!.confirmTxSize)
-        }
+        let feeSatoshis = self.selectedFeeRatePerVb().feeSats(forVsize: self.sendVC!.confirmTxSize)
         
         // Double-check transaction details.
         self.showAlert(presentingController: self, title: Language.getWord(withID: "sendtransaction"), message: Language.getWord(withID: "sendconfirmation").replacingOccurrences(of: "<amount>", with: "\(self.sendVC!.confirmSatoshis)".addSpaces()).replacingOccurrences(of: "<fees>", with: "\(feeSatoshis)".addSpaces()).replacingOccurrences(of: "<address>", with: self.sendVC!.confirmAddress), buttons: [Language.getWord(withID: "cancel"), Language.getWord(withID: "confirm")], actions: [nil, #selector(self.performOnchainTransaction)])
@@ -222,15 +216,7 @@ extension ConfirmSendViewController {
         self.confirmSpinner.startAnimating()
         
         // Get fees (minimum 1 sat/Vbyte).
-        var selectedVbyte:Float
-        switch self.selectedFee {
-        case .medium: selectedVbyte = self.sendVC!.feePerVbMedium
-        case .high: selectedVbyte = self.sendVC!.feePerVbHigh
-        default: selectedVbyte = self.maxAvailableFeePerVb ?? self.sendVC!.feePerVbLow
-        }
-        // Clamp before converting: UInt64(_:) traps on a negative or NaN Float,
-        // so max() has to run on the Float side to actually guard anything.
-        let feeRateSatVb = UInt64(max(selectedVbyte, 1))
+        let feeRateSatVb = self.selectedFeeRatePerVb().wholeSatPerVb
         
         // Broadcast transaction.
         let txid:String
