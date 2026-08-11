@@ -9,7 +9,6 @@ import UIKit
 import LDKNode
 import UserNotifications
 import LightningDevKit
-import Sentry
 
 class SwapViewController: UIViewController, UITextFieldDelegate, UNUserNotificationCenterDelegate, OnchainSyncFailureReporting {
 
@@ -229,17 +228,22 @@ class SwapViewController: UIViewController, UITextFieldDelegate, UNUserNotificat
         
         let bitcoinValue = BitcoinManager.shared.bittrWallet.getCorrectBitcoinValue()
         
-        // Calculate total fees including claim transaction fee for lightning-to-onchain swaps
-        // For lightning-to-onchain swaps, the claim transaction fee is included in the on-chain amount
-        // so the user receives exactly what they input
-        let totalFees = self.thisSwap!.onchainFees! + self.thisSwap!.lightningFees! + (self.thisSwap!.claimTransactionFee ?? 0)
+        // For a lightning-to-onchain swap the routing fee isn't known until the
+        // payment finds a route, so the total is a range and the message reads
+        // "between X and Y". Everything else — the claim transaction and Boltz's
+        // spread — is quoted up front.
+        let feesMinimum = "\(self.thisSwap!.minimumTotalFees)".addSpaces()
+        let feesAmount = "\(self.thisSwap!.maximumTotalFees)".addSpaces()
+        let messageID = self.thisSwap!.hasVariableFee ? "swapfunds3range" : "swapfunds3"
         
         // Fiat fee, rounded to two decimals and formatted with the device's
         // decimal separator (e.g. "0,50" in comma locales).
-        let convertedFees = (totalFees.inBTC() * bitcoinValue.currentValue).twoDecimals().toString()
+        let convertedMinimum = (self.thisSwap!.minimumTotalFees.inBTC() * bitcoinValue.currentValue).twoDecimals().toString()
+        let convertedMaximum = (self.thisSwap!.maximumTotalFees.inBTC() * bitcoinValue.currentValue).twoDecimals().toString()
+        let convertedFees = convertedMinimum == convertedMaximum ? convertedMaximum : "\(convertedMinimum) - \(convertedMaximum)"
         let convertedAmount = "\(Int((self.thisSwap!.satoshisAmount.inBTC()*bitcoinValue.currentValue).rounded()))"
         
-        let message = Language.getWord(withID: "swapfunds3").replacingOccurrences(of: "<feesamount>", with: "\(totalFees)".addSpaces()).replacingOccurrences(of: "<convertedfees>", with: "\(bitcoinValue.chosenCurrency) \(convertedFees)").replacingOccurrences(of: "<amount>", with: "\(self.thisSwap!.satoshisAmount)".addSpaces()).replacingOccurrences(of: "<convertedamount>", with: "\(bitcoinValue.chosenCurrency) \(convertedAmount)")
+        let message = Language.getWord(withID: messageID).replacingOccurrences(of: "<feesamountmin>", with: feesMinimum).replacingOccurrences(of: "<feesamount>", with: feesAmount).replacingOccurrences(of: "<convertedfees>", with: "\(bitcoinValue.chosenCurrency) \(convertedFees)").replacingOccurrences(of: "<amount>", with: "\(self.thisSwap!.satoshisAmount)".addSpaces()).replacingOccurrences(of: "<convertedamount>", with: "\(bitcoinValue.chosenCurrency) \(convertedAmount)")
         let doYouWishToProceed = Language.getWord(withID: "wishtoproceed")
         let cautionMessage:String
         if self.swapDirection == .onchainToLightning {
@@ -275,16 +279,12 @@ class SwapViewController: UIViewController, UITextFieldDelegate, UNUserNotificat
         // Show swap status.
         self.showStatusView()
         
-        // Update swap file.
-        let direction = (self.thisSwap!.swapDirection == .lightningToOnchain) ? 1 : 0
-        SwapManager.updateSwapFileWithFees(swapID: self.thisSwap!.boltzID!, totalFees: (self.thisSwap!.onchainFees ?? 0) + (self.thisSwap!.lightningFees ?? 0) + (self.thisSwap!.claimTransactionFee ?? 0), userAmount: self.thisSwap!.satoshisAmount, direction: direction)
-        
         // Send payment.
         if self.thisSwap!.swapDirection == .onchainToLightning {
-            SentrySDK.metrics.count(key: "swap.onchaintolightning.initiated")
+            SentryManager.countMetric("swap.onchaintolightning.initiated")
             SwapManager.sendOnchainPayment(swapVC: self)
         } else {
-            SentrySDK.metrics.count(key: "swap.lightningtoonchain.initiated")
+            SentryManager.countMetric("swap.lightningtoonchain.initiated")
             self.performLightningPayment()
         }
     }

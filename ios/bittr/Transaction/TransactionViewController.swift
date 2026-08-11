@@ -376,7 +376,7 @@ class TransactionViewController: UIViewController {
             self.confirmationsStackHeight.constant = 55
             self.confirmationsStack.alpha = 1
             
-            let currentHeight = BitcoinManager.shared.bittrWallet.currentHeight ?? (CacheManager.getCachedData(key: "height") as? Int) ?? 0
+            let currentHeight = BitcoinManager.shared.bittrWallet.currentHeight ?? CacheManager.cachedHeight ?? 0
             
             if self.tappedTransaction.height == nil || (currentHeight - self.tappedTransaction.height! + 1) < 1 {
                 // Unconfirmed transaction.
@@ -388,14 +388,14 @@ class TransactionViewController: UIViewController {
         }
         
         // Description
-        if self.tappedTransaction.lnDescription.trimmingCharacters(in: .whitespacesAndNewlines) != "", !self.tappedTransaction.isSwap, !self.tappedTransaction.isSuggestedSwap, !self.showConfetti {
+        if self.descriptionText().trimmingCharacters(in: .whitespacesAndNewlines) != "", !self.tappedTransaction.isSwap, !self.tappedTransaction.isSuggestedSwap, !self.showConfetti {
             
             if self.tappedTransaction.isBittr {
                 self.labelDescription.numberOfLines = 1
                 self.labelDescription.lineBreakMode = .byTruncatingMiddle
             }
             
-            self.labelDescription.text = self.tappedTransaction.lnDescription
+            self.labelDescription.text = self.descriptionText()
             NSLayoutConstraint.deactivate([self.descriptionStackHeight])
             self.descriptionStackHeight = NSLayoutConstraint(item: self.descriptionStack, attribute: .height, relatedBy: .greaterThanOrEqual, toItem: nil, attribute: .notAnAttribute, multiplier: 1, constant: 0)
             NSLayoutConstraint.activate([self.descriptionStackHeight])
@@ -635,6 +635,21 @@ class TransactionViewController: UIViewController {
         self.view.layoutIfNeeded()
     }
     
+    func hideNoteStack() {
+        self.noteStack.alpha = 0
+        NSLayoutConstraint.deactivate([self.noteStackHeight])
+        self.noteStackHeight = NSLayoutConstraint(item: self.noteStack, attribute: .height, relatedBy: .equal, toItem: nil, attribute: .notAnAttribute, multiplier: 1, constant: 0)
+        NSLayoutConstraint.activate([self.noteStackHeight])
+        // Keep "Add a note" hidden on the Bittr payout summary, which suppresses
+        // it deliberately — reverting to it there would put the button on a
+        // screen that never offers one.
+        if !self.showConfetti {
+            self.addANoteStack.alpha = 1
+            self.addANoteStackHeight.constant = 45
+        }
+        self.view.layoutIfNeeded()
+    }
+    
     @IBAction func noteButtonTapped(_ sender: UIButton) {
 
         self.showTextFieldAlert(
@@ -646,10 +661,18 @@ class TransactionViewController: UIViewController {
             saveTitle: Language.getWord(withID: "save")
         ) { [weak self] noteText in
             guard let self = self else { return }
-            if noteText.trimmingCharacters(in: .whitespacesAndNewlines) != "" {
-                CacheManager.storeTransactionNote(txid: self.tappedTransaction.id, note: noteText)
-                self.labelNote.text = noteText
+            let trimmedNote = noteText.trimmingCharacters(in: .whitespacesAndNewlines)
+            if trimmedNote != "" {
+                // Store what the emptiness check was made against, so a note
+                // isn't persisted (and redisplayed) with stray padding.
+                CacheManager.storeTransactionNote(txid: self.tappedTransaction.id, note: trimmedNote)
+                self.labelNote.text = trimmedNote
                 self.showNoteStack()
+            } else {
+                // The user cleared the note: delete it and revert to the "Add a note" button.
+                CacheManager.deleteTransactionNote(txid: self.tappedTransaction.id)
+                self.labelNote.text = ""
+                self.hideNoteStack()
             }
         }
     }
@@ -662,9 +685,16 @@ class TransactionViewController: UIViewController {
         }
     }
     
+    func descriptionText() -> String {
+        if self.tappedTransaction.lnDescription == "", self.tappedTransaction.isChannelClosure {
+            return Language.getWord(withID: "channelclosuretransaction")
+        }
+        return self.tappedTransaction.lnDescription
+    }
+    
     @IBAction func descriptionButtonTapped(_ sender: UIButton) {
         
-        let copyingText = self.tappedTransaction.lnDescription
+        let copyingText = self.descriptionText()
         UIPasteboard.general.string = copyingText
         self.showAlert(presentingController: self, title: Language.getWord(withID: "copied"), message: copyingText, buttons: [Language.getWord(withID: "okay")], actions: nil)
     }

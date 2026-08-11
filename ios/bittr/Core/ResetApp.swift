@@ -7,7 +7,6 @@
 
 import UIKit
 import LDKNode
-import Sentry
 
 extension CoreViewController {
     
@@ -76,6 +75,11 @@ extension CoreViewController {
                 if BitcoinManager.shared.listChannels().getActiveChannel() != nil {
                     Log.info("Channel still open — initiating cooperative close before any reset.")
                     if self.removingWalletForIncorrectPin {
+                        guard !self.isRemovalInFlight else {
+                            Log.info("Channel close already in flight — skipping duplicate.")
+                            return
+                        }
+                        self.isRemovalInFlight = true
                         self.closeChannelConfirmed()
                     } else {
                         self.showAlert(presentingController: self, title: Language.getWord(withID: "removewallet"), message: Language.getWord(withID: "restorewallet4"), buttons: [Language.getWord(withID: "cancel"), Language.getWord(withID: "closechannel")], actions: [nil, #selector(self.closeChannelAlert)])
@@ -85,6 +89,9 @@ extension CoreViewController {
                     // on-chain yet (still being swept). Don't wipe — tell the
                     // user to come back once it has settled.
                     Log.info("Channel closed but funds still settling — deferring wallet reset.")
+                    
+                    // Release the single-flight guard so the wipe can proceed once swept.
+                    self.isRemovalInFlight = false
                     
                     if self.removingWalletForIncorrectPin {
                         // User is locked out. Show "Try again" button, as only available user action.
@@ -98,6 +105,8 @@ extension CoreViewController {
                     }
                 }
             } else {
+                // Fully closed and swept — the close is done.
+                self.isRemovalInFlight = false
                 if self.resettingPin || self.removingWalletForIncorrectPin {
                     Log.info("No channels and nothing left to sweep — removing wallet.")
                     self.performWalletReset()
@@ -166,13 +175,8 @@ extension CoreViewController {
                     if didConnectToPeer {
                         self.closeChannelConfirmed()
                     } else if self.removingWalletForIncorrectPin {
-                        // Automated wipe path: we only ever cooperatively close,
-                        // which needs the peer online. Don't force close (it locks
-                        // funds behind a CSV delay and risks loss on the wipe) and
-                        // don't wipe. Offer a single "Try again" action
-                        // (startWalletInBackground re-syncs + re-checks), matching
-                        // the "still closing" path — otherwise tapping Okay would
-                        // strand the locked-out user on a static full-screen cover.
+                        // Close attempt failed — release the single-flight guard.
+                        self.isRemovalInFlight = false
                         self.genericSpinner.stopAnimating()
                         self.showAlert(presentingController: self, title: Language.getWord(withID: "restorewallet"), message: Language.getWord(withID: "closeretrylater"), buttons: [Language.getWord(withID: "tryagain")], actions: [#selector(self.startWalletInBackground)])
                     } else {
@@ -200,15 +204,10 @@ extension CoreViewController {
             } catch {
                 Log.info("Unsuccessful channel closure.")
                 DispatchQueue.main.async {
-                    SentrySDK.capture(error: error) { scope in
-                        scope.setExtra(value: "ResetApp row 170", key: "context")
-                    }
+                    SentryManager.capture(error, context: "ResetApp row 170")
                     if self.removingWalletForIncorrectPin {
-                        // Coop close failed during the automated wipe. Do not force
-                        // close or wipe. Offer a single "Try again" action
-                        // (startWalletInBackground re-syncs + re-checks), matching
-                        // the "still closing" path, so the locked-out user isn't
-                        // stranded behind the cover with only a dismiss button.
+                        // Close attempt failed — release the single-flight guard.
+                        self.isRemovalInFlight = false
                         self.genericSpinner.stopAnimating()
                         self.showAlert(presentingController: self, title: Language.getWord(withID: "restorewallet"), message: Language.getWord(withID: "closeretrylater"), buttons: [Language.getWord(withID: "tryagain")], actions: [#selector(self.startWalletInBackground)])
                     } else {
@@ -226,6 +225,14 @@ extension CoreViewController {
             DispatchQueue.main.async {
                 self.didCloseChannel()
                 self.genericSpinner.stopAnimating()
+
+                // Release the single-flight guard: the close is broadcast and a
+                // terminal alert is about to go up, so the only way forward is a
+                // fresh user-initiated attempt. Holding the guard past this point
+                // makes that attempt a silent no-op — and nothing else would ever
+                // clear it for the rest of the session.
+                self.isRemovalInFlight = false
+
                 if self.removingWalletForIncorrectPin {
                     // User is locked out. Show "Try again" button as only available user action.
                     self.showAlert(presentingController: self, title: Language.getWord(withID: "restorewallet"), message: Language.getWord(withID: "stillclosing"), buttons: [Language.getWord(withID: "tryagain")], actions: [#selector(self.startWalletInBackground)])
@@ -268,9 +275,7 @@ extension CoreViewController {
             } catch {
                 Log.info("Unsuccessful channel closure.")
                 DispatchQueue.main.async {
-                    SentrySDK.capture(error: error) { scope in
-                        scope.setExtra(value: "ResetApp row 213", key: "context")
-                    }
+                    SentryManager.capture(error, context: "ResetApp row 213")
                     if !self.removingWalletForIncorrectPin {
                         self.genericSpinner.stopAnimating()
                         self.fullViewCover.alpha = 0
@@ -297,21 +302,24 @@ extension CoreViewController {
         self.hideAlert()
         self.hideSettings()
         
-        // Reset PIN reset state
+        // Stop background sync timer. This has to happen before the teardown
+        // below — a sync running against a half-deleted wallet is worse than
+        // losing the timer if the cleanup then fails, and the failure alert
+        // tells the user to reopen the app, which starts it again.
+        self.walletSync?.stop()
+        self.walletSync = nil
+
+        // Reset PIN reset state, remembering it so the failure path can put it
+        // back: if nothing was actually removed the user is still mid-PIN-reset
+        // or still locked out, and clearing these strands them outside both flows.
+        let wasResettingPin = self.resettingPin
+        let wasRemovingWalletForIncorrectPin = self.removingWalletForIncorrectPin
         self.resettingPin = false
         self.removingWalletForIncorrectPin = false
-        
-        // Removal finished — clear the resume-on-launch flag.
-        CacheManager.setWalletRemovalInProgress(false)
-        
-        // Clear mnemonic from cache
-        CacheManager.deleteClientInfo()
-        
-        // Clear the in-memory account entity.
-        BitcoinManager.shared.bittrWallet = BittrWallet()
-        
+
         // Remove wallet from device and remove corresponding cached data.
         DispatchQueue.global(qos: .userInitiated).async {
+            var cleanupSucceeded = false
             do {
                 Log.info("Starting wallet reset cleanup")
                 
@@ -332,31 +340,52 @@ extension CoreViewController {
                 BitcoinManager.shared.resetNodeState()
                 Log.info("Node state reset completed")
                 
+                cleanupSucceeded = true
             } catch {
                 Log.info("Error during cleanup: \(error.localizedDescription)")
-                DispatchQueue.main.async {
-                    SentrySDK.capture(error: error) { scope in
-                        scope.setExtra(value: "ResetApp row 269", key: "context")
-                    }
-                }
+                SentryManager.capture(error, context: "ResetApp row 269")
                 
-                // Even if everything fails, try to clean up documents
+                // Even if everything fails, try to clean up documents (and state).
                 do {
                     Log.info("Attempting final fallback document cleanup")
                     try BitcoinManager.shared.deleteDocuments()
+                    BitcoinManager.shared.resetNodeState()
                     Log.info("Final fallback document cleanup successful")
+                    cleanupSucceeded = true
                 } catch {
                     Log.info("Final fallback document cleanup failed: \(error.localizedDescription)")
-                    DispatchQueue.main.async {
-                        SentrySDK.capture(error: error) { scope in
-                            scope.setExtra(value: "ResetApp row 282", key: "context")
-                        }
-                    }
+                    SentryManager.capture(error, context: "ResetApp row 282")
                 }
             }
             
-            // Cleanup done — relaunch the create-wallet flow on main.
+            guard cleanupSucceeded else {
+                // Teardown failed.
+                Log.info("Wallet reset cleanup did not complete — seed left intact to resume on next launch.")
+                DispatchQueue.main.async {
+                    // Nothing was removed, so put the removal state back rather
+                    // than leaving the app half-reset for the rest of the session.
+                    self.resettingPin = wasResettingPin
+                    self.removingWalletForIncorrectPin = wasRemovingWalletForIncorrectPin
+                    self.genericSpinner.stopAnimating()
+                    self.fullViewCover.alpha = 0
+                    self.showAlert(presentingController: self, title: Language.getWord(withID: "removewallet"), message: Language.getWord(withID: "removalfailed"), buttons: [Language.getWord(withID: "okay")], actions: nil)
+                }
+                return
+            }
+            
+            // Node stopped and files removed — now it's safe to delete the seed
+            // (last), and the removal is fully complete.
+            CacheManager.deleteClientInfo()
+            CacheManager.setWalletRemovalInProgress(false)
+            
+            // Relaunch the create-wallet flow on main.
             DispatchQueue.main.async {
+                // Clear the in-memory account entity now that the on-device
+                // wallet is actually gone. Doing this up front would leave a
+                // zeroed-out wallet behind on the failure path above, where
+                // everything it described still exists.
+                BitcoinManager.shared.bittrWallet = BittrWallet()
+
                 // Hide signup view and launch create wallet flow
                 // Since we've cleared the PIN, we need to manually show the create wallet flow
                 self.hideSignup()
@@ -395,11 +424,7 @@ extension CoreViewController {
                 try BitcoinManager.shared.syncWallets()
             } catch {
                 Log.info("Error syncing after channel closure: \(error)")
-                DispatchQueue.main.async {
-                    SentrySDK.capture(error: error) { scope in
-                        scope.setExtra(value: "ResetApp row 347", key: "context")
-                    }
-                }
+                SentryManager.capture(error, context: "ResetApp row 347")
                 return
             }
             

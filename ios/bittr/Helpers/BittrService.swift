@@ -6,7 +6,6 @@
 //
 
 import Foundation
-import Sentry
 
 class BittrService {
 
@@ -25,7 +24,7 @@ class BittrService {
         ]
         
         guard let url = urlComponents.url else {
-            throw BittrServiceError.other("Invalid URL" as! Error)
+            throw BittrServiceError.invalidURL
         }
 
         var request = URLRequest(url: url)
@@ -74,7 +73,7 @@ class BittrService {
             lightningPubKey = pubkeyString
         } else {
             Log.info("Wallet has not yet synced. Cannot fetch pubkey.")
-            throw BittrServiceError.other("Unsynced wallet" as! Error)
+            throw BittrServiceError.unsyncedWallet
         }
         
         do {
@@ -92,7 +91,7 @@ class BittrService {
             ]
             
             guard let url = urlComponents.url else {
-                throw BittrServiceError.other("Invalid URL" as! Error)
+                throw BittrServiceError.invalidURL
             }
             
             var request = URLRequest(url: url)
@@ -116,11 +115,7 @@ class BittrService {
                 throw BittrServiceError.serverError(decodedResponse.error ?? "Unknown error")
             }
         } catch {
-            DispatchQueue.main.async {
-                SentrySDK.capture(error: error) { scope in
-                    scope.setExtra(value: "BittrService row 114", key: "context")
-                }
-            }
+            SentryManager.capture(error, context: "BittrService row 114")
             throw BittrServiceError.networkError(error)
         }
     }
@@ -136,7 +131,7 @@ class BittrService {
         ]
         
         guard let url = urlComponents.url else {
-            throw BittrServiceError.other("Invalid URL" as! Error)
+            throw BittrServiceError.invalidURL
         }
 
         var request = URLRequest(url: url)
@@ -250,6 +245,8 @@ struct BittrTransaction: Codable {
 }
 
 enum BittrServiceError: Error {
+    case invalidURL
+    case unsyncedWallet
     case serverError(String)
     case networkError(Error)
     case decodingError(Error)
@@ -261,6 +258,10 @@ enum BittrServiceError: Error {
 extension BittrServiceError: LocalizedError {
     var errorDescription: String? {
         switch self {
+        case .invalidURL:
+            return "Couldn't build a valid request URL."
+        case .unsyncedWallet:
+            return "Your wallet hasn't finished syncing. Please try again in a moment."
         case .serverError(let message):
             return message
         case .networkError(let error):

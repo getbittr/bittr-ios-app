@@ -12,7 +12,9 @@ class BittrWallet: NSObject {
 
     // Balance
     var satoshisLightning:Int = 0
+    var pendingBalancesFromChannelClosures:Int = 0
     var satoshisOnchain:Int = 0
+    var satoshisOnchainSpendable:Int? // nil until loadWalletData has read it from LDK Node.
     
     // Channels
     var lightningChannels = [ChannelDetails]()

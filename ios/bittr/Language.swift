@@ -199,7 +199,7 @@ class Language: NSObject {
             "fundingtx": "Channel funding transaction",
             "questionvc1": "There's a limit to the amount of satoshis you can receive per invoice.\n\nThe size of your bitcoin lightning connection is <b><channelsize> satoshis</b>. You've already received <b><channelbalance> sats</b>, so you can still receive up to <b><receivelimit> sats</b> in total.\n\nWhen the connection is full, we'll invite you to move your funds to your regular bitcoin wallet to make space for future transactions.",
             "questionvc6": "why can't I send instant payments?",
-            "questionvc7": "Your bittr wallet consists of a bitcoin wallet (for regular payments) and a bitcoin lightning connection (for instant payments).\n\nYou've already received <b><channelbalance> satoshis</b> into your lightning connection. Your lightning connection needs to contain a minimum of <b><channelreserve> sats</b>, so the maximum amount you can send in total is <b><sendlimit> sats</b>.\n\nWhen the connection is full, we invite you to empty its funds into your bitcoin wallet so that you have space again.",
+            "questionvc7": "As part of your bittr wallet, you have a <b>bitcoin wallet</b> (for regular payments) and a <b>bitcoin lightning connection</b> (for instant payments).\n\nYour lightning balance is <b><channelbalance> satoshis</b>. The connection needs to contain a minimum of <b><channelreserve> sats</b>, so you can send up to <b><sendlimit> sats</b>.",
             "questionvc12": "why can't I receive instant payments?",
             "questionvc13": "Your bittr wallet consists of a bitcoin wallet (for regular payments) and a bitcoin lightning connection (for instant payments).\n\nYou don't currently have a lightning connection.\n\nTo open a connection with bittr, buy bitcoin worth between 20 and 100 €. Check your wallet's Buy section or getbittr.com for all information.",
             "reserve": "reserve",
@@ -223,6 +223,10 @@ class Language: NSObject {
             "closedlightningchannel3": " We've been notified that ",
             "bittrnotificationfail": "Something went wrong processing the notification we sent to you. Please contact support@getbittr.com if you have any questions.",
             "pinlock": "You've entered an incorrect PIN too many times. Please restore your wallet.",
+            "tokenregistrationfail": "We couldn't register this device for notifications. Please check your internet connection and try again, or continue with regular payouts.",
+            "keychainunavailabletitle": "Couldn't access your wallet",
+            "keychainunavailable": "We couldn't securely read your wallet just now. This can happen right after unlocking your device or when the phone is busy — your wallet and funds are safe.\n\nPlease tap Try again. Do not delete the app from your phone.",
+            "mnemonicsavefail": "Something went wrong securely saving your wallet. Please try again.",
             "incorrectpin2": "Please enter your correct PIN. If you've forgotten it, please restore your wallet.",
             "pinattemptsleft": "You have <attempts> attempts left.",
             "pinattemptleft": "You have 1 attempt left.",
@@ -244,6 +248,9 @@ class Language: NSObject {
             "pinwarning2": "You've entered the wrong PIN several times. After 10 failed attempts this wallet will be erased from the device, and any Bitcoin or Lightning funds it holds may be permanently lost.\n\nIf you still have your 12-word recovery phrase, tap \"Forgot PIN\" to reset your PIN instead — this keeps your wallet and your funds.\n\nNever delete the app from your phone, as this can also lead to loss of funds.",
             "stillclosing": "Your Lightning connection is still being closed. For your safety, the wallet can only be reset once the connection is fully closed and the funds have returned on-chain — this can take a while.\n\nPlease reopen the app later to finish the reset. Do not delete the app from your phone, as this will lead to loss of funds.",
             "closeretrylater": "Your Lightning connection could not be closed right now — the bittr node may be temporarily offline. Your wallet has not been reset.\n\nPlease reopen the app to try again later. Do not delete the app from your phone, as this will lead to loss of funds.",
+            "removalfailed": "Something went wrong removing your wallet, so it hasn't been removed — your wallet and funds are safe.\n\nPlease reopen the app to try again. Do not delete the app from your phone.",
+            "restoredbackup": "Wallet restored",
+            "restoredbackup2": "It seems that this wallet was restored from a backup. Your Lightning connection could not be carried over.\n\nIf you need our help, please contact support@getbittr.com.",
             "pinlength": "PIN Length",
             "pincanbeupto8": "PIN can be up to 8 digits",
             "pinrequired": "PIN Required",
@@ -325,6 +332,7 @@ class Language: NSObject {
             "nodatareceived": "No data was received",
             "swapamountexceeded": "You can only move up to <amount> satoshis at a time. Please enter an amount within this limit.",
             "swapfunds3": "The expected fee to move <b><amount> satoshis</b> (<convertedamount>) is <b><feesamount> satoshis</b> (<convertedfees>).",
+            "swapfunds3range": "The expected fee to move <b><amount> satoshis</b> (<convertedamount>) is between <b><feesamountmin> and <feesamount> satoshis</b> (<convertedfees>).",
             "onchaintolightningexplanation": "\n\nIt may take around <b>10 minutes</b> to complete this swap. You may close the app in the meantime.\n\nIf the swap fails, some of the paid fees may not be refundable.",
             "wishtoproceed": "Do you wish to proceed?",
             "proceed": "Proceed",
@@ -498,6 +506,7 @@ class Language: NSObject {
             "awaitingbdksync": "To send a regular transaction, please wait a moment while we sync your wallet.",
             "onchainsyncfailedtitle": "Syncing issue",
             "onchainsyncfailed": "We ran into an issue syncing the on-chain part of your wallet. Please try again later.",
+            "onchainsynctimedout": "Syncing the on-chain part of your wallet is taking longer than expected. Your wallet and funds are safe.\n\nPlease reopen the app to try again. Do not delete the app from your phone.",
             "transferfee": "Transfer fee",
             "bittrfee": "Bittr fee",
             "surcharge": "Surcharge",
@@ -566,7 +575,11 @@ class Language: NSObject {
             "buyvclightning": "Lightning",
             "buyvclightningexplanation": "Purchases up to 100 EUR/CHF go into your Lightning connection. Spend and receive instantly, with very low fees.\n\nTurn this off to receive your bittr purchases on-chain instead, in the regular part of your wallet.",
             "lightningnotready": "Lightning not ready",
-            "paymentmodeupdateerror": "Couldn't update payout mode"
+            "paymentmodeupdateerror": "Couldn't update payout mode",
+            "connectionclosed": "Connection closed",
+            "pendingclosure": "Your lightning connection was recently closed. These funds (<pendingfunds> satoshis) will be deposited into your regular wallet.",
+            "viewactiveconnection": "View active connection",
+            "channelclosuretransaction": "These are the funds from your closed lightning connection, returning to your regular wallet."
             
         ]
         

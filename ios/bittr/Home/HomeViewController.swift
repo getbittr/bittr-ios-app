@@ -8,7 +8,6 @@
 import UIKit
 import LDKNode
 import UserNotifications
-import Sentry
 
 class HomeViewController: UIViewController, UITableViewDelegate, UITableViewDataSource, UNUserNotificationCenterDelegate {
     
@@ -328,7 +327,7 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
         self.noTransactionsLabel.alpha = 0
         
         // Update cache
-        CacheManager.updateCachedData(data: self.visibleTransactions, key: "transactions")
+        CacheManager.cachedHomeTransactions = self.visibleTransactions
         
         guard !didFindDuplicateTransaction else { return }
         

@@ -28,11 +28,12 @@ class BoltzRefund {
     /// Calculates transaction fee using the highest priority fee rate
     /// Both claim and refund transactions are always 99 vbytes in size
     static func calculateClaimOrRefundTransactionFee() async throws -> Int {
-        let feeEstimates = await BitcoinManager.shared.getFeeEstimates()
-        let highPriorityFeeRate = feeEstimates!["fastestFee"] as! Double
+        guard let feeEstimates = await BitcoinManager.shared.getFeeEstimates() else {
+            throw BoltzAPIError.requestFailed("Could not fetch fee estimates for the claim/refund transaction.")
+        }
         let transactionSizeVBytes = 99 // Fixed size for claim/refund transactions
-        
-        let calculatedFee = Int(highPriorityFeeRate * Double(transactionSizeVBytes))
+
+        let calculatedFee = Int(feeEstimates.fastest * Double(transactionSizeVBytes))
         
         return calculatedFee
     }
@@ -248,7 +249,10 @@ class BoltzRefund {
             
         if let swapOutput = detectSwap(tweakedKey: tweakedKey, transactionHex: lockupTxHex) {
                 
-            let destinationAddress = BitcoinManager.shared.bittrWallet.onchainAddresses?.getNextUnusedAddress() ?? BitcoinManager.shared.getAddress(atIndex: 0)
+            guard let destinationAddress = BitcoinManager.shared.bittrWallet.onchainAddresses?.getNextUnusedAddress() ?? BitcoinManager.shared.getAddress(atIndex: 0) else {
+                Log.info("No destination address available for the refund.")
+                return ClaimResult(success: false, transactionId: nil)
+            }
             
             // Calculate refund transaction fee
             let refundFee = try await calculateClaimOrRefundTransactionFee()

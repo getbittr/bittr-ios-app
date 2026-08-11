@@ -10,7 +10,6 @@ import LDKNode
 import BitcoinDevKit
 import CodeScanner
 import AVFoundation
-import Sentry
 
 extension SendViewController {
     
@@ -47,8 +46,14 @@ extension SendViewController {
         }
         self.onchainAmountInSatoshis = (enteredAmount/divideBy).inSatoshis()
         
+        // Check whether user intends to empty their onchain funds.
+        if let quotedMaximum = self.maximumSendableOnchainSats, self.onchainAmountInSatoshis == quotedMaximum {
+            // The entered amount matches the maximum sendable onchain funds.
+            self.didTapAvailable = true
+        }
+        
         // Check balance.
-        guard self.onchainAmountInSatoshis <= BitcoinManager.shared.bittrWallet.satoshisOnchain else {
+        guard self.onchainAmountInSatoshis <= (BitcoinManager.shared.bittrWallet.satoshisOnchainSpendable ?? 0) else {
             Log.info("Insufficient onchain balance.")
             Log.info("Check if we have sufficient Lightning balance for a swap.")
             
@@ -86,8 +91,7 @@ extension SendViewController {
         
         // Create transaction.
         Task {
-            let feeEstimates = await BitcoinManager.shared.getFeeEstimates()
-            guard feeEstimates != nil else {
+            guard let feeEstimates = await BitcoinManager.shared.getFeeEstimates() else {
                 DispatchQueue.main.async {
                     self.nextLabel.alpha = 1
                     self.arrowIcon.alpha = 1
@@ -96,14 +100,40 @@ extension SendViewController {
                 }
                 return
             }
-            self.feePerVbLow = Float(feeEstimates!["economyFee"] as! Double)
-            self.feePerVbMedium = Float(feeEstimates!["hourFee"] as! Double)
-            self.feePerVbHigh = Float(feeEstimates!["fastestFee"] as! Double)
+            self.feePerVbLow = Float(feeEstimates.economy)
+            self.feePerVbMedium = Float(feeEstimates.hour)
+            self.feePerVbHigh = Float(feeEstimates.fastest)
+            
+            // Check the maximum sendable onchain amount.
+            let drain = try? BitcoinManager.shared.maximumSendableOnchainDrain(toAddress: enteredAddress, satPerVb: UInt64(max(self.feePerVbMedium, 1)))
+            
+            // Check whether the user intends to empty their onchain funds —
+            // either by tapping the quoted maximum, or by typing an amount at or
+            // above it (the balance guard above only rejects amounts over the
+            // spendable balance, and the drain maximum sits a fee below that).
+            //
+            // Either way, restate the amount as the drain figure. sendAllToAddress
+            // ignores confirmSatoshis and sends whatever is left after the fee, so
+            // leaving the typed amount in place would let the confirmation screen
+            // promise a number the wallet never broadcasts.
+            if let drain = drain, self.didTapAvailable || self.onchainAmountInSatoshis >= Int(drain.sendableSats) {
+                self.onchainAmountInSatoshis = Int(drain.sendableSats)
+                self.confirmSatoshis = Int(drain.sendableSats)
+                self.drainTotalSats = Int(drain.sendableSats + drain.feeSats)
+                self.isSendingMaximum = true
+            } else {
+                self.drainTotalSats = nil
+                self.isSendingMaximum = false
+            }
             
             // Get transaction size.
             let size:UInt64
             do {
-                size = try BitcoinManager.shared.getSize(address: enteredAddress, amountSats: self.onchainAmountInSatoshis)
+                if self.isSendingMaximum, let drain = drain {
+                    size = drain.vsize
+                } else {
+                    size = try BitcoinManager.shared.getSize(address: enteredAddress, amountSats: self.onchainAmountInSatoshis, selectedVbyte: self.feePerVbMedium)
+                }
             } catch {
                 Log.info("Error: \(error.localizedDescription)")
                 
@@ -127,9 +157,7 @@ extension SendViewController {
                     self.nextSpinner.stopAnimating()
                     self.showAlert(presentingController: self, title: Language.getWord(withID: "oops"), message: "\(Language.getWord(withID: "cannotproceed")). Error: \(errorMessage)", buttons: [Language.getWord(withID: "okay")], actions: nil)
                     if sendToSentry {
-                        SentrySDK.capture(error: error) { scope in
-                            scope.setExtra(value: "SendOnchain row 167", key: "context")
-                        }
+                        SentryManager.capture(error, context: "SendOnchain row 167")
                     }
                 }
                 return
@@ -179,24 +207,39 @@ extension ConfirmSendViewController {
     }
     
     @objc func performOnchainTransaction() {
+        // An on-chain send reaches the broadcast from the confirmation alert's
+        // Confirm button, not from confirmButtonTapped — which shows that alert
+        // and returns without ever starting the spinner. So the guard on the
+        // button can't catch this; it has to sit here, where the spinner goes up.
+        // sendOnchainPayment below blocks main, so a second tap queues behind it
+        // and gets delivered once the broadcast is already under way.
+        if self.confirmSpinner.isAnimating { return }
+
         self.hideAlert()
         
         // Start spinner.
         self.confirmLabel.alpha = 0
         self.confirmSpinner.startAnimating()
         
-        // Get fees.
+        // Get fees (minimum 1 sat/Vbyte).
         var selectedVbyte:Float
         switch self.selectedFee {
         case .medium: selectedVbyte = self.sendVC!.feePerVbMedium
         case .high: selectedVbyte = self.sendVC!.feePerVbHigh
         default: selectedVbyte = self.maxAvailableFeePerVb ?? self.sendVC!.feePerVbLow
         }
+        // Clamp before converting: UInt64(_:) traps on a negative or NaN Float,
+        // so max() has to run on the Float side to actually guard anything.
+        let feeRateSatVb = UInt64(max(selectedVbyte, 1))
         
         // Broadcast transaction.
         let txid:String
         do {
-            txid = try BitcoinManager.shared.sendOnchainPayment(address: self.sendVC!.confirmAddress, amountSats: UInt64(self.sendVC!.confirmSatoshis), feeRateSatVb: UInt64(selectedVbyte))
+            if self.sendVC!.isSendingMaximum {
+                txid = try BitcoinManager.shared.sendAllOnchainPayment(address: self.sendVC!.confirmAddress, feeRateSatVb: feeRateSatVb)
+            } else {
+                txid = try BitcoinManager.shared.sendOnchainPayment(address: self.sendVC!.confirmAddress, amountSats: UInt64(self.sendVC!.confirmSatoshis), feeRateSatVb: feeRateSatVb)
+            }
         } catch {
             Log.info("Transaction error: \(error.localizedDescription)")
 
@@ -215,10 +258,8 @@ extension ConfirmSendViewController {
                 self.confirmLabel.alpha = 1
                 self.confirmSpinner.stopAnimating()
                 self.showAlert(presentingController: self, title: Language.getWord(withID: "error"), message: Language.getWord(withID: "transactionerror") + ": " + errorMessage, buttons: [Language.getWord(withID: "okay")], actions: nil)
-                SentrySDK.capture(error: error) { scope in
-                    scope.setExtra(value: "SendOnchain row 349", key: "context")
-                }
-                SentrySDK.metrics.count(key: "onchain.transaction.failure.2")
+                SentryManager.capture(error, context: "SendOnchain row 349")
+                SentryManager.countMetric("onchain.transaction.failure.2")
             }
             return
         }
@@ -226,7 +267,7 @@ extension ConfirmSendViewController {
         
         DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
             Log.info("Successful transaction.")
-            SentrySDK.metrics.count(key: "onchain.transaction.success")
+            SentryManager.countMetric("onchain.transaction.success")
             self.confirmLabel.alpha = 1
             self.confirmSpinner.stopAnimating()
             self.newTxId = txid
@@ -242,7 +283,7 @@ extension ConfirmSendViewController {
             if success {
                 for eachTransaction in BitcoinManager.shared.bittrWallet.allTransactions {
                     if eachTransaction.kind.transactionID == self.newTxId {
-                        self.sendVC!.completedTransaction = eachTransaction.createTransaction(coreVC: self.coreVC!, bittrTransactions: nil)
+                        self.sendVC!.completedTransaction = eachTransaction.createTransaction(bittrTransactions: nil)
                         self.sendVC!.performSegue(withIdentifier: "SendToTransaction", sender: self)
                     }
                 }
@@ -256,48 +297,25 @@ extension ConfirmSendViewController {
 
 extension UIViewController {
     
-    func getMaximumSendableSats() -> Double? {
+    func getMaximumSendableSats(toAddress:String? = nil, satPerVb:UInt64) -> Int? {
         
         do {
-            let actualAddress = BitcoinManager.shared.getAddress(atIndex: 0)
-            
-            // Create PSBT, which will throw an error.
-            _ = try BitcoinManager.shared.getPsbt(address: actualAddress, amountSats: BitcoinManager.shared.bittrWallet.satoshisOnchain, selectedVbyte: nil)
-            return nil
+            let sendable = try BitcoinManager.shared.maximumSendableOnchainSats(toAddress: toAddress, satPerVb: satPerVb)
+            return Int(sendable)
         } catch {
+            Log.info("Could not compute maximum sendable amount: \(error.localizedDescription)")
+            
             if let bdkError = error as? BitcoinDevKit.CreateTxError {
                 switch bdkError {
-                case .InsufficientFunds(needed: let needed, available: _):
-                    let btcOnchain = BitcoinManager.shared.bittrWallet.satoshisOnchain.inBTC()
-                    let neededAmount:Double = Int(needed).inBTC()
-                    let minimumFees:Double = neededAmount - btcOnchain
-                    let spendableBtcAmount = btcOnchain - minimumFees
-                    if spendableBtcAmount < 0 {
-                        return 0
-                    } else {
-                        return spendableBtcAmount
+                case .CoinSelection, .InsufficientFunds:
+                    if BitcoinManager.shared.bittrWallet.satoshisOnchain > 0 {
+                        Log.info("BDK looks stale (LDK Node onchain balance: \(BitcoinManager.shared.bittrWallet.satoshisOnchain), BDK rejected the drain).")
                     }
-                case .CoinSelection(errorMessage: let errorMessage):
-                    if errorMessage.contains("Insufficient funds") {
-                        let btcOnchain = BitcoinManager.shared.bittrWallet.satoshisOnchain.inBTC()
-                        let neededAmount:Double = String(error.localizedDescription.split(separator: " ")[7]).toNumber()
-                        let minimumFees:Double = neededAmount - btcOnchain
-                        let spendableBtcAmount = btcOnchain - minimumFees
-                        if spendableBtcAmount < 0 {
-                            return 0
-                        } else if spendableBtcAmount > btcOnchain {
-                            return nil
-                        } else {
-                            return spendableBtcAmount
-                        }
-                    } else {
-                        return nil
-                    }
-                default: return nil
+                default:
+                    SentryManager.capture(error, context: "getMaximumSendableSats")
                 }
-            } else {
-                return nil
             }
+            return nil
         }
     }
     

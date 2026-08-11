@@ -7,17 +7,25 @@
 
 import UIKit
 import LDKNode
-import Sentry
 
 class CoreViewController: UIViewController {
     
     // App start booleans
     var userHasSignedIn = false
     var walletHasSynced = false
+    // True while checkWalletAvailability is waiting for the Keychain to become
+    // readable (device locked / transient read error) before it decides.
+    private var isAwaitingProtectedData = false
     
     // Pin reset
     var resettingPin = false
     var removingWalletForIncorrectPin = false
+    var isRemovalInFlight = false
+
+    // True while continueStartWallet's post-start work is running. Several
+    // startWallet callers can be attached to a single node start, and they all
+    // get told when it finishes — but that work is global, not per-caller.
+    var isContinuingStartWallet = false
     
     // Client details (bittrWallet now lives on BitcoinManager.shared)
     var walletSync:BackgroundSync?
@@ -46,11 +54,6 @@ class CoreViewController: UIViewController {
     var allArticles:[String:Article]?
     var tappedArticle:String?
     var downloadedAcademy:[Level]?
-    
-    // QuestionVC
-    var tappedQuestion = ""
-    var tappedAnswer = ""
-    var tappedType:String?
     
     // Top bar
     @IBOutlet weak var animationContainer: UIView!
@@ -129,7 +132,7 @@ class CoreViewController: UIViewController {
         super.viewDidLoad()
         
         // Count app opening.
-        SentrySDK.metrics.count(key: "app.launch.open")
+        SentryManager.countMetric("app.launch.open")
         
         // Load Bittr wallet details.
         BitcoinManager.shared.bittrWallet = CacheManager.parseDevice()
@@ -150,25 +153,64 @@ class CoreViewController: UIViewController {
     
     func checkWalletAvailability() {
         
-        // Check wallet availability. The containers are revealed here, at
-        // viewDidLoad, and stay interactable during the launch animation:
-        // the animation cover passes taps through (its
-        // isUserInteractionEnabled is false), so the PIN/signup screen is
-        // usable while it becomes visible — and automation taps can't be
-        // swallowed by the cover.
-        if CacheManager.getMnemonic() != nil, CacheManager.getPin() != nil {
-            // Wallet has been created.
+        // Decide which screen to show based on whether a wallet exists. The
+        // containers are revealed here, at viewDidLoad, and stay interactable
+        // during the launch animation: the animation cover passes taps
+        // through (its isUserInteractionEnabled is false), so the PIN/signup
+        // screen is usable while it becomes visible — and automation taps
+        // can't be swallowed by the cover.
+        switch CacheManager.walletSecretsPresence() {
+        case .present:
+            Log.info("Wallet is available.")
+            self.finishAwaitingProtectedDataIfNeeded()
             self.signupContainerView.alpha = 0
             self.pinContainerView.alpha = 1
-        } else {
-            // User has not completed signup.
+            
+        case .absent:
+            Log.info("No wallet on this device.")
+            self.finishAwaitingProtectedDataIfNeeded()
             self.signupContainerView.alpha = 1
             self.pinContainerView.alpha = 0
-            // Remove cached mnemonic.
+            // Clear any stale cached client data and show the create-wallet flow.
             CacheManager.deleteClientInfo()
-            // Show SignupVC.
             self.launchSignup(onPage: 3)
+            
+        case .unavailable:
+            Log.info("The Keychain could not be read.")
+            self.presentKeychainUnavailable()
         }
+    }
+    
+    private func presentKeychainUnavailable() {
+        Log.info("Wallet secrets unavailable — showing the retry prompt.")
+        self.signupContainerView.alpha = 0
+        self.pinContainerView.alpha = 1
+        self.fullViewCover.alpha = 0.8
+        self.genericSpinner.startAnimating()
+
+        if !self.isAwaitingProtectedData {
+            self.isAwaitingProtectedData = true
+            NotificationCenter.default.addObserver(self, selector: #selector(self.retryReadingKeychain), name: UIApplication.protectedDataDidBecomeAvailableNotification, object: nil)
+        }
+
+        self.showAlert(presentingController: self,
+                       title: Language.getWord(withID: "keychainunavailabletitle"),
+                       message: Language.getWord(withID: "keychainunavailable"),
+                       buttons: [Language.getWord(withID: "tryagain")],
+                       actions: [#selector(self.retryReadingKeychain)])
+    }
+    
+    private func finishAwaitingProtectedDataIfNeeded() {
+        guard self.isAwaitingProtectedData else { return }
+        self.isAwaitingProtectedData = false
+        NotificationCenter.default.removeObserver(self, name: UIApplication.protectedDataDidBecomeAvailableNotification, object: nil)
+        self.fullViewCover.alpha = 0
+        self.genericSpinner.stopAnimating()
+    }
+    
+    @objc private func retryReadingKeychain() {
+        self.hideAlert()
+        self.checkWalletAvailability()
     }
     
     func checkWalletRemoval() {

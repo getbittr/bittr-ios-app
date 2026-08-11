@@ -7,41 +7,80 @@
 
 import UIKit
 import LDKNode
-import Sentry
 
 extension HomeViewController {
 
     func loadWalletData() {
-        
+
+        // Take the node handle up front — everything below reads through it, and
+        // bailing halfway (after caching a txo ID, before any of the balances)
+        // leaves the cache describing a snapshot we never applied.
+        guard let node = BitcoinManager.shared.ldkNode else { return }
+
         // Get channels, balance, and funding transaction ID.
-        BitcoinManager.shared.bittrWallet.satoshisLightning = 0
-        BitcoinManager.shared.bittrWallet.lightningChannels = BitcoinManager.shared.listChannels()
-        if let activeChannel = BitcoinManager.shared.bittrWallet.lightningChannels.getActiveChannel() {
-            if let channelTxoID = activeChannel.fundingTxo?.txid as? String {
-                CacheManager.storeTxoID(txoID: channelTxoID)
+        var satoshisLightning = 0
+        let lightningChannels = BitcoinManager.shared.listChannels()
+        if let activeChannel = lightningChannels.getActiveChannel() {
+            if let channelTxo = activeChannel.fundingTxo {
+                CacheManager.storeTxoID(txoID: channelTxo.txid)
+                CacheManager.storeChannelFundingOutpoint(txID: channelTxo.txid, vout: channelTxo.vout)
             }
             if Int(activeChannel.outboundCapacityMsat/1000) != 0 {
                 // Channel balance is more than punishment reserve.
-                BitcoinManager.shared.bittrWallet.satoshisLightning += Int((activeChannel.outboundCapacityMsat / 1000) + (activeChannel.unspendablePunishmentReserve ?? 0))
+                satoshisLightning += Int((activeChannel.outboundCapacityMsat / 1000) + (activeChannel.unspendablePunishmentReserve ?? 0))
             } else {
                 // Channel balance is less than punishment reserve.
-                BitcoinManager.shared.bittrWallet.satoshisLightning += Int(activeChannel.channelValueSats - activeChannel.inboundCapacityMsat/1000 - activeChannel.counterpartyUnspendablePunishmentReserve)
+                satoshisLightning += Int(activeChannel.channelValueSats - activeChannel.inboundCapacityMsat/1000 - activeChannel.counterpartyUnspendablePunishmentReserve)
             }
         }
         
         // Get transactions.
-        BitcoinManager.shared.bittrWallet.allTransactions = BitcoinManager.shared.listPayments()
+        let allTransactions = BitcoinManager.shared.listPayments()
         
         // Get onchain balance.
-        BitcoinManager.shared.bittrWallet.satoshisOnchain = Int(BitcoinManager.shared.ldkNode!.listBalances().totalOnchainBalanceSats)
+        let balances = node.listBalances()
+        let satoshisOnchain = Int(balances.totalOnchainBalanceSats)
+        let satoshisOnchainSpendable = Int(balances.spendableOnchainBalanceSats)
         
-        Task {
-            // Check whether transactions were Bittr purchases.
-            _ = await self.getBittrTransactionDetails()
+        // Gather pending lightning balances.
+        let pendingBalancesFromChannelClosures = balances.pendingClosureSatoshis(openChannelIds: lightningChannels.map { $0.channelId })
+        
+        // Store channel closure txIDs.
+        CacheManager.storeChannelClosureTxIDs(txIDs: balances.pendingBalancesFromChannelClosures.spendingTxIDs())
 
-            DispatchQueue.main.async {
-                self.updateTransactionHistory()
+        // A force close is recognised via the sweep txIDs above; its commitment
+        // tx never appears in the BDK wallet, so storeChannelClosureTxIDIfFound's
+        // cooperative-close scan would keep re-scanning for it on every sync
+        // forever. Pending closure funds (> 0) only ever come from a force close,
+        // so drop the cached funding outpoint here to end that scan. A
+        // cooperative close leaves this at 0 and keeps the outpoint for the scan.
+        if pendingBalancesFromChannelClosures > 0 {
+            CacheManager.removeChannelFundingOutpoint()
+        }
+
+        // Apply the snapshot to the shared wallet on the main thread.
+        let apply = {
+            BitcoinManager.shared.bittrWallet.satoshisLightning = satoshisLightning
+            BitcoinManager.shared.bittrWallet.pendingBalancesFromChannelClosures = pendingBalancesFromChannelClosures
+            BitcoinManager.shared.bittrWallet.lightningChannels = lightningChannels
+            BitcoinManager.shared.bittrWallet.allTransactions = allTransactions
+            BitcoinManager.shared.bittrWallet.satoshisOnchain = satoshisOnchain
+            BitcoinManager.shared.bittrWallet.satoshisOnchainSpendable = satoshisOnchainSpendable
+
+            Task {
+                // Check whether transactions were Bittr purchases.
+                _ = await self.getBittrTransactionDetails()
+
+                DispatchQueue.main.async {
+                    self.updateTransactionHistory()
+                }
             }
+        }
+        
+        if Thread.isMainThread {
+            apply()
+        } else {
+            DispatchQueue.main.async(execute: apply)
         }
     }
     
@@ -67,29 +106,24 @@ extension HomeViewController {
         // Create new transaction entities.
         for eachPayment in BitcoinManager.shared.bittrWallet.allTransactions {
             // Add succeeded new payments to table.
-            if !self.cachedLightningIds.contains(eachPayment.kind.transactionID ?? eachPayment.id), (eachPayment.status == .succeeded || (eachPayment.status == .pending && eachPayment.direction == .outbound && (Int((eachPayment.amountMsat ?? 0)/1000) > 0 || Int((eachPayment.feePaidMsat ?? 0)/1000) > 0)) || (eachPayment.status == .pending && eachPayment.kind.isOnchain && eachPayment.direction == .inbound)) {
+            if !self.cachedLightningIds.contains(eachPayment.kind.transactionID ?? eachPayment.id), (eachPayment.hasSucceeded() || eachPayment.isPendingOutbound() || eachPayment.isUnconfirmedOnchainInbound()) {
                 
                 // Create transaction.
-                let thisTransaction = eachPayment.createTransaction(coreVC: self.coreVC, bittrTransactions: self.bittrTransactions)
+                let thisTransaction = eachPayment.createTransaction(bittrTransactions: self.bittrTransactions)
                 self.newTransactions += [thisTransaction]
                 
                 // Cache succeeded Lightning payments.
                 if thisTransaction.isLightning, eachPayment.status == .succeeded {
-                    CacheManager.storeLightningTransaction(thisTransaction: thisTransaction)
+                    CacheManager.storeLightningTransaction(thisTransaction)
                 }
             }
             
             // Make sure there are no duplicate transactions.
-            if eachPayment.kind.transactionID != nil {
-                if self.cachedLightningIds.contains(eachPayment.kind.transactionID!), self.cachedLightningIds.contains(eachPayment.id) {
-                    for (index, eachTransaction) in self.newTransactions.enumerated().reversed() {
-                        if eachTransaction.id == eachPayment.id {
-                            self.newTransactions.remove(at: index)
-                        }
-                    }
+            if eachPayment.kind.transactionID != nil, self.cachedLightningIds.contains(eachPayment.kind.transactionID!), self.cachedLightningIds.contains(eachPayment.id) {
+                for (index, eachTransaction) in self.newTransactions.enumerated().reversed() where eachTransaction.id == eachPayment.id {
+                    self.newTransactions.remove(at: index)
                 }
             }
-            
         }
         
         // Check for matching swap transactions.
@@ -101,7 +135,7 @@ extension HomeViewController {
         }
         
         // Store transactions in cache.
-        CacheManager.updateCachedData(data: self.newTransactions, key: "transactions")
+        CacheManager.cachedHomeTransactions = self.newTransactions
         
         // Update balance label.
         self.setTotalSats()
@@ -157,7 +191,7 @@ extension HomeViewController {
         
         // Add previously cached transactions to Bittr transactions array.
         self.bittrTransactions = [:]
-        for eachTransaction in (CacheManager.getCachedData(key: "transactions") as? [Transaction]) ?? [Transaction]() where eachTransaction.isBittr {
+        for eachTransaction in (CacheManager.cachedHomeTransactions ?? [Transaction]()) where eachTransaction.isBittr {
             self.bittrTransactions.updateValue(eachTransaction.toBittrTransaction(), forKey: eachTransaction.id)
         }
         
@@ -174,11 +208,7 @@ extension HomeViewController {
             Log.info("Bittr transactions: \(bittrApiTransactions.count)")
         } catch {
             Log.info("Bittr error: \(error.localizedDescription)")
-            DispatchQueue.main.async {
-                SentrySDK.capture(error: error) { scope in
-                    scope.setExtra(value: "LoadWalletData row 266", key: "context")
-                }
-            }
+            SentryManager.capture(error, context: "LoadWalletData row 266")
             return false
         }
         
@@ -194,9 +224,9 @@ extension HomeViewController {
             
             if let cachedFundingTxID = CacheManager.getTxoID(), eachTransaction.txId == cachedFundingTxID {
                 // This is a channel funding transaction.
-                let thisTransaction = eachTransaction.createTransaction(coreVC: self.coreVC, isFundingTransaction: true)
+                let thisTransaction = eachTransaction.createTransaction(isFundingTransaction: true)
                 self.newTransactions += [thisTransaction]
-                CacheManager.storeLightningTransaction(thisTransaction: thisTransaction)
+                CacheManager.storeLightningTransaction(thisTransaction)
             }
         }
         
@@ -206,7 +236,7 @@ extension HomeViewController {
     
     func setTotalSats() {
         // Calculate total balance
-        let totalBalanceSats = BitcoinManager.shared.bittrWallet.satoshisOnchain + BitcoinManager.shared.bittrWallet.satoshisLightning
+        let totalBalanceSats = BitcoinManager.shared.bittrWallet.satoshisOnchain + BitcoinManager.shared.bittrWallet.satoshisLightning + BitcoinManager.shared.bittrWallet.pendingBalancesFromChannelClosures
         let totalBalanceSatsString = "\(totalBalanceSats)"
         
         // Load balance label.
@@ -262,11 +292,7 @@ extension HomeViewController {
             attributedText = try NSAttributedString(data: htmlData, options: [NSAttributedString.DocumentReadingOptionKey.documentType : NSAttributedString.DocumentType.html], documentAttributes: nil)
         } catch {
             Log.info("Couldn't fetch text: \(error.localizedDescription)")
-            DispatchQueue.main.async {
-                SentrySDK.capture(error: error) { scope in
-                    scope.setExtra(value: "LoadWalletData row 360", key: "context")
-                }
-            }
+            SentryManager.capture(error, context: "LoadWalletData row 360")
             return
         }
         
@@ -275,16 +301,16 @@ extension HomeViewController {
         self.bitcoinSign.alpha = bitcoinSignAlpha
         
         // Store satoshis balance string to cache.
-        CacheManager.updateCachedData(data: amount, key: "satsbalance")
+        CacheManager.cachedSatsBalance = amount
     }
     
     
     func setConversion() {
         
         // Set, cache, and show conversion label.
-        let cachedBtcBalance = (CacheManager.getCachedData(key: "satsbalance") as? String ?? "0").toNumber().inBTC()
+        let cachedBtcBalance = (CacheManager.cachedSatsBalance ?? "0").toNumber().inBTC()
         let conversionLabelText = self.updateConversionLabel(btcValue: cachedBtcBalance)
-        CacheManager.updateCachedData(data: conversionLabelText, key: "conversion")
+        CacheManager.cachedConversion = conversionLabelText
         
         // Only reveal the conversion once the balance is known.
         self.conversionLabel.alpha = self.balanceLabel.alpha
@@ -311,11 +337,7 @@ extension HomeViewController {
                 }
             }
         } catch {
-            DispatchQueue.main.async {
-                SentrySDK.capture(error: error) { scope in
-                    scope.setExtra(value: "LoadWalletData row 394", key: "context")
-                }
-            }
+            SentryManager.capture(error, context: "LoadWalletData row 394")
             Log.info("Could not download conversion rates.")
             return false
         }
@@ -325,7 +347,7 @@ extension HomeViewController {
             let actualChfValue = receivedDictionary["btc_chf"] as? String
         else {
             Log.info("Could not download conversion rates.")
-            SentrySDK.capture(message: "Received unexpected data from conversion API.")
+            SentryManager.capture("Received unexpected data from conversion API.")
             return false
         }
             
@@ -334,8 +356,8 @@ extension HomeViewController {
         BitcoinManager.shared.bittrWallet.valueInCHF = actualChfValue.fixDecimals().toNumber()
         
         // Store updated conversion rates in cache.
-        CacheManager.updateCachedData(data: BitcoinManager.shared.bittrWallet.valueInEUR ?? 0.0, key: "eurvalue")
-        CacheManager.updateCachedData(data: BitcoinManager.shared.bittrWallet.valueInCHF ?? 0.0, key: "chfvalue")
+        CacheManager.cachedEurValue = BitcoinManager.shared.bittrWallet.valueInEUR ?? 0.0
+        CacheManager.cachedChfValue = BitcoinManager.shared.bittrWallet.valueInCHF ?? 0.0
         
         Log.info("Did successfully download conversion rates.")
         return true
@@ -382,11 +404,7 @@ extension HomeViewController {
                 self.noTransactionsLabel.alpha = 1
             } catch {
                 Log.info("Couldn't fetch text: \(error.localizedDescription)")
-                DispatchQueue.main.async {
-                    SentrySDK.capture(error: error) { scope in
-                        scope.setExtra(value: "LoadWalletData row 489", key: "context")
-                    }
-                }
+                SentryManager.capture(error, context: "LoadWalletData row 489")
             }
         }
     }
@@ -412,19 +430,9 @@ extension HomeViewController {
             let transactionValue = eachTransaction.received.inBTC()
             var correctConversion = bitcoinValue.currentValue
 
-            let transactionCurrency:String = {
-                if eachTransaction.currency == "EUR" {
-                    return "€"
-                } else {
-                    return "CHF"
-                }
-            }()
+            let transactionCurrency = eachTransaction.currency == "EUR" ? "€" : "CHF"
             if transactionCurrency != bitcoinValue.chosenCurrency {
-                if transactionCurrency == "€" {
-                    correctConversion = BitcoinManager.shared.bittrWallet.valueInEUR ?? 0
-                } else {
-                    correctConversion = BitcoinManager.shared.bittrWallet.valueInCHF ?? 0
-                }
+                correctConversion = transactionCurrency == "€" ? (BitcoinManager.shared.bittrWallet.valueInEUR ?? 0) : (BitcoinManager.shared.bittrWallet.valueInCHF ?? 0)
             }
 
             var transactionProfit = (transactionValue*correctConversion) - eachTransaction.fiatNetAmount
@@ -446,11 +454,7 @@ extension HomeViewController {
     
     func showProfitLabel(currencySymbol:String, accumulatedProfit:Int, accumulatedInvestments:Int, accumulatedCurrentValue:Int) {
         
-        if accumulatedInvestments != 0 {
-            self.balanceCardGainLabel.text = "\(Int(((CGFloat(accumulatedProfit)/CGFloat(accumulatedInvestments))*100).rounded())) %".replacingOccurrences(of: "-", with: "")
-        } else {
-            self.balanceCardGainLabel.text = "0 %"
-        }
+        self.balanceCardGainLabel.text = (accumulatedInvestments == 0) ? "0 %" : "\(Int(((CGFloat(accumulatedProfit)/CGFloat(accumulatedInvestments))*100).rounded())) %".replacingOccurrences(of: "-", with: "")
 
         // Only reveal the profit once the balance is known.
         self.balanceCardGainLabel.alpha = self.balanceLabel.alpha
@@ -509,10 +513,8 @@ extension HomeViewController {
             }
         } else {
             var userHasBittrAccount = false
-            for eachIbanEntity in BitcoinManager.shared.bittrWallet.ibanEntities {
-                if eachIbanEntity.yourUniqueCode != "" {
-                    userHasBittrAccount = true
-                }
+            for eachIbanEntity in BitcoinManager.shared.bittrWallet.ibanEntities where eachIbanEntity.yourUniqueCode != "" {
+                userHasBittrAccount = true
             }
             // Skip the payout check when a wipe / PIN reset is in progress: the
             // node is about to be torn down, so signing a message against it
@@ -534,224 +536,69 @@ extension HomeViewController {
 
 }
 
-extension UILabel{
-    func adjustedFont()->UIFont {
-        guard let txt = text else {
-            return self.font
-        }
-        let attributes: [NSAttributedString.Key: Any] = [.font: self.font]
-        let attributedString = NSAttributedString(string: txt, attributes: attributes)
-        let drawingContext = NSStringDrawingContext()
-        drawingContext.minimumScaleFactor = self.minimumScaleFactor
-        attributedString.boundingRect(with: bounds.size,
-                                      options: [.usesLineFragmentOrigin,.usesFontLeading],
-                                      context: drawingContext)
-
-        let fontSize = font.pointSize * drawingContext.actualScaleFactor
-        return font.withSize(CGFloat(floor(Double(fontSize))))
+extension BalanceDetails {
+    func pendingClosureSatoshis(openChannelIds:[ChannelId]) -> Int {
+        return self.lightningBalances.forceClosedSatoshis(excludingChannels: openChannelIds)
+            + self.pendingBalancesFromChannelClosures.unbroadcastSatoshis()
     }
 }
 
-extension PaymentKind {
-    var transactionID: String? {
-        switch self {
-        case .onchain(let txID, _):
-            return txID
-        case .bolt11(_, let preimage, _):
-            return preimage
-        case .bolt11Jit(_, let preimage, _, _, _):
-            return preimage
-        case .spontaneous(_, let preimage):
-            return preimage
-        case .bolt12Offer(hash: _, preimage: let preimage, secret: _, offerId: _, payerNote: _, quantity: _):
-            return preimage
-        case .bolt12Refund(hash: _, preimage: let preimage, secret: _, payerNote: _, quantity: _):
-            return preimage
-        }
-    }
+extension [PendingSweepBalance] {
     
-    var isOnchain: Bool {
-        switch self {
-        case .onchain(_, _):
-            return true
-        default:
-            return false
+    func unbroadcastSatoshis() -> Int {
+        
+        var totalSatoshis = 0
+        for eachBalance in self {
+            switch eachBalance {
+            case .pendingBroadcast(_, let amountSatoshis): totalSatoshis += Int(amountSatoshis)
+            case .broadcastAwaitingConfirmation, .awaitingThresholdConfirmations: break
+            }
         }
+        return totalSatoshis
+    }
+
+    // The transactions carrying the swept funds.
+    // A sweep that hasn't been broadcast yet doesn't have one.
+    func spendingTxIDs() -> [String] {
+
+        var txIDs = [String]()
+        for eachBalance in self {
+            switch eachBalance {
+            case .broadcastAwaitingConfirmation(_, _, let latestSpendingTxid, _),
+                 .awaitingThresholdConfirmations(_, let latestSpendingTxid, _, _, _):
+                txIDs += [latestSpendingTxid]
+            case .pendingBroadcast: break
+            }
+        }
+        return txIDs
     }
 }
 
-extension [Transaction] {
+extension [LightningBalance] {
     
-    func performSwapMatching() -> [Transaction] {
+    func forceClosedSatoshis(excludingChannels openChannelIds:[ChannelId]) -> Int {
         
-        // Create a mutable array of Transactions.
-        var currentTransactions = self
-        
-        // Look for lightning and onchain transactions with matching swap descriptions
-        let swapTransactions = NSMutableDictionary()
-        
-        for eachTransaction in currentTransactions where eachTransaction.lnDescription.contains("Swap") {
-            if var existingTransactions = swapTransactions[eachTransaction.lnDescription] as? [Transaction] {
-                existingTransactions += [eachTransaction]
-                swapTransactions.setValue(existingTransactions, forKey: eachTransaction.lnDescription)
-            } else {
-                swapTransactions.setValue([eachTransaction], forKey: eachTransaction.lnDescription)
+        var totalSatoshis = 0
+        for eachBalance in self {
+            switch eachBalance {
+            case .claimableAwaitingConfirmations(let channelId, _, let amountSatoshis, _, .holderForceClosed),
+                 .claimableAwaitingConfirmations(let channelId, _, let amountSatoshis, _, .counterpartyForceClosed),
+                 .claimableAwaitingConfirmations(let channelId, _, let amountSatoshis, _, .htlc),
+                 .contentiousClaimable(let channelId, _, let amountSatoshis, _, _, _),
+                 .maybeTimeoutClaimableHtlc(let channelId, _, let amountSatoshis, _, _, _),
+                 .maybePreimageClaimableHtlc(let channelId, _, let amountSatoshis, _, _),
+                 .counterpartyRevokedOutputClaimable(let channelId, _, let amountSatoshis):
+                if !openChannelIds.contains(channelId) {
+                    totalSatoshis += Int(amountSatoshis)
+                }
+            case .claimableOnChannelClose,
+                 .claimableAwaitingConfirmations(_, _, _, _, .coopClose):
+                // Don't include cooperative closes, because those funds already count towards the onchain balance.
+                // Matching .coopClose explicitly (rather than a catch-all) keeps this switch exhaustive over
+                // BalanceSource, so a future LDK case is a compile error to classify rather than a silent exclusion.
+                break
             }
         }
-        
-        // Process completed swaps
-        for (eachSwapID, eachSetOfTransactions) in swapTransactions {
-            if (eachSetOfTransactions as! [Transaction]).count == 2 {
-                // Completed swap.
-                Log.info("Found completed swap.")
-                print("Swap ID: \(eachSwapID)")
-                
-                let thisSwapID = (eachSwapID as! String)
-                let firstTransaction = (eachSetOfTransactions as! [Transaction])[0]
-                let secondTransaction = (eachSetOfTransactions as! [Transaction])[1]
-                
-                if thisSwapID.contains(firstTransaction.id), firstTransaction.swapStatus == .succeeded {
-                    // This is already a completed Swap transaction.
-                    for (index, eachTransaction) in currentTransactions.enumerated().reversed() where secondTransaction.id == eachTransaction.id {
-                        currentTransactions.remove(at: index)
-                    }
-                    CacheManager.storeLightningTransaction(thisTransaction: firstTransaction)
-                } else if thisSwapID.contains(secondTransaction.id), secondTransaction.swapStatus == .succeeded {
-                    // This is already a completed Swap transaction.
-                    for (index, eachTransaction) in currentTransactions.enumerated().reversed() where firstTransaction.id == eachTransaction.id {
-                        currentTransactions.remove(at: index)
-                    }
-                    CacheManager.storeLightningTransaction(thisTransaction: secondTransaction)
-                } else {
-                    
-                    let swapTransaction = Transaction()
-                    swapTransaction.id = thisSwapID.replacingOccurrences(of: "Swap lightning to onchain ", with: "").replacingOccurrences(of: "Swap onchain to lightning ", with: "")
-                    swapTransaction.isSwap = true
-                    swapTransaction.boltzSwapId = CacheManager.getSwapID(dateID: thisSwapID) ?? "Unavailable"
-                    swapTransaction.lnDescription = thisSwapID
-                    
-                    // Amount and fees.
-                    swapTransaction.sent = firstTransaction.received + secondTransaction.received - firstTransaction.sent - secondTransaction.sent
-
-                    // Per-leg fees live on Transaction.fee (onchain network fee for
-                    // the onchain leg, lightning routing fee for an outbound
-                    // lightning leg). The home row renders cost as
-                    // (received - sent - fee), so without this the user-paid fee
-                    // on either side gets dropped from the displayed swap cost.
-                    // Inbound legs have fee = 0, so summing both is safe.
-                    swapTransaction.fee = firstTransaction.fee + secondTransaction.fee
-                    
-                    // Direction.
-                    swapTransaction.swapDirection = thisSwapID.contains("onchain to lightning") ? .onchainToLightning : .lightningToOnchain
-                    swapTransaction.isLightning = thisSwapID.contains("lightning to onchain")
-                    
-                    for eachTransaction in (eachSetOfTransactions as! [Transaction]) {
-                        if eachTransaction.isLightning {
-                            // Lightning payment
-                            if eachTransaction.isSwap {
-                                swapTransaction.lightningID = eachTransaction.lightningID
-                            } else {
-                                swapTransaction.lightningID = eachTransaction.id
-                            }
-                            swapTransaction.channelId = eachTransaction.channelId
-                            if swapTransaction.swapDirection == .onchainToLightning {
-                                swapTransaction.timestamp = eachTransaction.timestamp
-                                swapTransaction.received = eachTransaction.received
-                            } else {
-                                swapTransaction.sent = eachTransaction.sent
-                            }
-                        } else {
-                            // Onchain transaction
-                            if eachTransaction.isSwap {
-                                swapTransaction.onchainID = eachTransaction.onchainID
-                            } else {
-                                swapTransaction.onchainID = eachTransaction.id
-                            }
-                            swapTransaction.height = eachTransaction.height
-                            if swapTransaction.swapDirection == .lightningToOnchain {
-                                swapTransaction.timestamp = eachTransaction.timestamp
-                                swapTransaction.received = eachTransaction.received - eachTransaction.sent
-                            } else {
-                                swapTransaction.sent = eachTransaction.sent - eachTransaction.received
-                            }
-                        }
-                    }
-                    
-                    if !firstTransaction.isLightning, !secondTransaction.isLightning {
-                        // Both transactions are onchain. This is a failed normal swap.
-                        swapTransaction.timestamp = firstTransaction.timestamp
-                        swapTransaction.sent = firstTransaction.sent + secondTransaction.sent
-                        swapTransaction.received = firstTransaction.received + secondTransaction.received
-                        swapTransaction.swapStatus = .failed
-                        
-                        if (firstTransaction.received - firstTransaction.sent) < (secondTransaction.received - secondTransaction.sent) {
-                            // The 2nd transaction is the refund.
-                            swapTransaction.onchainID = firstTransaction.id
-                            swapTransaction.lightningID = secondTransaction.id
-                        } else {
-                            // The 1st transaction is the refund.
-                            swapTransaction.onchainID = secondTransaction.id
-                            swapTransaction.lightningID = firstTransaction.id
-                        }
-                    }
-                    
-                    // Remove the individual transactions and add the combined swap transaction
-                    let transactionIDs = [firstTransaction.id, secondTransaction.id]
-                    for (index, eachTransaction) in currentTransactions.enumerated().reversed() where transactionIDs.contains(eachTransaction.id) {
-                        currentTransactions.remove(at: index)
-                    }
-                    
-                    currentTransactions += [swapTransaction]
-                    CacheManager.storeLightningTransaction(thisTransaction: swapTransaction)
-                }
-                
-            } else if (eachSetOfTransactions as! [Transaction]).count == 1, !(eachSetOfTransactions as! [Transaction])[0].isSwap {
-                // These are pending swap transactions.
-                Log.info("Found pending swap.")
-                print("Swap ID: \(eachSwapID)")
-                
-                let thisTransaction = (eachSetOfTransactions as! [Transaction])[0]
-                let thisSwapID = (eachSwapID as! String)
-                
-                if let suggestedSwapStatus = CacheManager.getSuggestedSwapStatus(dateID: thisSwapID) {
-                    thisTransaction.isSuggestedSwap = true
-                    thisTransaction.swapStatus = suggestedSwapStatus
-                    thisTransaction.swapDirection = thisSwapID.contains("onchain to lightning") ? .onchainToLightning : .lightningToOnchain
-                    thisTransaction.boltzSwapId = CacheManager.getSwapID(dateID: thisSwapID) ?? "Unavailable"
-                    continue
-                }
-                
-                let swapTransaction = Transaction()
-                swapTransaction.isSwap = true
-                swapTransaction.swapStatus = .pending
-                swapTransaction.boltzSwapId = CacheManager.getSwapID(dateID: thisSwapID) ?? "Unavailable"
-                swapTransaction.lnDescription = thisSwapID
-                
-                swapTransaction.timestamp = thisTransaction.timestamp
-                swapTransaction.sent = thisTransaction.sent
-                swapTransaction.received = thisTransaction.received
-                swapTransaction.isLightning = thisTransaction.isLightning
-                swapTransaction.id = thisSwapID.replacingOccurrences(of: "Swap lightning to onchain ", with: "").replacingOccurrences(of: "Swap onchain to lightning ", with: "")
-                
-                swapTransaction.swapDirection = thisSwapID.contains("onchain to lightning") ? .onchainToLightning : .lightningToOnchain
-                
-                if swapTransaction.isLightning {
-                    swapTransaction.lightningID = thisTransaction.id
-                    swapTransaction.channelId = thisTransaction.channelId
-                } else {
-                    swapTransaction.onchainID = thisTransaction.id
-                    swapTransaction.height = thisTransaction.height
-                }
-                
-                // Remove the individual transactions and add the combined swap transaction
-                for (index, eachTransaction) in currentTransactions.enumerated().reversed() where eachTransaction.id == thisTransaction.id {
-                    currentTransactions.remove(at: index)
-                }
-                
-                currentTransactions += [swapTransaction]
-            }
-        }
-        
-        return currentTransactions
+        return totalSatoshis
     }
 }

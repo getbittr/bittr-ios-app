@@ -7,7 +7,6 @@
 
 import UIKit
 import LDKNode
-import Sentry
 
 class Transaction: NSObject {
 
@@ -17,7 +16,6 @@ class Transaction: NSObject {
     var received = 0
     var sent = 0
     var timestamp = 0
-    var note = ""
     
     // Onchain
     var height:Int?
@@ -27,6 +25,7 @@ class Transaction: NSObject {
     var lnDescription = ""
     var channelId = ""
     var isFundingTransaction = false
+    var isChannelClosure:Bool { return CacheManager.getChannelClosureTxIDs().contains(self.id) }
     
     // Bittr purchases
     var isBittr = false
@@ -70,7 +69,7 @@ enum SwapStatus {
 
 extension PaymentDetails {
     
-    func createTransaction(coreVC:CoreViewController?, bittrTransactions:[String:BittrTransaction]?) -> Transaction {
+    func createTransaction(bittrTransactions:[String:BittrTransaction]?) -> Transaction {
         
         // Create transaction object.
         let thisTransaction = Transaction()
@@ -116,8 +115,7 @@ extension PaymentDetails {
             }
         }
         
-        // Note and Description.
-        thisTransaction.note = CacheManager.getTransactionNote(txid: thisTransaction.id)
+        // Description.
         thisTransaction.lnDescription = CacheManager.getInvoiceDescription(preimage: thisTransaction.id)
         
         // Check if transaction is Bittr.
@@ -154,7 +152,7 @@ extension PaymentDetails {
 
 extension BittrTransaction {
     
-    func createTransaction(coreVC:CoreViewController?, isFundingTransaction:Bool) -> Transaction {
+    func createTransaction(isFundingTransaction:Bool) -> Transaction {
         
         // Create transaction object.
         let thisTransaction = Transaction()

@@ -8,7 +8,6 @@
 import UIKit
 import BitcoinDevKit
 import LDKNode
-import Sentry
 import P256K
 import CryptoKit
 import LightningDevKit
@@ -218,8 +217,7 @@ class SwapManager: NSObject {
         // Check what the onchain fees will be for sending this onchain payment.
         Task {
             if swapVC.highestFeePerVbyte == nil {
-                let feeEstimates = await BitcoinManager.shared.getFeeEstimates()
-                if feeEstimates == nil {
+                guard let feeEstimates = await BitcoinManager.shared.getFeeEstimates() else {
                     Log.info("Could not fetch fee estimates.")
                     DispatchQueue.main.async {
                         swapVC.nextLabel.alpha = 1
@@ -229,15 +227,15 @@ class SwapManager: NSObject {
                     }
                     return
                 }
-                
+
                 // Select highest fee.
-                swapVC.highestFeePerVbyte = Float(feeEstimates!["fastestFee"] as! Double)
+                swapVC.highestFeePerVbyte = Float(feeEstimates.fastest)
             }
             
             var size:UInt64
             do {
                 // Calculate transaction size.
-                size = try BitcoinManager.shared.getSize(address: ongoingSwap.boltzOnchainAddress!, amountSats: ongoingSwap.boltzExpectedAmount!)
+                size = try BitcoinManager.shared.getSize(address: ongoingSwap.boltzOnchainAddress!, amountSats: ongoingSwap.boltzExpectedAmount!, selectedVbyte: swapVC.highestFeePerVbyte)
             } catch {
                 Log.info("Error: \(error.localizedDescription)")
 
@@ -282,9 +280,7 @@ class SwapManager: NSObject {
                             buttons: [Language.getWord(withID: "okay")],
                             actions: nil
                         )
-                        SentrySDK.capture(error: error) { scope in
-                            scope.setExtra(value: "SwapManager row 249", key: "context")
-                        }
+                        SentryManager.capture(error, context: "SwapManager row 249")
                     }
                 }
                 return
@@ -324,10 +320,8 @@ class SwapManager: NSObject {
                     buttons: [Language.getWord(withID: "okay")],
                     actions: nil
                 )
-                SentrySDK.metrics.count(key: "swap.onchaintolightning.failed")
-                SentrySDK.capture(error: error) { scope in
-                    scope.setExtra(value: "SwapManager row 308", key: "context")
-                }
+                SentryManager.countMetric("swap.onchaintolightning.failed")
+                SentryManager.capture(error, context: "SwapManager row 308")
             }
             return
         }
@@ -415,6 +409,17 @@ class SwapManager: NSObject {
         } else {
             Log.info("DEBUG - Getting new unused address for payout")
             destinationAddress = BitcoinManager.shared.bittrWallet.onchainAddresses?.getNextUnusedAddress() ?? BitcoinManager.shared.getAddress(atIndex: 0)
+        }
+        
+        guard let destinationAddress else {
+            Log.info("No payout address available; not starting the swap.")
+            DispatchQueue.main.async {
+                swapVC.nextLabel.alpha = 1
+                swapVC.arrowIcon.alpha = 1
+                swapVC.nextSpinner.stopAnimating()
+                swapVC.showAlert(presentingController: swapVC, title: Language.getWord(withID: "error"), message: Language.getWord(withID: "swaperror2"), buttons: [Language.getWord(withID: "okay")], actions: nil)
+            }
+            return
         }
         
         print("randomPreimage: \(randomPreimage.hexEncodedString())")
@@ -511,7 +516,6 @@ class SwapManager: NSObject {
                             swapVC.thisSwap!.claimLeafOutput = claimLeafOutput
                             swapVC.thisSwap!.refundLeafOutput = refundLeafOutput
                             swapVC.thisSwap!.refundPublicKey = refundPublicKey
-                            swapVC.thisSwap!.sentLightningPaymentID = randomPreimage.hexEncodedString()
                             self.saveSwapDetailsToFile(swapID: swapID, swapDictionary: swapVC.thisSwap!.toDictionary())
                             
                             // Store transaction details in cache.
@@ -559,22 +563,25 @@ class SwapManager: NSObject {
         do {
             // Convert NSDictionary to JSON Data
             let jsonData = try JSONSerialization.data(withJSONObject: swapDictionary, options: .prettyPrinted)
-            
+
             // Get the documents directory
             let documentsPath = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
             let fileURL = documentsPath.appendingPathComponent("\(swapID).json")
-            
-            // Write the JSON data to file
-            try jsonData.write(to: fileURL)
+
+            // Write the JSON data to file. The swap file DELIBERATELY contains
+            // the Boltz refund key in plain text: it is the user-facing
+            // emergency artifact for Boltz's rescue flow (see the Download
+            // button in SwapStatusVC) and must stay usable without a working
+            // app or Keychain — do not strip or encrypt its contents. The
+            // file-protection option below encrypts it at rest with the
+            // device passcode (readable after first unlock, so background
+            // swap processing and the user's export both keep working).
+            try jsonData.write(to: fileURL, options: [.atomic, .completeFileProtectionUntilFirstUserAuthentication])
             
             print("Swap details saved to: \(fileURL.path)")
         } catch {
             Log.info("Error saving swap details to file: \(error)")
-            DispatchQueue.main.async {
-                SentrySDK.capture(error: error) { scope in
-                    scope.setExtra(value: "SwapManager row 519", key: "context")
-                }
-            }
+            SentryManager.capture(error, context: "SwapManager row 519")
         }
     }
     
@@ -593,11 +600,7 @@ class SwapManager: NSObject {
             }
         } catch {
             Log.info("Error loading swap details from file: \(error)")
-            DispatchQueue.main.async {
-                SentrySDK.capture(error: error) { scope in
-                    scope.setExtra(value: "SwapManager row 542", key: "context")
-                }
-            }
+            SentryManager.capture(error, context: "SwapManager row 542")
         }
         return nil
     }
@@ -619,26 +622,6 @@ class SwapManager: NSObject {
         
         print("Updated swap file with lockup transaction for ID: \(swapID)")
             
-    }
-    
-    static func updateSwapFileWithFees(swapID: String, totalFees: Int, userAmount: Int, direction: Int) {
-        
-        // Load existing swap details
-        guard let existingSwapDetails = loadSwapDetailsFromFile(swapID: swapID) else {
-            print("Could not load existing swap details for ID: \(swapID)")
-            return
-        }
-        
-        // Create a mutable copy and add the fees information
-        let updatedSwapDetails = existingSwapDetails.mutableCopy() as! NSMutableDictionary
-        updatedSwapDetails.setValue(totalFees, forKey: "totalFees")
-        updatedSwapDetails.setValue(userAmount, forKey: "userAmount")
-        updatedSwapDetails.setValue(direction, forKey: "direction")
-        
-        // Save the updated swap details back to file
-        self.saveSwapDetailsToFile(swapID: swapID, swapDictionary: updatedSwapDetails)
-        
-        print("Updated swap file with fees for ID: \(swapID)")
     }
     
     static func addOnchainTransactionToUI(transactionId:String, swapVC:SwapStatusViewController) {
@@ -720,9 +703,7 @@ class SwapManager: NSObject {
                     
                     // Confirm fees with user.
                     swapVC.confirmExpectedFees()
-                    SentrySDK.capture(error: error) { scope in
-                        scope.setExtra(value: "SwapManager row 654", key: "context")
-                    }
+                    SentryManager.capture(error, context: "SwapManager row 654")
                 }
             }
         }

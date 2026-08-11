@@ -6,7 +6,6 @@
 //
 
 import UIKit
-import Sentry
 
 class Signup6ViewController: UIViewController, UITextFieldDelegate {
 
@@ -51,7 +50,7 @@ class Signup6ViewController: UIViewController, UITextFieldDelegate {
                 CacheManager.storePin(pin: actualPreviousPin)
                 
                 // Count successful wallet creation.
-                SentrySDK.metrics.count(key: "app.launch.newwallet.success")
+                SentryManager.countMetric("app.launch.newwallet.success")
                 
                 // Start wallet.
                 self.signupVC?.coreVC?.startWallet()

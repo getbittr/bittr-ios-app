@@ -32,12 +32,15 @@ extension MoveViewController {
         self.leftCard.backgroundColor = Colors.getColor("white0.7orblue2")
         self.rightCard.backgroundColor = Colors.getColor("white0.7orblue2")
         
+        // Grey out lightning funds in case they're pending from channel closure.
+        let instantColor = self.hasPendingClosureFunds ? Colors.getColor("unconfirmed") : Colors.getColor("blackorwhite")
+        self.satsInstant.textColor = instantColor
+        self.conversionInstant.textColor = instantColor
+        
         self.conversionTotal.textColor = Colors.getColor("blackorwhite")
-        self.conversionInstant.textColor = Colors.getColor("blackorwhite")
         self.conversionRegular.textColor = Colors.getColor("blackorwhite")
         self.satsTotal.textColor = Colors.getColor("blackorwhite")
         self.satsRegular.textColor = Colors.getColor("blackorwhite")
-        self.satsInstant.textColor = Colors.getColor("blackorwhite")
         self.questionMark.tintColor = Colors.getColor("blackorwhite")
         self.sendLabel.textColor = Colors.getColor("blackorwhite")
         self.receiveLabel.textColor = Colors.getColor("blackorwhite")

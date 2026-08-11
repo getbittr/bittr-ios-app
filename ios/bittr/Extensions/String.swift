@@ -19,25 +19,31 @@ extension String {
     }
     
     func addSpaces() -> String {
-        
+
         var balanceValue = self
         if balanceValue.fixDecimals().contains(Locale.current.decimalSeparator!) {
             balanceValue = String(self.fixDecimals().split(separator: Locale.current.decimalSeparator!)[0])
         }
-        
+
+        // Group with a non-breaking space. A plain space is a legal line-break
+        // opportunity, so a wrapping label could split "1 213" into "1" and
+        // "213" on separate lines and read as two numbers. Output is display
+        // only — no call site parses it back — so the narrower space is safe.
+        let separator = "\u{00A0}"
+
         switch balanceValue.count {
         case 4:
-            balanceValue = balanceValue[0] + " " + balanceValue[1..<4]
+            balanceValue = balanceValue[0] + separator + balanceValue[1..<4]
         case 5:
-            balanceValue = balanceValue[0..<2] + " " + balanceValue[2..<5]
+            balanceValue = balanceValue[0..<2] + separator + balanceValue[2..<5]
         case 6:
-            balanceValue = balanceValue[0..<3] + " " + balanceValue[3..<6]
+            balanceValue = balanceValue[0..<3] + separator + balanceValue[3..<6]
         case 7:
-            balanceValue = balanceValue[0] + " " + balanceValue[1..<4] + " " + balanceValue[4..<7]
+            balanceValue = balanceValue[0] + separator + balanceValue[1..<4] + separator + balanceValue[4..<7]
         case 8:
-            balanceValue = balanceValue[0..<2] + " " + balanceValue[2..<5] + " " + balanceValue[5..<8]
+            balanceValue = balanceValue[0..<2] + separator + balanceValue[2..<5] + separator + balanceValue[5..<8]
         case 9:
-            balanceValue = balanceValue[0..<3] + " " + balanceValue[3..<6] + " " + balanceValue[6..<9]
+            balanceValue = balanceValue[0..<3] + separator + balanceValue[3..<6] + separator + balanceValue[6..<9]
         default:
             balanceValue = balanceValue[0..<balanceValue.count]
         }
@@ -225,15 +231,14 @@ extension String {
     }
     
     func bolt12Offer() -> LDKNode.Offer? {
-        if self.lowercased().hasPrefix("lno") {
-            do {
-                let offer = try LDKNode.Offer.fromStr(offerStr: self)
-                return offer
-            } catch {
-                Log.info("Could not generate BOLT12 offer.")
-                return nil
-            }
-        } else {
+        guard self.lowercased().hasPrefix("lno") else { return nil }
+        do {
+            let offer = try LDKNode.Offer.fromStr(offerStr: self)
+            return offer
+        } catch {
+            // Reached from isValidInvoice while parsing pasted/scanned input, so
+            // keep the breadcrumb for a malformed lno string.
+            Log.info("Could not generate BOLT12 offer.")
             return nil
         }
     }

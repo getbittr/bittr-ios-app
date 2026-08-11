@@ -7,7 +7,6 @@
 
 import UIKit
 import LDKNode
-import Sentry
 
 extension CoreViewController {
     
@@ -149,9 +148,7 @@ extension CoreViewController {
             let amountMsat = self.lightningNotification!.amountMsat
         else {
             Log.info("No notification available for handling.")
-            SentrySDK.capture(message: "Required data unavailable while trying to handle notification payout.") { scope in
-                scope.setExtra(value: "HandlePaymentNotification row 108", key: "context")
-            }
+            SentryManager.capture("Required data unavailable while trying to handle notification payout.", context: "HandlePaymentNotification row 108")
             self.hideLoading()
             self.lightningNotification = nil
             self.showAlert(presentingController: self, title: Language.getWord(withID: "bittrpayout"), message: Language.getWord(withID: "bittrpayoutfail"), buttons: [Language.getWord(withID: "close")], actions: nil)
@@ -200,9 +197,7 @@ extension CoreViewController {
                 } catch {
                     // Couldn't sign notification ID.
                     DispatchQueue.main.async {
-                        SentrySDK.capture(error: error) { scope in
-                            scope.setExtra(value: "HandlePaymentNotification row 163", key: "context")
-                        }
+                        SentryManager.capture(error, context: "HandlePaymentNotification row 163")
                         self.hideLoading()
                         self.lightningNotification = nil
                         self.showAlert(presentingController: self, title: Language.getWord(withID: "bittrpayout"), message: Language.getWord(withID: "bittrpayoutfail"), buttons: [Language.getWord(withID: "close")], actions: nil)
@@ -230,6 +225,7 @@ extension CoreViewController {
                             switch bittrServiceError {
                             case .channelFullWithSwapSuggestion(let message, let suggestedAmount):
                                 // Handle channel full with swap suggestion
+                                sendToSentry = false
                                 self.handleChannelFullWithSwapSuggestion(message: message, suggestedAmount: suggestedAmount, notificationId: notificationId)
                             case .serverError(let message):
                                 if message.contains("try again"), self.lightningNotification != nil {
@@ -256,9 +252,7 @@ extension CoreViewController {
                         }
                         
                         if sendToSentry {
-                            SentrySDK.capture(error: error) { scope in
-                                scope.setExtra(value: "HandlePaymentNotification row 152", key: "context")
-                            }
+                            SentryManager.capture(error, context: "HandlePaymentNotification row 152")
                         }
                     }
                 }
@@ -306,7 +300,7 @@ extension CoreViewController {
                         self.checkPaymentWithBittr(paymentPreimage: paymentDetails.kind.transactionID ?? paymentDetails.id, paymentDetails: paymentDetails, isFundingTransaction: false)
                     } else {
                         // This is a normal incoming payment.
-                        let thisTransaction = paymentDetails.createTransaction(coreVC: self, bittrTransactions: nil)
+                        let thisTransaction = paymentDetails.createTransaction(bittrTransactions: nil)
                         self.launchTransactionVC(thisTransaction: thisTransaction, paymentDetails: paymentDetails)
                     }
                 }
@@ -360,10 +354,14 @@ extension CoreViewController {
                 
             case .paymentSuccessful(paymentId: _, paymentHash: let paymentHash, paymentPreimage: _, feePaidMsat: let feePaidMsat):
                 
-                if let paymentDetails = BitcoinManager.shared.getPaymentDetails(paymentHash: paymentHash) {
+                let paymentDetails = BitcoinManager.shared.getPaymentDetails(paymentHash: paymentHash)
+                
+                SentryManager.countMetric(paymentDetails?.kind.isBolt12 == true ? "lightning.bolt12payment.success" : "lightning.payment.success")
+                
+                if let paymentDetails {
                     
                     // Create transaction item.
-                    let newTransaction = paymentDetails.createTransaction(coreVC: self, bittrTransactions: nil)
+                    let newTransaction = paymentDetails.createTransaction(bittrTransactions: nil)
                     if feePaidMsat != nil, Int(feePaidMsat!/1000) > 0 {
                         CacheManager.storePaymentFees(preimage: newTransaction.id, fees: Int(feePaidMsat!/1000))
                         newTransaction.fee = Int(feePaidMsat!/1000)
@@ -383,7 +381,7 @@ extension CoreViewController {
                                 self.homeVC!.tappedTransaction = newTransaction
                                 self.homeVC!.performSegue(withIdentifier: "HomeToTransaction", sender: self)
                             }
-                            CacheManager.storeLightningTransaction(thisTransaction: newTransaction)
+                            CacheManager.storeLightningTransaction(newTransaction)
                         }
                     }
                 }
@@ -398,31 +396,32 @@ extension CoreViewController {
                     // Update views.
                     sendVC?.nextLabel.alpha = 1
                     sendVC?.nextSpinner.stopAnimating()
+                    sendVC?.confirmSendVC?.confirmLabel.alpha = 1
+                    sendVC?.confirmSendVC?.confirmSpinner.stopAnimating()
                     sendVC?.resetFields()
                     
                     // Parse failure reason.
-                    var failureReason = ""
+                    let reasonID:String
                     switch reason {
-                    case .none: break
+                    case .none: reasonID = "noReason"
                     case .some(let receivedReason):
                         switch receivedReason {
-                        case .recipientRejected: failureReason = Language.getWord(withID: "recipientRejected")
-                        case .userAbandoned: failureReason = Language.getWord(withID: "userAbandoned")
-                        case .retriesExhausted: failureReason = Language.getWord(withID: "retriesExhausted")
-                        case .paymentExpired: failureReason = Language.getWord(withID: "paymentExpired")
-                        case .routeNotFound: failureReason = Language.getWord(withID: "routeNotFound")
-                        case .unexpectedError: failureReason = Language.getWord(withID: "unexpectederror")
-                        case .unknownRequiredFeatures: failureReason = Language.getWord(withID: "unknownRequiredFeatures")
-                        case .invoiceRequestExpired: failureReason = Language.getWord(withID: "invoiceRequestExpired")
-                        case .invoiceRequestRejected: failureReason = Language.getWord(withID: "invoiceRequestRejected")
-                        case .blindedPathCreationFailed: failureReason = Language.getWord(withID: "blindedPathCreationFailed")
-                        }
-                        
-                        // Inform Sentry.
-                        SentrySDK.capture(message: failureReason) { scope in
-                            scope.setExtra(value: "HandlePaymentNotification row 341", key: "context")
+                        case .recipientRejected: reasonID = "recipientRejected"
+                        case .userAbandoned: reasonID = "userAbandoned"
+                        case .retriesExhausted: reasonID = "retriesExhausted"
+                        case .paymentExpired: reasonID = "paymentExpired"
+                        case .routeNotFound: reasonID = "routeNotFound"
+                        case .unexpectedError: reasonID = "unexpectederror"
+                        case .unknownRequiredFeatures: reasonID = "unknownRequiredFeatures"
+                        case .invoiceRequestExpired: reasonID = "invoiceRequestExpired"
+                        case .invoiceRequestRejected: reasonID = "invoiceRequestRejected"
+                        case .blindedPathCreationFailed: reasonID = "blindedPathCreationFailed"
                         }
                     }
+                    let failureReason = Language.getWord(withID: reasonID)
+                    
+                    // Report to Sentry.
+                    SentryManager.countMetric("lightning.payment.failure.\(reasonID)")
                     
                     // Show alert.
                     let reasonText = failureReason.isEmpty ? "" : " \(failureReason)."
@@ -454,7 +453,7 @@ extension CoreViewController {
         DispatchQueue.main.async {
             // Add and cache transaction.
             self.homeVC?.addLightningTransaction(thisTransaction: thisTransaction, paymentDetails: paymentDetails)
-            CacheManager.storeLightningTransaction(thisTransaction: thisTransaction)
+            CacheManager.storeLightningTransaction(thisTransaction)
             
             // Launch TransactionVC after ReceiveVC has dismissed.
             let presentTransactionVC = { [weak self] in
@@ -526,25 +525,23 @@ extension CoreViewController {
                             }
                             
                             // Create transaction object.
-                            let thisTransaction = bittrApiTransactions.first!.createTransaction(coreVC: self, isFundingTransaction: isFundingTransaction)
+                            let thisTransaction = bittrApiTransactions.first!.createTransaction(isFundingTransaction: isFundingTransaction)
                             self.launchTransactionVC(thisTransaction: thisTransaction, paymentDetails: nil)
                         }
                     } else {
                         Log.info("channelPending: Received no transaction details from Bittr API.")
                         print("Funding txid: \(paymentPreimage)")
                         if paymentDetails != nil {
-                            let thisTransaction = paymentDetails!.createTransaction(coreVC: self, bittrTransactions: nil)
+                            let thisTransaction = paymentDetails!.createTransaction(bittrTransactions: nil)
                             self.launchTransactionVC(thisTransaction: thisTransaction, paymentDetails: paymentDetails!)
                         }
                     }
                 } catch {
                     Log.info("channelPending Bittr error: \(error.localizedDescription)")
                     DispatchQueue.main.async {
-                        SentrySDK.capture(error: error) { scope in
-                            scope.setExtra(value: "HandlePaymentNotification row 453", key: "context")
-                        }
+                        SentryManager.capture(error, context: "HandlePaymentNotification row 453")
                         if paymentDetails != nil {
-                            let thisTransaction = paymentDetails!.createTransaction(coreVC: self, bittrTransactions: nil)
+                            let thisTransaction = paymentDetails!.createTransaction(bittrTransactions: nil)
                             self.launchTransactionVC(thisTransaction: thisTransaction, paymentDetails: paymentDetails!)
                         }
                     }
@@ -574,11 +571,7 @@ extension CoreViewController {
                     }
                 } catch {
                     Log.info("Could not sync LDK node. \(error.localizedDescription)")
-                    DispatchQueue.main.async {
-                        SentrySDK.capture(error: error) { scope in
-                            scope.setExtra(value: "HandlePaymentNotification row 484", key: "context")
-                        }
-                    }
+                    SentryManager.capture(error, context: "HandlePaymentNotification row 484")
                 }
             }
         }
@@ -702,9 +695,7 @@ extension CoreViewController {
             } catch {
                 Log.info("ERROR: Failed to mark transaction as on-chain: \(error)")
                 DispatchQueue.main.async {
-                    SentrySDK.capture(error: error) { scope in
-                        scope.setExtra(value: "HandlePaymentNotification row 637", key: "context")
-                    }
+                    SentryManager.capture(error, context: "HandlePaymentNotification row 637")
                     self.hideLoading()
                     self.showAlert(
                         presentingController: self,
