@@ -269,7 +269,7 @@ extension UIViewController {
             sendVC?.temporaryInvoiceText = ""
             sendVC?.temporaryInvoiceAmount = 0
             
-            print("Invoice text: " + String(invoiceText))
+            Log.debug("Invoice text: " + String(invoiceText))
             
             do {
                 if let bolt12Offer = invoiceText.bolt12Offer() {

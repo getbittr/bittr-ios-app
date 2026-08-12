@@ -109,7 +109,7 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
     }
     
     private func handleBitcoinURI(_ url: URL) {
-        print("Received Bitcoin URI: \(url.absoluteString)")
+        Log.debug("Received Bitcoin URI: \(url.absoluteString)")
         
         // Parse Bitcoin URI: bitcoin:address?amount=0.001&label=description
         // Extract address from the URL - it's everything after "bitcoin:" and before "?"
@@ -145,7 +145,7 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         // If there's a lightning parameter, treat this as a Lightning payment
         if let lightning = lightningInvoice, !lightning.isEmpty {
             Log.info("Bitcoin URI contains Lightning parameter - treating as Lightning payment")
-            print("Parsed Lightning URI - Invoice: \(lightning)")
+            Log.debug("Parsed Lightning URI - Invoice: \(lightning)")
             
             let uriData: [String: Any] = [
                 "type": "lightning",
@@ -158,7 +158,7 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
             return
         }
         
-        print("Parsed Bitcoin URI - Address: \(address), Amount: \(amount ?? "none"), Label: \(label ?? "none")")
+        Log.debug("Parsed Bitcoin URI - Address: \(address), Amount: \(amount ?? "none"), Label: \(label ?? "none")")
         
         let uriData: [String: Any] = [
             "type": "bitcoin",
@@ -173,7 +173,7 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
     }
     
     private func handleLightningURI(_ url: URL) {
-        print("Received Lightning URI: \(url.absoluteString)")
+        Log.debug("Received Lightning URI: \(url.absoluteString)")
         
         // Parse Lightning URI: lightning:lnbc1... or lightning:user@domain.com
         // Extract invoice from the URL - it's everything after "lightning:"
@@ -190,7 +190,7 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
             invoice = String(urlString[invoiceStart...])
         }
         
-        print("Parsed Lightning URI - Invoice: \(invoice)")
+        Log.debug("Parsed Lightning URI - Invoice: \(invoice)")
         
         let uriData: [String: Any] = [
             "type": "lightning",
