@@ -129,14 +129,14 @@ class DeviceViewController: UIViewController, UNUserNotificationCenterDelegate, 
 
     @objc func selectEuroCurrency() {
         self.hideAlert()
-        UserDefaults.standard.set("€", forKey: "currency")
+        CacheStore.set("€", for: CacheKeys.currency)
         self.coreVC?.homeVC?.changeCurrency()
         self.deviceTableView.reloadData()
     }
 
     @objc func selectChfCurrency() {
         self.hideAlert()
-        UserDefaults.standard.set("CHF", forKey: "currency")
+        CacheStore.set("CHF", for: CacheKeys.currency)
         self.coreVC?.homeVC?.changeCurrency()
         self.deviceTableView.reloadData()
     }

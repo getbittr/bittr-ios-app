@@ -69,6 +69,7 @@
 		053C37542FD28E8E00A510DF /* BittrArticles.swift in Sources */ = {isa = PBXBuildFile; fileRef = 053C37532FD28E8800A510DF /* BittrArticles.swift */; };
 		054D42DF2F7B739E00599720 /* AnimationViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 054D42DE2F7B739800599720 /* AnimationViewController.swift */; };
 		05512F26300F80AF00E75272 /* WalletCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05512F25300F80AC00E75272 /* WalletCache.swift */; };
+		05512F28300F80B100E75272 /* CacheStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05512F27300F80B000E75272 /* CacheStore.swift */; };
 		05512F28300F957C00E75272 /* SwapMatching.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05512F27300F957900E75272 /* SwapMatching.swift */; };
 		0554035D2CB7EA04006F27CA /* LNURLDecoder in Frameworks */ = {isa = PBXBuildFile; productRef = 0554035C2CB7EA04006F27CA /* LNURLDecoder */; };
 		0554035F2CB82B2E006F27CA /* ReceiveVCLanguage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0554035E2CB82B28006F27CA /* ReceiveVCLanguage.swift */; };
@@ -286,6 +287,7 @@
 		053C37532FD28E8800A510DF /* BittrArticles.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BittrArticles.swift; sourceTree = "<group>"; };
 		054D42DE2F7B739800599720 /* AnimationViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnimationViewController.swift; sourceTree = "<group>"; };
 		05512F25300F80AC00E75272 /* WalletCache.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WalletCache.swift; sourceTree = "<group>"; };
+		05512F27300F80B000E75272 /* CacheStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CacheStore.swift; sourceTree = "<group>"; };
 		05512F27300F957900E75272 /* SwapMatching.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SwapMatching.swift; sourceTree = "<group>"; };
 		0554035E2CB82B28006F27CA /* ReceiveVCLanguage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReceiveVCLanguage.swift; sourceTree = "<group>"; };
 		055403682CC14FC0006F27CA /* SendLNURL.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SendLNURL.swift; sourceTree = "<group>"; };
@@ -582,6 +584,7 @@
 			children = (
 				05980B572A46F8DA001F312F /* CacheManager.swift */,
 				05512F25300F80AC00E75272 /* WalletCache.swift */,
+				05512F27300F80B000E75272 /* CacheStore.swift */,
 			);
 			path = Cache;
 			sourceTree = "<group>";
@@ -1252,6 +1255,7 @@
 				052171302CB421FC006C5663 /* MoveVCLanguage.swift in Sources */,
 				051016602F9F4CF100D3F631 /* PlaceCategories.swift in Sources */,
 				05512F26300F80AF00E75272 /* WalletCache.swift in Sources */,
+				05512F28300F80B100E75272 /* CacheStore.swift in Sources */,
 				051015522F973F9E00D3F631 /* MapViewController.swift in Sources */,
 				05512F28300F957C00E75272 /* SwapMatching.swift in Sources */,
 				057F746E2E696DD600E5CCB3 /* SwapVCLanguage.swift in Sources */,

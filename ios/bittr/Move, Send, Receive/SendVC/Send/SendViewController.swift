@@ -371,7 +371,7 @@ class SendViewController: UIViewController, UITextFieldDelegate, OnchainSyncFail
     }
     
     @objc func selectFiatCurrency() {
-        let currency = UserDefaults.standard.value(forKey: "currency") as? String ?? "EUR"
+        let currency = CacheStore.value(for: CacheKeys.currency) ?? "EUR"
         self.btcLabel.text = currency
         self.selectedCurrency = .currency
     }
