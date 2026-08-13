@@ -32,7 +32,7 @@ class Transaction: NSObject, Codable {
     var currency = "EUR"
     var fiatNetAmount: CGFloat = 0
     var fiatGrossAmount: CGFloat = 0
-    var transferFee: CGFloat = 0
+    var transferFee = 0
     var surcharge: CGFloat = 0
     var bittrFee: CGFloat = 0
     var historicalExchangeRate: CGFloat = 0
@@ -83,7 +83,7 @@ class Transaction: NSObject, Codable {
         self.currency = dictionary["currency"] as? String ?? "EUR"
         self.fiatNetAmount = dictionary["fiatNetAmount"] as? CGFloat ?? 0
         self.fiatGrossAmount = dictionary["fiatGrossAmount"] as? CGFloat ?? 0
-        self.transferFee = dictionary["transferFee"] as? CGFloat ?? 0
+        self.transferFee = (dictionary["transferFee"] as? NSNumber)?.intValue ?? 0
         self.surcharge = dictionary["surcharge"] as? CGFloat ?? 0
         self.bittrFee = dictionary["bittrFee"] as? CGFloat ?? 0
         self.historicalExchangeRate = dictionary["historicalExchangeRate"] as? CGFloat ?? 0
@@ -204,7 +204,7 @@ extension PaymentDetails {
             thisTransaction.fiatGrossAmount = thisBittrTransaction.fiatGrossAmount.toNumber()
             
             // Transfer fee.
-            thisTransaction.transferFee = CGFloat(thisBittrTransaction.transferFee.toNumber().inSatoshis())
+            thisTransaction.transferFee = thisBittrTransaction.transferFee.toNumber().inSatoshis()
             
             // Surcharge.
             thisTransaction.surcharge = thisBittrTransaction.surcharge.toNumber()
@@ -247,7 +247,7 @@ extension BittrTransaction {
         thisTransaction.currency = self.currency
         thisTransaction.fiatNetAmount = self.fiatNetAmount.toNumber()
         thisTransaction.fiatGrossAmount = self.fiatGrossAmount.toNumber()
-        thisTransaction.transferFee = CGFloat(self.transferFee.toNumber().inSatoshis())
+        thisTransaction.transferFee = self.transferFee.toNumber().inSatoshis()
         thisTransaction.surcharge = self.surcharge.toNumber()
         thisTransaction.bittrFee = self.bittrFee.toNumber()
         thisTransaction.historicalExchangeRate = self.historicalExchangeRate.toNumber()
