@@ -30,27 +30,10 @@ extension SendViewController {
         }
         
         // Convert amount to millisatoshis based on current currency
-        var enteredAmount: Int
-        if self.selectedCurrency == .satoshis {
-            enteredAmount = Int(amountText.toNumber()) * 1000 // Convert satoshis to millisatoshis
-        } else if self.selectedCurrency == .bitcoin {
-            enteredAmount = amountText.toNumber().inSatoshis() * 1000 // Convert to millisatoshis
-        } else { // .currency (fiat)
-            let fiatAmount = amountText.toNumber()
-            let bitcoinValue = BitcoinManager.shared.bittrWallet.getCorrectBitcoinValue()
-            let btcAmount = fiatAmount / bitcoinValue.currentValue
-            
-            // Safety check for invalid values
-            guard btcAmount.isFinite && !btcAmount.isNaN && bitcoinValue.currentValue > 0 else {
-                Log.info("376 Invalid values.")
-                Log.debug("⚠️ Warning: Invalid values - fiatAmount: \(fiatAmount), bitcoinValue: \(bitcoinValue.currentValue), btcAmount: \(btcAmount)")
-                self.showAlert(presentingController: self, title: Language.getWord(withID: "lnurl"), message: Language.getWord(withID: "lnurlfail3"), buttons: [Language.getWord(withID: "okay")], actions: nil)
-                return
-            }
-            
-            let satoshis = btcAmount.inSatoshis()
-            enteredAmount = satoshis * 1000 // Convert to millisatoshis
+        guard let enteredSatoshis = self.getSatoshisFrom(enteredAmount: amountText), enteredSatoshis > 0 else {
+            return
         }
+        let enteredAmount = enteredSatoshis * 1000
         
         // Validate amount is within range
         if enteredAmount < minAmount || enteredAmount > maxAmount {
@@ -87,7 +70,11 @@ extension SendViewController {
         }
         
         // Convert amount to millisatoshis
-        let enteredAmount = Int(amountText.toNumber()) * 1000
+        guard let enteredSatoshis = amountText.parsedUserAmount(allowingFraction: false)?.satoshis() else {
+            self.showAlert(presentingController: self, title: Language.getWord(withID: "lnurl"), message: Language.getWord(withID: "lnurlfail3"), buttons: [Language.getWord(withID: "okay")], actions: nil)
+            return
+        }
+        let enteredAmount = enteredSatoshis * 1000
         
         // Validate amount is within range
         if enteredAmount < minAmount || enteredAmount > maxAmount {
@@ -238,7 +225,8 @@ extension UIViewController {
                                 var amountText = minWithdrawable
                                 if minWithdrawable != maxWithdrawable {
                                     // Min and max aren't the same.
-                                    amountText = Int((alert.textFields![0].text ?? "0").toNumber()) * 1000
+                                    let entered = (alert.textFields?.first?.text ?? "").parsedUserAmount(allowingFraction: false)?.satoshis() ?? 0
+                                    amountText = entered * 1000
                                 }
                                 self.sendWithdrawRequest(callbackURL: receivedCallback.replacingOccurrences(of: "\0", with: "").trimmingCharacters(in: .controlCharacters), amount: amountText, k1: receivedK1)
                             }))

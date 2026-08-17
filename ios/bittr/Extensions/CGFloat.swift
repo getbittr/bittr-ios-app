@@ -10,6 +10,7 @@ import UIKit
 extension CGFloat {
     
     func formattedBitcoin() -> String {
+
         let formatter = NumberFormatter()
         formatter.numberStyle = .decimal
         formatter.minimumFractionDigits = 8
@@ -20,38 +21,36 @@ extension CGFloat {
             return "0.00000000"
         }
         
-        let result = formatter.string(from: NSNumber(value: self)) ?? "0.00000000"
-        return result
+        return formatter.string(from: NSNumber(value: self)) ?? "0.00000000"
     }
     
     func twoDecimals() -> CGFloat {
         return (self*100).rounded()/100
     }
     
+    // Two decimal places, using the device's decimal separator.
     func toString() -> String {
         
-        if self == 0 {
-            return "0\(Locale.current.decimalSeparator!)00"
-        } else {
-            let string = "\(self)".fixDecimals()
-            if string.split(separator: Locale.current.decimalSeparator!)[1].count == 1 {
-                return "\(string)0"
-            } else {
-                return string
-            }
+        let formatter = NumberFormatter()
+        formatter.numberStyle = .decimal
+        formatter.usesGroupingSeparator = false
+        formatter.minimumFractionDigits = 2
+        formatter.maximumFractionDigits = 2
+        
+        guard self.isFinite, let formatted = formatter.string(from: NSNumber(value: Double(self))) else {
+            return "0\(Locale.current.decimalSeparator ?? ".")00"
         }
+        return formatted
     }
     
+    // This bitcoin amount in whole satoshis.
     func inSatoshis() -> Int {
         // Safety check for invalid values
-        guard self.isFinite && !self.isNaN else {
-            Log.debug("⚠️ Warning: Invalid CGFloat value (\(self)) in inSatoshis()")
-            return 0
-        }
+        guard self.isFinite, self > 0 else { return 0 }
         
-        // Use direct multiplication to avoid precision issues with Decimal
-        let satoshis = self * 100_000_000
-        return Int(satoshis.rounded())
+        let satoshis = (self * CGFloat(Bitcoin.satoshisPerBitcoin)).rounded()
+        guard satoshis < CGFloat(Bitcoin.maximumSatoshis) else { return Bitcoin.maximumSatoshis }
+        return Int(satoshis)
     }
     
     func inBTC() -> CGFloat {
@@ -60,5 +59,23 @@ extension CGFloat {
     
     func between(a: CGFloat, b: CGFloat) -> Bool {
         return self >= Swift.min(a, b) && self <= Swift.max(a, b)
+    }
+}
+
+// MARK: - Fee rates
+
+extension Double {
+    
+    // The whole sat/vB rate a transaction is actually broadcast at.
+    var wholeSatPerVb: UInt64 {
+        guard self.isFinite, self > 1 else { return 1 }
+        return UInt64(self.rounded(.down))
+    }
+    
+    // Fee in whole satoshis for this rate over `vsize` virtual bytes, quoted at
+    // the rate that will actually be broadcast.
+    func feeSats(forVsize vsize: Double) -> Int {
+        guard vsize.isFinite, vsize > 0 else { return 0 }
+        return Int(self.wholeSatPerVb) * Int(vsize.rounded())
     }
 }

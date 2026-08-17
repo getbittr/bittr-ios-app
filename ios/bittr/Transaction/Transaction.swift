@@ -8,7 +8,7 @@
 import UIKit
 import LDKNode
 
-class Transaction: NSObject {
+class Transaction: NSObject, Codable {
 
     // General
     var id = ""
@@ -32,7 +32,7 @@ class Transaction: NSObject {
     var currency = "EUR"
     var fiatNetAmount: CGFloat = 0
     var fiatGrossAmount: CGFloat = 0
-    var transferFee: CGFloat = 0
+    var transferFee = 0
     var surcharge: CGFloat = 0
     var bittrFee: CGFloat = 0
     var historicalExchangeRate: CGFloat = 0
@@ -54,17 +54,88 @@ class Transaction: NSObject {
     var lightningID = ""
     var boltzSwapId = ""
     
+    enum CodingKeys: String, CodingKey {
+        case id, fee, received, sent, timestamp, height
+        case isLightning, lnDescription, channelId, isFundingTransaction
+        case isBittr, currency, fiatNetAmount, fiatGrossAmount
+        case transferFee, surcharge, bittrFee, historicalExchangeRate
+        case isSwap, swapStatus, swapDirection
+        case onchainID, lightningID, boltzSwapId
+    }
+    
+    convenience init?(legacyDictionary dictionary:NSDictionary) {
+        
+        guard let timestamp = dictionary["timestamp"] as? Int, timestamp != 0 else { return nil }
+        
+        self.init()
+        
+        self.id = dictionary["id"] as? String ?? ""
+        self.fee = dictionary["fee"] as? Int ?? 0
+        self.received = dictionary["received"] as? Int ?? 0
+        self.sent = dictionary["sent"] as? Int ?? 0
+        self.timestamp = timestamp
+        self.height = dictionary["height"] as? Int
+        self.isLightning = dictionary["isLightning"] as? Bool ?? false
+        self.lnDescription = dictionary["lnDescription"] as? String ?? ""
+        self.channelId = dictionary["channelId"] as? String ?? ""
+        self.isFundingTransaction = dictionary["isFundingTransaction"] as? Bool ?? false
+        self.isBittr = dictionary["isBittr"] as? Bool ?? false
+        self.currency = dictionary["currency"] as? String ?? "EUR"
+        self.fiatNetAmount = dictionary["fiatNetAmount"] as? CGFloat ?? 0
+        self.fiatGrossAmount = dictionary["fiatGrossAmount"] as? CGFloat ?? 0
+        self.transferFee = (dictionary["transferFee"] as? NSNumber)?.intValue ?? 0
+        self.surcharge = dictionary["surcharge"] as? CGFloat ?? 0
+        self.bittrFee = dictionary["bittrFee"] as? CGFloat ?? 0
+        self.historicalExchangeRate = dictionary["historicalExchangeRate"] as? CGFloat ?? 0
+        self.isSwap = dictionary["isswap"] as? Bool ?? false
+        self.onchainID = dictionary["onchainid"] as? String ?? ""
+        self.lightningID = dictionary["lightningid"] as? String ?? ""
+        self.boltzSwapId = dictionary["boltzSwapId"] as? String ?? ""
+        
+        self.swapDirection = (dictionary["swapdirection"] as? Int)
+            .flatMap { SwapDirection(legacyValue: $0) } ?? .onchainToLightning
+        
+        self.swapStatus = (dictionary["swapstatus"] as? String)
+            .flatMap { SwapStatus(rawValue: $0) } ?? (self.isSwap ? .pending : .succeeded)
+    }
 }
 
-enum SwapDirection {
+enum SwapDirection: String, Codable {
     case onchainToLightning
     case lightningToOnchain
+    
+    init?(legacyValue: Int) {
+        switch legacyValue {
+        case 0: self = .onchainToLightning
+        case 1: self = .lightningToOnchain
+        default: return nil
+        }
+    }
+    
+    // Cached records written before this was a raw-value enum hold 0 or 1.
+    init(from decoder: Decoder) throws {
+        let container = try decoder.singleValueContainer()
+        if let raw = try? container.decode(String.self), let direction = SwapDirection(rawValue: raw) {
+            self = direction
+        } else if let legacy = try? container.decode(Int.self), let direction = SwapDirection(legacyValue: legacy) {
+            self = direction
+        } else {
+            throw DecodingError.dataCorruptedError(in: container, debugDescription: "Unreadable swap direction.")
+        }
+    }
 }
 
-enum SwapStatus {
+enum SwapStatus: String, Codable {
     case pending
     case succeeded
     case failed
+    
+    // A status we can't read becomes pending.
+    init(from decoder: Decoder) throws {
+        let container = try decoder.singleValueContainer()
+        let raw = try container.decode(String.self)
+        self = SwapStatus(rawValue: raw) ?? .pending
+    }
 }
 
 extension PaymentDetails {
@@ -133,7 +204,7 @@ extension PaymentDetails {
             thisTransaction.fiatGrossAmount = thisBittrTransaction.fiatGrossAmount.toNumber()
             
             // Transfer fee.
-            thisTransaction.transferFee = CGFloat(thisBittrTransaction.transferFee.toNumber().inSatoshis())
+            thisTransaction.transferFee = thisBittrTransaction.transferFee.toNumber().inSatoshis()
             
             // Surcharge.
             thisTransaction.surcharge = thisBittrTransaction.surcharge.toNumber()
@@ -176,7 +247,7 @@ extension BittrTransaction {
         thisTransaction.currency = self.currency
         thisTransaction.fiatNetAmount = self.fiatNetAmount.toNumber()
         thisTransaction.fiatGrossAmount = self.fiatGrossAmount.toNumber()
-        thisTransaction.transferFee = CGFloat(self.transferFee.toNumber().inSatoshis())
+        thisTransaction.transferFee = self.transferFee.toNumber().inSatoshis()
         thisTransaction.surcharge = self.surcharge.toNumber()
         thisTransaction.bittrFee = self.bittrFee.toNumber()
         thisTransaction.historicalExchangeRate = self.historicalExchangeRate.toNumber()

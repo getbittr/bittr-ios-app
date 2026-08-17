@@ -563,7 +563,7 @@ class TransactionViewController: UIViewController {
             self.labelBittrFee.text = "\(self.tappedTransaction.bittrFee.toString()) \(currencySymbol)"
             
             // Transfer fee
-            self.labelTransferFee.text = "\(Int(self.tappedTransaction.transferFee.rounded()))".addSpaces() + " sats"
+            self.labelTransferFee.text = "\(self.tappedTransaction.transferFee)".addSpaces() + " sats"
             
             // Current value
             self.labelBittrCurrentValue.text = balanceValue + " " + bitcoinValue.chosenCurrency
@@ -707,7 +707,7 @@ class TransactionViewController: UIViewController {
     
     @IBAction func feesQuestionButtonTapped(_ sender: UIButton) {
         let baseMessage = Language.getWord(withID: "lightningchannelfees2")
-        let dynamicMessage = baseMessage.replacingOccurrences(of: "This fee", with: "This \(Int(self.tappedTransaction.transferFee.rounded())) satoshi fee")
+        let dynamicMessage = baseMessage.replacingOccurrences(of: "This fee", with: "This \(self.tappedTransaction.transferFee) satoshi fee")
         self.coreVC!.launchQuestion(question: Language.getWord(withID: "lightningchannelfees"), answer: dynamicMessage, type: nil)
     }
     

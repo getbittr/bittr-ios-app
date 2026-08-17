@@ -65,16 +65,93 @@ extension String {
         return self.replacingOccurrences(of: ".", with: Locale.current.decimalSeparator!).replacingOccurrences(of: ",", with: Locale.current.decimalSeparator!)
     }
     
-    func toNumber() -> CGFloat {
+    // Reads a value written in machine format:
+    // An API response, or a number this app cached earlier.
+    func parsedNumber() -> Decimal? {
         
-        let formatter = NumberFormatter()
-        formatter.decimalSeparator = Locale.current.decimalSeparator!
+        let trimmed = self.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return nil }
         
-        if formatter.number(from: self.fixDecimals()) == nil {
-            return 0
-        } else {
-            return CGFloat(truncating: formatter.number(from: self.fixDecimals())!)
+        var body = Substring(trimmed)
+        var isNegative = false
+        if let sign = body.first, sign == "-" || sign == "+" {
+            isNegative = (sign == "-")
+            body = body.dropFirst()
         }
+        
+        // Digits, at most one separator, and at least one digit.
+        guard body.allSatisfy({ $0.isDecimalDigit || NumberParsing.separators.contains($0) }),
+              body.contains(where: { $0.isDecimalDigit }),
+              body.filter({ NumberParsing.separators.contains($0) }).count <= 1
+        else { return nil }
+        
+        // Decimal parses exactly, so an 8-decimal bitcoin amount survives the
+        // conversion to satoshis without picking up a binary rounding error.
+        guard let magnitude = Decimal(string: String(body).replacingOccurrences(of: ",", with: "."),
+                                      locale: NumberParsing.posix)
+        else { return nil }
+        
+        return isNegative ? -magnitude : magnitude
+    }
+    
+    // Reads an amount a person typed into a text field.
+    func parsedUserAmount(allowingFraction: Bool = true) -> Decimal? {
+        
+        // Grouping separators the user (or this app's own display formatting) may have typed.
+        let stripped = self.components(separatedBy: NumberParsing.groupingCharacters)
+            .joined()
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !stripped.isEmpty else { return nil }
+        
+        var characters = Array(stripped)
+        let separatorPositions = characters.indices.filter { NumberParsing.separators.contains(characters[$0]) }
+        
+        // Decide which separator is the decimal point.
+        let decimalPosition:Int?
+        
+        if !allowingFraction || separatorPositions.isEmpty {
+            // A whole-satoshi field has no decimal point by definition.
+            decimalPosition = nil
+        } else if separatorPositions.count == 1 {
+            // Only one decimal position has been detected.
+            let position = separatorPositions[0]
+            // Number of digits behind the decimal point.
+            let fractionDigits = characters.count - position - 1
+            // Is the decimal the locale separator?
+            let isLocaleSeparator = String(characters[position]) == (Locale.current.decimalSeparator ?? ".")
+            
+            if isLocaleSeparator || fractionDigits != 3 {
+                decimalPosition = position
+            } else {
+                decimalPosition = NumberParsing.groupsAreWellFormed(characters, groupingAt: [position], decimalAt: nil) ? nil : position
+            }
+        } else if Set(separatorPositions.map { characters[$0] }).count > 1 {
+            // Both separator characters appear, so the last one is the decimal
+            // point and the other kind groups: "1,234.56" and "1.234,56".
+            decimalPosition = separatorPositions[separatorPositions.count - 1]
+        } else {
+            // The same separator repeated can only be grouping — a number has at
+            // most one decimal point. "1.234.567" is a million and a bit;
+            // "1.2.3" is not a number at all, and the check below rejects it.
+            decimalPosition = nil
+        }
+        
+        let groupingPositions = separatorPositions.filter { $0 != decimalPosition }
+        guard NumberParsing.groupsAreWellFormed(characters, groupingAt: groupingPositions, decimalAt: decimalPosition) else { return nil }
+        
+        if let decimalPosition = decimalPosition { characters[decimalPosition] = "." }
+        if !groupingPositions.isEmpty {
+            let grouping = Set(groupingPositions)
+            characters = characters.enumerated().filter { !grouping.contains($0.offset) }.map(\.element)
+        }
+        
+        return String(characters).parsedNumber()
+    }
+    
+    // Back-compatible shim over parsedNumber().
+    func toNumber() -> CGFloat {
+        guard let parsed = self.parsedNumber() else { return 0 }
+        return CGFloat(NSDecimalNumber(decimal: parsed).doubleValue)
     }
     
     func getInvoiceHash() -> String? {
@@ -241,5 +318,70 @@ extension String {
             Log.info("Could not generate BOLT12 offer.")
             return nil
         }
+    }
+}
+
+// MARK: - Amounts
+
+enum Bitcoin {
+    
+    // The 21 M supply, in satoshis.
+    static let maximumSatoshis = 2_100_000_000_000_000
+    
+    static let satoshisPerBitcoin = 100_000_000
+}
+
+private enum NumberParsing {
+    
+    // The two characters that act as a decimal point.
+    static let separators: Set<Character> = [".", ","]
+    
+    // Characters that act as a thousands separator.
+    static let groupingCharacters = CharacterSet(charactersIn: "\u{0020}\u{00A0}\u{202F}\u{2009}'\u{2019}")
+    
+    // Parsing against a fixed locale keeps the result independent of the device's region settings.
+    static let posix = Locale(identifier: "en_US_POSIX")
+    
+    // Whether the separators really do divide the number into thousands.
+    static func groupsAreWellFormed(_ characters:[Character], groupingAt positions:[Int], decimalAt decimalPosition:Int?) -> Bool {
+        guard !positions.isEmpty else { return true }
+        
+        let end = decimalPosition ?? characters.count
+        
+        // The leading group is the only one allowed to be short.
+        guard positions[0] >= 1, positions[0] <= 3 else { return false }
+        
+        for (index, position) in positions.enumerated() {
+            let nextSeparator = index + 1 < positions.count ? positions[index + 1] : end
+            guard nextSeparator - position - 1 == 3 else { return false }
+        }
+        
+        return true
+    }
+}
+
+private extension Character {
+    var isDecimalDigit: Bool {
+        return ("0"..."9").contains(self)
+    }
+}
+
+extension Decimal {
+    
+    // Rounds a value that is already denominated in satoshis to a whole, in-range `Int`.
+    func satoshis() -> Int? {
+        guard !self.isNaN, self >= 0 else { return nil }
+        
+        var rounded = Decimal()
+        var value = self
+        NSDecimalRound(&rounded, &value, 0, .plain)
+        
+        guard rounded <= Decimal(Bitcoin.maximumSatoshis) else { return nil }
+        return NSDecimalNumber(decimal: rounded).intValue
+    }
+    
+    // Converts a bitcoin amount to whole satoshis.
+    func satoshisFromBitcoin() -> Int? {
+        return (self * Decimal(Bitcoin.satoshisPerBitcoin)).satoshis()
     }
 }

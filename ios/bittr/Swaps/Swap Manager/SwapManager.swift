@@ -227,7 +227,7 @@ class SwapManager: NSObject {
                 }
 
                 // Select highest fee.
-                swapVC.highestFeePerVbyte = Float(feeEstimates.fastest)
+                swapVC.highestFeePerVbyte = feeEstimates.fastest
             }
             
             var size:UInt64
@@ -285,7 +285,7 @@ class SwapManager: NSObject {
             }
                 
             // Calculate fees.
-            let feesForOnchainPayment:Int = Int(CGFloat(swapVC.highestFeePerVbyte!*Float(size)))
+            let feesForOnchainPayment:Int = swapVC.highestFeePerVbyte!.feeSats(forVsize: Double(size))
             let feesForLightningPayment:Int = ongoingSwap.boltzExpectedAmount! - ongoingSwap.satoshisAmount
             Log.debug("Fees lightning: \(feesForLightningPayment). Fees onchain: \(feesForOnchainPayment).")
             

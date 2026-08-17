@@ -10,35 +10,70 @@ import CryptoKit
 
 class CacheManager: NSObject {
     
-    
     static func deleteClientInfo() {
         
-        let defaults = UserDefaults.standard
-        defaults.removeObject(forKey: EnvironmentConfig.cacheKey(for: "device"))
-        defaults.removeObject(forKey: EnvironmentConfig.cacheKey(for: "cache"))
-        defaults.removeObject(forKey: EnvironmentConfig.cacheKey(for: "walletcache"))
-        defaults.removeObject(forKey: EnvironmentConfig.cacheKey(for: "pin"))
-        defaults.removeObject(forKey: EnvironmentConfig.cacheKey(for: "mnemonic"))
-        defaults.removeObject(forKey: EnvironmentConfig.cacheKey(for: "lastaddress"))
-        defaults.removeObject(forKey: EnvironmentConfig.cacheKey(for: "lightning"))
-        defaults.removeObject(forKey: EnvironmentConfig.cacheKey(for: "bittraddress"))
-        defaults.removeObject(forKey: EnvironmentConfig.cacheKey(for: "onchainaddresses"))
-        defaults.removeObject(forKey: EnvironmentConfig.cacheKey(for: "channelfundingoutpoint"))
-        defaults.removeObject(forKey: EnvironmentConfig.cacheKey(for: "channelclosuretxids"))
-
-        // Remove the secrets from the Keychain too — they no longer live in
-        // UserDefaults, so the UserDefaults removals above wouldn't clear them.
+        CacheStore.remove(CacheKeys.device)
+        CacheStore.remove(CacheKeys.walletCache)
+        CacheStore.remove(CacheKeys.lastAddress)
+        CacheStore.remove(CacheKeys.lightningTransactions)
+        CacheStore.remove(CacheKeys.onchainAddresses)
+        CacheStore.remove(CacheKeys.channelFundingOutpoint)
+        CacheStore.remove(CacheKeys.channelClosureTxIDs)
+        
+        // Old keys no longer in use.
+        for retired in ["cache", "bittraddress", "pin", "mnemonic"] {
+            CacheStore.remove(CacheKey<String>(retired))
+        }
+        
+        // Remove the secrets from the Keychain.
         SecureStore.remove(account: EnvironmentConfig.cacheKey(for: "mnemonic"))
         SecureStore.remove(account: EnvironmentConfig.cacheKey(for: "pin"))
-
-        // A wiped wallet's pending swap is meaningless (its documents are
-        // deleted with the wallet): clear the ongoing-swap record and sweep
-        // the per-swap refund keys out of the Keychain.
-        defaults.removeObject(forKey: "ongoingswap")
+        
+        // Clear the ongoing-swap record and sweep the per-swap refund keys out of the Keychain.
+        CacheStore.remove(CacheKeys.ongoingSwap)
         SecureStore.removeAll(accountPrefix: "swapkey_")
-
+        
         self.resetFailedPinAttempts()
     }
+    
+    
+    // MARK: - Cache migration
+    
+    static func migrateCachesIfNeeded() {
+        CacheStore.migrateLegacyValue(for: CacheKeys.device, with: legacyIbans)
+        CacheStore.migrateLegacyValue(for: CacheKeys.lightningTransactions, with: legacyLightningTransactions)
+        CacheStore.migrateLegacyValue(for: CacheKeys.onchainAddresses, with: legacyOnchainAddresses)
+        CacheStore.migrateLegacyValue(for: CacheKeys.channelFundingOutpoint, with: legacyChannelOutpoint)
+        migrateWalletCacheIfNeeded()
+    }
+    
+    private static func legacyIbans(_ legacy:Any) -> [IbanEntity]? {
+        guard let device = legacy as? NSDictionary else { return nil }
+        return IbanEntity.fromLegacyDeviceDictionary(device)
+    }
+    
+    private static func legacyLightningTransactions(_ legacy:Any) -> [String:Transaction]? {
+        guard let cached = legacy as? NSDictionary else { return nil }
+        var transactions = [String:Transaction]()
+        for (identifier, values) in cached {
+            guard let identifier = identifier as? String,
+                  let values = values as? NSDictionary,
+                  let transaction = Transaction(legacyDictionary: values) else { continue }
+            transactions[identifier] = transaction
+        }
+        return transactions
+    }
+    
+    private static func legacyOnchainAddresses(_ legacy:Any) -> [OnchainAddress]? {
+        guard let stored = legacy as? [NSDictionary] else { return nil }
+        return stored.toLegacyAddresses()
+    }
+    
+    private static func legacyChannelOutpoint(_ legacy:Any) -> ChannelOutpoint? {
+        guard let stored = legacy as? String else { return nil }
+        return ChannelOutpoint(legacyString: stored)
+    }
+    
     
     // MARK: - Bittr signup details
     
@@ -46,175 +81,56 @@ class CacheManager: NSObject {
         
         // Create Bittr wallet.
         let bittrWallet = BittrWallet()
-        
-        // Get device cache.
-        let envKey = EnvironmentConfig.deviceCacheKey
-        guard let deviceDict = UserDefaults.standard.value(forKey: envKey) as? NSDictionary else {
-            return bittrWallet
-        }
-        
-        // Parse IBAN entities.
-        for (_, clientdata) in deviceDict {
-            guard
-                let actualClientDict = clientdata as? NSDictionary,
-                let actualIbansDict = actualClientDict["ibans"] as? NSDictionary
-            else { continue }
-                
-            var ibansInClient = [IbanEntity]()
-            
-            for (ibanid, ibandata) in actualIbansDict {
-                guard let ibanDataDict = ibandata as? NSDictionary else { continue }
-                
-                let iban = IbanEntity()
-                
-                if let actualIbanID = ibanid as? String {
-                    iban.id = actualIbanID
-                }
-                if let actualYourIban = ibanDataDict["youriban"] as? String {
-                    iban.yourIbanNumber = actualYourIban
-                }
-                if let actualYourEmail = ibanDataDict["youremail"] as? String {
-                    iban.yourEmail = actualYourEmail
-                }
-                if let actualYourCode = ibanDataDict["yourcode"] as? String {
-                    iban.yourUniqueCode = actualYourCode
-                }
-                if let actualOurIban = ibanDataDict["ouriban"] as? String {
-                    iban.ourIbanNumber = actualOurIban
-                }
-                if let actualOurName = ibanDataDict["ourname"] as? String {
-                    iban.ourName = actualOurName
-                }
-                if let actualIbanOrder = ibanDataDict["order"] as? Int {
-                    iban.order = actualIbanOrder
-                }
-                if let actualIbanToken = ibanDataDict["token"] as? String {
-                    iban.emailToken = actualIbanToken
-                }
-                if let actualLightningAddressUsername = ibanDataDict["lightningaddressusername"] as? String {
-                    iban.lightningAddressUsername = actualLightningAddressUsername
-                }
-                if let actualOurSwift = ibanDataDict["ourswift"] as? String {
-                    iban.ourSwift = actualOurSwift
-                }
-                if let actualPaymentMode = ibanDataDict["paymentmode"] as? String {
-                    iban.paymentMode = actualPaymentMode
-                }
-                
-                ibansInClient += [iban]
-            }
-            
-            bittrWallet.ibanEntities = ibansInClient
-            bittrWallet.ibanEntities.sort { iban1, iban2 in
-                iban1.order < iban2.order
-            }
-        }
-        
+        bittrWallet.ibanEntities = storedIbans()
         return bittrWallet
     }
     
-    
     static func addIban(iban:IbanEntity) {
         
-        let envKey = EnvironmentConfig.deviceCacheKey
-        guard let _ = UserDefaults.standard.value(forKey: envKey) as? NSDictionary else {
-            // No client exists yet.
-            let clientsDict:NSDictionary = ["bittrwallet":["ibans":[iban.id:["order":iban.order,"youriban":iban.yourIbanNumber, "youremail":iban.yourEmail, "yourcode":iban.yourUniqueCode, "ouriban":iban.ourIbanNumber, "ourname":iban.ourName, "token":iban.emailToken]]]]
-            UserDefaults.standard.set(clientsDict, forKey: envKey)
-            UserDefaults.standard.synchronize()
-            return
+        var ibans = storedIbans()
+        
+        if let existing = ibans.first(where: { $0.id == iban.id }) {
+            // Known IBAN: the caller only supplies these two.
+            existing.yourIbanNumber = iban.yourIbanNumber
+            existing.yourEmail = iban.yourEmail
+        } else {
+            ibans += [iban]
         }
         
-        // Client already exists.
-        let bittrWallet = self.parseDevice()
-        
-        var ibanExists = false
-        for existingIban in bittrWallet.ibanEntities where existingIban.id == iban.id {
-            ibanExists = true
-            existingIban.yourIbanNumber = iban.yourIbanNumber
-            existingIban.yourEmail = iban.yourEmail
-        }
-        if ibanExists == false {
-            // This is a new IBAN entity.
-            bittrWallet.ibanEntities += [iban]
-        }
-        
-        let ibansDict = NSMutableDictionary()
-        for existingIban in bittrWallet.ibanEntities {
-            ibansDict.setObject(["order":existingIban.order,"youriban":existingIban.yourIbanNumber, "youremail":existingIban.yourEmail, "yourcode":existingIban.yourUniqueCode, "ouriban":existingIban.ourIbanNumber, "ourname":existingIban.ourName, "token":existingIban.emailToken, "ourswift":existingIban.ourSwift, "paymentmode":existingIban.paymentMode], forKey: existingIban.id as NSCopying)
-        }
-        let updatedClientsDict = NSMutableDictionary()
-        updatedClientsDict.setObject(["ibans":ibansDict], forKey: "bittrwallet" as NSCopying)
-        UserDefaults.standard.set(updatedClientsDict, forKey: envKey)
-        UserDefaults.standard.synchronize()
+        storeIbans(ibans)
+    }
+    
+    private static func storedIbans() -> [IbanEntity] {
+        let ibans = CacheStore.decoded(for: CacheKeys.device, migratingLegacyWith: legacyIbans)
+        return (ibans ?? []).sorted { $0.order < $1.order }
+    }
+
+    private static func storeIbans(_ ibans:[IbanEntity]) {
+        CacheStore.encode(ibans.sorted { $0.order < $1.order }, for: CacheKeys.device)
+    }
+    
+    private static func updateIban(id:String, _ change:(IbanEntity) -> Void) {
+        let ibans = storedIbans()
+        guard let iban = ibans.first(where: { $0.id == id }) else { return }
+        change(iban)
+        storeIbans(ibans)
     }
     
     static func addEmailToken(ibanID:String, emailToken:String) {
-        
-        let envKey = EnvironmentConfig.deviceCacheKey
-        guard let _ = UserDefaults.standard.value(forKey: envKey) as? NSDictionary else { return }
-            
-        let bittrWallet = self.parseDevice()
-        
-        for eachIbanEntity in bittrWallet.ibanEntities where eachIbanEntity.id == ibanID {
-            eachIbanEntity.emailToken = emailToken
-        }
-        
-        let ibansDict = NSMutableDictionary()
-        for eachIbanEntity in bittrWallet.ibanEntities {
-            ibansDict.setObject(["order":eachIbanEntity.order,"youriban":eachIbanEntity.yourIbanNumber, "youremail":eachIbanEntity.yourEmail, "yourcode":eachIbanEntity.yourUniqueCode, "ouriban":eachIbanEntity.ourIbanNumber, "ourname":eachIbanEntity.ourName, "token":eachIbanEntity.emailToken, "ourswift":eachIbanEntity.ourSwift, "lightningaddressusername":eachIbanEntity.lightningAddressUsername, "paymentmode":eachIbanEntity.paymentMode], forKey: eachIbanEntity.id as NSCopying)
-        }
-        let updatedClientsDict = NSMutableDictionary()
-        updatedClientsDict.setObject(["ibans":ibansDict], forKey: "bittrwallet" as NSCopying)
-        UserDefaults.standard.set(updatedClientsDict, forKey: envKey)
-        UserDefaults.standard.synchronize()
+        updateIban(id: ibanID) { $0.emailToken = emailToken }
     }
     
     static func setPaymentMode(ibanID:String, paymentMode:String) {
-
-        let envKey = EnvironmentConfig.deviceCacheKey
-        guard let _ = UserDefaults.standard.value(forKey: envKey) as? NSDictionary else { return }
-
-        let bittrWallet = self.parseDevice()
-
-        for eachIbanEntity in bittrWallet.ibanEntities where eachIbanEntity.id == ibanID {
-            eachIbanEntity.paymentMode = paymentMode
-        }
-        
-        let ibansDict = NSMutableDictionary()
-        for eachIbanEntity in bittrWallet.ibanEntities {
-            ibansDict.setObject(["order":eachIbanEntity.order,"youriban":eachIbanEntity.yourIbanNumber, "youremail":eachIbanEntity.yourEmail, "yourcode":eachIbanEntity.yourUniqueCode, "ouriban":eachIbanEntity.ourIbanNumber, "ourname":eachIbanEntity.ourName, "token":eachIbanEntity.emailToken, "ourswift":eachIbanEntity.ourSwift, "lightningaddressusername":eachIbanEntity.lightningAddressUsername, "paymentmode":eachIbanEntity.paymentMode], forKey: eachIbanEntity.id as NSCopying)
-        }
-        let updatedClientsDict = NSMutableDictionary()
-        updatedClientsDict.setObject(["ibans":ibansDict], forKey: "bittrwallet" as NSCopying)
-        UserDefaults.standard.set(updatedClientsDict, forKey: envKey)
-        UserDefaults.standard.synchronize()
+        updateIban(id: ibanID) { $0.paymentMode = paymentMode }
     }
-
+    
     static func addBittrIban(ibanID:String, ourIban:String, ourSwift:String, yourCode:String, lightningAddressUsername:String?) {
-        
-        let envKey = EnvironmentConfig.deviceCacheKey
-        guard let _ = UserDefaults.standard.value(forKey: envKey) as? NSDictionary else { return }
-        
-        let bittrWallet = self.parseDevice()
-        
-        for eachIbanEntity in bittrWallet.ibanEntities {
-            if eachIbanEntity.id == ibanID {
-                eachIbanEntity.ourIbanNumber = ourIban
-                eachIbanEntity.yourUniqueCode = yourCode
-                eachIbanEntity.ourSwift = ourSwift
-                eachIbanEntity.lightningAddressUsername = lightningAddressUsername ?? eachIbanEntity.lightningAddressUsername
-            }
+        updateIban(id: ibanID) { iban in
+            iban.ourIbanNumber = ourIban
+            iban.yourUniqueCode = yourCode
+            iban.ourSwift = ourSwift
+            iban.lightningAddressUsername = lightningAddressUsername ?? iban.lightningAddressUsername
         }
-        
-        let ibansDict = NSMutableDictionary()
-        for eachIbanEntity in bittrWallet.ibanEntities {
-            ibansDict.setObject(["order":eachIbanEntity.order,"youriban":eachIbanEntity.yourIbanNumber, "youremail":eachIbanEntity.yourEmail, "yourcode":eachIbanEntity.yourUniqueCode, "ouriban":eachIbanEntity.ourIbanNumber, "ourname":eachIbanEntity.ourName, "token":eachIbanEntity.emailToken, "ourswift":eachIbanEntity.ourSwift, "lightningaddressusername":eachIbanEntity.lightningAddressUsername, "paymentmode":eachIbanEntity.paymentMode], forKey: eachIbanEntity.id as NSCopying)
-        }
-        let updatedClientsDict = NSMutableDictionary()
-        updatedClientsDict.setObject(["ibans":ibansDict], forKey: "bittrwallet" as NSCopying)
-        UserDefaults.standard.set(updatedClientsDict, forKey: envKey)
-        UserDefaults.standard.synchronize()
     }
     
     // MARK: - Images cache
@@ -273,280 +189,68 @@ class CacheManager: NSObject {
     
     // MARK: - Transactions
     
-    static func parseTransactions(transactions:[Transaction]) -> [NSDictionary] {
-        
-        var transactionsDict = [NSDictionary]()
-        
-        for eachTransaction in transactions {
-            
-            let oneTransaction = NSMutableDictionary()
-            oneTransaction.setObject(eachTransaction.id, forKey: "id" as NSCopying)
-            oneTransaction.setObject(eachTransaction.fiatNetAmount, forKey: "fiatNetAmount" as NSCopying)
-            oneTransaction.setObject(eachTransaction.fiatGrossAmount, forKey: "fiatGrossAmount" as NSCopying)
-            oneTransaction.setObject(eachTransaction.transferFee, forKey: "transferFee" as NSCopying)
-            oneTransaction.setObject(eachTransaction.surcharge, forKey: "surcharge" as NSCopying)
-            oneTransaction.setObject(eachTransaction.bittrFee, forKey: "bittrFee" as NSCopying)
-            oneTransaction.setObject(eachTransaction.historicalExchangeRate, forKey: "historicalExchangeRate" as NSCopying)
-            oneTransaction.setObject(eachTransaction.received, forKey: "received" as NSCopying)
-            oneTransaction.setObject(eachTransaction.sent, forKey: "sent" as NSCopying)
-            oneTransaction.setObject(eachTransaction.isBittr, forKey: "isBittr" as NSCopying)
-            oneTransaction.setObject(eachTransaction.timestamp, forKey: "timestamp" as NSCopying)
-            oneTransaction.setObject(eachTransaction.currency, forKey: "currency" as NSCopying)
-            if eachTransaction.height != nil {
-                oneTransaction.setObject(eachTransaction.height!, forKey: "height" as NSCopying)
-            }
-            oneTransaction.setObject(eachTransaction.isLightning, forKey: "isLightning" as NSCopying)
-            oneTransaction.setObject(eachTransaction.fee, forKey: "fee" as NSCopying)
-            oneTransaction.setObject(eachTransaction.channelId, forKey: "channelId" as NSCopying)
-            oneTransaction.setObject(eachTransaction.isFundingTransaction, forKey: "isFundingTransaction" as NSCopying)
-            oneTransaction.setObject(eachTransaction.lnDescription, forKey: "lnDescription" as NSCopying)
-            oneTransaction.setObject(eachTransaction.isSwap, forKey: "isswap" as NSCopying)
-            var swapStatus = ""
-            switch eachTransaction.swapStatus {
-            case .pending: swapStatus = "pending"
-            case .succeeded: swapStatus = "succeeded"
-            case .failed: swapStatus = "failed"
-            }
-            oneTransaction.setObject(swapStatus, forKey: "swapstatus" as NSCopying)
-            oneTransaction.setObject(eachTransaction.onchainID, forKey: "onchainid" as NSCopying)
-            oneTransaction.setObject(eachTransaction.lightningID, forKey: "lightningid" as NSCopying)
-            oneTransaction.setObject(eachTransaction.boltzSwapId, forKey: "boltzSwapId" as NSCopying)
-            if eachTransaction.swapDirection == .onchainToLightning {
-                oneTransaction.setObject(0, forKey: "swapdirection" as NSCopying)
-            } else {
-                oneTransaction.setObject(1, forKey: "swapdirection" as NSCopying)
-            }
-            
-            transactionsDict += [oneTransaction]
-        }
-        
-        return transactionsDict
-    }
-    
-    static func getTransactions(transactionsDict:[NSDictionary]) -> [Transaction] {
-        
-        var allTransactions = [Transaction]()
-        
-        for eachTransaction in transactionsDict {
-            
-            let thisTransaction = Transaction()
-            if let transactionID = eachTransaction["id"] as? String {
-                thisTransaction.id = transactionID
-            }
-            if let transactionFiatNetAmount = eachTransaction["fiatNetAmount"] as? CGFloat {
-                thisTransaction.fiatNetAmount = transactionFiatNetAmount
-            }
-            if let transactionFiatGrossAmount = eachTransaction["fiatGrossAmount"] as? CGFloat {
-                thisTransaction.fiatGrossAmount = transactionFiatGrossAmount
-            }
-            if let historicalExchangeRate = eachTransaction["historicalExchangeRate"] as? CGFloat {
-                thisTransaction.historicalExchangeRate = historicalExchangeRate
-            }
-            if let transactionTransferFee = eachTransaction["transferFee"] as? CGFloat {
-                thisTransaction.transferFee = transactionTransferFee
-            }
-            if let transactionSurcharge = eachTransaction["surcharge"] as? CGFloat {
-                thisTransaction.surcharge = transactionSurcharge
-            }
-            if let transactionBittrFee = eachTransaction["bittrFee"] as? CGFloat {
-                thisTransaction.bittrFee = transactionBittrFee
-            }
-            if let transactionReceived = eachTransaction["received"] as? Int {
-                thisTransaction.received = transactionReceived
-            }
-            if let transactionSent = eachTransaction["sent"] as? Int {
-                thisTransaction.sent = transactionSent
-            }
-            if let transactionBittr = eachTransaction["isBittr"] as? Bool {
-                thisTransaction.isBittr = transactionBittr
-            }
-            if let transactionTimestamp = eachTransaction["timestamp"] as? Int {
-                thisTransaction.timestamp = transactionTimestamp
-            }
-            if let transactionCurrency = eachTransaction["currency"] as? String {
-                thisTransaction.currency = transactionCurrency
-            }
-            if let transactionHeight = eachTransaction["height"] as? Int {
-                thisTransaction.height = transactionHeight
-            }
-            if let transactionLightning = eachTransaction["isLightning"] as? Bool {
-                thisTransaction.isLightning = transactionLightning
-            }
-            if let transactionFee = eachTransaction["fee"] as? Int {
-                thisTransaction.fee = transactionFee
-            }
-            if let transactionChannelId = eachTransaction["channelId"] as? String {
-                thisTransaction.channelId = transactionChannelId
-            }
-            if let transactionIsFundingTransaction = eachTransaction["isFundingTransaction"] as? Bool {
-                thisTransaction.isFundingTransaction = transactionIsFundingTransaction
-            }
-            if let transactionLnDescription = eachTransaction["lnDescription"] as? String {
-                thisTransaction.lnDescription = transactionLnDescription
-            }
-            if let isSwap = eachTransaction["isswap"] as? Bool {
-                thisTransaction.isSwap = isSwap
-            }
-            if let swapStatus = eachTransaction["swapstatus"] as? String {
-                if swapStatus == "pending" { thisTransaction.swapStatus = .pending } else
-                if swapStatus == "failed" { thisTransaction.swapStatus = .failed } else
-                { thisTransaction.swapStatus = .succeeded }
-            }
-            if let onchainID = eachTransaction["onchainid"] as? String {
-                thisTransaction.onchainID = onchainID
-            }
-            if let lightningID = eachTransaction["lightningid"] as? String {
-                thisTransaction.lightningID = lightningID
-            }
-            if let boltzSwapId = eachTransaction["boltzSwapId"] as? String {
-                thisTransaction.boltzSwapId = boltzSwapId
-            }
-            if let swapDirection = eachTransaction["swapdirection"] as? Int {
-                if swapDirection == 0 {
-                    thisTransaction.swapDirection = .onchainToLightning
-                } else {
-                    thisTransaction.swapDirection = .lightningToOnchain
-                }
-            }
-            
-            if thisTransaction.timestamp != 0 {
-                allTransactions += [thisTransaction]
-            }
-        }
-        
-        return allTransactions
+    private static func lightningTransactions() -> [String:Transaction] {
+        return CacheStore.decoded(for: CacheKeys.lightningTransactions, migratingLegacyWith: legacyLightningTransactions) ?? [:]
     }
     
     static func storeLightningTransaction(_ thisTransaction:Transaction) {
-        
-        let envKey = EnvironmentConfig.cacheKey(for: "lightning")
-        
-        let defaults = UserDefaults.standard
-        let existingCache = defaults.value(forKey: envKey) as? NSDictionary
-        
-        if let actualExistingCache = existingCache {
-            // A cache already exists.
-            if let actualMutableCache = actualExistingCache.mutableCopy() as? NSMutableDictionary {
-                let transactionDict = self.parseTransactions(transactions: [thisTransaction])
-                actualMutableCache.setObject(transactionDict[0], forKey: thisTransaction.id as NSCopying)
-                defaults.set(actualMutableCache, forKey: envKey)
-            }
-        } else {
-            // No cache exists yet.
-            let newCache = NSMutableDictionary()
-            let transactionDict = self.parseTransactions(transactions: [thisTransaction])
-            newCache.setObject(transactionDict[0], forKey: thisTransaction.id as NSCopying)
-            defaults.set(newCache, forKey: envKey)
-        }
+        var transactions = lightningTransactions()
+        transactions[thisTransaction.id] = thisTransaction
+        CacheStore.encode(transactions, for: CacheKeys.lightningTransactions)
     }
     
     static func getLightningTransactions() -> [Transaction] {
-        
-        if let cachedData = UserDefaults.standard.value(forKey: EnvironmentConfig.cacheKey(for: "lightning")) as? NSDictionary {
-            var allTransactions = [NSMutableDictionary]()
-            for (_, transactionData) in cachedData {
-                allTransactions.append((transactionData as! NSDictionary).mutableCopy() as! NSMutableDictionary)
-            }
-            let parsedTransactions = self.getTransactions(transactionsDict: allTransactions)
-            return parsedTransactions
-        } else {
-            return [Transaction]()
-        }
+        return lightningTransactions().values.filter { $0.timestamp != 0 }
+    }
+    
+    
+    // MARK: - Keyed caches
+    
+    private static func keyedCache<Value: CacheStorable>(_ key:CacheKey<[String:Value]>) -> [String:Value] {
+        return CacheStore.value(for: key) ?? [:]
+    }
+    
+    private static func setKeyedCache<Value: CacheStorable>(_ key:CacheKey<[String:Value]>, _ entryKey:String, to value:Value?) {
+        var cache = keyedCache(key)
+        cache[entryKey] = value
+        CacheStore.set(cache, for: key)
     }
     
     
     // MARK: - Notifications token
     
     static func storeNotificationsToken(token:String) {
-        
-        let defaults = UserDefaults.standard
-        defaults.set(token, forKey: "notificationstoken")
+        CacheStore.set(token, for: CacheKeys.notificationsToken)
     }
     
     static func getRegistrationToken() -> String? {
-        
-        let defaults = UserDefaults.standard
-        let cachedToken = defaults.value(forKey: "notificationstoken") as? String
-        
-        if let actualCachedToken = cachedToken {
-            return actualCachedToken
-        } else {
-            return nil
-        }
+        return CacheStore.value(for: CacheKeys.notificationsToken)
     }
     
     // MARK: - Invoice timestamp
     
     static func storeInvoiceTimestamp(preimage:String, timestamp:Int) {
-        
-        let envKey = EnvironmentConfig.cacheKey(for: "hashes")
-        
-        let defaults = UserDefaults.standard
-        let cachedHashes = defaults.value(forKey: envKey) as? NSDictionary
-        if let actualCachedHashes = cachedHashes {
-            // Hashes have been cached.
-            if let actualMutableHashes = actualCachedHashes.mutableCopy() as? NSMutableDictionary {
-                actualMutableHashes.setObject(timestamp, forKey: preimage as NSCopying)
-                defaults.set(actualMutableHashes, forKey: envKey)
-                Log.info("Timestamp cached.")
-            }
-        } else {
-            // No hashes have been cached.
-            let actualMutableHashes = NSMutableDictionary()
-            actualMutableHashes.setObject(timestamp, forKey: preimage as NSCopying)
-            defaults.set(actualMutableHashes, forKey: envKey)
-            Log.info("Timestamp cached.")
-        }
+        setKeyedCache(CacheKeys.invoiceTimestamps, preimage, to: timestamp)
+        Log.info("Timestamp cached.")
     }
     
     static func getInvoiceTimestamp(preimage:String) -> Int {
         
-        let envKey = EnvironmentConfig.cacheKey(for: "hashes")
+        if let cached = keyedCache(CacheKeys.invoiceTimestamps)[preimage] { return cached }
         
-        let defaults = UserDefaults.standard
-        let cachedHashes = defaults.value(forKey: envKey) as? NSDictionary
-        if let actualCachedHashes = cachedHashes {
-            // Hashes have been cached.
-            if let foundTimestamp = actualCachedHashes[hash] as? Int {
-                return foundTimestamp
-            } else {
-                self.storeInvoiceTimestamp(preimage: preimage, timestamp: Int(Date().timeIntervalSince1970))
-                return Int(Date().timeIntervalSince1970)
-            }
-        } else {
-            // No hashes have been cached.
-            self.storeInvoiceTimestamp(preimage: preimage, timestamp: Int(Date().timeIntervalSince1970))
-            return Int(Date().timeIntervalSince1970)
-        }
+        let now = Int(Date().timeIntervalSince1970)
+        self.storeInvoiceTimestamp(preimage: preimage, timestamp: now)
+        return now
     }
     
     // MARK: - Swap ID
     
     static func storeSwapID(dateID:String, swapID:String) {
-        let defaults = UserDefaults.standard
-        if let cachedSwapIDs = defaults.value(forKey: "swapids") as? NSDictionary {
-            if let actualSwapIDs = cachedSwapIDs.mutableCopy() as? NSMutableDictionary {
-                actualSwapIDs.setObject(swapID, forKey: dateID as NSCopying)
-                defaults.set(actualSwapIDs, forKey: "swapids")
-            }
-        } else {
-            let swapIDs = NSMutableDictionary()
-            swapIDs.setObject(swapID, forKey: dateID as NSCopying)
-            defaults.set(swapIDs, forKey: "swapids")
-        }
+        setKeyedCache(CacheKeys.swapIDs, dateID, to: swapID)
     }
     
     static func getSwapID(dateID:String) -> String? {
-        let defaults = UserDefaults.standard
-        if let swapIDs = defaults.value(forKey: "swapids") as? NSDictionary {
-            if let foundSwapID = swapIDs[dateID] as? String {
-                return foundSwapID
-            } else {
-                return nil
-            }
-        } else {
-            return nil
-        }
+        return keyedCache(CacheKeys.swapIDs)[dateID]
     }
     
     // MARK: - Suggested swaps
@@ -555,176 +259,50 @@ class CacheManager: NSObject {
     // recipient is actually paid, then "succeeded" or "failed"), so the Home
     // table never shows a suggested swap as succeeded before it completes.
     static func storeSuggestedSwap(dateID:String, status:SwapStatus = .pending) {
-        let statusString:String
-        switch status {
-        case .succeeded: statusString = "succeeded"
-        case .failed: statusString = "failed"
-        case .pending: statusString = "pending"
-        }
-        let defaults = UserDefaults.standard
-        if let cached = defaults.value(forKey: "suggestedswaps") as? NSDictionary, let actual = cached.mutableCopy() as? NSMutableDictionary {
-            actual.setObject(statusString, forKey: dateID as NSCopying)
-            defaults.set(actual, forKey: "suggestedswaps")
-        } else {
-            let suggested = NSMutableDictionary()
-            suggested.setObject(statusString, forKey: dateID as NSCopying)
-            defaults.set(suggested, forKey: "suggestedswaps")
-        }
+        setKeyedCache(CacheKeys.suggestedSwaps, dateID, to: status.rawValue)
     }
 
     static func getSuggestedSwapStatus(dateID:String) -> SwapStatus? {
-        let defaults = UserDefaults.standard
-        guard let suggested = defaults.value(forKey: "suggestedswaps") as? NSDictionary, let value = suggested[dateID] else {
-            return nil
-        }
-        switch value as? String {
-        case "succeeded": return .succeeded
-        case "failed": return .failed
-        case "pending": return .pending
-        default:
-            // Entries written before status tracking stored a Bool.
-            return (value as? Bool) == true ? .succeeded : nil
-        }
+        guard let value = CacheStore.plistObject(for: CacheKeys.suggestedSwaps)
+            .flatMap({ ($0 as? NSDictionary)?[dateID] }) else { return nil }
+        if let raw = value as? String { return SwapStatus(rawValue: raw) }
+        // Entries written before status tracking stored a Bool.
+        return (value as? Bool) == true ? .succeeded : nil
     }
     
     // MARK: - Invoice description
     
     static func storeInvoiceDescription(preimage:String, desc:String) {
-        
-        let envKey = EnvironmentConfig.cacheKey(for: "descriptions")
-        
-        let defaults = UserDefaults.standard
-        let cachedDescriptions = defaults.value(forKey: envKey) as? NSDictionary
-        if let actualCachedDescriptions = cachedDescriptions {
-            // Descriptions have been cached.
-            if let actualMutableDescriptions = actualCachedDescriptions.mutableCopy() as? NSMutableDictionary {
-                actualMutableDescriptions.setObject(desc, forKey: preimage as NSCopying)
-                defaults.set(actualMutableDescriptions, forKey: envKey)
-            }
-        } else {
-            // No descriptions have been cached.
-            let actualMutableDescriptions = NSMutableDictionary()
-            actualMutableDescriptions.setObject(desc, forKey: preimage as NSCopying)
-            defaults.set(actualMutableDescriptions, forKey: envKey)
-        }
+        setKeyedCache(CacheKeys.invoiceDescriptions, preimage, to: desc)
     }
     
     static func getInvoiceDescription(preimage:String) -> String {
-        
-        let envKey = EnvironmentConfig.cacheKey(for: "descriptions")
-        
-        let defaults = UserDefaults.standard
-        let cachedDescriptions = defaults.value(forKey: envKey) as? NSDictionary
-        if let actualCachedDescriptions = cachedDescriptions {
-            // Descriptions have been cached.
-            if let foundDescription = actualCachedDescriptions[preimage] as? String {
-                return foundDescription
-            } else {
-                return ""
-            }
-        } else {
-            // No descriptions have been cached.
-            return ""
-        }
+        return keyedCache(CacheKeys.invoiceDescriptions)[preimage] ?? ""
     }
     
     // MARK: - Transaction note
     
     static func storeTransactionNote(txid:String, note:String) {
-        
-        let envKey = EnvironmentConfig.cacheKey(for: "transactionnotes")
-        
-        let defaults = UserDefaults.standard
-        let cachedTransactionNotes = defaults.value(forKey: envKey) as? NSDictionary
-        if let actualCachedNotes = cachedTransactionNotes {
-            // Notes have been cached.
-            if let actualMutableNotes = actualCachedNotes.mutableCopy() as? NSMutableDictionary {
-                actualMutableNotes.setObject(note, forKey: txid as NSCopying)
-                defaults.set(actualMutableNotes, forKey: envKey)
-            }
-        } else {
-            // No notes have been cached.
-            let actualMutableNotes = NSMutableDictionary()
-            actualMutableNotes.setObject(note, forKey: txid as NSCopying)
-            defaults.set(actualMutableNotes, forKey: envKey)
-        }
+        setKeyedCache(CacheKeys.transactionNotes, txid, to: note)
     }
     
     static func deleteTransactionNote(txid:String) {
-
-        let envKey = EnvironmentConfig.cacheKey(for: "transactionnotes")
-
-        let defaults = UserDefaults.standard
-        let cachedTransactionNotes = defaults.value(forKey: envKey) as? NSDictionary
-        if let actualCachedNotes = cachedTransactionNotes {
-            // Notes have been cached.
-            if let actualMutableNotes = actualCachedNotes.mutableCopy() as? NSMutableDictionary {
-                actualMutableNotes.removeObject(forKey: txid)
-                defaults.set(actualMutableNotes, forKey: envKey)
-            }
-        }
+        setKeyedCache(CacheKeys.transactionNotes, txid, to: nil)
     }
 
     static func getTransactionNote(txid:String) -> String {
-        
-        let envKey = EnvironmentConfig.cacheKey(for: "transactionnotes")
-        
-        let defaults = UserDefaults.standard
-        let cachedNotes = defaults.value(forKey: envKey) as? NSDictionary
-        if let actualCachedNotes = cachedNotes {
-            // Notes have been cached.
-            if let foundNote = actualCachedNotes[txid] as? String {
-                return foundNote
-            } else {
-                return ""
-            }
-        } else {
-            // No notes have been cached.
-            return ""
-        }
+        return keyedCache(CacheKeys.transactionNotes)[txid] ?? ""
     }
     
     // MARK: - Payment fees
     
     static func storePaymentFees(preimage:String, fees:Int) {
-        
-        let envKey = EnvironmentConfig.cacheKey(for: "lightningfees")
-        
-        let defaults = UserDefaults.standard
-        let cachedHashes = defaults.value(forKey: envKey) as? NSDictionary
-        if let actualCachedHashes = cachedHashes {
-            // Hashes have been cached.
-            if let actualMutableHashes = actualCachedHashes.mutableCopy() as? NSMutableDictionary {
-                actualMutableHashes.setObject(fees, forKey: preimage as NSCopying)
-                defaults.set(actualMutableHashes, forKey: envKey)
-                Log.info("Lightning fees cached.")
-            }
-        } else {
-            // No hashes have been cached.
-            let actualMutableHashes = NSMutableDictionary()
-            actualMutableHashes.setObject(fees, forKey: preimage as NSCopying)
-            defaults.set(actualMutableHashes, forKey: envKey)
-            Log.info("Lightning fees cached.")
-        }
+        setKeyedCache(CacheKeys.paymentFees, preimage, to: fees)
+        Log.info("Lightning fees cached.")
     }
     
     static func getLightningFees(preimage:String) -> Int {
-        
-        let envKey = EnvironmentConfig.cacheKey(for: "lightningfees")
-        
-        let defaults = UserDefaults.standard
-        let cachedFees = defaults.value(forKey: envKey) as? NSDictionary
-        if let actualCachedFees = cachedFees {
-            // Descriptions have been cached.
-            if let foundFees = actualCachedFees[preimage] as? Int {
-                return foundFees
-            } else {
-                return 0
-            }
-        } else {
-            // No fees have been cached.
-            return 0
-        }
+        return keyedCache(CacheKeys.paymentFees)[preimage] ?? 0
     }
     
     // MARK: - Mnemonic
@@ -891,14 +469,14 @@ class CacheManager: NSObject {
     /// only stripped once the Keychain copy is confirmed readable, so access
     /// is never lost. Idempotent.
     private static func migrateLegacyOngoingSwapKey() {
-        guard let storedSwap = UserDefaults.standard.value(forKey: "ongoingswap") as? NSDictionary,
+        guard let storedSwap = CacheStore.plistObject(for: CacheKeys.ongoingSwap) as? NSDictionary,
               let privateKey = storedSwap["privateKey"] as? String,
               let boltzID = storedSwap["boltzID"] as? String else {
             return
         }
         if storeSwapPrivateKey(privateKey, boltzID: boltzID), let stripped = storedSwap.mutableCopy() as? NSMutableDictionary {
             stripped.removeObject(forKey: "privateKey")
-            UserDefaults.standard.set(stripped, forKey: "ongoingswap")
+            CacheStore.setPlistObject(stripped, for: CacheKeys.ongoingSwap)
         }
     }
 
@@ -981,130 +559,64 @@ class CacheManager: NSObject {
     // MARK: - Txo ID
     
     static func storeTxoID(txoID:String) {
-        
-        let envKey = EnvironmentConfig.cacheKey(for: "txoid")
-        
-        let defaults = UserDefaults.standard
-        defaults.set(txoID, forKey: envKey)
+        CacheStore.set(txoID, for: CacheKeys.txoID)
     }
     
     static func getTxoID() -> String? {
-        
-        let envKey = EnvironmentConfig.cacheKey(for: "txoid")
-        
-        let defaults = UserDefaults.standard
-        let cachedTxoID = defaults.value(forKey: envKey) as? String
-        
-        if let actualCachedTxoID = cachedTxoID {
-            return actualCachedTxoID
-        } else {
-            return nil
-        }
+        return CacheStore.value(for: CacheKeys.txoID)
     }
     
     // MARK: - Channel funding outpoint
     
-    // Store a channel's funding output, kept as "txID:vout".
+    // Store a channel's funding output.
     // Upon a cooperative close, we can deduce the onchain transaction from this output.
     static func storeChannelFundingOutpoint(txID:String, vout:UInt32) {
-        let envKey = EnvironmentConfig.cacheKey(for: "channelfundingoutpoint")
-        UserDefaults.standard.set("\(txID):\(vout)", forKey: envKey)
+        CacheStore.encode(ChannelOutpoint(txID: txID, vout: vout), for: CacheKeys.channelFundingOutpoint)
     }
     
     // Drop the outpoint once its closing transaction has been found.
     static func removeChannelFundingOutpoint() {
-        let envKey = EnvironmentConfig.cacheKey(for: "channelfundingoutpoint")
-        UserDefaults.standard.removeObject(forKey: envKey)
+        CacheStore.remove(CacheKeys.channelFundingOutpoint)
     }
     
-    static func getChannelFundingOutpoint() -> (txID:String, vout:UInt32)? {
-        let envKey = EnvironmentConfig.cacheKey(for: "channelfundingoutpoint")
-        guard let storedOutpoint = UserDefaults.standard.value(forKey: envKey) as? String else { return nil }
-        
-        let components = storedOutpoint.components(separatedBy: ":")
-        guard components.count == 2, let vout = UInt32(components[1]) else { return nil }
-        
-        return (txID: components[0], vout: vout)
+    static func getChannelFundingOutpoint() -> ChannelOutpoint? {
+        return CacheStore.decoded(for: CacheKeys.channelFundingOutpoint, migratingLegacyWith: legacyChannelOutpoint)
     }
     
     // MARK: - Channel closure transactions
     
     static func storeChannelClosureTxIDs(txIDs:[String]) {
-        
-        let envKey = EnvironmentConfig.cacheKey(for: "channelclosuretxids")
-        
-        let defaults = UserDefaults.standard
-        let cachedTxIDs = defaults.value(forKey: envKey) as? [String] ?? [String]()
+        let cachedTxIDs = getChannelClosureTxIDs()
         let newTxIDs = txIDs.filter { !cachedTxIDs.contains($0) }
-        
-        if newTxIDs.count > 0 {
-            defaults.set(cachedTxIDs + newTxIDs, forKey: envKey)
-        }
+        guard !newTxIDs.isEmpty else { return }
+        CacheStore.set(cachedTxIDs + newTxIDs, for: CacheKeys.channelClosureTxIDs)
     }
     
     static func getChannelClosureTxIDs() -> [String] {
-        
-        let envKey = EnvironmentConfig.cacheKey(for: "channelclosuretxids")
-        
-        let defaults = UserDefaults.standard
-        return defaults.value(forKey: envKey) as? [String] ?? [String]()
+        return CacheStore.value(for: CacheKeys.channelClosureTxIDs) ?? []
     }
     
     // MARK: - Sent to Bittr
     
     static func updateSentToBittr(txids:[String]) {
-        
-        let envKey = EnvironmentConfig.cacheKey(for: "senttobittr")
-        
-        let defaults = UserDefaults.standard
-        let cachedSentToBittr = defaults.value(forKey: envKey) as? [String]
-        
-        if var actualSentToBittr = cachedSentToBittr {
-            // TxIDs were stored before.
-            actualSentToBittr += txids
-            defaults.set(actualSentToBittr, forKey: envKey)
-        } else {
-            // No TxIDs were stored before.
-            let newSentToBittr:[String] = txids
-            defaults.setValue(newSentToBittr, forKey: envKey)
-        }
+        let cached = getSentToBittr()
+        let newTxIDs = txids.filter { !cached.contains($0) }
+        guard !newTxIDs.isEmpty else { return }
+        CacheStore.set(cached + newTxIDs, for: CacheKeys.sentToBittr)
     }
     
     static func getSentToBittr() -> [String] {
-        
-        let envKey = EnvironmentConfig.cacheKey(for: "senttobittr")
-        
-        let defaults = UserDefaults.standard
-        let cachedSentToBittr = defaults.value(forKey: envKey) as? [String]
-        
-        if let actualSentToBittr = cachedSentToBittr {
-            return actualSentToBittr
-        } else {
-            return [String]()
-        }
+        return CacheStore.value(for: CacheKeys.sentToBittr) ?? []
     }
     
     // MARK: - Last address
     
     static func storeLastAddress(newAddress:String) {
-        
-        let envKey = EnvironmentConfig.cacheKey(for: "lastaddress")
-        
-        let defaults = UserDefaults.standard
-        defaults.set(newAddress, forKey: envKey)
+        CacheStore.set(newAddress, for: CacheKeys.lastAddress)
     }
     
     static func getLastAddress() -> String? {
-        
-        let envKey = EnvironmentConfig.cacheKey(for: "lastaddress")
-        
-        let defaults = UserDefaults.standard
-        let cachedLastAddress = defaults.value(forKey: envKey) as? String
-        if let actualLastAddress = cachedLastAddress {
-            return actualLastAddress
-        } else {
-            return nil
-        }
+        return CacheStore.value(for: CacheKeys.lastAddress)
     }
     
     // MARK: - Failed pin attempts
@@ -1153,123 +665,53 @@ class CacheManager: NSObject {
     // MARK: - Wallet removal in progress
 
     static func setWalletRemovalInProgress(_ inProgress: Bool) {
-
-        let envKey = EnvironmentConfig.cacheKey(for: "walletremovalinprogress")
-
-        let defaults = UserDefaults.standard
-        defaults.set(inProgress, forKey: envKey)
+        CacheStore.set(inProgress, for: CacheKeys.walletRemovalInProgress)
     }
 
     static func walletRemovalIsInProgress() -> Bool {
-
-        let envKey = EnvironmentConfig.cacheKey(for: "walletremovalinprogress")
-
-        let defaults = UserDefaults.standard
-        return defaults.bool(forKey: envKey)
+        return CacheStore.value(for: CacheKeys.walletRemovalInProgress) ?? false
     }
 
     // MARK: - Event handling
     
     static func didHandleEvent(event:String) {
-        
-        let defaults = UserDefaults.standard
-        let handledEvents = defaults.value(forKey: "handledevents") as? [String]
-        
-        if var actualHandledEvents = handledEvents {
-            // Events were stored before.
-            actualHandledEvents += [event]
-            defaults.set(actualHandledEvents, forKey: "handledevents")
-        } else {
-            // No events were stored before.
-            let newHandledEvents:[String] = [event]
-            defaults.setValue(newHandledEvents, forKey: "handledevents")
-        }
+        var handledEvents = CacheStore.value(for: CacheKeys.handledEvents) ?? []
+        guard !handledEvents.contains(event) else { return }
+        handledEvents += [event]
+        CacheStore.set(handledEvents, for: CacheKeys.handledEvents)
     }
     
     static func hasHandledEvent(event:String) -> Bool {
-        
-        let defaults = UserDefaults.standard
-        let handledEvents = defaults.value(forKey: "handledevents") as? [String]
-        
-        if let actualHandledEvents = handledEvents {
-            // Events were stored before.
-            if actualHandledEvents.contains(event) {
-                // Event was handled before.
-                return true
-            } else {
-                // Event wasn't handled before.
-                return false
-            }
-        } else {
-            // No events were stored before.
-            return false
-        }
+        return (CacheStore.value(for: CacheKeys.handledEvents) ?? []).contains(event)
     }
     
     // MARK: - Dark mode
     
     static func setCurrentDarkMode(darkModeIsOn:Bool) {
-        var currentSetting = "light"
-        if darkModeIsOn {
-            currentSetting = "dark"
-        }
-        UserDefaults.standard.set(currentSetting, forKey: "currentdarkmode")
+        CacheStore.set(darkModeIsOn ? "dark" : "light", for: CacheKeys.currentDarkMode)
     }
     
     static func darkModeIsOn() -> Bool {
-        if let darkModeStatus = UserDefaults.standard.value(forKey: "currentdarkmode") as? String {
-            if darkModeStatus == "dark" {
-                return true
-            } else {
-                return false
-            }
-        } else {
-            return false
-        }
+        return CacheStore.value(for: CacheKeys.currentDarkMode) == "dark"
     }
     
     static func updateDarkMode(_ setting:DarkMode) {
-        
-        var newSetting = "light"
-        switch setting {
-        case .light:
-            newSetting = "light"
-        case .dark:
-            newSetting = "dark"
-        case .device:
-            newSetting = "device"
-        }
-        UserDefaults.standard.set(newSetting, forKey: "darkmode")
+        CacheStore.set(setting.rawValue, for: CacheKeys.darkModeSetting)
     }
     
     static func darkMode() -> DarkMode {
-        
-        if let darkModeStatus = UserDefaults.standard.value(forKey: "darkmode") as? String {
-            var setDarkMode:DarkMode = .device
-            if darkModeStatus == "light" {
-                setDarkMode = .light
-            } else if darkModeStatus == "dark" {
-                setDarkMode = .dark
-            }
-            return setDarkMode
-        } else {
-            return .device
-        }
+        guard let stored = CacheStore.value(for: CacheKeys.darkModeSetting) else { return .device }
+        return DarkMode(rawValue: stored) ?? .device
     }
     
     // MARK: - Language settings
     
     static func getLanguage() -> String {
-        
-        if let selectedLanguage = UserDefaults.standard.value(forKey: "language") as? String {
-            return selectedLanguage
-        } else {
-            return "en_US"
-        }
+        return CacheStore.value(for: CacheKeys.language) ?? "en_US"
     }
     
     static func changeLanguage(_ toLanguage:String) {
-        UserDefaults.standard.set(toLanguage, forKey: "language")
+        CacheStore.set(toLanguage, for: CacheKeys.language)
         NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "changecolors"), object: nil, userInfo: nil) as Notification)
     }
     
@@ -1289,17 +731,17 @@ class CacheManager: NSObject {
             if let privateKey = swap.privateKey, let boltzID = swap.boltzID, storeSwapPrivateKey(privateKey, boltzID: boltzID) {
                 swapDictionary.removeObject(forKey: "privateKey")
             }
-            UserDefaults.standard.set(swapDictionary, forKey: "ongoingswap")
+            CacheStore.setPlistObject(swapDictionary, for: CacheKeys.ongoingSwap)
         } else {
-            if let storedSwap = UserDefaults.standard.value(forKey: "ongoingswap") as? NSDictionary, let boltzID = storedSwap["boltzID"] as? String {
+            if let storedSwap = CacheStore.plistObject(for: CacheKeys.ongoingSwap) as? NSDictionary, let boltzID = storedSwap["boltzID"] as? String {
                 SecureStore.remove(account: "swapkey_\(boltzID)")
             }
-            UserDefaults.standard.removeObject(forKey: "ongoingswap")
+            CacheStore.remove(CacheKeys.ongoingSwap)
         }
     }
 
     static func getLatestSwap() -> Swap? {
-        if let storedSwap = UserDefaults.standard.value(forKey: "ongoingswap") as? NSDictionary {
+        if let storedSwap = CacheStore.plistObject(for: CacheKeys.ongoingSwap) as? NSDictionary {
             let thisSwap = storedSwap.toSwap()
             // New saves strip the refund key from the dictionary — read it
             // back from the Keychain. A legacy dictionary still carries it
@@ -1333,36 +775,21 @@ class CacheManager: NSObject {
     // MARK: - Swap Index Cache
     
     static func getSwapIndex() -> Int {
-        let envKey = EnvironmentConfig.cacheKey(for: "swapindex")
-        
-        let defaults = UserDefaults.standard
-        let cachedSwapIndex = defaults.value(forKey: envKey) as? Int
-        
-        if let actualCachedSwapIndex = cachedSwapIndex {
-            return actualCachedSwapIndex
-        } else {
-            // Initialize with 0 if no index exists
-            defaults.set(0, forKey: envKey)
+        guard let cached = CacheStore.value(for: CacheKeys.swapIndex) else {
+            CacheStore.set(0, for: CacheKeys.swapIndex)
             return 0
         }
+        return cached
     }
     
     static func incrementSwapIndex() -> Int {
-        let envKey = EnvironmentConfig.cacheKey(for: "swapindex")
-        
-        let defaults = UserDefaults.standard
-        let currentIndex = getSwapIndex()
-        let newIndex = currentIndex + 1
-        
-        defaults.set(newIndex, forKey: envKey)
+        let newIndex = getSwapIndex() + 1
+        CacheStore.set(newIndex, for: CacheKeys.swapIndex)
         return newIndex
     }
     
     static func resetSwapIndex() {
-        let envKey = EnvironmentConfig.cacheKey(for: "swapindex")
-        
-        let defaults = UserDefaults.standard
-        defaults.set(0, forKey: envKey)
+        CacheStore.set(0, for: CacheKeys.swapIndex)
     }
     
     static func getCurrentSwapIndex() -> Int {
@@ -1372,44 +799,25 @@ class CacheManager: NSObject {
     // MARK: - Academy cache
     
     static func addCompletedLesson(_ lessonId:String) {
-        
-        let defaults = UserDefaults.standard
-        
-        if var completedLessons = defaults.value(forKey: "completedlessons") as? [String] {
-            if !completedLessons.contains(lessonId) {
-                completedLessons += [lessonId]
-                defaults.set(completedLessons, forKey: "completedlessons")
-            }
-        } else {
-            let completedLessons = [lessonId]
-            defaults.set(completedLessons, forKey: "completedlessons")
-        }
+        var completedLessons = getCompletedLessons()
+        guard !completedLessons.contains(lessonId) else { return }
+        completedLessons += [lessonId]
+        CacheStore.set(completedLessons, for: CacheKeys.completedLessons)
     }
     
     static func getCompletedLessons() -> [String] {
-        
-        if let completedLessons =  UserDefaults.standard.value(forKey: "completedlessons") as? [String] {
-            return completedLessons
-        } else {
-            return [String]()
-        }
+        return CacheStore.value(for: CacheKeys.completedLessons) ?? []
     }
     
     // MARK: - Onchain addresses
     
     static func getOnchainAddresses() -> [OnchainAddress] {
-        
-        if let cachedOnchainAddresses = UserDefaults.standard.value(forKey: EnvironmentConfig.cacheKey(for: "onchainaddresses")) as? [NSDictionary] {
-            
-            return cachedOnchainAddresses.toAddresses()
-        } else {
-            return [OnchainAddress]()
-        }
+        let cached = CacheStore.decoded(for: CacheKeys.onchainAddresses, migratingLegacyWith: legacyOnchainAddresses)
+        return (cached ?? []).inPoolOrder()
     }
     
     static func storeOnchainAddresses(_ theseAddresses:[OnchainAddress]) {
-        
-        UserDefaults.standard.set(theseAddresses.toDict(), forKey: EnvironmentConfig.cacheKey(for: "onchainaddresses"))
+        CacheStore.encode(theseAddresses, for: CacheKeys.onchainAddresses)
     }
     
 }

@@ -190,48 +190,41 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate, UIContextMen
         
         let enteredDescription = (self.bothDescriptionTextField.text?.trimmingCharacters(in: .whitespacesAndNewlines) ?? "")
         
-        let amountInBTC:CGFloat? = {
-            if self.bothAmountTextField.text != nil, self.bothAmountTextField.text!.trimmingCharacters(in: .whitespacesAndNewlines) != "" {
-                // An amount has been entered. Create a regular invoice.
-                
-                // Convert selected currency to bitcoin.
-                if self.selectedCurrency == .satoshis {
-                    return (Int(self.bothAmountTextField.text!.trimmingCharacters(in: .whitespacesAndNewlines)) ?? 0).inBTC()
-                } else if self.selectedCurrency == .bitcoin {
-                    return self.bothAmountTextField.text!.trimmingCharacters(in: .whitespacesAndNewlines).toNumber()
-                } else if self.selectedCurrency == .currency {
-                    let fiatAmount = self.bothAmountTextField.text!.trimmingCharacters(in: .whitespacesAndNewlines).toNumber()
-                    let bitcoinValue = BitcoinManager.shared.bittrWallet.getCorrectBitcoinValue()
-                    let btcAmount = fiatAmount / bitcoinValue.currentValue
-                    
-                    // Safety check for invalid values
-                    guard btcAmount.isFinite && !btcAmount.isNaN && bitcoinValue.currentValue > 0 else {
-                        Log.info("84 Invalid values.")
-                        Log.debug("⚠️ Warning: Invalid values - fiatAmount: \(fiatAmount), bitcoinValue: \(bitcoinValue.currentValue), btcAmount: \(btcAmount)")
-                        return nil
-                    }
-                    
-                    return btcAmount
-                } else {
-                    return nil
-                }
-            } else {
+        // Read the entered amount once, as whole satoshis, and derive everything else from it.
+        let amountInSatoshis:Int? = {
+            let enteredAmount = (self.bothAmountTextField.text ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !enteredAmount.isEmpty else {
                 // No amount has been entered. Create a zero invoice.
                 return nil
             }
+            
+            // An amount has been entered. Convert the selected currency to satoshis.
+            switch self.selectedCurrency {
+            case .satoshis:
+                return enteredAmount.parsedUserAmount(allowingFraction: false)?.satoshis()
+            case .bitcoin:
+                return enteredAmount.parsedUserAmount()?.satoshisFromBitcoin()
+            case .currency:
+                let bitcoinValue = BitcoinManager.shared.bittrWallet.getCorrectBitcoinValue()
+                let rate = Decimal(Double(bitcoinValue.currentValue))
+                guard let fiatAmount = enteredAmount.parsedUserAmount(), rate > 0 else {
+                    Log.info("Could not read the entered amount.")
+                    return nil
+                }
+                return (fiatAmount / rate).satoshisFromBitcoin()
+            }
         }()
+        let amountInBTC:CGFloat? = amountInSatoshis.map { $0.inBTC() }
         
         let lightningInvoice:String = await {
             guard !(type == .onchain || type == .lnurl) else {
                 return nil
             }
             
-            if amountInBTC == nil {
+            guard let amountInSatoshis = amountInSatoshis, amountInSatoshis > 0 else {
                 return await self.getZeroInvoice(enteredDescription: enteredDescription)
-            } else {
-                let amountInMsat = amountInBTC!.inSatoshis() * 1_000
-                return await self.getRegularInvoice(amountMsat: UInt64(amountInMsat), description: enteredDescription, expirySecs: 3600)
             }
+            return await self.getRegularInvoice(amountMsat: UInt64(amountInSatoshis) * 1_000, description: enteredDescription, expirySecs: 3600)
         }() ?? Language.getWord(withID: "unavailable")
         
         var amountText:String = ""
@@ -603,7 +596,7 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate, UIContextMen
     }
     
     @objc func selectFiatCurrency() {
-        let currency = UserDefaults.standard.value(forKey: "currency") as? String ?? "EUR"
+        let currency = CacheStore.value(for: CacheKeys.currency) ?? "EUR"
         self.btcLabel.text = currency
         self.selectedCurrency = .currency
         self.bothAmountTextField.keyboardType = .decimalPad

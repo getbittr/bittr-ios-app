@@ -369,7 +369,7 @@ extension BitcoinManager {
         return true
     }
     
-    func getSize(address:String, amountSats:Int, selectedVbyte:Float?) throws -> UInt64 {
+    func getSize(address:String, amountSats:Int, selectedVbyte:Double?) throws -> UInt64 {
         
         let tx = try self.getTx(address: address, amountSats: amountSats, selectedVbyte: selectedVbyte)
         let size = tx.vsize()
@@ -449,7 +449,7 @@ extension BitcoinManager {
         return try self.maximumSendableOnchainDrain(toAddress: address, satPerVb: satPerVb).sendableSats
     }
     
-    func getTx(address:String, amountSats:Int, selectedVbyte:Float?) throws -> BitcoinDevKit.Transaction {
+    func getTx(address:String, amountSats:Int, selectedVbyte:Double?) throws -> BitcoinDevKit.Transaction {
         
         let details = try self.getPsbt(address: address, amountSats: amountSats, selectedVbyte: selectedVbyte)
         let tx = try details.extractTx()
@@ -457,7 +457,7 @@ extension BitcoinManager {
         return tx
     }
     
-    func getPsbt(address:String, amountSats:Int, selectedVbyte:Float?) throws -> BitcoinDevKit.Psbt {
+    func getPsbt(address:String, amountSats:Int, selectedVbyte:Double?) throws -> BitcoinDevKit.Psbt {
         
         guard self.bdkWallet != nil else {
             throw WalletError.walletNotInitiated
@@ -469,7 +469,7 @@ extension BitcoinManager {
         var txBuilder = TxBuilder().addRecipient(script: script, amount: BitcoinDevKit.Amount.fromSat(satoshi: UInt64(amountSats)))
         if let selectedVbyte = selectedVbyte {
             // Minimum 1 sat/Vbyte.
-            txBuilder = txBuilder.feeRate(feeRate: try FeeRate.fromSatPerVb(satVb: max(UInt64(selectedVbyte), 1)))
+            txBuilder = txBuilder.feeRate(feeRate: try FeeRate.fromSatPerVb(satVb: selectedVbyte.wholeSatPerVb))
         }
         let details = try txBuilder.finish(wallet: self.bdkWallet!)
         let _ = try self.bdkWallet!.sign(psbt: details, signOptions: nil)
@@ -477,7 +477,7 @@ extension BitcoinManager {
         return details
     }
     
-    func sendOnchainTransaction(address:String, amountSats:Int, selectedVbyte:Float?) throws -> [String] {
+    func sendOnchainTransaction(address:String, amountSats:Int, selectedVbyte:Double?) throws -> [String] {
         
         // Create transaction.
         let tx:BitcoinDevKit.Transaction

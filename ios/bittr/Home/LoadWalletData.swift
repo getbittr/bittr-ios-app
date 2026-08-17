@@ -47,17 +47,12 @@ extension HomeViewController {
         
         // Store channel closure txIDs.
         CacheManager.storeChannelClosureTxIDs(txIDs: balances.pendingBalancesFromChannelClosures.spendingTxIDs())
-
-        // A force close is recognised via the sweep txIDs above; its commitment
-        // tx never appears in the BDK wallet, so storeChannelClosureTxIDIfFound's
-        // cooperative-close scan would keep re-scanning for it on every sync
-        // forever. Pending closure funds (> 0) only ever come from a force close,
-        // so drop the cached funding outpoint here to end that scan. A
-        // cooperative close leaves this at 0 and keeps the outpoint for the scan.
+        
         if pendingBalancesFromChannelClosures > 0 {
+            // A force-close has happened. No need to hold on to the funding outpoint.
             CacheManager.removeChannelFundingOutpoint()
         }
-
+        
         // Apply the snapshot to the shared wallet on the main thread.
         let apply = {
             BitcoinManager.shared.bittrWallet.satoshisLightning = satoshisLightning
@@ -260,9 +255,12 @@ extension HomeViewController {
         if amount.count < 9 {
             zeros = allZeros[amount.count]
         } else {
-            numbers = "\(amount.toNumber().inBTC())".replacingOccurrences(of: ",", with: ".")
-            let decimalsCount = numbers.split(separator: ".")[1].count
-            var decimalsToAdd = 8 - decimalsCount
+            let satoshis = Int(amount) ?? 0
+            var decimals = String(format: "%08ld", satoshis % Bitcoin.satoshisPerBitcoin)
+            while decimals.count > 1, decimals.hasSuffix("0") { decimals.removeLast() }
+            
+            numbers = "\(satoshis / Bitcoin.satoshisPerBitcoin).\(decimals)"
+            var decimalsToAdd = 8 - decimals.count
             while decimalsToAdd > 0 {
                 if decimalsToAdd == 6 || decimalsToAdd == 3 {
                     numbers += " 0"

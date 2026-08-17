@@ -20,6 +20,9 @@ class AppDelegate: UIResponder, UIApplicationDelegate, UNUserNotificationCenterD
         // getters also self-heal on first read, so this is just eager cleanup.
         CacheManager.migrateSecretsToKeychainIfNeeded()
 
+        // Convert any cache still stored in the pre-Codable shape.
+        CacheManager.migrateCachesIfNeeded()
+        
         // Keep Documents out of iCloud/Finder backups.
         LightningStorage.excludeFromBackup()
         
