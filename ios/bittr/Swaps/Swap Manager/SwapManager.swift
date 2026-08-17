@@ -303,55 +303,60 @@ class SwapManager: NSObject {
     
     static func sendOnchainPayment(swapVC:SwapViewController) {
         guard swapVC.thisSwap != nil else { return }
-            
+        
+        let address = swapVC.thisSwap!.boltzOnchainAddress!
+        let amountSats = swapVC.thisSwap!.boltzExpectedAmount!
+        let feeHigh = swapVC.thisSwap!.feeHigh!
+        
         // Send onchain transaction.
-        let txIdAndRawData:[String]
-        do {
-            txIdAndRawData = try BitcoinManager.shared.sendOnchainTransaction(address: swapVC.thisSwap!.boltzOnchainAddress!, amountSats: swapVC.thisSwap!.boltzExpectedAmount!, selectedVbyte: swapVC.thisSwap!.feeHigh!)
-        } catch {
-            // Log the exact error for debugging
-            Log.info("Transaction error: \(error.localizedDescription)")
+        DispatchQueue.global(qos: .userInitiated).async {
             
-            DispatchQueue.main.async {
-                swapVC.showAlert(
-                    presentingController: swapVC,
-                    title: Language.getWord(withID: "paymentfailed"),
-                    message: Language.getWord(withID: "paymentfailed3"),
-                    buttons: [Language.getWord(withID: "okay")],
-                    actions: nil
-                )
-                SentryManager.countMetric("swap.onchaintolightning.failed")
-                SentryManager.capture(error, context: "SwapManager row 308")
+            // Send onchain transaction.
+            let txIdAndRawData:[String]
+            do {
+                txIdAndRawData = try BitcoinManager.shared.sendOnchainTransaction(address: address, amountSats: amountSats, selectedVbyte: feeHigh)
+            } catch {
+                // Log the exact error for debugging
+                Log.info("Transaction error: \(error.localizedDescription)")
+
+                DispatchQueue.main.async {
+                    swapVC.showAlert(
+                        presentingController: swapVC,
+                        title: Language.getWord(withID: "paymentfailed"),
+                        message: Language.getWord(withID: "paymentfailed3"),
+                        buttons: [Language.getWord(withID: "okay")],
+                        actions: nil
+                    )
+                    SentryManager.countMetric("swap.onchaintolightning.failed")
+                    SentryManager.capture(error, context: "SwapManager row 308")
+                }
+                return
             }
-            return
-        }
-        let txId = txIdAndRawData[0]
-        let rawData = txIdAndRawData[1]
-        print("Transaction ID: \(txId)")
-    
-        DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
-            Log.info("Successful transaction.")
+            let txId = txIdAndRawData[0]
+            let rawData = txIdAndRawData[1]
+            print("Transaction ID: \(txId)")
             
-            // Update swap object.
-            swapVC.thisSwap!.sentOnchainTransactionID = txId
-            swapVC.thisSwap!.lockupTx = rawData
-            self.updateSwapFileWithLockupTx(swapID: swapVC.thisSwap!.boltzID!, lockupTx: swapVC.thisSwap!.lockupTx!)
-            
-            // Create transaction object.
-            CacheManager.storeInvoiceDescription(preimage: txId, desc: swapVC.thisSwap!.dateID)
-            CacheManager.storeSwapID(dateID: swapVC.thisSwap!.dateID, swapID: swapVC.thisSwap!.boltzID!)
-            if swapVC.thisSwap!.isSuggested {
-                // Mark so the Home table renders this as an outbound
-                // transaction instead of a perpetually pending swap. Stored as
-                // pending; SwapStatusVC upgrades it once Boltz pays the invoice.
-                CacheManager.storeSuggestedSwap(dateID: swapVC.thisSwap!.dateID)
+            DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+                Log.info("Successful transaction.")
+                
+                // Update swap object.
+                swapVC.thisSwap!.sentOnchainTransactionID = txId
+                swapVC.thisSwap!.lockupTx = rawData
+                self.updateSwapFileWithLockupTx(swapID: swapVC.thisSwap!.boltzID!, lockupTx: swapVC.thisSwap!.lockupTx!)
+                
+                // Create transaction object.
+                CacheManager.storeInvoiceDescription(preimage: txId, desc: swapVC.thisSwap!.dateID)
+                CacheManager.storeSwapID(dateID: swapVC.thisSwap!.dateID, swapID: swapVC.thisSwap!.boltzID!)
+                if swapVC.thisSwap!.isSuggested {
+                    CacheManager.storeSuggestedSwap(dateID: swapVC.thisSwap!.dateID)
+                }
+                
+                // Update Home table.
+                BitcoinManager.shared.lightSync() { _ in }
+                
+                // Call didCompleteOnchainTransaction to set up WebSocket monitoring
+                swapVC.swapStatusVC?.didCompleteOnchainTransaction()
             }
-            
-            // Update Home table.
-            BitcoinManager.shared.lightSync() { _ in }
-            
-            // Call didCompleteOnchainTransaction to set up WebSocket monitoring
-            swapVC.swapStatusVC?.didCompleteOnchainTransaction()
         }
     }
     

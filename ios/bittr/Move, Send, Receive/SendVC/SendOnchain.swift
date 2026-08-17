@@ -201,15 +201,8 @@ extension ConfirmSendViewController {
     }
     
     @objc func performOnchainTransaction() {
-        // An on-chain send reaches the broadcast from the confirmation alert's
-        // Confirm button, not from confirmButtonTapped — which shows that alert
-        // and returns without ever starting the spinner. So the guard on the
-        // button can't catch this; it has to sit here, where the spinner goes up.
-        // sendOnchainPayment below blocks main, so a second tap queues behind it
-        // and gets delivered once the broadcast is already under way.
-        if self.confirmSpinner.isAnimating { return }
-
         self.hideAlert()
+        if self.confirmSpinner.isAnimating { return }
         
         // Start spinner.
         self.confirmLabel.alpha = 0
@@ -217,48 +210,51 @@ extension ConfirmSendViewController {
         
         // Get fees (minimum 1 sat/Vbyte).
         let feeRateSatVb = self.selectedFeeRatePerVb().wholeSatPerVb
+        let isSendingMaximum = self.sendVC!.isSendingMaximum
+        let address = self.sendVC!.confirmAddress
+        let amountSats = UInt64(self.sendVC!.confirmSatoshis)
         
         // Broadcast transaction.
-        let txid:String
-        do {
-            if self.sendVC!.isSendingMaximum {
-                txid = try BitcoinManager.shared.sendAllOnchainPayment(address: self.sendVC!.confirmAddress, feeRateSatVb: feeRateSatVb)
-            } else {
-                txid = try BitcoinManager.shared.sendOnchainPayment(address: self.sendVC!.confirmAddress, amountSats: UInt64(self.sendVC!.confirmSatoshis), feeRateSatVb: feeRateSatVb)
-            }
-        } catch {
-            Log.info("Transaction error: \(error.localizedDescription)")
-
-            // Unwrap LDKNode errors to their human-readable detail (e.g. the
-            // plain "insufficient funds" message) via the shared handler,
-            // instead of showing the raw NodeError enum description.
-            let errorMessage:String = {
-                if let nodeError = error as? NodeError {
-                    return "\(handleNodeError(nodeError).detail)"
+        DispatchQueue.global(qos: .userInitiated).async {
+            
+            let txid:String
+            do {
+                if isSendingMaximum {
+                    txid = try BitcoinManager.shared.sendAllOnchainPayment(address: address, feeRateSatVb: feeRateSatVb)
                 } else {
-                    return error.localizedDescription
+                    txid = try BitcoinManager.shared.sendOnchainPayment(address: address, amountSats: amountSats, feeRateSatVb: feeRateSatVb)
                 }
-            }()
-
-            DispatchQueue.main.async {
+            } catch {
+                Log.info("Transaction error: \(error.localizedDescription)")
+                // Unwrap LDKNode errors to their human-readable detail.
+                let errorMessage:String = {
+                    if let nodeError = error as? NodeError {
+                        return "\(handleNodeError(nodeError).detail)"
+                    } else {
+                        return error.localizedDescription
+                    }
+                }()
+                
+                DispatchQueue.main.async {
+                    self.confirmLabel.alpha = 1
+                    self.confirmSpinner.stopAnimating()
+                    self.showAlert(presentingController: self, title: Language.getWord(withID: "error"), message: Language.getWord(withID: "transactionerror") + ": " + errorMessage, buttons: [Language.getWord(withID: "okay")], actions: nil)
+                    SentryManager.capture(error, context: "SendOnchain row 349")
+                    SentryManager.countMetric("onchain.transaction.failure.2")
+                }
+                return
+            }
+            print("Transaction ID: \(txid)")
+            
+            DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+                Log.info("Successful transaction.")
+                SentryManager.countMetric("onchain.transaction.success")
                 self.confirmLabel.alpha = 1
                 self.confirmSpinner.stopAnimating()
-                self.showAlert(presentingController: self, title: Language.getWord(withID: "error"), message: Language.getWord(withID: "transactionerror") + ": " + errorMessage, buttons: [Language.getWord(withID: "okay")], actions: nil)
-                SentryManager.capture(error, context: "SendOnchain row 349")
-                SentryManager.countMetric("onchain.transaction.failure.2")
+                self.newTxId = txid
+
+                self.showAlert(presentingController: self, title: Language.getWord(withID: "success"), message: Language.getWord(withID: "transactionsuccess"), buttons: [Language.getWord(withID: "okay")], actions: [#selector(self.addNewTxToTable)])
             }
-            return
-        }
-        print("Transaction ID: \(txid)")
-        
-        DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
-            Log.info("Successful transaction.")
-            SentryManager.countMetric("onchain.transaction.success")
-            self.confirmLabel.alpha = 1
-            self.confirmSpinner.stopAnimating()
-            self.newTxId = txid
-            
-            self.showAlert(presentingController: self, title: Language.getWord(withID: "success"), message: Language.getWord(withID: "transactionsuccess"), buttons: [Language.getWord(withID: "okay")], actions: [#selector(self.addNewTxToTable)])
         }
     }
     
