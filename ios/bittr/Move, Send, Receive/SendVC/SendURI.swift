@@ -44,16 +44,16 @@ extension SendViewController {
                     self.amountTextField.text = "\(satoshis)"
                     self.btcLabel.text = "Sats"
                     self.selectedCurrency = .satoshis
-                    print("Converted Bitcoin URI amount from \(amount) BTC to \(satoshis) satoshis")
+                    Log.debug("Converted Bitcoin URI amount from \(amount) BTC to \(satoshis) satoshis")
                 } else {
                     // If conversion fails, set the amount as-is (might be in satoshis already)
                     self.amountTextField.text = amount
                     Log.info("Could not convert Bitcoin URI amount.")
-                    print("Setting as-is: \(amount)")
+                    Log.debug("Setting as-is: \(amount)")
                 }
             }
             
-            print("Set Bitcoin address from URI: \(address), amount: \(amount), label: \(label)")
+            Log.debug("Set Bitcoin address from URI: \(address), amount: \(amount), label: \(label)")
         }
     }
     
@@ -78,7 +78,7 @@ extension SendViewController {
                         self.amountTextField.text = "\(invoiceAmount)"
                         self.btcLabel.text = "Sats"
                         self.selectedCurrency = .satoshis
-                        print("Extracted amount from Lightning invoice: \(invoiceAmount) sats")
+                        Log.debug("Extracted amount from Lightning invoice: \(invoiceAmount) sats")
                     } else {
                         Log.info("Lightning invoice has no amount (zero amount invoice)")
                     }
@@ -87,7 +87,7 @@ extension SendViewController {
                 }
             }
             
-            print("Set Lightning invoice from URI: \(invoice)")
+            Log.debug("Set Lightning invoice from URI: \(invoice)")
         }
     }
     

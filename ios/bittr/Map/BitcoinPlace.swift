@@ -133,7 +133,7 @@ final class BitcoinPlacesCache {
             let data = try JSONEncoder().encode(places)
             try data.write(to: fileURL, options: [.atomic])
         } catch {
-            print("Failed to save BTC places cache:", error)
+            Log.info("Failed to save BTC places cache: \(error.localizedDescription)")
         }
     }
 

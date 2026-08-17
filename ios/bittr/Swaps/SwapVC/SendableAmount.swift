@@ -99,7 +99,7 @@ extension SwapViewController {
                     }
 
                     // Select highest fee.
-                    self.highestFeePerVbyte = Float(feeEstimates.fastest)
+                    self.highestFeePerVbyte = feeEstimates.fastest
                     
                     // Calculate maximum sendable onchain satoshis.
                     let sendableSatoshis:Int
@@ -112,7 +112,7 @@ extension SwapViewController {
                         // heaviest common output script.
                         let preview = try BitcoinManager.shared.maximumSendableOnchainDrain(
                             toAddress: nil,
-                            satPerVb: UInt64(max(self.highestFeePerVbyte!, 1))
+                            satPerVb: self.highestFeePerVbyte!.wholeSatPerVb
                         )
                         sendableSatoshis = Int(preview.sendableSats)
                     } catch {

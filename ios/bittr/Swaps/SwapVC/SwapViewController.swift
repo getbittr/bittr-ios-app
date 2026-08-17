@@ -64,7 +64,7 @@ class SwapViewController: UIViewController, UITextFieldDelegate, UNUserNotificat
     var isFromOnchainPayment = false
     var pendingOnchainAddress = ""
     var pendingOnchainAmount = 0
-    var highestFeePerVbyte:Float?
+    var highestFeePerVbyte:Double?
     var thisSwap:Swap?
     // Set when calculateSendableAmount triggers a BDK rescan because BDK
     // appears stale relative to LDK Node; prevents an infinite re-sync loop
@@ -139,8 +139,7 @@ class SwapViewController: UIViewController, UITextFieldDelegate, UNUserNotificat
         }
         
         // Check amount to be sent.
-        let amountToBeSent = Int((self.amountTextField.text ?? "0").toNumber())
-        guard amountToBeSent != 0 else {
+        guard let amountToBeSent = (self.amountTextField.text ?? "").parsedUserAmount(allowingFraction: false)?.satoshis(), amountToBeSent > 0 else {
             // No amount has been entered.
             self.showAlert(presentingController: self, title: Language.getWord(withID: "swapfunds2"), message: Language.getWord(withID: "enteramountofsatoshis"), buttons: [Language.getWord(withID: "okay")], actions: nil)
             return

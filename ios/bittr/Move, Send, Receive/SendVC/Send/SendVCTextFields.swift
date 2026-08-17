@@ -74,7 +74,7 @@ extension SendViewController {
         // Currency selection buttons
         let btcButton = UIBarButtonItem(title: "BTC", style: .plain, target: self, action: #selector(selectBTCCurrency))
         let satsButton = UIBarButtonItem(title: "Sats", style: .plain, target: self, action: #selector(selectSatsCurrency))
-        let currencyButton = UIBarButtonItem(title: UserDefaults.standard.value(forKey: "currency") as? String ?? "EUR", style: .plain, target: self, action: #selector(selectFiatCurrency))
+        let currencyButton = UIBarButtonItem(title: CacheStore.value(for: CacheKeys.currency) ?? "EUR", style: .plain, target: self, action: #selector(selectFiatCurrency))
         
         // Style the buttons with better contrast for dark mode
         // Force black color for better visibility in dark mode

@@ -23,12 +23,11 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
     // Header: Balance card
     @IBOutlet weak var balanceCard: UIView!
     @IBOutlet weak var balanceCardTop: NSLayoutConstraint!
-    @IBOutlet weak var balanceLabelInvisible: UILabel!
     @IBOutlet weak var bitcoinSign: UIImageView!
     @IBOutlet weak var balanceLabel: UILabel!
+    @IBOutlet weak var balanceLabelWidth: NSLayoutConstraint!
     @IBOutlet weak var conversionLabel: UILabel!
     @IBOutlet weak var balanceCardButton: UIButton!
-    var balanceText = "<center><span style=\"font-family: \'Syne-Regular\', \'-apple-system\'; font-size: 38; color: rgb(201, 154, 0); line-height: 0.5\">0.00 000 00</span><span style=\"font-family: \'Syne-Regular\', \'-apple-system\'; font-size: 38; color: rgb(0, 0, 0); line-height: 0.5\">0</span></center>"
     
     // Balance card profit views
     @IBOutlet weak var balanceCardProfitView: UIView!

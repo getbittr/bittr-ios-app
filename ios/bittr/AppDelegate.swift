@@ -20,6 +20,9 @@ class AppDelegate: UIResponder, UIApplicationDelegate, UNUserNotificationCenterD
         // getters also self-heal on first read, so this is just eager cleanup.
         CacheManager.migrateSecretsToKeychainIfNeeded()
 
+        // Convert any cache still stored in the pre-Codable shape.
+        CacheManager.migrateCachesIfNeeded()
+        
         // Keep Documents out of iCloud/Finder backups.
         LightningStorage.excludeFromBackup()
         
@@ -52,7 +55,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate, UNUserNotificationCenterD
         
         let tokenParts = deviceToken.map { data in String(format: "%02.2hhx", data) }
         let token = tokenParts.joined()
-        print("Device Token: \(token)")
+        Log.debug("Device Token: \(token)")
         
         // Cache token.
         CacheManager.storeNotificationsToken(token: token)

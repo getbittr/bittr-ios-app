@@ -173,7 +173,7 @@ class BoltzRefund {
                 
                 let broadcastResponse = try await BoltzAPI.broadcastTransaction(transactionHex: finalTx.hexString)
                 if let transactionId = broadcastResponse.transactionIdValue {
-                    print("✅ Transaction broadcasted successfully! TXID: \(transactionId)")
+                    Log.info("Transaction broadcast succeeded. TXID: \(transactionId)")
                     return ClaimResult(success: true, transactionId: transactionId)
                 } else {
                     Log.info("❌ Failed to broadcast transaction")
@@ -297,8 +297,8 @@ class BoltzRefund {
             let claimResponse = try await requestRefundAndProcess(swapID: ongoingSwap.boltzID!, refundData: refundRequest)
             
             if let boltzPubNonce = claimResponse.pubNonce, let boltzPartialSignature = claimResponse.partialSignature {
-                print("Received Boltz pubNonce: \(boltzPubNonce)")
-                print("Received Boltz partialSignature: \(boltzPartialSignature)")
+                Log.debug("Received Boltz pubNonce: \(boltzPubNonce)")
+                Log.debug("Received Boltz partialSignature: \(boltzPartialSignature)")
                 
                 // Convert to P256K objects
                 let externalNonce = try P256K.Schnorr.Nonce(hexString: boltzPubNonce)
@@ -329,7 +329,7 @@ class BoltzRefund {
                 
                 let broadcastResponse = try await BoltzAPI.broadcastTransaction(transactionHex: finalTx.hexString)
                 if let transactionId = broadcastResponse.transactionIdValue {
-                    print("✅ Transaction broadcasted successfully! TXID: \(transactionId)")
+                    Log.info("Transaction broadcast succeeded. TXID: \(transactionId)")
                     CacheManager.storeInvoiceDescription(preimage: transactionId, desc: ongoingSwap.dateID)
                     return ClaimResult(success: true, transactionId: transactionId)
                 } else {

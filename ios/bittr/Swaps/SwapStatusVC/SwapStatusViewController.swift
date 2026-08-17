@@ -161,7 +161,7 @@ class SwapStatusViewController: UIViewController {
             Task {
                 do {
                     let result = try await BoltzRefund.tryBoltzRefund(swapVC: self)
-                    print("Result: \(result)")
+                    Log.debug("Result: \(result)")
                 } catch {
                     Log.info("Error: \(error)")
                     SentryManager.capture(error, context: "SwapViewController row 584")
@@ -182,7 +182,7 @@ class SwapStatusViewController: UIViewController {
     }
     
     private func handleTransactionMempool(transactionHex: String) {
-        print("handleTransactionMempool called with transaction hex length: \(transactionHex.count)")
+        Log.debug("handleTransactionMempool called with transaction hex length: \(transactionHex.count)")
         
         // Update the swap file with the lockup transaction
         guard self.thisSwap != nil else {
@@ -190,7 +190,7 @@ class SwapStatusViewController: UIViewController {
             return
         }
         
-        print("Found ongoing swap with ID: \(self.thisSwap!.boltzID ?? "nil")")
+        Log.debug("Found ongoing swap with ID: \(self.thisSwap!.boltzID ?? "nil")")
         
         self.thisSwap!.lockupTx = transactionHex
         CacheManager.saveLatestSwap(self.thisSwap!)
@@ -203,7 +203,7 @@ class SwapStatusViewController: UIViewController {
             do {
                 Log.info("Starting Boltz claim process")
                 let claimResult = try await BoltzRefund.tryBoltzClaimInternalTransactionGeneration(swapVC: self)
-                print("Claim result: \(claimResult)")
+                Log.debug("Claim result: \(claimResult)")
                 
                 // Handle the result on main thread
                 DispatchQueue.main.async {
@@ -242,18 +242,18 @@ class SwapStatusViewController: UIViewController {
                 Log.info("No swap ID found in ongoing swap")
                 return
             }
-            print("Checking swap status for ID: \(swapID)")
+            Log.debug("Checking swap status for ID: \(swapID)")
             
             SwapManager.checkSwapStatus(swapID) { dictionary in
                 DispatchQueue.main.async {
                     self.confirmStatusLabel.alpha = 1
                     self.resetIcon.alpha = 1
                     
-                    print("Received swap status response: \(dictionary ?? [:])")
+                    Log.debug("Received swap status response: \(dictionary ?? [:])")
                     
                     guard dictionary != nil, let receivedStatus = dictionary!["status"] as? String else {
                         Log.info("No status received or invalid response format")
-                        print("Full response: \(dictionary ?? [:])")
+                        Log.debug("Full response: \(dictionary ?? [:])")
                         return
                     }
                     Log.info("Status received: \(receivedStatus)")
@@ -271,9 +271,9 @@ class SwapStatusViewController: UIViewController {
                         if self.thisSwap!.swapDirection == .lightningToOnchain {
                             Log.info("Processing lightning to onchain swap.")
                             if let transaction = dictionary!["transaction"] as? [String: Any] {
-                                print("Transaction data: \(transaction)")
+                                Log.debug("Transaction data: \(transaction)")
                                 if let transactionHex = transaction["hex"] as? String {
-                                    print("Transaction hex found, length: \(transactionHex.count)")
+                                    Log.debug("Transaction hex found, length: \(transactionHex.count)")
                                     self.handleTransactionMempool(transactionHex: transactionHex)
                                 } else {
                                     Log.info("No transaction hex found in response")
@@ -318,7 +318,7 @@ class SwapStatusViewController: UIViewController {
     }
     
     private func loadLockupTxFromFile(swapID: String) -> String? {
-        print("Loading lockup transaction from file: \(swapID).json")
+        Log.debug("Loading lockup transaction from file: \(swapID).json")
         
         do {
             // Get the documents directory
@@ -327,7 +327,7 @@ class SwapStatusViewController: UIViewController {
             
             // Check if file exists
             guard FileManager.default.fileExists(atPath: fileURL.path) else {
-                print("Swap file not found at: \(fileURL.path)")
+                Log.debug("Swap file not found at: \(fileURL.path)")
                 return nil
             }
             

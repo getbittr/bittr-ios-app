@@ -129,14 +129,14 @@ class DeviceViewController: UIViewController, UNUserNotificationCenterDelegate, 
 
     @objc func selectEuroCurrency() {
         self.hideAlert()
-        UserDefaults.standard.set("€", forKey: "currency")
+        CacheStore.set("€", for: CacheKeys.currency)
         self.coreVC?.homeVC?.changeCurrency()
         self.deviceTableView.reloadData()
     }
 
     @objc func selectChfCurrency() {
         self.hideAlert()
-        UserDefaults.standard.set("CHF", forKey: "currency")
+        CacheStore.set("CHF", for: CacheKeys.currency)
         self.coreVC?.homeVC?.changeCurrency()
         self.deviceTableView.reloadData()
     }
@@ -324,7 +324,7 @@ extension UIViewController {
                         Log.info("Successfully received notifications dictionary.")
                         
                         let receivedNotifications = receivedDictionary.toNotifications()
-                        print("Received notifications: \(receivedNotifications.count)")
+                        Log.debug("Received notifications: \(receivedNotifications.count)")
                         
                         guard let lastNotification = receivedNotifications.last, let amountMsat = lastNotification.transaction?["bitcoin_amount"] as? String else {
                             Log.info("No notifications received.")

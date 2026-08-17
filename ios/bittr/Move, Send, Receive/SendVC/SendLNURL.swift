@@ -30,27 +30,10 @@ extension SendViewController {
         }
         
         // Convert amount to millisatoshis based on current currency
-        var enteredAmount: Int
-        if self.selectedCurrency == .satoshis {
-            enteredAmount = Int(amountText.toNumber()) * 1000 // Convert satoshis to millisatoshis
-        } else if self.selectedCurrency == .bitcoin {
-            enteredAmount = amountText.toNumber().inSatoshis() * 1000 // Convert to millisatoshis
-        } else { // .currency (fiat)
-            let fiatAmount = amountText.toNumber()
-            let bitcoinValue = BitcoinManager.shared.bittrWallet.getCorrectBitcoinValue()
-            let btcAmount = fiatAmount / bitcoinValue.currentValue
-            
-            // Safety check for invalid values
-            guard btcAmount.isFinite && !btcAmount.isNaN && bitcoinValue.currentValue > 0 else {
-                Log.info("376 Invalid values.")
-                print("⚠️ Warning: Invalid values - fiatAmount: \(fiatAmount), bitcoinValue: \(bitcoinValue.currentValue), btcAmount: \(btcAmount)")
-                self.showAlert(presentingController: self, title: Language.getWord(withID: "lnurl"), message: Language.getWord(withID: "lnurlfail3"), buttons: [Language.getWord(withID: "okay")], actions: nil)
-                return
-            }
-            
-            let satoshis = btcAmount.inSatoshis()
-            enteredAmount = satoshis * 1000 // Convert to millisatoshis
+        guard let enteredSatoshis = self.getSatoshisFrom(enteredAmount: amountText), enteredSatoshis > 0 else {
+            return
         }
+        let enteredAmount = enteredSatoshis * 1000
         
         // Validate amount is within range
         if enteredAmount < minAmount || enteredAmount > maxAmount {
@@ -87,7 +70,11 @@ extension SendViewController {
         }
         
         // Convert amount to millisatoshis
-        let enteredAmount = Int(amountText.toNumber()) * 1000
+        guard let enteredSatoshis = amountText.parsedUserAmount(allowingFraction: false)?.satoshis() else {
+            self.showAlert(presentingController: self, title: Language.getWord(withID: "lnurl"), message: Language.getWord(withID: "lnurlfail3"), buttons: [Language.getWord(withID: "okay")], actions: nil)
+            return
+        }
+        let enteredAmount = enteredSatoshis * 1000
         
         // Validate amount is within range
         if enteredAmount < minAmount || enteredAmount > maxAmount {
@@ -142,7 +129,7 @@ extension UIViewController {
         }
         
         let url = sanitizeLNURLString(decodedOrConstructedURL)
-        print("Decoded url: \(url)")
+        Log.debug("Decoded url: \(url)")
         
         if let urlComponents = URLComponents(string: url), let queryItems = urlComponents.queryItems, let tag = queryItems.first(where: { $0.name == "tag" })?.value, tag == "login", let k1 = queryItems.first(where: { $0.name == "k1" })?.value, let k1Data = Data(hexString: k1), k1Data.count == 32, let callbackURL = URL(string: url) {
             
@@ -171,7 +158,6 @@ extension UIViewController {
                             self.showAlert(presentingController: self, title: Language.getWord(withID: "lnurl"), message: Language.getWord(withID: "lnurlfail4"), buttons: [Language.getWord(withID: "okay")], actions: nil)
                             return
                         }
-                        print("Tag: \(receivedTag)")
                         
                         if receivedTag == "payRequest",
                             let receivedCallback = actualDataDict["callback"] as? String,
@@ -239,7 +225,8 @@ extension UIViewController {
                                 var amountText = minWithdrawable
                                 if minWithdrawable != maxWithdrawable {
                                     // Min and max aren't the same.
-                                    amountText = Int((alert.textFields![0].text ?? "0").toNumber()) * 1000
+                                    let entered = (alert.textFields?.first?.text ?? "").parsedUserAmount(allowingFraction: false)?.satoshis() ?? 0
+                                    amountText = entered * 1000
                                 }
                                 self.sendWithdrawRequest(callbackURL: receivedCallback.replacingOccurrences(of: "\0", with: "").trimmingCharacters(in: .controlCharacters), amount: amountText, k1: receivedK1)
                             }))
@@ -301,7 +288,7 @@ extension UIViewController {
                             return
                         }
                         // Invoice received.
-                        print("Invoice: \(receivedInvoice)")
+                        Log.debug("Invoice: \(receivedInvoice)")
                         SentryManager.countMetric("lnurl.pay.success")
                         
                         // Pay invoice.
@@ -347,7 +334,7 @@ extension UIViewController {
             }
             
             let actualUrl = "\(callbackURL)?k1=\(k1)&pr=\(invoice)"
-            print("Actual URL: \(actualUrl)")
+            Log.debug("Actual URL: \(actualUrl)")
             
             await CallsManager.makeApiCall(url: actualUrl, parameters: nil, getOrPost: .get) { result in
                 DispatchQueue.main.async {

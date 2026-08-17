@@ -17,26 +17,17 @@ extension SendViewController {
         
         switch self.selectedCurrency {
         case .satoshis:
-            return Int(enteredAmount.toNumber())
+            return enteredAmount.parsedUserAmount(allowingFraction: false)?.satoshis()
         case .bitcoin:
-            let btcAmount = enteredAmount.toNumber()
-            guard btcAmount.isFinite && !btcAmount.isNaN else {
-                Log.info("579 Invalid BTC amount.")
-                self.showAlert(presentingController: self, title: Language.getWord(withID: "invoice"), message: Language.getWord(withID: "amountmissing"), buttons: [Language.getWord(withID: "okay")], actions: nil)
-                return nil
-            }
-            return btcAmount.inSatoshis()
+            return enteredAmount.parsedUserAmount()?.satoshisFromBitcoin()
         case .currency:
-            let fiatAmount = enteredAmount.toNumber()
             let bitcoinValue = BitcoinManager.shared.bittrWallet.getCorrectBitcoinValue()
-            let btcAmount = fiatAmount / bitcoinValue.currentValue
-            
-            guard btcAmount.isFinite && !btcAmount.isNaN && bitcoinValue.currentValue > 0 else {
-                Log.info("589 Invalid values.")
-                self.showAlert(presentingController: self, title: Language.getWord(withID: "invoice"), message: Language.getWord(withID: "amountmissing"), buttons: [Language.getWord(withID: "okay")], actions: nil)
+            let rate = Decimal(Double(bitcoinValue.currentValue))
+            if let fiatAmount = enteredAmount.parsedUserAmount(), rate > 0 {
+                return (fiatAmount / rate).satoshisFromBitcoin()
+            } else {
                 return nil
             }
-            return btcAmount.inSatoshis()
         }
     }
     
@@ -59,12 +50,11 @@ extension SendViewController {
             } else {
                 // Zero invoice, needs amount.
                 let enteredAmount = self.amountTextField.text?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
-                if enteredAmount.isEmpty {
+                guard !enteredAmount.isEmpty, let parsedSatoshis = self.getSatoshisFrom(enteredAmount: enteredAmount) else {
                     self.showAlert(presentingController: self, title: Language.getWord(withID: "invoice"), message: Language.getWord(withID: "amountmissing"), buttons: [Language.getWord(withID: "okay")], actions: nil)
                     return
-                } else {
-                    satoshisAmount = self.getSatoshisFrom(enteredAmount: enteredAmount) ?? 0
                 }
+                satoshisAmount = parsedSatoshis
             }
         } else if enteredInvoice.lowercased().isValidEmail() || enteredInvoice.lowercased().hasPrefix("lnurl") {
             // LNURL. No amount needed.
@@ -73,12 +63,11 @@ extension SendViewController {
         } else if enteredInvoice.bolt12Offer() != nil {
             // BOLT12 offer. Needs amount.
             let enteredAmount = self.amountTextField.text?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
-            if enteredAmount.isEmpty {
+            guard !enteredAmount.isEmpty, let parsedSatoshis = self.getSatoshisFrom(enteredAmount: enteredAmount) else {
                 self.showAlert(presentingController: self, title: Language.getWord(withID: "invoice"), message: Language.getWord(withID: "amountmissing"), buttons: [Language.getWord(withID: "okay")], actions: nil)
                 return
-            } else {
-                satoshisAmount = self.getSatoshisFrom(enteredAmount: enteredAmount) ?? 0
             }
+            satoshisAmount = parsedSatoshis
         } else {
             // Invalid invoice. Ask for amount.
             self.showAlert(presentingController: self, title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "enteramount"), buttons: [Language.getWord(withID: "okay")], actions: nil)
@@ -135,7 +124,7 @@ extension SendViewController {
                 maximumRoutingFeesSat = self.getLightningFeesInSatoshis(parsedInvoice: parsedInvoice!, amountMsat: nil)
             } else {
                 // Zero invoice.
-                invoiceAmount = Int(self.amountTextField.text?.toNumber() ?? 0)
+                invoiceAmount = self.amountTextField.text?.parsedUserAmount(allowingFraction: false)?.satoshis() ?? 0
                 
                 if invoiceAmount > 0 {
                     // Calculate maximum total routing fees.
@@ -146,7 +135,7 @@ extension SendViewController {
             }
         } else {
             // BOLT12 offer.
-            invoiceAmount = Int(self.amountTextField.text?.toNumber() ?? 0)
+            invoiceAmount = self.amountTextField.text?.parsedUserAmount(allowingFraction: false)?.satoshis() ?? 0
             maximumRoutingFeesSat = Int((CGFloat(invoiceAmount)/100).rounded()) + 50
         }
         
@@ -269,7 +258,7 @@ extension UIViewController {
             sendVC?.temporaryInvoiceText = ""
             sendVC?.temporaryInvoiceAmount = 0
             
-            print("Invoice text: " + String(invoiceText))
+            Log.debug("Invoice text: " + String(invoiceText))
             
             do {
                 if let bolt12Offer = invoiceText.bolt12Offer() {

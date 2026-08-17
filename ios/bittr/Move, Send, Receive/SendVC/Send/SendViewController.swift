@@ -121,10 +121,10 @@ class SendViewController: UIViewController, UITextFieldDelegate, OnchainSyncFail
     var confirmSendVC:ConfirmSendViewController?
     var confirmSatoshis:Int = 0
     var confirmAddress = ""
-    var feePerVbLow:Float = 0
-    var feePerVbMedium:Float = 0
-    var feePerVbHigh:Float = 0
-    var confirmTxSize:Float = 0
+    var feePerVbLow:Double = 0
+    var feePerVbMedium:Double = 0
+    var feePerVbHigh:Double = 0
+    var confirmTxSize:Double = 0
     var confirmLightningFees:Int = 0
     
     override func viewDidLoad() {
@@ -200,7 +200,7 @@ class SendViewController: UIViewController, UITextFieldDelegate, OnchainSyncFail
                 // there's a number to show.
                 // Minimum 0 satoshis. Minimum 1 sat/Vbyte.
                 self.bdkSpinner.startAnimating()
-                let satPerVb = UInt64(max(self.feePerVbMedium, 1))
+                let satPerVb = self.feePerVbMedium.wholeSatPerVb
                 DispatchQueue.global(qos: .userInitiated).async {
                     let sendable = self.getMaximumSendableSats(satPerVb: satPerVb)
                         ?? max(BitcoinManager.shared.bittrWallet.satoshisOnchainSpendable ?? 0, 0)
@@ -235,9 +235,9 @@ class SendViewController: UIViewController, UITextFieldDelegate, OnchainSyncFail
                 return
             }
 
-            self.feePerVbLow = Float(feeEstimates.economy)
-            self.feePerVbMedium = Float(feeEstimates.hour)
-            self.feePerVbHigh = Float(feeEstimates.fastest)
+            self.feePerVbLow = feeEstimates.economy
+            self.feePerVbMedium = feeEstimates.hour
+            self.feePerVbHigh = feeEstimates.fastest
             
             self.setSendAllLabel()
         }
@@ -371,7 +371,7 @@ class SendViewController: UIViewController, UITextFieldDelegate, OnchainSyncFail
     }
     
     @objc func selectFiatCurrency() {
-        let currency = UserDefaults.standard.value(forKey: "currency") as? String ?? "EUR"
+        let currency = CacheStore.value(for: CacheKeys.currency) ?? "EUR"
         self.btcLabel.text = currency
         self.selectedCurrency = .currency
     }

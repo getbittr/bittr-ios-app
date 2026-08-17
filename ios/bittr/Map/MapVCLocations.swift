@@ -163,7 +163,7 @@ extension MapViewController {
     }
     
     func locationManager(_ manager: CLLocationManager, didFailWithError error: Error) {
-        print("Location error: \(error)")
+        Log.info("Location error: \(error)")
         self.showDefaultSwitzerlandRegion()
     }
     

@@ -326,7 +326,7 @@ class Transfer2ViewController: UIViewController, UITextFieldDelegate, UNUserNoti
             }
             // Get real onchain address.
             let firstAddress = BitcoinManager.shared.getBittrAddress()
-            print("Address: \(firstAddress)")
+            Log.debug("Address: \(firstAddress)")
             
             // Get node ID.
             guard let lightningPubKey = BitcoinManager.shared.nodeId() else {
@@ -492,7 +492,6 @@ class Transfer2ViewController: UIViewController, UITextFieldDelegate, UNUserNoti
     
     @objc func updateCounter() {
         if counter > 0 {
-            print("\(counter) seconds left")
             counter -= 1
         }
     }
