@@ -324,7 +324,7 @@ extension UIViewController {
                         Log.info("Successfully received notifications dictionary.")
                         
                         let receivedNotifications = receivedDictionary.toNotifications()
-                        print("Received notifications: \(receivedNotifications.count)")
+                        Log.debug("Received notifications: \(receivedNotifications.count)")
                         
                         guard let lastNotification = receivedNotifications.last, let amountMsat = lastNotification.transaction?["bitcoin_amount"] as? String else {
                             Log.info("No notifications received.")

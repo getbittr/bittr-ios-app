@@ -54,6 +54,9 @@ class CallsManager: NSObject {
             }
         }()
         
+        // The call being made, for the logs below.
+        let endpoint = "\(request.httpMethod ?? "") \(request.url?.host ?? "?")\(request.url?.path ?? "")"
+        
         do {
             if parameters != nil {
                 let postData = try JSONSerialization.data(withJSONObject: parameters!, options: [])
@@ -63,17 +66,18 @@ class CallsManager: NSObject {
             let task = Self.session.dataTask(with: request) { data, response, dataError in
                 
                 if let error = dataError {
-                    Log.info("Error: \(error.localizedDescription)")
+                    Log.info("\(endpoint) failed: \(error.localizedDescription)")
                     completion(.failure(.requestFailed(error.localizedDescription)))
                     return
                 }
                 
                 guard let data = data else {
+                    Log.info("\(endpoint) returned no data.")
                     completion(.failure(.requestFailed("No data received.")))
                     return
                 }
                 
-                Log.info("Received data.")
+                Log.info("Received data from \(endpoint).")
                 
                 if let receivedData = String(data: data, encoding: .utf8)?.data(using: String.Encoding.utf8) {
                     do {
@@ -88,7 +92,7 @@ class CallsManager: NSObject {
                         }
                     } catch {
                         if let statusCode = (response as? HTTPURLResponse)?.statusCode, !(200..<300).contains(statusCode) {
-                            Log.info("Request failed with status \(statusCode).")
+                            Log.info("\(endpoint) failed with status \(statusCode).")
                             completion(.failure(.requestFailed("HTTP \(statusCode)")))
                             return
                         }

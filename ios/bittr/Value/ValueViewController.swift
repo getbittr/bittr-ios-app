@@ -244,7 +244,7 @@ class ValueViewController: UIViewController {
                                 self.currentValue = actualChfValue.toNumber()
                             }
                             
-                            print("EUR value: \(formattedEurValue), CHF value: \(formattedChfValue), currency: \(preferredCurrency)")
+                            Log.debug("EUR value: \(formattedEurValue), CHF value: \(formattedChfValue), currency: \(preferredCurrency)")
                             
                             // Data arrays
                             self.week = last7Days + [self.currentValue]

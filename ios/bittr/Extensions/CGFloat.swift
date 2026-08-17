@@ -10,7 +10,7 @@ import UIKit
 extension CGFloat {
     
     func formattedBitcoin() -> String {
-        
+
         let formatter = NumberFormatter()
         formatter.numberStyle = .decimal
         formatter.minimumFractionDigits = 8

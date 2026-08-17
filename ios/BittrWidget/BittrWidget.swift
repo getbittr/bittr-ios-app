@@ -69,7 +69,9 @@ struct Provider: AppIntentTimelineProvider {
                     preferredCurrency = "CHF"
                 }
                 
+                #if DEBUG
                 print("EUR value: \(formattedEurValue), CHF value: \(formattedChfValue), currency: \(preferredCurrency)")
+                #endif
                 
                 // Cache latest data.
                 let cacheDict:NSDictionary = [
@@ -91,7 +93,9 @@ struct Provider: AppIntentTimelineProvider {
                 )
             }
         } catch {
+            #if DEBUG
             print("Error fetching data: \(error.localizedDescription)")
+            #endif
         }
         
         // Schedule next data download.
