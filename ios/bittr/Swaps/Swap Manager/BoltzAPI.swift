@@ -184,7 +184,7 @@ class BoltzAPI {
             return
         }
         
-        print("🔍 Broadcasting transaction: \(transactionHex)")
+        Log.debug("🔍 Broadcasting transaction: \(transactionHex)")
         let broadcastRequest = BroadcastRequest(hex: transactionHex)
         
         var request = URLRequest(url: url)

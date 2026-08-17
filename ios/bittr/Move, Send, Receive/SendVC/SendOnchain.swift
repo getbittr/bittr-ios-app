@@ -249,7 +249,7 @@ extension ConfirmSendViewController {
             }
             return
         }
-        print("Transaction ID: \(txid)")
+        Log.debug("Transaction ID: \(txid)")
         
         DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
             Log.info("Successful transaction.")

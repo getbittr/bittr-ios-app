@@ -220,7 +220,7 @@ class BuyViewController: UIViewController, UITextFieldDelegate, UICollectionView
                     
                     switch result {
                     case .success(let receivedDictionary):
-                        print("Dictionary: \(receivedDictionary)")
+                        Log.debug("Dictionary: \(receivedDictionary)")
                         self.parseNewData(receivedDictionary: receivedDictionary)
                     case .failure(let error):
                         Log.info("185 Error. \(error.localizedDescription)")

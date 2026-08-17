@@ -372,41 +372,41 @@ public class SimpleKeyDerivation {
             let bip32ExtendedRootKey = DescriptorSecretKey(network: .signet, mnemonic: bdkMnemonic, password: nil)
             
             Log.info("=== BDK REFERENCE TEST ===")
-            print("BDK Root Key: \(bip32ExtendedRootKey.asString())")
+            Log.debug("BDK Root Key: \(bip32ExtendedRootKey.asString())")
             
             // Now test our implementation with the same logic as the actual function
             let actualNetwork: KeyDerivationNetwork = UserDefaults.standard.value(forKey: "envkey") as? Int == 0 ? .testnet : .mainnet
-            print("Actual network from environment: \(actualNetwork)")
+            Log.debug("Actual network from environment: \(actualNetwork)")
             
             let keyDerivation = try SimpleKeyDerivation(mnemonic: testMnemonic, network: actualNetwork)
             
             // Test seed generation first
             let masterSeed = try keyDerivation.createMasterSeed(from: Data())
             Log.info("=== SEED GENERATION TEST ===")
-            print("Master seed (first 32 bytes): \(masterSeed.prefix(32).hexString)")
-            print("Chain code (last 32 bytes): \(masterSeed.suffix(32).hexString)")
+            Log.debug("Master seed (first 32 bytes): \(masterSeed.prefix(32).hexString)")
+            Log.debug("Chain code (last 32 bytes): \(masterSeed.suffix(32).hexString)")
             
             // Test path parsing
             let pathComponents = try keyDerivation.parseDerivationPath(testPath)
             Log.info("=== PATH PARSING TEST ===")
-            print("Path components: \(pathComponents.map { String(format: "0x%08x", $0) })")
+            Log.debug("Path components: \(pathComponents.map { String(format: "0x%08x", $0) })")
             
             let (privateKeyHex, publicKeyHex) = try keyDerivation.getPrivatePublicKeyForPath(testPath)
             
             let signature = try! BitcoinMessage.sign(message: "Hello World", privateKeyHex: privateKeyHex, segwitType: .p2wpkh)
             
             Log.info("=== KEY DERIVATION TEST ===")
-            print("Mnemonic: \(testMnemonic)")
-            print("Path: \(testPath)")
-            print("Expected Private Key: \(expectedPrivateKey)")
-            print("Actual Private Key:   \(privateKeyHex)")
-            print("Private Key Match: \(privateKeyHex.lowercased() == expectedPrivateKey.lowercased())")
-            print("")
-            print("Expected Public Key: \(expectedPublicKey)")
-            print("Actual Public Key:   \(publicKeyHex)")
-            print("Public Key Match: \(publicKeyHex.lowercased() == expectedPublicKey.lowercased())")
+            Log.debug("Mnemonic: \(testMnemonic)")
+            Log.debug("Path: \(testPath)")
+            Log.debug("Expected Private Key: \(expectedPrivateKey)")
+            Log.debug("Actual Private Key:   \(privateKeyHex)")
+            Log.debug("Private Key Match: \(privateKeyHex.lowercased() == expectedPrivateKey.lowercased())")
+            Log.debug("")
+            Log.debug("Expected Public Key: \(expectedPublicKey)")
+            Log.debug("Actual Public Key:   \(publicKeyHex)")
+            Log.debug("Public Key Match: \(publicKeyHex.lowercased() == expectedPublicKey.lowercased())")
+            Log.debug("Signature: \(signature)")
             Log.info("=== END TEST ===")
-            print("Signature: \(signature)")
             
         } catch {
             Log.info("Test failed with error: \(error)")

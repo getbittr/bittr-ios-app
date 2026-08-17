@@ -23,11 +23,6 @@ extension HomeViewController {
     
     func fetchAndPrintPeers() {
         
-        // Print nodeID.
-        if let lightningPubKey = BitcoinManager.shared.nodeId() {
-            print(lightningPubKey)
-        }
-        
         // Check peer connection.
         _ = isConnectedToPeer()
         BitcoinManager.shared.listenForEvents()
