@@ -77,7 +77,7 @@ class WebSocketManager: NSObject, URLSessionWebSocketDelegate {
                     if let error = error {
                         Log.info("Failed to send message: \(error)")
                     } else {
-                        print("Message sent: \(jsonString)")  // Log the string version
+                        Log.debug("Message sent: \(jsonString)")  // Log the string version
                     }
                 }
             } else {
@@ -107,7 +107,7 @@ class WebSocketManager: NSObject, URLSessionWebSocketDelegate {
             case .success(let message):
                 switch message {
                 case .string(let text):
-                    print("📩 Received string: \(text)")
+                    Log.debug("📩 Received string: \(text)")
 
                     // Convert JSON string into a Swift dictionary
                     if let data = text.data(using: .utf8) {

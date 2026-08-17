@@ -210,7 +210,7 @@ extension CoreViewController {
                     let payoutResponse = try await BittrService.shared.payoutLightning(notificationId: notificationId, invoice: invoice.description, signature: lightningSignature, pubkey: pubkey)
                     
                     Log.info("Payout successful.")
-                    print("PreImage: \(payoutResponse.preImage ?? "N/A")")
+                    Log.debug("PreImage: \(payoutResponse.preImage ?? "N/A")")
                     DispatchQueue.main.async {
                         CacheManager.didHandleNotification(notificationId)
                         self.hideLoading()
@@ -280,7 +280,7 @@ extension CoreViewController {
     
     func ldkEventReceived(event:LDKNode.Event) {
         
-        print("Event found. \(event)")
+        Log.debug("Event found. \(event)")
         
         if CacheManager.hasHandledEvent(event: "\(event)"), !event.isPaymentFailed() {
             // Event has already been handled.
@@ -506,11 +506,6 @@ extension CoreViewController {
                     // Debug: Print the raw API response data
                     if bittrApiTransactions.count > 0, let firstTransaction = bittrApiTransactions.first {
                         Log.info("DEBUG - Bittr API returned transaction:")
-                        print("  - txId: \(firstTransaction.txId)")
-                        print("  - bitcoinAmount: '\(firstTransaction.bitcoinAmount)'")
-                        print("  - currency: '\(firstTransaction.currency)'")
-                        print("  - transferFee: '\(firstTransaction.transferFee)'")
-                        print("  - datetime: '\(firstTransaction.datetime)'")
                     }
                     
                     CacheManager.updateSentToBittr(txids: [paymentPreimage])
@@ -530,7 +525,7 @@ extension CoreViewController {
                         }
                     } else {
                         Log.info("channelPending: Received no transaction details from Bittr API.")
-                        print("Funding txid: \(paymentPreimage)")
+                        Log.debug("Funding txid: \(paymentPreimage)")
                         if paymentDetails != nil {
                             let thisTransaction = paymentDetails!.createTransaction(bittrTransactions: nil)
                             self.launchTransactionVC(thisTransaction: thisTransaction, paymentDetails: paymentDetails!)
@@ -675,7 +670,7 @@ extension CoreViewController {
                 )
                 
                 Log.info("On-chain payout marked successfully.")
-                print("Payout response: \(response)")
+                Log.debug("Payout response: \(response)")
                 
                 DispatchQueue.main.async {
                     self.hideLoading()

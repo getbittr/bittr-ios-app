@@ -157,8 +157,6 @@ class SwapManager: NSObject {
                     }
                     
                     // Example success {"bip21":"bitcoin:bcrt1pfalvfpkhtha6qmxmkgvljnajnc2hvl2c828euxh5679e302gk9wsh3e9af?amount=0.00050352&label=Send%20to%20BTC%20lightning","acceptZeroConf":false,"expectedAmount":50352,"id":"ChTExx2srRLT","address":"bcrt1pfalvfpkhtha6qmxmkgvljnajnc2hvl2c828euxh5679e302gk9wsh3e9af","swapTree":{"claimLeaf":{"version":192,"output":"a914ed96f252263cd8cc0a616602875f76bfb0c70fcd8820611b80e6aa832718caae89c59f16576888db6f911f88c2d1fc3533bee7efc61fac"},"refundLeaf":{"version":192,"output":"2004cac31242618cac8211d342bc733a1d1fdfe063cfe053977eacd9fac9a89d24ad02df01b1"}},"claimPublicKey":"03611b80e6aa832718caae89c59f16576888db6f911f88c2d1fc3533bee7efc61f","timeoutBlockHeight":479}
-                        
-                    print(receivedDictionary)
                     
                     DispatchQueue.main.async {
                         if
@@ -289,7 +287,7 @@ class SwapManager: NSObject {
             // Calculate fees.
             let feesForOnchainPayment:Int = swapVC.highestFeePerVbyte!.feeSats(forVsize: Double(size))
             let feesForLightningPayment:Int = ongoingSwap.boltzExpectedAmount! - ongoingSwap.satoshisAmount
-            print("Fees lightning: \(feesForLightningPayment). Fees onchain: \(feesForOnchainPayment).")
+            Log.debug("Fees lightning: \(feesForLightningPayment). Fees onchain: \(feesForOnchainPayment).")
             
             // Confirm fees with user.
             DispatchQueue.main.async {
@@ -334,7 +332,7 @@ class SwapManager: NSObject {
             }
             let txId = txIdAndRawData[0]
             let rawData = txIdAndRawData[1]
-            print("Transaction ID: \(txId)")
+            Log.debug("Transaction ID: \(txId)")
             
             DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
                 Log.info("Successful transaction.")
@@ -409,7 +407,6 @@ class SwapManager: NSObject {
         // Use provided payout address if available, otherwise get a new unused address
         let destinationAddress: String?
         if let payoutAddress = payoutAddress {
-            print("DEBUG - Using provided payout address: \(payoutAddress)")
             destinationAddress = payoutAddress
         } else {
             Log.info("DEBUG - Getting new unused address for payout")
@@ -427,7 +424,7 @@ class SwapManager: NSObject {
             return
         }
         
-        print("randomPreimage: \(randomPreimage.hexEncodedString())")
+        Log.debug("randomPreimage: \(randomPreimage.hexEncodedString())")
         
         let dateFormatter = DateFormatter()
         dateFormatter.dateFormat = "yyyyMMddHHmmss"
@@ -583,7 +580,7 @@ class SwapManager: NSObject {
             // swap processing and the user's export both keep working).
             try jsonData.write(to: fileURL, options: [.atomic, .completeFileProtectionUntilFirstUserAuthentication])
             
-            print("Swap details saved to: \(fileURL.path)")
+            Log.debug("Swap details saved to: \(fileURL.path)")
         } catch {
             Log.info("Error saving swap details to file: \(error)")
             SentryManager.capture(error, context: "SwapManager row 519")
@@ -614,7 +611,7 @@ class SwapManager: NSObject {
         
         // Load existing swap details
         guard let existingSwapDetails = loadSwapDetailsFromFile(swapID: swapID) else {
-            print("Could not load existing swap details for ID: \(swapID)")
+            Log.debug("Could not load existing swap details for ID: \(swapID)")
             return
         }
         
@@ -625,7 +622,7 @@ class SwapManager: NSObject {
         // Save the updated swap details back to file
         self.saveSwapDetailsToFile(swapID: swapID, swapDictionary: updatedSwapDetails)
         
-        print("Updated swap file with lockup transaction for ID: \(swapID)")
+        Log.debug("Updated swap file with lockup transaction for ID: \(swapID)")
             
     }
     

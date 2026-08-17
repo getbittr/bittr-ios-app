@@ -114,7 +114,7 @@ extension CoreViewController {
         let label = userInfo["label"] as? String ?? ""
         
         Log.info("Handling Bitcoin URI.")
-        print("Handling Bitcoin URI - Address: \(address), Amount: \(amount), Label: \(label)")
+        Log.debug("Handling Bitcoin URI - Address: \(address), Amount: \(amount), Label: \(label)")
         
         // Check if user is signed in
         DispatchQueue.main.async {
@@ -139,7 +139,7 @@ extension CoreViewController {
         }
         
         Log.info("Handling Lightning URI.")
-        print("Handling Lightning URI - Invoice: \(invoice)")
+        Log.debug("Handling Lightning URI - Invoice: \(invoice)")
         
         // Check if user is signed in
         DispatchQueue.main.async {
