@@ -37,7 +37,6 @@
 		05117AF92EAB74A100A5E4E6 /* Image.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05117AF82EAB749F00A5E4E6 /* Image.swift */; };
 		0514BC5330109C3F00BC05A2 /* PaymentDetails.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0514BC5230109C3B00BC05A2 /* PaymentDetails.swift */; };
 		0514BC553010A17D00BC05A2 /* PaymentKind.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0514BC543010A17B00BC05A2 /* PaymentKind.swift */; };
-		0514BC573010A1AF00BC05A2 /* UILabel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0514BC563010A1AE00BC05A2 /* UILabel.swift */; };
 		051AB88B2F5E816B00DFC39F /* ConfirmSendViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 051AB88A2F5E816B00DFC39F /* ConfirmSendViewController.swift */; };
 		051AB88F2F5E8FB400DFC39F /* ConfirmLanguage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 051AB88E2F5E8FB100DFC39F /* ConfirmLanguage.swift */; };
 		051BE0882B641D41009CED5B /* Reachability.swift in Sources */ = {isa = PBXBuildFile; fileRef = 051BE0872B641D41009CED5B /* Reachability.swift */; };
@@ -255,7 +254,6 @@
 		05117AF82EAB749F00A5E4E6 /* Image.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Image.swift; sourceTree = "<group>"; };
 		0514BC5230109C3B00BC05A2 /* PaymentDetails.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PaymentDetails.swift; sourceTree = "<group>"; };
 		0514BC543010A17B00BC05A2 /* PaymentKind.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PaymentKind.swift; sourceTree = "<group>"; };
-		0514BC563010A1AE00BC05A2 /* UILabel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UILabel.swift; sourceTree = "<group>"; };
 		051AB88A2F5E816B00DFC39F /* ConfirmSendViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConfirmSendViewController.swift; sourceTree = "<group>"; };
 		051AB88E2F5E8FB100DFC39F /* ConfirmLanguage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConfirmLanguage.swift; sourceTree = "<group>"; };
 		051BE0872B641D41009CED5B /* Reachability.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Reachability.swift; sourceTree = "<group>"; };
@@ -554,7 +552,6 @@
 		052E98C02F1638F2000035A8 /* Extensions */ = {
 			isa = PBXGroup;
 			children = (
-				0514BC563010A1AE00BC05A2 /* UILabel.swift */,
 				0514BC543010A17B00BC05A2 /* PaymentKind.swift */,
 				0514BC5230109C3B00BC05A2 /* PaymentDetails.swift */,
 				37FC16D12FAD1B05002578B2 /* UIView+AppTag.swift */,
@@ -1299,7 +1296,6 @@
 				05F418EC2BAC12C0005CFAD0 /* HandleBittrNotification.swift in Sources */,
 				051BE0882B641D41009CED5B /* Reachability.swift in Sources */,
 				05C3C08729CCB55600C1E695 /* SceneDelegate.swift in Sources */,
-				0514BC573010A1AF00BC05A2 /* UILabel.swift in Sources */,
 				053021AE2E701EDA00B23226 /* HandleLightningAddressNotification.swift in Sources */,
 				05906EA22C43C54A0053F7DB /* ReceiveLightning.swift in Sources */,
 				057E6E8B2A14DDBC00B37026 /* Article.swift in Sources */,
