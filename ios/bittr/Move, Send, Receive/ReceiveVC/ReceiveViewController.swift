@@ -207,7 +207,7 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate, UIContextMen
                     // Safety check for invalid values
                     guard btcAmount.isFinite && !btcAmount.isNaN && bitcoinValue.currentValue > 0 else {
                         Log.info("84 Invalid values.")
-                        print("⚠️ Warning: Invalid values - fiatAmount: \(fiatAmount), bitcoinValue: \(bitcoinValue.currentValue), btcAmount: \(btcAmount)")
+                        Log.debug("⚠️ Warning: Invalid values - fiatAmount: \(fiatAmount), bitcoinValue: \(bitcoinValue.currentValue), btcAmount: \(btcAmount)")
                         return nil
                     }
                     

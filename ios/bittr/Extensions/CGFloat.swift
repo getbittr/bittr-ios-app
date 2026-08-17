@@ -10,9 +10,6 @@ import UIKit
 extension CGFloat {
     
     func formattedBitcoin() -> String {
-        // Debug: print the values to see what's happening
-        print("Debug - btcValue: \(self)")
-        
         let formatter = NumberFormatter()
         formatter.numberStyle = .decimal
         formatter.minimumFractionDigits = 8
@@ -24,7 +21,6 @@ extension CGFloat {
         }
         
         let result = formatter.string(from: NSNumber(value: self)) ?? "0.00000000"
-        print("Debug - formatted result: \(result)")
         return result
     }
     
@@ -49,7 +45,7 @@ extension CGFloat {
     func inSatoshis() -> Int {
         // Safety check for invalid values
         guard self.isFinite && !self.isNaN else {
-            print("⚠️ Warning: Invalid CGFloat value (\(self)) in inSatoshis()")
+            Log.debug("⚠️ Warning: Invalid CGFloat value (\(self)) in inSatoshis()")
             return 0
         }
         

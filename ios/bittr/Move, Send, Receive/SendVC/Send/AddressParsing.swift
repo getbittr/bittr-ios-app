@@ -13,7 +13,7 @@ import LightningDevKit
 extension SendViewController {
     
     func handleScannedOrPastedString(_ code:String) {
-        print("Code: " + code)
+        Log.debug("Code: " + code)
         
         // Parse code components.
         let bitcoinAddress = code.extractBitcoinAddress()

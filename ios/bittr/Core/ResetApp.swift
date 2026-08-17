@@ -268,7 +268,7 @@ extension CoreViewController {
             
             // Try force close (unilateral closure)
             Log.info("Attempting force close for channel.")
-            print("Channel ID: \(closingChannel.userChannelId)")
+            Log.debug("Channel ID: \(closingChannel.userChannelId)")
             
             do {
                 try BitcoinManager.shared.forceCloseChannel(userChannelId: closingChannel.userChannelId, counterPartyNodeId: closingChannel.counterpartyNodeId)

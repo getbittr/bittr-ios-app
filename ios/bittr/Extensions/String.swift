@@ -81,7 +81,7 @@ extension String {
         let result = Bolt11Invoice.fromStr(s: self)
         if result.isOk() {
             if let invoice = result.getValue() {
-                print("Invoice parsed successfully: \(invoice)")
+                Log.debug("Invoice parsed successfully: \(invoice)")
                 let paymentHash:[UInt8] = invoice.paymentHash()!
                 let hexString = paymentHash.map { String(format: "%02x", $0) }.joined()
                 return hexString

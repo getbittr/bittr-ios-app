@@ -97,7 +97,7 @@ extension CoreViewController {
                 }
                 return
             }
-            print("Invoice: \(invoice.description)")
+            Log.debug("Invoice: \(invoice.description)")
             
             // Post the invoice to the specified endpoint
             let parameters: [String: Any] = [
@@ -117,7 +117,7 @@ extension CoreViewController {
                     switch result {
                     case .success(let receivedDictionary):
                         Log.info("Successfully posted invoice to endpoint.")
-                        print("Dictionary: \(receivedDictionary)")
+                        Log.debug("Dictionary: \(receivedDictionary)")
                         // No alert needed - user will receive payment notification soon.
                     case .failure(let error):
                         Log.info("Failed to post invoice to endpoint: \(error)")
