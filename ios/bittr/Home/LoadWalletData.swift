@@ -266,11 +266,20 @@ extension HomeViewController {
         }
         
         // Cap the label's width.
-        self.balanceLabelWidth.constant = UIScreen.main.bounds.width - 150
+        let maximumWidth = UIScreen.main.bounds.width - 150
+        self.balanceLabelWidth.constant = maximumWidth
+        
+        // Calculate font size.
+        let text = dimmed + filled
+        let fullSize:CGFloat = 40
+        let fullFont = UIFont(name: "Gilroy-Bold", size: fullSize) ?? .boldSystemFont(ofSize: fullSize)
+        let fullWidth = (text as NSString).size(withAttributes: [.font: fullFont]).width
+        let scale = fullWidth > 0 ? min(1, maximumWidth / fullWidth) : 1
+        let pointSize = max(16, (fullSize * scale).rounded(.down))
         
         // Create the attributed text.
-        let font = UIFont(name: "Gilroy-Bold", size: 40) ?? .boldSystemFont(ofSize: 40)
-        let balance = NSMutableAttributedString(string: dimmed + filled, attributes: [.font: font, .foregroundColor: Colors.getColor("blackorwhite")])
+        let font = UIFont(name: "Gilroy-Bold", size: pointSize) ?? .boldSystemFont(ofSize: pointSize)
+        let balance = NSMutableAttributedString(string: text, attributes: [.font: font, .foregroundColor: Colors.getColor("blackorwhite")])
         
         // Add the dimmed color.
         let dimmedColor = CacheManager.darkModeIsOn() ? UIColor(red: 170/255, green: 190/255, blue: 217/255, alpha: 1) : UIColor(red: 201/255, green: 154/255, blue: 0, alpha: 1)
@@ -278,7 +287,7 @@ extension HomeViewController {
         
         // Set the text.
         self.balanceLabel.adjustsFontSizeToFitWidth = true
-        self.balanceLabel.minimumScaleFactor = 16.0 / 40.0
+        self.balanceLabel.minimumScaleFactor = 16.0 / pointSize
         self.balanceLabel.attributedText = balance
         
         // Hug the text vertically.
