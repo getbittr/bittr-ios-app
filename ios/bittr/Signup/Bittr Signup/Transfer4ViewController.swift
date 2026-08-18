@@ -104,7 +104,7 @@ class Transfer4ViewController: UIViewController {
         }
     }
     
-    @objc func proceedToWallet() {
+    func proceedToWallet() {
         self.hideAlert()
 
         // Hide signup

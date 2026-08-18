@@ -49,7 +49,7 @@ extension CoreViewController {
         }
     }
     
-    @objc func handleLightningAddressNotificationImmediately() {
+    func handleLightningAddressNotificationImmediately() {
         
         guard
             let notification = self.lightningNotification,

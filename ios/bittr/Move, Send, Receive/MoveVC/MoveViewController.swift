@@ -156,7 +156,7 @@ class MoveViewController: UIViewController {
         }
     }
     
-    @objc func launchChannelQuestion() {
+    func launchChannelQuestion() {
         self.hideAlert()
         self.coreVC!.launchQuestion(question: Language.getWord(withID: "lightningchannel"), answer: Language.getWord(withID: "lightningexplanation1"), type: "lightningexplanation")
     }

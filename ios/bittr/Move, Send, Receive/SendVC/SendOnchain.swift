@@ -173,7 +173,7 @@ extension SendViewController {
         }
     }
     
-    @objc func cancelSwapOffer() {
+    func cancelSwapOffer() {
         self.hideAlert()
         // Clear the pending data when user cancels the swap offer
         self.pendingOnchainAddress = ""
@@ -181,7 +181,7 @@ extension SendViewController {
         self.amountTextField.text = ""
     }
     
-    @objc func swapAndPayOnchain() {
+    func swapAndPayOnchain() {
         self.hideAlert()
         Log.info("swapAndPayOnchain called.")
         
@@ -191,7 +191,7 @@ extension SendViewController {
 
 extension ConfirmSendViewController {
     
-    @objc func proceedWithOnchainConfirmation() {
+    func proceedWithOnchainConfirmation() {
         self.hideAlert()
         
         let feeSatoshis = self.selectedFeeRatePerVb().feeSats(forVsize: self.sendVC!.confirmTxSize)
@@ -200,7 +200,7 @@ extension ConfirmSendViewController {
         self.showAlert(presentingController: self, title: Language.getWord(withID: "sendtransaction"), message: Language.getWord(withID: "sendconfirmation").replacingOccurrences(of: "<amount>", with: "\(self.sendVC!.confirmSatoshis)".addSpaces()).replacingOccurrences(of: "<fees>", with: "\(feeSatoshis)".addSpaces()).replacingOccurrences(of: "<address>", with: self.sendVC!.confirmAddress), buttons: [Language.getWord(withID: "cancel"), Language.getWord(withID: "confirm")], actions: [nil, { self.performOnchainTransaction() }])
     }
     
-    @objc func performOnchainTransaction() {
+    func performOnchainTransaction() {
         self.hideAlert()
         if self.confirmSpinner.isAnimating { return }
         
@@ -258,7 +258,7 @@ extension ConfirmSendViewController {
         }
     }
     
-    @objc func addNewTxToTable() {
+    func addNewTxToTable() {
         self.hideAlert()
         
         BitcoinManager.shared.lightSync() { success in

@@ -537,17 +537,17 @@ class SendViewController: UIViewController, UITextFieldDelegate, OnchainSyncFail
 
     // Custom-alert wrappers: the AlertManager doesn't auto-dismiss when a button
     // has an action, so each hides the alert before applying the currency.
-    @objc func tappedBitcoinCurrency() {
+    func tappedBitcoinCurrency() {
         self.hideAlert()
         self.selectBTCCurrency()
     }
 
-    @objc func tappedSatsCurrency() {
+    func tappedSatsCurrency() {
         self.hideAlert()
         self.selectSatsCurrency()
     }
 
-    @objc func tappedFiatCurrency() {
+    func tappedFiatCurrency() {
         self.hideAlert()
         self.selectFiatCurrency()
     }

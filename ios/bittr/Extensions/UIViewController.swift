@@ -129,7 +129,7 @@ extension UIViewController {
         }
     }
     
-    @objc func askForPushNotifications() {
+    func askForPushNotifications() {
         self.hideAlert()
 
         let homeVC = self as? HomeViewController

@@ -430,7 +430,7 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate, UIContextMen
         self.showAlert(presentingController: self, title: Language.getWord(withID: "newaddress"), message: Language.getWord(withID: "newaddress2"), buttons: [Language.getWord(withID: "cancel"), Language.getWord(withID: "confirm")], actions: [nil, { self.confirmOnchainAddress() }])
     }
     
-    @objc func confirmOnchainAddress() {
+    func confirmOnchainAddress() {
         self.hideAlert()
         self.alertTapped(for: .onchain, newAddress: true)
     }
@@ -450,22 +450,22 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate, UIContextMen
         self.showAlert(presentingController: self, title: Language.getWord(withID: "transactiontype"), message: Language.getWord(withID: "selecttransactiontype"), buttons: [Language.getWord(withID: "cancel"), Language.getWord(withID: "getaddress"), Language.getWord(withID: "getbitcoinqr"), Language.getWord(withID: "createinvoice"), Language.getWord(withID: "showlnurl")], actions: [nil, { self.tappedOnchain() }, { self.tappedBitcoinqr() }, { self.tappedLightning() }, { self.tappedLnurl() }])
     }
     
-    @objc func tappedOnchain() {
+    func tappedOnchain() {
         self.hideAlert()
         self.alertTapped(for: .onchain)
     }
     
-    @objc func tappedLightning() {
+    func tappedLightning() {
         self.hideAlert()
         self.alertTapped(for: .lightning)
     }
     
-    @objc func tappedBitcoinqr() {
+    func tappedBitcoinqr() {
         self.hideAlert()
         self.alertTapped(for: .bitcoinqr)
     }
     
-    @objc func tappedLnurl() {
+    func tappedLnurl() {
         self.hideAlert()
         self.alertTapped(for: .lnurl)
     }

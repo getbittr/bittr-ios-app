@@ -154,7 +154,7 @@ class Transfer2ViewController: UIViewController, UITextFieldDelegate, UNUserNoti
     }
     
     
-    @objc func cancelLoading() {
+    func cancelLoading() {
         self.hideAlert()
         DispatchQueue.main.async {
             self.nextButtonLabel.alpha = 1
@@ -164,7 +164,7 @@ class Transfer2ViewController: UIViewController, UITextFieldDelegate, UNUserNoti
     }
 
 
-    @objc func proceedWithoutNotifications() {
+    func proceedWithoutNotifications() {
         // User chose to continue without push notifications. Flag it so that
         // gatherParameters registers them with on-chain payouts, then carry on
         // with signup (the Next-button spinner keeps running).
@@ -445,7 +445,7 @@ class Transfer2ViewController: UIViewController, UITextFieldDelegate, UNUserNoti
         }
     }
     
-    @objc func backToPreviousPage() {
+    func backToPreviousPage() {
         self.hideAlert()
         self.signupVC?.moveToPage(10)
         self.ibanVC?.moveToPage(1)
@@ -483,7 +483,7 @@ class Transfer2ViewController: UIViewController, UITextFieldDelegate, UNUserNoti
         }
     }
     
-    @objc func backToChangeEmail() {
+    func backToChangeEmail() {
         self.hideAlert()
         self.signupVC?.moveToPage(10)
         self.ibanVC?.moveToPage(1)

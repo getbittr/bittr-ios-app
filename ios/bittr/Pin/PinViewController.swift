@@ -259,7 +259,7 @@ class PinViewController: UIViewController, UITextFieldDelegate, UICollectionView
         self.coreVC?.restoreWalletTapped()
     }
     
-    @objc func clearPinField() {
+    func clearPinField() {
         self.hideAlert()
         self.pinTextField.text = ""
         self.pinCollectionView.reloadData()
@@ -278,7 +278,7 @@ class PinViewController: UIViewController, UITextFieldDelegate, UICollectionView
         }
     }
     
-    @objc func startPinReset() {
+    func startPinReset() {
         self.hideAlert()
         self.coreVC!.startPinReset()
     }

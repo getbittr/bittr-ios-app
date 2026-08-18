@@ -361,7 +361,7 @@ extension UIViewController {
         }
     }
     
-    @objc func confirmWithdrawRequest() {
+    func confirmWithdrawRequest() {
         guard let sendVC = self as? SendViewController,
               let callback = sendVC.pendingWithdrawCallback,
               let k1 = sendVC.pendingWithdrawK1,
@@ -391,7 +391,7 @@ extension UIViewController {
         self.showAlert(presentingController: self, title: Language.getWord(withID: "lnurl"), message: Language.getWord(withID: "lnauth1").replacingOccurrences(of: "<action>", with: actionText.lowercased()).replacingOccurrences(of: "<domain>", with: domain), buttons: [Language.getWord(withID: "cancel"), actionText], actions: [{ self.cancelLnurlAuth() }, { self.performLnurlAuth() }])
     }
     
-    @objc func cancelLnurlAuth() {
+    func cancelLnurlAuth() {
         self.hideAlert()
         let sendVC = self as? SendViewController
         let websiteVC = self as? WebsiteViewController
@@ -401,7 +401,7 @@ extension UIViewController {
         websiteVC?.isHandlingLnurlAuth = false
     }
     
-    @objc func performLnurlAuth() {
+    func performLnurlAuth() {
         self.hideAlert()
         let sendVC = self as? SendViewController
         let websiteVC = self as? WebsiteViewController

@@ -208,7 +208,7 @@ class Transfer1ViewController: UIViewController, UITextFieldDelegate {
         self.showAlert(presentingController: self.signupVC?.coreVC ?? self.signupVC ?? self.ibanVC ?? self, title: Language.getWord(withID: "weresorry"), message: Language.getWord(withID: "onlyiban"), buttons: [Language.getWord(withID: "gotowallet"), Language.getWord(withID: "cancel")], actions: [{ self.alertGoToWallet() }, nil])
     }
     
-    @objc func alertGoToWallet() {
+    func alertGoToWallet() {
         self.hideAlert()
         self.coreVC!.buyVC?.registerIbanVC?.dismiss(animated: true)
         self.coreVC!.buyVC?.parseIbanEntities(uponPageLaunch: false)

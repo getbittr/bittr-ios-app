@@ -53,7 +53,7 @@ extension CoreViewController {
         }
     }
     
-    @objc func triggerHTLCReady() {
+    func triggerHTLCReady() {
         self.hideAlert()
         self.showLoading(message: Language.getWord(withID: "receivingpayment"))
         self.lightningNotification = nil
@@ -129,7 +129,7 @@ extension CoreViewController {
         return Language.getWord(withID: "bittrpayoutfail2")
     }
 
-    @objc func triggerPayout() {
+    func triggerPayout() {
         self.hideAlert()
         self.showLoading(message: Language.getWord(withID: "receivingpayment"))
         DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
@@ -137,7 +137,7 @@ extension CoreViewController {
         }
     }
     
-    @objc func facilitateNotificationPayout() {
+    func facilitateNotificationPayout() {
         self.hideAlert()
         Log.info("Will start payout process.")
         
@@ -267,7 +267,7 @@ extension CoreViewController {
     }
     
     
-    @objc func reconnectToPeer() {
+    func reconnectToPeer() {
         self.hideAlert()
         
         Task {
@@ -632,7 +632,7 @@ extension CoreViewController {
         )
     }
     
-    @objc func receiveOnchainForNotification() {
+    func receiveOnchainForNotification() {
         self.hideAlert()
         
         guard let notificationId = self.pendingNotificationId else {
@@ -704,7 +704,7 @@ extension CoreViewController {
         }
     }
     
-    @objc func swapAndPayForNotification() {
+    func swapAndPayForNotification() {
         self.hideAlert()
         
         // Navigate to swap screen using existing pattern

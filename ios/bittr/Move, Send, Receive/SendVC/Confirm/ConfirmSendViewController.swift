@@ -282,7 +282,7 @@ class ConfirmSendViewController: UIViewController {
         }
     }
     
-    @objc func handleAmountChange() {
+    func handleAmountChange() {
         self.hideAlert()
         
         // New amount (at least 0 satoshis).

@@ -60,7 +60,7 @@ class ScannerViewController: UIViewController, AVCaptureMetadataOutputObjectsDel
         }
     }
     
-    @objc func closeScannerView() {
+    func closeScannerView() {
         self.dismiss(animated: true)
     }
     

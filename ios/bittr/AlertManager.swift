@@ -309,7 +309,7 @@ extension UIViewController {
         }
     }
     
-    @objc func hideAlert() {
+    func hideAlert() {
         let host = self.alertPresenter ?? self
         DispatchQueue.main.async {
             for eachView in host.view.subviews where eachView.boundString == "alertview" {

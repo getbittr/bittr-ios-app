@@ -118,7 +118,7 @@ extension CoreViewController {
         }
     }
     
-    @objc func startWalletInBackground() {
+    func startWalletInBackground() {
         self.hideAlert()
         
         // The user wishes to remove the wallet from the device, without signing in.
@@ -132,30 +132,30 @@ extension CoreViewController {
         self.startWallet()
     }
 
-    @objc func resumeWalletRemoval() {
+    func resumeWalletRemoval() {
         Log.info("Resume wallet removal.")
         self.hideAlert()
         self.resettingPin = true
         self.startWalletInBackground()
     }
 
-    @objc func cancelWalletRemoval() {
+    func cancelWalletRemoval() {
         Log.info("Cancel wallet removal.")
         self.hideAlert()
         CacheManager.setWalletRemovalInProgress(false)
     }
 
-    @objc func walletRestoreAlert() {
+    func walletRestoreAlert() {
         self.hideAlert()
         self.showAlert(presentingController: self, title: Language.getWord(withID: "removewallet"), message: Language.getWord(withID: "restorewallet3"), buttons: [Language.getWord(withID: "cancel"), Language.getWord(withID: "remove")], actions: [nil, { self.performWalletReset() }])
     }
     
-    @objc func closeChannelAlert() {
+    func closeChannelAlert() {
         self.hideAlert()
         self.showAlert(presentingController: self, title: Language.getWord(withID: "closechannel"), message: Language.getWord(withID: "closechannel2"), buttons: [Language.getWord(withID: "cancel"), Language.getWord(withID: "closechannel")], actions: [nil, { self.closeChannelConfirmed() }])
     }
     
-    @objc func closeChannelConfirmed() {
+    func closeChannelConfirmed() {
         self.hideAlert()
 
         self.fullViewCover.alpha = 0.8
@@ -244,7 +244,7 @@ extension CoreViewController {
         }
     }
 
-    @objc func forceCloseChannel() {
+    func forceCloseChannel() {
         self.hideAlert()
 
         // Same as closeChannelConfirmed: keep the cover + spinner up during the
@@ -298,7 +298,7 @@ extension CoreViewController {
         }
     }
     
-    @objc func performWalletReset() {
+    func performWalletReset() {
         self.hideAlert()
         self.hideSettings()
         

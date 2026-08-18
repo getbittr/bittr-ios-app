@@ -218,7 +218,7 @@ extension CoreViewController {
         }
     }
     
-    @objc func restartLightning() {
+    func restartLightning() {
         
         self.hideAlert()
         self.startWallet()

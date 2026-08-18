@@ -209,7 +209,7 @@ extension UIViewController {
         return maximumRoutingFeesSat
     }
     
-    @objc func performLightningPayment() {
+    func performLightningPayment() {
         self.hideAlert()
         
         let confirmSendVC = self as? ConfirmSendViewController
@@ -323,7 +323,7 @@ extension UIViewController {
         }
     }
     
-    @objc func swapAndPayLightning() {
+    func swapAndPayLightning() {
         self.hideAlert()
         
         let sendVC = self as? SendViewController

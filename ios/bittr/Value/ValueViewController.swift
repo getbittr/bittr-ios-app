@@ -112,7 +112,7 @@ class ValueViewController: UIViewController {
         self.getCurrentValue()
     }
     
-    @objc func getCurrentValue() {
+    func getCurrentValue() {
         self.hideAlert()
         
         self.valueSpinner.startAnimating()

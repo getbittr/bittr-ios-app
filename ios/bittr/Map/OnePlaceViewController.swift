@@ -159,7 +159,7 @@ class OnePlaceViewController: UIViewController {
         }
     }
     
-    @objc func openInAppleMaps() {
+    func openInAppleMaps() {
         let coordinate = CLLocationCoordinate2D(latitude: self.thisPlace!.lat!, longitude: self.thisPlace!.lon!)
         let placemark = MKPlacemark(coordinate: coordinate)
         let mapItem = MKMapItem(placemark: placemark)
@@ -167,7 +167,7 @@ class OnePlaceViewController: UIViewController {
         mapItem.openInMaps(launchOptions: nil)
     }
     
-    @objc func openInGoogleMaps() {
+    func openInGoogleMaps() {
         let urlString = "comgooglemaps://?q=\(self.thisPlace!.lat!),\(self.thisPlace!.lon!)"
         if let url = URL(string: urlString), UIApplication.shared.canOpenURL(url) {
             UIApplication.shared.open(url)

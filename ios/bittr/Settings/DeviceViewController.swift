@@ -122,19 +122,19 @@ class DeviceViewController: UIViewController, UNUserNotificationCenterDelegate, 
 
     // Custom-alert wrappers: the AlertManager doesn't auto-dismiss when a button
     // has an action, so each hides the alert before applying the change.
-    @objc func selectEnglishLanguage() {
+    func selectEnglishLanguage() {
         self.hideAlert()
         CacheManager.changeLanguage("en_US")
     }
 
-    @objc func selectEuroCurrency() {
+    func selectEuroCurrency() {
         self.hideAlert()
         CacheStore.set("€", for: CacheKeys.currency)
         self.coreVC?.homeVC?.changeCurrency()
         self.deviceTableView.reloadData()
     }
 
-    @objc func selectChfCurrency() {
+    func selectChfCurrency() {
         self.hideAlert()
         CacheStore.set("CHF", for: CacheKeys.currency)
         self.coreVC?.homeVC?.changeCurrency()
@@ -150,7 +150,7 @@ class DeviceViewController: UIViewController, UNUserNotificationCenterDelegate, 
         }
     }
     
-    @objc func copyNotificationToken() {
+    func copyNotificationToken() {
         self.hideAlert()
         UIPasteboard.general.string = self.temporaryNotificationToken
         self.temporaryNotificationToken = ""
@@ -164,7 +164,7 @@ class DeviceViewController: UIViewController, UNUserNotificationCenterDelegate, 
         }
     }
     
-    @objc func copyLightningKey() {
+    func copyLightningKey() {
         self.hideAlert()
         let lightningKey = BitcoinManager.shared.nodeId()!
         UIPasteboard.general.string = lightningKey
@@ -174,7 +174,7 @@ class DeviceViewController: UIViewController, UNUserNotificationCenterDelegate, 
         self.showAlert(presentingController: self, title: Language.getWord(withID: "cachedimages"), message: Language.getWord(withID: "cachedimages1"), buttons: [Language.getWord(withID: "remove"), Language.getWord(withID: "cancel")], actions: [{ self.emptyImageCache() }, nil])
     }
     
-    @objc func emptyImageCache() {
+    func emptyImageCache() {
         self.hideAlert()
         CacheManager.emptyImage()
         self.showAlert(presentingController: self, title: Language.getWord(withID: "cacheemptied"), message: Language.getWord(withID: "cachedimages2"), buttons: [Language.getWord(withID: "okay")], actions: nil)
@@ -191,7 +191,7 @@ class DeviceViewController: UIViewController, UNUserNotificationCenterDelegate, 
         }
     }
     
-    @objc func reconnectToPeer() {
+    func reconnectToPeer() {
         self.hideAlert()
         
         self.tappedCell?.animateCell()
@@ -349,7 +349,7 @@ extension UIViewController {
         }
     }
     
-    @objc func handlePendingPayout() {
+    func handlePendingPayout() {
         self.hideAlert()
         
         let deviceVC = self as? DeviceViewController

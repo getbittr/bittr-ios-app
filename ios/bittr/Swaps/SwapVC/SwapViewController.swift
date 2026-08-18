@@ -260,14 +260,14 @@ class SwapViewController: UIViewController, UITextFieldDelegate, UNUserNotificat
         )
     }
     
-    @objc func cancelSwapFromFeesAlert() {
+    func cancelSwapFromFeesAlert() {
         Log.info("Cancel swap from fees alert.")
         self.hideAlert()
         // Clear all pending data and reset the UI
         self.clearPendingSwapData()
     }
     
-    @objc func proceedWithSwap() {
+    func proceedWithSwap() {
         Log.info("Proceed with swap.")
         self.hideAlert()
         guard self.thisSwap != nil else { return }
@@ -311,7 +311,7 @@ class SwapViewController: UIViewController, UITextFieldDelegate, UNUserNotificat
         self.showAlert(presentingController: self, title: Language.getWord(withID: "boltzexplanation3"), message: Language.getWord(withID: "boltzexplanation"), buttons: [Language.getWord(withID: "okay")], actions: nil)
     }
     
-    @objc func goToBoltz() {
+    func goToBoltz() {
         self.hideAlert()
         self.performSegue(withIdentifier: "SwapToWebsite", sender: self)
     }
