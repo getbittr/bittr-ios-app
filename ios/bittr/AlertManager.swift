@@ -177,25 +177,19 @@ private extension UIViewController {
         return button
     }
     
-    // The two-step slide-up.
+    // The slide-up.
     func slideIn(_ chrome: AlertChrome, on host: UIViewController, completion: (() -> Void)? = nil) {
         
         host.view.layoutIfNeeded()
-        let resting = -host.view.safeAreaInsets.bottom
         
-        UIView.animate(withDuration: 0.3, delay: 0, options: .curveEaseInOut, animations: {
+        UIView.animate(withDuration: 0.5, delay: 0, usingSpringWithDamping: 0.7, initialSpringVelocity: 0, options: [], animations: {
             chrome.background.backgroundColor = UIColor(red: 0, green: 0, blue: 0, alpha: 0.5)
             chrome.cardTop.isActive = false
-            chrome.cardBottom.constant = resting - 15
+            chrome.cardBottom.constant = -host.view.safeAreaInsets.bottom
             chrome.cardBottom.isActive = true
             host.view.layoutIfNeeded()
         }) { _ in
-            UIView.animate(withDuration: 0.1, delay: 0, options: .curveEaseInOut, animations: {
-                chrome.cardBottom.constant = resting
-                host.view.layoutIfNeeded()
-            }) { _ in
-                completion?()
-            }
+            completion?()
         }
     }
     
