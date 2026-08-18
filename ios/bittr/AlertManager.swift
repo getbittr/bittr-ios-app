@@ -9,29 +9,24 @@ import UIKit
 import ObjectiveC.runtime
 
 private struct AlertManagerAssociatedKeys {
-    static var bottomConstraint: UInt8 = 0
-    static var loadingBottomConstraint: UInt8 = 0
-    static var keyboardObservers: UInt8 = 0
     static var alertPresenter: UInt8 = 0
 }
 
-private extension UIView {
-    var alertBottomConstraint: NSLayoutConstraint? {
-        get { objc_getAssociatedObject(self, &AlertManagerAssociatedKeys.bottomConstraint) as? NSLayoutConstraint }
-        set { objc_setAssociatedObject(self, &AlertManagerAssociatedKeys.bottomConstraint, newValue, .OBJC_ASSOCIATION_RETAIN_NONATOMIC) }
-    }
-    // Stashes the loading overlay's bottom constraint so hideLoading() can
-    // animate the card back down (same technique as the alert above).
-    var loadingBottomConstraint: NSLayoutConstraint? {
-        get { objc_getAssociatedObject(self, &AlertManagerAssociatedKeys.loadingBottomConstraint) as? NSLayoutConstraint }
-        set { objc_setAssociatedObject(self, &AlertManagerAssociatedKeys.loadingBottomConstraint, newValue, .OBJC_ASSOCIATION_RETAIN_NONATOMIC) }
-    }
-    // Holds the keyboard-notification tokens for a text-field alert so they can
-    // be torn down when the alert is dismissed (see showTextFieldAlert/hideAlert).
-    var keyboardObserverTokens: [NSObjectProtocol]? {
-        get { objc_getAssociatedObject(self, &AlertManagerAssociatedKeys.keyboardObservers) as? [NSObjectProtocol] }
-        set { objc_setAssociatedObject(self, &AlertManagerAssociatedKeys.keyboardObservers, newValue, .OBJC_ASSOCIATION_RETAIN_NONATOMIC) }
-    }
+private class OverlayView: UIView {
+    // The overlay's own bottom pin, pushed down to slide it off-screen.
+    var bottomConstraint: NSLayoutConstraint?
+    // The card that slid up inside it.
+    var card: UIView?
+}
+
+private final class AlertOverlayView: OverlayView {
+    // Keyboard observers a text field alert registered, torn down on dismissal.
+    var keyboardObserverTokens: [NSObjectProtocol]?
+}
+
+private final class LoadingOverlayView: OverlayView {
+    // Held so a second showLoading can swap the message in place.
+    weak var messageLabel: UILabel?
 }
 
 private final class WeakController {
@@ -68,30 +63,28 @@ extension OnchainSyncFailureReporting {
 
 // The dimming background and the card that slides up inside it.
 private struct AlertChrome {
-    let background: UIView
+    let overlay: OverlayView
     let card: UIView
     let cardTop: NSLayoutConstraint
     let cardBottom: NSLayoutConstraint
-    let backgroundBottom: NSLayoutConstraint
 }
 
 private extension UIViewController {
     
     // Builds the background + card and pins them, with the card parked off-screen below.
-    func makeAlertChrome(on host: UIViewController, marker: String, cardColor: UIColor) -> AlertChrome {
+    func makeAlertChrome(_ overlay: OverlayView, on host: UIViewController, cardColor: UIColor) -> AlertChrome {
         
-        let background = UIView()
-        background.translatesAutoresizingMaskIntoConstraints = false
-        background.backgroundColor = UIColor(red: 0, green: 0, blue: 0, alpha: 0)
-        background.boundString = marker
-        host.view.addSubview(background)
+        overlay.translatesAutoresizingMaskIntoConstraints = false
+        overlay.backgroundColor = UIColor(red: 0, green: 0, blue: 0, alpha: 0)
+        host.view.addSubview(overlay)
         
-        let backgroundBottom = background.bottomAnchor.constraint(equalTo: host.view.bottomAnchor)
+        let overlayBottom = overlay.bottomAnchor.constraint(equalTo: host.view.bottomAnchor)
+        overlay.bottomConstraint = overlayBottom
         NSLayoutConstraint.activate([
-            background.topAnchor.constraint(equalTo: host.view.topAnchor),
-            background.leadingAnchor.constraint(equalTo: host.view.leadingAnchor),
-            background.trailingAnchor.constraint(equalTo: host.view.trailingAnchor),
-            backgroundBottom
+            overlay.topAnchor.constraint(equalTo: host.view.topAnchor),
+            overlay.leadingAnchor.constraint(equalTo: host.view.leadingAnchor),
+            overlay.trailingAnchor.constraint(equalTo: host.view.trailingAnchor),
+            overlayBottom
         ])
         
         let card = UIView()
@@ -100,18 +93,19 @@ private extension UIViewController {
         card.layer.cornerRadius = 13
         card.setShadow()
         card.clipsToBounds = false
-        background.addSubview(card)
+        overlay.addSubview(card)
+        overlay.card = card
         
-        let cardTop = card.topAnchor.constraint(equalTo: background.bottomAnchor)
-        let cardBottom = card.bottomAnchor.constraint(equalTo: background.bottomAnchor)
+        let cardTop = card.topAnchor.constraint(equalTo: overlay.bottomAnchor)
+        let cardBottom = card.bottomAnchor.constraint(equalTo: overlay.bottomAnchor)
         NSLayoutConstraint.activate([
-            card.leadingAnchor.constraint(equalTo: background.leadingAnchor, constant: 10),
-            card.trailingAnchor.constraint(equalTo: background.trailingAnchor, constant: -10),
+            card.leadingAnchor.constraint(equalTo: overlay.leadingAnchor, constant: 10),
+            card.trailingAnchor.constraint(equalTo: overlay.trailingAnchor, constant: -10),
             card.heightAnchor.constraint(lessThanOrEqualToConstant: host.view.bounds.height),
             cardTop
         ])
         
-        return AlertChrome(background: background, card: card, cardTop: cardTop, cardBottom: cardBottom, backgroundBottom: backgroundBottom)
+        return AlertChrome(overlay: overlay, card: card, cardTop: cardTop, cardBottom: cardBottom)
     }
     
     // The bell icon + lowercased title row.
@@ -183,7 +177,7 @@ private extension UIViewController {
         host.view.layoutIfNeeded()
         
         UIView.animate(withDuration: 0.5, delay: 0, usingSpringWithDamping: 0.7, initialSpringVelocity: 0, options: [], animations: {
-            chrome.background.backgroundColor = UIColor(red: 0, green: 0, blue: 0, alpha: 0.5)
+            chrome.overlay.backgroundColor = UIColor(red: 0, green: 0, blue: 0, alpha: 0.5)
             chrome.cardTop.isActive = false
             chrome.cardBottom.constant = -host.view.safeAreaInsets.bottom
             chrome.cardBottom.isActive = true
@@ -194,9 +188,9 @@ private extension UIViewController {
     }
     
     // Slides a chrome view back down and removes it.
-    func slideOut(_ overlay: UIView, from host: UIViewController, bottom: NSLayoutConstraint?) {
+    func slideOut(_ overlay: OverlayView, from host: UIViewController) {
         
-        guard let card = overlay.subviews.first, let bottom = bottom else {
+        guard let card = overlay.card, let bottom = overlay.bottomConstraint else {
             overlay.removeFromSuperview()
             return
         }
@@ -240,9 +234,8 @@ extension UIViewController {
         
         DispatchQueue.main.async {
             
-            let chrome = self.makeAlertChrome(on: presentingController, marker: "alertview", cardColor: Colors.getColor("yelloworblue2"))
+            let chrome = self.makeAlertChrome(AlertOverlayView(), on: presentingController, cardColor: Colors.getColor("yelloworblue2"))
             let card = chrome.card
-            chrome.background.alertBottomConstraint = chrome.backgroundBottom
             
             let alertIcon = self.addAlertHeader(to: card, title: title, trailingLimit: nil)
             
@@ -316,13 +309,13 @@ extension UIViewController {
     func hideAlert() {
         let host = self.alertPresenter ?? self
         DispatchQueue.main.async {
-            for eachView in host.view.subviews where eachView.boundString == "alertview" {
+            for overlay in host.view.subviews.compactMap({ $0 as? AlertOverlayView }) {
                 // Tear down any keyboard observers a text-field alert registered.
-                if let tokens = eachView.keyboardObserverTokens {
+                if let tokens = overlay.keyboardObserverTokens {
                     tokens.forEach { NotificationCenter.default.removeObserver($0) }
-                    eachView.keyboardObserverTokens = nil
+                    overlay.keyboardObserverTokens = nil
                 }
-                self.slideOut(eachView, from: host, bottom: eachView.alertBottomConstraint)
+                self.slideOut(overlay, from: host)
             }
         }
     }
@@ -332,9 +325,9 @@ extension UIViewController {
         self.alertPresenter = presentingController
         
         DispatchQueue.main.async {
-            let chrome = self.makeAlertChrome(on: presentingController, marker: "alertview", cardColor: Colors.getColor("yelloworblue2"))
+            let overlay = AlertOverlayView()
+            let chrome = self.makeAlertChrome(overlay, on: presentingController, cardColor: Colors.getColor("yelloworblue2"))
             let card = chrome.card
-            chrome.background.alertBottomConstraint = chrome.backgroundBottom
             
             let alertIcon = self.addAlertHeader(to: card, title: title, trailingLimit: card)
             
@@ -361,9 +354,9 @@ extension UIViewController {
             
             // Dismissal helper.
             let dismiss: () -> Void = { [weak self] in
-                if let tokens = chrome.background.keyboardObserverTokens {
+                if let tokens = overlay.keyboardObserverTokens {
                     tokens.forEach { NotificationCenter.default.removeObserver($0) }
-                    chrome.background.keyboardObserverTokens = nil
+                    overlay.keyboardObserverTokens = nil
                 }
                 // No keyboard up (e.g. it was dismissed via Done) — just exit.
                 guard presentingController.view.endEditing(true) else {
@@ -427,7 +420,7 @@ extension UIViewController {
                 chrome.cardBottom.constant = -presentingController.view.safeAreaInsets.bottom
                 UIView.animate(withDuration: 0.25) { presentingController.view.layoutIfNeeded() }
             })
-            chrome.background.keyboardObserverTokens = tokens
+            overlay.keyboardObserverTokens = tokens
         }
     }
 
@@ -438,22 +431,16 @@ extension UIViewController {
         DispatchQueue.main.async {
             
             // Already showing → just swap the message, don't stack a second overlay.
-            if let existing = self.view.subviews.first(where: { $0.boundString == "loadingview" }) {
-                for card in existing.subviews {
-                    for row in card.subviews {
-                        for sub in row.subviews where sub.boundString == "loadinglabel" {
-                            (sub as? UILabel)?.text = message
-                        }
-                    }
-                }
+            if let existing = self.view.subviews.compactMap({ $0 as? LoadingOverlayView }).first {
+                existing.messageLabel?.text = message
                 return
             }
             
             // A plain view over everything absorbs all touches, so nothing
             // behind it is tappable and there's no gesture to dismiss it.
-            let chrome = self.makeAlertChrome(on: self, marker: "loadingview", cardColor: Colors.getColor("whiteorblue3"))
+            let overlay = LoadingOverlayView()
+            let chrome = self.makeAlertChrome(overlay, on: self, cardColor: Colors.getColor("whiteorblue3"))
             let card = chrome.card
-            chrome.background.loadingBottomConstraint = chrome.backgroundBottom
             
             // Spinner
             let spinner = UIActivityIndicatorView(style: .medium)
@@ -467,7 +454,7 @@ extension UIViewController {
             label.font = UIFont(name: "Gilroy-Bold", size: 16)
             label.textColor = Colors.getColor("blackorwhite")
             label.text = message
-            label.boundString = "loadinglabel"
+            overlay.messageLabel = label
             
             // Lay the spinner and message out as a horizontal row centred in the
             // card. The row's top/bottom padding drives the card height.
@@ -489,12 +476,11 @@ extension UIViewController {
         }
     }
     
-    /// Slides the loading overlay back down and removes it. Safe to call when
-    /// none is showing.
+    // Slides the loading overlay back down and removes it.
     func hideLoading() {
         DispatchQueue.main.async {
-            for eachView in self.view.subviews where eachView.boundString == "loadingview" {
-                self.slideOut(eachView, from: self, bottom: eachView.loadingBottomConstraint)
+            for overlay in self.view.subviews.compactMap({ $0 as? LoadingOverlayView }) {
+                self.slideOut(overlay, from: self)
             }
         }
     }
