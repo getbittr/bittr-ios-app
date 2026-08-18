@@ -145,7 +145,7 @@ class Transfer1ViewController: UIViewController, UITextFieldDelegate {
             self.gatherIbanDetails()
         } else {
             // Fields have not yet been filled.
-            self.showAlert(presentingController: self.signupVC?.coreVC ?? self.signupVC ?? self.ibanVC ?? self, title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "transfer1vc"), buttons: [.dismiss(Language.getWord(withID: "okay"))])
+            self.showAlert(title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "transfer1vc"), buttons: [.dismiss(Language.getWord(withID: "okay"))])
         }
     }
     
@@ -205,7 +205,7 @@ class Transfer1ViewController: UIViewController, UITextFieldDelegate {
         
         // User indicates they don't have an IBAN.
         self.view.endEditing(true)
-        self.showAlert(presentingController: self.signupVC?.coreVC ?? self.signupVC ?? self.ibanVC ?? self, title: Language.getWord(withID: "weresorry"), message: Language.getWord(withID: "onlyiban"), buttons: [.action(Language.getWord(withID: "gotowallet")) { self.alertGoToWallet() }, .dismiss(Language.getWord(withID: "cancel"))])
+        self.showAlert(title: Language.getWord(withID: "weresorry"), message: Language.getWord(withID: "onlyiban"), buttons: [.action(Language.getWord(withID: "gotowallet")) { self.alertGoToWallet() }, .dismiss(Language.getWord(withID: "cancel"))])
     }
     
     func alertGoToWallet() {
@@ -338,8 +338,6 @@ extension UIViewController {
         let envUrl = "\(EnvironmentConfig.bittrAPIBaseURL)/verify/email"
         await CallsManager.makeApiCall(url: envUrl, parameters: parameters, getOrPost: .post) { result in
             
-            let presentingController = (self as? Transfer1ViewController)?.signupVC?.coreVC ?? (self as? Transfer1ViewController)?.ibanVC ?? (self as? Transfer2ViewController)?.signupVC?.coreVC ?? (self as? Transfer2ViewController)?.ibanVC ?? self
-            
             switch result {
             case .success(let json):
                     // Check if the response contains an error message
@@ -348,13 +346,13 @@ extension UIViewController {
                        let message = json["message"] as? String {
                         
                         // IBAN validation failed
-                        self.showAlert(presentingController: presentingController, title: Language.getWord(withID: "oops"), message: message, buttons: [.dismiss(Language.getWord(withID: "okay"))])
+                        self.showAlert(title: Language.getWord(withID: "oops"), message: message, buttons: [.dismiss(Language.getWord(withID: "okay"))])
                         completion(false)
                     } else {
                         completion(true)
                     }
             case .failure(let error):
-                self.showAlert(presentingController: presentingController, title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "bittrsignupfail4"), buttons: [.dismiss(Language.getWord(withID: "okay"))])
+                self.showAlert(title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "bittrsignupfail4"), buttons: [.dismiss(Language.getWord(withID: "okay"))])
                 SentryManager.capture(error, context: "Transfer1ViewController row 194")
                 completion(false)
             }

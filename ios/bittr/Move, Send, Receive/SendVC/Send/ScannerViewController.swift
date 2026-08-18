@@ -50,7 +50,7 @@ class ScannerViewController: UIViewController, AVCaptureMetadataOutputObjectsDel
                 }
             }
         } else {
-            self.showAlert(presentingController: self, title: Language.getWord(withID: "scanningnotsupported"), message: Language.getWord(withID: "scanningnotavailable"), buttons: [.action(Language.getWord(withID: "okay")) { self.closeScannerView() }])
+            self.showAlert(title: Language.getWord(withID: "scanningnotsupported"), message: Language.getWord(withID: "scanningnotavailable"), buttons: [.action(Language.getWord(withID: "okay")) { self.closeScannerView() }])
         }
     }
     

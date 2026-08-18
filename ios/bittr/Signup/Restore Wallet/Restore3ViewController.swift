@@ -55,7 +55,7 @@ class Restore3ViewController: UIViewController, UITextFieldDelegate {
                 self.coreVC!.hideSignup()
                 
             } else {
-                self.showAlert(presentingController: self.signupVC?.coreVC ?? self.signupVC ?? self, title: Language.getWord(withID: "incorrectpin"), message: Language.getWord(withID: "repeatnumber"), buttons: [.dismiss(Language.getWord(withID: "okay"))])
+                self.showAlert(title: Language.getWord(withID: "incorrectpin"), message: Language.getWord(withID: "repeatnumber"), buttons: [.dismiss(Language.getWord(withID: "okay"))])
             }
         }
     }

@@ -98,7 +98,7 @@ class Signup2ViewController: UIViewController {
             self.signupVC?.moveToPage(5)
         } else {
             // User hasn't agreed to the statements.
-            self.showAlert(presentingController: self.coreVC ?? self.signupVC ?? self, title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "signupvc2"), buttons: [.dismiss(Language.getWord(withID: "okay"))])
+            self.showAlert(title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "signupvc2"), buttons: [.dismiss(Language.getWord(withID: "okay"))])
         }
     }
     

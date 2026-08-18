@@ -65,7 +65,7 @@ class SwapManager: NSObject {
                     swapVC.nextLabel.alpha = 1
                     swapVC.arrowIcon.alpha = 1
                     swapVC.nextSpinner.stopAnimating()
-                    swapVC.showAlert(presentingController: swapVC, title: Language.getWord(withID: "unexpectederror"), message: Language.getWord(withID: "invoicecreatefail"), buttons: [.dismiss(Language.getWord(withID: "okay"))])
+                    swapVC.showAlert(title: Language.getWord(withID: "unexpectederror"), message: Language.getWord(withID: "invoicecreatefail"), buttons: [.dismiss(Language.getWord(withID: "okay"))])
                 }
                 return
             }
@@ -102,7 +102,6 @@ class SwapManager: NSObject {
                 swapVC.arrowIcon.alpha = 1
                 swapVC.nextSpinner.stopAnimating()
                 swapVC.showAlert(
-                    presentingController: swapVC,
                     title: Language.getWord(withID: "notificationsrequired"),
                     message: Language.getWord(withID: "notificationsrequiredmessage"),
                     buttons: [.action(Language.getWord(withID: "okay")) { swapVC.askForPushNotifications() }])
@@ -135,7 +134,7 @@ class SwapManager: NSObject {
                         swapVC.nextLabel.alpha = 1
                         swapVC.arrowIcon.alpha = 1
                         swapVC.nextSpinner.stopAnimating()
-                        swapVC.showAlert(presentingController: swapVC, title: Language.getWord(withID: "error"), message: error.localizedDescription, buttons: [.dismiss(Language.getWord(withID: "okay"))])
+                        swapVC.showAlert(title: Language.getWord(withID: "error"), message: error.localizedDescription, buttons: [.dismiss(Language.getWord(withID: "okay"))])
                     }
                 case .success(let receivedDictionary):
                     if let errorMessage = receivedDictionary["error"] as? String {
@@ -144,7 +143,6 @@ class SwapManager: NSObject {
                             swapVC.arrowIcon.alpha = 1
                             swapVC.nextSpinner.stopAnimating()
                             swapVC.showAlert(
-                                presentingController: swapVC,
                                 title: Language.getWord(withID: "error"),
                                 message: errorMessage,
                                 buttons: [.dismiss(Language.getWord(withID: "okay"))])
@@ -191,7 +189,6 @@ class SwapManager: NSObject {
                                 swapVC.arrowIcon.alpha = 1
                                 swapVC.nextSpinner.stopAnimating()
                                 swapVC.showAlert(
-                                    presentingController: swapVC,
                                     title: Language.getWord(withID: "error"),
                                     message: Language.getWord(withID: "swaperror2"),
                                     buttons: [.dismiss(Language.getWord(withID: "okay"))])
@@ -215,7 +212,7 @@ class SwapManager: NSObject {
                         swapVC.nextLabel.alpha = 1
                         swapVC.arrowIcon.alpha = 1
                         swapVC.nextSpinner.stopAnimating()
-                        swapVC.showAlert(presentingController: swapVC, title: Language.getWord(withID: "oops"), message: "\(Language.getWord(withID: "cannotproceed")). Error: Could not get fee estimates.", buttons: [.dismiss(Language.getWord(withID: "okay"))])
+                        swapVC.showAlert(title: Language.getWord(withID: "oops"), message: "\(Language.getWord(withID: "cannotproceed")). Error: Could not get fee estimates.", buttons: [.dismiss(Language.getWord(withID: "okay"))])
                     }
                     return
                 }
@@ -254,7 +251,6 @@ class SwapManager: NSObject {
                         let message = Language.getWord(withID: "onchaininsufficientfunds")
                             .replacingOccurrences(of: "<amount>", with: "\(balance)")
                         swapVC.showAlert(
-                            presentingController: swapVC,
                             title: Language.getWord(withID: "insufficientfunds"),
                             message: message,
                             buttons: [.dismiss(Language.getWord(withID: "okay"))])
@@ -264,7 +260,6 @@ class SwapManager: NSObject {
                             errorMessage = bdkError.getErrorMessage()
                         }
                         swapVC.showAlert(
-                            presentingController: swapVC,
                             title: Language.getWord(withID: "oops"),
                             message: "\(Language.getWord(withID: "cannotproceed")). Error: \(errorMessage).",
                             buttons: [.dismiss(Language.getWord(withID: "okay"))])
@@ -309,7 +304,6 @@ class SwapManager: NSObject {
 
                 DispatchQueue.main.async {
                     swapVC.showAlert(
-                        presentingController: swapVC,
                         title: Language.getWord(withID: "paymentfailed"),
                         message: Language.getWord(withID: "paymentfailed3"),
                         buttons: [.dismiss(Language.getWord(withID: "okay"))])
@@ -407,7 +401,7 @@ class SwapManager: NSObject {
                 swapVC.nextLabel.alpha = 1
                 swapVC.arrowIcon.alpha = 1
                 swapVC.nextSpinner.stopAnimating()
-                swapVC.showAlert(presentingController: swapVC, title: Language.getWord(withID: "error"), message: Language.getWord(withID: "swaperror2"), buttons: [.dismiss(Language.getWord(withID: "okay"))])
+                swapVC.showAlert(title: Language.getWord(withID: "error"), message: Language.getWord(withID: "swaperror2"), buttons: [.dismiss(Language.getWord(withID: "okay"))])
             }
             return
         }
@@ -428,7 +422,6 @@ class SwapManager: NSObject {
                 swapVC.arrowIcon.alpha = 1
                 swapVC.nextSpinner.stopAnimating()
                 swapVC.showAlert(
-                    presentingController: swapVC,
                     title: Language.getWord(withID: "notificationsrequired"),
                     message: Language.getWord(withID: "notificationsrequiredmessage"),
                     buttons: [.action(Language.getWord(withID: "okay")) { swapVC.askForPushNotifications() }])
@@ -463,7 +456,7 @@ class SwapManager: NSObject {
                         swapVC.nextLabel.alpha = 1
                         swapVC.arrowIcon.alpha = 1
                         swapVC.nextSpinner.stopAnimating()
-                        swapVC.showAlert(presentingController: swapVC, title: Language.getWord(withID: "swapfunds2"), message: "\(Language.getWord(withID: "error")): \(error)", buttons: [.dismiss(Language.getWord(withID: "okay"))])
+                        swapVC.showAlert(title: Language.getWord(withID: "swapfunds2"), message: "\(Language.getWord(withID: "error")): \(error)", buttons: [.dismiss(Language.getWord(withID: "okay"))])
                     }
                 case .success(let receivedDictionary):
                     if let errorMessage = receivedDictionary["error"] as? String {
@@ -472,7 +465,6 @@ class SwapManager: NSObject {
                             swapVC.arrowIcon.alpha = 1
                             swapVC.nextSpinner.stopAnimating()
                             swapVC.showAlert(
-                                presentingController: swapVC,
                                 title: Language.getWord(withID: "error"),
                                 message: errorMessage,
                                 buttons: [.dismiss(Language.getWord(withID: "okay"))])
@@ -518,7 +510,6 @@ class SwapManager: NSObject {
                                 swapVC.arrowIcon.alpha = 1
                                 swapVC.nextSpinner.stopAnimating()
                                 swapVC.showAlert(
-                                    presentingController: swapVC,
                                     title: Language.getWord(withID: "error"),
                                     message: Language.getWord(withID: "swaperror2"),
                                     buttons: [.dismiss(Language.getWord(withID: "okay"))])
@@ -706,7 +697,7 @@ class SwapManager: NSObject {
             if (thisPayment != nil && thisPayment!.status == .failed) || (thisPayment == nil) {
                 // Payment came back failed.
                 swapVC.confirmStatusLabel.text = Language.getWord(withID: "swapstatusfailedtopay")
-                swapVC.showAlert(presentingController: swapVC, title: Language.getWord(withID: "paymentfailed"), message: Language.getWord(withID: "paymentfailed2").replacingOccurrences(of: "<reason>", with: ""), buttons: [.dismiss(Language.getWord(withID: "okay"))])
+                swapVC.showAlert(title: Language.getWord(withID: "paymentfailed"), message: Language.getWord(withID: "paymentfailed2").replacingOccurrences(of: "<reason>", with: ""), buttons: [.dismiss(Language.getWord(withID: "okay"))])
                 return
             }
             

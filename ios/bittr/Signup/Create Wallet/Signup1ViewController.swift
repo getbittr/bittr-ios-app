@@ -105,7 +105,7 @@ class Signup1ViewController: UIViewController {
             do {
                 _ = try BitcoinManager.shared.getNewMnemonic()
             } catch {
-                self.showAlert(presentingController: self.signupVC?.coreVC ?? self.signupVC ?? self, title: Language.getWord(withID: "error"), message: Language.getWord(withID: "mnemonicsavefail"), buttons: [.dismiss(Language.getWord(withID: "okay"))])
+                self.showAlert(title: Language.getWord(withID: "error"), message: Language.getWord(withID: "mnemonicsavefail"), buttons: [.dismiss(Language.getWord(withID: "okay"))])
                 return
             }
 

@@ -10,7 +10,7 @@ import UIKit
 extension SwapViewController {
     
     func switchDirection() {
-        self.showAlert(presentingController: self, title: Language.getWord(withID: "swapfunds"), message: Language.getWord(withID: "swapdirection"), buttons: [.dismiss(Language.getWord(withID: "cancel")), .action(Language.getWord(withID: "onchaintolightning")) { self.switchDirection(.onchainToLightning) }, .action(Language.getWord(withID: "lightningtoonchain")) { self.switchDirection(.lightningToOnchain) }])
+        self.showAlert(title: Language.getWord(withID: "swapfunds"), message: Language.getWord(withID: "swapdirection"), buttons: [.dismiss(Language.getWord(withID: "cancel")), .action(Language.getWord(withID: "onchaintolightning")) { self.switchDirection(.onchainToLightning) }, .action(Language.getWord(withID: "lightningtoonchain")) { self.switchDirection(.lightningToOnchain) }])
     }
     
     func switchDirection(_ swapDirection:SwapDirection) {

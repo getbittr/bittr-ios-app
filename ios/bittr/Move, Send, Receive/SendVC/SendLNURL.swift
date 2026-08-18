@@ -25,7 +25,7 @@ extension SendViewController {
               let amountText = amountTextField.text,
               !amountText.isEmpty else {
             Log.info("Information for pending LNURL incomplete.")
-            self.showAlert(presentingController: self, title: Language.getWord(withID: "lnurl"), message: Language.getWord(withID: "lnurlfail3"), buttons: [.dismiss(Language.getWord(withID: "okay"))])
+            self.showAlert(title: Language.getWord(withID: "lnurl"), message: Language.getWord(withID: "lnurlfail3"), buttons: [.dismiss(Language.getWord(withID: "okay"))])
             return
         }
         
@@ -40,7 +40,7 @@ extension SendViewController {
             Log.info("Entered amount is not within range of the LNURL limits.")
             let minSats = minAmount / 1000
             let maxSats = maxAmount / 1000
-            self.showAlert(presentingController: self, title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "lnurlbetween").replacingOccurrences(of: "<min>", with: "\(minSats)").replacingOccurrences(of: "<max>", with: "\(maxSats)"), buttons: [.dismiss(Language.getWord(withID: "okay"))])
+            self.showAlert(title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "lnurlbetween").replacingOccurrences(of: "<min>", with: "\(minSats)").replacingOccurrences(of: "<max>", with: "\(maxSats)"), buttons: [.dismiss(Language.getWord(withID: "okay"))])
             return
         }
         
@@ -65,13 +65,13 @@ extension SendViewController {
               let maxAmount = pendingWithdrawMaxAmount,
               let amountText = amountTextField.text,
               !amountText.isEmpty else {
-            self.showAlert(presentingController: self, title: Language.getWord(withID: "lnurl"), message: Language.getWord(withID: "lnurlfail3"), buttons: [.dismiss(Language.getWord(withID: "okay"))])
+            self.showAlert(title: Language.getWord(withID: "lnurl"), message: Language.getWord(withID: "lnurlfail3"), buttons: [.dismiss(Language.getWord(withID: "okay"))])
             return
         }
         
         // Convert amount to millisatoshis
         guard let enteredSatoshis = amountText.parsedUserAmount(allowingFraction: false)?.satoshis() else {
-            self.showAlert(presentingController: self, title: Language.getWord(withID: "lnurl"), message: Language.getWord(withID: "lnurlfail3"), buttons: [.dismiss(Language.getWord(withID: "okay"))])
+            self.showAlert(title: Language.getWord(withID: "lnurl"), message: Language.getWord(withID: "lnurlfail3"), buttons: [.dismiss(Language.getWord(withID: "okay"))])
             return
         }
         let enteredAmount = enteredSatoshis * 1000
@@ -80,7 +80,7 @@ extension SendViewController {
         if enteredAmount < minAmount || enteredAmount > maxAmount {
             let minSats = minAmount / 1000
             let maxSats = maxAmount / 1000
-            self.showAlert(presentingController: self, title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "lnurlbetween").replacingOccurrences(of: "<min>", with: "\(minSats)").replacingOccurrences(of: "<max>", with: "\(maxSats)"), buttons: [.dismiss(Language.getWord(withID: "okay"))])
+            self.showAlert(title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "lnurlbetween").replacingOccurrences(of: "<min>", with: "\(minSats)").replacingOccurrences(of: "<max>", with: "\(maxSats)"), buttons: [.dismiss(Language.getWord(withID: "okay"))])
             return
         }
         
@@ -122,7 +122,7 @@ extension UIViewController {
                     SentryManager.capture(error, context: "SendLNURL row 126")
                     SentryManager.countMetric("lnurl.api.failure.2")
                     sendVC?.stopLNURLSpinner()
-                    self.showAlert(presentingController: self, title: Language.getWord(withID: "lnurl"), message: Language.getWord(withID: "lnurlfail3"), buttons: [.dismiss(Language.getWord(withID: "okay"))])
+                    self.showAlert(title: Language.getWord(withID: "lnurl"), message: Language.getWord(withID: "lnurlfail3"), buttons: [.dismiss(Language.getWord(withID: "okay"))])
                 }
                 return
             }
@@ -155,7 +155,7 @@ extension UIViewController {
                     case .success(let actualDataDict):
                         SentryManager.countMetric("lnurl.api.success")
                         guard let receivedTag = actualDataDict["tag"] as? String else {
-                            self.showAlert(presentingController: self, title: Language.getWord(withID: "lnurl"), message: Language.getWord(withID: "lnurlfail4"), buttons: [.dismiss(Language.getWord(withID: "okay"))])
+                            self.showAlert(title: Language.getWord(withID: "lnurl"), message: Language.getWord(withID: "lnurlfail4"), buttons: [.dismiss(Language.getWord(withID: "okay"))])
                             return
                         }
                         
@@ -196,7 +196,6 @@ extension UIViewController {
                                 // Show the payable range. The user taps Okay, then enters
                                 // the amount in the field.
                                 self.showAlert(
-                                    presentingController: self,
                                     title: Language.getWord(withID: "payrequest"),
                                     message: Language.getWord(withID: "payrequest1")
                                         .replacingOccurrences(of: "<minsendable>", with: "\(minSats)".addSpaces())
@@ -246,13 +245,13 @@ extension UIViewController {
 
                             self.showLNURLAuthConfirmation(request)
                         } else {
-                            self.showAlert(presentingController: self, title: Language.getWord(withID: "lnurl"), message: Language.getWord(withID: "lnurlfail4"), buttons: [.dismiss(Language.getWord(withID: "okay"))])
+                            self.showAlert(title: Language.getWord(withID: "lnurl"), message: Language.getWord(withID: "lnurlfail4"), buttons: [.dismiss(Language.getWord(withID: "okay"))])
                         }
                     case .failure(let error):
                         SentryManager.capture(error, context: "SendLNURL row 239")
                         SentryManager.countMetric("lnurl.api.failure.1")
                         Log.info("Error 111: \(error.localizedDescription)")
-                        self.showAlert(presentingController: self, title: Language.getWord(withID: "lnurl"), message: Language.getWord(withID: "lnurlfail3"), buttons: [.dismiss(Language.getWord(withID: "okay"))])
+                        self.showAlert(title: Language.getWord(withID: "lnurl"), message: Language.getWord(withID: "lnurlfail3"), buttons: [.dismiss(Language.getWord(withID: "okay"))])
                     }
                 }
             }
@@ -283,7 +282,7 @@ extension UIViewController {
                         guard let receivedInvoice = actualDataDict["pr"] as? String else {
                             SentryManager.countMetric("lnurl.pay.failure.2")
                             let errorMessage:String = (actualDataDict["detail"] as? String) ?? "Unexpected error"
-                            self.showAlert(presentingController: self, title: Language.getWord(withID: "payrequest"), message: "\(Language.getWord(withID: "lnurlfail2")) \(errorMessage)", buttons: [.dismiss(Language.getWord(withID: "okay"))])
+                            self.showAlert(title: Language.getWord(withID: "payrequest"), message: "\(Language.getWord(withID: "lnurlfail2")) \(errorMessage)", buttons: [.dismiss(Language.getWord(withID: "okay"))])
                             return
                         }
                         // Invoice received.
@@ -296,7 +295,7 @@ extension UIViewController {
                     case .failure(let error):
                         SentryManager.countMetric("lnurl.pay.failure.1")
                         Log.info("Error: \(error.localizedDescription)")
-                        self.showAlert(presentingController: self, title: Language.getWord(withID: "lnurl"), message: Language.getWord(withID: "lnurlfail3"), buttons: [.dismiss(Language.getWord(withID: "okay"))])
+                        self.showAlert(title: Language.getWord(withID: "lnurl"), message: Language.getWord(withID: "lnurlfail3"), buttons: [.dismiss(Language.getWord(withID: "okay"))])
                     }
                 }
             }
@@ -321,7 +320,7 @@ extension UIViewController {
                 DispatchQueue.main.async {
                     sendVC?.stopLNURLSpinner()
                     SentryManager.countMetric("lnurl.withdraw.failure.4")
-                    self.showAlert(presentingController: self, title: Language.getWord(withID: "unexpectederror"), message: Language.getWord(withID: "invoicecreatefail"), buttons: [.dismiss(Language.getWord(withID: "okay"))])
+                    self.showAlert(title: Language.getWord(withID: "unexpectederror"), message: Language.getWord(withID: "invoicecreatefail"), buttons: [.dismiss(Language.getWord(withID: "okay"))])
                 }
                 return
             }
@@ -344,7 +343,7 @@ extension UIViewController {
                         guard let receivedStatus = actualDataDict["status"] as? String, receivedStatus == "OK" else {
                             SentryManager.countMetric("lnurl.withdraw.failure.1")
                             let errorMessage:String = (actualDataDict["reason"] as? String) ?? "Unexpected error"
-                            self.showAlert(presentingController: self, title: Language.getWord(withID: "withdrawrequest"), message: "\(Language.getWord(withID: "lnurlfail1")) \(errorMessage)", buttons: [.dismiss(Language.getWord(withID: "okay"))])
+                            self.showAlert(title: Language.getWord(withID: "withdrawrequest"), message: "\(Language.getWord(withID: "lnurlfail1")) \(errorMessage)", buttons: [.dismiss(Language.getWord(withID: "okay"))])
                             return
                         }
                         // Successful withdrawal.
@@ -353,7 +352,7 @@ extension UIViewController {
                         Log.info("Error: \(error.localizedDescription)")
                         SentryManager.capture(error, context: "SendLNURL row 342")
                         SentryManager.countMetric("lnurl.withdraw.failure.3")
-                        self.showAlert(presentingController: self, title: Language.getWord(withID: "lnurl"), message: Language.getWord(withID: "lnurlfail3"), buttons: [.dismiss(Language.getWord(withID: "okay"))])
+                        self.showAlert(title: Language.getWord(withID: "lnurl"), message: Language.getWord(withID: "lnurlfail3"), buttons: [.dismiss(Language.getWord(withID: "okay"))])
                     }
                 }
             }
@@ -387,7 +386,7 @@ extension UIViewController {
         sendVC?.pendingLnurlAuth = request
         websiteVC?.pendingLnurlAuth = request
         
-        self.showAlert(presentingController: self, title: Language.getWord(withID: "lnurl"), message: Language.getWord(withID: "lnauth1").replacingOccurrences(of: "<action>", with: actionText.lowercased()).replacingOccurrences(of: "<domain>", with: domain), buttons: [.action(Language.getWord(withID: "cancel")) { self.cancelLnurlAuth() }, .action(actionText) { self.performLnurlAuth() }])
+        self.showAlert(title: Language.getWord(withID: "lnurl"), message: Language.getWord(withID: "lnauth1").replacingOccurrences(of: "<action>", with: actionText.lowercased()).replacingOccurrences(of: "<domain>", with: domain), buttons: [.action(Language.getWord(withID: "cancel")) { self.cancelLnurlAuth() }, .action(actionText) { self.performLnurlAuth() }])
     }
     
     func cancelLnurlAuth() {
@@ -503,11 +502,11 @@ extension UIViewController {
                 websiteVC?.isHandlingLnurlAuth = false
                 if authResponse.status == "OK" {
                     Log.info("Successful signin.")
-                    self.showAlert(presentingController: self, title: Language.getWord(withID: "lnurl"), message: Language.getWord(withID: "lnauth2"), buttons: [.dismiss(Language.getWord(withID: "okay"))])
+                    self.showAlert(title: Language.getWord(withID: "lnurl"), message: Language.getWord(withID: "lnauth2"), buttons: [.dismiss(Language.getWord(withID: "okay"))])
                 } else {
                     Log.info("LNURL Auth failed: \(authResponse.reason ?? "Unknown reason")")
                     let reason = authResponse.reason ?? Language.getWord(withID: "lnauth3")
-                    self.showAlert(presentingController: self, title: Language.getWord(withID: "lnurl"), message: reason, buttons: [.dismiss(Language.getWord(withID: "okay"))])
+                    self.showAlert(title: Language.getWord(withID: "lnurl"), message: reason, buttons: [.dismiss(Language.getWord(withID: "okay"))])
                 }
             }
         }
@@ -518,7 +517,7 @@ extension UIViewController {
             (self as? SendViewController)?.stopLNURLSpinner()
             (self as? WebsiteViewController)?.isHandlingLnurlAuth = false
             let message = reason ?? Language.getWord(withID: "lnauth3")
-            self.showAlert(presentingController: self, title: Language.getWord(withID: "lnurl"), message: message, buttons: [.dismiss(Language.getWord(withID: "okay"))])
+            self.showAlert(title: Language.getWord(withID: "lnurl"), message: message, buttons: [.dismiss(Language.getWord(withID: "okay"))])
         }
     }
     

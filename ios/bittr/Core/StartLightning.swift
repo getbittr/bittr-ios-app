@@ -18,7 +18,7 @@ extension CoreViewController {
 
         let showRetryAlert = { [weak self] in
             guard let self else { return }
-            self.showAlert(presentingController: self, title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "walletconnectfail"), buttons: [.action(Language.getWord(withID: "tryagain")) { self.startWallet() }])
+            self.showAlert(title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "walletconnectfail"), buttons: [.action(Language.getWord(withID: "tryagain")) { self.startWallet() }])
         }
 
         // Watchdog: building/starting the node can hang on network and
@@ -102,7 +102,7 @@ extension CoreViewController {
             // This is only reachable for users with Lightning connections before these stopped being synced.
             // Newer users will never encounter this issue.
             BitcoinManager.shared.didQuarantineForeignState = false
-            self.showAlert(presentingController: self, title: Language.getWord(withID: "restoredbackup"), message: Language.getWord(withID: "restoredbackup2"), buttons: [.dismiss(Language.getWord(withID: "okay"))])
+            self.showAlert(title: Language.getWord(withID: "restoredbackup"), message: Language.getWord(withID: "restoredbackup2"), buttons: [.dismiss(Language.getWord(withID: "okay"))])
         }
         
         // Start final calculations.
@@ -199,7 +199,7 @@ extension CoreViewController {
                 // session. On this path nobody else is listening — the user is
                 // on the home screen — so say so rather than failing silently.
                 if BitcoinManager.shared.bdkFullScanTimedOut {
-                    self.showAlert(presentingController: self, title: Language.getWord(withID: "onchainsyncfailedtitle"), message: Language.getWord(withID: "onchainsynctimedout"), buttons: [.dismiss(Language.getWord(withID: "okay"))])
+                    self.showAlert(title: Language.getWord(withID: "onchainsyncfailedtitle"), message: Language.getWord(withID: "onchainsynctimedout"), buttons: [.dismiss(Language.getWord(withID: "okay"))])
                 }
                 return
             }

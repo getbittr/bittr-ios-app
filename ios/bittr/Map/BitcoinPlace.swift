@@ -79,7 +79,7 @@ extension MapViewController {
                     self.noPlacesLabel.alpha = 1
                     
                     if BitcoinPlacesCache.shared.loadPlaces().count == 0 {
-                        self.showAlert(presentingController: self, title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "placeserror"), buttons: [.dismiss(Language.getWord(withID: "okay"))])
+                        self.showAlert(title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "placeserror"), buttons: [.dismiss(Language.getWord(withID: "okay"))])
                     }
                 }
             }

@@ -653,7 +653,6 @@ class TransactionViewController: UIViewController {
     @IBAction func noteButtonTapped(_ sender: UIButton) {
 
         self.showTextFieldAlert(
-            presentingController: self,
             title: Language.getWord(withID: "addanote"),
             initialText: self.labelNote.text ?? "",
             placeholder: Language.getWord(withID: "addanote"),
@@ -681,7 +680,7 @@ class TransactionViewController: UIViewController {
 
         if let thisId = sender.boundString {
             UIPasteboard.general.string = thisId
-            self.showAlert(presentingController: self, title: Language.getWord(withID: "copied"), message: thisId, buttons: [.dismiss(Language.getWord(withID: "okay"))])
+            self.showAlert(title: Language.getWord(withID: "copied"), message: thisId, buttons: [.dismiss(Language.getWord(withID: "okay"))])
         }
     }
     
@@ -696,13 +695,13 @@ class TransactionViewController: UIViewController {
         
         let copyingText = self.descriptionText()
         UIPasteboard.general.string = copyingText
-        self.showAlert(presentingController: self, title: Language.getWord(withID: "copied"), message: copyingText, buttons: [.dismiss(Language.getWord(withID: "okay"))])
+        self.showAlert(title: Language.getWord(withID: "copied"), message: copyingText, buttons: [.dismiss(Language.getWord(withID: "okay"))])
     }
     
     @IBAction func lightningIDTapped(_ sender: UIButton) {
         
         UIPasteboard.general.string = self.tappedTransaction.lightningID
-        self.showAlert(presentingController: self, title: Language.getWord(withID: "copied"), message: self.tappedTransaction.lightningID, buttons: [.dismiss(Language.getWord(withID: "okay"))])
+        self.showAlert(title: Language.getWord(withID: "copied"), message: self.tappedTransaction.lightningID, buttons: [.dismiss(Language.getWord(withID: "okay"))])
     }
     
     @IBAction func feesQuestionButtonTapped(_ sender: UIButton) {
@@ -749,7 +748,7 @@ class TransactionViewController: UIViewController {
         default: return
         }
         
-        self.showAlert(presentingController: self, title: notificationTitle, message: notificationBody, buttons: [.dismiss(Language.getWord(withID: "okay"))])
+        self.showAlert(title: notificationTitle, message: notificationBody, buttons: [.dismiss(Language.getWord(withID: "okay"))])
     }
     
     override func prepare(for segue: UIStoryboardSegue, sender: Any?) {

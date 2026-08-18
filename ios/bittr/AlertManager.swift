@@ -35,6 +35,11 @@ private final class WeakController {
 }
 
 private extension UIViewController {
+    var alertHost: UIViewController {
+        var host = self
+        while let parent = host.parent { host = parent }
+        return host
+    }
     var alertPresenter: UIViewController? {
         get { (objc_getAssociatedObject(self, &AlertManagerAssociatedKeys.alertPresenter) as? WeakController)?.controller }
         set { objc_setAssociatedObject(self, &AlertManagerAssociatedKeys.alertPresenter, WeakController(newValue), .OBJC_ASSOCIATION_RETAIN_NONATOMIC) }
@@ -54,7 +59,7 @@ extension OnchainSyncFailureReporting {
             let timedOut = BitcoinManager.shared.bdkFullScanTimedOut
             // Replace the "syncing" alert (if still visible) with the failure alert.
             self.hideAlert()
-            self.showAlert(presentingController: self, title: Language.getWord(withID: "onchainsyncfailedtitle"), message: Language.getWord(withID: timedOut ? "onchainsynctimedout" : "onchainsyncfailed"), buttons: [.dismiss(Language.getWord(withID: "okay"))])
+            self.showAlert(title: Language.getWord(withID: "onchainsyncfailedtitle"), message: Language.getWord(withID: timedOut ? "onchainsynctimedout" : "onchainsyncfailed"), buttons: [.dismiss(Language.getWord(withID: "okay"))])
         }
     }
 }
@@ -225,16 +230,18 @@ struct AlertButton {
 
 extension UIViewController {
     
-    func showAlert(presentingController:UIViewController, title:String, message:String, buttons:[AlertButton]) {
+    func showAlert(presentingController:UIViewController? = nil, title:String, message:String, buttons:[AlertButton]) {
         
-        self.alertPresenter = presentingController
+        let host = presentingController ?? self.alertHost
+        
+        self.alertPresenter = host
         
         // The x is offered whenever at least one button merely closes the alert.
         let isDismissable = buttons.contains { $0.action == nil }
         
         DispatchQueue.main.async {
             
-            let chrome = self.makeAlertChrome(AlertOverlayView(), on: presentingController, cardColor: Colors.getColor("yelloworblue2"))
+            let chrome = self.makeAlertChrome(AlertOverlayView(), on: host, cardColor: Colors.getColor("yelloworblue2"))
             let card = chrome.card
             
             let alertIcon = self.addAlertHeader(to: card, title: title, trailingLimit: nil)
@@ -302,7 +309,7 @@ extension UIViewController {
                 buttonsStack.bottomAnchor.constraint(equalTo: card.bottomAnchor, constant: -15)
             ])
 
-            self.slideIn(chrome, on: presentingController)
+            self.slideIn(chrome, on: host)
         }
     }
     
@@ -320,13 +327,15 @@ extension UIViewController {
         }
     }
     
-    func showTextFieldAlert(presentingController: UIViewController, title: String, initialText: String, placeholder: String, cancelTitle: String, saveTitle: String, onSave: @escaping (String) -> Void) {
+    func showTextFieldAlert(presentingController: UIViewController? = nil, title: String, initialText: String, placeholder: String, cancelTitle: String, saveTitle: String, onSave: @escaping (String) -> Void) {
         
-        self.alertPresenter = presentingController
+        let host = presentingController ?? self.alertHost
+        
+        self.alertPresenter = host
         
         DispatchQueue.main.async {
             let overlay = AlertOverlayView()
-            let chrome = self.makeAlertChrome(overlay, on: presentingController, cardColor: Colors.getColor("yelloworblue2"))
+            let chrome = self.makeAlertChrome(overlay, on: host, cardColor: Colors.getColor("yelloworblue2"))
             let card = chrome.card
             
             let alertIcon = self.addAlertHeader(to: card, title: title, trailingLimit: card)
@@ -359,13 +368,13 @@ extension UIViewController {
                     overlay.keyboardObserverTokens = nil
                 }
                 // No keyboard up (e.g. it was dismissed via Done) — just exit.
-                guard presentingController.view.endEditing(true) else {
+                guard host.view.endEditing(true) else {
                     self?.hideAlert()
                     return
                 }
-                chrome.cardBottom.constant = -presentingController.view.safeAreaInsets.bottom
+                chrome.cardBottom.constant = -host.view.safeAreaInsets.bottom
                 UIView.animate(withDuration: 0.25, delay: 0, options: .curveEaseInOut, animations: {
-                    presentingController.view.layoutIfNeeded()
+                    host.view.layoutIfNeeded()
                 }) { _ in
                     self?.hideAlert()
                 }
@@ -403,7 +412,7 @@ extension UIViewController {
             ])
             
             // Slide the card up.
-            self.slideIn(chrome, on: presentingController) {
+            self.slideIn(chrome, on: host) {
                 textField.becomeFirstResponder()
             }
             
@@ -414,11 +423,11 @@ extension UIViewController {
             tokens.append(notificationCenter.addObserver(forName: UIResponder.keyboardWillShowNotification, object: nil, queue: .main) { note in
                 guard let keyboardFrame = (note.userInfo?[UIResponder.keyboardFrameEndUserInfoKey] as? NSValue)?.cgRectValue else { return }
                 chrome.cardBottom.constant = -keyboardFrame.height - 10
-                UIView.animate(withDuration: 0.25) { presentingController.view.layoutIfNeeded() }
+                UIView.animate(withDuration: 0.25) { host.view.layoutIfNeeded() }
             })
             tokens.append(notificationCenter.addObserver(forName: UIResponder.keyboardWillHideNotification, object: nil, queue: .main) { _ in
-                chrome.cardBottom.constant = -presentingController.view.safeAreaInsets.bottom
-                UIView.animate(withDuration: 0.25) { presentingController.view.layoutIfNeeded() }
+                chrome.cardBottom.constant = -host.view.safeAreaInsets.bottom
+                UIView.animate(withDuration: 0.25) { host.view.layoutIfNeeded() }
             })
             overlay.keyboardObserverTokens = tokens
         }

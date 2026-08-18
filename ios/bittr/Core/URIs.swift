@@ -124,7 +124,7 @@ extension CoreViewController {
             } else {
                 // User hasn't signed in yet, store URI data for later
                 self.storeBitcoinURIData(address: address, amount: amount, label: label)
-                self.showAlert(presentingController: self, title: Language.getWord(withID: "sendbitcoin"), message: Language.getWord(withID: "pleasesignintosend"), buttons: [.dismiss(Language.getWord(withID: "okay"))])
+                self.showAlert(title: Language.getWord(withID: "sendbitcoin"), message: Language.getWord(withID: "pleasesignintosend"), buttons: [.dismiss(Language.getWord(withID: "okay"))])
             }
         }
     }
@@ -149,7 +149,7 @@ extension CoreViewController {
             } else {
                 // User hasn't signed in yet, store URI data for later
                 self.storeLightningURIData(invoice: invoice)
-                self.showAlert(presentingController: self, title: Language.getWord(withID: "sendbitcoin"), message: Language.getWord(withID: "pleasesignintosend"), buttons: [.dismiss(Language.getWord(withID: "okay"))])
+                self.showAlert(title: Language.getWord(withID: "sendbitcoin"), message: Language.getWord(withID: "pleasesignintosend"), buttons: [.dismiss(Language.getWord(withID: "okay"))])
             }
         }
     }

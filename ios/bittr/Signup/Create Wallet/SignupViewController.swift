@@ -61,7 +61,6 @@ class SignupViewController: UIViewController {
             if thisPage > 2 {
                 Log.info("SECURITY: Blocked access to page \(thisPage) during PIN reset")
                 self.showAlert(
-                    presentingController: self,
                     title: "Access Restricted",
                     message: "This option is not available during PIN reset for security reasons.",
                     buttons: [.dismiss("OK")])
@@ -165,7 +164,7 @@ class SignupViewController: UIViewController {
     @objc func screenshotTaken() {
         // User shouldn't screenshot their mnemonic.
         if self.currentPage == 5 {
-            self.showAlert(presentingController: self.coreVC ?? self, title: Language.getWord(withID: "becareful"), message: Language.getWord(withID: "noscreenshot"), buttons: [.dismiss(Language.getWord(withID: "okay"))])
+            self.showAlert(title: Language.getWord(withID: "becareful"), message: Language.getWord(withID: "noscreenshot"), buttons: [.dismiss(Language.getWord(withID: "okay"))])
         }
     }
     

@@ -128,9 +128,9 @@ class Transfer3ViewController: UIViewController {
     @objc func image(_ image: UIImage, didFinishSavingWithError error: Error?, contextInfo: UnsafeRawPointer) {
         
         if error == nil {
-            self.showAlert(presentingController: self.signupVC?.coreVC ?? self.signupVC ?? self.ibanVC ?? self, title: Language.getWord(withID: "saved"), message: Language.getWord(withID: "screenshot2"), buttons: [.dismiss(Language.getWord(withID: "okay"))])
+            self.showAlert(title: Language.getWord(withID: "saved"), message: Language.getWord(withID: "screenshot2"), buttons: [.dismiss(Language.getWord(withID: "okay"))])
         } else {
-            self.showAlert(presentingController: self.signupVC?.coreVC ?? self.signupVC ?? self.ibanVC ?? self, title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "screenshot3"), buttons: [.dismiss(Language.getWord(withID: "okay"))])
+            self.showAlert(title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "screenshot3"), buttons: [.dismiss(Language.getWord(withID: "okay"))])
         }
     }
     
@@ -139,7 +139,7 @@ class Transfer3ViewController: UIViewController {
         // Copy details to clipboard.
         let value = sender.boundString ?? ""
         UIPasteboard.general.string = value
-        self.showAlert(presentingController: self.signupVC?.coreVC ?? self.signupVC ?? self.ibanVC ?? self, title: Language.getWord(withID: "copied"), message: value, buttons: [.dismiss(Language.getWord(withID: "okay"))])
+        self.showAlert(title: Language.getWord(withID: "copied"), message: value, buttons: [.dismiss(Language.getWord(withID: "okay"))])
     }
     
     func changeColors() {

@@ -237,7 +237,6 @@ class Signup4ViewController: UIViewController, UITextFieldDelegate {
         // Check for empty fields
         if field1Text.isEmpty || field2Text.isEmpty || field3Text.isEmpty {
             self.showAlert(
-                presentingController: self.signupVC?.coreVC ?? self.signupVC ?? self,
                 title: Language.getWord(withID: "missingwords"),
                 message: Language.getWord(withID: "missingwords2"),
                 buttons: [.dismiss(Language.getWord(withID: "okay"))])
@@ -259,7 +258,6 @@ class Signup4ViewController: UIViewController, UITextFieldDelegate {
         
         if !invalidWordMessages.isEmpty {
             self.showAlert(
-                presentingController: self.signupVC?.coreVC ?? self.signupVC ?? self,
                 title: Language.getWord(withID: "invalidwords"),
                 message: Language.getWord(withID: "invalidwords2"),
                 buttons: [.dismiss(Language.getWord(withID: "okay"))])
@@ -276,7 +274,6 @@ class Signup4ViewController: UIViewController, UITextFieldDelegate {
         } else {
             // Show friendly error message without revealing correct words
             self.showAlert(
-                presentingController: self.signupVC?.coreVC ?? self.signupVC ?? self,
                 title: Language.getWord(withID: "incorrectphrase"),
                 message: Language.getWord(withID: "incorrectphrase2"),
                 buttons: [.dismiss(Language.getWord(withID: "okay"))])

@@ -153,7 +153,7 @@ class OnePlaceViewController: UIViewController {
     @IBAction func goToMapsTapped(_ sender: UIButton) {
         
         if UIApplication.shared.canOpenURL(URL(string: "comgooglemaps://")!) {
-            self.showAlert(presentingController: self.mapVC ?? self, title: Language.getWord(withID: "openinmaps"), message: Language.getWord(withID: "openinmaps2"), buttons: [.dismiss(Language.getWord(withID: "cancel")), .action(Language.getWord(withID: "openinmaps4")) { self.openInAppleMaps() }, .action(Language.getWord(withID: "openinmaps3")) { self.openInGoogleMaps() }])
+            self.showAlert(title: Language.getWord(withID: "openinmaps"), message: Language.getWord(withID: "openinmaps2"), buttons: [.dismiss(Language.getWord(withID: "cancel")), .action(Language.getWord(withID: "openinmaps4")) { self.openInAppleMaps() }, .action(Language.getWord(withID: "openinmaps3")) { self.openInGoogleMaps() }])
         } else {
             self.openInAppleMaps()
         }
