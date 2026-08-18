@@ -130,7 +130,6 @@ extension UIViewController {
     }
     
     func askForPushNotifications() {
-        self.hideAlert()
 
         let homeVC = self as? HomeViewController
         let swapVC = self as? SwapViewController

@@ -139,7 +139,7 @@ class MoveViewController: UIViewController {
             self.showAlert(presentingController: self, title: Language.getWord(withID: "lightningchannels"), message: Language.getWord(withID: "lightningexplanation1"), buttons: [Language.getWord(withID: "okay")], actions: nil)
         } else {
             // There's a Lightning channel.
-            self.launchChannelQuestion()
+            self.coreVC!.launchQuestion(question: Language.getWord(withID: "lightningchannel"), answer: Language.getWord(withID: "lightningexplanation1"), type: "lightningexplanation")
         }
     }
     
@@ -152,13 +152,10 @@ class MoveViewController: UIViewController {
             self.showAlert(presentingController: self, title: Language.getWord(withID: "connectionclosed"), message: message, buttons: [Language.getWord(withID: "okay")], actions: nil)
         } else {
             // There is an active channel with spendable lightning funds.
-            self.showAlert(presentingController: self, title: Language.getWord(withID: "connectionclosed"), message: message, buttons: [Language.getWord(withID: "close"), Language.getWord(withID: "viewactiveconnection")], actions: [nil, { self.launchChannelQuestion() }])
+            self.showAlert(presentingController: self, title: Language.getWord(withID: "connectionclosed"), message: message, buttons: [Language.getWord(withID: "close"), Language.getWord(withID: "viewactiveconnection")], actions: [nil, {
+                self.coreVC!.launchQuestion(question: Language.getWord(withID: "lightningchannel"), answer: Language.getWord(withID: "lightningexplanation1"), type: "lightningexplanation")
+            }])
         }
-    }
-    
-    func launchChannelQuestion() {
-        self.hideAlert()
-        self.coreVC!.launchQuestion(question: Language.getWord(withID: "lightningchannel"), answer: Language.getWord(withID: "lightningexplanation1"), type: "lightningexplanation")
     }
     
     @IBAction func swapButtonTapped(_ sender: UIButton) {

@@ -113,7 +113,6 @@ class ValueViewController: UIViewController {
     }
     
     func getCurrentValue() {
-        self.hideAlert()
         
         self.valueSpinner.startAnimating()
         self.isFetchingData = true

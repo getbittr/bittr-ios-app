@@ -392,7 +392,6 @@ extension UIViewController {
     }
     
     func cancelLnurlAuth() {
-        self.hideAlert()
         let sendVC = self as? SendViewController
         let websiteVC = self as? WebsiteViewController
         sendVC?.pendingLnurlAuth = nil
@@ -402,7 +401,6 @@ extension UIViewController {
     }
     
     func performLnurlAuth() {
-        self.hideAlert()
         let sendVC = self as? SendViewController
         let websiteVC = self as? WebsiteViewController
         guard let request = (sendVC?.pendingLnurlAuth ?? websiteVC?.pendingLnurlAuth) else { return }

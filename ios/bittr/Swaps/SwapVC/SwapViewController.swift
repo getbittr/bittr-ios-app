@@ -262,14 +262,12 @@ class SwapViewController: UIViewController, UITextFieldDelegate, UNUserNotificat
     
     func cancelSwapFromFeesAlert() {
         Log.info("Cancel swap from fees alert.")
-        self.hideAlert()
         // Clear all pending data and reset the UI
         self.clearPendingSwapData()
     }
     
     func proceedWithSwap() {
         Log.info("Proceed with swap.")
-        self.hideAlert()
         guard self.thisSwap != nil else { return }
         
         // Save ongoing swap to cache.

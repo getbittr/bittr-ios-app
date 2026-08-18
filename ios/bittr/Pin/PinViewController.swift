@@ -234,7 +234,7 @@ class PinViewController: UIViewController, UITextFieldDelegate, UICollectionView
                 // Forgot PIN flow — the wipe can cost them their Lightning
                 // funds, so we want them recovering by mnemonic instead.
                 if CacheManager.getFailedPinAttempts() == 3 {
-                    self.showAlert(presentingController: self.coreVC ?? self, title: Language.getWord(withID: "pinwarning"), message: Language.getWord(withID: "pinwarning2") + "\n\n" + attemptsMessage, buttons: [Language.getWord(withID: "okay"), Language.getWord(withID: "forgotpin")], actions: [nil, { self.startPinReset() }])
+                    self.showAlert(presentingController: self.coreVC ?? self, title: Language.getWord(withID: "pinwarning"), message: Language.getWord(withID: "pinwarning2") + "\n\n" + attemptsMessage, buttons: [Language.getWord(withID: "okay"), Language.getWord(withID: "forgotpin")], actions: [nil, { self.coreVC!.startPinReset() }])
                     return
                 }
 
@@ -260,7 +260,6 @@ class PinViewController: UIViewController, UITextFieldDelegate, UICollectionView
     }
     
     func clearPinField() {
-        self.hideAlert()
         self.pinTextField.text = ""
         self.pinCollectionView.reloadData()
     }
@@ -269,18 +268,13 @@ class PinViewController: UIViewController, UITextFieldDelegate, UICollectionView
         
         switch self.embeddingView {
         case .core:
-            self.showAlert(presentingController: self.coreVC!, title: Language.getWord(withID: "forgotpin"), message: Language.getWord(withID: "forgotpin2"), buttons: [Language.getWord(withID: "cancel"), Language.getWord(withID: "reset")], actions: [nil, { self.startPinReset() }])
+            self.showAlert(presentingController: self.coreVC!, title: Language.getWord(withID: "forgotpin"), message: Language.getWord(withID: "forgotpin2"), buttons: [Language.getWord(withID: "cancel"), Language.getWord(withID: "reset")], actions: [nil, { self.coreVC!.startPinReset() }])
         case .signup6:
             (self.upperViewController as? Signup6ViewController)?.backButtonTapped()
         case .restore3:
             (self.upperViewController as? Restore3ViewController)?.backButtonTapped()
         default: return
         }
-    }
-    
-    func startPinReset() {
-        self.hideAlert()
-        self.coreVC!.startPinReset()
     }
     
     @IBAction func pinButtonTouchDown(_ sender: UIButton) {

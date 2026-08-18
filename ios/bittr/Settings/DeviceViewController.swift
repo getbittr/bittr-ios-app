@@ -34,7 +34,6 @@ class DeviceViewController: UIViewController, UNUserNotificationCenterDelegate, 
     var coreVC:CoreViewController?
     var homeVC:HomeViewController?
     var tappedCell:DeviceTableViewCell?
-    var temporaryNotificationToken = ""
     var channelsCount:String?
     var pendingPayout:BittrPendingPayout?
     
@@ -113,30 +112,15 @@ class DeviceViewController: UIViewController, UNUserNotificationCenterDelegate, 
     }
     
     func changeLanguage() {
-        self.showAlert(presentingController: self, title: Language.getWord(withID: "selectlanguage"), message: Language.getWord(withID: "selectlanguagemessage"), buttons: [Language.getWord(withID: "cancel"), "English (US)"], actions: [nil, { self.selectEnglishLanguage() }])
+        self.showAlert(presentingController: self, title: Language.getWord(withID: "selectlanguage"), message: Language.getWord(withID: "selectlanguagemessage"), buttons: [Language.getWord(withID: "cancel"), "English (US)"], actions: [nil, { CacheManager.changeLanguage("en_US") }])
     }
 
     func changeCurrency() {
-        self.showAlert(presentingController: self, title: Language.getWord(withID: "selectcurrency"), message: Language.getWord(withID: "selectcurrencymessage"), buttons: [Language.getWord(withID: "cancel"), "EUR €", "CHF"], actions: [nil, { self.selectEuroCurrency() }, { self.selectChfCurrency() }])
+        self.showAlert(presentingController: self, title: Language.getWord(withID: "selectcurrency"), message: Language.getWord(withID: "selectcurrencymessage"), buttons: [Language.getWord(withID: "cancel"), "EUR €", "CHF"], actions: [nil, { self.selectCurrency("€") }, { self.selectCurrency("CHF") }])
     }
-
-    // Custom-alert wrappers: the AlertManager doesn't auto-dismiss when a button
-    // has an action, so each hides the alert before applying the change.
-    func selectEnglishLanguage() {
-        self.hideAlert()
-        CacheManager.changeLanguage("en_US")
-    }
-
-    func selectEuroCurrency() {
-        self.hideAlert()
-        CacheStore.set("€", for: CacheKeys.currency)
-        self.coreVC?.homeVC?.changeCurrency()
-        self.deviceTableView.reloadData()
-    }
-
-    func selectChfCurrency() {
-        self.hideAlert()
-        CacheStore.set("CHF", for: CacheKeys.currency)
+    
+    func selectCurrency(_ currency:String) {
+        CacheStore.set(currency, for: CacheKeys.currency)
         self.coreVC?.homeVC?.changeCurrency()
         self.deviceTableView.reloadData()
     }
@@ -144,30 +128,17 @@ class DeviceViewController: UIViewController, UNUserNotificationCenterDelegate, 
     @objc func showToken(notification:NSNotification) {
         if let userInfo = notification.userInfo as [AnyHashable:Any]? {
             if let notificationToken = userInfo["token"] as? String {
-                self.temporaryNotificationToken = notificationToken
-                self.showAlert(presentingController: self, title: Language.getWord(withID: "devicetoken"), message: "\(notificationToken)", buttons: [Language.getWord(withID: "copy"), Language.getWord(withID: "close")], actions: [{ self.copyNotificationToken() }, nil])
+                self.showAlert(presentingController: self, title: Language.getWord(withID: "devicetoken"), message: "\(notificationToken)", buttons: [Language.getWord(withID: "copy"), Language.getWord(withID: "close")], actions: [{ UIPasteboard.general.string = notificationToken }, nil])
             }
         }
     }
     
-    func copyNotificationToken() {
-        self.hideAlert()
-        UIPasteboard.general.string = self.temporaryNotificationToken
-        self.temporaryNotificationToken = ""
-    }
-    
     func getPublicKey() {
         if let lightningKey = BitcoinManager.shared.nodeId() {
-            self.showAlert(presentingController: self, title: Language.getWord(withID: "publickey"), message: "\(lightningKey)", buttons: [Language.getWord(withID: "copy"), Language.getWord(withID: "close")], actions: [{ self.copyLightningKey() }, nil])
+            self.showAlert(presentingController: self, title: Language.getWord(withID: "publickey"), message: "\(lightningKey)", buttons: [Language.getWord(withID: "copy"), Language.getWord(withID: "close")], actions: [{ UIPasteboard.general.string = BitcoinManager.shared.nodeId()! }, nil])
         } else {
             self.showAlert(presentingController: self, title: Language.getWord(withID: "publickey"), message: Language.getWord(withID: "syncingwallet2"), buttons: [Language.getWord(withID: "okay")], actions: nil)
         }
-    }
-    
-    func copyLightningKey() {
-        self.hideAlert()
-        let lightningKey = BitcoinManager.shared.nodeId()!
-        UIPasteboard.general.string = lightningKey
     }
     
     func imagesButtonTapped() {
@@ -175,7 +146,6 @@ class DeviceViewController: UIViewController, UNUserNotificationCenterDelegate, 
     }
     
     func emptyImageCache() {
-        self.hideAlert()
         CacheManager.emptyImage()
         self.showAlert(presentingController: self, title: Language.getWord(withID: "cacheemptied"), message: Language.getWord(withID: "cachedimages2"), buttons: [Language.getWord(withID: "okay")], actions: nil)
     }
@@ -192,7 +162,6 @@ class DeviceViewController: UIViewController, UNUserNotificationCenterDelegate, 
     }
     
     func reconnectToPeer() {
-        self.hideAlert()
         
         self.tappedCell?.animateCell()
         
@@ -350,7 +319,6 @@ extension UIViewController {
     }
     
     func handlePendingPayout() {
-        self.hideAlert()
         
         let deviceVC = self as? DeviceViewController
         let coreVC = self as? CoreViewController

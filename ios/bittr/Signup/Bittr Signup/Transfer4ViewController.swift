@@ -105,7 +105,6 @@ class Transfer4ViewController: UIViewController {
     }
     
     func proceedToWallet() {
-        self.hideAlert()
 
         // Hide signup
         self.coreVC!.buyVC?.registerIbanVC?.dismiss(animated: true)

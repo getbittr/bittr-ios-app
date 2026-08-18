@@ -151,7 +151,7 @@ class CoreViewController: UIViewController {
         self.checkWalletAvailability()
     }
     
-    func checkWalletAvailability() {
+    @objc func checkWalletAvailability() {
         
         // Decide which screen to show based on whether a wallet exists. The
         // containers are revealed here, at viewDidLoad, and stay interactable
@@ -187,17 +187,13 @@ class CoreViewController: UIViewController {
         self.pinContainerView.alpha = 1
         self.fullViewCover.alpha = 0.8
         self.genericSpinner.startAnimating()
-
+        
         if !self.isAwaitingProtectedData {
             self.isAwaitingProtectedData = true
-            NotificationCenter.default.addObserver(self, selector: #selector(self.retryReadingKeychain), name: UIApplication.protectedDataDidBecomeAvailableNotification, object: nil)
+            NotificationCenter.default.addObserver(self, selector: #selector(self.checkWalletAvailability), name: UIApplication.protectedDataDidBecomeAvailableNotification, object: nil)
         }
-
-        self.showAlert(presentingController: self,
-                       title: Language.getWord(withID: "keychainunavailabletitle"),
-                       message: Language.getWord(withID: "keychainunavailable"),
-                       buttons: [Language.getWord(withID: "tryagain")],
-                       actions: [{ self.retryReadingKeychain() }])
+        
+        self.showAlert(presentingController: self, title: Language.getWord(withID: "keychainunavailabletitle"), message: Language.getWord(withID: "keychainunavailable"), buttons: [Language.getWord(withID: "tryagain")], actions: [{ self.checkWalletAvailability() }])
     }
     
     private func finishAwaitingProtectedDataIfNeeded() {
@@ -206,11 +202,6 @@ class CoreViewController: UIViewController {
         NotificationCenter.default.removeObserver(self, name: UIApplication.protectedDataDidBecomeAvailableNotification, object: nil)
         self.fullViewCover.alpha = 0
         self.genericSpinner.stopAnimating()
-    }
-    
-    @objc private func retryReadingKeychain() {
-        self.hideAlert()
-        self.checkWalletAvailability()
     }
     
     func checkWalletRemoval() {

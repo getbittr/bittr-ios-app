@@ -174,7 +174,6 @@ extension SendViewController {
     }
     
     func cancelSwapOffer() {
-        self.hideAlert()
         // Clear the pending data when user cancels the swap offer
         self.pendingOnchainAddress = ""
         // Also clear the amount field to make it obvious this is cancelled
@@ -182,9 +181,7 @@ extension SendViewController {
     }
     
     func swapAndPayOnchain() {
-        self.hideAlert()
         Log.info("swapAndPayOnchain called.")
-        
         self.performSegue(withIdentifier: "SendToSwap", sender: self)
     }
 }
@@ -192,7 +189,6 @@ extension SendViewController {
 extension ConfirmSendViewController {
     
     func proceedWithOnchainConfirmation() {
-        self.hideAlert()
         
         let feeSatoshis = self.selectedFeeRatePerVb().feeSats(forVsize: self.sendVC!.confirmTxSize)
         
@@ -201,7 +197,6 @@ extension ConfirmSendViewController {
     }
     
     func performOnchainTransaction() {
-        self.hideAlert()
         if self.confirmSpinner.isAnimating { return }
         
         // Start spinner.
@@ -259,7 +254,6 @@ extension ConfirmSendViewController {
     }
     
     func addNewTxToTable() {
-        self.hideAlert()
         
         BitcoinManager.shared.lightSync() { success in
             if success {

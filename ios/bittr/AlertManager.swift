@@ -262,11 +262,8 @@ extension UIViewController {
 
             let buttonViews = buttons.enumerated().map { index, eachButton in
                 self.makeAlertButton(title: eachButton, index: index) { [weak self] in
-                    if let action = resolvedActions[index] {
-                        action()
-                    } else {
-                        self?.hideAlert()
-                    }
+                    self?.hideAlert()
+                    resolvedActions[index]?()
                 }
             }
 

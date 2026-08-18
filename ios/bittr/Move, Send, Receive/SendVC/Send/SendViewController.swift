@@ -360,6 +360,17 @@ class SendViewController: UIViewController, UITextFieldDelegate, OnchainSyncFail
         }
     }
     
+    func selectCurrency(_ type:SelectedCurrency) {
+        switch type {
+        case .bitcoin: self.btcLabel.text = "BTC"
+        case .satoshis: self.btcLabel.text = "Sats"
+        case .currency:
+            let currency = CacheStore.value(for: CacheKeys.currency) ?? "EUR"
+            self.btcLabel.text = currency
+        }
+        self.selectedCurrency = type
+    }
+    
     @objc func selectBTCCurrency() {
         self.btcLabel.text = "BTC"
         self.selectedCurrency = .bitcoin
@@ -532,24 +543,7 @@ class SendViewController: UIViewController, UITextFieldDelegate, OnchainSyncFail
         self.view.endEditing(true)
         
         let bitcoinValue = BitcoinManager.shared.bittrWallet.getCorrectBitcoinValue()
-        self.showAlert(presentingController: self, title: Language.getWord(withID: "selectcurrency"), message: Language.getWord(withID: "selectcurrencymessage"), buttons: [Language.getWord(withID: "cancel"), "Bitcoin", "Satoshis", bitcoinValue.chosenCurrency], actions: [nil, { self.tappedBitcoinCurrency() }, { self.tappedSatsCurrency() }, { self.tappedFiatCurrency() }])
-    }
-
-    // Custom-alert wrappers: the AlertManager doesn't auto-dismiss when a button
-    // has an action, so each hides the alert before applying the currency.
-    func tappedBitcoinCurrency() {
-        self.hideAlert()
-        self.selectBTCCurrency()
-    }
-
-    func tappedSatsCurrency() {
-        self.hideAlert()
-        self.selectSatsCurrency()
-    }
-
-    func tappedFiatCurrency() {
-        self.hideAlert()
-        self.selectFiatCurrency()
+        self.showAlert(presentingController: self, title: Language.getWord(withID: "selectcurrency"), message: Language.getWord(withID: "selectcurrencymessage"), buttons: [Language.getWord(withID: "cancel"), "Bitcoin", "Satoshis", bitcoinValue.chosenCurrency], actions: [nil, { self.selectCurrency(.bitcoin) }, { self.selectCurrency(.satoshis) }, { self.selectCurrency(.currency) }])
     }
     
     @IBAction func availableQuestionTapped(_ sender: UIButton) {

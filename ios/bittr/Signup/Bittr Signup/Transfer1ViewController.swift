@@ -209,7 +209,6 @@ class Transfer1ViewController: UIViewController, UITextFieldDelegate {
     }
     
     func alertGoToWallet() {
-        self.hideAlert()
         self.coreVC!.buyVC?.registerIbanVC?.dismiss(animated: true)
         self.coreVC!.buyVC?.parseIbanEntities(uponPageLaunch: false)
         self.coreVC!.hideSignup()

@@ -210,7 +210,6 @@ extension UIViewController {
     }
     
     func performLightningPayment() {
-        self.hideAlert()
         
         let confirmSendVC = self as? ConfirmSendViewController
         let sendVC = (self as? SendViewController) ?? confirmSendVC?.sendVC
@@ -324,7 +323,6 @@ extension UIViewController {
     }
     
     func swapAndPayLightning() {
-        self.hideAlert()
         
         let sendVC = self as? SendViewController
         
@@ -344,7 +342,6 @@ extension UIViewController {
     }
     
     func addNewPaymentToTable(thisPayment:PaymentDetails) {
-        self.hideAlert()
         
         // Set view controllers.
         let sendVC = self as? SendViewController

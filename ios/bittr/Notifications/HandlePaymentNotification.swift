@@ -54,7 +54,6 @@ extension CoreViewController {
     }
     
     func triggerHTLCReady() {
-        self.hideAlert()
         self.showLoading(message: Language.getWord(withID: "receivingpayment"))
         self.lightningNotification = nil
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
@@ -130,7 +129,6 @@ extension CoreViewController {
     }
 
     func triggerPayout() {
-        self.hideAlert()
         self.showLoading(message: Language.getWord(withID: "receivingpayment"))
         DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
             self.facilitateNotificationPayout()
@@ -138,7 +136,6 @@ extension CoreViewController {
     }
     
     func facilitateNotificationPayout() {
-        self.hideAlert()
         Log.info("Will start payout process.")
         
         // Extract required data.
@@ -268,8 +265,6 @@ extension CoreViewController {
     
     
     func reconnectToPeer() {
-        self.hideAlert()
-        
         Task {
             _ = await BitcoinManager.shared.didEstablishPeerConnection()
             DispatchQueue.main.async {
@@ -633,7 +628,6 @@ extension CoreViewController {
     }
     
     func receiveOnchainForNotification() {
-        self.hideAlert()
         
         guard let notificationId = self.pendingNotificationId else {
             Log.info("ERROR: No pending notification ID for on-chain payout")
@@ -705,8 +699,6 @@ extension CoreViewController {
     }
     
     func swapAndPayForNotification() {
-        self.hideAlert()
-        
         // Navigate to swap screen using existing pattern
         // Use the stored suggested swap amount
         Log.info("swapAndPayForNotification called.")

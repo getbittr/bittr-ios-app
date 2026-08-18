@@ -119,7 +119,6 @@ extension CoreViewController {
     }
     
     func startWalletInBackground() {
-        self.hideAlert()
         
         // The user wishes to remove the wallet from the device, without signing in.
         Log.info("Start wallet in background.")
@@ -134,29 +133,24 @@ extension CoreViewController {
 
     func resumeWalletRemoval() {
         Log.info("Resume wallet removal.")
-        self.hideAlert()
         self.resettingPin = true
         self.startWalletInBackground()
     }
 
     func cancelWalletRemoval() {
         Log.info("Cancel wallet removal.")
-        self.hideAlert()
         CacheManager.setWalletRemovalInProgress(false)
     }
 
     func walletRestoreAlert() {
-        self.hideAlert()
         self.showAlert(presentingController: self, title: Language.getWord(withID: "removewallet"), message: Language.getWord(withID: "restorewallet3"), buttons: [Language.getWord(withID: "cancel"), Language.getWord(withID: "remove")], actions: [nil, { self.performWalletReset() }])
     }
     
     func closeChannelAlert() {
-        self.hideAlert()
         self.showAlert(presentingController: self, title: Language.getWord(withID: "closechannel"), message: Language.getWord(withID: "closechannel2"), buttons: [Language.getWord(withID: "cancel"), Language.getWord(withID: "closechannel")], actions: [nil, { self.closeChannelConfirmed() }])
     }
     
     func closeChannelConfirmed() {
-        self.hideAlert()
 
         self.fullViewCover.alpha = 0.8
         self.genericSpinner.startAnimating()
@@ -245,7 +239,6 @@ extension CoreViewController {
     }
 
     func forceCloseChannel() {
-        self.hideAlert()
 
         // Same as closeChannelConfirmed: keep the cover + spinner up during the
         // force-close attempt until a terminal alert appears.
@@ -299,7 +292,6 @@ extension CoreViewController {
     }
     
     func performWalletReset() {
-        self.hideAlert()
         self.hideSettings()
         
         // Stop background sync timer. This has to happen before the teardown
