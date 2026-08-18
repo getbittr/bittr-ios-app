@@ -18,7 +18,7 @@ extension CoreViewController {
 
         let showRetryAlert = { [weak self] in
             guard let self else { return }
-            self.showAlert(presentingController: self, title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "walletconnectfail"), buttons: [Language.getWord(withID: "tryagain")], actions: [#selector(self.restartLightning)])
+            self.showAlert(presentingController: self, title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "walletconnectfail"), buttons: [Language.getWord(withID: "tryagain")], actions: [{ self.restartLightning() }])
         }
 
         // Watchdog: building/starting the node can hang on network and

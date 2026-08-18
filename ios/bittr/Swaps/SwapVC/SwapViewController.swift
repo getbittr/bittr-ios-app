@@ -256,7 +256,7 @@ class SwapViewController: UIViewController, UITextFieldDelegate, UNUserNotificat
             title: Language.getWord(withID: "swapfunds2"),
             message: message + cautionMessage + " " + doYouWishToProceed,
             buttons: [Language.getWord(withID: "cancel"), Language.getWord(withID: "proceed")],
-            actions: [#selector(self.cancelSwapFromFeesAlert), #selector(self.proceedWithSwap)]
+            actions: [{ self.cancelSwapFromFeesAlert() }, { self.proceedWithSwap() }]
         )
     }
     

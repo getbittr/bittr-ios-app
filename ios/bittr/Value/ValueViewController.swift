@@ -274,7 +274,7 @@ class ValueViewController: UIViewController {
                     self.homeVC?.chfData = nil
                     self.homeVC?.currentValue = nil
                     
-                    self.showAlert(presentingController: self, title: Language.getWord(withID: "oops"), message: "\(Language.getWord(withID: "historicaldata"))", buttons: [Language.getWord(withID: "tryagain"), Language.getWord(withID: "cancel")], actions: [#selector(self.getCurrentValue), nil])
+                    self.showAlert(presentingController: self, title: Language.getWord(withID: "oops"), message: "\(Language.getWord(withID: "historicaldata"))", buttons: [Language.getWord(withID: "tryagain"), Language.getWord(withID: "cancel")], actions: [{ self.getCurrentValue() }, nil])
                     SentryManager.capture(error, context: "ValueViewController row 264")
                 }
             }

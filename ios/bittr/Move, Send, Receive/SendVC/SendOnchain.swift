@@ -66,7 +66,7 @@ extension SendViewController {
                     title: Language.getWord(withID: "insufficientfunds"),
                     message: Language.getWord(withID: "onchaininsufficientfunds").replacingOccurrences(of: "<amount>", with: String(BitcoinManager.shared.bittrWallet.satoshisOnchain).addSpaces()) + "\n\n" + Language.getWord(withID: "swapinsufficientfundslightning").replacingOccurrences(of: "<amount>", with: "\(availableLightningBalance)".addSpaces()),
                     buttons: [Language.getWord(withID: "cancel"), Language.getWord(withID: "swapandpay")],
-                    actions: [#selector(self.cancelSwapOffer), #selector(self.swapAndPayOnchain)]
+                    actions: [{ self.cancelSwapOffer() }, { self.swapAndPayOnchain() }]
                 )
                 // Store the address for the swap
                 self.pendingOnchainAddress = enteredAddress
@@ -197,7 +197,7 @@ extension ConfirmSendViewController {
         let feeSatoshis = self.selectedFeeRatePerVb().feeSats(forVsize: self.sendVC!.confirmTxSize)
         
         // Double-check transaction details.
-        self.showAlert(presentingController: self, title: Language.getWord(withID: "sendtransaction"), message: Language.getWord(withID: "sendconfirmation").replacingOccurrences(of: "<amount>", with: "\(self.sendVC!.confirmSatoshis)".addSpaces()).replacingOccurrences(of: "<fees>", with: "\(feeSatoshis)".addSpaces()).replacingOccurrences(of: "<address>", with: self.sendVC!.confirmAddress), buttons: [Language.getWord(withID: "cancel"), Language.getWord(withID: "confirm")], actions: [nil, #selector(self.performOnchainTransaction)])
+        self.showAlert(presentingController: self, title: Language.getWord(withID: "sendtransaction"), message: Language.getWord(withID: "sendconfirmation").replacingOccurrences(of: "<amount>", with: "\(self.sendVC!.confirmSatoshis)".addSpaces()).replacingOccurrences(of: "<fees>", with: "\(feeSatoshis)".addSpaces()).replacingOccurrences(of: "<address>", with: self.sendVC!.confirmAddress), buttons: [Language.getWord(withID: "cancel"), Language.getWord(withID: "confirm")], actions: [nil, { self.performOnchainTransaction() }])
     }
     
     @objc func performOnchainTransaction() {
@@ -253,7 +253,7 @@ extension ConfirmSendViewController {
                 self.confirmSpinner.stopAnimating()
                 self.newTxId = txid
 
-                self.showAlert(presentingController: self, title: Language.getWord(withID: "success"), message: Language.getWord(withID: "transactionsuccess"), buttons: [Language.getWord(withID: "okay")], actions: [#selector(self.addNewTxToTable)])
+                self.showAlert(presentingController: self, title: Language.getWord(withID: "success"), message: Language.getWord(withID: "transactionsuccess"), buttons: [Language.getWord(withID: "okay")], actions: [{ self.addNewTxToTable() }])
             }
         }
     }

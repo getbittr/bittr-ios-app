@@ -532,7 +532,7 @@ class SendViewController: UIViewController, UITextFieldDelegate, OnchainSyncFail
         self.view.endEditing(true)
         
         let bitcoinValue = BitcoinManager.shared.bittrWallet.getCorrectBitcoinValue()
-        self.showAlert(presentingController: self, title: Language.getWord(withID: "selectcurrency"), message: Language.getWord(withID: "selectcurrencymessage"), buttons: [Language.getWord(withID: "cancel"), "Bitcoin", "Satoshis", bitcoinValue.chosenCurrency], actions: [nil, #selector(self.tappedBitcoinCurrency), #selector(self.tappedSatsCurrency), #selector(self.tappedFiatCurrency)])
+        self.showAlert(presentingController: self, title: Language.getWord(withID: "selectcurrency"), message: Language.getWord(withID: "selectcurrencymessage"), buttons: [Language.getWord(withID: "cancel"), "Bitcoin", "Satoshis", bitcoinValue.chosenCurrency], actions: [nil, { self.tappedBitcoinCurrency() }, { self.tappedSatsCurrency() }, { self.tappedFiatCurrency() }])
     }
 
     // Custom-alert wrappers: the AlertManager doesn't auto-dismiss when a button

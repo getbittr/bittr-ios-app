@@ -113,11 +113,11 @@ class DeviceViewController: UIViewController, UNUserNotificationCenterDelegate, 
     }
     
     func changeLanguage() {
-        self.showAlert(presentingController: self, title: Language.getWord(withID: "selectlanguage"), message: Language.getWord(withID: "selectlanguagemessage"), buttons: [Language.getWord(withID: "cancel"), "English (US)"], actions: [nil, #selector(self.selectEnglishLanguage)])
+        self.showAlert(presentingController: self, title: Language.getWord(withID: "selectlanguage"), message: Language.getWord(withID: "selectlanguagemessage"), buttons: [Language.getWord(withID: "cancel"), "English (US)"], actions: [nil, { self.selectEnglishLanguage() }])
     }
 
     func changeCurrency() {
-        self.showAlert(presentingController: self, title: Language.getWord(withID: "selectcurrency"), message: Language.getWord(withID: "selectcurrencymessage"), buttons: [Language.getWord(withID: "cancel"), "EUR €", "CHF"], actions: [nil, #selector(self.selectEuroCurrency), #selector(self.selectChfCurrency)])
+        self.showAlert(presentingController: self, title: Language.getWord(withID: "selectcurrency"), message: Language.getWord(withID: "selectcurrencymessage"), buttons: [Language.getWord(withID: "cancel"), "EUR €", "CHF"], actions: [nil, { self.selectEuroCurrency() }, { self.selectChfCurrency() }])
     }
 
     // Custom-alert wrappers: the AlertManager doesn't auto-dismiss when a button
@@ -145,7 +145,7 @@ class DeviceViewController: UIViewController, UNUserNotificationCenterDelegate, 
         if let userInfo = notification.userInfo as [AnyHashable:Any]? {
             if let notificationToken = userInfo["token"] as? String {
                 self.temporaryNotificationToken = notificationToken
-                self.showAlert(presentingController: self, title: Language.getWord(withID: "devicetoken"), message: "\(notificationToken)", buttons: [Language.getWord(withID: "copy"), Language.getWord(withID: "close")], actions: [#selector(self.copyNotificationToken), nil])
+                self.showAlert(presentingController: self, title: Language.getWord(withID: "devicetoken"), message: "\(notificationToken)", buttons: [Language.getWord(withID: "copy"), Language.getWord(withID: "close")], actions: [{ self.copyNotificationToken() }, nil])
             }
         }
     }
@@ -158,7 +158,7 @@ class DeviceViewController: UIViewController, UNUserNotificationCenterDelegate, 
     
     func getPublicKey() {
         if let lightningKey = BitcoinManager.shared.nodeId() {
-            self.showAlert(presentingController: self, title: Language.getWord(withID: "publickey"), message: "\(lightningKey)", buttons: [Language.getWord(withID: "copy"), Language.getWord(withID: "close")], actions: [#selector(self.copyLightningKey), nil])
+            self.showAlert(presentingController: self, title: Language.getWord(withID: "publickey"), message: "\(lightningKey)", buttons: [Language.getWord(withID: "copy"), Language.getWord(withID: "close")], actions: [{ self.copyLightningKey() }, nil])
         } else {
             self.showAlert(presentingController: self, title: Language.getWord(withID: "publickey"), message: Language.getWord(withID: "syncingwallet2"), buttons: [Language.getWord(withID: "okay")], actions: nil)
         }
@@ -171,7 +171,7 @@ class DeviceViewController: UIViewController, UNUserNotificationCenterDelegate, 
     }
     
     func imagesButtonTapped() {
-        self.showAlert(presentingController: self, title: Language.getWord(withID: "cachedimages"), message: Language.getWord(withID: "cachedimages1"), buttons: [Language.getWord(withID: "remove"), Language.getWord(withID: "cancel")], actions: [#selector(self.emptyImageCache), nil])
+        self.showAlert(presentingController: self, title: Language.getWord(withID: "cachedimages"), message: Language.getWord(withID: "cachedimages1"), buttons: [Language.getWord(withID: "remove"), Language.getWord(withID: "cancel")], actions: [{ self.emptyImageCache() }, nil])
     }
     
     @objc func emptyImageCache() {
@@ -187,7 +187,7 @@ class DeviceViewController: UIViewController, UNUserNotificationCenterDelegate, 
         if isConnectedToPeer() {
             self.showAlert(presentingController: self, title: Language.getWord(withID: "bittrpeer"), message: Language.getWord(withID: "bittrpeer2"), buttons: [Language.getWord(withID: "okay")], actions: nil)
         } else {
-            self.showAlert(presentingController: self, title: Language.getWord(withID: "bittrpeer"), message: Language.getWord(withID: "bittrpeer3"), buttons: [Language.getWord(withID: "close"), Language.getWord(withID: "connect")], actions: [nil, #selector(self.reconnectToPeer)])
+            self.showAlert(presentingController: self, title: Language.getWord(withID: "bittrpeer"), message: Language.getWord(withID: "bittrpeer3"), buttons: [Language.getWord(withID: "close"), Language.getWord(withID: "connect")], actions: [nil, { self.reconnectToPeer() }])
         }
     }
     
@@ -337,7 +337,7 @@ extension UIViewController {
                         Log.info("Payout available for handling.")
                         deviceVC?.pendingPayout = lastNotification
                         coreVC?.pendingPayout = lastNotification
-                        self.showAlert(presentingController: self, title: Language.getWord(withID: "bittrpendingpayout"), message: Language.getWord(withID: "bittrpendingpayout3"), buttons: [Language.getWord(withID: "cancel"), Language.getWord(withID: "confirm")], actions: [nil, #selector(self.handlePendingPayout)])
+                        self.showAlert(presentingController: self, title: Language.getWord(withID: "bittrpendingpayout"), message: Language.getWord(withID: "bittrpendingpayout3"), buttons: [Language.getWord(withID: "cancel"), Language.getWord(withID: "confirm")], actions: [nil, { self.handlePendingPayout() }])
                     case .failure(let error):
                         Log.info("Did not receive notifications dictionary: \(error)")
                         if deviceVC != nil {

@@ -106,7 +106,7 @@ class SwapManager: NSObject {
                     title: Language.getWord(withID: "notificationsrequired"),
                     message: Language.getWord(withID: "notificationsrequiredmessage"),
                     buttons: [Language.getWord(withID: "okay")],
-                    actions: [#selector(swapVC.askForPushNotifications)]
+                    actions: [{ swapVC.askForPushNotifications() }]
                 )
             }
             return
@@ -444,7 +444,7 @@ class SwapManager: NSObject {
                     title: Language.getWord(withID: "notificationsrequired"),
                     message: Language.getWord(withID: "notificationsrequiredmessage"),
                     buttons: [Language.getWord(withID: "okay")],
-                    actions: [#selector(swapVC.askForPushNotifications)]
+                    actions: [{ swapVC.askForPushNotifications() }]
                 )
             }
             return

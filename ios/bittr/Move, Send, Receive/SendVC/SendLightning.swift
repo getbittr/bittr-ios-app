@@ -179,7 +179,7 @@ extension SendViewController {
                 title: Language.getWord(withID: "insufficientfunds"),
                 message: Language.getWord(withID: "lightninginsufficientfunds").replacingOccurrences(of: "<amount>", with: String(availableLightningBalance).addSpaces()) + "\n\n" + Language.getWord(withID: "swapinsufficientfunds").replacingOccurrences(of: "<amount>", with: "\(availableOnchainBalance)".addSpaces()),
                 buttons: [Language.getWord(withID: "cancel"), Language.getWord(withID: "swapandpay")],
-                actions: [nil, #selector(self.swapAndPayLightning)]
+                actions: [nil, { self.swapAndPayLightning() }]
             )
             // Store the invoice for the swap
             self.pendingLightningInvoice = invoiceText!
@@ -242,7 +242,7 @@ extension UIViewController {
                         sendVC?.nextSpinner.stopAnimating()
                         confirmSendVC?.confirmLabel.alpha = 1
                         confirmSendVC?.confirmSpinner.stopAnimating()
-                        self.showAlert(presentingController: self, title: Language.getWord(withID: "bittrpeer"), message: Language.getWord(withID: "bittrpeer3"), buttons: [Language.getWord(withID: "close"), Language.getWord(withID: "connect")], actions: [nil, #selector(self.performLightningPayment)])
+                        self.showAlert(presentingController: self, title: Language.getWord(withID: "bittrpeer"), message: Language.getWord(withID: "bittrpeer3"), buttons: [Language.getWord(withID: "close"), Language.getWord(withID: "connect")], actions: [nil, { self.performLightningPayment() }])
                         SentryManager.countMetric("lightning.payment.failure.peerUnreachable")
                     }
                 }

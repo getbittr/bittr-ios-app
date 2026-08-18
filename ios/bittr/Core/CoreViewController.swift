@@ -197,7 +197,7 @@ class CoreViewController: UIViewController {
                        title: Language.getWord(withID: "keychainunavailabletitle"),
                        message: Language.getWord(withID: "keychainunavailable"),
                        buttons: [Language.getWord(withID: "tryagain")],
-                       actions: [#selector(self.retryReadingKeychain)])
+                       actions: [{ self.retryReadingKeychain() }])
     }
     
     private func finishAwaitingProtectedDataIfNeeded() {
@@ -227,7 +227,7 @@ class CoreViewController: UIViewController {
             self.startWallet()
         } else if CacheManager.walletRemovalIsInProgress() {
             Log.info("A wallet removal was left in progress — offering to resume it on launch.")
-            self.showAlert(presentingController: self, title: Language.getWord(withID: "removewalletfromdevice"), message: Language.getWord(withID: "removalinprogress"), buttons: [Language.getWord(withID: "cancel"), Language.getWord(withID: "removewalletfromdevice")], actions: [#selector(self.cancelWalletRemoval), #selector(self.resumeWalletRemoval)])
+            self.showAlert(presentingController: self, title: Language.getWord(withID: "removewalletfromdevice"), message: Language.getWord(withID: "removalinprogress"), buttons: [Language.getWord(withID: "cancel"), Language.getWord(withID: "removewalletfromdevice")], actions: [{ self.cancelWalletRemoval() }, { self.resumeWalletRemoval() }])
         }
     }
     

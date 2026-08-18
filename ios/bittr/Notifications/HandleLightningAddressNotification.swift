@@ -41,7 +41,7 @@ extension CoreViewController {
             self.hideLoading()
             if !self.wasNotified {
                 Log.info("Will notify user of available LNURL notification.")
-                self.showAlert(presentingController: self, title: Language.getWord(withID: "paymentrequest"), message: Language.getWord(withID: "paymentrequest3").replacingOccurrences(of: "<amount>", with: String(notification.amountMsat!/1000).addSpaces()), buttons: [Language.getWord(withID: "cancel"), Language.getWord(withID: "handlenow")], actions: [nil, #selector(self.handleLightningAddressNotificationImmediately)])
+                self.showAlert(presentingController: self, title: Language.getWord(withID: "paymentrequest"), message: Language.getWord(withID: "paymentrequest3").replacingOccurrences(of: "<amount>", with: String(notification.amountMsat!/1000).addSpaces()), buttons: [Language.getWord(withID: "cancel"), Language.getWord(withID: "handlenow")], actions: [nil, { self.handleLightningAddressNotificationImmediately() }])
             } else {
                 Log.info("Will handle LNURL notification now.")
                 self.handleLightningAddressNotificationImmediately()

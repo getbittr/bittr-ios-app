@@ -27,7 +27,7 @@ extension CoreViewController {
             if !self.wasNotified {
                 // App was open when notification came in.
                 Log.info("Will notify user of alert.")
-                self.showAlert(presentingController: self, title: Language.getWord(withID: "bittrpayout"), message: Language.getWord(withID: "newbittrpayment"), buttons: [Language.getWord(withID: "okay")], actions: [#selector(self.triggerPayout)])
+                self.showAlert(presentingController: self, title: Language.getWord(withID: "bittrpayout"), message: Language.getWord(withID: "newbittrpayment"), buttons: [Language.getWord(withID: "okay")], actions: [{ self.triggerPayout() }])
             } else {
                 // App was closed when notification came in and was subsequently opened.
                 Log.info("User has been notified of alert.")
@@ -46,7 +46,7 @@ extension CoreViewController {
             self.showLoading(message: Language.getWord(withID: "syncingwallet3"))
         } else {
             if !self.wasNotified {
-                self.showAlert(presentingController: self, title: Language.getWord(withID: "incomingpayment"), message: Language.getWord(withID: "newbittrpayment"), buttons: [Language.getWord(withID: "okay")], actions: [#selector(self.triggerHTLCReady)])
+                self.showAlert(presentingController: self, title: Language.getWord(withID: "incomingpayment"), message: Language.getWord(withID: "newbittrpayment"), buttons: [Language.getWord(withID: "okay")], actions: [{ self.triggerHTLCReady() }])
             } else {
                 self.triggerHTLCReady()
             }
@@ -158,7 +158,7 @@ extension CoreViewController {
         // Get pubkey.
         guard let pubkey:String = BitcoinManager.shared.nodeId() else {
             Log.info("Pubkey unavailable.")
-            self.showAlert(presentingController: self, title: Language.getWord(withID: "bittrpayout"), message: Language.getWord(withID: "bittrpayoutfail2"), buttons: [Language.getWord(withID: "close"), Language.getWord(withID: "tryagain")], actions: [nil, #selector(self.facilitateNotificationPayout)])
+            self.showAlert(presentingController: self, title: Language.getWord(withID: "bittrpayout"), message: Language.getWord(withID: "bittrpayoutfail2"), buttons: [Language.getWord(withID: "close"), Language.getWord(withID: "tryagain")], actions: [nil, { self.facilitateNotificationPayout() }])
             return
         }
 
@@ -229,7 +229,7 @@ extension CoreViewController {
                                 self.handleChannelFullWithSwapSuggestion(message: message, suggestedAmount: suggestedAmount, notificationId: notificationId)
                             case .serverError(let message):
                                 if message.contains("try again"), self.lightningNotification != nil {
-                                    self.showAlert(presentingController: self, title: Language.getWord(withID: "bittrpayout"), message: message, buttons: [Language.getWord(withID: "close"), Language.getWord(withID: "tryagain")], actions: [nil, #selector(self.facilitateNotificationPayout)])
+                                    self.showAlert(presentingController: self, title: Language.getWord(withID: "bittrpayout"), message: message, buttons: [Language.getWord(withID: "close"), Language.getWord(withID: "tryagain")], actions: [nil, { self.facilitateNotificationPayout() }])
                                 } else {
                                     self.showAlert(presentingController: self, title: Language.getWord(withID: "bittrpayout"), message: message, buttons: [Language.getWord(withID: "close")], actions: nil)
                                     if message == "This payment has already been processed." {
@@ -244,7 +244,7 @@ extension CoreViewController {
                             }
                         } else {
                             if error.localizedDescription.contains("try again"), self.lightningNotification != nil {
-                                self.showAlert(presentingController: self, title: Language.getWord(withID: "bittrpayout"), message: "\(error.localizedDescription)", buttons: [Language.getWord(withID: "close"), Language.getWord(withID: "tryagain")], actions: [nil, #selector(self.facilitateNotificationPayout)])
+                                self.showAlert(presentingController: self, title: Language.getWord(withID: "bittrpayout"), message: "\(error.localizedDescription)", buttons: [Language.getWord(withID: "close"), Language.getWord(withID: "tryagain")], actions: [nil, { self.facilitateNotificationPayout() }])
                             } else {
                                 self.showAlert(presentingController: self, title: Language.getWord(withID: "bittrpayout"), message: "\(error.localizedDescription)", buttons: [Language.getWord(withID: "close")], actions: nil)
                                 self.lightningNotification = nil
@@ -261,7 +261,7 @@ extension CoreViewController {
             Log.info("Not connected to peer.")
             DispatchQueue.main.async {
                 self.hideLoading()
-                self.showAlert(presentingController: self, title: Language.getWord(withID: "bittrpayout"), message: Language.getWord(withID: "couldntconnect"), buttons: [Language.getWord(withID: "close"), Language.getWord(withID: "tryagain")], actions: [nil, #selector(self.reconnectToPeer)])
+                self.showAlert(presentingController: self, title: Language.getWord(withID: "bittrpayout"), message: Language.getWord(withID: "couldntconnect"), buttons: [Language.getWord(withID: "close"), Language.getWord(withID: "tryagain")], actions: [nil, { self.reconnectToPeer() }])
             }
         }
     }
@@ -628,7 +628,7 @@ extension CoreViewController {
             title: Language.getWord(withID: "insufficientfunds"),
             message: "\(message)\n\n\(recommendationMessage)",
             buttons: [Language.getWord(withID: "receiveonchain"), Language.getWord(withID: "swapandreceiveinstantly")],
-            actions: [#selector(self.receiveOnchainForNotification), #selector(self.swapAndPayForNotification)]
+            actions: [{ self.receiveOnchainForNotification() }, { self.swapAndPayForNotification() }]
         )
     }
     

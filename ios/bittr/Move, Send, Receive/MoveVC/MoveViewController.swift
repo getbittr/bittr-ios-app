@@ -152,7 +152,7 @@ class MoveViewController: UIViewController {
             self.showAlert(presentingController: self, title: Language.getWord(withID: "connectionclosed"), message: message, buttons: [Language.getWord(withID: "okay")], actions: nil)
         } else {
             // There is an active channel with spendable lightning funds.
-            self.showAlert(presentingController: self, title: Language.getWord(withID: "connectionclosed"), message: message, buttons: [Language.getWord(withID: "close"), Language.getWord(withID: "viewactiveconnection")], actions: [nil, #selector(self.launchChannelQuestion)])
+            self.showAlert(presentingController: self, title: Language.getWord(withID: "connectionclosed"), message: message, buttons: [Language.getWord(withID: "close"), Language.getWord(withID: "viewactiveconnection")], actions: [nil, { self.launchChannelQuestion() }])
         }
     }
     
