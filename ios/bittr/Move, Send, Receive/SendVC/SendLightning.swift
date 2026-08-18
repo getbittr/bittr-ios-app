@@ -36,7 +36,7 @@ extension SendViewController {
         // Check invoice field.
         let enteredInvoice = (self.toTextField.text ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
         if enteredInvoice.isEmpty {
-            self.showAlert(presentingController: self, title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "enteraddress"), buttons: [Language.getWord(withID: "okay")], actions: nil)
+            self.showAlert(presentingController: self, title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "enteraddress"), buttons: [.dismiss(Language.getWord(withID: "okay"))])
             return
         }
         
@@ -51,7 +51,7 @@ extension SendViewController {
                 // Zero invoice, needs amount.
                 let enteredAmount = self.amountTextField.text?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
                 guard !enteredAmount.isEmpty, let parsedSatoshis = self.getSatoshisFrom(enteredAmount: enteredAmount) else {
-                    self.showAlert(presentingController: self, title: Language.getWord(withID: "invoice"), message: Language.getWord(withID: "amountmissing"), buttons: [Language.getWord(withID: "okay")], actions: nil)
+                    self.showAlert(presentingController: self, title: Language.getWord(withID: "invoice"), message: Language.getWord(withID: "amountmissing"), buttons: [.dismiss(Language.getWord(withID: "okay"))])
                     return
                 }
                 satoshisAmount = parsedSatoshis
@@ -64,13 +64,13 @@ extension SendViewController {
             // BOLT12 offer. Needs amount.
             let enteredAmount = self.amountTextField.text?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
             guard !enteredAmount.isEmpty, let parsedSatoshis = self.getSatoshisFrom(enteredAmount: enteredAmount) else {
-                self.showAlert(presentingController: self, title: Language.getWord(withID: "invoice"), message: Language.getWord(withID: "amountmissing"), buttons: [Language.getWord(withID: "okay")], actions: nil)
+                self.showAlert(presentingController: self, title: Language.getWord(withID: "invoice"), message: Language.getWord(withID: "amountmissing"), buttons: [.dismiss(Language.getWord(withID: "okay"))])
                 return
             }
             satoshisAmount = parsedSatoshis
         } else {
             // Invalid invoice. Ask for amount.
-            self.showAlert(presentingController: self, title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "enteramount"), buttons: [Language.getWord(withID: "okay")], actions: nil)
+            self.showAlert(presentingController: self, title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "enteramount"), buttons: [.dismiss(Language.getWord(withID: "okay"))])
             return
         }
         
@@ -107,7 +107,7 @@ extension SendViewController {
             // Invalid invoice.
             Log.info("Invalid invoice: \(invoiceText)")
             SentryManager.capture("Invalid invoice.", context: "SendLightning row 180")
-            self.showAlert(presentingController: self, title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "invalidinvoice2").replacingOccurrences(of: "<invoice>", with: invoiceText), buttons: [Language.getWord(withID: "okay")], actions: nil)
+            self.showAlert(presentingController: self, title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "invalidinvoice2").replacingOccurrences(of: "<invoice>", with: invoiceText), buttons: [.dismiss(Language.getWord(withID: "okay"))])
             return
         }
         
@@ -148,7 +148,7 @@ extension SendViewController {
                 self.checkAvailableOnchainBalance(invoiceAmount: invoiceAmount, availableLightningBalance: availableLightningBalance, invoiceText: invoiceText)
             } else {
                 // BOLT12 offer. Insufficient funds available.
-                self.showAlert(presentingController: self, title: Language.getWord(withID: "insufficientfunds"), message: Language.getWord(withID: "lightninginsufficientfunds").replacingOccurrences(of: "<amount>", with: "\(availableLightningBalance)".addSpaces()), buttons: [Language.getWord(withID: "okay")], actions: nil)
+                self.showAlert(presentingController: self, title: Language.getWord(withID: "insufficientfunds"), message: Language.getWord(withID: "lightninginsufficientfunds").replacingOccurrences(of: "<amount>", with: "\(availableLightningBalance)".addSpaces()), buttons: [.dismiss(Language.getWord(withID: "okay"))])
             }
             return
         }
@@ -178,14 +178,12 @@ extension SendViewController {
                 presentingController: self,
                 title: Language.getWord(withID: "insufficientfunds"),
                 message: Language.getWord(withID: "lightninginsufficientfunds").replacingOccurrences(of: "<amount>", with: String(availableLightningBalance).addSpaces()) + "\n\n" + Language.getWord(withID: "swapinsufficientfunds").replacingOccurrences(of: "<amount>", with: "\(availableOnchainBalance)".addSpaces()),
-                buttons: [Language.getWord(withID: "cancel"), Language.getWord(withID: "swapandpay")],
-                actions: [nil, { self.swapAndPayLightning() }]
-            )
+                buttons: [.dismiss(Language.getWord(withID: "cancel")), .action(Language.getWord(withID: "swapandpay")) { self.swapAndPayLightning() }])
             // Store the invoice for the swap
             self.pendingLightningInvoice = invoiceText!
         } else {
             // Insufficient funds in both Lightning and onchain
-            self.showAlert(presentingController: self, title: Language.getWord(withID: "insufficientfunds"), message: Language.getWord(withID: "lightninginsufficientfunds").replacingOccurrences(of: "<amount>", with: "\(availableLightningBalance)".addSpaces()), buttons: [Language.getWord(withID: "okay")], actions: nil)
+            self.showAlert(presentingController: self, title: Language.getWord(withID: "insufficientfunds"), message: Language.getWord(withID: "lightninginsufficientfunds").replacingOccurrences(of: "<amount>", with: "\(availableLightningBalance)".addSpaces()), buttons: [.dismiss(Language.getWord(withID: "okay"))])
         }
     }
     
@@ -241,7 +239,7 @@ extension UIViewController {
                         sendVC?.nextSpinner.stopAnimating()
                         confirmSendVC?.confirmLabel.alpha = 1
                         confirmSendVC?.confirmSpinner.stopAnimating()
-                        self.showAlert(presentingController: self, title: Language.getWord(withID: "bittrpeer"), message: Language.getWord(withID: "bittrpeer3"), buttons: [Language.getWord(withID: "close"), Language.getWord(withID: "connect")], actions: [nil, { self.performLightningPayment() }])
+                        self.showAlert(presentingController: self, title: Language.getWord(withID: "bittrpeer"), message: Language.getWord(withID: "bittrpeer3"), buttons: [.dismiss(Language.getWord(withID: "close")), .action(Language.getWord(withID: "connect")) { self.performLightningPayment() }])
                         SentryManager.countMetric("lightning.payment.failure.peerUnreachable")
                     }
                 }
@@ -300,7 +298,7 @@ extension UIViewController {
                     confirmSendVC?.confirmSpinner.stopAnimating()
                     
                     // Show alert.
-                    self.showAlert(presentingController: sendVC ?? self, title: Language.getWord(withID: "unexpectederror"), message: Language.getWord(withID: "failedinvoicepayment1").replacingOccurrences(of: "<message>", with: errorMessage), buttons: [Language.getWord(withID: "okay")], actions: nil)
+                    self.showAlert(presentingController: sendVC ?? self, title: Language.getWord(withID: "unexpectederror"), message: Language.getWord(withID: "failedinvoicepayment1").replacingOccurrences(of: "<message>", with: errorMessage), buttons: [.dismiss(Language.getWord(withID: "okay"))])
                     
                     // Slide back from ConfirmSendVC to SendVC.
                     sendVC?.slideFromConfirmToSend()

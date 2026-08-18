@@ -27,7 +27,7 @@ extension CoreViewController {
             if !self.wasNotified {
                 // App was open when notification came in.
                 Log.info("Will notify user of alert.")
-                self.showAlert(presentingController: self, title: Language.getWord(withID: "bittrpayout"), message: Language.getWord(withID: "newbittrpayment"), buttons: [Language.getWord(withID: "okay")], actions: [{ self.triggerPayout() }])
+                self.showAlert(presentingController: self, title: Language.getWord(withID: "bittrpayout"), message: Language.getWord(withID: "newbittrpayment"), buttons: [.action(Language.getWord(withID: "okay")) { self.triggerPayout() }])
             } else {
                 // App was closed when notification came in and was subsequently opened.
                 Log.info("User has been notified of alert.")
@@ -46,7 +46,7 @@ extension CoreViewController {
             self.showLoading(message: Language.getWord(withID: "syncingwallet3"))
         } else {
             if !self.wasNotified {
-                self.showAlert(presentingController: self, title: Language.getWord(withID: "incomingpayment"), message: Language.getWord(withID: "newbittrpayment"), buttons: [Language.getWord(withID: "okay")], actions: [{ self.triggerHTLCReady() }])
+                self.showAlert(presentingController: self, title: Language.getWord(withID: "incomingpayment"), message: Language.getWord(withID: "newbittrpayment"), buttons: [.action(Language.getWord(withID: "okay")) { self.triggerHTLCReady() }])
             } else {
                 self.triggerHTLCReady()
             }
@@ -72,12 +72,12 @@ extension CoreViewController {
     private func facilitateHTLCReady() {
         guard let depositCode = BitcoinManager.shared.bittrWallet.ibanEntities.first(where: { !$0.yourUniqueCode.isEmpty })?.yourUniqueCode else {
             self.hideLoading()
-            self.showAlert(presentingController: self, title: Language.getWord(withID: "incomingpayment"), message: Language.getWord(withID: "bittrpayoutfail"), buttons: [Language.getWord(withID: "close")], actions: nil)
+            self.showAlert(presentingController: self, title: Language.getWord(withID: "incomingpayment"), message: Language.getWord(withID: "bittrpayoutfail"), buttons: [.dismiss(Language.getWord(withID: "close"))])
             return
         }
         guard let pubkey = BitcoinManager.shared.nodeId() else {
             self.hideLoading()
-            self.showAlert(presentingController: self, title: Language.getWord(withID: "incomingpayment"), message: Language.getWord(withID: "bittrpayoutfail2"), buttons: [Language.getWord(withID: "close")], actions: nil)
+            self.showAlert(presentingController: self, title: Language.getWord(withID: "incomingpayment"), message: Language.getWord(withID: "bittrpayoutfail2"), buttons: [.dismiss(Language.getWord(withID: "close"))])
             return
         }
         let timestamp = Int(Date().timeIntervalSince1970)
@@ -91,12 +91,12 @@ extension CoreViewController {
                     if response.success, response.action == "resumed" {
                         // No alert – the incoming payment screen will show automatically
                     } else if response.success, response.action == "failed_timeout" {
-                        self.showAlert(presentingController: self, title: Language.getWord(withID: "incomingpayment"), message: Language.getWord(withID: "bittrpayoutfail"), buttons: [Language.getWord(withID: "close")], actions: nil)
+                        self.showAlert(presentingController: self, title: Language.getWord(withID: "incomingpayment"), message: Language.getWord(withID: "bittrpayoutfail"), buttons: [.dismiss(Language.getWord(withID: "close"))])
                     } else {
                         // Backend returned 200 with success == false: translate
                         // the raw error code into a friendly message.
                         Log.info("htlc_ready failed: \(response.error ?? "unknown")")
-                        self.showAlert(presentingController: self, title: Language.getWord(withID: "incomingpayment"), message: self.htlcReadyFriendlyMessage(forCode: response.error), buttons: [Language.getWord(withID: "close")], actions: nil)
+                        self.showAlert(presentingController: self, title: Language.getWord(withID: "incomingpayment"), message: self.htlcReadyFriendlyMessage(forCode: response.error), buttons: [.dismiss(Language.getWord(withID: "close"))])
                     }
                 }
             } catch {
@@ -111,7 +111,7 @@ extension CoreViewController {
                     if let bittrError = error as? BittrServiceError, case let .serverError(message) = bittrError {
                         code = message
                     }
-                    self.showAlert(presentingController: self, title: Language.getWord(withID: "incomingpayment"), message: self.htlcReadyFriendlyMessage(forCode: code), buttons: [Language.getWord(withID: "close")], actions: nil)
+                    self.showAlert(presentingController: self, title: Language.getWord(withID: "incomingpayment"), message: self.htlcReadyFriendlyMessage(forCode: code), buttons: [.dismiss(Language.getWord(withID: "close"))])
                 }
             }
         }
@@ -148,14 +148,14 @@ extension CoreViewController {
             SentryManager.capture("Required data unavailable while trying to handle notification payout.", context: "HandlePaymentNotification row 108")
             self.hideLoading()
             self.lightningNotification = nil
-            self.showAlert(presentingController: self, title: Language.getWord(withID: "bittrpayout"), message: Language.getWord(withID: "bittrpayoutfail"), buttons: [Language.getWord(withID: "close")], actions: nil)
+            self.showAlert(presentingController: self, title: Language.getWord(withID: "bittrpayout"), message: Language.getWord(withID: "bittrpayoutfail"), buttons: [.dismiss(Language.getWord(withID: "close"))])
             return
         }
             
         // Get pubkey.
         guard let pubkey:String = BitcoinManager.shared.nodeId() else {
             Log.info("Pubkey unavailable.")
-            self.showAlert(presentingController: self, title: Language.getWord(withID: "bittrpayout"), message: Language.getWord(withID: "bittrpayoutfail2"), buttons: [Language.getWord(withID: "close"), Language.getWord(withID: "tryagain")], actions: [nil, { self.facilitateNotificationPayout() }])
+            self.showAlert(presentingController: self, title: Language.getWord(withID: "bittrpayout"), message: Language.getWord(withID: "bittrpayoutfail2"), buttons: [.dismiss(Language.getWord(withID: "close")), .action(Language.getWord(withID: "tryagain")) { self.facilitateNotificationPayout() }])
             return
         }
 
@@ -173,7 +173,7 @@ extension CoreViewController {
                     DispatchQueue.main.async {
                         self.hideLoading()
                         self.lightningNotification = nil
-                        self.showAlert(presentingController: self, title: Language.getWord(withID: "bittrpayout"), message: Language.getWord(withID: "bittrpayoutfail"), buttons: [Language.getWord(withID: "close")], actions: nil)
+                        self.showAlert(presentingController: self, title: Language.getWord(withID: "bittrpayout"), message: Language.getWord(withID: "bittrpayoutfail"), buttons: [.dismiss(Language.getWord(withID: "close"))])
                     }
                     return
                 }
@@ -197,7 +197,7 @@ extension CoreViewController {
                         SentryManager.capture(error, context: "HandlePaymentNotification row 163")
                         self.hideLoading()
                         self.lightningNotification = nil
-                        self.showAlert(presentingController: self, title: Language.getWord(withID: "bittrpayout"), message: Language.getWord(withID: "bittrpayoutfail"), buttons: [Language.getWord(withID: "close")], actions: nil)
+                        self.showAlert(presentingController: self, title: Language.getWord(withID: "bittrpayout"), message: Language.getWord(withID: "bittrpayoutfail"), buttons: [.dismiss(Language.getWord(withID: "close"))])
                     }
                     return
                 }
@@ -226,9 +226,9 @@ extension CoreViewController {
                                 self.handleChannelFullWithSwapSuggestion(message: message, suggestedAmount: suggestedAmount, notificationId: notificationId)
                             case .serverError(let message):
                                 if message.contains("try again"), self.lightningNotification != nil {
-                                    self.showAlert(presentingController: self, title: Language.getWord(withID: "bittrpayout"), message: message, buttons: [Language.getWord(withID: "close"), Language.getWord(withID: "tryagain")], actions: [nil, { self.facilitateNotificationPayout() }])
+                                    self.showAlert(presentingController: self, title: Language.getWord(withID: "bittrpayout"), message: message, buttons: [.dismiss(Language.getWord(withID: "close")), .action(Language.getWord(withID: "tryagain")) { self.facilitateNotificationPayout() }])
                                 } else {
-                                    self.showAlert(presentingController: self, title: Language.getWord(withID: "bittrpayout"), message: message, buttons: [Language.getWord(withID: "close")], actions: nil)
+                                    self.showAlert(presentingController: self, title: Language.getWord(withID: "bittrpayout"), message: message, buttons: [.dismiss(Language.getWord(withID: "close"))])
                                     if message == "This payment has already been processed." {
                                         // No need to notify Sentry.
                                         sendToSentry = false
@@ -236,14 +236,14 @@ extension CoreViewController {
                                     self.lightningNotification = nil
                                 }
                             default:
-                                self.showAlert(presentingController: self, title: Language.getWord(withID: "bittrpayout"), message: error.localizedDescription, buttons: [Language.getWord(withID: "close")], actions: nil)
+                                self.showAlert(presentingController: self, title: Language.getWord(withID: "bittrpayout"), message: error.localizedDescription, buttons: [.dismiss(Language.getWord(withID: "close"))])
                                 self.lightningNotification = nil
                             }
                         } else {
                             if error.localizedDescription.contains("try again"), self.lightningNotification != nil {
-                                self.showAlert(presentingController: self, title: Language.getWord(withID: "bittrpayout"), message: "\(error.localizedDescription)", buttons: [Language.getWord(withID: "close"), Language.getWord(withID: "tryagain")], actions: [nil, { self.facilitateNotificationPayout() }])
+                                self.showAlert(presentingController: self, title: Language.getWord(withID: "bittrpayout"), message: "\(error.localizedDescription)", buttons: [.dismiss(Language.getWord(withID: "close")), .action(Language.getWord(withID: "tryagain")) { self.facilitateNotificationPayout() }])
                             } else {
-                                self.showAlert(presentingController: self, title: Language.getWord(withID: "bittrpayout"), message: "\(error.localizedDescription)", buttons: [Language.getWord(withID: "close")], actions: nil)
+                                self.showAlert(presentingController: self, title: Language.getWord(withID: "bittrpayout"), message: "\(error.localizedDescription)", buttons: [.dismiss(Language.getWord(withID: "close"))])
                                 self.lightningNotification = nil
                             }
                         }
@@ -258,7 +258,7 @@ extension CoreViewController {
             Log.info("Not connected to peer.")
             DispatchQueue.main.async {
                 self.hideLoading()
-                self.showAlert(presentingController: self, title: Language.getWord(withID: "bittrpayout"), message: Language.getWord(withID: "couldntconnect"), buttons: [Language.getWord(withID: "close"), Language.getWord(withID: "tryagain")], actions: [nil, { self.reconnectToPeer() }])
+                self.showAlert(presentingController: self, title: Language.getWord(withID: "bittrpayout"), message: Language.getWord(withID: "couldntconnect"), buttons: [.dismiss(Language.getWord(withID: "close")), .action(Language.getWord(withID: "tryagain")) { self.reconnectToPeer() }])
             }
         }
     }
@@ -420,7 +420,7 @@ extension CoreViewController {
                     
                     // Show alert.
                     let reasonText = failureReason.isEmpty ? "" : " \(failureReason)."
-                    self.showAlert(presentingController: (sendVC ?? receiveVC ?? swapVC ?? self), title: Language.getWord(withID: "paymentfailed"), message: Language.getWord(withID: "paymentfailed2").replacingOccurrences(of: "<reason>", with: reasonText), buttons: [Language.getWord(withID: "okay")], actions: nil)
+                    self.showAlert(presentingController: (sendVC ?? receiveVC ?? swapVC ?? self), title: Language.getWord(withID: "paymentfailed"), message: Language.getWord(withID: "paymentfailed2").replacingOccurrences(of: "<reason>", with: reasonText), buttons: [.dismiss(Language.getWord(withID: "okay"))])
                 }
                 
             case .paymentClaimable(paymentId: _, paymentHash: _, claimableAmountMsat: _, claimDeadline: _, customRecords: _):
@@ -589,7 +589,7 @@ extension CoreViewController {
             self.wasNotified = true
             self.lightningNotification = notification
             
-            self.showAlert(presentingController: self, title: Language.getWord(withID: "swapstatusupdate"), message: Language.getWord(withID: "pleasesignin"), buttons: [Language.getWord(withID: "okay")], actions: nil)
+            self.showAlert(presentingController: self, title: Language.getWord(withID: "swapstatusupdate"), message: Language.getWord(withID: "pleasesignin"), buttons: [.dismiss(Language.getWord(withID: "okay"))])
         } else if !self.walletHasSynced {
             Log.info("Wallet hasn't synced yet.")
             self.lightningNotification = notification
@@ -622,9 +622,7 @@ extension CoreViewController {
             presentingController: self,
             title: Language.getWord(withID: "insufficientfunds"),
             message: "\(message)\n\n\(recommendationMessage)",
-            buttons: [Language.getWord(withID: "receiveonchain"), Language.getWord(withID: "swapandreceiveinstantly")],
-            actions: [{ self.receiveOnchainForNotification() }, { self.swapAndPayForNotification() }]
-        )
+            buttons: [.action(Language.getWord(withID: "receiveonchain")) { self.receiveOnchainForNotification() }, .action(Language.getWord(withID: "swapandreceiveinstantly")) { self.swapAndPayForNotification() }])
     }
     
     func receiveOnchainForNotification() {
@@ -647,9 +645,7 @@ extension CoreViewController {
                 presentingController: self,
                 title: "Error",
                 message: "Failed to schedule on-chain payment: Wallet has not been synced.",
-                buttons: [Language.getWord(withID: "okay")],
-                actions: nil
-            )
+                buttons: [.dismiss(Language.getWord(withID: "okay"))])
             return
         }
         
@@ -672,9 +668,7 @@ extension CoreViewController {
                         presentingController: self,
                         title: "Payment Scheduled",
                         message: "Your payment has been scheduled for on-chain delivery within 4-24 hours. You'll receive a notification when it's completed.",
-                        buttons: [Language.getWord(withID: "okay")],
-                        actions: nil
-                    )
+                        buttons: [.dismiss(Language.getWord(withID: "okay"))])
                     
                     // Clear pending data
                     self.pendingNotificationId = nil
@@ -690,9 +684,7 @@ extension CoreViewController {
                         presentingController: self,
                         title: "Error",
                         message: "Failed to schedule on-chain payment: \(error.localizedDescription)",
-                        buttons: [Language.getWord(withID: "okay")],
-                        actions: nil
-                    )
+                        buttons: [.dismiss(Language.getWord(withID: "okay"))])
                 }
             }
         }

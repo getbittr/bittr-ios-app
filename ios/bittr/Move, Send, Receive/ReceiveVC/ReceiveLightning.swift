@@ -27,7 +27,7 @@ extension ReceiveViewController {
                 }
             }()
             DispatchQueue.main.async {
-                self.showAlert(presentingController: self, title: Language.getWord(withID: "unexpectederror"), message: errorMessage, buttons: [Language.getWord(withID: "okay")], actions: nil)
+                self.showAlert(presentingController: self, title: Language.getWord(withID: "unexpectederror"), message: errorMessage, buttons: [.dismiss(Language.getWord(withID: "okay"))])
                 SentryManager.capture(error, context: "ReceiveLightning row 45")
             }
             return nil
@@ -54,7 +54,7 @@ extension ReceiveViewController {
             expirySecs: expirySecs)
         else {
             DispatchQueue.main.async {
-                self.showAlert(presentingController: self, title: Language.getWord(withID: "unexpectederror"), message: Language.getWord(withID: "invoicecreatefail"), buttons: [Language.getWord(withID: "okay")], actions: nil)
+                self.showAlert(presentingController: self, title: Language.getWord(withID: "unexpectederror"), message: Language.getWord(withID: "invoicecreatefail"), buttons: [.dismiss(Language.getWord(withID: "okay"))])
             }
             return nil
         }

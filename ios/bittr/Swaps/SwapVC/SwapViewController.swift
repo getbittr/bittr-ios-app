@@ -141,7 +141,7 @@ class SwapViewController: UIViewController, UITextFieldDelegate, UNUserNotificat
         // Check amount to be sent.
         guard let amountToBeSent = (self.amountTextField.text ?? "").parsedUserAmount(allowingFraction: false)?.satoshis(), amountToBeSent > 0 else {
             // No amount has been entered.
-            self.showAlert(presentingController: self, title: Language.getWord(withID: "swapfunds2"), message: Language.getWord(withID: "enteramountofsatoshis"), buttons: [Language.getWord(withID: "okay")], actions: nil)
+            self.showAlert(presentingController: self, title: Language.getWord(withID: "swapfunds2"), message: Language.getWord(withID: "enteramountofsatoshis"), buttons: [.dismiss(Language.getWord(withID: "okay"))])
             return
         }
         
@@ -152,7 +152,7 @@ class SwapViewController: UIViewController, UITextFieldDelegate, UNUserNotificat
         let maxAmount = (activeChannel?.inboundHtlcMaximumMsat ?? 0)/1000
         guard !(amountToBeSent > maxAmount) else {
             // You can't receive or send this much.
-            self.showAlert(presentingController: self, title: Language.getWord(withID: "swapfunds2"), message: Language.getWord(withID: "swapamountexceeded").replacingOccurrences(of: "<amount>", with: "\(maxAmount)"), buttons: [Language.getWord(withID: "okay")], actions: nil)
+            self.showAlert(presentingController: self, title: Language.getWord(withID: "swapfunds2"), message: Language.getWord(withID: "swapamountexceeded").replacingOccurrences(of: "<amount>", with: "\(maxAmount)"), buttons: [.dismiss(Language.getWord(withID: "okay"))])
             return
         }
         
@@ -255,9 +255,7 @@ class SwapViewController: UIViewController, UITextFieldDelegate, UNUserNotificat
             presentingController: self,
             title: Language.getWord(withID: "swapfunds2"),
             message: message + cautionMessage + " " + doYouWishToProceed,
-            buttons: [Language.getWord(withID: "cancel"), Language.getWord(withID: "proceed")],
-            actions: [{ self.cancelSwapFromFeesAlert() }, { self.proceedWithSwap() }]
-        )
+            buttons: [.action(Language.getWord(withID: "cancel")) { self.cancelSwapFromFeesAlert() }, .action(Language.getWord(withID: "proceed")) { self.proceedWithSwap() }])
     }
     
     func cancelSwapFromFeesAlert() {
@@ -306,7 +304,7 @@ class SwapViewController: UIViewController, UITextFieldDelegate, UNUserNotificat
     
     @IBAction func boltzTapped(_ sender: UIButton) {
         self.view.endEditing(true)
-        self.showAlert(presentingController: self, title: Language.getWord(withID: "boltzexplanation3"), message: Language.getWord(withID: "boltzexplanation"), buttons: [Language.getWord(withID: "okay")], actions: nil)
+        self.showAlert(presentingController: self, title: Language.getWord(withID: "boltzexplanation3"), message: Language.getWord(withID: "boltzexplanation"), buttons: [.dismiss(Language.getWord(withID: "okay"))])
     }
     
     func goToBoltz() {
@@ -357,11 +355,11 @@ class SwapViewController: UIViewController, UITextFieldDelegate, UNUserNotificat
                 self.startSuggestedOnchainToLightningSwap(invoiceAmount: invoiceAmount)
             } else {
                 // Zero amount invoice - user needs to enter amount
-                self.showAlert(presentingController: self, title: Language.getWord(withID: "enteramount"), message: Language.getWord(withID: "enteramountofsatoshis"), buttons: [Language.getWord(withID: "okay")], actions: nil)
+                self.showAlert(presentingController: self, title: Language.getWord(withID: "enteramount"), message: Language.getWord(withID: "enteramountofsatoshis"), buttons: [.dismiss(Language.getWord(withID: "okay"))])
             }
         } else {
             // Invalid invoice
-            self.showAlert(presentingController: self, title: Language.getWord(withID: "error"), message: Language.getWord(withID: "invalidinvoice"), buttons: [Language.getWord(withID: "okay")], actions: nil)
+            self.showAlert(presentingController: self, title: Language.getWord(withID: "error"), message: Language.getWord(withID: "invalidinvoice"), buttons: [.dismiss(Language.getWord(withID: "okay"))])
         }
     }
     

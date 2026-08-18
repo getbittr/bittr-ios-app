@@ -112,11 +112,11 @@ class DeviceViewController: UIViewController, UNUserNotificationCenterDelegate, 
     }
     
     func changeLanguage() {
-        self.showAlert(presentingController: self, title: Language.getWord(withID: "selectlanguage"), message: Language.getWord(withID: "selectlanguagemessage"), buttons: [Language.getWord(withID: "cancel"), "English (US)"], actions: [nil, { CacheManager.changeLanguage("en_US") }])
+        self.showAlert(presentingController: self, title: Language.getWord(withID: "selectlanguage"), message: Language.getWord(withID: "selectlanguagemessage"), buttons: [.dismiss(Language.getWord(withID: "cancel")), .action("English (US)") { CacheManager.changeLanguage("en_US") }])
     }
 
     func changeCurrency() {
-        self.showAlert(presentingController: self, title: Language.getWord(withID: "selectcurrency"), message: Language.getWord(withID: "selectcurrencymessage"), buttons: [Language.getWord(withID: "cancel"), "EUR €", "CHF"], actions: [nil, { self.selectCurrency("€") }, { self.selectCurrency("CHF") }])
+        self.showAlert(presentingController: self, title: Language.getWord(withID: "selectcurrency"), message: Language.getWord(withID: "selectcurrencymessage"), buttons: [.dismiss(Language.getWord(withID: "cancel")), .action("EUR €") { self.selectCurrency("€") }, .action("CHF") { self.selectCurrency("CHF") }])
     }
     
     func selectCurrency(_ currency:String) {
@@ -128,26 +128,26 @@ class DeviceViewController: UIViewController, UNUserNotificationCenterDelegate, 
     @objc func showToken(notification:NSNotification) {
         if let userInfo = notification.userInfo as [AnyHashable:Any]? {
             if let notificationToken = userInfo["token"] as? String {
-                self.showAlert(presentingController: self, title: Language.getWord(withID: "devicetoken"), message: "\(notificationToken)", buttons: [Language.getWord(withID: "copy"), Language.getWord(withID: "close")], actions: [{ UIPasteboard.general.string = notificationToken }, nil])
+                self.showAlert(presentingController: self, title: Language.getWord(withID: "devicetoken"), message: "\(notificationToken)", buttons: [.action(Language.getWord(withID: "copy")) { UIPasteboard.general.string = notificationToken }, .dismiss(Language.getWord(withID: "close"))])
             }
         }
     }
     
     func getPublicKey() {
         if let lightningKey = BitcoinManager.shared.nodeId() {
-            self.showAlert(presentingController: self, title: Language.getWord(withID: "publickey"), message: "\(lightningKey)", buttons: [Language.getWord(withID: "copy"), Language.getWord(withID: "close")], actions: [{ UIPasteboard.general.string = BitcoinManager.shared.nodeId()! }, nil])
+            self.showAlert(presentingController: self, title: Language.getWord(withID: "publickey"), message: "\(lightningKey)", buttons: [.action(Language.getWord(withID: "copy")) { UIPasteboard.general.string = BitcoinManager.shared.nodeId()! }, .dismiss(Language.getWord(withID: "close"))])
         } else {
-            self.showAlert(presentingController: self, title: Language.getWord(withID: "publickey"), message: Language.getWord(withID: "syncingwallet2"), buttons: [Language.getWord(withID: "okay")], actions: nil)
+            self.showAlert(presentingController: self, title: Language.getWord(withID: "publickey"), message: Language.getWord(withID: "syncingwallet2"), buttons: [.dismiss(Language.getWord(withID: "okay"))])
         }
     }
     
     func imagesButtonTapped() {
-        self.showAlert(presentingController: self, title: Language.getWord(withID: "cachedimages"), message: Language.getWord(withID: "cachedimages1"), buttons: [Language.getWord(withID: "remove"), Language.getWord(withID: "cancel")], actions: [{ self.emptyImageCache() }, nil])
+        self.showAlert(presentingController: self, title: Language.getWord(withID: "cachedimages"), message: Language.getWord(withID: "cachedimages1"), buttons: [.action(Language.getWord(withID: "remove")) { self.emptyImageCache() }, .dismiss(Language.getWord(withID: "cancel"))])
     }
     
     func emptyImageCache() {
         CacheManager.emptyImage()
-        self.showAlert(presentingController: self, title: Language.getWord(withID: "cacheemptied"), message: Language.getWord(withID: "cachedimages2"), buttons: [Language.getWord(withID: "okay")], actions: nil)
+        self.showAlert(presentingController: self, title: Language.getWord(withID: "cacheemptied"), message: Language.getWord(withID: "cachedimages2"), buttons: [.dismiss(Language.getWord(withID: "okay"))])
     }
     
     func checkPeerConnection() {
@@ -155,9 +155,9 @@ class DeviceViewController: UIViewController, UNUserNotificationCenterDelegate, 
         self.tappedCell?.stopAnimating()
         
         if isConnectedToPeer() {
-            self.showAlert(presentingController: self, title: Language.getWord(withID: "bittrpeer"), message: Language.getWord(withID: "bittrpeer2"), buttons: [Language.getWord(withID: "okay")], actions: nil)
+            self.showAlert(presentingController: self, title: Language.getWord(withID: "bittrpeer"), message: Language.getWord(withID: "bittrpeer2"), buttons: [.dismiss(Language.getWord(withID: "okay"))])
         } else {
-            self.showAlert(presentingController: self, title: Language.getWord(withID: "bittrpeer"), message: Language.getWord(withID: "bittrpeer3"), buttons: [Language.getWord(withID: "close"), Language.getWord(withID: "connect")], actions: [nil, { self.reconnectToPeer() }])
+            self.showAlert(presentingController: self, title: Language.getWord(withID: "bittrpeer"), message: Language.getWord(withID: "bittrpeer3"), buttons: [.dismiss(Language.getWord(withID: "close")), .action(Language.getWord(withID: "connect")) { self.reconnectToPeer() }])
         }
     }
     
@@ -298,7 +298,7 @@ extension UIViewController {
                         guard let lastNotification = receivedNotifications.last, let amountMsat = lastNotification.transaction?["bitcoin_amount"] as? String else {
                             Log.info("No notifications received.")
                             if deviceVC != nil {
-                                deviceVC!.showAlert(presentingController: deviceVC!, title: Language.getWord(withID: "bittrpendingpayout"), message: Language.getWord(withID: "bittrpendingpayout2"), buttons: [Language.getWord(withID: "okay")], actions: nil)
+                                deviceVC!.showAlert(presentingController: deviceVC!, title: Language.getWord(withID: "bittrpendingpayout"), message: Language.getWord(withID: "bittrpendingpayout2"), buttons: [.dismiss(Language.getWord(withID: "okay"))])
                             }
                             return
                         }
@@ -306,11 +306,11 @@ extension UIViewController {
                         Log.info("Payout available for handling.")
                         deviceVC?.pendingPayout = lastNotification
                         coreVC?.pendingPayout = lastNotification
-                        self.showAlert(presentingController: self, title: Language.getWord(withID: "bittrpendingpayout"), message: Language.getWord(withID: "bittrpendingpayout3"), buttons: [Language.getWord(withID: "cancel"), Language.getWord(withID: "confirm")], actions: [nil, { self.handlePendingPayout() }])
+                        self.showAlert(presentingController: self, title: Language.getWord(withID: "bittrpendingpayout"), message: Language.getWord(withID: "bittrpendingpayout3"), buttons: [.dismiss(Language.getWord(withID: "cancel")), .action(Language.getWord(withID: "confirm")) { self.handlePendingPayout() }])
                     case .failure(let error):
                         Log.info("Did not receive notifications dictionary: \(error)")
                         if deviceVC != nil {
-                            deviceVC!.showAlert(presentingController: deviceVC!, title: Language.getWord(withID: "bittrpendingpayout"), message: Language.getWord(withID: "bittrpendingpayout2"), buttons: [Language.getWord(withID: "okay")], actions: nil)
+                            deviceVC!.showAlert(presentingController: deviceVC!, title: Language.getWord(withID: "bittrpendingpayout"), message: Language.getWord(withID: "bittrpendingpayout2"), buttons: [.dismiss(Language.getWord(withID: "okay"))])
                         }
                     }
                 }

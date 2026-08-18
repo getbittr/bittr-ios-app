@@ -248,7 +248,7 @@ class SendViewController: UIViewController, UITextFieldDelegate, OnchainSyncFail
         // Show alert.
         self.availableAmount.text = Language.getWord(withID:"youcansend").replacingOccurrences(of: "<amount>", with: "0")
         self.bdkSpinner.startAnimating()
-        self.showAlert(presentingController: self, title: Language.getWord(withID: "syncing"), message: Language.getWord(withID: "awaitingbdksync"), buttons: [Language.getWord(withID: "okay")], actions: nil)
+        self.showAlert(presentingController: self, title: Language.getWord(withID: "syncing"), message: Language.getWord(withID: "awaitingbdksync"), buttons: [.dismiss(Language.getWord(withID: "okay"))])
         
         // Check whether BDK wallet is currently scanning.
         if !BitcoinManager.shared.bdkWalletIsScanning {
@@ -543,7 +543,7 @@ class SendViewController: UIViewController, UITextFieldDelegate, OnchainSyncFail
         self.view.endEditing(true)
         
         let bitcoinValue = BitcoinManager.shared.bittrWallet.getCorrectBitcoinValue()
-        self.showAlert(presentingController: self, title: Language.getWord(withID: "selectcurrency"), message: Language.getWord(withID: "selectcurrencymessage"), buttons: [Language.getWord(withID: "cancel"), "Bitcoin", "Satoshis", bitcoinValue.chosenCurrency], actions: [nil, { self.selectCurrency(.bitcoin) }, { self.selectCurrency(.satoshis) }, { self.selectCurrency(.currency) }])
+        self.showAlert(presentingController: self, title: Language.getWord(withID: "selectcurrency"), message: Language.getWord(withID: "selectcurrencymessage"), buttons: [.dismiss(Language.getWord(withID: "cancel")), .action("Bitcoin") { self.selectCurrency(.bitcoin) }, .action("Satoshis") { self.selectCurrency(.satoshis) }, .action(bitcoinValue.chosenCurrency) { self.selectCurrency(.currency) }])
     }
     
     @IBAction func availableQuestionTapped(_ sender: UIButton) {
@@ -551,14 +551,14 @@ class SendViewController: UIViewController, UITextFieldDelegate, OnchainSyncFail
         if self.onchainOrLightning == .lightning {
             self.coreVC!.launchQuestion(question: Language.getWord(withID: "limitlightning"), answer: Language.getWord(withID: "limitlightninganswer"), type: "lightningsendable")
         } else {
-            self.showAlert(presentingController: self, title: Language.getWord(withID: "sendbitcoin"), message: Language.getWord(withID: "maximumonchain"), buttons: [Language.getWord(withID: "okay")], actions: nil)
+            self.showAlert(presentingController: self, title: Language.getWord(withID: "sendbitcoin"), message: Language.getWord(withID: "maximumonchain"), buttons: [.dismiss(Language.getWord(withID: "okay"))])
         }
     }
     
     @IBAction func switchQuestionTapped(_ sender: UIButton) {
         self.view.endEditing(true)
         
-        self.showAlert(presentingController: self, title: Language.getWord(withID: "transactiontype"), message: Language.getWord(withID: "transactiontype3"), buttons: [Language.getWord(withID: "okay")], actions: nil)
+        self.showAlert(presentingController: self, title: Language.getWord(withID: "transactiontype"), message: Language.getWord(withID: "transactiontype3"), buttons: [.dismiss(Language.getWord(withID: "okay"))])
     }
     
 }

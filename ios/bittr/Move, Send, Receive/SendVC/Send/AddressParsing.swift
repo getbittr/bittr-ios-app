@@ -74,7 +74,7 @@ extension SendViewController {
             Log.info("Did not find a valid address or invoice.")
             self.toTextField.text = nil
             self.amountTextField.text = nil
-            self.showAlert(presentingController: self, title: Language.getWord(withID: "nobitcoinaddressfound"), message: Language.getWord(withID: "pleasescan"), buttons: [Language.getWord(withID: "okay")], actions: nil)
+            self.showAlert(presentingController: self, title: Language.getWord(withID: "nobitcoinaddressfound"), message: Language.getWord(withID: "pleasescan"), buttons: [.dismiss(Language.getWord(withID: "okay"))])
             return
         }
         

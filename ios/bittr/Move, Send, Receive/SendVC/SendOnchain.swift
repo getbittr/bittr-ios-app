@@ -19,14 +19,14 @@ extension SendViewController {
         // Check address.
         let enteredAddress = (self.toTextField.text ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
         if enteredAddress.isEmpty {
-            self.showAlert(presentingController: self, title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "enteraddress"), buttons: [Language.getWord(withID: "okay")], actions: nil)
+            self.showAlert(presentingController: self, title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "enteraddress"), buttons: [.dismiss(Language.getWord(withID: "okay"))])
             return
         }
         
         // Check amount.
         let enteredAmount = (self.amountTextField.text ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
         if enteredAmount.isEmpty {
-            self.showAlert(presentingController: self, title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "enteramount"), buttons: [Language.getWord(withID: "okay")], actions: nil)
+            self.showAlert(presentingController: self, title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "enteramount"), buttons: [.dismiss(Language.getWord(withID: "okay"))])
             return
         }
         
@@ -40,7 +40,7 @@ extension SendViewController {
         // Convert the entered amount to satoshis.
         guard let enteredSatoshis = self.getSatoshisFrom(enteredAmount: enteredAmount) else { return }
         guard enteredSatoshis > 0 else {
-            self.showAlert(presentingController: self, title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "enteramount"), buttons: [Language.getWord(withID: "okay")], actions: nil)
+            self.showAlert(presentingController: self, title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "enteramount"), buttons: [.dismiss(Language.getWord(withID: "okay"))])
             return
         }
         self.onchainAmountInSatoshis = enteredSatoshis
@@ -65,15 +65,13 @@ extension SendViewController {
                     presentingController: self,
                     title: Language.getWord(withID: "insufficientfunds"),
                     message: Language.getWord(withID: "onchaininsufficientfunds").replacingOccurrences(of: "<amount>", with: String(BitcoinManager.shared.bittrWallet.satoshisOnchain).addSpaces()) + "\n\n" + Language.getWord(withID: "swapinsufficientfundslightning").replacingOccurrences(of: "<amount>", with: "\(availableLightningBalance)".addSpaces()),
-                    buttons: [Language.getWord(withID: "cancel"), Language.getWord(withID: "swapandpay")],
-                    actions: [{ self.cancelSwapOffer() }, { self.swapAndPayOnchain() }]
-                )
+                    buttons: [.action(Language.getWord(withID: "cancel")) { self.cancelSwapOffer() }, .action(Language.getWord(withID: "swapandpay")) { self.swapAndPayOnchain() }])
                 // Store the address for the swap
                 self.pendingOnchainAddress = enteredAddress
                 
             } else {
                 Log.info("Lightning balance insufficient, showing regular insufficient funds message.")
-                self.showAlert(presentingController: self, title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "spendablebalance"), buttons: [Language.getWord(withID: "okay")], actions: nil)
+                self.showAlert(presentingController: self, title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "spendablebalance"), buttons: [.dismiss(Language.getWord(withID: "okay"))])
             }
             return
         }
@@ -95,7 +93,7 @@ extension SendViewController {
                     self.nextLabel.alpha = 1
                     self.arrowIcon.alpha = 1
                     self.nextSpinner.stopAnimating()
-                    self.showAlert(presentingController: self, title: Language.getWord(withID: "oops"), message: "\(Language.getWord(withID: "cannotproceed")). Error: Couldn't fetch recommended fees.", buttons: [Language.getWord(withID: "okay")], actions: nil)
+                    self.showAlert(presentingController: self, title: Language.getWord(withID: "oops"), message: "\(Language.getWord(withID: "cannotproceed")). Error: Couldn't fetch recommended fees.", buttons: [.dismiss(Language.getWord(withID: "okay"))])
                 }
                 return
             }
@@ -154,7 +152,7 @@ extension SendViewController {
                     self.nextLabel.alpha = 1
                     self.arrowIcon.alpha = 1
                     self.nextSpinner.stopAnimating()
-                    self.showAlert(presentingController: self, title: Language.getWord(withID: "oops"), message: "\(Language.getWord(withID: "cannotproceed")). Error: \(errorMessage)", buttons: [Language.getWord(withID: "okay")], actions: nil)
+                    self.showAlert(presentingController: self, title: Language.getWord(withID: "oops"), message: "\(Language.getWord(withID: "cannotproceed")). Error: \(errorMessage)", buttons: [.dismiss(Language.getWord(withID: "okay"))])
                     if sendToSentry {
                         SentryManager.capture(error, context: "SendOnchain row 167")
                     }
@@ -193,7 +191,7 @@ extension ConfirmSendViewController {
         let feeSatoshis = self.selectedFeeRatePerVb().feeSats(forVsize: self.sendVC!.confirmTxSize)
         
         // Double-check transaction details.
-        self.showAlert(presentingController: self, title: Language.getWord(withID: "sendtransaction"), message: Language.getWord(withID: "sendconfirmation").replacingOccurrences(of: "<amount>", with: "\(self.sendVC!.confirmSatoshis)".addSpaces()).replacingOccurrences(of: "<fees>", with: "\(feeSatoshis)".addSpaces()).replacingOccurrences(of: "<address>", with: self.sendVC!.confirmAddress), buttons: [Language.getWord(withID: "cancel"), Language.getWord(withID: "confirm")], actions: [nil, { self.performOnchainTransaction() }])
+        self.showAlert(presentingController: self, title: Language.getWord(withID: "sendtransaction"), message: Language.getWord(withID: "sendconfirmation").replacingOccurrences(of: "<amount>", with: "\(self.sendVC!.confirmSatoshis)".addSpaces()).replacingOccurrences(of: "<fees>", with: "\(feeSatoshis)".addSpaces()).replacingOccurrences(of: "<address>", with: self.sendVC!.confirmAddress), buttons: [.dismiss(Language.getWord(withID: "cancel")), .action(Language.getWord(withID: "confirm")) { self.performOnchainTransaction() }])
     }
     
     func performOnchainTransaction() {
@@ -233,7 +231,7 @@ extension ConfirmSendViewController {
                 DispatchQueue.main.async {
                     self.confirmLabel.alpha = 1
                     self.confirmSpinner.stopAnimating()
-                    self.showAlert(presentingController: self, title: Language.getWord(withID: "error"), message: Language.getWord(withID: "transactionerror") + ": " + errorMessage, buttons: [Language.getWord(withID: "okay")], actions: nil)
+                    self.showAlert(presentingController: self, title: Language.getWord(withID: "error"), message: Language.getWord(withID: "transactionerror") + ": " + errorMessage, buttons: [.dismiss(Language.getWord(withID: "okay"))])
                     SentryManager.capture(error, context: "SendOnchain row 349")
                     SentryManager.countMetric("onchain.transaction.failure.2")
                 }
@@ -248,7 +246,7 @@ extension ConfirmSendViewController {
                 self.confirmSpinner.stopAnimating()
                 self.newTxId = txid
 
-                self.showAlert(presentingController: self, title: Language.getWord(withID: "success"), message: Language.getWord(withID: "transactionsuccess"), buttons: [Language.getWord(withID: "okay")], actions: [{ self.addNewTxToTable() }])
+                self.showAlert(presentingController: self, title: Language.getWord(withID: "success"), message: Language.getWord(withID: "transactionsuccess"), buttons: [.action(Language.getWord(withID: "okay")) { self.addNewTxToTable() }])
             }
         }
     }

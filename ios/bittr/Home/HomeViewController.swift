@@ -189,7 +189,7 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
         
         if !self.coreVC!.walletHasSynced {
             // Wallet isn't ready.
-            self.showAlert(presentingController: self.coreVC!, title: Language.getWord(withID: "syncingwallet"), message: Language.getWord(withID: "syncingwallet2"), buttons: [Language.getWord(withID: "okay")], actions: nil)
+            self.showAlert(presentingController: self.coreVC!, title: Language.getWord(withID: "syncingwallet"), message: Language.getWord(withID: "syncingwallet2"), buttons: [.dismiss(Language.getWord(withID: "okay"))])
             return
         }
         
@@ -200,7 +200,7 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
         
         if !self.coreVC!.walletHasSynced {
             // Wallet isn't ready.
-            self.showAlert(presentingController: self.coreVC!, title: Language.getWord(withID: "syncingwallet"), message: Language.getWord(withID: "syncingwallet2"), buttons: [Language.getWord(withID: "okay")], actions: nil)
+            self.showAlert(presentingController: self.coreVC!, title: Language.getWord(withID: "syncingwallet"), message: Language.getWord(withID: "syncingwallet2"), buttons: [.dismiss(Language.getWord(withID: "okay"))])
             return
         }
         
@@ -213,7 +213,7 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
         
         if !self.coreVC!.walletHasSynced {
             // Wallet isn't ready.
-            self.showAlert(presentingController: self.coreVC!, title: Language.getWord(withID: "syncingwallet"), message: Language.getWord(withID: "syncingwallet2"), buttons: [Language.getWord(withID: "okay")], actions: nil)
+            self.showAlert(presentingController: self.coreVC!, title: Language.getWord(withID: "syncingwallet"), message: Language.getWord(withID: "syncingwallet2"), buttons: [.dismiss(Language.getWord(withID: "okay"))])
             return
         }
         
@@ -355,7 +355,7 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
         
         if !self.coreVC!.walletHasSynced {
             // Wallet isn't ready.
-            self.showAlert(presentingController: self.coreVC!, title: Language.getWord(withID: "syncingwallet"), message: Language.getWord(withID: "syncingwallet2"), buttons: [Language.getWord(withID: "okay")], actions: nil)
+            self.showAlert(presentingController: self.coreVC!, title: Language.getWord(withID: "syncingwallet"), message: Language.getWord(withID: "syncingwallet2"), buttons: [.dismiss(Language.getWord(withID: "okay"))])
             return
         }
         
@@ -366,7 +366,7 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
         
         if self.coreVC!.walletHasSynced {
             if self.couldNotFetchConversion {
-                self.showAlert(presentingController: self.coreVC!, title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "conversionfail"), buttons: [Language.getWord(withID: "okay")], actions: nil)
+                self.showAlert(presentingController: self.coreVC!, title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "conversionfail"), buttons: [.dismiss(Language.getWord(withID: "okay"))])
             } else {
                 self.balanceDetailsButtonTapped(self.balanceCardButton)
             }

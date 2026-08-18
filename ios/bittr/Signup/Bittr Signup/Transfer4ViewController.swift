@@ -98,9 +98,7 @@ class Transfer4ViewController: UIViewController {
                 .replacingOccurrences(of: "<ouribannumber>", with: eachIbanEntity.ourIbanNumber)
                 .replacingOccurrences(of: "<ourname>", with: eachIbanEntity.ourName)
                 .replacingOccurrences(of: "<youruniquecode>", with: eachIbanEntity.yourUniqueCode),
-                buttons: [Language.getWord(withID: "done")],
-                actions: [{ self.proceedToWallet() }]
-            )
+                buttons: [.action(Language.getWord(withID: "done")) { self.proceedToWallet() }])
         }
     }
     

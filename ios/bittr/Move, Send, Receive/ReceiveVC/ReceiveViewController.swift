@@ -177,7 +177,7 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate, UIContextMen
                 if newAddress {
                     let nextUnusedAddress = BitcoinManager.shared.bittrWallet.onchainAddresses?.getNextUnusedAddress()
                     if nextUnusedAddress == nil {
-                        self.showAlert(presentingController: self, title: Language.getWord(withID: "address"), message: Language.getWord(withID: "noaddressavailable"), buttons: [Language.getWord(withID: "okay")], actions: nil)
+                        self.showAlert(presentingController: self, title: Language.getWord(withID: "address"), message: Language.getWord(withID: "noaddressavailable"), buttons: [.dismiss(Language.getWord(withID: "okay"))])
                     }
                     return nextUnusedAddress ?? self.getCachedOnchainAddress() ?? Language.getWord(withID: "unavailable")
                 } else {
@@ -421,13 +421,13 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate, UIContextMen
     @IBAction func copyTapped(_ sender: UIButton) {
         let copyingText = self.currentCopyableText
         UIPasteboard.general.string = copyingText
-        self.showAlert(presentingController: self, title: Language.getWord(withID: "copied"), message: copyingText, buttons: [Language.getWord(withID: "okay")], actions: nil)
+        self.showAlert(presentingController: self, title: Language.getWord(withID: "copied"), message: copyingText, buttons: [.dismiss(Language.getWord(withID: "okay"))])
     }
     
     @IBAction func refreshTapped(_ sender: UIButton) {
         self.view.endEditing(true)
         
-        self.showAlert(presentingController: self, title: Language.getWord(withID: "newaddress"), message: Language.getWord(withID: "newaddress2"), buttons: [Language.getWord(withID: "cancel"), Language.getWord(withID: "confirm")], actions: [nil, { self.confirmOnchainAddress() }])
+        self.showAlert(presentingController: self, title: Language.getWord(withID: "newaddress"), message: Language.getWord(withID: "newaddress2"), buttons: [.dismiss(Language.getWord(withID: "cancel")), .action(Language.getWord(withID: "confirm")) { self.confirmOnchainAddress() }])
     }
     
     func confirmOnchainAddress() {
@@ -446,7 +446,7 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate, UIContextMen
     @IBAction func moreTapped(_ sender: UIButton) {
         self.view.endEditing(true)
         
-        self.showAlert(presentingController: self, title: Language.getWord(withID: "transactiontype"), message: Language.getWord(withID: "selecttransactiontype"), buttons: [Language.getWord(withID: "cancel"), Language.getWord(withID: "getaddress"), Language.getWord(withID: "getbitcoinqr"), Language.getWord(withID: "createinvoice"), Language.getWord(withID: "showlnurl")], actions: [nil, { self.alertTapped(for: .onchain) }, { self.alertTapped(for: .bitcoinqr) }, { self.alertTapped(for: .lightning) }, { self.alertTapped(for: .lnurl) }])
+        self.showAlert(presentingController: self, title: Language.getWord(withID: "transactiontype"), message: Language.getWord(withID: "selecttransactiontype"), buttons: [.dismiss(Language.getWord(withID: "cancel")), .action(Language.getWord(withID: "getaddress")) { self.alertTapped(for: .onchain) }, .action(Language.getWord(withID: "getbitcoinqr")) { self.alertTapped(for: .bitcoinqr) }, .action(Language.getWord(withID: "createinvoice")) { self.alertTapped(for: .lightning) }, .action(Language.getWord(withID: "showlnurl")) { self.alertTapped(for: .lnurl) }])
     }
     
     func alertTapped(for type:TransactionType, withoutAnimation:Bool = false, newAddress:Bool = false) {
@@ -640,7 +640,7 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate, UIContextMen
             message = Language.getWord(withID: "alertmessagelnurl")
         }
         
-        self.showAlert(presentingController: self, title: title, message: message, buttons: [Language.getWord(withID: "okay")], actions: nil)
+        self.showAlert(presentingController: self, title: title, message: message, buttons: [.dismiss(Language.getWord(withID: "okay"))])
     }
     
     func lightningIsAvailable() -> Bool {

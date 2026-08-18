@@ -240,9 +240,7 @@ class Signup4ViewController: UIViewController, UITextFieldDelegate {
                 presentingController: self.signupVC?.coreVC ?? self.signupVC ?? self,
                 title: Language.getWord(withID: "missingwords"),
                 message: Language.getWord(withID: "missingwords2"),
-                buttons: [Language.getWord(withID: "okay")],
-                actions: nil
-            )
+                buttons: [.dismiss(Language.getWord(withID: "okay"))])
             return
         }
         
@@ -264,9 +262,7 @@ class Signup4ViewController: UIViewController, UITextFieldDelegate {
                 presentingController: self.signupVC?.coreVC ?? self.signupVC ?? self,
                 title: Language.getWord(withID: "invalidwords"),
                 message: Language.getWord(withID: "invalidwords2"),
-                buttons: [Language.getWord(withID: "okay")],
-                actions: nil
-            )
+                buttons: [.dismiss(Language.getWord(withID: "okay"))])
             return
         }
         
@@ -283,9 +279,7 @@ class Signup4ViewController: UIViewController, UITextFieldDelegate {
                 presentingController: self.signupVC?.coreVC ?? self.signupVC ?? self,
                 title: Language.getWord(withID: "incorrectphrase"),
                 message: Language.getWord(withID: "incorrectphrase2"),
-                buttons: [Language.getWord(withID: "okay")],
-                actions: nil
-            )
+                buttons: [.dismiss(Language.getWord(withID: "okay"))])
         }
     }
     

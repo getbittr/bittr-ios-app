@@ -59,7 +59,7 @@ extension OnchainSyncFailureReporting {
             let timedOut = BitcoinManager.shared.bdkFullScanTimedOut
             // Replace the "syncing" alert (if still visible) with the failure alert.
             self.hideAlert()
-            self.showAlert(presentingController: self, title: Language.getWord(withID: "onchainsyncfailedtitle"), message: Language.getWord(withID: timedOut ? "onchainsynctimedout" : "onchainsyncfailed"), buttons: [Language.getWord(withID: "okay")], actions: nil)
+            self.showAlert(presentingController: self, title: Language.getWord(withID: "onchainsyncfailedtitle"), message: Language.getWord(withID: timedOut ? "onchainsynctimedout" : "onchainsyncfailed"), buttons: [.dismiss(Language.getWord(withID: "okay"))])
         }
     }
 }
@@ -210,20 +210,33 @@ private extension UIViewController {
     }
 }
 
+// One button in an alert: its title and what pressing it does.
+struct AlertButton {
+    
+    let title: String
+    let action: (() -> Void)?
+    
+    // A button that only closes the alert.
+    static func dismiss(_ title: String) -> AlertButton {
+        AlertButton(title: title, action: nil)
+    }
+    
+    // A button that closes the alert and then does something.
+    static func action(_ title: String, _ handler: @escaping () -> Void) -> AlertButton {
+        AlertButton(title: title, action: handler)
+    }
+}
+
 // MARK: - Alerts
 
 extension UIViewController {
     
-    func showAlert(presentingController:UIViewController, title:String, message:String, buttons:[String], actions:[(() -> Void)?]?) {
+    func showAlert(presentingController:UIViewController, title:String, message:String, buttons:[AlertButton]) {
         
         self.alertPresenter = presentingController
         
-        // Pad to the button count.
-        let resolvedActions: [(() -> Void)?] = buttons.indices.map { index in
-            guard let actions = actions, index < actions.count else { return nil }
-            return actions[index]
-        }
-        let isDismissable = actions == nil || resolvedActions.contains { $0 == nil }
+        // The x is offered whenever at least one button merely closes the alert.
+        let isDismissable = buttons.contains { $0.action == nil }
         
         DispatchQueue.main.async {
             
@@ -257,13 +270,13 @@ extension UIViewController {
             card.addSubview(messageLabel)
             
             // Check whether to stack buttons vertically or horizontally.
-            let titlesFitSideBySide = buttons.allSatisfy { eachButton in eachButton.count < 16 }
+            let titlesFitSideBySide = buttons.allSatisfy { eachButton in eachButton.title.count < 16 }
             let stackButtonsVertically = buttons.count > 2 || (buttons.count == 2 && !titlesFitSideBySide)
 
             let buttonViews = buttons.enumerated().map { index, eachButton in
-                self.makeAlertButton(title: eachButton, index: index) { [weak self] in
+                self.makeAlertButton(title: eachButton.title, index: index) { [weak self] in
                     self?.hideAlert()
-                    resolvedActions[index]?()
+                    eachButton.action?()
                 }
             }
 

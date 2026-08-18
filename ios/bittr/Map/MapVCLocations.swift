@@ -170,7 +170,7 @@ extension MapViewController {
     func goToMyLocation() {
         DispatchQueue.global(qos: .background).async {
             guard CLLocationManager.locationServicesEnabled() else {
-                self.showAlert(presentingController: self, title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "locationunavailable"), buttons: [Language.getWord(withID: "okay")], actions: nil)
+                self.showAlert(presentingController: self, title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "locationunavailable"), buttons: [.dismiss(Language.getWord(withID: "okay"))])
                 return
             }
             
@@ -187,7 +187,7 @@ extension MapViewController {
                     }
                     self.locationManager.requestLocation()
                 case .restricted, .denied:
-                    self.showAlert(presentingController: self, title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "locationunavailable"), buttons: [Language.getWord(withID: "okay")], actions: nil)
+                    self.showAlert(presentingController: self, title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "locationunavailable"), buttons: [.dismiss(Language.getWord(withID: "okay"))])
                 @unknown default:
                     break
                 }

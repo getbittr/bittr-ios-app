@@ -136,7 +136,7 @@ class MoveViewController: UIViewController {
             self.showPendingClosureAlert()
         } else if BitcoinManager.shared.bittrWallet.lightningChannels.count == 0 {
             // There is no Lightning channel.
-            self.showAlert(presentingController: self, title: Language.getWord(withID: "lightningchannels"), message: Language.getWord(withID: "lightningexplanation1"), buttons: [Language.getWord(withID: "okay")], actions: nil)
+            self.showAlert(presentingController: self, title: Language.getWord(withID: "lightningchannels"), message: Language.getWord(withID: "lightningexplanation1"), buttons: [.dismiss(Language.getWord(withID: "okay"))])
         } else {
             // There's a Lightning channel.
             self.coreVC!.launchQuestion(question: Language.getWord(withID: "lightningchannel"), answer: Language.getWord(withID: "lightningexplanation1"), type: "lightningexplanation")
@@ -149,10 +149,10 @@ class MoveViewController: UIViewController {
         
         if BitcoinManager.shared.bittrWallet.satoshisLightning == 0 {
             // All lightning funds are pending.
-            self.showAlert(presentingController: self, title: Language.getWord(withID: "connectionclosed"), message: message, buttons: [Language.getWord(withID: "okay")], actions: nil)
+            self.showAlert(presentingController: self, title: Language.getWord(withID: "connectionclosed"), message: message, buttons: [.dismiss(Language.getWord(withID: "okay"))])
         } else {
             // There is an active channel with spendable lightning funds.
-            self.showAlert(presentingController: self, title: Language.getWord(withID: "connectionclosed"), message: message, buttons: [Language.getWord(withID: "close"), Language.getWord(withID: "viewactiveconnection")], actions: [nil, {
+            self.showAlert(presentingController: self, title: Language.getWord(withID: "connectionclosed"), message: message, buttons: [.dismiss(Language.getWord(withID: "close")), .action(Language.getWord(withID: "viewactiveconnection")) {
                 self.coreVC!.launchQuestion(question: Language.getWord(withID: "lightningchannel"), answer: Language.getWord(withID: "lightningexplanation1"), type: "lightningexplanation")
             }])
         }
@@ -162,7 +162,7 @@ class MoveViewController: UIViewController {
         
         if BitcoinManager.shared.bittrWallet.lightningChannels.count == 0 {
             // There is no Lightning channel.
-            self.showAlert(presentingController: self, title: Language.getWord(withID: "instantpayments"), message: Language.getWord(withID: "questionvc13"), buttons: [Language.getWord(withID: "okay")], actions: nil)
+            self.showAlert(presentingController: self, title: Language.getWord(withID: "instantpayments"), message: Language.getWord(withID: "questionvc13"), buttons: [.dismiss(Language.getWord(withID: "okay"))])
         } else {
             self.performSegue(withIdentifier: "MoveToSwap", sender: self)
         }

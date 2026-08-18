@@ -268,7 +268,7 @@ class ConfirmSendViewController: UIViewController {
         
         let spendable = BitcoinManager.shared.bittrWallet.satoshisOnchainSpendable ?? 0
         if (self.selectedFeeInSats + self.sendVC!.confirmSatoshis) > spendable {
-            self.showAlert(presentingController: self, title: Language.getWord(withID: "balance2"), message: Language.getWord(withID: "insufficientonchainbalance").replacingOccurrences(of: "<fee>", with: "\(spendable) sats"), buttons: [Language.getWord(withID: "updateamount"), Language.getWord(withID: "close")], actions: [{ self.handleAmountChange() }, nil])
+            self.showAlert(presentingController: self, title: Language.getWord(withID: "balance2"), message: Language.getWord(withID: "insufficientonchainbalance").replacingOccurrences(of: "<fee>", with: "\(spendable) sats"), buttons: [.action(Language.getWord(withID: "updateamount")) { self.handleAmountChange() }, .dismiss(Language.getWord(withID: "close"))])
             return false
         } else {
             return true
@@ -278,7 +278,7 @@ class ConfirmSendViewController: UIViewController {
     func checkHighFeeRate() {
         // Check if selected fee rate is too high.
         if (CGFloat(self.selectedFeeInSats) / CGFloat(self.sendVC!.confirmSatoshis)) > 0.1 {
-            self.showAlert(presentingController: self, title: Language.getWord(withID: "highfeerate"), message: Language.getWord(withID: "highfeerate2"), buttons: [Language.getWord(withID: "okay")], actions: nil)
+            self.showAlert(presentingController: self, title: Language.getWord(withID: "highfeerate"), message: Language.getWord(withID: "highfeerate2"), buttons: [.dismiss(Language.getWord(withID: "okay"))])
         }
     }
     
@@ -318,14 +318,14 @@ class ConfirmSendViewController: UIViewController {
         
         if self.maxAvailableFeePerVb != nil && self.selectedFee == .low {
             // Selected fee is very low.
-            self.showAlert(presentingController: self, title: Language.getWord(withID: "lowfee"), message: Language.getWord(withID: "lowfee2"), buttons: [Language.getWord(withID: "changefee"), Language.getWord(withID: "continue")], actions: [nil, { self.proceedWithOnchainConfirmation() }])
+            self.showAlert(presentingController: self, title: Language.getWord(withID: "lowfee"), message: Language.getWord(withID: "lowfee2"), buttons: [.dismiss(Language.getWord(withID: "changefee")), .action(Language.getWord(withID: "continue")) { self.proceedWithOnchainConfirmation() }])
         } else {
             self.proceedWithOnchainConfirmation()
         }
     }
     
     @IBAction func lightningFeesTapped(_ sender: UIButton) {
-        self.showAlert(presentingController: self, title: Language.getWord(withID: "alertlightningfees"), message: Language.getWord(withID: "alertlightningfees2"), buttons: [Language.getWord(withID: "okay")], actions: nil)
+        self.showAlert(presentingController: self, title: Language.getWord(withID: "alertlightningfees"), message: Language.getWord(withID: "alertlightningfees2"), buttons: [.dismiss(Language.getWord(withID: "okay"))])
     }
     
     @IBAction func backButtonTapped(_ sender: UIButton) {

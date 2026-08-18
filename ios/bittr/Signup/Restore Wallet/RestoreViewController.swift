@@ -219,8 +219,7 @@ class RestoreViewController: UIViewController, UITextFieldDelegate {
             Log.info("coreVC is nil - stopping spinner and showing error")
             self.restoreButtonSpinner.stopAnimating()
             self.restoreButtonText.alpha = 1
-            self.showAlert(presentingController: self.signupVC?.coreVC ?? self.signupVC ?? self, title: Language.getWord(withID: "error"), message: Language.getWord(withID: "restorewalleterror"), buttons: [Language.getWord(withID: "okay")], actions: nil
-            )
+            self.showAlert(presentingController: self.signupVC?.coreVC ?? self.signupVC ?? self, title: Language.getWord(withID: "error"), message: Language.getWord(withID: "restorewalleterror"), buttons: [.dismiss(Language.getWord(withID: "okay"))])
             return
         }
         
@@ -238,9 +237,7 @@ class RestoreViewController: UIViewController, UITextFieldDelegate {
                     presentingController: self.signupVC?.coreVC ?? self.signupVC ?? self,
                     title: Language.getWord(withID: "incompletephrase"),
                     message: Language.getWord(withID: "incompletephrase2"),
-                    buttons: [Language.getWord(withID: "okay")],
-                    actions: nil
-                )
+                    buttons: [.dismiss(Language.getWord(withID: "okay"))])
                 return
             }
             
@@ -257,14 +254,14 @@ class RestoreViewController: UIViewController, UITextFieldDelegate {
             // Get current mnemonic.
             guard let currentMnemonic = CacheManager.getMnemonic() else {
                 // No existing mnenonic is available.
-                self.showAlert(presentingController: self.signupVC?.coreVC ?? self.signupVC ?? self, title: Language.getWord(withID: "forgotpin"), message: "\(Language.getWord(withID: "forgotpin3")) 2", buttons: [Language.getWord(withID: "okay")], actions: nil)
+                self.showAlert(presentingController: self.signupVC?.coreVC ?? self.signupVC ?? self, title: Language.getWord(withID: "forgotpin"), message: "\(Language.getWord(withID: "forgotpin3")) 2", buttons: [.dismiss(Language.getWord(withID: "okay"))])
                 return
             }
             
             // Check whether entered mnemonic is correct.
             guard currentMnemonic == enteredMnemonic else {
                 // Entered mnemonic is incorrect.
-                self.showAlert(presentingController: self.signupVC?.coreVC ?? self.signupVC ?? self, title: Language.getWord(withID: "forgotpin"), message: Language.getWord(withID: "forgotpin3"), buttons: [Language.getWord(withID: "okay")], actions: nil)
+                self.showAlert(presentingController: self.signupVC?.coreVC ?? self.signupVC ?? self, title: Language.getWord(withID: "forgotpin"), message: Language.getWord(withID: "forgotpin3"), buttons: [.dismiss(Language.getWord(withID: "okay"))])
                 return
             }
             Log.info("Correct mnemonic has been entered.")
@@ -282,9 +279,7 @@ class RestoreViewController: UIViewController, UITextFieldDelegate {
                         presentingController: self.signupVC?.coreVC ?? self.signupVC ?? self,
                         title: Language.getWord(withID: "invalidphrase"),
                         message: Language.getWord(withID: "invalidphrase2"),
-                        buttons: [Language.getWord(withID: "okay")],
-                        actions: nil
-                    )
+                        buttons: [.dismiss(Language.getWord(withID: "okay"))])
                 }
                 return
             }
@@ -297,7 +292,7 @@ class RestoreViewController: UIViewController, UITextFieldDelegate {
             } catch {
                 self.restoreButtonSpinner.stopAnimating()
                 self.restoreButtonText.alpha = 1
-                self.showAlert(presentingController: self.signupVC?.coreVC ?? self.signupVC ?? self, title: Language.getWord(withID: "error"), message: Language.getWord(withID: "mnemonicsavefail"), buttons: [Language.getWord(withID: "okay")], actions: nil)
+                self.showAlert(presentingController: self.signupVC?.coreVC ?? self.signupVC ?? self, title: Language.getWord(withID: "error"), message: Language.getWord(withID: "mnemonicsavefail"), buttons: [.dismiss(Language.getWord(withID: "okay"))])
                 return
             }
         }

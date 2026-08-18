@@ -14,7 +14,7 @@ extension SwapViewController {
     func bdkWalletUnavailable() {
         self.availableAmountLabel.text = Language.getWord(withID: "satsatatime").replacingOccurrences(of: "<amount>", with: "0")
         self.bdkSpinner.startAnimating()
-        self.showAlert(presentingController: self, title: Language.getWord(withID: "syncing"), message: Language.getWord(withID: "awaitingbdksync"), buttons: [Language.getWord(withID: "okay")], actions: nil)
+        self.showAlert(presentingController: self, title: Language.getWord(withID: "syncing"), message: Language.getWord(withID: "awaitingbdksync"), buttons: [.dismiss(Language.getWord(withID: "okay"))])
         
         if !BitcoinManager.shared.bdkWalletIsScanning {
             Log.info("BDK wallet isn't scanning. Will start scan.")
