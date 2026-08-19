@@ -12,8 +12,11 @@
 #      and confirm the amount shrank.
 #   5. Send → Confirm. If the broadcast still fails ("Error"), retry with the
 #      slowest fee (continuing past any "Low fee" warning) and Confirm again.
-#   6. On success, mine 6 blocks, dismiss, then (like send_onchain) close Send,
-#      pull Home to resync, wait for the top transaction to change, and open it.
+#   6. On success the app syncs and opens the new transaction; if the sync
+#      hasn't produced it yet it shows the success alert instead. Either way,
+#      mine 6 blocks and dismiss whichever appeared, then (like send_onchain)
+#      close Send, pull Home to resync, wait for the top transaction to change,
+#      and open it.
 #
 # Assumes a wallet with an onchain balance. If launched on a clean install it
 # auto-runs onboarding first. Does NOT clearState.
@@ -135,11 +138,15 @@ appId: com.bittr.bittr-regtest
 - tapOn:
     id: "alert.button.1"
 
-# Wait for the result alert (success or error — both have an Okay at index 0).
+# Wait for the outcome. A successful send now syncs and opens the transaction
+# screen; a failure still raises an alert. Wait for the transaction screen
+# optionally — a failure never shows it and burns this timeout before the retry
+# below.
 - extendedWaitUntil:
     visible:
-      id: "alert.button.0"
-    timeout: 30000
+      id: "transaction.yellowCard"
+    timeout: 60000
+    optional: true
 
 # If the broadcast failed ("Error" — the fast fee left too little), retry with
 # the slowest fee, continuing past any "Low fee" warning, then Confirm again.
@@ -165,15 +172,43 @@ appId: com.bittr.bittr-regtest
           id: "alert.button.1"
       - extendedWaitUntil:
           visible:
-            id: "alert.button.0"
-          timeout: 30000
-- takeScreenshot: shared/docs/screenshots/send_onchain_all/05_success
+            id: "transaction.yellowCard"
+          timeout: 60000
+          optional: true
 
-# Success alert is up. Mine 6 blocks so it confirms, then dismiss.
-- evalScript: ${output.blocksToMine = 6}
-- runScript: ../scripts/mine_blocks.js
-- tapOn:
-    id: "alert.button.0"
+# The outcome is on screen by now — either wait above has already run. A
+# successful send syncs LDK Node and opens the transaction screen with the real
+# payment, the same landing the lightning send has always had; when the chain
+# source hasn't handed the transaction back by the time the sync finishes, the
+# old success alert stands in. Maestro can't wait on "A or B", so branch on
+# whichever is showing. Both mine 6 blocks so the send confirms, and both end
+# back on the SendViewController.
+
+# Fallback: the success alert (single Okay).
+- runFlow:
+    when:
+      visible:
+        id: "alert.button.0"
+    commands:
+      - takeScreenshot: shared/docs/screenshots/send_onchain_all/05_success
+      - evalScript: ${output.blocksToMine = 6}
+      - runScript: ../scripts/mine_blocks.js
+      - tapOn:
+          id: "alert.button.0"
+
+# Expected: the transaction screen, opened straight from the send. Closing it
+# with the header Down button lands back on Send, the same place dismissing the
+# alert does.
+- runFlow:
+    when:
+      visible:
+        id: "transaction.yellowCard"
+    commands:
+      - takeScreenshot: shared/docs/screenshots/send_onchain_all/05_transaction
+      - evalScript: ${output.blocksToMine = 6}
+      - runScript: ../scripts/mine_blocks.js
+      - tapOn:
+          id: "header.downButton"
 
 # Back on the SendViewController with the fields cleared.
 - assertVisible:
