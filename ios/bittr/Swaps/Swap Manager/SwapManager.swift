@@ -665,6 +665,9 @@ class SwapManager: NSObject {
             
             Log.info("Did find completed swap transaction, will launch TransactionVC.")
             DispatchQueue.main.async {
+                // Mark swap complete.
+                (homeVC.swapStatusVC ?? homeVC.moveVC?.swapVC?.swapStatusVC)?.markSwapComplete()
+                
                 // Open TransactionVC.
                 homeVC.tappedTransaction = swapTransaction
                 homeVC.performSegue(withIdentifier: "HomeToTransaction", sender: homeVC)
