@@ -23,7 +23,9 @@
 #   3. Next shows the fees alert, OR the "notifications required" gate if there's
 #      no token. On the gate: reprovision + re-run leg 1. Then Proceed on the
 #      fees alert.
-#   4. Wait for "Swap complete" status, mine 1 block, return Home.
+#   4. Wait for "Swap complete" status, mine 1 block, return Home. The completed
+#      swap may then open the TransactionVC by itself — optional, so it's waited
+#      for briefly, screenshotted and closed if it appears.
 #   5. Reverse leg (onchain → lightning, 50000 sats) the same way.
 #   6. Verify Home with the new swap rows in the transaction list.
 #
@@ -117,6 +119,28 @@ appId: com.bittr.bittr-regtest
 # Confirm the claim onchain.
 - evalScript: ${output.blocksToMine = 1}
 - runScript: ../scripts/mine_blocks.js
+
+# A completed swap now opens the TransactionVC by itself, once both of its legs
+# are in LDK Node's payment list (SwapManager.openCompletedSwapTransaction). It
+# syncs and retries for a few seconds after the claim, so give it a window here,
+# before dismissing anything.
+#
+# Best effort by design: a leg that hasn't landed yet means no screen, and that
+# is fine — a miss costs this timeout and the flow carries on. Closing it returns
+# to the swap screens, which the swipes below then dismiss either way.
+- extendedWaitUntil:
+    visible:
+      id: "transaction.yellowCard"
+    timeout: 30000
+    optional: true
+- runFlow:
+    when:
+      visible:
+        id: "transaction.yellowCard"
+    commands:
+      - takeScreenshot: shared/docs/screenshots/swap/06b_swap_transaction
+      - tapOn:
+          id: "header.downButton"
 
 # Swipe down to dismiss SwapVC, then again to dismiss MoveVC, landing on Home.
 - swipe:
@@ -263,6 +287,22 @@ appId: com.bittr.bittr-regtest
       text: "Swap complete"
     timeout: 60000
 - takeScreenshot: shared/docs/screenshots/swap/14_reverse_swap_complete
+
+# Same as the first leg: wait for the completed swap to open the TransactionVC
+# before dismissing anything. Optional, so continue either way.
+- extendedWaitUntil:
+    visible:
+      id: "transaction.yellowCard"
+    timeout: 30000
+    optional: true
+- runFlow:
+    when:
+      visible:
+        id: "transaction.yellowCard"
+    commands:
+      - takeScreenshot: shared/docs/screenshots/swap/14b_reverse_swap_transaction
+      - tapOn:
+          id: "header.downButton"
 
 - swipe:
     direction: DOWN
