@@ -458,7 +458,9 @@ extension CoreViewController {
             // Launch TransactionVC after ReceiveVC has dismissed.
             let presentTransactionVC = { [weak self] in
                 guard let self else { return }
-                if !thisTransaction.isSwapPayment {
+                if thisTransaction.isSwapPayment {
+                    SwapManager.openCompletedSwapTransaction(dateID: thisTransaction.lnDescription, homeVC: self.homeVC)
+                } else {
                     self.homeVC?.performSegue(withIdentifier: "HomeToTransaction", sender: self)
                 }
             }

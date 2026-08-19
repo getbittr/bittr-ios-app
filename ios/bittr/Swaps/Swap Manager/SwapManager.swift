@@ -626,6 +626,47 @@ class SwapManager: NSObject {
             
     }
     
+    static func openCompletedSwapTransaction(dateID:String, homeVC:HomeViewController?, attemptsLeft:Int = 4) {
+        guard dateID != "", let homeVC = homeVC else { return }
+        
+        DispatchQueue.global(qos: .userInitiated).async {
+            // Sync wallet to get latest onchain transactions.
+            try? BitcoinManager.shared.syncWallets()
+            
+            // Find transactions with this swap's dateID.
+            let payments = BitcoinManager.shared.listPayments()
+            let legs = payments
+                .map { $0.createTransaction(bittrTransactions: nil) }
+                .filter { $0.lnDescription == dateID }
+            
+            // Make sure both transactions have been found.
+            guard legs.count == 2 else {
+                guard attemptsLeft > 1 else {
+                    Log.info("Complete swap not yet available.")
+                    return
+                }
+                DispatchQueue.global(qos: .userInitiated).asyncAfter(deadline: .now() + 5) {
+                    Log.info("Will retry finding completed swap.")
+                    self.openCompletedSwapTransaction(dateID: dateID, homeVC: homeVC, attemptsLeft: attemptsLeft - 1)
+                }
+                return
+            }
+            
+            // Combine the two transactions.
+            guard let swapTransaction = legs.performSwapMatching().first(where: { $0.isSwap }) else {
+                Log.info("Could not combine the two legs of this swap.")
+                return
+            }
+            
+            Log.info("Did find completed swap transaction, will launch TransactionVC.")
+            DispatchQueue.main.async {
+                // Open TransactionVC.
+                homeVC.tappedTransaction = swapTransaction
+                homeVC.performSegue(withIdentifier: "HomeToTransaction", sender: homeVC)
+            }
+        }
+    }
+    
     static func addOnchainTransactionToUI(transactionId:String, swapVC:SwapStatusViewController) {
         // Load swap details to get the description and user amount
         guard let ongoingSwap = swapVC.thisSwap else {
@@ -637,25 +678,23 @@ class SwapManager: NSObject {
         CacheManager.storeInvoiceDescription(preimage: transactionId, desc: ongoingSwap.dateID)
         CacheManager.storeSwapID(dateID: ongoingSwap.dateID, swapID: ongoingSwap.boltzID!)
         
-        // For a suggested swap the onchain payout goes to an external recipient,
-        // so it never lands in this wallet as a matchable onchain transaction.
-        // Persist the payout txid on the swap file so the TransactionVC can show
-        // it as the Onchain ID (a normal reverse swap gets it from the matched
-        // claim transaction instead).
         if ongoingSwap.isSuggested {
             if let boltzID = ongoingSwap.boltzID, let existingSwapDetails = self.loadSwapDetailsFromFile(swapID: boltzID), let updatedSwapDetails = existingSwapDetails.mutableCopy() as? NSMutableDictionary {
                 updatedSwapDetails.setValue(transactionId, forKey: "sentOnchainTransactionID")
                 self.saveSwapDetailsToFile(swapID: boltzID, swapDictionary: updatedSwapDetails)
             }
-
-            // The claim transaction paying the recipient has been broadcast —
-            // only now does the suggested swap count as succeeded.
+            // Mark suggested swap as succeeded.
             CacheManager.storeSuggestedSwap(dateID: ongoingSwap.dateID, status: .succeeded)
         }
         
         // Light sync wallet to add transaction to table.
         DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
             BitcoinManager.shared.lightSync() { _ in }
+        }
+        
+        // Open TransactionVC.
+        if !ongoingSwap.isSuggested {
+            self.openCompletedSwapTransaction(dateID: ongoingSwap.dateID, homeVC: swapVC.coreVC?.homeVC)
         }
     }
     
