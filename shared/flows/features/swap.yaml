@@ -108,12 +108,18 @@ appId: com.bittr.bittr-regtest
 - tapOn:
     id: "alert.button.1"
 
-# SwapStatusVC embeds inside SwapVC. Wait for "Swap complete" text — covers
-# all the intermediate Boltz status updates.
+# SwapStatusVC embeds inside SwapVC. Wait for "Swap complete" text — covers all
+# the intermediate Boltz status updates.
+#
+# Optional, because the label and the transaction screen are two observations of
+# the same moment and either can land first. If the transaction screen wins it
+# covers the label, and a required wait here could then never be satisfied. The
+# assertion isn't lost: it moves below, after that screen has been closed.
 - extendedWaitUntil:
     visible:
       text: "Swap complete"
     timeout: 60000
+    optional: true
 - takeScreenshot: shared/docs/screenshots/swap/06_swap_complete
 
 # Confirm the claim onchain.
@@ -141,6 +147,14 @@ appId: com.bittr.bittr-regtest
       - takeScreenshot: shared/docs/screenshots/swap/06b_swap_transaction
       - tapOn:
           id: "header.downButton"
+
+# Whichever of the two won, the status reads "Swap complete" once the transaction
+# screen is out of the way — openCompletedSwapTransaction sets the label itself
+# before opening, so this stays a real assertion either way.
+- extendedWaitUntil:
+    visible:
+      text: "Swap complete"
+    timeout: 20000
 
 # Swipe down to dismiss SwapVC, then again to dismiss MoveVC, landing on Home.
 - swipe:
@@ -262,38 +276,37 @@ appId: com.bittr.bittr-regtest
 - tapOn:
     id: "alert.button.1"
 
+# Pause before mining so LDK Node's background sync (onchainWalletSyncIntervalSecs
+# is 30) records the lockup we just broadcast. That is what happens in the real
+# world, where a block takes ~10 minutes: by the time Boltz pays the invoice, the
+# on-chain leg has long been in listPayments(), so openCompletedSwapTransaction
+# finds both legs and opens the transaction without syncing at all.
+#
+# Mining immediately would race that timer and usually send this leg down the
+# sync-and-retry path instead — which the first leg already covers, since its
+# claim is broadcast moments before it looks. So the two legs end up exercising
+# one branch each. 40 seconds rather than 30 because the timer may have fired
+# just before the lockup went out.
+- evalScript: ${output.sleepMs = 40000}
+- runScript: ../scripts/sleep.js
+
 # Onchain → lightning needs the onchain funding tx to confirm before Boltz
 # pays the lightning invoice, so mine BEFORE waiting for completion.
 - evalScript: ${output.blocksToMine = 1}
 - runScript: ../scripts/mine_blocks.js
 
-# Recovery: if the funding tx stays unconfirmed and the status stalls on
-# "Waiting to be mined" instead of progressing to "Swap complete" on its own,
-# mine 6 more blocks and tap the status refresh button to pull a fresh status
-# from Boltz. Skipped when the swap has already moved on (the status label
-# shows one status at a time, so "Waiting to be mined" is no longer visible).
-- runFlow:
-    when:
-      visible:
-        text: "Waiting to be mined"
-    commands:
-      - evalScript: ${output.blocksToMine = 6}
-      - runScript: ../scripts/mine_blocks.js
-      - tapOn:
-          id: "swapStatus.refreshButton"
-
-- extendedWaitUntil:
-    visible:
-      text: "Swap complete"
-    timeout: 60000
-- takeScreenshot: shared/docs/screenshots/swap/14_reverse_swap_complete
-
-# Same as the first leg: wait for the completed swap to open the TransactionVC
-# before dismissing anything. Optional, so continue either way.
+# Unlike the first leg, the transaction screen is the first thing to appear here.
+# The pause before mining leaves both legs already in listPayments() by the time
+# Boltz pays the invoice, so the swap opens the transaction at once — covering the
+# status label before a wait on it could ever be satisfied. So lead with the
+# screen, and don't spend a minute waiting for a label that is already hidden.
+#
+# Still optional: if the match doesn't happen, this falls through and the label
+# assertion below carries the leg on its own.
 - extendedWaitUntil:
     visible:
       id: "transaction.yellowCard"
-    timeout: 30000
+    timeout: 60000
     optional: true
 - runFlow:
     when:
@@ -303,6 +316,16 @@ appId: com.bittr.bittr-regtest
       - takeScreenshot: shared/docs/screenshots/swap/14b_reverse_swap_transaction
       - tapOn:
           id: "header.downButton"
+
+# Required, whichever way the leg went: openCompletedSwapTransaction sets this
+# label itself before opening the transaction, so it reads "Swap complete" as
+# soon as that screen is out of the way — and if no transaction screen appeared,
+# this is the original wait for Boltz to get there.
+- extendedWaitUntil:
+    visible:
+      text: "Swap complete"
+    timeout: 60000
+- takeScreenshot: shared/docs/screenshots/swap/14_reverse_swap_complete
 
 - swipe:
     direction: DOWN

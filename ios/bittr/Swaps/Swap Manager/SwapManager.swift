@@ -632,6 +632,10 @@ class SwapManager: NSObject {
             .filter { $0.lnDescription == dateID }
     }
     
+    private static func swapStatusVC(for homeVC:HomeViewController) -> SwapStatusViewController? {
+        return homeVC.swapStatusVC ?? homeVC.moveVC?.swapVC?.swapStatusVC
+    }
+    
     static func openCompletedSwapTransaction(dateID:String, homeVC:HomeViewController?, attemptsLeft:Int = 4) {
         guard dateID != "", let homeVC = homeVC else { return }
         
@@ -640,6 +644,13 @@ class SwapManager: NSObject {
             var legs = self.swapLegs(dateID: dateID)
             if legs.count != 2 {
                 // Couldn't find both transactions. Will sync wallet.
+                DispatchQueue.main.async {
+                    let statusVC = self.swapStatusVC(for: homeVC)
+                    if statusVC?.isShowingSwapComplete == true {
+                        // Show loading banner while fetching swap details.
+                        statusVC?.showLoading(message: Language.getWord(withID: "gatheringdetails"))
+                    }
+                }
                 try? BitcoinManager.shared.syncWallets()
                 legs = self.swapLegs(dateID: dateID)
             }
@@ -648,6 +659,7 @@ class SwapManager: NSObject {
             guard legs.count == 2 else {
                 guard attemptsLeft > 1 else {
                     Log.info("Complete swap not yet available.")
+                    DispatchQueue.main.async { self.swapStatusVC(for: homeVC)?.hideLoading() }
                     return
                 }
                 DispatchQueue.global(qos: .userInitiated).asyncAfter(deadline: .now() + 5) {
@@ -660,13 +672,16 @@ class SwapManager: NSObject {
             // Combine the two transactions.
             guard let swapTransaction = legs.performSwapMatching().first(where: { $0.isSwap }) else {
                 Log.info("Could not combine the two legs of this swap.")
+                DispatchQueue.main.async { self.swapStatusVC(for: homeVC)?.hideLoading() }
                 return
             }
             
             Log.info("Did find completed swap transaction, will launch TransactionVC.")
             DispatchQueue.main.async {
                 // Mark swap complete.
-                (homeVC.swapStatusVC ?? homeVC.moveVC?.swapVC?.swapStatusVC)?.markSwapComplete()
+                let statusVC = self.swapStatusVC(for: homeVC)
+                statusVC?.hideLoading()
+                statusVC?.markSwapComplete()
                 
                 // Open TransactionVC.
                 homeVC.tappedTransaction = swapTransaction

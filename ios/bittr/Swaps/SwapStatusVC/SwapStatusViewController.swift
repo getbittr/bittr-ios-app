@@ -147,6 +147,10 @@ class SwapStatusViewController: UIViewController {
         }
     }
     
+    var isShowingSwapComplete:Bool {
+        return self.confirmStatusLabel.text == Language.getWord(withID: "swapstatusswapcomplete")
+    }
+    
     func markSwapComplete() {
         DispatchQueue.main.async {
             self.confirmStatusSpinner.stopAnimating()
