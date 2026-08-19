@@ -12,8 +12,10 @@
 #      transaction; if the sync hasn't produced it yet it shows the success
 #      alert instead. Either way, mine 6 blocks so it confirms and dismiss
 #      whichever appeared, landing back on Send.
-#   6. Back on Send the fields are cleared; close it, pull Home to resync and
-#      open the new transaction from the top of the history table.
+#   6. Back on Send the fields are cleared and the "You can send <amount>
+#      satoshis" label has refreshed to a new figure (lightSync updates it after
+#      the send); close Send, pull Home to resync and open the new transaction
+#      from the top of the history table.
 #
 # Assumes a wallet with an onchain balance (run the buy/receive flows first).
 # If launched on a clean install it auto-runs onboarding first. Does NOT
@@ -109,6 +111,19 @@ appId: com.bittr.bittr-regtest
       id: "send.bdkSpinner"
     timeout: 60000
 - takeScreenshot: shared/docs/screenshots/send_onchain/02_regular
+
+# The label reads "You can send 0 satoshis." until the drain amount has actually
+# been worked out. Wait for a real figure and remember it: lightSync refreshes
+# this label after a send, so the flow can wait for it to change rather than
+# guess how long that takes.
+- extendedWaitUntil:
+    notVisible:
+      id: "send.availableLabel"
+      text: "You can send 0 satoshis."
+    timeout: 60000
+- copyTextFrom:
+    id: "send.availableLabel"
+- evalScript: ${output.previousSendable = maestro.copiedText}
 
 # Tap the question mark next to the "Regular"/"Instant" toggle → an alert
 # explaining the difference between Regular and Instant (single Okay button) →
@@ -231,6 +246,17 @@ appId: com.bittr.bittr-regtest
       - runScript: ../scripts/mine_blocks.js
       - tapOn:
           id: "header.downButton"
+
+# Back on Send. lightSync refreshes the sendable amount once the post-send sync
+# lands, so this label has to end up reading something other than it did before —
+# the balance has dropped by the amount sent plus fees. Waiting for the change is
+# what proves that refresh happened, instead of assuming it did. Same shape as
+# the fee-adjustment wait in send_onchain_all.
+- extendedWaitUntil:
+    notVisible:
+      id: "send.availableLabel"
+      text: "${output.previousSendable}"
+    timeout: 60000
 
 # Back on the SendViewController with the fields cleared.
 - assertVisible:

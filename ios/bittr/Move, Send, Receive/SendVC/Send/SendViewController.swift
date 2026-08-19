@@ -193,11 +193,8 @@ class SendViewController: UIViewController, UITextFieldDelegate, OnchainSyncFail
                     Task { await self.fetchFeeEstimatesThenSetSendAllLabel() }
                     return
                 }
-
-                // Calculate maximum sendable onchain amount off the main thread:
-                // this builds and signs a drain PSBT, which is real crypto work
-                // and grows with the number of UTXOs. Keep the spinner up until
-                // there's a number to show.
+                
+                // Calculate maximum sendable onchain amount.
                 // Minimum 0 satoshis. Minimum 1 sat/Vbyte.
                 self.bdkSpinner.startAnimating()
                 let satPerVb = self.feePerVbMedium.wholeSatPerVb

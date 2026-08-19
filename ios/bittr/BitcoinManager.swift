@@ -496,11 +496,17 @@ class BitcoinManager {
             if self.bittrWallet.satoshisOnchain != Int(balances.totalOnchainBalanceSats) || self.bittrWallet.pendingBalancesFromChannelClosures != pendingClosureSatoshis || self.bittrWallet.allTransactions.count != self.listPayments().count {
                 Log.info("Did find updates in light sync.")
                 
+                DispatchQueue.main.async {
+                    // If the SendVC is open, update the maximum sendable label.
+                    self.coreVC!.homeVC!.sendVC?.setSendAllLabel()
+                }
+                
                 Task {
                     // Get latest block height.
                     let _ = await self.didGetLatestBlockHeight()
                     
                     DispatchQueue.main.async {
+                        // Update HomeVC and MoveVC data.
                         self.coreVC!.homeVC!.loadWalletData()
                         self.coreVC!.homeVC!.moveVC?.updateLabels()
                         completion(true)
