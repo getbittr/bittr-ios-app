@@ -626,18 +626,23 @@ class SwapManager: NSObject {
             
     }
     
+    private static func swapLegs(dateID:String) -> [Transaction] {
+        return BitcoinManager.shared.listPayments()
+            .map { $0.createTransaction(bittrTransactions: nil) }
+            .filter { $0.lnDescription == dateID }
+    }
+    
     static func openCompletedSwapTransaction(dateID:String, homeVC:HomeViewController?, attemptsLeft:Int = 4) {
         guard dateID != "", let homeVC = homeVC else { return }
         
         DispatchQueue.global(qos: .userInitiated).async {
-            // Sync wallet to get latest onchain transactions.
-            try? BitcoinManager.shared.syncWallets()
-            
-            // Find transactions with this swap's dateID.
-            let payments = BitcoinManager.shared.listPayments()
-            let legs = payments
-                .map { $0.createTransaction(bittrTransactions: nil) }
-                .filter { $0.lnDescription == dateID }
+            // Look for the two swap transactions before syncing.
+            var legs = self.swapLegs(dateID: dateID)
+            if legs.count != 2 {
+                // Couldn't find both transactions. Will sync wallet.
+                try? BitcoinManager.shared.syncWallets()
+                legs = self.swapLegs(dateID: dateID)
+            }
             
             // Make sure both transactions have been found.
             guard legs.count == 2 else {
