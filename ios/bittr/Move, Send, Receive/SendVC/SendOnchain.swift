@@ -246,32 +246,31 @@ extension ConfirmSendViewController {
             }
             Log.debug("Transaction ID: \(txid)")
             
-            DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+            try? BitcoinManager.shared.syncWallets()
+            let payment = BitcoinManager.shared.listPayments().first { $0.kind.transactionID == txid }
+            
+            DispatchQueue.main.async {
                 Log.info("Successful transaction.")
                 SentryManager.countMetric("onchain.transaction.success")
                 self.confirmLabel.alpha = 1
                 self.confirmSpinner.stopAnimating()
                 self.newTxId = txid
-
-                self.showAlert(presentingController: self, title: Language.getWord(withID: "success"), message: Language.getWord(withID: "transactionsuccess"), buttons: [Language.getWord(withID: "okay")], actions: [#selector(self.addNewTxToTable)])
+                
+                if let payment = payment {
+                    Log.info("Transaction is available. Launch TransactionVC.")
+                    self.sendVC?.addNewPaymentToTable(thisPayment: payment)
+                } else {
+                    Log.info("Transaction not yet available, show alert.")
+                    self.showAlert(presentingController: self, title: Language.getWord(withID: "success"), message: Language.getWord(withID: "transactionsuccess"), buttons: [Language.getWord(withID: "okay")], actions: [#selector(self.wrapupOnchainTransaction)])
+                }
             }
         }
     }
     
-    @objc func addNewTxToTable() {
+    @objc func wrapupOnchainTransaction() {
         self.hideAlert()
         
-        BitcoinManager.shared.lightSync() { success in
-            if success {
-                for eachTransaction in BitcoinManager.shared.bittrWallet.allTransactions {
-                    if eachTransaction.kind.transactionID == self.newTxId {
-                        self.sendVC!.completedTransaction = eachTransaction.createTransaction(bittrTransactions: nil)
-                        self.sendVC!.performSegue(withIdentifier: "SendToTransaction", sender: self)
-                    }
-                }
-            }
-        }
-        
+        BitcoinManager.shared.lightSync() { _ in }
         self.sendVC!.resetFields()
         self.sendVC!.slideFromConfirmToSend()
     }
