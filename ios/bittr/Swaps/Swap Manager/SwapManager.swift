@@ -36,23 +36,19 @@ class SwapManager: NSObject {
     
     
     static func onchainToLightning(amountMsat:UInt64, swapVC:SwapViewController, existingInvoice:String? = nil) async {
-            
-        let dateFormatter = DateFormatter()
-        dateFormatter.dateFormat = "yyyyMMddHHmmss"
-        let idString = dateFormatter.string(from: Date())
+        // Get Swap ID.
+        let idString = createDateId()
         
         let invoice: String
         var actualAmountMsat: UInt64 = amountMsat
         
-        if let existingInvoice = existingInvoice {
+        if let existingInvoice {
             Log.info("Use the existing invoice (for Lightning payment case)")
             invoice = existingInvoice
             
             // Parse the existing invoice to get the actual amount
-            if let parsedInvoice = Bindings.Bolt11Invoice.fromStr(s: existingInvoice).getValue() {
-                if let invoiceAmountMilli = parsedInvoice.amountMilliSatoshis() {
-                    actualAmountMsat = invoiceAmountMilli
-                }
+            if let parsedInvoice = Bindings.Bolt11Invoice.fromStr(s: existingInvoice).getValue(), let invoiceAmountMilli = parsedInvoice.amountMilliSatoshis() {
+                actualAmountMsat = invoiceAmountMilli
             }
         } else {
             Log.info("Create an invoice for the amount we want to move.")
@@ -61,12 +57,7 @@ class SwapManager: NSObject {
                 description: "Swap onchain to lightning \(idString)",
                 expirySecs: 3600)
             else {
-                DispatchQueue.main.async {
-                    swapVC.nextLabel.alpha = 1
-                    swapVC.arrowIcon.alpha = 1
-                    swapVC.nextSpinner.stopAnimating()
-                    swapVC.showAlert(title: Language.getWord(withID: "unexpectederror"), message: Language.getWord(withID: "invoicecreatefail"), buttons: [.dismiss(Language.getWord(withID: "okay"))])
-                }
+                swapVC.cancelSwap(alertMessage: Language.getWord(withID: "invoicecreatefail"))
                 return
             }
             invoice = thisInvoice.description
@@ -97,15 +88,7 @@ class SwapManager: NSObject {
         
         // Check if we have a registration token (notifications enabled)
         if deviceToken.isEmpty {
-            DispatchQueue.main.async {
-                swapVC.nextLabel.alpha = 1
-                swapVC.arrowIcon.alpha = 1
-                swapVC.nextSpinner.stopAnimating()
-                swapVC.showAlert(
-                    title: Language.getWord(withID: "notificationsrequired"),
-                    message: Language.getWord(withID: "notificationsrequiredmessage"),
-                    buttons: [.action(Language.getWord(withID: "okay")) { swapVC.askForPushNotifications() }])
-            }
+            swapVC.cancelSwap(alertTitle: Language.getWord(withID: "notificationsrequired"), alertMessage: Language.getWord(withID: "notificationsrequiredmessage"), alertButtons: [.action(Language.getWord(withID: "okay")) { swapVC.askForPushNotifications() }])
             return
         }
         
@@ -122,31 +105,17 @@ class SwapManager: NSObject {
                 "hashSwapId": false
             ]
         ]
-
-        let apiURL = EnvironmentConfig.boltzBaseURL
         
+        let apiURL = EnvironmentConfig.boltzBaseURL
         Task {
             await CallsManager.makeApiCall(url: "\(apiURL)/swap/submarine", parameters: parameters, getOrPost: .post) { result in
                 
                 switch result {
                 case .failure(let error):
-                    DispatchQueue.main.async {
-                        swapVC.nextLabel.alpha = 1
-                        swapVC.arrowIcon.alpha = 1
-                        swapVC.nextSpinner.stopAnimating()
-                        swapVC.showAlert(title: Language.getWord(withID: "error"), message: error.localizedDescription, buttons: [.dismiss(Language.getWord(withID: "okay"))])
-                    }
+                    swapVC.cancelSwap(alertMessage: error.localizedDescription)
                 case .success(let receivedDictionary):
                     if let errorMessage = receivedDictionary["error"] as? String {
-                        DispatchQueue.main.async {
-                            swapVC.nextLabel.alpha = 1
-                            swapVC.arrowIcon.alpha = 1
-                            swapVC.nextSpinner.stopAnimating()
-                            swapVC.showAlert(
-                                title: Language.getWord(withID: "error"),
-                                message: errorMessage,
-                                buttons: [.dismiss(Language.getWord(withID: "okay"))])
-                        }
+                        swapVC.cancelSwap(alertMessage: errorMessage)
                         return
                     }
                     
@@ -165,15 +134,7 @@ class SwapManager: NSObject {
                             let claimPublicKey = receivedDictionary["claimPublicKey"] as? String
                         else {
                             Log.info("Expected data unavailable.")
-                            DispatchQueue.main.async {
-                                swapVC.nextLabel.alpha = 1
-                                swapVC.arrowIcon.alpha = 1
-                                swapVC.nextSpinner.stopAnimating()
-                                swapVC.showAlert(
-                                    title: Language.getWord(withID: "error"),
-                                    message: Language.getWord(withID: "swaperror2"),
-                                    buttons: [.dismiss(Language.getWord(withID: "okay"))])
-                            }
+                            swapVC.cancelSwap(alertMessage: Language.getWord(withID: "swaperror2"))
                             return
                         }
                         guard swapVC.thisSwap != nil else {
@@ -197,10 +158,7 @@ class SwapManager: NSObject {
                             )
                         } catch {
                             Log.info("Refused the submarine swap response: \(error.localizedDescription)")
-                            swapVC.nextLabel.alpha = 1
-                            swapVC.arrowIcon.alpha = 1
-                            swapVC.nextSpinner.stopAnimating()
-                            swapVC.showAlert(title: Language.getWord(withID: "error"), message: Language.getWord(withID: "swapvalidationfailed"), buttons: [.dismiss(Language.getWord(withID: "okay"))])
+                            swapVC.cancelSwap(alertMessage: Language.getWord(withID: "swapvalidationfailed"))
                             SentryManager.countMetric("swap.onchaintolightning.responserejected")
                             SentryManager.capture(error, context: "SwapManager submarine response validation")
                             return
@@ -234,12 +192,7 @@ class SwapManager: NSObject {
             if swapVC.highestFeePerVbyte == nil {
                 guard let feeEstimates = await BitcoinManager.shared.getFeeEstimates() else {
                     Log.info("Could not fetch fee estimates.")
-                    DispatchQueue.main.async {
-                        swapVC.nextLabel.alpha = 1
-                        swapVC.arrowIcon.alpha = 1
-                        swapVC.nextSpinner.stopAnimating()
-                        swapVC.showAlert(title: Language.getWord(withID: "oops"), message: "\(Language.getWord(withID: "cannotproceed")). Error: Could not get fee estimates.", buttons: [.dismiss(Language.getWord(withID: "okay"))])
-                    }
+                    swapVC.cancelSwap(alertTitle: Language.getWord(withID: "oops"), alertMessage: "\(Language.getWord(withID: "cannotproceed")). Error: Could not get fee estimates.")
                     return
                 }
 
@@ -267,30 +220,24 @@ class SwapManager: NSObject {
                 }
 
                 DispatchQueue.main.async {
-                    // Reset the spinner UI so the user can try a different amount.
-                    swapVC.nextLabel.alpha = 1
-                    swapVC.arrowIcon.alpha = 1
-                    swapVC.nextSpinner.stopAnimating()
-
+                    let alertTitle:String
+                    let alertMessage:String
                     if isInsufficientFunds {
-                        let balance = BitcoinManager.shared.bittrWallet.satoshisOnchain ?? 0
+                        let balance = BitcoinManager.shared.bittrWallet.satoshisOnchain
                         let message = Language.getWord(withID: "onchaininsufficientfunds")
                             .replacingOccurrences(of: "<amount>", with: "\(balance)")
-                        swapVC.showAlert(
-                            title: Language.getWord(withID: "insufficientfunds"),
-                            message: message,
-                            buttons: [.dismiss(Language.getWord(withID: "okay"))])
+                        alertTitle = Language.getWord(withID: "insufficientfunds")
+                        alertMessage = message
                     } else {
                         var errorMessage = error.localizedDescription
                         if let bdkError = error as? BitcoinDevKit.CreateTxError {
                             errorMessage = bdkError.getErrorMessage()
                         }
-                        swapVC.showAlert(
-                            title: Language.getWord(withID: "oops"),
-                            message: "\(Language.getWord(withID: "cannotproceed")). Error: \(errorMessage).",
-                            buttons: [.dismiss(Language.getWord(withID: "okay"))])
+                        alertTitle = Language.getWord(withID: "oops")
+                        alertMessage = "\(Language.getWord(withID: "cannotproceed")). Error: \(errorMessage)."
                         SentryManager.capture(error, context: "SwapManager row 249")
                     }
+                    swapVC.cancelSwap(alertTitle: alertTitle, alertMessage: alertMessage)
                 }
                 return
             }
@@ -423,35 +370,21 @@ class SwapManager: NSObject {
         
         guard let destinationAddress else {
             Log.info("No payout address available; not starting the swap.")
-            DispatchQueue.main.async {
-                swapVC.nextLabel.alpha = 1
-                swapVC.arrowIcon.alpha = 1
-                swapVC.nextSpinner.stopAnimating()
-                swapVC.showAlert(title: Language.getWord(withID: "error"), message: Language.getWord(withID: "swaperror2"), buttons: [.dismiss(Language.getWord(withID: "okay"))])
-            }
+            swapVC.cancelSwap(alertMessage: Language.getWord(withID: "swaperror2"))
             return
         }
         
         Log.debug("randomPreimage: \(randomPreimage.hexEncodedString())")
         
-        let dateFormatter = DateFormatter()
-        dateFormatter.dateFormat = "yyyyMMddHHmmss"
-        let idString = dateFormatter.string(from: Date())
+        // Get Swap ID.
+        let idString = createDateId()
         
         // Get device token for webhook URL
         let deviceToken = CacheManager.getRegistrationToken() ?? ""
         
         // Check if we have a registration token (notifications enabled)
         if deviceToken.isEmpty {
-            DispatchQueue.main.async {
-                swapVC.nextLabel.alpha = 1
-                swapVC.arrowIcon.alpha = 1
-                swapVC.nextSpinner.stopAnimating()
-                swapVC.showAlert(
-                    title: Language.getWord(withID: "notificationsrequired"),
-                    message: Language.getWord(withID: "notificationsrequiredmessage"),
-                    buttons: [.action(Language.getWord(withID: "okay")) { swapVC.askForPushNotifications() }])
-            }
+            swapVC.cancelSwap(alertTitle: Language.getWord(withID: "notificationsrequired"), alertMessage: Language.getWord(withID: "notificationsrequiredmessage"), alertButtons: [.action(Language.getWord(withID: "okay")) { swapVC.askForPushNotifications() }])
             return
         }
         
@@ -478,23 +411,10 @@ class SwapManager: NSObject {
                 
                 switch result {
                 case .failure(let error):
-                    DispatchQueue.main.async {
-                        swapVC.nextLabel.alpha = 1
-                        swapVC.arrowIcon.alpha = 1
-                        swapVC.nextSpinner.stopAnimating()
-                        swapVC.showAlert(title: Language.getWord(withID: "swapfunds2"), message: "\(Language.getWord(withID: "error")): \(error)", buttons: [.dismiss(Language.getWord(withID: "okay"))])
-                    }
+                    swapVC.cancelSwap(alertTitle: Language.getWord(withID: "swapfunds2"), alertMessage: "\(Language.getWord(withID: "error")): \(error)")
                 case .success(let receivedDictionary):
                     if let errorMessage = receivedDictionary["error"] as? String {
-                        DispatchQueue.main.async {
-                            swapVC.nextLabel.alpha = 1
-                            swapVC.arrowIcon.alpha = 1
-                            swapVC.nextSpinner.stopAnimating()
-                            swapVC.showAlert(
-                                title: Language.getWord(withID: "error"),
-                                message: errorMessage,
-                                buttons: [.dismiss(Language.getWord(withID: "okay"))])
-                        }
+                        swapVC.cancelSwap(alertMessage: errorMessage)
                         return
                     }
                     
@@ -519,15 +439,7 @@ class SwapManager: NSObject {
                             let lockupAddress = receivedDictionary["lockupAddress"] as? String
                         else {
                             // Expected data unavailable.
-                            DispatchQueue.main.async {
-                                swapVC.nextLabel.alpha = 1
-                                swapVC.arrowIcon.alpha = 1
-                                swapVC.nextSpinner.stopAnimating()
-                                swapVC.showAlert(
-                                    title: Language.getWord(withID: "error"),
-                                    message: Language.getWord(withID: "swaperror2"),
-                                    buttons: [.dismiss(Language.getWord(withID: "okay"))])
-                            }
+                            swapVC.cancelSwap(alertMessage: Language.getWord(withID: "swaperror2"))
                             return
                         }
                         
@@ -548,10 +460,7 @@ class SwapManager: NSObject {
                             )
                         } catch {
                             Log.info("Refused the reverse swap response: \(error.localizedDescription)")
-                            swapVC.nextLabel.alpha = 1
-                            swapVC.arrowIcon.alpha = 1
-                            swapVC.nextSpinner.stopAnimating()
-                            swapVC.showAlert(title: Language.getWord(withID: "error"), message: Language.getWord(withID: "swapvalidationfailed"), buttons: [.dismiss(Language.getWord(withID: "okay"))])
+                            swapVC.cancelSwap(alertMessage: Language.getWord(withID: "swapvalidationfailed"))
                             SentryManager.countMetric("swap.lightningtoonchain.responserejected")
                             SentryManager.capture(error, context: "SwapManager reverse response validation")
                             return
@@ -843,3 +752,8 @@ extension Data {
     }
 }
 
+func createDateId() -> String {
+    let dateFormatter = DateFormatter()
+    dateFormatter.dateFormat = "yyyyMMddHHmmss"
+    return dateFormatter.string(from: Date())
+}

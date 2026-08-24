@@ -451,4 +451,13 @@ class SwapViewController: UIViewController, UITextFieldDelegate, UNUserNotificat
         
         return containerView
     }
+    
+    func cancelSwap(alertTitle:String = Language.getWord(withID: "error"), alertMessage:String, alertButtons:[AlertButton] = [.dismiss(Language.getWord(withID: "okay"))]) {
+        DispatchQueue.main.async {
+            self.nextLabel.alpha = 1
+            self.arrowIcon.alpha = 1
+            self.nextSpinner.stopAnimating()
+            self.showAlert(title: alertTitle, message: alertMessage, buttons: alertButtons)
+        }
+    }
 }
