@@ -89,17 +89,17 @@ struct EnvironmentConfig {
     
     /// Electrum URL based on environment
     static var electrumURL: String {
-        isDevelopment ? "tcp://staging.getbittr.com:19001" : "ssl://electrum.blockstream.info:50002"
+        isDevelopment ? "tcp://electrum.bittr.io:60402" : "ssl://electrum.blockstream.info:50002"
     }
     
     /// Esplora URL based on environment
     static var esploraURL: String {
-        isDevelopment ? "https://esplora.bittr.io/api" : "https://esplora.getbittr.com/api"
+        isDevelopment ? "https://esplora-regtest.bittr.io/api" : "https://esplora.getbittr.com/api"
     }
 
     /// Block explorer URL based on environment
     static var explorerURL: String {
-        isDevelopment ? "https://esplora.bittr.io" : "https://mempool.space"
+        isDevelopment ? "https://esplora-regtest.bittr.io" : "https://mempool.space"
     }
     
     /// RGS Server URL based on environment
@@ -111,12 +111,12 @@ struct EnvironmentConfig {
     
     /// Lightning node IDs based on environment
     static var lightningNodeId: String {
-        isDevelopment ? "021926bec21c1e815b954d35166e93172fdecc49f58e2a2e838f95ef3bbed47ee0" : "03e8d988a67ee7de983cd39d9d3d4d19771019305da4d2332be76c8b9fb1687776"
+        isDevelopment ? "02bbc42b52f2bf041f37e6e556c7138cdc9cc2a77175ef6c1c3d5a3fbc6fa88148" : "03e8d988a67ee7de983cd39d9d3d4d19771019305da4d2332be76c8b9fb1687776"
     }
     
     /// Lightning node addresses based on environment
     static var lightningNodeAddress: String {
-        isDevelopment ? "109.205.181.232:9735" : "86.104.228.24:9735"
+        isDevelopment ? "66.163.116.210:39735" : "86.104.228.24:9735"
     }
     
     // MARK: - Cache Configuration
@@ -177,7 +177,7 @@ extension EnvironmentConfig {
     struct EsploraURLs {
         static let bitcoinBlockstream = "https://blockstream.info/api"
         static let bitcoinMempoolspace = "https://mempool.space/api"
-        static let regtest = "https://esplora.bittr.io/api"
+        static let regtest = "https://esplora-regtest.bittr.io/api"
         static let signet = "https://mempool.space/signet/api"
         static let testnet = "https://mempool.space/testnet4/api"
     }

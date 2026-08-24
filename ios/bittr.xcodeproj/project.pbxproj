@@ -148,6 +148,7 @@
 		05D80DFF2BA4170800E2F093 /* CodeScanner in Frameworks */ = {isa = PBXBuildFile; productRef = 05D80DFE2BA4170800E2F093 /* CodeScanner */; };
 		05D80E022BA4174E00E2F093 /* BitcoinDevKit in Frameworks */ = {isa = PBXBuildFile; productRef = 05D80E012BA4174E00E2F093 /* BitcoinDevKit */; };
 		05D80E082BA4203600E2F093 /* LightningDevKit in Frameworks */ = {isa = PBXBuildFile; productRef = 05D80E072BA4203600E2F093 /* LightningDevKit */; };
+		05DA8304303BEC1000157CE9 /* EnvironmentConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05DA8303303BEC1000157CE9 /* EnvironmentConfig.swift */; };
 		05E2995A2A39CB3700FA0AEE /* IbanCollectionViewCell.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05E299592A39CB3700FA0AEE /* IbanCollectionViewCell.swift */; };
 		05E305372F517F56003DE7CF /* ReloadWallet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05E305362F517F4E003DE7CF /* ReloadWallet.swift */; };
 		05E305392F5189D7003DE7CF /* UIView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05E305382F5189D6003DE7CF /* UIView.swift */; };
@@ -176,7 +177,6 @@
 		3791605A2E1D7C6A00024560 /* Bip39Words.swift in Sources */ = {isa = PBXBuildFile; fileRef = 379160592E1D7C6600024560 /* Bip39Words.swift */; };
 		379160602E1D99D300024560 /* MnemonicTextField.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3791605C2E1D99D300024560 /* MnemonicTextField.swift */; };
 		379A8C5E2D8184A000C871C5 /* BitcoinMessage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 379A8C5D2D81849D00C871C5 /* BitcoinMessage.swift */; };
-		37A484BC2E4B7BA70027A348 /* EnvironmentConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = 37A484BB2E4B7BA70027A348 /* EnvironmentConfig.swift */; };
 		37AAC5F82D8A6988008E6363 /* BoltzAPI.swift in Sources */ = {isa = PBXBuildFile; fileRef = 37AAC5F72D8A6986008E6363 /* BoltzAPI.swift */; };
 		37CC83002D8C1EAF005E791D /* BoltzRefund.swift in Sources */ = {isa = PBXBuildFile; fileRef = 37CC82FF2D8C1EAA005E791D /* BoltzRefund.swift */; };
 		37DC0C4A2E1971B7004E1BE8 /* P256K in Frameworks */ = {isa = PBXBuildFile; productRef = 37DC0C492E1971B7004E1BE8 /* P256K */; };
@@ -361,6 +361,7 @@
 		05D5D0E62A66825000A1E771 /* BitcoinManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BitcoinManager.swift; sourceTree = "<group>"; };
 		05D5D0E92A66836300A1E771 /* LightningStorage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LightningStorage.swift; sourceTree = "<group>"; };
 		05D5D0EB2A66843B00A1E771 /* FileManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FileManager.swift; sourceTree = "<group>"; };
+		05DA8303303BEC1000157CE9 /* EnvironmentConfig.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EnvironmentConfig.swift; sourceTree = "<group>"; };
 		05E299592A39CB3700FA0AEE /* IbanCollectionViewCell.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IbanCollectionViewCell.swift; sourceTree = "<group>"; };
 		05E305362F517F4E003DE7CF /* ReloadWallet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReloadWallet.swift; sourceTree = "<group>"; };
 		05E305382F5189D6003DE7CF /* UIView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UIView.swift; sourceTree = "<group>"; };
@@ -390,7 +391,6 @@
 		379160592E1D7C6600024560 /* Bip39Words.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Bip39Words.swift; sourceTree = "<group>"; };
 		3791605C2E1D99D300024560 /* MnemonicTextField.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MnemonicTextField.swift; sourceTree = "<group>"; };
 		379A8C5D2D81849D00C871C5 /* BitcoinMessage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BitcoinMessage.swift; sourceTree = "<group>"; };
-		37A484BB2E4B7BA70027A348 /* EnvironmentConfig.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EnvironmentConfig.swift; sourceTree = "<group>"; };
 		37AAC5F72D8A6986008E6363 /* BoltzAPI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BoltzAPI.swift; sourceTree = "<group>"; };
 		37CC82FF2D8C1EAA005E791D /* BoltzRefund.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BoltzRefund.swift; sourceTree = "<group>"; };
 		37FC16CF2FAD1AF2002578B2 /* TestIDs.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TestIDs.swift; sourceTree = "<group>"; };
@@ -895,8 +895,8 @@
 				05D5D0E92A66836300A1E771 /* LightningStorage.swift */,
 				05A965C12A6FBE1F00265BE6 /* LDKNodeError.swift */,
 				05117AB42E979E3300A5E4E6 /* BDKErrors.swift */,
-				37A484BB2E4B7BA70027A348 /* EnvironmentConfig.swift */,
 				05980B532A46F7E4001F312F /* BittrWallet.swift */,
+				05DA8303303BEC1000157CE9 /* EnvironmentConfig.swift */,
 				0577C3F82AFA28180047A3DC /* BittrService.swift */,
 				051BE0872B641D41009CED5B /* Reachability.swift */,
 				059704A62E43514F00B56690 /* BitcoinValue.swift */,
@@ -1279,6 +1279,7 @@
 				051AB88F2F5E8FB400DFC39F /* ConfirmLanguage.swift in Sources */,
 				37CC83002D8C1EAF005E791D /* BoltzRefund.swift in Sources */,
 				05546D292F35B86E00512129 /* BDKManager.swift in Sources */,
+				05DA8304303BEC1000157CE9 /* EnvironmentConfig.swift in Sources */,
 				05EB5CA22F4D846D00FF2157 /* Int.swift in Sources */,
 				05A965C22A6FBE1F00265BE6 /* LDKNodeError.swift in Sources */,
 				05E2995A2A39CB3700FA0AEE /* IbanCollectionViewCell.swift in Sources */,
@@ -1340,7 +1341,6 @@
 				05FD3AFC2F5EB92A00974FEA /* ScannerViewController.swift in Sources */,
 				05E305372F517F56003DE7CF /* ReloadWallet.swift in Sources */,
 				05117AE02EA73B6B00A5E4E6 /* LevelTableViewCell.swift in Sources */,
-				37A484BC2E4B7BA70027A348 /* EnvironmentConfig.swift in Sources */,
 				05117AF72EAA754800A5E4E6 /* Demo Data.swift in Sources */,
 				05A8BD882B750F82002F0282 /* ShowCachedData.swift in Sources */,
 				05F1FB642C341852004AE14F /* SendSwitch.swift in Sources */,
