@@ -84,10 +84,7 @@ class SwapManager: NSObject {
         let (privateKey, publicKey) = try! BitcoinManager.shared.getPrivatePublicKeyForPath(path: dynamicPath)
         
         // Get device token for webhook URL
-        let deviceToken = CacheManager.getRegistrationToken() ?? ""
-        
-        // Check if we have a registration token (notifications enabled)
-        if deviceToken.isEmpty {
+        guard let deviceToken = CacheManager.getRegistrationToken(), !deviceToken.isEmpty else {
             swapVC.cancelSwap(alertTitle: Language.getWord(withID: "notificationsrequired"), alertMessage: Language.getWord(withID: "notificationsrequiredmessage"), alertButtons: [.action(Language.getWord(withID: "okay")) { swapVC.askForPushNotifications() }])
             return
         }
@@ -195,7 +192,6 @@ class SwapManager: NSObject {
                     swapVC.cancelSwap(alertTitle: Language.getWord(withID: "oops"), alertMessage: "\(Language.getWord(withID: "cannotproceed")). Error: Could not get fee estimates.")
                     return
                 }
-
                 // Select highest fee.
                 swapVC.highestFeePerVbyte = feeEstimates.fastest
             }
@@ -241,7 +237,7 @@ class SwapManager: NSObject {
                 }
                 return
             }
-                
+            
             // Calculate fees.
             let feesForOnchainPayment:Int = swapVC.highestFeePerVbyte!.feeSats(forVsize: Double(size))
             let feesForLightningPayment:Int = ongoingSwap.boltzExpectedAmount! - ongoingSwap.satoshisAmount
@@ -276,10 +272,7 @@ class SwapManager: NSObject {
                 Log.info("Transaction error: \(error.localizedDescription)")
 
                 DispatchQueue.main.async {
-                    swapVC.showAlert(
-                        title: Language.getWord(withID: "paymentfailed"),
-                        message: Language.getWord(withID: "paymentfailed3"),
-                        buttons: [.dismiss(Language.getWord(withID: "okay"))])
+                    swapVC.cancelSwap(alertTitle: Language.getWord(withID: "paymentfailed"), alertMessage: Language.getWord(withID: "paymentfailed3"))
                     SentryManager.countMetric("swap.onchaintolightning.failed")
                     SentryManager.capture(error, context: "SwapManager row 308")
                 }
@@ -352,7 +345,7 @@ class SwapManager: NSObject {
         let randomPreimage = self.generateRandomPreimage()
         let randomPreimageHash = self.sha256Hash(of: randomPreimage)
         let randomPreimageHashHex = randomPreimageHash.hexEncodedString()
-
+        
         // Get next swap index and derive key dynamically
         let swapIndex = CacheManager.incrementSwapIndex()
         let dynamicPath = "m/503'/0'/0'/0/\(swapIndex)"
@@ -361,7 +354,7 @@ class SwapManager: NSObject {
         
         // Use provided payout address if available, otherwise get a new unused address
         let destinationAddress: String?
-        if let payoutAddress = payoutAddress {
+        if let payoutAddress {
             destinationAddress = payoutAddress
         } else {
             Log.info("DEBUG - Getting new unused address for payout")
@@ -380,14 +373,10 @@ class SwapManager: NSObject {
         let idString = createDateId()
         
         // Get device token for webhook URL
-        let deviceToken = CacheManager.getRegistrationToken() ?? ""
-        
-        // Check if we have a registration token (notifications enabled)
-        if deviceToken.isEmpty {
+        guard let deviceToken = CacheManager.getRegistrationToken(), !deviceToken.isEmpty else {
             swapVC.cancelSwap(alertTitle: Language.getWord(withID: "notificationsrequired"), alertMessage: Language.getWord(withID: "notificationsrequiredmessage"), alertButtons: [.action(Language.getWord(withID: "okay")) { swapVC.askForPushNotifications() }])
             return
         }
-        
         
         let webhookURL = "\(EnvironmentConfig.bittrAPIBaseURL)/webhook/boltz/\(deviceToken)"
         

@@ -66,22 +66,10 @@ class SwapViewController: UIViewController, UITextFieldDelegate, UNUserNotificat
     var pendingOnchainAmount = 0
     var highestFeePerVbyte:Double?
     var thisSwap:Swap?
-    // Set when calculateSendableAmount triggers a BDK rescan because BDK
-    // appears stale relative to LDK Node; prevents an infinite re-sync loop
-    // if BDK still can't see the funds after the rescan.
     var didRescanForStaleBdk = false
     
     override func viewDidLoad() {
         super.viewDidLoad()
-
-        self.subtitleLabel.accessibilityIdentifier = TestID.Swap.subtitleLabel
-        self.amountTextField.accessibilityIdentifier = TestID.Swap.amountTextField
-        self.amountTextField.addDoneButton(target: self, returnaction: #selector(self.doneButtonTapped))
-        self.nextButton.accessibilityIdentifier = TestID.Swap.nextButton
-        self.nextButton.accessibilityLabel = Language.getWord(withID: "next")
-        self.fromLabel.accessibilityIdentifier = TestID.Swap.fromLabel
-        self.fromButton.accessibilityIdentifier = TestID.Swap.fromButton
-        self.fromButton.accessibilityLabel = "Swap direction"
 
         // Basics
         self.setBasicStyling()
@@ -109,11 +97,6 @@ class SwapViewController: UIViewController, UITextFieldDelegate, UNUserNotificat
             self.handleNotificationSwap()
             
         }
-    }
-    
-    func textFieldShouldReturn(_ textField: UITextField) -> Bool {
-        self.view.endEditing(true)
-        return false
     }
     
     @IBAction func fromButtonTapped(_ sender: UIButton) {
@@ -311,27 +294,10 @@ class SwapViewController: UIViewController, UITextFieldDelegate, UNUserNotificat
     @IBAction func backgroundTapped(_ sender: UIButton) {
         self.view.endEditing(true)
     }
-
-    @objc func doneButtonTapped() {
-        self.view.endEditing(true)
-    }
     
     @IBAction func boltzTapped(_ sender: UIButton) {
         self.view.endEditing(true)
         self.showAlert(title: Language.getWord(withID: "boltzexplanation3"), message: Language.getWord(withID: "boltzexplanation"), buttons: [.dismiss(Language.getWord(withID: "okay"))])
-    }
-    
-    func goToBoltz() {
-        self.hideAlert()
-        self.performSegue(withIdentifier: "SwapToWebsite", sender: self)
-    }
-    
-    override func prepare(for segue: UIStoryboardSegue, sender: Any?) {
-        if segue.identifier == "SwapToWebsite" {
-            if let websiteVC = segue.destination as? WebsiteViewController {
-                websiteVC.tappedUrl = "https://boltz.exchange/"
-            }
-        }
     }
     
     func handleSwapNotification(_ notification: BittrNotification) {
@@ -346,35 +312,35 @@ class SwapViewController: UIViewController, UITextFieldDelegate, UNUserNotificat
     }
     
     func handlePendingLightningInvoice() {
-        // Parse the pending Lightning invoice to get the amount
-        if let parsedInvoice = Bindings.Bolt11Invoice.fromStr(s: self.pendingLightningInvoice).getValue() {
-            if let invoiceAmountMilli = parsedInvoice.amountMilliSatoshis() {
-                let invoiceAmount = Int(invoiceAmountMilli)/1000
-                
-                // Set the amount and direction
-                self.amountTextField.text = "\(invoiceAmount)"
-                self.swapDirection = .onchainToLightning
-                self.fromLabel.text = Language.getWord(withID: "onchaintolightning")
-                
-                // Start loading.
-                self.nextLabel.alpha = 0
-                self.arrowIcon.alpha = 0
-                self.nextSpinner.startAnimating()
-                
-                // Create Swap object.
-                self.thisSwap = Swap()
-                self.thisSwap!.satoshisAmount = invoiceAmount
-                self.thisSwap!.swapDirection = .onchainToLightning
-                
-                self.startSuggestedOnchainToLightningSwap(invoiceAmount: invoiceAmount)
-            } else {
-                // Zero amount invoice - user needs to enter amount
-                self.showAlert(title: Language.getWord(withID: "enteramount"), message: Language.getWord(withID: "enteramountofsatoshis"), buttons: [.dismiss(Language.getWord(withID: "okay"))])
-            }
-        } else {
+        // Parse the pending Lightning invoice to get the amount.
+        guard let parsedInvoice = Bindings.Bolt11Invoice.fromStr(s: self.pendingLightningInvoice).getValue() else {
             // Invalid invoice
             self.showAlert(title: Language.getWord(withID: "error"), message: Language.getWord(withID: "invalidinvoice"), buttons: [.dismiss(Language.getWord(withID: "okay"))])
+            return
         }
+        guard let invoiceAmountMilli = parsedInvoice.amountMilliSatoshis() else {
+            // Zero amount invoice - user needs to enter amount
+            self.showAlert(title: Language.getWord(withID: "enteramount"), message: Language.getWord(withID: "enteramountofsatoshis"), buttons: [.dismiss(Language.getWord(withID: "okay"))])
+            return
+        }
+        let invoiceAmount = Int(invoiceAmountMilli)/1000
+        
+        // Set the amount and direction
+        self.amountTextField.text = "\(invoiceAmount)"
+        self.swapDirection = .onchainToLightning
+        self.fromLabel.text = Language.getWord(withID: "onchaintolightning")
+        
+        // Start loading.
+        self.nextLabel.alpha = 0
+        self.arrowIcon.alpha = 0
+        self.nextSpinner.startAnimating()
+        
+        // Create Swap object.
+        self.thisSwap = Swap()
+        self.thisSwap!.satoshisAmount = invoiceAmount
+        self.thisSwap!.swapDirection = .onchainToLightning
+        
+        self.startSuggestedOnchainToLightningSwap(invoiceAmount: invoiceAmount)
     }
     
     func handlePendingOnchainPayment() {
@@ -422,34 +388,6 @@ class SwapViewController: UIViewController, UITextFieldDelegate, UNUserNotificat
         Task {
             await SwapManager.lightningToOnchain(amountSat: self.pendingOnchainAmount, swapVC: self, payoutAddress: nil)
         }
-    }
-    
-
-    // MARK: - Input Accessory View
-    func createInputAccessoryView() -> UIView {
-        let containerView = UIView(frame: CGRect(x: 0, y: 0, width: UIScreen.main.bounds.width, height: 44))
-        containerView.backgroundColor = Colors.getColor("whiteorblue3")
-        
-        let toolbar = UIToolbar(frame: containerView.bounds)
-        toolbar.translatesAutoresizingMaskIntoConstraints = false
-        toolbar.backgroundColor = .clear
-        
-        let flexSpace = UIBarButtonItem(barButtonSystemItem: .flexibleSpace, target: nil, action: nil)
-        let doneButton = UIBarButtonItem(title: Language.getWord(withID: "done"), style: .done, target: self, action: #selector(backgroundTapped))
-        
-        toolbar.items = [flexSpace, doneButton]
-        toolbar.tintColor = Colors.getColor("blackorwhite")
-        
-        containerView.addSubview(toolbar)
-        
-        NSLayoutConstraint.activate([
-            toolbar.leadingAnchor.constraint(equalTo: containerView.leadingAnchor),
-            toolbar.trailingAnchor.constraint(equalTo: containerView.trailingAnchor),
-            toolbar.topAnchor.constraint(equalTo: containerView.topAnchor),
-            toolbar.bottomAnchor.constraint(equalTo: containerView.bottomAnchor)
-        ])
-        
-        return containerView
     }
     
     func cancelSwap(alertTitle:String = Language.getWord(withID: "error"), alertMessage:String, alertButtons:[AlertButton] = [.dismiss(Language.getWord(withID: "okay"))]) {
