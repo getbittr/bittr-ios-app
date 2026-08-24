@@ -26,15 +26,15 @@ class BoltzRefund {
     
     // MARK: - Fee Calculation Helper
     
-    /// Calculates transaction fee using the highest priority fee rate
-    /// Both claim and refund transactions are always 99 vbytes in size
+    // Both claim and refund transactions are always this size.
+    static let claimOrRefundTransactionVBytes: Double = 99
+    
+    // Calculates transaction fee using the highest priority fee rate
     static func calculateClaimOrRefundTransactionFee() async throws -> Int {
         guard let feeEstimates = await BitcoinManager.shared.getFeeEstimates() else {
             throw BoltzAPIError.requestFailed("Could not fetch fee estimates for the claim/refund transaction.")
         }
-        let transactionSizeVBytes = 99 // Fixed size for claim/refund transactions
-
-        let calculatedFee = Int(feeEstimates.fastest * Double(transactionSizeVBytes))
+        let calculatedFee = Int(feeEstimates.fastest * claimOrRefundTransactionVBytes)
         
         return calculatedFee
     }
@@ -395,7 +395,7 @@ enum SwapValidationError: LocalizedError {
     case ourKeyMissingFromLeaf(leaf: String, output: String)
     case unparsableInvoice
     case paymentHashMismatch(expected: String, received: String)
-    case amountOutOfRange(requested: Int, quoted: Int, allowedSpread: Int)
+    case amountOutOfRange(requested: Int, quoted: Int)
 
     var errorDescription: String? {
         switch self {
@@ -409,25 +409,17 @@ enum SwapValidationError: LocalizedError {
             return "Reverse swap invoice could not be parsed, or carries no amount"
         case .paymentHashMismatch(let expected, let received):
             return "Invoice pays hash \(received), but our preimage hashes to \(expected)"
-        case .amountOutOfRange(let requested, let quoted, let allowedSpread):
-            return "Quoted \(quoted) sats against \(requested) sats requested, outside the allowed spread of \(allowedSpread) sats"
+        case .amountOutOfRange(let requested, let quoted):
+            return "Quoted \(quoted) sats against \(requested) sats requested"
         }
     }
 }
 
 enum BoltzSwapValidation {
-
-    // The spread a quote may carry over the amount that was asked for: Boltz's
-    // percentage cut plus the miner fee for the transaction it broadcasts. Both
-    // directions pay one — a submarine swap sends more on-chain than the invoice
-    // it redeems, a reverse swap pays an invoice larger than the coins it gets
-    // back. This is a sanity bound, not a fee quote: it is set wide enough to
-    // clear a busy mempool, and the exact fee is still put to the user in the
-    // confirmation alert. Anything beyond it is treated as a tampered response
-    // rather than an expensive one.
-    static let maximumSpreadPercentage = 5.0
-    static let minimumSpreadSats = 10_000
-
+    
+    // The most a quote may ask for, as a multiple of the amount requested.
+    static let maximumQuoteRatio = 2.0
+    
     // MARK: Lockup address
 
     /// Rebuilds the Taproot output key a swap's funds lock to: the MuSig
@@ -580,20 +572,11 @@ enum BoltzSwapValidation {
 
     // MARK: Amounts
 
-    /// Checks that what Boltz quotes for a swap is what was asked for plus a
-    /// plausible fee, in either direction: `quoted` is always the leg the user
-    /// pays, `requested` the leg they receive.
+    // Checks that what Boltz quotes for a swap is not nonsense.
     static func validateQuotedAmount(requested: Int, quoted: Int) throws {
-        let allowedSpread = max(
-            minimumSpreadSats,
-            Int((Double(requested) * maximumSpreadPercentage / 100).rounded(.up))
-        )
-        guard quoted >= requested, quoted <= requested + allowedSpread else {
-            throw SwapValidationError.amountOutOfRange(
-                requested: requested,
-                quoted: quoted,
-                allowedSpread: allowedSpread
-            )
+        guard quoted >= requested,
+              Double(quoted) <= Double(requested) * maximumQuoteRatio else {
+            throw SwapValidationError.amountOutOfRange(requested: requested, quoted: quoted)
         }
     }
 
