@@ -7,6 +7,7 @@
 import P256K
 import Foundation
 import CryptoKit
+import LightningDevKit
 
 // MARK: - Claim Result
 
@@ -378,6 +379,247 @@ class BoltzRefund {
                 }
             }
         }
+    }
+}
+
+// MARK: - Response Validation
+
+/// Everything Boltz returns decides where the user's money goes: the lockup
+/// address a submarine swap funds, the invoice a reverse swap pays, and the
+/// amounts quoted for both. It all arrives over the network, so it is all
+/// rebuilt here from data the app already holds and compared before any value
+/// moves.
+enum SwapValidationError: LocalizedError {
+    case undecodableLockupAddress(String)
+    case lockupAddressMismatch(address: String, expected: String, actual: String)
+    case ourKeyMissingFromLeaf(leaf: String, output: String)
+    case unparsableInvoice
+    case paymentHashMismatch(expected: String, received: String)
+    case amountOutOfRange(requested: Int, quoted: Int, allowedSpread: Int)
+
+    var errorDescription: String? {
+        switch self {
+        case .undecodableLockupAddress(let address):
+            return "Lockup address could not be decoded: \(address)"
+        case .lockupAddressMismatch(let address, let expected, let actual):
+            return "Lockup address \(address) locks to \(actual), but this swap's keys produce \(expected)"
+        case .ourKeyMissingFromLeaf(let leaf, let output):
+            return "The \(leaf) leaf does not commit to our key: \(output)"
+        case .unparsableInvoice:
+            return "Reverse swap invoice could not be parsed, or carries no amount"
+        case .paymentHashMismatch(let expected, let received):
+            return "Invoice pays hash \(received), but our preimage hashes to \(expected)"
+        case .amountOutOfRange(let requested, let quoted, let allowedSpread):
+            return "Quoted \(quoted) sats against \(requested) sats requested, outside the allowed spread of \(allowedSpread) sats"
+        }
+    }
+}
+
+enum BoltzSwapValidation {
+
+    // The spread a quote may carry over the amount that was asked for: Boltz's
+    // percentage cut plus the miner fee for the transaction it broadcasts. Both
+    // directions pay one — a submarine swap sends more on-chain than the invoice
+    // it redeems, a reverse swap pays an invoice larger than the coins it gets
+    // back. This is a sanity bound, not a fee quote: it is set wide enough to
+    // clear a busy mempool, and the exact fee is still put to the user in the
+    // confirmation alert. Anything beyond it is treated as a tampered response
+    // rather than an expensive one.
+    static let maximumSpreadPercentage = 5.0
+    static let minimumSpreadSats = 10_000
+
+    // MARK: Lockup address
+
+    /// Rebuilds the Taproot output key a swap's funds lock to: the MuSig
+    /// aggregate of Boltz's key and ours, tweaked by the merkle root of the two
+    /// script leaves. This is the same derivation the claim and refund paths run
+    /// in `claimLightningToOnchainSwap` and `refundOnchainToLightningSwap` — the
+    /// point of running it here is that it happens on the way *in*, while the
+    /// swap can still be abandoned for free.
+    static func tweakedLockupKey(
+        boltzPublicKeyHex: String,
+        ourPrivateKeyHex: String,
+        claimLeafOutputHex: String,
+        refundLeafOutputHex: String
+    ) throws -> Data {
+        let boltzPublicKeyBytes = try boltzPublicKeyHex.bytes
+        let ourPrivateKeyBytes = try ourPrivateKeyHex.bytes
+
+        let boltzPublicKey = try P256K.Schnorr.PublicKey(
+            dataRepresentation: boltzPublicKeyBytes,
+            format: .compressed
+        )
+        let ourPrivateKey = try P256K.Schnorr.PrivateKey(dataRepresentation: ourPrivateKeyBytes)
+
+        // Key order matters and is not sorted: Boltz first, then us.
+        let aggregatedPublicKey = try P256K.MuSig.aggregate([boltzPublicKey, ourPrivateKey.publicKey], sortKeys: false)
+
+        let tapTweakHash = try computeTapLeafHash(
+            aggregatedPublicKey: aggregatedPublicKey,
+            claimLeafOutputHex: claimLeafOutputHex,
+            refundLeafOutputHex: refundLeafOutputHex
+        )
+
+        let tweakedXonlyKey = try aggregatedPublicKey.xonly.add(Array(Data(tapTweakHash)))
+        return Data(tweakedXonlyKey.bytes)
+    }
+
+    /// Checks that a lockup address is the one this swap's own keys produce.
+    ///
+    /// A match proves our key sits inside the aggregate that guards the key
+    /// path, which is the path both the cooperative claim and the cooperative
+    /// refund spend, and it is what lets `detectSwap` recognise the output at
+    /// all. An address we cannot reproduce is one we hold no key for.
+    private static func validateLockupAddress(
+        _ address: String,
+        boltzPublicKeyHex: String,
+        ourPrivateKeyHex: String,
+        claimLeafOutputHex: String,
+        refundLeafOutputHex: String,
+        network: BitcoinNetwork
+    ) throws {
+        let tweakedKey = try tweakedLockupKey(
+            boltzPublicKeyHex: boltzPublicKeyHex,
+            ourPrivateKeyHex: ourPrivateKeyHex,
+            claimLeafOutputHex: claimLeafOutputHex,
+            refundLeafOutputHex: refundLeafOutputHex
+        )
+
+        // P2TR: OP_1 PUSH_32 <output key>
+        var expectedScript = Data([0x51, 0x20])
+        expectedScript.append(tweakedKey)
+
+        guard let actualScript = AddressHandler.toOutputScript(address: address, network: network) else {
+            throw SwapValidationError.undecodableLockupAddress(address)
+        }
+
+        guard actualScript == expectedScript else {
+            throw SwapValidationError.lockupAddressMismatch(
+                address: address,
+                expected: expectedScript.hex,
+                actual: actualScript.hex
+            )
+        }
+    }
+
+    /// Our x-only key: the compressed key without its parity byte, which is how
+    /// a Taproot script refers to it. Nil when we have no record of the key —
+    /// a swap restored from a file written before it was stored — so the caller
+    /// can skip the leaf check and still validate everything else.
+    private static func ourXonlyKeyHex(_ compressedPublicKeyHex: String?) -> String? {
+        guard let compressedPublicKeyHex, compressedPublicKeyHex.count == 66 else { return nil }
+        return String(compressedPublicKeyHex.dropFirst(2)).lowercased()
+    }
+
+    /// Checks a submarine swap's lockup address before any bitcoin is sent to it.
+    ///
+    /// Beyond the address, the timeout leaf has to commit to our refund key:
+    /// that leaf is the script path an uncooperative refund spends, and it is
+    /// the only way the funds come back if Boltz stops answering.
+    /// The refund leaf reads <32-byte x-only refund key> OP_CHECKSIGVERIFY
+    /// <timeout> OP_CHECKLOCKTIMEVERIFY, so our key follows the push that opens
+    /// it.
+    static func validateSubmarineLockup(
+        address: String,
+        claimPublicKeyHex: String,
+        refundPrivateKeyHex: String,
+        ourRefundPublicKeyHex: String?,
+        claimLeafOutputHex: String,
+        refundLeafOutputHex: String,
+        network: BitcoinNetwork = BoltzRefund.network
+    ) throws {
+        try validateLockupAddress(
+            address,
+            boltzPublicKeyHex: claimPublicKeyHex,
+            ourPrivateKeyHex: refundPrivateKeyHex,
+            claimLeafOutputHex: claimLeafOutputHex,
+            refundLeafOutputHex: refundLeafOutputHex,
+            network: network
+        )
+
+        if let ourXonlyKeyHex = ourXonlyKeyHex(ourRefundPublicKeyHex) {
+            guard refundLeafOutputHex.lowercased().hasPrefix("20" + ourXonlyKeyHex) else {
+                throw SwapValidationError.ourKeyMissingFromLeaf(leaf: "refund", output: refundLeafOutputHex)
+            }
+        }
+    }
+
+    /// Checks a reverse swap's lockup address before its invoice is paid.
+    ///
+    /// Here Boltz funds the address and we claim from it, so the address is what
+    /// says the coins we are paying for will be spendable by us at all. The
+    /// claim leaf has to commit to our claim key for the same reason the
+    /// submarine refund leaf does: it is the script path that still works when
+    /// Boltz will not cooperate. The leaf reads OP_SIZE 32 OP_EQUALVERIFY
+    /// OP_HASH160 <preimage hash> OP_EQUALVERIFY <32-byte x-only claim key>
+    /// OP_CHECKSIG, so our key sits at the end.
+    static func validateReverseLockup(
+        address: String,
+        refundPublicKeyHex: String,
+        claimPrivateKeyHex: String,
+        ourClaimPublicKeyHex: String?,
+        claimLeafOutputHex: String,
+        refundLeafOutputHex: String,
+        network: BitcoinNetwork = BoltzRefund.network
+    ) throws {
+        try validateLockupAddress(
+            address,
+            boltzPublicKeyHex: refundPublicKeyHex,
+            ourPrivateKeyHex: claimPrivateKeyHex,
+            claimLeafOutputHex: claimLeafOutputHex,
+            refundLeafOutputHex: refundLeafOutputHex,
+            network: network
+        )
+
+        if let ourXonlyKeyHex = ourXonlyKeyHex(ourClaimPublicKeyHex) {
+            guard claimLeafOutputHex.lowercased().hasSuffix("20" + ourXonlyKeyHex + "ac") else {
+                throw SwapValidationError.ourKeyMissingFromLeaf(leaf: "claim", output: claimLeafOutputHex)
+            }
+        }
+    }
+
+    // MARK: Amounts
+
+    /// Checks that what Boltz quotes for a swap is what was asked for plus a
+    /// plausible fee, in either direction: `quoted` is always the leg the user
+    /// pays, `requested` the leg they receive.
+    static func validateQuotedAmount(requested: Int, quoted: Int) throws {
+        let allowedSpread = max(
+            minimumSpreadSats,
+            Int((Double(requested) * maximumSpreadPercentage / 100).rounded(.up))
+        )
+        guard quoted >= requested, quoted <= requested + allowedSpread else {
+            throw SwapValidationError.amountOutOfRange(
+                requested: requested,
+                quoted: quoted,
+                allowedSpread: allowedSpread
+            )
+        }
+    }
+
+    /// Checks that a reverse swap's invoice pays for the preimage we generated,
+    /// and asks a sane price for it, before it is paid.
+    ///
+    /// Without the payment hash check the invoice could be any invoice at all —
+    /// paying it would settle someone else's payment and leave nothing for us to
+    /// claim, since the preimage that unlocks the on-chain side never comes back.
+    static func validateReverseInvoice(
+        _ invoice: String,
+        preimageHashHex: String,
+        requestedOnchainAmountSats: Int
+    ) throws {
+        guard let parsedInvoice = Bindings.Bolt11Invoice.fromStr(s: invoice).getValue(),
+              let invoiceAmountMilli = parsedInvoice.amountMilliSatoshis(),
+              let paymentHash = parsedInvoice.paymentHash() else {
+            throw SwapValidationError.unparsableInvoice
+        }
+
+        let paymentHashHex = Data(paymentHash).hex
+        guard paymentHashHex.lowercased() == preimageHashHex.lowercased() else {
+            throw SwapValidationError.paymentHashMismatch(expected: preimageHashHex.lowercased(), received: paymentHashHex)
+        }
+
+        try validateQuotedAmount(requested: requestedOnchainAmountSats, quoted: Int(invoiceAmountMilli / 1000))
     }
 }
 

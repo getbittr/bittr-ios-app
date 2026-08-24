@@ -267,6 +267,16 @@ class SwapViewController: UIViewController, UITextFieldDelegate, UNUserNotificat
         Log.info("Proceed with swap.")
         guard self.thisSwap != nil else { return }
         
+        // Verify Boltz invoice for lightning-to-onchain swaps.
+        if self.thisSwap!.swapDirection == .lightningToOnchain {
+            guard self.didVerifyBoltzInvoice() else {
+                Log.info("Received Boltz invoice doesn't match our preimage. Abort swap.")
+                self.showAlert(title: Language.getWord(withID: "error"), message: Language.getWord(withID: "swapvalidationfailed"), buttons: [.dismiss(Language.getWord(withID: "okay"))])
+                SentryManager.countMetric("swap.lightningtoonchain.invoicerejected")
+                return
+            }
+        }
+        
         // Save ongoing swap to cache.
         CacheManager.saveLatestSwap(self.thisSwap!)
         
@@ -281,6 +291,11 @@ class SwapViewController: UIViewController, UITextFieldDelegate, UNUserNotificat
             SentryManager.countMetric("swap.lightningtoonchain.initiated")
             self.performLightningPayment()
         }
+    }
+    
+    func didVerifyBoltzInvoice() -> Bool {
+        let expectedHash = Data(hexString: self.thisSwap!.preimage ?? "").map { SwapManager.sha256Hash(of: $0).hexEncodedString() }
+        return (expectedHash != nil && self.thisSwap!.boltzInvoice?.getInvoiceHash()?.lowercased() == expectedHash!.lowercased())
     }
     
     func clearPendingSwapData() {

@@ -153,7 +153,7 @@ class SwapManager: NSObject {
                     // Example success {"bip21":"bitcoin:bcrt1pfalvfpkhtha6qmxmkgvljnajnc2hvl2c828euxh5679e302gk9wsh3e9af?amount=0.00050352&label=Send%20to%20BTC%20lightning","acceptZeroConf":false,"expectedAmount":50352,"id":"ChTExx2srRLT","address":"bcrt1pfalvfpkhtha6qmxmkgvljnajnc2hvl2c828euxh5679e302gk9wsh3e9af","swapTree":{"claimLeaf":{"version":192,"output":"a914ed96f252263cd8cc0a616602875f76bfb0c70fcd8820611b80e6aa832718caae89c59f16576888db6f911f88c2d1fc3533bee7efc61fac"},"refundLeaf":{"version":192,"output":"2004cac31242618cac8211d342bc733a1d1fdfe063cfe053977eacd9fac9a89d24ad02df01b1"}},"claimPublicKey":"03611b80e6aa832718caae89c59f16576888db6f911f88c2d1fc3533bee7efc61f","timeoutBlockHeight":479}
                     
                     DispatchQueue.main.async {
-                        if
+                        guard
                             let onchainAddress = receivedDictionary["address"] as? String,
                             let expectedAmount = receivedDictionary["expectedAmount"] as? Int,
                             let swapID = receivedDictionary["id"] as? String,
@@ -162,28 +162,9 @@ class SwapManager: NSObject {
                             let claimLeafOutput = claimLeaf["output"] as? String,
                             let refundLeaf = swapTree["refundLeaf"] as? NSDictionary,
                             let refundLeafOutput = refundLeaf["output"] as? String,
-                            let claimPublicKey = receivedDictionary["claimPublicKey"] as? String {
-                            
-                            if swapVC.thisSwap == nil {
-                                // SwapVC has been closed while awaiting API response.
-                                return
-                            }
-                            
-                            swapVC.thisSwap!.privateKey = privateKey
-                            swapVC.thisSwap!.boltzID = swapID
-                            swapVC.thisSwap!.boltzOnchainAddress = onchainAddress
-                            swapVC.thisSwap!.boltzExpectedAmount = expectedAmount
-                            swapVC.thisSwap!.claimLeafOutput = claimLeafOutput
-                            swapVC.thisSwap!.refundLeafOutput = refundLeafOutput
-                            swapVC.thisSwap!.claimPublicKey = claimPublicKey
-                            
-                            self.saveSwapDetailsToFile(swapID: swapID, swapDictionary: swapVC.thisSwap!.toDictionary())
-                            
-                            Task {
-                                await self.checkOnchainFees(swapVC: swapVC)
-                            }
-                        } else {
-                            // Expected data unavailable.
+                            let claimPublicKey = receivedDictionary["claimPublicKey"] as? String
+                        else {
+                            Log.info("Expected data unavailable.")
                             DispatchQueue.main.async {
                                 swapVC.nextLabel.alpha = 1
                                 swapVC.arrowIcon.alpha = 1
@@ -193,6 +174,51 @@ class SwapManager: NSObject {
                                     message: Language.getWord(withID: "swaperror2"),
                                     buttons: [.dismiss(Language.getWord(withID: "okay"))])
                             }
+                            return
+                        }
+                        guard swapVC.thisSwap != nil else {
+                            Log.info("SwapVC has been closed while awaiting API response.")
+                            return
+                        }
+                        
+                        Log.info("Validate Boltz address and amount.")
+                        do {
+                            try BoltzSwapValidation.validateSubmarineLockup(
+                                address: onchainAddress,
+                                claimPublicKeyHex: claimPublicKey,
+                                refundPrivateKeyHex: privateKey,
+                                ourRefundPublicKeyHex: publicKey,
+                                claimLeafOutputHex: claimLeafOutput,
+                                refundLeafOutputHex: refundLeafOutput
+                            )
+                            try BoltzSwapValidation.validateQuotedAmount(
+                                requested: Int(actualAmountMsat / 1000),
+                                quoted: expectedAmount
+                            )
+                        } catch {
+                            Log.info("Refused the submarine swap response: \(error.localizedDescription)")
+                            swapVC.nextLabel.alpha = 1
+                            swapVC.arrowIcon.alpha = 1
+                            swapVC.nextSpinner.stopAnimating()
+                            swapVC.showAlert(title: Language.getWord(withID: "error"), message: Language.getWord(withID: "swapvalidationfailed"), buttons: [.dismiss(Language.getWord(withID: "okay"))])
+                            SentryManager.countMetric("swap.onchaintolightning.responserejected")
+                            SentryManager.capture(error, context: "SwapManager submarine response validation")
+                            return
+                        }
+                        
+                        swapVC.thisSwap!.privateKey = privateKey
+                        swapVC.thisSwap!.boltzID = swapID
+                        swapVC.thisSwap!.boltzOnchainAddress = onchainAddress
+                        swapVC.thisSwap!.boltzExpectedAmount = expectedAmount
+                        swapVC.thisSwap!.claimLeafOutput = claimLeafOutput
+                        swapVC.thisSwap!.refundLeafOutput = refundLeafOutput
+                        swapVC.thisSwap!.claimPublicKey = claimPublicKey
+                        swapVC.thisSwap!.refundPublicKey = publicKey
+                        
+                        self.saveSwapDetailsToFile(swapID: swapID, swapDictionary: swapVC.thisSwap!.toDictionary())
+                        
+                        Task {
+                            await self.checkOnchainFees(swapVC: swapVC)
                         }
                     }
                 }
@@ -285,11 +311,11 @@ class SwapManager: NSObject {
     }
     
     static func sendOnchainPayment(swapVC:SwapViewController) {
-        guard swapVC.thisSwap != nil else { return }
+        guard let ongoingSwap = swapVC.thisSwap else { return }
         
-        let address = swapVC.thisSwap!.boltzOnchainAddress!
-        let amountSats = swapVC.thisSwap!.boltzExpectedAmount!
-        let feeHigh = swapVC.thisSwap!.feeHigh!
+        let address = ongoingSwap.boltzOnchainAddress!
+        let amountSats = ongoingSwap.boltzExpectedAmount!
+        let feeHigh = ongoingSwap.feeHigh!
         
         // Send onchain transaction.
         DispatchQueue.global(qos: .userInitiated).async {
@@ -481,29 +507,17 @@ class SwapManager: NSObject {
                         swapVC.thisSwap!.destinationAddress = destinationAddress
                         
                         // Save swap details to file
-                        if let swapID = receivedDictionary["id"] as? String,
-                           let boltzInvoice = receivedDictionary["invoice"] as? String,
-                           let swapTree = receivedDictionary["swapTree"] as? NSDictionary,
-                           let claimLeaf = swapTree["claimLeaf"] as? NSDictionary,
-                           let claimLeafOutput = claimLeaf["output"] as? String,
-                           let refundLeaf = swapTree["refundLeaf"] as? NSDictionary,
-                           let refundLeafOutput = refundLeaf["output"] as? String,
-                           let refundPublicKey = receivedDictionary["refundPublicKey"] as? String {
-                            swapVC.thisSwap!.boltzID = swapID
-                            swapVC.thisSwap!.boltzInvoice = boltzInvoice
-                            swapVC.thisSwap!.claimLeafOutput = claimLeafOutput
-                            swapVC.thisSwap!.refundLeafOutput = refundLeafOutput
-                            swapVC.thisSwap!.refundPublicKey = refundPublicKey
-                            self.saveSwapDetailsToFile(swapID: swapID, swapDictionary: swapVC.thisSwap!.toDictionary())
-                            
-                            // Store transaction details in cache.
-                            CacheManager.storeSwapID(dateID: swapVC.thisSwap!.dateID, swapID: swapVC.thisSwap!.boltzID!)
-                            CacheManager.storeInvoiceDescription(preimage: swapVC.thisSwap!.preimage!, desc: swapVC.thisSwap!.dateID)
-                            if swapVC.thisSwap!.isSuggested {
-                                CacheManager.storeSuggestedSwap(dateID: swapVC.thisSwap!.dateID)
-                            }
-                            self.checkReverseSwapFees(swapVC: swapVC)
-                        } else {
+                        guard
+                            let swapID = receivedDictionary["id"] as? String,
+                            let boltzInvoice = receivedDictionary["invoice"] as? String,
+                            let swapTree = receivedDictionary["swapTree"] as? NSDictionary,
+                            let claimLeaf = swapTree["claimLeaf"] as? NSDictionary,
+                            let claimLeafOutput = claimLeaf["output"] as? String,
+                            let refundLeaf = swapTree["refundLeaf"] as? NSDictionary,
+                            let refundLeafOutput = refundLeaf["output"] as? String,
+                            let refundPublicKey = receivedDictionary["refundPublicKey"] as? String,
+                            let lockupAddress = receivedDictionary["lockupAddress"] as? String
+                        else {
                             // Expected data unavailable.
                             DispatchQueue.main.async {
                                 swapVC.nextLabel.alpha = 1
@@ -514,7 +528,50 @@ class SwapManager: NSObject {
                                     message: Language.getWord(withID: "swaperror2"),
                                     buttons: [.dismiss(Language.getWord(withID: "okay"))])
                             }
+                            return
                         }
+                        
+                        // Validate Boltz invoice and lockup address.
+                        do {
+                            try BoltzSwapValidation.validateReverseInvoice(
+                                boltzInvoice,
+                                preimageHashHex: randomPreimageHashHex,
+                                requestedOnchainAmountSats: onchainAmountWithFee
+                            )
+                            try BoltzSwapValidation.validateReverseLockup(
+                                address: lockupAddress,
+                                refundPublicKeyHex: refundPublicKey,
+                                claimPrivateKeyHex: privateKey,
+                                ourClaimPublicKeyHex: publicKey,
+                                claimLeafOutputHex: claimLeafOutput,
+                                refundLeafOutputHex: refundLeafOutput
+                            )
+                        } catch {
+                            Log.info("Refused the reverse swap response: \(error.localizedDescription)")
+                            swapVC.nextLabel.alpha = 1
+                            swapVC.arrowIcon.alpha = 1
+                            swapVC.nextSpinner.stopAnimating()
+                            swapVC.showAlert(title: Language.getWord(withID: "error"), message: Language.getWord(withID: "swapvalidationfailed"), buttons: [.dismiss(Language.getWord(withID: "okay"))])
+                            SentryManager.countMetric("swap.lightningtoonchain.responserejected")
+                            SentryManager.capture(error, context: "SwapManager reverse response validation")
+                            return
+                        }
+                        
+                        swapVC.thisSwap!.boltzID = swapID
+                        swapVC.thisSwap!.boltzInvoice = boltzInvoice
+                        swapVC.thisSwap!.claimLeafOutput = claimLeafOutput
+                        swapVC.thisSwap!.refundLeafOutput = refundLeafOutput
+                        swapVC.thisSwap!.refundPublicKey = refundPublicKey
+                        swapVC.thisSwap!.claimPublicKey = publicKey
+                        self.saveSwapDetailsToFile(swapID: swapID, swapDictionary: swapVC.thisSwap!.toDictionary())
+                        
+                        // Store transaction details in cache.
+                        CacheManager.storeSwapID(dateID: swapVC.thisSwap!.dateID, swapID: swapVC.thisSwap!.boltzID!)
+                        CacheManager.storeInvoiceDescription(preimage: swapVC.thisSwap!.preimage!, desc: swapVC.thisSwap!.dateID)
+                        if swapVC.thisSwap!.isSuggested {
+                            CacheManager.storeSuggestedSwap(dateID: swapVC.thisSwap!.dateID)
+                        }
+                        self.checkReverseSwapFees(swapVC: swapVC)
                     }
                 }
             }
