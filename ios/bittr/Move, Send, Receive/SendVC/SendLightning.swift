@@ -34,8 +34,12 @@ extension SendViewController {
     func checkSendLightning() {
         guard self.checkInternetConnection() else { return }
         
+        // Recognize pending LNURL invoice if needed.
+        let lnurlInvoice = self.pendingLnurlInvoice
+        self.pendingLnurlInvoice = nil
+        
         // Check invoice field.
-        guard let enteredInvoice = self.pendingLnurlInvoice ?? self.toTextField.text?.trimmingCharacters(in: .whitespacesAndNewlines), !enteredInvoice.isEmpty else {
+        guard let enteredInvoice = lnurlInvoice ?? self.toTextField.text?.trimmingCharacters(in: .whitespacesAndNewlines), !enteredInvoice.isEmpty else {
             self.showAlert(title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "enteraddress"), buttons: [.dismiss(Language.getWord(withID: "okay"))])
             return
         }
@@ -44,9 +48,11 @@ extension SendViewController {
         if enteredInvoice.lowercased().isValidEmail() || enteredInvoice.lowercased().hasPrefix("lnurl") {
             self.handleLNURL(code: enteredInvoice.lowercased())
             return
-        } else if self.pendingLnurlInvoice != nil && (self.toTextField.text ?? "").trimmingCharacters(in: .whitespacesAndNewlines).isValidEmail() {
-            self.confirmLnurlEmail = self.toTextField.text!.trimmingCharacters(in: .whitespacesAndNewlines)
         }
+        
+        // Show entered LNURL in ConfirmSendVC if needed.
+        let typedAddress = (self.toTextField.text ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+        self.confirmLnurlEmail = (lnurlInvoice != nil && !typedAddress.isEmpty) ? typedAddress : nil
         
         // Get invoice amount.
         let satoshisAmount:Int

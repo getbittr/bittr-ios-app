@@ -108,7 +108,7 @@ class ConfirmSendViewController: UIViewController {
         self.addressLabel.text = self.sendVC!.confirmLnurlEmail ?? self.sendVC!.confirmAddress
         
         // Amount
-        self.amountLabel.text = "\(self.sendVC!.confirmSatoshis)".addSpaces() + " sats"
+        self.amountLabel.text = self.formattedAmount()
         
         // Fiat amount
         let bitcoinValue = BitcoinManager.shared.bittrWallet.getCorrectBitcoinValue()
@@ -180,7 +180,12 @@ class ConfirmSendViewController: UIViewController {
         let fiatValue = satsValue.inBTC() * bitcoinValue.currentValue
         return fiatValue.twoDecimals().toString()
     }
-
+    
+    // Formats the send amount, e.g. "50 000 sats".
+    func formattedAmount() -> String {
+        return "\(self.sendVC!.confirmSatoshis)".addSpaces() + " sats"
+    }
+    
     // Formats the fiat send amount with two decimals, e.g. "4.99 €" (or "4,99 €"
     // in comma locales). twoDecimals() rounds to 2 places and toString() formats
     // with the device's decimal separator, padded to two decimals.
@@ -210,7 +215,7 @@ class ConfirmSendViewController: UIViewController {
         // the screen quoting the amount from the rate it was calculated at.
         if self.sendVC!.isSendingMaximum, let drainTotal = self.sendVC!.drainTotalSats {
             self.sendVC!.confirmSatoshis = max(drainTotal - self.selectedFeeInSats, 0)
-            self.amountLabel.text = self.sendVC!.confirmSatoshis.inBTC().formattedBitcoin() + " BTC"
+            self.amountLabel.text = self.formattedAmount()
             self.amountFiatLabel.text = self.formattedFiatAmount()
         }
 
@@ -270,7 +275,7 @@ class ConfirmSendViewController: UIViewController {
         self.sendVC!.selectCurrency(.bitcoin)
         
         // Update confirmation labels.
-        self.amountLabel.text = self.sendVC!.confirmSatoshis.inBTC().formattedBitcoin() + " BTC"
+        self.amountLabel.text = self.formattedAmount()
         self.amountFiatLabel.text = self.formattedFiatAmount()
         
         // Switch fee selection.
