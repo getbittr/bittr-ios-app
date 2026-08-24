@@ -279,7 +279,7 @@ extension UIViewController {
                     switch result {
                     case .success(let actualDataDict):
                         // Check invoice.
-                        guard let receivedInvoice = actualDataDict["pr"] as? String else {
+                        guard let receivedInvoice = (actualDataDict["pr"] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines) else {
                             SentryManager.countMetric("lnurl.pay.failure.2")
                             let errorMessage:String = (actualDataDict["detail"] as? String) ?? "Unexpected error"
                             self.showAlert(title: Language.getWord(withID: "payrequest"), message: "\(Language.getWord(withID: "lnurlfail2")) \(errorMessage)", buttons: [.dismiss(Language.getWord(withID: "okay"))])
@@ -290,7 +290,9 @@ extension UIViewController {
                         SentryManager.countMetric("lnurl.pay.success")
                         
                         // Pay invoice.
-                        sendVC?.confirmLightningTransaction(lnurlinvoice: receivedInvoice, lnurlNote: receivedDescription)
+                        sendVC?.pendingLnurlInvoice = receivedInvoice
+                        sendVC?.pendingLnurlNote = receivedDescription
+                        sendVC?.checkSendLightning()
                         
                     case .failure(let error):
                         SentryManager.countMetric("lnurl.pay.failure.1")

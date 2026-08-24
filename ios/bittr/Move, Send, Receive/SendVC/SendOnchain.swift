@@ -17,23 +17,22 @@ extension SendViewController {
         guard self.checkInternetConnection() else { return }
             
         // Check address.
-        let enteredAddress = (self.toTextField.text ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
-        if enteredAddress.isEmpty {
+        guard let enteredAddress = self.toTextField.text?.trimmingCharacters(in: .whitespacesAndNewlines), !enteredAddress.isEmpty else {
             self.showAlert(title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "enteraddress"), buttons: [.dismiss(Language.getWord(withID: "okay"))])
-            return
-        }
-        
-        // Check amount.
-        let enteredAmount = (self.amountTextField.text ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
-        if enteredAmount.isEmpty {
-            self.showAlert(title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "enteramount"), buttons: [.dismiss(Language.getWord(withID: "okay"))])
             return
         }
         
         // Check for LNURL address.
         if enteredAddress.lowercased().contains("lnurl") || enteredAddress.lowercased().isValidEmail() {
             // Handle LNURL.
-            self.confirmLightningTransaction(lnurlinvoice: enteredAddress, lnurlNote: nil)
+            self.onchainOrLightning = .lightning
+            self.checkSendLightning()
+            return
+        }
+        
+        // Check amount.
+        guard let enteredAmount = self.amountTextField.text?.trimmingCharacters(in: .whitespacesAndNewlines), !enteredAmount.isEmpty else {
+            self.showAlert(title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "enteramount"), buttons: [.dismiss(Language.getWord(withID: "okay"))])
             return
         }
         
@@ -103,15 +102,7 @@ extension SendViewController {
             // Check the maximum sendable onchain amount.
             let drain = try? BitcoinManager.shared.maximumSendableOnchainDrain(toAddress: enteredAddress, satPerVb: self.feePerVbMedium.wholeSatPerVb)
             
-            // Check whether the user intends to empty their onchain funds —
-            // either by tapping the quoted maximum, or by typing an amount at or
-            // above it (the balance guard above only rejects amounts over the
-            // spendable balance, and the drain maximum sits a fee below that).
-            //
-            // Either way, restate the amount as the drain figure. sendAllToAddress
-            // ignores confirmSatoshis and sends whatever is left after the fee, so
-            // leaving the typed amount in place would let the confirmation screen
-            // promise a number the wallet never broadcasts.
+            // Check whether the user intends to empty their onchain funds.
             if let drain = drain, self.didTapAvailable || self.onchainAmountInSatoshis >= Int(drain.sendableSats) {
                 self.onchainAmountInSatoshis = Int(drain.sendableSats)
                 self.confirmSatoshis = Int(drain.sendableSats)

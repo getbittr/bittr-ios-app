@@ -94,62 +94,40 @@ class ConfirmSendViewController: UIViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
 
-        // Tag the fee buttons so feeButtonTapped can route the tap.
-        // (Was set on accessibilityIdentifier in IB; moved here so that slot
-        // stays free for Maestro test IDs.)
-        self.buttonFast.boundString = "high"
-        self.buttonMedium.boundString = "medium"
-        self.buttonSlow.boundString = "low"
-
         self.setBasicStyling()
         self.changeColors()
         self.setLanguage()
         self.setLabels()
-
-        self.addressLabel.accessibilityIdentifier = TestID.Send.Confirm.addressLabel
-        self.amountLabel.accessibilityIdentifier = TestID.Send.Confirm.amountLabel
-        self.amountFiatLabel.accessibilityIdentifier = TestID.Send.Confirm.amountFiatLabel
-        self.buttonFast.accessibilityIdentifier = TestID.Send.Confirm.feeFastButton
-        self.buttonSlow.accessibilityIdentifier = TestID.Send.Confirm.feeSlowButton
-        self.confirmButton.accessibilityIdentifier = TestID.Send.Confirm.confirmButton
     }
     
     func setLabels() {
         guard self.sendVC != nil else { return }
         
         // Address
-        if self.sendVC!.onchainOrLightning == .onchain {
-            self.addressTitle.text = Language.getWord(withID: "address")
-        } else {
-            self.addressTitle.text = Language.getWord(withID: "invoice")
-        }
-        self.addressLabel.text = self.sendVC!.confirmAddress
+        self.addressTitle.text = Language.getWord(withID: self.sendVC!.onchainOrLightning == .onchain ? "address" : "invoice")
+        self.addressLabel.text = self.sendVC!.confirmLnurlEmail ?? self.sendVC!.confirmAddress
         
         // Amount
-        self.amountLabel.text = self.sendVC!.confirmSatoshis.inBTC().formattedBitcoin() + " BTC"
+        self.amountLabel.text = "\(self.sendVC!.confirmSatoshis)".addSpaces() + " sats"
+        
         // Fiat amount
         let bitcoinValue = BitcoinManager.shared.bittrWallet.getCorrectBitcoinValue()
         self.amountFiatLabel.text = self.formattedFiatAmount()
         
-        // Fees
+        // Fees stacks
+        NSLayoutConstraint.deactivate([self.lightningFeesStackHeight, self.onchainFeesStackHeight])
+        self.lightningFeesStackHeight = NSLayoutConstraint(item: self.lightningFeesStack, attribute: .height, relatedBy: (self.sendVC!.onchainOrLightning == .lightning) ? .greaterThanOrEqual : .equal, toItem: nil, attribute: .notAnAttribute, multiplier: 1, constant: 0)
+        self.onchainFeesStackHeight = NSLayoutConstraint(item: self.onchainFeesStack, attribute: .height, relatedBy: (self.sendVC!.onchainOrLightning == .lightning) ? .equal : .greaterThanOrEqual, toItem: nil, attribute: .notAnAttribute, multiplier: 1, constant: 0)
+        NSLayoutConstraint.activate([self.lightningFeesStackHeight, self.onchainFeesStackHeight])
+        self.lightningFeesStack.alpha = (self.sendVC!.onchainOrLightning == .lightning) ? 1 : 0
+        self.onchainFeesStack.alpha = (self.sendVC!.onchainOrLightning == .lightning) ? 0 : 1
+        
+        // Fees labels
         if self.sendVC!.onchainOrLightning == .lightning {
             // Lightning
-            NSLayoutConstraint.deactivate([self.lightningFeesStackHeight, self.onchainFeesStackHeight])
-            self.lightningFeesStackHeight = NSLayoutConstraint(item: self.lightningFeesStack, attribute: .height, relatedBy: .greaterThanOrEqual, toItem: nil, attribute: .notAnAttribute, multiplier: 1, constant: 0)
-            self.onchainFeesStackHeight = NSLayoutConstraint(item: self.onchainFeesStack, attribute: .height, relatedBy: .equal, toItem: nil, attribute: .notAnAttribute, multiplier: 1, constant: 0)
-            NSLayoutConstraint.activate([self.lightningFeesStackHeight, self.onchainFeesStackHeight])
-            self.lightningFeesStack.alpha = 1
-            self.onchainFeesStack.alpha = 0
-            
             self.lightningFeesLabel.text = "1 - " + "\(self.sendVC!.confirmLightningFees)".addSpaces() + " sats"
         } else {
             // Onchain
-            NSLayoutConstraint.deactivate([self.lightningFeesStackHeight, self.onchainFeesStackHeight])
-            self.lightningFeesStackHeight = NSLayoutConstraint(item: self.lightningFeesStack, attribute: .height, relatedBy: .equal, toItem: nil, attribute: .notAnAttribute, multiplier: 1, constant: 0)
-            self.onchainFeesStackHeight = NSLayoutConstraint(item: self.onchainFeesStack, attribute: .height, relatedBy: .greaterThanOrEqual, toItem: nil, attribute: .notAnAttribute, multiplier: 1, constant: 0)
-            NSLayoutConstraint.activate([self.lightningFeesStackHeight, self.onchainFeesStackHeight])
-            self.lightningFeesStack.alpha = 0
-            self.onchainFeesStack.alpha = 1
             
             // Check fee availability
             let transactionSize = self.sendVC!.confirmTxSize
