@@ -308,6 +308,7 @@ enum TestID {
         static let copyBottomIdButton = "transaction.copyBottomIdButton"
         static let copyIdButton = "transaction.copyIdButton"
         static let descriptionButton = "transaction.descriptionButton"
+        static let descriptionLabel = "transaction.descriptionLabel"
         static let labelAmount = "transaction.labelAmount"
         static let labelDate = "transaction.labelDate"
         static let labelNote = "transaction.labelNote"

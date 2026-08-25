@@ -162,6 +162,7 @@ class TransactionViewController: UIViewController {
         self.labelAmount.accessibilityIdentifier = TestID.Transaction.labelAmount
         self.buttonSwapStatus.accessibilityIdentifier = TestID.Transaction.swapStatusButton
         self.buttonDescription.accessibilityIdentifier = TestID.Transaction.descriptionButton
+        self.labelDescription.accessibilityIdentifier = TestID.Transaction.descriptionLabel
         self.copyButtonTopId.accessibilityIdentifier = TestID.Transaction.copyIdButton
         self.urlButtonTopId.accessibilityIdentifier = TestID.Transaction.urlIdButton
         self.copyButtonBottomId.accessibilityIdentifier = TestID.Transaction.copyBottomIdButton
