@@ -183,8 +183,8 @@ class SwapManager: NSObject {
         DispatchQueue.main.async {
             if let invoiceHash = invoice.description.getInvoiceHash(), let paymentDetails = BitcoinManager.shared.getPaymentDetails(paymentHash: invoiceHash) {
                 let newTimestamp = Int(Date().timeIntervalSince1970)
-                CacheManager.storeInvoiceTimestamp(preimage: paymentDetails.kind.transactionID ?? paymentDetails.id, timestamp: newTimestamp)
-                CacheManager.storeInvoiceDescription(preimage: paymentDetails.kind.transactionID ?? paymentDetails.id, desc: "Swap onchain to lightning \(idString)")
+                CacheManager.storeInvoiceTimestamp(preimage: paymentDetails.cacheID, timestamp: newTimestamp)
+                CacheManager.storeInvoiceDescription(preimage: paymentDetails.cacheID, desc: "Swap onchain to lightning \(idString)")
                 Log.info("Did cache invoice data.")
             }
             
@@ -612,7 +612,7 @@ class SwapManager: NSObject {
                         
                         // Store transaction details in cache.
                         CacheManager.storeSwapID(dateID: swapVC.thisSwap!.dateID, swapID: swapVC.thisSwap!.boltzID!)
-                        CacheManager.storeInvoiceDescription(preimage: swapVC.thisSwap!.preimage!, desc: swapVC.thisSwap!.dateID)
+                        CacheManager.storeInvoiceDescription(preimage: randomPreimageHashHex, desc: swapVC.thisSwap!.dateID)
                         if swapVC.thisSwap!.isSuggested {
                             CacheManager.storeSuggestedSwap(dateID: swapVC.thisSwap!.dateID)
                         }

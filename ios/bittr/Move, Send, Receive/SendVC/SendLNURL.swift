@@ -327,7 +327,7 @@ extension UIViewController {
                 
             DispatchQueue.main.async {
                 if let invoiceHash = invoice.description.getInvoiceHash(), let paymentDetails = BitcoinManager.shared.getPaymentDetails(paymentHash: invoiceHash) {
-                    CacheManager.storeInvoiceTimestamp(preimage: paymentDetails.kind.transactionID ?? paymentDetails.id, timestamp: Int(Date().timeIntervalSince1970))
+                    CacheManager.storeInvoiceTimestamp(preimage: paymentDetails.cacheID, timestamp: Int(Date().timeIntervalSince1970))
                 }
             }
             
