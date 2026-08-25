@@ -72,7 +72,7 @@ extension SendViewController {
             
             // Parse the Lightning invoice to extract the amount
             if invoice.lowercased().hasPrefix("ln") {
-                if let parsedInvoice = Bindings.Bolt11Invoice.fromStr(s: invoice).getValue() {
+                if let parsedInvoice = invoice.bolt11Invoice() {
                     if let invoiceAmountMilli = parsedInvoice.amountMilliSatoshis() {
                         let invoiceAmount = Int(invoiceAmountMilli)/1000
                         self.amountTextField.text = "\(invoiceAmount)"

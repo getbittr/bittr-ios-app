@@ -19,49 +19,34 @@ extension SendViewController {
     func textFieldShouldReturn(_ textField: UITextField) -> Bool {
         // Same logic as doneButtonTapped for return key
         if textField == self.toTextField {
-            // If it's a lightning invoice with amount, go straight to confirmation
-            if (textField.text ?? "").hasPrefix("ln") {
-                if let parsedInvoice = Bindings.Bolt11Invoice.fromStr(s: textField.text!).getValue(), let invoiceAmountMilli = parsedInvoice.amountMilliSatoshis() {
-                    // Invoice has amount, go straight to confirmation
-                    self.onchainOrLightning = .lightning
-                    self.updateLabels()
-                    self.checkSendLightning()
-                    return true
-                }
-            } else if (textField.text ?? "").contains("@") {
+            let enteredText = (textField.text ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+            
+            // Check whether this is an invoice or LNURL.
+            let lightningInvoice = enteredText.extractLightningInvoice()
+            let lnurl = enteredText.extractLNURL()
+            if lightningInvoice != nil || lnurl != nil {
                 self.view.endEditing(true)
                 self.onchainOrLightning = .lightning
                 self.updateLabels()
-                self.handleLNURL(code: textField.text!)
-                return true
+                if let lnurl {
+                    self.handleLNURL(code: lnurl)
+                    return true
+                } else if let lightningInvoice, lightningInvoice.bolt11Invoice()?.amountMilliSatoshis() != nil {
+                    self.checkSendLightning()
+                    return true
+                }
             }
             
             // Otherwise, move to amount field
             self.amountTextField.becomeFirstResponder()
             return true
-        } else if textField == amountTextField {
             
-            // Check if we have pending LNURL data
-            if let callback = self.pendingLNURLCallback,
-               let minAmount = self.pendingLNURLMinAmount,
-               let maxAmount = self.pendingLNURLMaxAmount {
-                // Handle LNURL amount completion
-                self.handleLNURLAmountCompletion()
-            } else if let callback = self.pendingWithdrawCallback,
-                      let minAmount = self.pendingWithdrawMinAmount,
-                      let maxAmount = self.pendingWithdrawMaxAmount {
-                // Handle withdraw request amount completion
-                self.handleWithdrawAmountCompletion()
-            } else {
-                // Normal flow - move to next step
-                self.nextButtonTapped(nextButton)
-            }
+        } else if textField == self.amountTextField {
+            self.nextButtonTapped(self.nextButton)
             return true
         }
-        
         return false
     }
-    
     
     func createAmountInputAccessoryView() -> UIView {
         let containerView = UIView(frame: CGRect(x: 0, y: 0, width: UIScreen.main.bounds.width, height: 44))

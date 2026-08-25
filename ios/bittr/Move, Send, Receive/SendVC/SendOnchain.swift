@@ -42,30 +42,24 @@ extension SendViewController {
             self.showAlert(title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "enteramount"), buttons: [.dismiss(Language.getWord(withID: "okay"))])
             return
         }
-        self.onchainAmountInSatoshis = enteredSatoshis
-        
-        // Check whether user intends to empty their onchain funds.
-        if let quotedMaximum = self.maximumSendableOnchainSats, self.onchainAmountInSatoshis == quotedMaximum {
-            // The entered amount matches the maximum sendable onchain funds.
-            self.didTapAvailable = true
-        }
         
         // Check balance.
-        guard self.onchainAmountInSatoshis <= (BitcoinManager.shared.bittrWallet.satoshisOnchainSpendable ?? 0) else {
+        guard enteredSatoshis <= (BitcoinManager.shared.bittrWallet.satoshisOnchainSpendable ?? 0) else {
             Log.info("Insufficient onchain balance.")
             Log.info("Check if we have sufficient Lightning balance for a swap.")
             
             let availableLightningBalance = (BitcoinManager.shared.bittrWallet.lightningChannels.getActiveChannel()?.outboundCapacityMsat ?? 0)/1000
             
-            if availableLightningBalance >= self.onchainAmountInSatoshis {
+            if availableLightningBalance >= enteredSatoshis {
                 Log.info("Offering Lightning swap option.")
                 
+                // Store the address for the swap
+                self.pendingOnchainAddress = enteredAddress
+                self.pendingOnchainAmount = enteredSatoshis
                 self.showAlert(
                     title: Language.getWord(withID: "insufficientfunds"),
                     message: Language.getWord(withID: "onchaininsufficientfunds").replacingOccurrences(of: "<amount>", with: String(BitcoinManager.shared.bittrWallet.satoshisOnchain).addSpaces()) + "\n\n" + Language.getWord(withID: "swapinsufficientfundslightning").replacingOccurrences(of: "<amount>", with: "\(availableLightningBalance)".addSpaces()),
                     buttons: [.action(Language.getWord(withID: "cancel")) { self.cancelSwapOffer() }, .action(Language.getWord(withID: "swapandpay")) { self.swapAndPayOnchain() }])
-                // Store the address for the swap
-                self.pendingOnchainAddress = enteredAddress
                 
             } else {
                 Log.info("Lightning balance insufficient, showing regular insufficient funds message.")
@@ -82,7 +76,7 @@ extension SendViewController {
         
         // Set confirmation variables.
         self.confirmAddress = enteredAddress
-        self.confirmSatoshis = self.onchainAmountInSatoshis
+        self.confirmSatoshis = enteredSatoshis
         
         // Create transaction.
         Task {
@@ -102,9 +96,14 @@ extension SendViewController {
             // Check the maximum sendable onchain amount.
             let drain = try? BitcoinManager.shared.maximumSendableOnchainDrain(toAddress: enteredAddress, satPerVb: self.feePerVbMedium.wholeSatPerVb)
             
+            // Check whether user tapped their available funds.
+            if let quotedMaximum = self.maximumSendableOnchainSats, enteredSatoshis == quotedMaximum {
+                // The entered amount matches the maximum sendable onchain funds.
+                self.didTapAvailable = true
+            }
+            
             // Check whether the user intends to empty their onchain funds.
-            if let drain = drain, self.didTapAvailable || self.onchainAmountInSatoshis >= Int(drain.sendableSats) {
-                self.onchainAmountInSatoshis = Int(drain.sendableSats)
+            if let drain = drain, self.didTapAvailable || enteredSatoshis >= Int(drain.sendableSats) {
                 self.confirmSatoshis = Int(drain.sendableSats)
                 self.drainTotalSats = Int(drain.sendableSats + drain.feeSats)
                 self.isSendingMaximum = true
@@ -119,7 +118,7 @@ extension SendViewController {
                 if self.isSendingMaximum, let drain = drain {
                     size = drain.vsize
                 } else {
-                    size = try BitcoinManager.shared.getSize(address: enteredAddress, amountSats: self.onchainAmountInSatoshis, selectedVbyte: self.feePerVbMedium)
+                    size = try BitcoinManager.shared.getSize(address: enteredAddress, amountSats: enteredSatoshis, selectedVbyte: self.feePerVbMedium)
                 }
             } catch {
                 Log.info("Error: \(error.localizedDescription)")
@@ -164,6 +163,7 @@ extension SendViewController {
     func cancelSwapOffer() {
         // Clear the pending data when user cancels the swap offer
         self.pendingOnchainAddress = ""
+        self.pendingOnchainAmount = 0
         // Also clear the amount field to make it obvious this is cancelled
         self.amountTextField.text = ""
     }

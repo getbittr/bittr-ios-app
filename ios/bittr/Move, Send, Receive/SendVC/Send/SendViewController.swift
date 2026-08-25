@@ -84,10 +84,10 @@ class SendViewController: UIViewController, UITextFieldDelegate, OnchainSyncFail
     // the user switches fee rate — a drain is whatever is left after the fee.
     var drainTotalSats:Int?
     var completedTransaction:Transaction?
-    var onchainAmountInSatoshis:Int = 0
     var bitcoinQR = ""
     var pendingLightningInvoice = ""
     var pendingOnchainAddress = ""
+    var pendingOnchainAmount:Int = 0
     
     // Pending URI data from segue
     var pendingBitcoinURI: (address: String, amount: String, label: String)?
@@ -373,7 +373,7 @@ class SendViewController: UIViewController, UITextFieldDelegate, OnchainSyncFail
         } else if segue.identifier == "SendToSwap" {
             if let swapVC = segue.destination as? SwapViewController {
                 swapVC.isFromOnchainPayment = true
-                swapVC.pendingOnchainAmount = self.onchainAmountInSatoshis
+                swapVC.pendingOnchainAmount = self.pendingOnchainAmount
                 swapVC.pendingOnchainAddress = self.pendingOnchainAddress
                 swapVC.coreVC = self.coreVC
                 self.coreVC?.swapVC = swapVC
