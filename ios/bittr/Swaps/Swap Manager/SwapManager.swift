@@ -472,6 +472,7 @@ class SwapManager: NSObject {
         // We need to add the claim transaction fee to ensure they receive exactly what they input
         let claimTransactionFee = await BoltzRefund.calculateClaimOrRefundTransactionFee()
         let onchainAmountWithFee = amountSat + claimTransactionFee
+        await MainActor.run { swapVC.thisSwap?.claimTransactionFee = claimTransactionFee }
         
         // Call /v2/swap/reverse to receive the Lightning invoice we should pay.
         let randomPreimage = self.generateRandomPreimage()
@@ -846,8 +847,16 @@ class SwapManager: NSObject {
         let lightningFees = swapVC.getLightningFeesInSatoshis(parsedInvoice: parsedInvoice, amountMsat: nil)
         
         // Calculate claim transaction fee
+        let storedClaimTransactionFee = swapVC.thisSwap!.claimTransactionFee
         Task {
-            let claimTransactionFee = await BoltzRefund.calculateClaimOrRefundTransactionFee()
+            let claimTransactionFee:Int
+            if let storedClaimTransactionFee {
+                // Fee rates have already been fetched for this swap.
+                claimTransactionFee = storedClaimTransactionFee
+            } else {
+                // Fetch fresh fee rates.
+                claimTransactionFee = await BoltzRefund.calculateClaimOrRefundTransactionFee()
+            }
             
             DispatchQueue.main.async {
                 swapVC.thisSwap!.boltzExpectedAmount = invoiceAmount
