@@ -557,7 +557,10 @@ class BitcoinManager {
             Log.info("Fee estimate response was missing one or more expected rates.")
             return nil
         }
-
+        
+        // Remember the rate that worked.
+        CacheManager.storeLastKnownFeeRate(fastest)
+        
         return FeeEstimates(fastest: fastest, hour: hour, economy: economy)
     }
     

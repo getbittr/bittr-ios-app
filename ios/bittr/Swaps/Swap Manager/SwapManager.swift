@@ -470,8 +470,8 @@ class SwapManager: NSObject {
         
         // For lightning-to-onchain swaps, the user's input is the final amount they want to receive
         // We need to add the claim transaction fee to ensure they receive exactly what they input
-        let claimTransactionFee = try? await BoltzRefund.calculateClaimOrRefundTransactionFee()
-        let onchainAmountWithFee = amountSat + (claimTransactionFee ?? 0)
+        let claimTransactionFee = await BoltzRefund.calculateClaimOrRefundTransactionFee()
+        let onchainAmountWithFee = amountSat + claimTransactionFee
         
         // Call /v2/swap/reverse to receive the Lightning invoice we should pay.
         let randomPreimage = self.generateRandomPreimage()
@@ -847,30 +847,16 @@ class SwapManager: NSObject {
         
         // Calculate claim transaction fee
         Task {
-            do {
-                let claimTransactionFee = try await BoltzRefund.calculateClaimOrRefundTransactionFee()
+            let claimTransactionFee = await BoltzRefund.calculateClaimOrRefundTransactionFee()
+            
+            DispatchQueue.main.async {
+                swapVC.thisSwap!.boltzExpectedAmount = invoiceAmount
+                swapVC.thisSwap!.onchainFees = onchainFees
+                swapVC.thisSwap!.lightningFees = lightningFees
+                swapVC.thisSwap!.claimTransactionFee = claimTransactionFee
                 
-                DispatchQueue.main.async {
-                    swapVC.thisSwap!.boltzExpectedAmount = invoiceAmount
-                    swapVC.thisSwap!.onchainFees = onchainFees
-                    swapVC.thisSwap!.lightningFees = lightningFees
-                    swapVC.thisSwap!.claimTransactionFee = claimTransactionFee
-                    
-                    // Confirm fees with user.
-                    swapVC.confirmExpectedFees()
-                }
-            } catch {
-                Log.info("Failed to calculate claim transaction fee: \(error)")
-                // Fallback to default fee calculation without claim transaction fee
-                DispatchQueue.main.async {
-                    swapVC.thisSwap!.boltzExpectedAmount = invoiceAmount
-                    swapVC.thisSwap!.onchainFees = onchainFees
-                    swapVC.thisSwap!.lightningFees = lightningFees
-                    
-                    // Confirm fees with user.
-                    swapVC.confirmExpectedFees()
-                    SentryManager.capture(error, context: "SwapManager row 654")
-                }
+                // Confirm fees with user.
+                swapVC.confirmExpectedFees()
             }
         }
     }

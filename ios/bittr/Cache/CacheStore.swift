@@ -208,6 +208,7 @@ enum CacheKeys {
     static let suggestedSwaps = CacheKey<[String:String]>("suggestedswaps", environmentScoped: false)
     static let ongoingSwap = CacheKey<NSDictionary>("ongoingswap", environmentScoped: false)
     static let swapIndex = CacheKey<Int>("swapindex")
+    static let lastKnownFeeRate = CacheKey<Int>("lastknownfeerate")
     
     // MARK: App state
     

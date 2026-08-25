@@ -809,6 +809,15 @@ class CacheManager: NSObject {
         CacheStore.set(0, for: CacheKeys.swapIndex)
     }
     
+    // The last fee rate the fee API returned, in whole sat/vB.
+    static func storeLastKnownFeeRate(_ satPerVb:Double) {
+        CacheStore.set(max(1, Int(satPerVb.rounded())), for: CacheKeys.lastKnownFeeRate)
+    }
+    
+    static func getLastKnownFeeRate() -> Int? {
+        return CacheStore.value(for: CacheKeys.lastKnownFeeRate)
+    }
+    
     static func getCurrentSwapIndex() -> Int {
         return getSwapIndex()
     }
