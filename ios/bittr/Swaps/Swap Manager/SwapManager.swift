@@ -156,6 +156,12 @@ class SwapManager: NSObject {
                         return
                     }
                     
+                    // EVIL-BOLTZ-INJECTION — SEC-02 test harness (see Helpers/EvilBoltz.swift).
+                    // The response handler is wrapped in `processSubmarineResponse` so the
+                    // DEBUG-only harness can feed it a tampered response. In Release the call
+                    // after this block is a plain passthrough — behavior is identical.
+                    let processSubmarineResponse: ([String: Any]) -> Void = { receivedDictionary in
+
                     // Example success {"bip21":"bitcoin:bcrt1pfalvfpkhtha6qmxmkgvljnajnc2hvl2c828euxh5679e302gk9wsh3e9af?amount=0.00050352&label=Send%20to%20BTC%20lightning","acceptZeroConf":false,"expectedAmount":50352,"id":"ChTExx2srRLT","address":"bcrt1pfalvfpkhtha6qmxmkgvljnajnc2hvl2c828euxh5679e302gk9wsh3e9af","swapTree":{"claimLeaf":{"version":192,"output":"a914ed96f252263cd8cc0a616602875f76bfb0c70fcd8820611b80e6aa832718caae89c59f16576888db6f911f88c2d1fc3533bee7efc61fac"},"refundLeaf":{"version":192,"output":"2004cac31242618cac8211d342bc733a1d1fdfe063cfe053977eacd9fac9a89d24ad02df01b1"}},"claimPublicKey":"03611b80e6aa832718caae89c59f16576888db6f911f88c2d1fc3533bee7efc61f","timeoutBlockHeight":479}
                     
                     DispatchQueue.main.async {
@@ -204,11 +210,13 @@ class SwapManager: NSObject {
                             }
                         }
                     }
+                    } // processSubmarineResponse
+                    EvilBoltz.tamperSubmarineResponse(receivedDictionary as? [String: Any] ?? [:], completion: processSubmarineResponse)
                 }
             }
         }
     }
-    
+
     static func checkOnchainFees(swapVC:SwapViewController) async {
         guard let ongoingSwap = await swapVC.thisSwap else {return}
         
@@ -496,6 +504,12 @@ class SwapManager: NSObject {
                         return
                     }
                     
+                    // EVIL-BOLTZ-INJECTION — SEC-01 test harness (see Helpers/EvilBoltz.swift).
+                    // The response handler is wrapped in `processReverseResponse` so the
+                    // DEBUG-only harness can feed it a tampered response. In Release the call
+                    // after this block is a plain passthrough — behavior is identical.
+                    let processReverseResponse: ([String: Any]) -> Void = { receivedDictionary in
+
                     // Example success: {id = yes7P5Hn2FD5; invoice = lnbcrt505610n1p58093msp5k4f2jxgmu059lc8awdccdy8ppx9uw0wtxhmwa0ytna48ykpjlu9spp5augg6x7kd2dj2gs0z5lnpj98pvyyf4kpmrtt43sp8vawdrgm7l2qdql2djkuepqw3hjqsj5gvsxzerywfjhxucxqyp2xqcqzyl9qyysgq3glstd77evhlg2qywjku4lj4mffufgc2wy6trxsjar5a2mdzp6e9308z4d4prhjs03vegamm7raw0ln5k94l5lz8vu5yewz7hf6w7yqpjqj2mj; lockupAddress = bcrt1p32hqu3ve32x524994sxpewdvdznfjgd0ya2xh40z6x9tj5s2mmusx273a3; refundPublicKey = 035578a38b772461f2481b2a9c6f6802419b11282fb3719cde6af337c077e3d5f3; swapTree = {claimLeaf = {output = 82012088a91475b687397f92783b38c7381725bfcf27d65eef3f8820036f6171920eec6d2f377e4c0ab88960307c7d9d817ddf65585bc28a8334be1aac; version = 192;}; refundLeaf = {output = 205578a38b772461f2481b2a9c6f6802419b11282fb3719cde6af337c077e3d5f3ad024d01b1; version = 192;};}; timeoutBlockHeight = 333;}
                     
                     DispatchQueue.main.async {
@@ -543,11 +557,13 @@ class SwapManager: NSObject {
                             }
                         }
                     }
+                    } // processReverseResponse
+                    EvilBoltz.tamperReverseResponse(receivedDictionary as? [String: Any] ?? [:], completion: processReverseResponse)
                 }
             }
         }
     }
-    
+
     static func generateRandomPreimage() -> Data {
         var preimage = Data(count: 32)
         let result = preimage.withUnsafeMutableBytes { SecRandomCopyBytes(kSecRandomDefault, 32, $0.baseAddress!) }

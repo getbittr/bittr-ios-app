@@ -1,0 +1,94 @@
+# EvilBoltz end-to-end test — SEC-01 (reverse swap, lightning → onchain):
+# the app must verify that Boltz's returned invoice pays to the preimage hash
+# it submitted. The "bittr evil" app (Debug-EvilBoltz build, harness armed)
+# replaces that invoice with a REAL regtest invoice of the same amount whose
+# preimage only the "attacker" (the e2e service) knows.
+#
+# Expected outcomes:
+#   • VULNERABLE build (no fix): the fees alert appears → the app pays the
+#     attacker's invoice → the swap stalls forever (Boltz never locks coins,
+#     its own invoice was never paid). This flow then FAILS LOUDLY via
+#     fail.js — that failure IS the vulnerability demonstration. 75000 sats
+#     left the wallet for an invoice whose preimage the app doesn't know.
+#   • FIXED build: swap creation aborts with an error alert right after Next
+#     (before any payment). No SwapStatus screen ever appears. Flow passes.
+#
+# Branch keying: the fees alert is [Cancel, Proceed] → alert.button.1 exists;
+# an abort/error alert has a single button. If your fix shows a multi-button
+# alert, adjust the two `when:` conditions below.
+#
+# Prerequisites:
+#   - "bittr evil" app installed once via the `bittr evil` Xcode scheme
+#   - push_server.js running: node shared/flows/scripts/push_server.js
+#
+# The flow fully reprovisions the evil app (wipe → wallet → signup → funded
+# channel) via helpers/evil_bootstrap.yaml, so it runs standalone:
+#
+# Run: maestro test shared/flows/features/evil_boltz_wrong_invoice.yaml
+
+appId: com.bittr.bittr-evil
+---
+# 1) Provision: wipe → create wallet → bittr signup → fund lightning channel.
+- runFlow: ../helpers/evil_bootstrap.yaml
+
+# 2) Reverse-swap leg (lightning → onchain, 75000 sats), ending at Next —
+#    which triggers swap creation and, on an armed build, the tampered
+#    response (watch the console for the 🚨 EVIL BOLTZ log).
+- runFlow: ../helpers/swap_leg1.yaml
+
+# 3) Some alert follows Next: the fees alert (vulnerable) or an error alert
+#    (fixed). Both have alert.button.0 — wait for any alert first.
+- extendedWaitUntil:
+    visible:
+      id: "alert.button.0"
+    timeout: 30000
+
+# ── VULNERABLE PATH ─────────────────────────────────────────────────────────
+# The fees alert means the app accepted the attacker's invoice. Proceed, let
+# it pay, and prove the swap can never complete — then fail loudly.
+- runFlow:
+    when:
+      visible:
+        id: "alert.button.1"
+    commands:
+      - takeScreenshot: shared/docs/screenshots/evil_boltz_wrong_invoice/01_vulnerable_fees_alert
+      # Proceed → the app pays the fake invoice.
+      - tapOn:
+          id: "alert.button.1"
+      # The payment succeeds (it's a real regtest invoice) and the app lands on
+      # the outgoing-payment transaction screen — NOT the swap status screen.
+      # That screen IS the theft receipt: −75,000 sats (+ routing fee) gone to
+      # an invoice whose preimage only the attacker knows.
+      - extendedWaitUntil:
+          visible:
+            id: "transaction.labelAmount"
+          timeout: 60000
+      - takeScreenshot: shared/docs/screenshots/evil_boltz_wrong_invoice/02_vulnerable_payment_sent
+      # Give the (nonexistent) lockup every chance: mine a block so anything
+      # that could possibly confirm, confirms.
+      - evalScript: ${output.blocksToMine = 1}
+      - runScript: ../scripts/mine_blocks.js
+      # "Swap complete" must never appear — Boltz never locks coins because
+      # its real invoice was never paid; the app paid the attacker's instead.
+      - assertNotVisible:
+          text: "Swap complete"
+      - takeScreenshot: shared/docs/screenshots/evil_boltz_wrong_invoice/03_vulnerable_stuck_swap
+      - evalScript: |
+          ${output.failureMessage = "SEC-01 VULNERABLE: the app paid Boltz's returned invoice without verifying its payment hash against the locally generated preimage hash. 75000 sats went to an invoice whose preimage only the 'attacker' (e2e service) knows; no onchain coins will ever arrive. See SECURITY_REVIEW.md SEC-01."}
+      - runScript: ../scripts/fail.js
+
+# ── FIXED PATH ──────────────────────────────────────────────────────────────
+# No Proceed button: an error alert aborted the swap before any payment.
+- runFlow:
+    when:
+      notVisible:
+        id: "alert.button.1"
+    commands:
+      - takeScreenshot: shared/docs/screenshots/evil_boltz_wrong_invoice/01_fixed_aborted
+      - assertVisible:
+          id: "alert.button.0"
+      - tapOn:
+          id: "alert.button.0"
+      # The swap status screen must never have appeared.
+      - assertNotVisible:
+          id: "swapStatus.confirmCard"

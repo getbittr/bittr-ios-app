@@ -1,0 +1,132 @@
+# EvilBoltz end-to-end test — SEC-02 (submarine swap, onchain → lightning):
+# the app must locally derive Boltz's lockup address from the swap tree + keys
+# before paying it. The "bittr evil" app (Debug-EvilBoltz build, harness
+# armed) replaces that address with an attacker-controlled regtest address.
+#
+# Expected outcomes:
+#   • VULNERABLE build (no fix): the fees alert appears → the app broadcasts
+#     the onchain lockup to the ATTACKER's address → the swap stalls forever
+#     (Boltz watches its own address, which is never funded; the in-app refund
+#     path can never match). This flow then FAILS LOUDLY via fail.js — that
+#     failure IS the vulnerability demonstration. Verify the theft on-chain:
+#     https://esplora.bittr.io/address/bcrt1pcz9mae53csyv8d0t4fansh446jdjey2pg2djn5utqver5e42gp5s507k3j
+#     (attacker key documented in ios/bittr/Helpers/EvilBoltz.swift).
+#   • FIXED build: swap creation aborts with an error alert right after Next
+#     (before the onchain send). No SwapStatus screen ever appears. Passes.
+#
+# Branch keying: fees alert = [Cancel, Proceed] → alert.button.1; abort alert
+# is single-button. Adjust the `when:` conditions if your fix differs.
+#
+# Prerequisites:
+#   - "bittr evil" app installed once via the `bittr evil` Xcode scheme
+#   - push_server.js running: node shared/flows/scripts/push_server.js
+#
+# The flow fully reprovisions the evil app (wipe → wallet → signup → funded
+# channel → onchain payout deposit), so it runs standalone:
+#
+# Run: maestro test shared/flows/features/evil_boltz_wrong_address.yaml
+
+appId: com.bittr.bittr-evil
+---
+# 1) Provision: wipe → create wallet → bittr signup → fund lightning channel,
+#    then a second deposit with onchain payout for the submarine leg's UTXO.
+# - runFlow: ../helpers/evil_bootstrap.yaml
+# - runFlow: ../helpers/evil_fund_onchain.yaml
+
+# 2) Submarine leg (onchain → lightning, 50000 sats) — mirrors swap.yaml's
+#    second leg. Settle any sync first so balances are stable.
+- extendedWaitUntil:
+    notVisible:
+      id: "home.headerSpinner"
+    timeout: 60000
+
+# Balance card → MoveVC → SwapVC.
+- tapOn:
+    id: "home.balanceCardButton"
+    point: "50%,20%"
+- assertVisible:
+    id: "move.subtitleLabel"
+- tapOn:
+    id: "move.swapButton"
+- assertVisible:
+    id: "swap.amountTextField"
+
+# Flip direction: fromButton opens the picker → "Onchain to Lightning" (index 1).
+- tapOn:
+    id: "swap.fromButton"
+- assertVisible:
+    id: "alert.button.1"
+- tapOn:
+    id: "alert.button.1"
+
+# Dismiss a possible BDK-stale notice, then wait for a real available amount.
+- tapOn:
+    id: "alert.button.0"
+    optional: true
+- extendedWaitUntil:
+    notVisible:
+      text: "Move up to 0 sats."
+    timeout: 60000
+
+- tapOn:
+    id: "swap.amountTextField"
+- inputText: "50000"
+- tapOn:
+    text: "Done"
+- takeScreenshot: shared/docs/screenshots/evil_boltz_wrong_address/01_submarine_ready
+# Next → swap creation (and, on an armed build, the tampered lockup address —
+# watch the console for the 🚨 EVIL BOLTZ log).
+- tapOn:
+    id: "swap.nextButton"
+
+# 3) Some alert follows Next: the fees alert (vulnerable) or an error alert
+#    (fixed). Wait for any alert first.
+- extendedWaitUntil:
+    visible:
+      id: "alert.button.0"
+    timeout: 30000
+
+# ── VULNERABLE PATH ─────────────────────────────────────────────────────────
+# The fees alert means the app accepted the attacker's lockup address.
+# Proceed, let it broadcast the onchain payment, prove the swap never
+# completes — then fail loudly.
+- runFlow:
+    when:
+      visible:
+        id: "alert.button.1"
+    commands:
+      - takeScreenshot: shared/docs/screenshots/evil_boltz_wrong_address/02_vulnerable_fees_alert
+      # Proceed → the app sends the onchain lockup to the attacker's address.
+      # (Unlike the lightning leg, no outgoing-payment transaction screen
+      # appears here — the send just goes out and the swap waits on Boltz.)
+      - tapOn:
+          id: "alert.button.1"
+      # The lockup tx confirms — at the ATTACKER's address, which Boltz is not
+      # watching. Mine 6 and let everything settle.
+      - evalScript: ${output.blocksToMine = 6}
+      - runScript: ../scripts/mine_blocks.js
+      # "Swap complete" must never appear — Boltz never saw a lockup at the
+      # address it generated, so it never pays the lightning invoice. The theft
+      # itself is verifiable on-chain at the attacker address (see below).
+      - assertNotVisible:
+          text: "Swap complete"
+      - takeScreenshot: shared/docs/screenshots/evil_boltz_wrong_address/03_vulnerable_stuck_swap
+      - evalScript: |
+          ${output.failureMessage = "SEC-02 VULNERABLE: the app sent the onchain lockup to Boltz's returned address without deriving it from the swap tree + keys. 50000 sats now sit at the attacker-controlled address bcrt1pcz9mae53csyv8d0t4fansh446jdjey2pg2djn5utqver5e42gp5s507k3j (check https://esplora.bittr.io) and no refund path exists. See SECURITY_REVIEW.md SEC-02."}
+      - runScript: ../scripts/fail.js
+
+# ── FIXED PATH ──────────────────────────────────────────────────────────────
+# No Proceed button: an error alert aborted the swap before the onchain send.
+- runFlow:
+    when:
+      notVisible:
+        id: "alert.button.1"
+    commands:
+      - takeScreenshot: shared/docs/screenshots/evil_boltz_wrong_address/02_fixed_aborted
+      - assertVisible:
+          id: "alert.button.0"
+      - tapOn:
+          id: "alert.button.0"
+      # The swap status screen must never have appeared.
+      - assertNotVisible:
+          id: "swapStatus.confirmCard"
