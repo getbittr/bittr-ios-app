@@ -307,6 +307,10 @@ extension String {
         return finalImage
     }
     
+    func bolt11Invoice() -> Bindings.Bolt11Invoice? {
+        return Bindings.Bolt11Invoice.fromStr(s: self).getValue()
+    }
+    
     func bolt12Offer() -> LDKNode.Offer? {
         guard self.lowercased().hasPrefix("lno") else { return nil }
         do {

@@ -58,7 +58,7 @@ extension SendViewController {
         let satoshisAmount:Int
         let maximumRoutingFeesSat:Int
         var isBolt12Offer:Bool = false
-        if let parsedInvoice = Bindings.Bolt11Invoice.fromStr(s: enteredInvoice).getValue() {
+        if let parsedInvoice = enteredInvoice.bolt11Invoice() {
             // Valid invoice.
             if let invoiceAmountMilli = parsedInvoice.amountMilliSatoshis() {
                 // Normal invoice.

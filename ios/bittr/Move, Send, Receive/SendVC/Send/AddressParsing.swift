@@ -35,7 +35,7 @@ extension SendViewController {
             self.onchainOrLightning = .lightning
             
             // Display the invoice amount if it carries one.
-            if let parsedInvoice = Bindings.Bolt11Invoice.fromStr(s: lightningInvoice!).getValue(), let invoiceAmountMilli = parsedInvoice.amountMilliSatoshis() {
+            if let invoiceAmountMilli = lightningInvoice!.bolt11Invoice()?.amountMilliSatoshis() {
                 // Regular invoice
                 let invoiceAmount = Int(invoiceAmountMilli)/1000
                 
