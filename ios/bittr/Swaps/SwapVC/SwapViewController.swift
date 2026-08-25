@@ -340,7 +340,7 @@ class SwapViewController: UIViewController, UITextFieldDelegate, UNUserNotificat
         self.thisSwap!.satoshisAmount = invoiceAmount
         self.thisSwap!.swapDirection = .onchainToLightning
         
-        self.startSuggestedOnchainToLightningSwap(invoiceAmount: invoiceAmount)
+        self.startSuggestedOnchainToLightningSwap()
     }
     
     func handlePendingOnchainPayment() {

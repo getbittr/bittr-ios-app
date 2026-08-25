@@ -35,24 +35,18 @@ class SwapManager: NSObject {
     // 8. transaction.refunded > User didn't claim onchain transaction in time
     
     
-    static func onchainToLightning(amountMsat:UInt64, swapVC:SwapViewController, existingInvoice:String? = nil) async {
+    static func onchainToLightning(amountMsat:UInt64? = nil, swapVC:SwapViewController, existingInvoice:String? = nil) async {
         // Get Swap ID.
         let idString = createDateId()
         
+        // Get invoice
         let invoice: String
-        var actualAmountMsat: UInt64 = amountMsat
-        
         if let existingInvoice {
             Log.info("Use the existing invoice (for Lightning payment case)")
             invoice = existingInvoice
-            
-            // Parse the existing invoice to get the actual amount
-            if let parsedInvoice = Bindings.Bolt11Invoice.fromStr(s: existingInvoice).getValue(), let invoiceAmountMilli = parsedInvoice.amountMilliSatoshis() {
-                actualAmountMsat = invoiceAmountMilli
-            }
         } else {
             Log.info("Create an invoice for the amount we want to move.")
-            guard let thisInvoice = await BitcoinManager.shared.getInvoice(
+            guard let amountMsat, let thisInvoice = await BitcoinManager.shared.getInvoice(
                 amountMsat: amountMsat,
                 description: "Swap onchain to lightning \(idString)",
                 expirySecs: 3600)
@@ -61,6 +55,12 @@ class SwapManager: NSObject {
                 return
             }
             invoice = thisInvoice.description
+        }
+        
+        // Get invoice amount.
+        guard let invoiceAmountMsat = Bindings.Bolt11Invoice.fromStr(s: invoice).getValue()?.amountMilliSatoshis() else {
+            swapVC.cancelSwap(alertMessage: Language.getWord(withID: "swaperror2"))
+            return
         }
         
         // Store invoice in cache.
@@ -150,7 +150,7 @@ class SwapManager: NSObject {
                                 refundLeafOutputHex: refundLeafOutput
                             )
                             try BoltzSwapValidation.validateQuotedAmount(
-                                requested: Int(actualAmountMsat / 1000),
+                                requested: Int(invoiceAmountMsat / 1000),
                                 quoted: expectedAmount
                             )
                         } catch {

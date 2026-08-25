@@ -166,11 +166,11 @@ extension SwapViewController {
 
     // MARK: - Suggested swap
 
-    func startSuggestedOnchainToLightningSwap(invoiceAmount: Int) {
+    func startSuggestedOnchainToLightningSwap() {
         if BitcoinManager.shared.bdkWallet != nil && BitcoinManager.shared.bdkWalletHasBeenScanned {
             // BDK is ready: refresh the label for the new direction and swap.
             self.calculateSendableAmount()
-            self.beginSuggestedSwap(invoiceAmount: invoiceAmount)
+            self.beginSuggestedSwap()
             return
         }
         
@@ -196,7 +196,7 @@ extension SwapViewController {
             }
             // BDK is ready now: refresh the label and start the swap.
             self.calculateSendableAmount()
-            self.beginSuggestedSwap(invoiceAmount: invoiceAmount)
+            self.beginSuggestedSwap()
         }
     }
     
@@ -243,9 +243,9 @@ extension SwapViewController {
         }
     }
     
-    private func beginSuggestedSwap(invoiceAmount: Int) {
+    private func beginSuggestedSwap() {
         Task {
-            await SwapManager.onchainToLightning(amountMsat: UInt64(invoiceAmount*1000), swapVC: self, existingInvoice: self.pendingLightningInvoice)
+            await SwapManager.onchainToLightning(swapVC: self, existingInvoice: self.pendingLightningInvoice)
         }
     }
 }
