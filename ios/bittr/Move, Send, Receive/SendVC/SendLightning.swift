@@ -363,13 +363,20 @@ extension UIViewController {
         
         // Create transaction.
         let newTransaction = thisPayment.createTransaction(bittrTransactions: nil)
-        CacheManager.storeLightningTransaction(newTransaction)
         
         // Add invoice to Transactions table.
         sendVC?.completedTransaction = newTransaction
         receiveVC?.completedTransaction = newTransaction
-        (sendVC?.coreVC?.homeVC ?? receiveVC?.coreVC?.homeVC ?? swapVC?.homeVC)?.addLightningTransaction(thisTransaction: newTransaction, paymentDetails: thisPayment)
-
+        
+        if newTransaction.isLightning {
+            // Add lightning payment manually.
+            CacheManager.storeLightningTransaction(newTransaction)
+            (sendVC?.coreVC?.homeVC ?? receiveVC?.coreVC?.homeVC ?? swapVC?.homeVC)?.addLightningTransaction(thisTransaction: newTransaction, paymentDetails: thisPayment)
+        } else {
+            // Light sync LDK Node for onchain payments.
+            BitcoinManager.shared.lightSync() { _ in }
+        }
+        
         // Don't auto-open the TransactionVC for a swap's own lightning payment.
         if !newTransaction.isSwap, !newTransaction.isSwapPayment {
             sendVC?.performSegue(withIdentifier: "SendToTransaction", sender: self)
