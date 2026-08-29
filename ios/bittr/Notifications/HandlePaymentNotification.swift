@@ -641,8 +641,8 @@ extension CoreViewController {
         } else {
             self.hideLoading()
             self.showAlert(
-                title: "Error",
-                message: "Failed to schedule on-chain payment: Wallet has not been synced.",
+                title: Language.getWord(withID: "error"),
+                message: Language.getWord(withID: "onchainpayoutfail").replacingOccurrences(of: "<message>", with: Language.getWord(withID: "walletnotsynced")),
                 buttons: [.dismiss(Language.getWord(withID: "okay"))])
             return
         }
@@ -663,8 +663,8 @@ extension CoreViewController {
                 DispatchQueue.main.async {
                     self.hideLoading()
                     self.showAlert(
-                        title: "Payment Scheduled",
-                        message: "Your payment has been scheduled for on-chain delivery within 4-24 hours. You'll receive a notification when it's completed.",
+                        title: Language.getWord(withID: "onchainpayoutscheduled"),
+                        message: Language.getWord(withID: "onchainpayoutscheduled2"),
                         buttons: [.dismiss(Language.getWord(withID: "okay"))])
                     
                     // Clear pending data
@@ -678,8 +678,8 @@ extension CoreViewController {
                     SentryManager.capture(error, context: "HandlePaymentNotification row 637")
                     self.hideLoading()
                     self.showAlert(
-                        title: "Error",
-                        message: "Failed to schedule on-chain payment: \(error.localizedDescription)",
+                        title: Language.getWord(withID: "error"),
+                        message: Language.getWord(withID: "onchainpayoutfail").replacingOccurrences(of: "<message>", with: error.localizedDescription),
                         buttons: [.dismiss(Language.getWord(withID: "okay"))])
                 }
             }
