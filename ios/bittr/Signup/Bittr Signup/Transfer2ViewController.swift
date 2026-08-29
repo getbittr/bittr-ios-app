@@ -117,7 +117,7 @@ class Transfer2ViewController: UIViewController, UITextFieldDelegate, UNUserNoti
             self.checkPushNotificationStatus()
         } else {
             // Field has not been filled.
-            self.showAlert(presentingController: self.signupVC?.coreVC ?? self.signupVC ?? self.ibanVC ?? self, title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "transfer15vc"), buttons: [Language.getWord(withID: "okay")], actions: nil)
+            self.showAlert(title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "transfer15vc"), buttons: [.dismiss(Language.getWord(withID: "okay"))])
         }
     }
     
@@ -130,13 +130,13 @@ class Transfer2ViewController: UIViewController, UITextFieldDelegate, UNUserNoti
             if settings.authorizationStatus == .notDetermined {
                 // Notifications preference hasn't been set yet.
                 DispatchQueue.main.async {
-                    self.showAlert(presentingController: self.signupVC?.coreVC ?? self.signupVC ?? self.ibanVC ?? self, title: Language.getWord(withID: "receivenotifications"), message: Language.getWord(withID: "receivenotifications2"), buttons: [Language.getWord(withID: "okay")], actions: [#selector(self.askForPushNotifications)])
+                    self.showAlert(title: Language.getWord(withID: "receivenotifications"), message: Language.getWord(withID: "receivenotifications2"), buttons: [.action(Language.getWord(withID: "okay")) { self.askForPushNotifications() }])
                 }
             } else if settings.authorizationStatus != .authorized {
                 // Notifications have been rejected. The user can still continue —
                 // their purchases just get paid out on-chain instead of via lightning.
                 DispatchQueue.main.async {
-                    self.showAlert(presentingController: self.signupVC?.coreVC ?? self.signupVC ?? self.ibanVC ?? self, title: Language.getWord(withID: "receivenotifications"), message: Language.getWord(withID: "receivenotifications3"), buttons: [Language.getWord(withID: "cancel"), Language.getWord(withID: "continue")], actions: [#selector(self.cancelLoading), #selector(self.proceedWithoutNotifications)])
+                    self.showAlert(title: Language.getWord(withID: "receivenotifications"), message: Language.getWord(withID: "receivenotifications3"), buttons: [.action(Language.getWord(withID: "cancel")) { self.cancelLoading() }, .action(Language.getWord(withID: "continue")) { self.proceedWithoutNotifications() }])
                 }
             } else if CacheManager.getRegistrationToken() == nil {
                 Log.info("Notifications preference has been set but token hasn't been cached.")
@@ -154,8 +154,7 @@ class Transfer2ViewController: UIViewController, UITextFieldDelegate, UNUserNoti
     }
     
     
-    @objc func cancelLoading() {
-        self.hideAlert()
+    func cancelLoading() {
         DispatchQueue.main.async {
             self.nextButtonLabel.alpha = 1
             self.nextButtonArrow.alpha = 1
@@ -164,11 +163,10 @@ class Transfer2ViewController: UIViewController, UITextFieldDelegate, UNUserNoti
     }
 
 
-    @objc func proceedWithoutNotifications() {
+    func proceedWithoutNotifications() {
         // User chose to continue without push notifications. Flag it so that
         // gatherParameters registers them with on-chain payouts, then carry on
         // with signup (the Next-button spinner keeps running).
-        self.hideAlert()
         self.notificationsDenied = true
         self.sendCodeToBittr()
     }
@@ -211,7 +209,7 @@ class Transfer2ViewController: UIViewController, UITextFieldDelegate, UNUserNoti
         self.start2Fa = false
         DispatchQueue.main.async {
             self.cancelLoading()
-            self.showAlert(presentingController: self.signupVC?.coreVC ?? self.signupVC ?? self.ibanVC ?? self, title: Language.getWord(withID: "receivenotifications"), message: Language.getWord(withID: "tokenregistrationfail"), buttons: [Language.getWord(withID: "tryagain"), Language.getWord(withID: "continue")], actions: [#selector(self.askForPushNotifications), #selector(self.proceedWithoutNotifications)])
+            self.showAlert(title: Language.getWord(withID: "receivenotifications"), message: Language.getWord(withID: "tokenregistrationfail"), buttons: [.action(Language.getWord(withID: "tryagain")) { self.askForPushNotifications() }, .action(Language.getWord(withID: "continue")) { self.proceedWithoutNotifications() }])
         }
     }
     
@@ -272,16 +270,16 @@ class Transfer2ViewController: UIViewController, UITextFieldDelegate, UNUserNoti
                                     self.gatherParameters(ibanEntity: eachIbanEntity, restoreDepositCode: restoreDepositCode, restoreMessage: restoreMessage)
                                 } else if let actualErrorMessage = errorMessage as? String {
                                     if actualErrorMessage == "Invalid 2FA verification token provided" {
-                                        self.showAlert(presentingController: self.signupVC?.coreVC ?? self.signupVC ?? self.ibanVC ?? self, title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "verificationfail"), buttons: [Language.getWord(withID: "okay")], actions: nil)
+                                        self.showAlert(title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "verificationfail"), buttons: [.dismiss(Language.getWord(withID: "okay"))])
                                     } else {
-                                        self.showAlert(presentingController: self.signupVC?.coreVC ?? self.signupVC ?? self.ibanVC ?? self, title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "transfer15vc2").replacingOccurrences(of: "<error>", with: actualErrorMessage), buttons: [Language.getWord(withID: "okay")], actions: nil)
+                                        self.showAlert(title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "transfer15vc2").replacingOccurrences(of: "<error>", with: actualErrorMessage), buttons: [.dismiss(Language.getWord(withID: "okay"))])
                                     }
                                 } else {
-                                    self.showAlert(presentingController: self.signupVC?.coreVC ?? self.signupVC ?? self.ibanVC ?? self, title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "transfer15vc2").replacingOccurrences(of: "<error>", with: "unavailable."), buttons: [Language.getWord(withID: "okay")], actions: nil)
+                                    self.showAlert(title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "transfer15vc2").replacingOccurrences(of: "<error>", with: "unavailable."), buttons: [.dismiss(Language.getWord(withID: "okay"))])
                                 }
                             case .failure(let error):
                                 SentryManager.capture(error, context: "Transfer2ViewController row 178")
-                                self.showAlert(presentingController: self.signupVC?.coreVC ?? self.signupVC ?? self.ibanVC ?? self, title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "verificationfail"), buttons: [Language.getWord(withID: "okay")], actions: nil)
+                                self.showAlert(title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "verificationfail"), buttons: [.dismiss(Language.getWord(withID: "okay"))])
                             }
                         }
                     }
@@ -320,7 +318,7 @@ class Transfer2ViewController: UIViewController, UITextFieldDelegate, UNUserNoti
                     bdkAttempts += 1
                 } else {
                     // There's a problem loading BDK.
-                    self.showAlert(presentingController: self.signupVC?.coreVC ?? self.signupVC ?? self.ibanVC ?? self, title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "syncingwallet2"), buttons: [Language.getWord(withID: "okay")], actions: nil)
+                    self.showAlert(title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "syncingwallet2"), buttons: [.dismiss(Language.getWord(withID: "okay"))])
                     return
                 }
             }
@@ -331,7 +329,7 @@ class Transfer2ViewController: UIViewController, UITextFieldDelegate, UNUserNoti
             // Get node ID.
             guard let lightningPubKey = BitcoinManager.shared.nodeId() else {
                 Log.info("Wallet has not yet been synced. Pubkey is unavailable.")
-                self.showAlert(presentingController: self.signupVC?.coreVC ?? self.signupVC ?? self.ibanVC ?? self, title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "syncingwallet2"), buttons: [Language.getWord(withID: "okay")], actions: nil)
+                self.showAlert(title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "syncingwallet2"), buttons: [.dismiss(Language.getWord(withID: "okay"))])
                 return
             }
             
@@ -396,7 +394,7 @@ class Transfer2ViewController: UIViewController, UITextFieldDelegate, UNUserNoti
                     
                     switch result {
                     case .failure(let error):
-                        self.showAlert(presentingController: self.signupVC?.coreVC ?? self.signupVC ?? self.ibanVC ?? self, title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "bittrsignupfail"), buttons: [Language.getWord(withID: "okay")], actions: nil)
+                        self.showAlert(title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "bittrsignupfail"), buttons: [.dismiss(Language.getWord(withID: "okay"))])
                         SentryManager.capture(error, context: "Transfer15ViewController258")
                     case .success(let receivedDictionary):
                         if let actualDataItems = receivedDictionary["data"] as? NSDictionary,
@@ -434,9 +432,9 @@ class Transfer2ViewController: UIViewController, UITextFieldDelegate, UNUserNoti
                         } else if let actualApiMessage = receivedDictionary["message"] as? String {
                             // Some message has been received.
                             if actualApiMessage == "Unable to create customer account (invalid iban)" {
-                                self.showAlert(presentingController: self.signupVC?.coreVC ?? self.signupVC ?? self.ibanVC ?? self, title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "bittrsignupfail2"), buttons: [Language.getWord(withID: "okay")], actions: [#selector(self.backToPreviousPage)])
+                                self.showAlert(title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "bittrsignupfail2"), buttons: [.action(Language.getWord(withID: "okay")) { self.backToPreviousPage() }])
                             } else {
-                                self.showAlert(presentingController: self.signupVC?.coreVC ?? self.signupVC ?? self.ibanVC ?? self, title: Language.getWord(withID: "oops"), message: "\(Language.getWord(withID: "bittrsignupfail3")) (\(actualApiMessage).)", buttons: [Language.getWord(withID: "okay")], actions: [#selector(self.backToPreviousPage)])
+                                self.showAlert(title: Language.getWord(withID: "oops"), message: "\(Language.getWord(withID: "bittrsignupfail3")) (\(actualApiMessage).)", buttons: [.action(Language.getWord(withID: "okay")) { self.backToPreviousPage() }])
                             }
                         }
                     }
@@ -445,8 +443,7 @@ class Transfer2ViewController: UIViewController, UITextFieldDelegate, UNUserNoti
         }
     }
     
-    @objc func backToPreviousPage() {
-        self.hideAlert()
+    func backToPreviousPage() {
         self.signupVC?.moveToPage(10)
         self.ibanVC?.moveToPage(1)
     }
@@ -466,7 +463,7 @@ class Transfer2ViewController: UIViewController, UITextFieldDelegate, UNUserNoti
                             DispatchQueue.main.async {
                                 if didSendDetails {
                                     // Success - show resend confirmation
-                                    self.showAlert(presentingController: self.signupVC?.coreVC ?? self.signupVC ?? self.ibanVC ?? self, title: Language.getWord(withID: "emailresent"), message: "\(Language.getWord(withID: "emailresent2")) \(eachIbanEntity.yourEmail).", buttons: [Language.getWord(withID: "okay"), Language.getWord(withID: "changeemail")], actions: [nil, #selector(self.backToChangeEmail)])
+                                    self.showAlert(title: Language.getWord(withID: "emailresent"), message: "\(Language.getWord(withID: "emailresent2")) \(eachIbanEntity.yourEmail).", buttons: [.dismiss(Language.getWord(withID: "okay")), .action(Language.getWord(withID: "changeemail")) { self.backToChangeEmail() }])
                                     
                                     // Restart counter.
                                     self.counter = 30
@@ -479,12 +476,11 @@ class Transfer2ViewController: UIViewController, UITextFieldDelegate, UNUserNoti
             }
         } else {
             // Timer is still counting down.
-            self.showAlert(presentingController: self.signupVC?.coreVC ?? self.signupVC ?? self.ibanVC ?? self, title: "", message: Language.getWord(withID: "resendcode2"), buttons: [Language.getWord(withID: "okay"), Language.getWord(withID: "changeemail")], actions: [nil, #selector(self.backToChangeEmail)])
+            self.showAlert(title: "", message: Language.getWord(withID: "resendcode2"), buttons: [.dismiss(Language.getWord(withID: "okay")), .action(Language.getWord(withID: "changeemail")) { self.backToChangeEmail() }])
         }
     }
     
-    @objc func backToChangeEmail() {
-        self.hideAlert()
+    func backToChangeEmail() {
         self.signupVC?.moveToPage(10)
         self.ibanVC?.moveToPage(1)
     }

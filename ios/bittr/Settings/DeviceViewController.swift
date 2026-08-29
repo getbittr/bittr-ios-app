@@ -34,7 +34,6 @@ class DeviceViewController: UIViewController, UNUserNotificationCenterDelegate, 
     var coreVC:CoreViewController?
     var homeVC:HomeViewController?
     var tappedCell:DeviceTableViewCell?
-    var temporaryNotificationToken = ""
     var channelsCount:String?
     var pendingPayout:BittrPendingPayout?
     
@@ -113,30 +112,15 @@ class DeviceViewController: UIViewController, UNUserNotificationCenterDelegate, 
     }
     
     func changeLanguage() {
-        self.showAlert(presentingController: self, title: Language.getWord(withID: "selectlanguage"), message: Language.getWord(withID: "selectlanguagemessage"), buttons: [Language.getWord(withID: "cancel"), "English (US)"], actions: [nil, #selector(self.selectEnglishLanguage)])
+        self.showAlert(title: Language.getWord(withID: "selectlanguage"), message: Language.getWord(withID: "selectlanguagemessage"), buttons: [.dismiss(Language.getWord(withID: "cancel")), .action("English (US)") { CacheManager.changeLanguage("en_US") }])
     }
 
     func changeCurrency() {
-        self.showAlert(presentingController: self, title: Language.getWord(withID: "selectcurrency"), message: Language.getWord(withID: "selectcurrencymessage"), buttons: [Language.getWord(withID: "cancel"), "EUR €", "CHF"], actions: [nil, #selector(self.selectEuroCurrency), #selector(self.selectChfCurrency)])
+        self.showAlert(title: Language.getWord(withID: "selectcurrency"), message: Language.getWord(withID: "selectcurrencymessage"), buttons: [.dismiss(Language.getWord(withID: "cancel")), .action("EUR €") { self.selectCurrency("€") }, .action("CHF") { self.selectCurrency("CHF") }])
     }
-
-    // Custom-alert wrappers: the AlertManager doesn't auto-dismiss when a button
-    // has an action, so each hides the alert before applying the change.
-    @objc func selectEnglishLanguage() {
-        self.hideAlert()
-        CacheManager.changeLanguage("en_US")
-    }
-
-    @objc func selectEuroCurrency() {
-        self.hideAlert()
-        CacheStore.set("€", for: CacheKeys.currency)
-        self.coreVC?.homeVC?.changeCurrency()
-        self.deviceTableView.reloadData()
-    }
-
-    @objc func selectChfCurrency() {
-        self.hideAlert()
-        CacheStore.set("CHF", for: CacheKeys.currency)
+    
+    func selectCurrency(_ currency:String) {
+        CacheStore.set(currency, for: CacheKeys.currency)
         self.coreVC?.homeVC?.changeCurrency()
         self.deviceTableView.reloadData()
     }
@@ -144,40 +128,26 @@ class DeviceViewController: UIViewController, UNUserNotificationCenterDelegate, 
     @objc func showToken(notification:NSNotification) {
         if let userInfo = notification.userInfo as [AnyHashable:Any]? {
             if let notificationToken = userInfo["token"] as? String {
-                self.temporaryNotificationToken = notificationToken
-                self.showAlert(presentingController: self, title: Language.getWord(withID: "devicetoken"), message: "\(notificationToken)", buttons: [Language.getWord(withID: "copy"), Language.getWord(withID: "close")], actions: [#selector(self.copyNotificationToken), nil])
+                self.showAlert(title: Language.getWord(withID: "devicetoken"), message: "\(notificationToken)", buttons: [.action(Language.getWord(withID: "copy")) { UIPasteboard.general.string = notificationToken }, .dismiss(Language.getWord(withID: "close"))])
             }
         }
     }
     
-    @objc func copyNotificationToken() {
-        self.hideAlert()
-        UIPasteboard.general.string = self.temporaryNotificationToken
-        self.temporaryNotificationToken = ""
-    }
-    
     func getPublicKey() {
         if let lightningKey = BitcoinManager.shared.nodeId() {
-            self.showAlert(presentingController: self, title: Language.getWord(withID: "publickey"), message: "\(lightningKey)", buttons: [Language.getWord(withID: "copy"), Language.getWord(withID: "close")], actions: [#selector(self.copyLightningKey), nil])
+            self.showAlert(title: Language.getWord(withID: "publickey"), message: "\(lightningKey)", buttons: [.action(Language.getWord(withID: "copy")) { UIPasteboard.general.string = BitcoinManager.shared.nodeId()! }, .dismiss(Language.getWord(withID: "close"))])
         } else {
-            self.showAlert(presentingController: self, title: Language.getWord(withID: "publickey"), message: Language.getWord(withID: "syncingwallet2"), buttons: [Language.getWord(withID: "okay")], actions: nil)
+            self.showAlert(title: Language.getWord(withID: "publickey"), message: Language.getWord(withID: "syncingwallet2"), buttons: [.dismiss(Language.getWord(withID: "okay"))])
         }
     }
     
-    @objc func copyLightningKey() {
-        self.hideAlert()
-        let lightningKey = BitcoinManager.shared.nodeId()!
-        UIPasteboard.general.string = lightningKey
-    }
-    
     func imagesButtonTapped() {
-        self.showAlert(presentingController: self, title: Language.getWord(withID: "cachedimages"), message: Language.getWord(withID: "cachedimages1"), buttons: [Language.getWord(withID: "remove"), Language.getWord(withID: "cancel")], actions: [#selector(self.emptyImageCache), nil])
+        self.showAlert(title: Language.getWord(withID: "cachedimages"), message: Language.getWord(withID: "cachedimages1"), buttons: [.action(Language.getWord(withID: "remove")) { self.emptyImageCache() }, .dismiss(Language.getWord(withID: "cancel"))])
     }
     
-    @objc func emptyImageCache() {
-        self.hideAlert()
+    func emptyImageCache() {
         CacheManager.emptyImage()
-        self.showAlert(presentingController: self, title: Language.getWord(withID: "cacheemptied"), message: Language.getWord(withID: "cachedimages2"), buttons: [Language.getWord(withID: "okay")], actions: nil)
+        self.showAlert(title: Language.getWord(withID: "cacheemptied"), message: Language.getWord(withID: "cachedimages2"), buttons: [.dismiss(Language.getWord(withID: "okay"))])
     }
     
     func checkPeerConnection() {
@@ -185,14 +155,13 @@ class DeviceViewController: UIViewController, UNUserNotificationCenterDelegate, 
         self.tappedCell?.stopAnimating()
         
         if isConnectedToPeer() {
-            self.showAlert(presentingController: self, title: Language.getWord(withID: "bittrpeer"), message: Language.getWord(withID: "bittrpeer2"), buttons: [Language.getWord(withID: "okay")], actions: nil)
+            self.showAlert(title: Language.getWord(withID: "bittrpeer"), message: Language.getWord(withID: "bittrpeer2"), buttons: [.dismiss(Language.getWord(withID: "okay"))])
         } else {
-            self.showAlert(presentingController: self, title: Language.getWord(withID: "bittrpeer"), message: Language.getWord(withID: "bittrpeer3"), buttons: [Language.getWord(withID: "close"), Language.getWord(withID: "connect")], actions: [nil, #selector(self.reconnectToPeer)])
+            self.showAlert(title: Language.getWord(withID: "bittrpeer"), message: Language.getWord(withID: "bittrpeer3"), buttons: [.dismiss(Language.getWord(withID: "close")), .action(Language.getWord(withID: "connect")) { self.reconnectToPeer() }])
         }
     }
     
-    @objc func reconnectToPeer() {
-        self.hideAlert()
+    func reconnectToPeer() {
         
         self.tappedCell?.animateCell()
         
@@ -238,8 +207,7 @@ class DeviceViewController: UIViewController, UNUserNotificationCenterDelegate, 
                 
         //         DispatchQueue.main.async {
         //             self.showAlert(
-        //                 presentingController: self,
-        //                 title: "Channel Opened",
+        //                 //                 title: "Channel Opened",
         //                 message: "Successfully opened channel to \(nodeId) with \(channelAmountSats) sats (pushed \(pushAmountSats) sats)",
         //                 buttons: ["OK"],
         //                 actions: nil
@@ -250,8 +218,7 @@ class DeviceViewController: UIViewController, UNUserNotificationCenterDelegate, 
         //         print("[TEMP] Error opening channel: \(error)")
         //         DispatchQueue.main.async {
         //             self.showAlert(
-        //                 presentingController: self,
-        //                 title: "Channel Open Failed",
+        //                 //                 title: "Channel Open Failed",
         //                 message: "Failed to open channel: \(error.localizedDescription)",
         //                 buttons: ["OK"],
         //                 actions: nil
@@ -329,7 +296,7 @@ extension UIViewController {
                         guard let lastNotification = receivedNotifications.last, let amountMsat = lastNotification.transaction?["bitcoin_amount"] as? String else {
                             Log.info("No notifications received.")
                             if deviceVC != nil {
-                                deviceVC!.showAlert(presentingController: deviceVC!, title: Language.getWord(withID: "bittrpendingpayout"), message: Language.getWord(withID: "bittrpendingpayout2"), buttons: [Language.getWord(withID: "okay")], actions: nil)
+                                deviceVC!.showAlert(title: Language.getWord(withID: "bittrpendingpayout"), message: Language.getWord(withID: "bittrpendingpayout2"), buttons: [.dismiss(Language.getWord(withID: "okay"))])
                             }
                             return
                         }
@@ -337,11 +304,11 @@ extension UIViewController {
                         Log.info("Payout available for handling.")
                         deviceVC?.pendingPayout = lastNotification
                         coreVC?.pendingPayout = lastNotification
-                        self.showAlert(presentingController: self, title: Language.getWord(withID: "bittrpendingpayout"), message: Language.getWord(withID: "bittrpendingpayout3"), buttons: [Language.getWord(withID: "cancel"), Language.getWord(withID: "confirm")], actions: [nil, #selector(self.handlePendingPayout)])
+                        self.showAlert(title: Language.getWord(withID: "bittrpendingpayout"), message: Language.getWord(withID: "bittrpendingpayout3"), buttons: [.dismiss(Language.getWord(withID: "cancel")), .action(Language.getWord(withID: "confirm")) { self.handlePendingPayout() }])
                     case .failure(let error):
                         Log.info("Did not receive notifications dictionary: \(error)")
                         if deviceVC != nil {
-                            deviceVC!.showAlert(presentingController: deviceVC!, title: Language.getWord(withID: "bittrpendingpayout"), message: Language.getWord(withID: "bittrpendingpayout2"), buttons: [Language.getWord(withID: "okay")], actions: nil)
+                            deviceVC!.showAlert(title: Language.getWord(withID: "bittrpendingpayout"), message: Language.getWord(withID: "bittrpendingpayout2"), buttons: [.dismiss(Language.getWord(withID: "okay"))])
                         }
                     }
                 }
@@ -349,8 +316,7 @@ extension UIViewController {
         }
     }
     
-    @objc func handlePendingPayout() {
-        self.hideAlert()
+    func handlePendingPayout() {
         
         let deviceVC = self as? DeviceViewController
         let coreVC = self as? CoreViewController

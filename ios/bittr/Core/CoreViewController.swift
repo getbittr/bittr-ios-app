@@ -151,7 +151,7 @@ class CoreViewController: UIViewController {
         self.checkWalletAvailability()
     }
     
-    func checkWalletAvailability() {
+    @objc func checkWalletAvailability() {
         
         // Decide which screen to show based on whether a wallet exists. The
         // containers are revealed here, at viewDidLoad, and stay interactable
@@ -187,17 +187,13 @@ class CoreViewController: UIViewController {
         self.pinContainerView.alpha = 1
         self.fullViewCover.alpha = 0.8
         self.genericSpinner.startAnimating()
-
+        
         if !self.isAwaitingProtectedData {
             self.isAwaitingProtectedData = true
-            NotificationCenter.default.addObserver(self, selector: #selector(self.retryReadingKeychain), name: UIApplication.protectedDataDidBecomeAvailableNotification, object: nil)
+            NotificationCenter.default.addObserver(self, selector: #selector(self.checkWalletAvailability), name: UIApplication.protectedDataDidBecomeAvailableNotification, object: nil)
         }
-
-        self.showAlert(presentingController: self,
-                       title: Language.getWord(withID: "keychainunavailabletitle"),
-                       message: Language.getWord(withID: "keychainunavailable"),
-                       buttons: [Language.getWord(withID: "tryagain")],
-                       actions: [#selector(self.retryReadingKeychain)])
+        
+        self.showAlert(title: Language.getWord(withID: "keychainunavailabletitle"), message: Language.getWord(withID: "keychainunavailable"), buttons: [.action(Language.getWord(withID: "tryagain")) { self.checkWalletAvailability() }])
     }
     
     private func finishAwaitingProtectedDataIfNeeded() {
@@ -208,11 +204,6 @@ class CoreViewController: UIViewController {
         self.genericSpinner.stopAnimating()
     }
     
-    @objc private func retryReadingKeychain() {
-        self.hideAlert()
-        self.checkWalletAvailability()
-    }
-    
     func checkWalletRemoval() {
         // Upon app launch, check whether the user is locked out.
         // Or whether the user has previously tried removing the wallet.
@@ -221,13 +212,13 @@ class CoreViewController: UIViewController {
             self.removingWalletForIncorrectPin = true
             self.fullViewCover.alpha = 0.8
             self.genericSpinner.startAnimating()
-            self.showAlert(presentingController: self, title: Language.getWord(withID: "restorewallet"), message: Language.getWord(withID: "pinlock"), buttons: [Language.getWord(withID: "okay")], actions: nil)
+            self.showAlert(title: Language.getWord(withID: "restorewallet"), message: Language.getWord(withID: "pinlock"), buttons: [.dismiss(Language.getWord(withID: "okay"))])
             
             // Start wallet in background.
             self.startWallet()
         } else if CacheManager.walletRemovalIsInProgress() {
             Log.info("A wallet removal was left in progress — offering to resume it on launch.")
-            self.showAlert(presentingController: self, title: Language.getWord(withID: "removewalletfromdevice"), message: Language.getWord(withID: "removalinprogress"), buttons: [Language.getWord(withID: "cancel"), Language.getWord(withID: "removewalletfromdevice")], actions: [#selector(self.cancelWalletRemoval), #selector(self.resumeWalletRemoval)])
+            self.showAlert(title: Language.getWord(withID: "removewalletfromdevice"), message: Language.getWord(withID: "removalinprogress"), buttons: [.action(Language.getWord(withID: "cancel")) { self.cancelWalletRemoval() }, .action(Language.getWord(withID: "removewalletfromdevice")) { self.resumeWalletRemoval() }])
         }
     }
     

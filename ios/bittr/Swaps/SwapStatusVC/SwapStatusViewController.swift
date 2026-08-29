@@ -399,7 +399,7 @@ class SwapStatusViewController: UIViewController {
         self.view.endEditing(true)
         
         guard let swapStatus = sender.boundString else {
-            self.showAlert(presentingController: self, title: Language.getWord(withID: "swapquestion"), message: Language.getWord(withID: "swapquestiongeneric"), buttons: [Language.getWord(withID: "okay")], actions: nil)
+            self.showAlert(title: Language.getWord(withID: "swapquestion"), message: Language.getWord(withID: "swapquestiongeneric"), buttons: [.dismiss(Language.getWord(withID: "okay"))])
             return
         }
         
@@ -460,7 +460,7 @@ class SwapStatusViewController: UIViewController {
             }
         }()
         
-        self.showAlert(presentingController: self, title: Language.getWord(withID: "swapquestion"), message: answer, buttons: [Language.getWord(withID: "okay")], actions: nil)
+        self.showAlert(title: Language.getWord(withID: "swapquestion"), message: answer, buttons: [.dismiss(Language.getWord(withID: "okay"))])
     }
     
     @objc func changeColors() {
