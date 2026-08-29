@@ -651,8 +651,8 @@ extension CoreViewController {
             self.hideLoading()
             self.showAlert(
                 presentingController: self,
-                title: "Error",
-                message: "Failed to schedule on-chain payment: Wallet has not been synced.",
+                title: Language.getWord(withID: "error"),
+                message: Language.getWord(withID: "onchainpayoutfail").replacingOccurrences(of: "<message>", with: Language.getWord(withID: "walletnotsynced")),
                 buttons: [Language.getWord(withID: "okay")],
                 actions: nil
             )
@@ -676,8 +676,8 @@ extension CoreViewController {
                     self.hideLoading()
                     self.showAlert(
                         presentingController: self,
-                        title: "Payment Scheduled",
-                        message: "Your payment has been scheduled for on-chain delivery within 4-24 hours. You'll receive a notification when it's completed.",
+                        title: Language.getWord(withID: "onchainpayoutscheduled"),
+                        message: Language.getWord(withID: "onchainpayoutscheduled2"),
                         buttons: [Language.getWord(withID: "okay")],
                         actions: nil
                     )
@@ -694,8 +694,8 @@ extension CoreViewController {
                     self.hideLoading()
                     self.showAlert(
                         presentingController: self,
-                        title: "Error",
-                        message: "Failed to schedule on-chain payment: \(error.localizedDescription)",
+                        title: Language.getWord(withID: "error"),
+                        message: Language.getWord(withID: "onchainpayoutfail").replacingOccurrences(of: "<message>", with: error.localizedDescription),
                         buttons: [Language.getWord(withID: "okay")],
                         actions: nil
                     )
