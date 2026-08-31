@@ -110,6 +110,7 @@ class ValueViewController: UIViewController {
     var selectedSpan:GraphSpan = .week
     var isFetchingData = true
     var homeVC:HomeViewController?
+    let axisTag = "graphaxis"
 
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -351,25 +352,19 @@ class ValueViewController: UIViewController {
     func drawGraph() {
         
         // Remove existing lines and labels.
-        for eachSubview in self.centerCard.subviews {
-            if eachSubview != self.graphView, eachSubview != self.currentValueLabel, eachSubview != self.weekView, eachSubview != self.monthView, eachSubview != self.yearView, eachSubview != self.fiveYearsView, eachSubview != self.buttonsView, eachSubview != self.profitView {
-                eachSubview.removeFromSuperview()
-            }
+        for eachSubview in self.centerCard.subviews where eachSubview.boundString == self.axisTag {
+            eachSubview.removeFromSuperview()
         }
         
         self.allDataPoints = self.series[self.selectedSpan] ?? []
         let currentArray = self.allDataPoints.map { $0.price }
         
         if currentArray.count == 0 {
-            if self.noDataLabel != nil {
-                self.noDataLabel.alpha = 1
-            }
+            self.noDataLabel.alpha = 1
             self.graphView.alpha = 0
             return
         } else {
-            if self.noDataLabel != nil {
-                self.noDataLabel.alpha = 0
-            }
+            self.noDataLabel.alpha = 0
             self.graphView.alpha = 1
         }
         self.graphView.data = currentArray
@@ -429,6 +424,7 @@ class ValueViewController: UIViewController {
                 thisLine.backgroundColor = Colors.getColor("blackorwhite")
                 thisLine.layer.zPosition = 0
                 thisLine.alpha = 0.2
+                thisLine.boundString = self.axisTag
                 self.centerCard.addSubview(thisLine)
                 
                 let thisLineHeight = NSLayoutConstraint(item: thisLine, attribute: .height, relatedBy: .equal, toItem: nil, attribute: .notAnAttribute, multiplier: 1, constant: 1)
@@ -445,6 +441,7 @@ class ValueViewController: UIViewController {
                 thisLabel.textColor = Colors.getColor("blackorwhite")
                 thisLabel.layer.zPosition = 0
                 thisLabel.alpha = 0.4
+                thisLabel.boundString = self.axisTag
                 self.centerCard.addSubview(thisLabel)
                 
                 let thisLabelHeight = NSLayoutConstraint(item: thisLabel, attribute: .height, relatedBy: .greaterThanOrEqual, toItem: nil, attribute: .notAnAttribute, multiplier: 1, constant: 0)
@@ -467,6 +464,7 @@ class ValueViewController: UIViewController {
             thisLine.backgroundColor = Colors.getColor("blackorwhite")
             thisLine.layer.zPosition = 0
             thisLine.alpha = 0.2
+            thisLine.boundString = self.axisTag
             self.centerCard.addSubview(thisLine)
             
             let thisLineWidth = NSLayoutConstraint(item: thisLine, attribute: .width, relatedBy: .equal, toItem: nil, attribute: .notAnAttribute, multiplier: 1, constant: 1)
@@ -483,6 +481,7 @@ class ValueViewController: UIViewController {
             thisLabel.textColor = Colors.getColor("blackorwhite")
             thisLabel.layer.zPosition = 0
             thisLabel.alpha = 0.4
+            thisLabel.boundString = self.axisTag
             self.centerCard.addSubview(thisLabel)
             
             let thisLabelHeight = NSLayoutConstraint(item: thisLabel, attribute: .height, relatedBy: .greaterThanOrEqual, toItem: nil, attribute: .notAnAttribute, multiplier: 1, constant: 0)
