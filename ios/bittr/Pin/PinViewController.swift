@@ -15,48 +15,14 @@ class PinViewController: UIViewController, UITextFieldDelegate, UICollectionView
     @IBOutlet weak var restoreWalletButton: UIButton!
     @IBOutlet weak var pinCollectionView: UICollectionView!
     @IBOutlet weak var pinCollectionViewWidth: NSLayoutConstraint!
-    
-    // Number labels
-    @IBOutlet weak var label1: UILabel!
-    @IBOutlet weak var label2: UILabel!
-    @IBOutlet weak var label3: UILabel!
-    @IBOutlet weak var label4: UILabel!
-    @IBOutlet weak var label5: UILabel!
-    @IBOutlet weak var label6: UILabel!
-    @IBOutlet weak var label7: UILabel!
-    @IBOutlet weak var label8: UILabel!
-    @IBOutlet weak var label9: UILabel!
-    @IBOutlet weak var label0: UILabel!
     @IBOutlet weak var imageBackspace: UIImageView!
-    
-    // Buttons
-    @IBOutlet weak var button1: UIButton!
-    @IBOutlet weak var button2: UIButton!
-    @IBOutlet weak var button3: UIButton!
-    @IBOutlet weak var button4: UIButton!
-    @IBOutlet weak var button5: UIButton!
-    @IBOutlet weak var button6: UIButton!
-    @IBOutlet weak var button7: UIButton!
-    @IBOutlet weak var button8: UIButton!
-    @IBOutlet weak var button9: UIButton!
-    @IBOutlet weak var button0: UIButton!
-    @IBOutlet weak var buttonBackspace: UIButton!
     @IBOutlet weak var pinTextField: UITextField!
     @IBOutlet weak var pinSpinner: UIActivityIndicatorView!
     
-    // Button backgrounds
-    @IBOutlet weak var background1: UIView!
-    @IBOutlet weak var background2: UIView!
-    @IBOutlet weak var background3: UIView!
-    @IBOutlet weak var background4: UIView!
-    @IBOutlet weak var background5: UIView!
-    @IBOutlet weak var background6: UIView!
-    @IBOutlet weak var background7: UIView!
-    @IBOutlet weak var background8: UIView!
-    @IBOutlet weak var background9: UIView!
-    @IBOutlet weak var background0: UIView!
-    @IBOutlet weak var backgroundBackSpace: UIView!
-    var allBackgrounds:[UIView]?
+    // Keypad elements
+    @IBOutlet var keyButtons:[UIButton]!
+    @IBOutlet var keyLabels:[UILabel]!
+    @IBOutlet var keyBackgrounds:[UIView]!
     
     // Variables
     var coreVC:CoreViewController?
@@ -71,54 +37,30 @@ class PinViewController: UIViewController, UITextFieldDelegate, UICollectionView
     
     override func viewDidLoad() {
         super.viewDidLoad()
-
-        self.button0.accessibilityIdentifier = TestID.Pin.button0
-        self.button1.accessibilityIdentifier = TestID.Pin.button1
-        self.button2.accessibilityIdentifier = TestID.Pin.button2
-        self.button3.accessibilityIdentifier = TestID.Pin.button3
-        self.button4.accessibilityIdentifier = TestID.Pin.button4
-        self.button5.accessibilityIdentifier = TestID.Pin.button5
-        self.button6.accessibilityIdentifier = TestID.Pin.button6
-        self.button7.accessibilityIdentifier = TestID.Pin.button7
-        self.button8.accessibilityIdentifier = TestID.Pin.button8
-        self.button9.accessibilityIdentifier = TestID.Pin.button9
-        self.buttonBackspace.accessibilityIdentifier = TestID.Pin.buttonBackspace
+        
+        // Put the keypad in tag order.
+        self.keyButtons.sort { $0.tag < $1.tag }
+        self.keyLabels.sort { $0.tag < $1.tag }
+        self.keyBackgrounds.sort { $0.tag < $1.tag }
+        
+        let keyTestIDs = [TestID.Pin.button0, TestID.Pin.button1, TestID.Pin.button2, TestID.Pin.button3, TestID.Pin.button4, TestID.Pin.button5, TestID.Pin.button6, TestID.Pin.button7, TestID.Pin.button8, TestID.Pin.button9, TestID.Pin.buttonBackspace]
+        for (eachButton, eachTestID) in zip(self.keyButtons, keyTestIDs) {
+            eachButton.accessibilityIdentifier = eachTestID
+        }
         self.confirmPinButton.accessibilityIdentifier = TestID.Pin.confirmButton
         self.restoreWalletButton.accessibilityIdentifier = TestID.Pin.restoreButton
         self.pinTextField.accessibilityIdentifier = TestID.Pin.pinTextField
 
         // Set elements according to superview.
-        switch self.embeddingView {
-        case .core:
-            self.topLabel.text = Language.getWord(withID: "enteryourpincode")
-            self.topLabel.accessibilityIdentifier = TestID.Unlock.topLabel
-            self.nextButtonLabel.text = Language.getWord(withID: "confirm")
-            self.restoreButtonLabel.text = Language.getWord(withID: "forgotpin")
+        self.topLabel.text = Language.getWord(withID: self.embeddingView.titleWord)
+        self.topLabel.accessibilityIdentifier = self.embeddingView.titleTestID
+        self.nextButtonLabel.text = Language.getWord(withID: self.embeddingView.confirmWord)
+        if let restoreWord = self.embeddingView.restoreWord {
+            self.restoreButtonLabel.text = Language.getWord(withID: restoreWord)
             self.restoreButtonView.alpha = 1
-        case .signup5:
-            self.topLabel.text = Language.getWord(withID: "setapin")
-            self.topLabel.accessibilityIdentifier = TestID.Signup.Create.PinSet.topLabel
-            self.nextButtonLabel.text = Language.getWord(withID: "next")
+        } else {
             self.restoreButtonLabel.text = ""
             self.restoreButtonView.alpha = 0
-        case .signup6:
-            self.topLabel.text = Language.getWord(withID: "confirmyourpin")
-            self.topLabel.accessibilityIdentifier = TestID.Signup.Create.PinConfirm.topLabel
-            self.nextButtonLabel.text = Language.getWord(withID: "confirm")
-            self.restoreButtonLabel.text = Language.getWord(withID: "back")
-            self.restoreButtonView.alpha = 1
-        case .restore2:
-            self.topLabel.text = Language.getWord(withID: "setapin")
-            self.topLabel.accessibilityIdentifier = TestID.Signup.Restore.PinSet.topLabel
-            self.nextButtonLabel.text = Language.getWord(withID: "next")
-            self.restoreButtonLabel.text = ""
-            self.restoreButtonView.alpha = 0
-        case .restore3:
-            self.topLabel.text = Language.getWord(withID: "confirmyourpin")
-            self.topLabel.accessibilityIdentifier = TestID.Signup.Restore.PinConfirm.topLabel
-            self.nextButtonLabel.text = Language.getWord(withID: "confirm")
-            self.restoreButtonLabel.text = Language.getWord(withID: "back")
-            self.restoreButtonView.alpha = 1
         }
         
         // Corner radii
@@ -126,19 +68,14 @@ class PinViewController: UIViewController, UITextFieldDelegate, UICollectionView
         self.confirmPinView.setShadow()
         
         // Button titles
-        let allButtons = [self.confirmPinButton, self.restoreWalletButton, self.button1, self.button2, self.button3, self.button4, self.button5, self.button6, self.button7, self.button8, self.button9, self.button0, self.buttonBackspace]
-        for eachButton in allButtons {
-            eachButton?.setTitle("", for: .normal)
-        }
+        let allButtons:[UIButton] = self.keyButtons + [self.confirmPinButton, self.restoreWalletButton]
+        for eachButton in allButtons { eachButton.setTitle("", for: .normal) }
         
         // Text field
         self.pinTextField.delegate = self
         
         // Configure button backgrounds.
-        self.allBackgrounds = [background0, background1, background2, background3, background4, background5, background6, background7, background8, background9, backgroundBackSpace]
-        for eachBackground in self.allBackgrounds! {
-            eachBackground.layer.cornerRadius = 45
-        }
+        for eachBackground in self.keyBackgrounds { eachBackground.layer.cornerRadius = 45 }
         
         // Observers
         NotificationCenter.default.addObserver(self, selector: #selector(changeColors), name: NSNotification.Name(rawValue: "changecolors"), object: nil)
@@ -154,7 +91,7 @@ class PinViewController: UIViewController, UITextFieldDelegate, UICollectionView
     
     @IBAction func numberButtonTapped(_ sender: UIButton) {
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-            self.allBackgrounds![sender.tag].alpha = 0
+            self.keyBackgrounds[sender.tag].alpha = 0
         }
         
         // Check if PIN is already at max length (8 digits)
@@ -175,7 +112,7 @@ class PinViewController: UIViewController, UITextFieldDelegate, UICollectionView
         self.pinCollectionView.reloadData()
         
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-            self.allBackgrounds![sender.tag].alpha = 0
+            self.keyBackgrounds[sender.tag].alpha = 0
         }
     }
     
@@ -265,7 +202,6 @@ class PinViewController: UIViewController, UITextFieldDelegate, UICollectionView
     }
     
     @IBAction func restoreButtonTapped(_ sender: UIButton) {
-        
         switch self.embeddingView {
         case .core:
             self.showAlert(title: Language.getWord(withID: "forgotpin"), message: Language.getWord(withID: "forgotpin2"), buttons: [.dismiss(Language.getWord(withID: "cancel")), .action(Language.getWord(withID: "reset")) { self.coreVC!.startPinReset() }])
@@ -278,16 +214,14 @@ class PinViewController: UIViewController, UITextFieldDelegate, UICollectionView
     }
     
     @IBAction func pinButtonTouchDown(_ sender: UIButton) {
-        
         // Show button feedback.
-        self.allBackgrounds![sender.tag].alpha = 0.1
+        self.keyBackgrounds[sender.tag].alpha = 0.1
     }
     
     @IBAction func pinButtonCancel(_ sender: UIButton) {
-        
         // Hide button feedback.
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-            self.allBackgrounds![sender.tag].alpha = 0
+            self.keyBackgrounds[sender.tag].alpha = 0
         }
     }
     
@@ -298,14 +232,8 @@ class PinViewController: UIViewController, UITextFieldDelegate, UICollectionView
         self.imageBackspace.tintColor = Colors.getColor("blackorwhite")
         self.confirmPinView.backgroundColor = Colors.getColor("blackorblue1")
         self.pinTextField.textColor = Colors.getColor("blackorblue1")
-        for eachLabel in [self.label1, self.label2, self.label3, self.label4, self.label5, self.label6, self.label7, self.label8, self.label9, self.label0] {
-            eachLabel!.textColor = Colors.getColor("blackorwhite")
-        }
-        if CacheManager.darkModeIsOn() {
-            self.restoreButtonLabel.textColor = Colors.getColor("blackorwhite")
-        } else {
-            self.restoreButtonLabel.textColor = Colors.getColor("transparentblack")
-        }
+        for eachLabel in self.keyLabels { eachLabel.textColor = Colors.getColor("blackorwhite") }
+        self.restoreButtonLabel.textColor = Colors.getColor(CacheManager.darkModeIsOn() ? "blackorwhite" : "transparentblack")
     }
     
     func collectionView(_ collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {
@@ -332,13 +260,8 @@ class PinViewController: UIViewController, UITextFieldDelegate, UICollectionView
     }
     
     func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
-        
-        if let cell = collectionView.dequeueReusableCell(withReuseIdentifier: "PinCell", for: indexPath) as? PinCollectionViewCell {
-            
-            return cell
-        } else {
-            return UICollectionViewCell()
-        }
+        guard let cell = collectionView.dequeueReusableCell(withReuseIdentifier: "PinCell", for: indexPath) as? PinCollectionViewCell else { return UICollectionViewCell() }
+        return cell
     }
     
 }
@@ -349,4 +272,37 @@ enum EmbeddingView {
     case signup6
     case restore2
     case restore3
+    
+    var titleWord:String {
+        switch self {
+        case .core: return "enteryourpincode"
+        case .signup5, .restore2: return "setapin"
+        case .signup6, .restore3: return "confirmyourpin"
+        }
+    }
+    
+    var titleTestID:String {
+        switch self {
+        case .core: return TestID.Unlock.topLabel
+        case .signup5: return TestID.Signup.Create.PinSet.topLabel
+        case .signup6: return TestID.Signup.Create.PinConfirm.topLabel
+        case .restore2: return TestID.Signup.Restore.PinSet.topLabel
+        case .restore3: return TestID.Signup.Restore.PinConfirm.topLabel
+        }
+    }
+    
+    var confirmWord:String {
+        switch self {
+        case .core, .signup6, .restore3: return "confirm"
+        case .signup5, .restore2: return "next"
+        }
+    }
+    
+    var restoreWord:String? {
+        switch self {
+        case .core: return "forgotpin"
+        case .signup6, .restore3: return "back"
+        case .signup5, .restore2: return nil
+        }
+    }
 }

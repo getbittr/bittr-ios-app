@@ -13159,7 +13159,7 @@
                             <view contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="VEk-7E-3d3" userLabel="Digits View">
                                 <rect key="frame" x="30" y="323.33333333333326" width="333" height="340.66666666666674"/>
                                 <subviews>
-                                    <view alpha="0.0" contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="XGX-Mg-GuR" userLabel="Background 1">
+                                    <view alpha="0.0" tag="1" contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="XGX-Mg-GuR" userLabel="Background 1">
                                         <rect key="frame" x="10.666666666666664" y="-3.6666666666666288" width="90" height="90"/>
                                         <color key="backgroundColor" white="0.0" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
                                         <constraints>
@@ -13167,35 +13167,35 @@
                                             <constraint firstAttribute="width" constant="90" id="x0F-tV-0We"/>
                                         </constraints>
                                     </view>
-                                    <view alpha="0.0" contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="6nJ-zw-Xac" userLabel="Background 2">
+                                    <view alpha="0.0" tag="2" contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="6nJ-zw-Xac" userLabel="Background 2">
                                         <rect key="frame" x="121.66666666666666" y="-3.6666666666666288" width="90" height="90"/>
                                         <color key="backgroundColor" white="0.0" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
                                     </view>
-                                    <view alpha="0.0" contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="Zdk-Xa-2XL" userLabel="Background 3">
+                                    <view alpha="0.0" tag="3" contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="Zdk-Xa-2XL" userLabel="Background 3">
                                         <rect key="frame" x="232.66666666666669" y="-3.6666666666666288" width="90" height="90"/>
                                         <color key="backgroundColor" white="0.0" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
                                     </view>
-                                    <view alpha="0.0" contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="TgI-fv-v2D" userLabel="Background 4">
+                                    <view alpha="0.0" tag="4" contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="TgI-fv-v2D" userLabel="Background 4">
                                         <rect key="frame" x="10.666666666666664" y="81.666666666666686" width="90" height="90"/>
                                         <color key="backgroundColor" white="0.0" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
                                     </view>
-                                    <view alpha="0.0" contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="VDY-x9-iK1" userLabel="Background 5">
+                                    <view alpha="0.0" tag="5" contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="VDY-x9-iK1" userLabel="Background 5">
                                         <rect key="frame" x="121.66666666666666" y="81.666666666666686" width="90" height="90"/>
                                         <color key="backgroundColor" white="0.0" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
                                     </view>
-                                    <view alpha="0.0" contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="faf-jC-2sN" userLabel="Background 6">
+                                    <view alpha="0.0" tag="6" contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="faf-jC-2sN" userLabel="Background 6">
                                         <rect key="frame" x="232.66666666666669" y="81.666666666666686" width="90" height="90"/>
                                         <color key="backgroundColor" white="0.0" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
                                     </view>
-                                    <view alpha="0.0" contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="wlb-cs-TMV" userLabel="Background 7">
+                                    <view alpha="0.0" tag="7" contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="wlb-cs-TMV" userLabel="Background 7">
                                         <rect key="frame" x="10.666666666666664" y="167" width="90" height="90"/>
                                         <color key="backgroundColor" white="0.0" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
                                     </view>
-                                    <view alpha="0.0" contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="1zZ-Bf-76e" userLabel="Background 8">
+                                    <view alpha="0.0" tag="8" contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="1zZ-Bf-76e" userLabel="Background 8">
                                         <rect key="frame" x="121.66666666666666" y="167" width="90" height="90"/>
                                         <color key="backgroundColor" white="0.0" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
                                     </view>
-                                    <view alpha="0.0" contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="Oyz-uW-AUM" userLabel="Background 9">
+                                    <view alpha="0.0" tag="9" contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="Oyz-uW-AUM" userLabel="Background 9">
                                         <rect key="frame" x="232.66666666666669" y="167" width="90" height="90"/>
                                         <color key="backgroundColor" white="0.0" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
                                     </view>
@@ -13203,11 +13203,11 @@
                                         <rect key="frame" x="121.66666666666666" y="252.00000000000006" width="90" height="90"/>
                                         <color key="backgroundColor" white="0.0" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
                                     </view>
-                                    <view alpha="0.0" contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="Mft-WN-4ik" userLabel="Background Backspace">
+                                    <view alpha="0.0" tag="10" contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="Mft-WN-4ik" userLabel="Background Backspace">
                                         <rect key="frame" x="232.66666666666669" y="252.00000000000006" width="90" height="90"/>
                                         <color key="backgroundColor" white="0.0" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
                                     </view>
-                                    <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="1" textAlignment="natural" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="M1Y-tG-frs">
+                                    <label opaque="NO" userInteractionEnabled="NO" tag="1" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="1" textAlignment="natural" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="M1Y-tG-frs">
                                         <rect key="frame" x="50.333333333333329" y="29.333333333333371" width="10.333333333333336" height="26"/>
                                         <constraints>
                                             <constraint firstAttribute="height" relation="greaterThanOrEqual" constant="1" id="4DB-Me-lhm"/>
@@ -13217,7 +13217,7 @@
                                         <color key="textColor" white="0.0" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
                                         <nil key="highlightedColor"/>
                                     </label>
-                                    <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="2" textAlignment="natural" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="GlK-lL-KVJ">
+                                    <label opaque="NO" userInteractionEnabled="NO" tag="2" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="2" textAlignment="natural" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="GlK-lL-KVJ">
                                         <rect key="frame" x="159.66666666666666" y="29.333333333333371" width="14" height="26"/>
                                         <constraints>
                                             <constraint firstAttribute="height" relation="greaterThanOrEqual" constant="1" id="k6C-8h-Vvb"/>
@@ -13227,7 +13227,7 @@
                                         <color key="textColor" white="0.0" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
                                         <nil key="highlightedColor"/>
                                     </label>
-                                    <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="3" textAlignment="natural" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="cAD-Vf-Nex">
+                                    <label opaque="NO" userInteractionEnabled="NO" tag="3" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="3" textAlignment="natural" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="cAD-Vf-Nex">
                                         <rect key="frame" x="270.33333333333331" y="29.333333333333371" width="14.333333333333314" height="26"/>
                                         <constraints>
                                             <constraint firstAttribute="height" relation="greaterThanOrEqual" constant="1" id="DkI-tW-gVP"/>
@@ -13237,7 +13237,7 @@
                                         <color key="textColor" white="0.0" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
                                         <nil key="highlightedColor"/>
                                     </label>
-                                    <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="4" textAlignment="natural" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="GG1-va-SlI">
+                                    <label opaque="NO" userInteractionEnabled="NO" tag="4" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="4" textAlignment="natural" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="GG1-va-SlI">
                                         <rect key="frame" x="48" y="114.66666666666669" width="15.333333333333336" height="26"/>
                                         <constraints>
                                             <constraint firstAttribute="height" relation="greaterThanOrEqual" constant="1" id="Szu-Xz-Lcm"/>
@@ -13247,7 +13247,7 @@
                                         <color key="textColor" white="0.0" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
                                         <nil key="highlightedColor"/>
                                     </label>
-                                    <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="5" textAlignment="natural" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="0VT-wT-zBl">
+                                    <label opaque="NO" userInteractionEnabled="NO" tag="5" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="5" textAlignment="natural" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="0VT-wT-zBl">
                                         <rect key="frame" x="159.66666666666666" y="114.66666666666669" width="14" height="26"/>
                                         <constraints>
                                             <constraint firstAttribute="width" relation="greaterThanOrEqual" constant="1" id="6Fl-BS-io0"/>
@@ -13257,7 +13257,7 @@
                                         <color key="textColor" white="0.0" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
                                         <nil key="highlightedColor"/>
                                     </label>
-                                    <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="6" textAlignment="natural" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="TmQ-0S-O1p">
+                                    <label opaque="NO" userInteractionEnabled="NO" tag="6" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="6" textAlignment="natural" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="TmQ-0S-O1p">
                                         <rect key="frame" x="270.66666666666669" y="114.66666666666669" width="14" height="26"/>
                                         <constraints>
                                             <constraint firstAttribute="width" relation="greaterThanOrEqual" constant="1" id="1hN-gq-pen"/>
@@ -13267,7 +13267,7 @@
                                         <color key="textColor" white="0.0" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
                                         <nil key="highlightedColor"/>
                                     </label>
-                                    <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="7" textAlignment="natural" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="uTX-ze-tox">
+                                    <label opaque="NO" userInteractionEnabled="NO" tag="7" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="7" textAlignment="natural" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="uTX-ze-tox">
                                         <rect key="frame" x="49" y="200.00000000000006" width="13" height="26"/>
                                         <constraints>
                                             <constraint firstAttribute="height" relation="greaterThanOrEqual" constant="1" id="XCy-Fo-SO4"/>
@@ -13277,7 +13277,7 @@
                                         <color key="textColor" white="0.0" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
                                         <nil key="highlightedColor"/>
                                     </label>
-                                    <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="8" textAlignment="natural" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="0Ie-cC-QBO">
+                                    <label opaque="NO" userInteractionEnabled="NO" tag="8" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="8" textAlignment="natural" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="0Ie-cC-QBO">
                                         <rect key="frame" x="159" y="200.00000000000006" width="15" height="26"/>
                                         <constraints>
                                             <constraint firstAttribute="width" relation="greaterThanOrEqual" constant="1" id="WUD-nB-0WY"/>
@@ -13287,7 +13287,7 @@
                                         <color key="textColor" white="0.0" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
                                         <nil key="highlightedColor"/>
                                     </label>
-                                    <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="9" textAlignment="natural" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="Zgf-hr-NXN">
+                                    <label opaque="NO" userInteractionEnabled="NO" tag="9" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="9" textAlignment="natural" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="Zgf-hr-NXN">
                                         <rect key="frame" x="270.66666666666669" y="200.00000000000006" width="14" height="26"/>
                                         <constraints>
                                             <constraint firstAttribute="width" relation="greaterThanOrEqual" constant="1" id="Ign-5G-tR2"/>
@@ -13650,41 +13650,41 @@
                         </constraints>
                     </view>
                     <connections>
-                        <outlet property="background0" destination="2HY-eW-l3a" id="hjd-Eq-iNT"/>
-                        <outlet property="background1" destination="XGX-Mg-GuR" id="yYB-J1-Pbo"/>
-                        <outlet property="background2" destination="6nJ-zw-Xac" id="g02-xj-KYr"/>
-                        <outlet property="background3" destination="Zdk-Xa-2XL" id="0Fk-iD-hBA"/>
-                        <outlet property="background4" destination="TgI-fv-v2D" id="lcf-Se-xi3"/>
-                        <outlet property="background5" destination="VDY-x9-iK1" id="dKz-DS-VzW"/>
-                        <outlet property="background6" destination="faf-jC-2sN" id="z1i-Q6-vG6"/>
-                        <outlet property="background7" destination="wlb-cs-TMV" id="Pcc-bT-bed"/>
-                        <outlet property="background8" destination="1zZ-Bf-76e" id="09E-eY-Taj"/>
-                        <outlet property="background9" destination="Oyz-uW-AUM" id="D3u-z1-GpX"/>
-                        <outlet property="backgroundBackSpace" destination="Mft-WN-4ik" id="Sz3-rK-hyl"/>
-                        <outlet property="button0" destination="IRe-p0-3H7" id="CKy-a5-bl1"/>
-                        <outlet property="button1" destination="e9H-7E-B1m" id="hjc-XC-eQW"/>
-                        <outlet property="button2" destination="Xfn-xH-zZ2" id="xfK-mk-rO5"/>
-                        <outlet property="button3" destination="Uu6-Bu-bDQ" id="nKa-oi-jMh"/>
-                        <outlet property="button4" destination="TcO-bn-oP9" id="H71-uE-uNz"/>
-                        <outlet property="button5" destination="vgZ-u1-l55" id="iUe-t8-Ubg"/>
-                        <outlet property="button6" destination="f4K-YL-nha" id="xSW-81-lM8"/>
-                        <outlet property="button7" destination="WBS-bW-wsA" id="D6S-h4-aOd"/>
-                        <outlet property="button8" destination="5hc-qb-j1U" id="6Ub-UC-jCT"/>
-                        <outlet property="button9" destination="k1z-mn-ntS" id="XXU-dX-ynY"/>
-                        <outlet property="buttonBackspace" destination="vwV-Od-8Oh" id="971-nx-EVU"/>
+                        <outletCollection property="keyBackgrounds" destination="2HY-eW-l3a" collectionClass="NSMutableArray" id="hjd-Eq-iNT"/>
+                        <outletCollection property="keyBackgrounds" destination="XGX-Mg-GuR" collectionClass="NSMutableArray" id="yYB-J1-Pbo"/>
+                        <outletCollection property="keyBackgrounds" destination="6nJ-zw-Xac" collectionClass="NSMutableArray" id="g02-xj-KYr"/>
+                        <outletCollection property="keyBackgrounds" destination="Zdk-Xa-2XL" collectionClass="NSMutableArray" id="0Fk-iD-hBA"/>
+                        <outletCollection property="keyBackgrounds" destination="TgI-fv-v2D" collectionClass="NSMutableArray" id="lcf-Se-xi3"/>
+                        <outletCollection property="keyBackgrounds" destination="VDY-x9-iK1" collectionClass="NSMutableArray" id="dKz-DS-VzW"/>
+                        <outletCollection property="keyBackgrounds" destination="faf-jC-2sN" collectionClass="NSMutableArray" id="z1i-Q6-vG6"/>
+                        <outletCollection property="keyBackgrounds" destination="wlb-cs-TMV" collectionClass="NSMutableArray" id="Pcc-bT-bed"/>
+                        <outletCollection property="keyBackgrounds" destination="1zZ-Bf-76e" collectionClass="NSMutableArray" id="09E-eY-Taj"/>
+                        <outletCollection property="keyBackgrounds" destination="Oyz-uW-AUM" collectionClass="NSMutableArray" id="D3u-z1-GpX"/>
+                        <outletCollection property="keyBackgrounds" destination="Mft-WN-4ik" collectionClass="NSMutableArray" id="Sz3-rK-hyl"/>
+                        <outletCollection property="keyButtons" destination="IRe-p0-3H7" collectionClass="NSMutableArray" id="CKy-a5-bl1"/>
+                        <outletCollection property="keyButtons" destination="e9H-7E-B1m" collectionClass="NSMutableArray" id="hjc-XC-eQW"/>
+                        <outletCollection property="keyButtons" destination="Xfn-xH-zZ2" collectionClass="NSMutableArray" id="xfK-mk-rO5"/>
+                        <outletCollection property="keyButtons" destination="Uu6-Bu-bDQ" collectionClass="NSMutableArray" id="nKa-oi-jMh"/>
+                        <outletCollection property="keyButtons" destination="TcO-bn-oP9" collectionClass="NSMutableArray" id="H71-uE-uNz"/>
+                        <outletCollection property="keyButtons" destination="vgZ-u1-l55" collectionClass="NSMutableArray" id="iUe-t8-Ubg"/>
+                        <outletCollection property="keyButtons" destination="f4K-YL-nha" collectionClass="NSMutableArray" id="xSW-81-lM8"/>
+                        <outletCollection property="keyButtons" destination="WBS-bW-wsA" collectionClass="NSMutableArray" id="D6S-h4-aOd"/>
+                        <outletCollection property="keyButtons" destination="5hc-qb-j1U" collectionClass="NSMutableArray" id="6Ub-UC-jCT"/>
+                        <outletCollection property="keyButtons" destination="k1z-mn-ntS" collectionClass="NSMutableArray" id="XXU-dX-ynY"/>
+                        <outletCollection property="keyButtons" destination="vwV-Od-8Oh" collectionClass="NSMutableArray" id="971-nx-EVU"/>
                         <outlet property="confirmPinButton" destination="FCj-HY-5sN" id="Sc4-fF-BkV"/>
                         <outlet property="confirmPinView" destination="JP1-6N-sVy" id="GnJ-AA-Agb"/>
                         <outlet property="imageBackspace" destination="Gdn-yt-3Hw" id="rxG-d7-wbJ"/>
-                        <outlet property="label0" destination="yS4-dk-XT8" id="52T-ke-V5n"/>
-                        <outlet property="label1" destination="M1Y-tG-frs" id="cuZ-IL-MJE"/>
-                        <outlet property="label2" destination="GlK-lL-KVJ" id="UgU-0i-nFP"/>
-                        <outlet property="label3" destination="cAD-Vf-Nex" id="J25-z3-tff"/>
-                        <outlet property="label4" destination="GG1-va-SlI" id="TeZ-b7-IKK"/>
-                        <outlet property="label5" destination="0VT-wT-zBl" id="VQO-tJ-qAh"/>
-                        <outlet property="label6" destination="TmQ-0S-O1p" id="3iO-d2-vXm"/>
-                        <outlet property="label7" destination="uTX-ze-tox" id="o4Z-pX-mMn"/>
-                        <outlet property="label8" destination="0Ie-cC-QBO" id="enO-6r-L7X"/>
-                        <outlet property="label9" destination="Zgf-hr-NXN" id="hZV-KF-QDs"/>
+                        <outletCollection property="keyLabels" destination="yS4-dk-XT8" collectionClass="NSMutableArray" id="52T-ke-V5n"/>
+                        <outletCollection property="keyLabels" destination="M1Y-tG-frs" collectionClass="NSMutableArray" id="cuZ-IL-MJE"/>
+                        <outletCollection property="keyLabels" destination="GlK-lL-KVJ" collectionClass="NSMutableArray" id="UgU-0i-nFP"/>
+                        <outletCollection property="keyLabels" destination="cAD-Vf-Nex" collectionClass="NSMutableArray" id="J25-z3-tff"/>
+                        <outletCollection property="keyLabels" destination="GG1-va-SlI" collectionClass="NSMutableArray" id="TeZ-b7-IKK"/>
+                        <outletCollection property="keyLabels" destination="0VT-wT-zBl" collectionClass="NSMutableArray" id="VQO-tJ-qAh"/>
+                        <outletCollection property="keyLabels" destination="TmQ-0S-O1p" collectionClass="NSMutableArray" id="3iO-d2-vXm"/>
+                        <outletCollection property="keyLabels" destination="uTX-ze-tox" collectionClass="NSMutableArray" id="o4Z-pX-mMn"/>
+                        <outletCollection property="keyLabels" destination="0Ie-cC-QBO" collectionClass="NSMutableArray" id="enO-6r-L7X"/>
+                        <outletCollection property="keyLabels" destination="Zgf-hr-NXN" collectionClass="NSMutableArray" id="hZV-KF-QDs"/>
                         <outlet property="nextButtonLabel" destination="dUn-Cn-SCA" id="2PU-S7-7sZ"/>
                         <outlet property="pinCollectionView" destination="FuJ-W5-3Ea" id="fJB-iZ-QTu"/>
                         <outlet property="pinCollectionViewWidth" destination="1Nn-9A-X2e" id="IQX-W3-kti"/>
