@@ -309,15 +309,21 @@ class ValueViewController: UIViewController {
         return points
     }
     
-    func formatEuroValue(_ actualEurValue: String) -> String {
+    static let valueFormatter:NumberFormatter = {
         let formatter = NumberFormatter()
         formatter.numberStyle = .decimal // Automatically adds separators
         formatter.maximumFractionDigits = 0 // Round to whole numbers
-        formatter.locale = Locale.current // Use current locale for separators
+        formatter.locale = Locale.autoupdatingCurrent // Use current locale for separators
+        return formatter
+    }()
+    
+    static let axisDateFormatter = DateFormatter()
+    
+    func formatEuroValue(_ actualEurValue: String) -> String {
         
         // Convert string to number and format it
         if let number = Double(actualEurValue) {
-            return formatter.string(from: NSNumber(value: round(number))) ?? "0"
+            return ValueViewController.valueFormatter.string(from: NSNumber(value: round(number))) ?? "0"
         } else {
             return "0" // Fallback in case of invalid input
         }
@@ -380,7 +386,9 @@ class ValueViewController: UIViewController {
             totalSpan = highestNumber - lowestNumber
             
             // Set profit label
-            let profitPercentage = "\(Int((currentArray[currentArray.count-1] - currentArray[0])/currentArray[0] * 100)) %"
+            let firstPrice = currentArray[0]
+            let profit = firstPrice > 0 ? (currentArray[currentArray.count-1] - firstPrice)/firstPrice * 100 : 0
+            let profitPercentage = "\(Int(profit)) %"
             self.profitLabel.text = profitPercentage
             if profitPercentage.contains("-") {
                 self.profitLabel.textColor = Colors.getColor("losstext")
@@ -394,6 +402,8 @@ class ValueViewController: UIViewController {
                 self.profitArrowImage.image = UIImage(systemName: "arrow.up")
             }
             self.profitView.alpha = 1
+            
+            if totalSpan == 0 { return }
             
             var differential:CGFloat = 2500
             if totalSpan > 60000 {
@@ -526,7 +536,7 @@ class ValueViewController: UIViewController {
         }
         
         let totalDataPoints = CGFloat(Calendar.current.dateComponents([.day], from: startDate, to: currentDate).day!)
-        let dateFormatter = DateFormatter()
+        let dateFormatter = ValueViewController.axisDateFormatter
         dateFormatter.dateFormat = tick.format
         
         var walkedDate = startDate
