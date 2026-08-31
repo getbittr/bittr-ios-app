@@ -9,9 +9,6 @@ import UIKit
 
 class RegisterIbanViewController: UIViewController {
     
-    // UI elements
-    @IBOutlet weak var downButton: UIButton!
-    
     // Container views
     @IBOutlet weak var walletReadyContainer: UIView!
     @IBOutlet weak var bittrSignupContainer: UIView!
@@ -35,9 +32,6 @@ class RegisterIbanViewController: UIViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
         
-        // Button titles
-        self.downButton.setTitle("", for: .normal)
-        
         // Set colors
         self.changeColors()
         
@@ -45,6 +39,9 @@ class RegisterIbanViewController: UIViewController {
         self.allContainerViews = [self.walletReadyContainer, self.bittrSignupContainer, self.bittrEmailVerificationContainer, self.bittrDetailsContainer, self.bittrFinalContainer]
         self.animateTransition = false
         self.moveToPage(0)
+        
+        // Header
+        self.addHeader(iconLight: "iconpiggywhite", iconDark: "iconpiggyyellow", title: Language.getWord(withID: "buybitcoin"))
     }
     
     func moveToPage(_ thisPage:Int) {
@@ -102,14 +99,9 @@ class RegisterIbanViewController: UIViewController {
         }
     }
     
-    @IBAction func downButtonTapped(_ sender: UIButton) {
-        
-        self.dismiss(animated: true, completion: nil)
-    }
-    
     func changeColors() {
         
-        self.view.backgroundColor = Colors.getColor("yelloworblue1")
+        self.view.backgroundColor = Colors.getColor("yelloworblue3")
     }
     
 }
