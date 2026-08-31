@@ -458,6 +458,7 @@ class SwapManager: NSObject {
                                 refundPublicKeyHex: refundPublicKey,
                                 claimPrivateKeyHex: privateKey,
                                 ourClaimPublicKeyHex: publicKey,
+                                preimageHex: randomPreimage.hexEncodedString(),
                                 claimLeafOutputHex: claimLeafOutput,
                                 refundLeafOutputHex: refundLeafOutput
                             )

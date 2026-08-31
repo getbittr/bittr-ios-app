@@ -6,6 +6,7 @@
 //
 
 import XCTest
+import CryptoKit
 @testable import bittr
 
 final class bittrTests: XCTestCase {
@@ -175,5 +176,77 @@ final class NumberAndMoneyTests: XCTestCase {
         XCTAssertEqual(CGFloat(0).inSatoshis(), 0)
         XCTAssertEqual(CGFloat(-1).inSatoshis(), 0)     // non-positive -> 0
         XCTAssertEqual(CGFloat(22_000_000).inSatoshis(), Bitcoin.maximumSatoshis) // clamped to supply
+    }
+}
+
+// MARK: - RIPEMD-160
+
+final class RIPEMD160Tests: XCTestCase {
+
+    // The canonical RIPEMD-160 test vectors. If any constant table in the
+    // implementation is transcribed wrong, one of these breaks.
+    func testStandardVectors() {
+        let cases: [(String, String)] = [
+            ("", "9c1185a5c5e9fc54612808977ee8f548b2258d31"),
+            ("a", "0bdc9d2d256b3ee9daae347be6f4dc835a467ffe"),
+            ("abc", "8eb208f7e05d987a9b044a8e98c6b087f15a0bfc"),
+            ("message digest", "5d0689ef49d2fae572b881b123a85ffa21595f36"),
+            ("abcdefghijklmnopqrstuvwxyz", "f71c27109c692c1b56bbdceb5b9d2865b3708dbc"),
+            ("abcdbcdecdefdefgefghfghighijhijkijkljklmklmnlmnomnopnopq",
+             "12a053384a9c0c88e405a06c27dcf49ada62eb2b")
+        ]
+        for (input, expected) in cases {
+            XCTAssertEqual(RIPEMD160.hash(Data(input.utf8)).hex, expected, "RIPEMD160(\"\(input)\")")
+        }
+    }
+
+    // A million 'a's: exercises many blocks and the padding path.
+    func testLongVector() {
+        let input = Data(Array(repeating: UInt8(ascii: "a"), count: 1_000_000))
+        XCTAssertEqual(RIPEMD160.hash(input).hex, "52783243c1697bdbe16d37f97f68f08325dc1528")
+    }
+
+    // HASH160 = RIPEMD160(SHA256(x)).
+    func testHash160Composition() {
+        let data = Data("abc".utf8)
+        let expected = RIPEMD160.hash(Data(SHA256.hash(data: data))).hex
+        XCTAssertEqual(RIPEMD160.hash160(data).hex, expected)
+    }
+}
+
+// MARK: - Reverse-swap claim-leaf preimage-hash check
+
+final class BoltzClaimLeafTests: XCTestCase {
+
+    // Real claimLeaf from a regtest reverse swap (the comment block in
+    // SwapManager.lightningToOnchain), and the HASH160(preimage) it commits to.
+    private let regtestClaimLeaf = "82012088a91475b687397f92783b38c7381725bfcf27d65eef3f8820036f6171920eec6d2f377e4c0ab88960307c7d9d817ddf65585bc28a8334be1aac"
+    private let regtestLeafHash160 = "75b687397f92783b38c7381725bfcf27d65eef3f"
+
+    func testParsesHash160FromRealLeaf() throws {
+        let hash = try BoltzSwapValidation.claimLeafPreimageHash160(regtestClaimLeaf)
+        XCTAssertEqual(hash.hex, regtestLeafHash160)
+    }
+
+    // A layout that isn't exactly OP_SIZE 32 EQUALVERIFY HASH160 <20> ... must
+    // throw rather than silently return the wrong 20 bytes.
+    func testRejectsMalformedLeaf() {
+        XCTAssertThrowsError(try BoltzSwapValidation.claimLeafPreimageHash160("82012088a914"))                         // truncated
+        XCTAssertThrowsError(try BoltzSwapValidation.claimLeafPreimageHash160("00" + String(regtestClaimLeaf.dropFirst(2)))) // wrong first opcode
+        XCTAssertThrowsError(try BoltzSwapValidation.claimLeafPreimageHash160(regtestClaimLeaf + "ff"))                // trailing byte
+        XCTAssertThrowsError(try BoltzSwapValidation.claimLeafPreimageHash160("zz"))                                   // not hex
+    }
+
+    // Round-trip: build a leaf around HASH160(ourPreimage), confirm the parser
+    // recovers exactly that, and that a different hash does not match.
+    func testHash160RoundTripThroughLeaf() throws {
+        let preimage = Data((0..<32).map { UInt8($0) })
+        let expected = RIPEMD160.hash160(preimage)
+        let dummyKey = String(repeating: "ab", count: 32)   // 32-byte x-only key placeholder
+        let genuineLeaf = "82012088a914" + expected.hex + "8820" + dummyKey + "ac"
+        XCTAssertEqual(try BoltzSwapValidation.claimLeafPreimageHash160(genuineLeaf), expected)
+
+        let tamperedLeaf = "82012088a914" + String(repeating: "00", count: 20) + "8820" + dummyKey + "ac"
+        XCTAssertNotEqual(try BoltzSwapValidation.claimLeafPreimageHash160(tamperedLeaf), expected)
     }
 }
