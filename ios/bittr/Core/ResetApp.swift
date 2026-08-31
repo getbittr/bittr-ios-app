@@ -49,13 +49,13 @@ extension CoreViewController {
         if !self.walletHasSynced {
             if self.resettingPin {
                 Log.info("The user wants to remove the wallet from the Reset PIN view.")
-                self.showAlert(presentingController: self, title: Language.getWord(withID: "removewalletfromdevice"), message: Language.getWord(withID: "removewallet1"), buttons: [Language.getWord(withID: "cancel"), Language.getWord(withID: "removewalletfromdevice")], actions: [nil, #selector(self.startWalletInBackground)])
+                self.showAlert(title: Language.getWord(withID: "removewalletfromdevice"), message: Language.getWord(withID: "removewallet1"), buttons: [.dismiss(Language.getWord(withID: "cancel")), .action(Language.getWord(withID: "removewalletfromdevice")) { self.startWalletInBackground() }])
             } else if self.removingWalletForIncorrectPin {
                 Log.info("Will start wallet in background.")
                 self.startWalletInBackground()
             } else {
                 Log.info("Wallet is syncing.")
-                self.showAlert(presentingController: self, title: Language.getWord(withID: "syncingwallet"), message: Language.getWord(withID: "syncingwallet2"), buttons: [Language.getWord(withID: "okay")], actions: nil)
+                self.showAlert(title: Language.getWord(withID: "syncingwallet"), message: Language.getWord(withID: "syncingwallet2"), buttons: [.dismiss(Language.getWord(withID: "okay"))])
             }
         } else {
             Log.info("Wallet is ready.")
@@ -82,7 +82,7 @@ extension CoreViewController {
                         self.isRemovalInFlight = true
                         self.closeChannelConfirmed()
                     } else {
-                        self.showAlert(presentingController: self, title: Language.getWord(withID: "removewallet"), message: Language.getWord(withID: "restorewallet4"), buttons: [Language.getWord(withID: "cancel"), Language.getWord(withID: "closechannel")], actions: [nil, #selector(self.closeChannelAlert)])
+                        self.showAlert(title: Language.getWord(withID: "removewallet"), message: Language.getWord(withID: "restorewallet4"), buttons: [.dismiss(Language.getWord(withID: "cancel")), .action(Language.getWord(withID: "closechannel")) { self.closeChannelAlert() }])
                     }
                 } else {
                     // Channel is closed but the funds haven't fully returned
@@ -95,13 +95,13 @@ extension CoreViewController {
                     
                     if self.removingWalletForIncorrectPin {
                         // User is locked out. Show "Try again" button, as only available user action.
-                        self.showAlert(presentingController: self, title: Language.getWord(withID: "removewallet"), message: Language.getWord(withID: "stillclosing"), buttons: [Language.getWord(withID: "tryagain")], actions: [#selector(self.startWalletInBackground)])
+                        self.showAlert(title: Language.getWord(withID: "removewallet"), message: Language.getWord(withID: "stillclosing"), buttons: [.action(Language.getWord(withID: "tryagain")) { self.startWalletInBackground() }])
                     } else {
                         // Manual removal is deferred until the close settles — remember it
                         // so the next launch can offer to resume (covers a channel closed
                         // out from under us as well as our own coop close).
                         CacheManager.setWalletRemovalInProgress(true)
-                        self.showAlert(presentingController: self, title: Language.getWord(withID: "removewallet"), message: Language.getWord(withID: "stillclosing"), buttons: [Language.getWord(withID: "okay")], actions: nil)
+                        self.showAlert(title: Language.getWord(withID: "removewallet"), message: Language.getWord(withID: "stillclosing"), buttons: [.dismiss(Language.getWord(withID: "okay"))])
                     }
                 }
             } else {
@@ -112,14 +112,13 @@ extension CoreViewController {
                     self.performWalletReset()
                 } else {
                     // Remove wallet.
-                    self.showAlert(presentingController: self, title: Language.getWord(withID: "removewallet"), message: Language.getWord(withID: "restorewallet2"), buttons: [Language.getWord(withID: "cancel"), Language.getWord(withID: "remove")], actions: [nil, #selector(self.walletRestoreAlert)])
+                    self.showAlert(title: Language.getWord(withID: "removewallet"), message: Language.getWord(withID: "restorewallet2"), buttons: [.dismiss(Language.getWord(withID: "cancel")), .action(Language.getWord(withID: "remove")) { self.walletRestoreAlert() }])
                 }
             }
         }
     }
     
-    @objc func startWalletInBackground() {
-        self.hideAlert()
+    func startWalletInBackground() {
         
         // The user wishes to remove the wallet from the device, without signing in.
         Log.info("Start wallet in background.")
@@ -132,31 +131,26 @@ extension CoreViewController {
         self.startWallet()
     }
 
-    @objc func resumeWalletRemoval() {
+    func resumeWalletRemoval() {
         Log.info("Resume wallet removal.")
-        self.hideAlert()
         self.resettingPin = true
         self.startWalletInBackground()
     }
 
-    @objc func cancelWalletRemoval() {
+    func cancelWalletRemoval() {
         Log.info("Cancel wallet removal.")
-        self.hideAlert()
         CacheManager.setWalletRemovalInProgress(false)
     }
 
-    @objc func walletRestoreAlert() {
-        self.hideAlert()
-        self.showAlert(presentingController: self, title: Language.getWord(withID: "removewallet"), message: Language.getWord(withID: "restorewallet3"), buttons: [Language.getWord(withID: "cancel"), Language.getWord(withID: "remove")], actions: [nil, #selector(self.performWalletReset)])
+    func walletRestoreAlert() {
+        self.showAlert(title: Language.getWord(withID: "removewallet"), message: Language.getWord(withID: "restorewallet3"), buttons: [.dismiss(Language.getWord(withID: "cancel")), .action(Language.getWord(withID: "remove")) { self.performWalletReset() }])
     }
     
-    @objc func closeChannelAlert() {
-        self.hideAlert()
-        self.showAlert(presentingController: self, title: Language.getWord(withID: "closechannel"), message: Language.getWord(withID: "closechannel2"), buttons: [Language.getWord(withID: "cancel"), Language.getWord(withID: "closechannel")], actions: [nil, #selector(self.closeChannelConfirmed)])
+    func closeChannelAlert() {
+        self.showAlert(title: Language.getWord(withID: "closechannel"), message: Language.getWord(withID: "closechannel2"), buttons: [.dismiss(Language.getWord(withID: "cancel")), .action(Language.getWord(withID: "closechannel")) { self.closeChannelConfirmed() }])
     }
     
-    @objc func closeChannelConfirmed() {
-        self.hideAlert()
+    func closeChannelConfirmed() {
 
         self.fullViewCover.alpha = 0.8
         self.genericSpinner.startAnimating()
@@ -178,7 +172,7 @@ extension CoreViewController {
                         // Close attempt failed — release the single-flight guard.
                         self.isRemovalInFlight = false
                         self.genericSpinner.stopAnimating()
-                        self.showAlert(presentingController: self, title: Language.getWord(withID: "restorewallet"), message: Language.getWord(withID: "closeretrylater"), buttons: [Language.getWord(withID: "tryagain")], actions: [#selector(self.startWalletInBackground)])
+                        self.showAlert(title: Language.getWord(withID: "restorewallet"), message: Language.getWord(withID: "closeretrylater"), buttons: [.action(Language.getWord(withID: "tryagain")) { self.startWalletInBackground() }])
                     } else {
                         // Manual reset: let the user explicitly choose force close.
                         self.forceCloseChannel()
@@ -209,11 +203,11 @@ extension CoreViewController {
                         // Close attempt failed — release the single-flight guard.
                         self.isRemovalInFlight = false
                         self.genericSpinner.stopAnimating()
-                        self.showAlert(presentingController: self, title: Language.getWord(withID: "restorewallet"), message: Language.getWord(withID: "closeretrylater"), buttons: [Language.getWord(withID: "tryagain")], actions: [#selector(self.startWalletInBackground)])
+                        self.showAlert(title: Language.getWord(withID: "restorewallet"), message: Language.getWord(withID: "closeretrylater"), buttons: [.action(Language.getWord(withID: "tryagain")) { self.startWalletInBackground() }])
                     } else {
                         self.genericSpinner.stopAnimating()
                         self.fullViewCover.alpha = 0
-                        self.showAlert(presentingController: self, title: Language.getWord(withID: "closechannel6"), message: Language.getWord(withID: "closechannel7"), buttons: [Language.getWord(withID: "cancel"), Language.getWord(withID: "forceclose")], actions: [nil, #selector(self.forceCloseChannel)])
+                        self.showAlert(title: Language.getWord(withID: "closechannel6"), message: Language.getWord(withID: "closechannel7"), buttons: [.dismiss(Language.getWord(withID: "cancel")), .action(Language.getWord(withID: "forceclose")) { self.forceCloseChannel() }])
                     }
                 }
                 return
@@ -235,17 +229,16 @@ extension CoreViewController {
 
                 if self.removingWalletForIncorrectPin {
                     // User is locked out. Show "Try again" button as only available user action.
-                    self.showAlert(presentingController: self, title: Language.getWord(withID: "restorewallet"), message: Language.getWord(withID: "stillclosing"), buttons: [Language.getWord(withID: "tryagain")], actions: [#selector(self.startWalletInBackground)])
+                    self.showAlert(title: Language.getWord(withID: "restorewallet"), message: Language.getWord(withID: "stillclosing"), buttons: [.action(Language.getWord(withID: "tryagain")) { self.startWalletInBackground() }])
                 } else {
                     self.fullViewCover.alpha = 0
-                    self.showAlert(presentingController: self, title: Language.getWord(withID: "restorewallet"), message: Language.getWord(withID: "stillclosing"), buttons: [Language.getWord(withID: "okay")], actions: nil)
+                    self.showAlert(title: Language.getWord(withID: "restorewallet"), message: Language.getWord(withID: "stillclosing"), buttons: [.dismiss(Language.getWord(withID: "okay"))])
                 }
             }
         }
     }
 
-    @objc func forceCloseChannel() {
-        self.hideAlert()
+    func forceCloseChannel() {
 
         // Same as closeChannelConfirmed: keep the cover + spinner up during the
         // force-close attempt until a terminal alert appears.
@@ -279,7 +272,7 @@ extension CoreViewController {
                     if !self.removingWalletForIncorrectPin {
                         self.genericSpinner.stopAnimating()
                         self.fullViewCover.alpha = 0
-                        self.showAlert(presentingController: self, title: Language.getWord(withID: "closechannel"), message: Language.getWord(withID: "forceclose3"), buttons: [Language.getWord(withID: "okay")], actions: nil)
+                        self.showAlert(title: Language.getWord(withID: "closechannel"), message: Language.getWord(withID: "forceclose3"), buttons: [.dismiss(Language.getWord(withID: "okay"))])
                     }
                 }
                 return
@@ -293,13 +286,12 @@ extension CoreViewController {
                 self.didCloseChannel()
                 self.genericSpinner.stopAnimating()
                 self.fullViewCover.alpha = 0
-                self.showAlert(presentingController: self, title: Language.getWord(withID: "forceclose"), message: Language.getWord(withID: "forceclose4"), buttons: [Language.getWord(withID: "okay")], actions: nil)
+                self.showAlert(title: Language.getWord(withID: "forceclose"), message: Language.getWord(withID: "forceclose4"), buttons: [.dismiss(Language.getWord(withID: "okay"))])
             }
         }
     }
     
-    @objc func performWalletReset() {
-        self.hideAlert()
+    func performWalletReset() {
         self.hideSettings()
         
         // Stop background sync timer. This has to happen before the teardown
@@ -368,7 +360,7 @@ extension CoreViewController {
                     self.removingWalletForIncorrectPin = wasRemovingWalletForIncorrectPin
                     self.genericSpinner.stopAnimating()
                     self.fullViewCover.alpha = 0
-                    self.showAlert(presentingController: self, title: Language.getWord(withID: "removewallet"), message: Language.getWord(withID: "removalfailed"), buttons: [Language.getWord(withID: "okay")], actions: nil)
+                    self.showAlert(title: Language.getWord(withID: "removewallet"), message: Language.getWord(withID: "removalfailed"), buttons: [.dismiss(Language.getWord(withID: "okay"))])
                 }
                 return
             }

@@ -159,7 +159,7 @@ class PinViewController: UIViewController, UITextFieldDelegate, UICollectionView
         
         // Check if PIN is already at max length (8 digits)
         if (pinTextField.text?.count ?? 0) >= 8 {
-            self.showAlert(presentingController: self.coreVC ?? self, title: Language.getWord(withID: "pinlength"), message: Language.getWord(withID: "pincanbeupto8"), buttons: [Language.getWord(withID: "okay")], actions: nil)
+            self.showAlert(title: Language.getWord(withID: "pinlength"), message: Language.getWord(withID: "pincanbeupto8"), buttons: [.dismiss(Language.getWord(withID: "okay"))])
             return
         }
         
@@ -183,7 +183,7 @@ class PinViewController: UIViewController, UITextFieldDelegate, UICollectionView
         
         // Check if PIN is empty or too short
         if (pinTextField.text?.count ?? 0) < 4 {
-            self.showAlert(presentingController: self.coreVC ?? self, title: Language.getWord(withID: "pinrequired"), message: Language.getWord(withID: "pinshouldbe4to8"), buttons: [Language.getWord(withID: "okay")], actions: nil)
+            self.showAlert(title: Language.getWord(withID: "pinrequired"), message: Language.getWord(withID: "pinshouldbe4to8"), buttons: [.dismiss(Language.getWord(withID: "okay"))])
             return
         }
         
@@ -234,11 +234,11 @@ class PinViewController: UIViewController, UITextFieldDelegate, UICollectionView
                 // Forgot PIN flow — the wipe can cost them their Lightning
                 // funds, so we want them recovering by mnemonic instead.
                 if CacheManager.getFailedPinAttempts() == 3 {
-                    self.showAlert(presentingController: self.coreVC ?? self, title: Language.getWord(withID: "pinwarning"), message: Language.getWord(withID: "pinwarning2") + "\n\n" + attemptsMessage, buttons: [Language.getWord(withID: "okay"), Language.getWord(withID: "forgotpin")], actions: [nil, #selector(self.startPinReset)])
+                    self.showAlert(title: Language.getWord(withID: "pinwarning"), message: Language.getWord(withID: "pinwarning2") + "\n\n" + attemptsMessage, buttons: [.dismiss(Language.getWord(withID: "okay")), .action(Language.getWord(withID: "forgotpin")) { self.coreVC!.startPinReset() }])
                     return
                 }
 
-                self.showAlert(presentingController: self.coreVC ?? self, title: Language.getWord(withID: "incorrectpin"), message: Language.getWord(withID: "incorrectpin2") + "\n\n" + attemptsMessage, buttons: [Language.getWord(withID: "okay")], actions: [#selector(self.clearPinField)])
+                self.showAlert(title: Language.getWord(withID: "incorrectpin"), message: Language.getWord(withID: "incorrectpin2") + "\n\n" + attemptsMessage, buttons: [.action(Language.getWord(withID: "okay")) { self.clearPinField() }])
             }
         case .signup5:
             (self.upperViewController as? Signup5ViewController)?.nextButtonTapped(enteredPin: self.pinTextField.text ?? "")
@@ -252,15 +252,14 @@ class PinViewController: UIViewController, UITextFieldDelegate, UICollectionView
     }
     
     func removeWallet() {
-        self.showAlert(presentingController: self.coreVC ?? self, title: Language.getWord(withID: "restorewallet"), message: Language.getWord(withID: "pinlock"), buttons: [Language.getWord(withID: "okay")], actions: nil)
+        self.showAlert(title: Language.getWord(withID: "restorewallet"), message: Language.getWord(withID: "pinlock"), buttons: [.dismiss(Language.getWord(withID: "okay"))])
         
         Log.info("Remove wallet from device.")
         self.coreVC?.removingWalletForIncorrectPin = true
         self.coreVC?.restoreWalletTapped()
     }
     
-    @objc func clearPinField() {
-        self.hideAlert()
+    func clearPinField() {
         self.pinTextField.text = ""
         self.pinCollectionView.reloadData()
     }
@@ -269,18 +268,13 @@ class PinViewController: UIViewController, UITextFieldDelegate, UICollectionView
         
         switch self.embeddingView {
         case .core:
-            self.showAlert(presentingController: self.coreVC!, title: Language.getWord(withID: "forgotpin"), message: Language.getWord(withID: "forgotpin2"), buttons: [Language.getWord(withID: "cancel"), Language.getWord(withID: "reset")], actions: [nil, #selector(self.startPinReset)])
+            self.showAlert(title: Language.getWord(withID: "forgotpin"), message: Language.getWord(withID: "forgotpin2"), buttons: [.dismiss(Language.getWord(withID: "cancel")), .action(Language.getWord(withID: "reset")) { self.coreVC!.startPinReset() }])
         case .signup6:
             (self.upperViewController as? Signup6ViewController)?.backButtonTapped()
         case .restore3:
             (self.upperViewController as? Restore3ViewController)?.backButtonTapped()
         default: return
         }
-    }
-    
-    @objc func startPinReset() {
-        self.hideAlert()
-        self.coreVC!.startPinReset()
     }
     
     @IBAction func pinButtonTouchDown(_ sender: UIButton) {

@@ -177,7 +177,7 @@ class BuyViewController: UIViewController, UITextFieldDelegate, UICollectionView
 
         let value = sender.boundString ?? ""
         UIPasteboard.general.string = value
-        self.showAlert(presentingController: self, title: Language.getWord(withID: "copied"), message: value, buttons: [Language.getWord(withID: "okay")], actions: nil)
+        self.showAlert(title: Language.getWord(withID: "copied"), message: value, buttons: [.dismiss(Language.getWord(withID: "okay"))])
     }
     
     func getDepositCodeData() {
@@ -287,7 +287,7 @@ class BuyViewController: UIViewController, UITextFieldDelegate, UICollectionView
             if someDetailsHaveChanged {
                 // Data has been updated.
                 self.parseIbanEntities(uponPageLaunch: false)
-                self.showAlert(presentingController: self, title: Language.getWord(withID: "buyvcupdatedetails"), message: Language.getWord(withID: "buyvcupdatedetails2"), buttons: [Language.getWord(withID: "okay")], actions: nil)
+                self.showAlert(title: Language.getWord(withID: "buyvcupdatedetails"), message: Language.getWord(withID: "buyvcupdatedetails2"), buttons: [.dismiss(Language.getWord(withID: "okay"))])
             } else if paymentModeChanged {
                 // Only the payout mode changed (e.g. toggled on another device) — refresh
                 // just the affected card(s) silently, no "details updated" alert.
@@ -309,7 +309,7 @@ class BuyViewController: UIViewController, UITextFieldDelegate, UICollectionView
                 } else {
                     Log.info("Notifications not authorized; blocking switch to lightning.")
                     self.reloadCard(for: entity)
-                    self.showAlert(presentingController: self, title: Language.getWord(withID: "receivenotifications"), message: Language.getWord(withID: "lightningneedsnotifications"), buttons: [Language.getWord(withID: "okay")], actions: nil)
+                    self.showAlert(title: Language.getWord(withID: "receivenotifications"), message: Language.getWord(withID: "lightningneedsnotifications"), buttons: [.dismiss(Language.getWord(withID: "okay"))])
                 }
             }
         } else {
@@ -330,7 +330,7 @@ class BuyViewController: UIViewController, UITextFieldDelegate, UICollectionView
         guard BitcoinManager.shared.ldkNode != nil, let pubkey = BitcoinManager.shared.nodeId() else {
             Log.info("Lightning not ready for payment mode update.")
             self.reloadCard(for: entity) // revert the optimistic toggle
-            self.showAlert(presentingController: self, title: Language.getWord(withID: "lightningnotready"), message: Language.getWord(withID: "syncingwallet2"), buttons: [Language.getWord(withID: "okay")], actions: nil)
+            self.showAlert(title: Language.getWord(withID: "lightningnotready"), message: Language.getWord(withID: "syncingwallet2"), buttons: [.dismiss(Language.getWord(withID: "okay"))])
             return
         }
         
@@ -415,7 +415,7 @@ class BuyViewController: UIViewController, UITextFieldDelegate, UICollectionView
         Log.info("Will handle payment mode error.")
         // Revert the optimistic toggle to the last server-confirmed value.
         self.reloadCard(for: entity)
-        self.showAlert(presentingController: self, title: Language.getWord(withID: "paymentmodeupdateerror"), message: message, buttons: [Language.getWord(withID: "okay")], actions: nil)
+        self.showAlert(title: Language.getWord(withID: "paymentmodeupdateerror"), message: message, buttons: [.dismiss(Language.getWord(withID: "okay"))])
     }
 
     /// Reload just the card for this deposit code (keeps the other cards + the
@@ -431,7 +431,7 @@ class BuyViewController: UIViewController, UITextFieldDelegate, UICollectionView
     @IBAction func paymentModeQuestionTapped(_ sender: UIButton) {
         self.view.endEditing(true)
         
-        self.showAlert(presentingController: self, title: Language.getWord(withID: "buyvclightning"), message: Language.getWord(withID: "buyvclightningexplanation"), buttons: [Language.getWord(withID: "okay")], actions: nil)
+        self.showAlert(title: Language.getWord(withID: "buyvclightning"), message: Language.getWord(withID: "buyvclightningexplanation"), buttons: [.dismiss(Language.getWord(withID: "okay"))])
     }
     
     func changeColors() {
