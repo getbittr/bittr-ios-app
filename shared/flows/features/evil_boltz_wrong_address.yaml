@@ -3,26 +3,23 @@
 # before paying it. The "bittr evil" app (Debug-EvilBoltz build, harness
 # armed) replaces that address with an attacker-controlled regtest address.
 #
-# Expected outcomes:
-#   • VULNERABLE build (no fix): the fees alert appears → the app broadcasts
-#     the onchain lockup to the ATTACKER's address → the swap stalls forever
-#     (Boltz watches its own address, which is never funded; the in-app refund
-#     path can never match). This flow then FAILS LOUDLY via fail.js — that
-#     failure IS the vulnerability demonstration. Verify the theft on-chain:
-#     https://esplora.bittr.io/address/bcrt1pcz9mae53csyv8d0t4fansh446jdjey2pg2djn5utqver5e42gp5s507k3j
-#     (attacker key documented in ios/bittr/Helpers/EvilBoltz.swift).
-#   • FIXED build: swap creation aborts with an error alert right after Next
-#     (before the onchain send). No SwapStatus screen ever appears. Passes.
+# The fix rejects the tampered response during swap creation: right after Next
+# an error alert appears ("We could not verify the swap details…") before the
+# onchain send, and no SwapStatus screen is ever reached. This flow confirms
+# that rejection, then returns to Home so the next test starts clean.
+# (Attacker address / key documented in ios/bittr/Helpers/EvilBoltz.swift.)
 #
-# Branch keying: fees alert = [Cancel, Proceed] → alert.button.1; abort alert
-# is single-button. Adjust the `when:` conditions if your fix differs.
+# (A build WITHOUT the fix would instead broadcast the onchain lockup to the
+# attacker's address and strand the swap; that vulnerable-path assertion was
+# removed once the fix landed.)
 #
 # Prerequisites:
 #   - "bittr evil" app installed once via the `bittr evil` Xcode scheme
 #   - push_server.js running: node shared/flows/scripts/push_server.js
-#
-# The flow fully reprovisions the evil app (wipe → wallet → signup → funded
-# channel → onchain payout deposit), so it runs standalone:
+#   - a provisioned, funded evil app with an onchain balance for the submarine
+#     leg: either run evil_boltz_wrong_invoice first (it leaves the app on Home
+#     with a funded channel) plus a prior onchain deposit, or uncomment the
+#     step-1 helpers below to provision inline.
 #
 # Run: maestro test shared/flows/features/evil_boltz_wrong_address.yaml
 
@@ -79,54 +76,33 @@ appId: com.bittr.bittr-evil
 - tapOn:
     id: "swap.nextButton"
 
-# 3) Some alert follows Next: the fees alert (vulnerable) or an error alert
-#    (fixed). Wait for any alert first.
+# 3) The fix rejects the tampered response right after Next — an error alert
+#    (single Okay button) appears before the onchain send.
 - extendedWaitUntil:
     visible:
       id: "alert.button.0"
     timeout: 30000
+- takeScreenshot: shared/docs/screenshots/evil_boltz_wrong_address/02_fixed_aborted
+# Confirm the fix's rejection (swapvalidationfailed — no funds sent). Maestro
+# matches `text` as a regex against the element's WHOLE text, so wrap the
+# distinctive substring in .* to match within the long message label.
+- assertVisible:
+    text: ".*could not verify the swap details.*"
+- tapOn:
+    id: "alert.button.0"
+# The swap status screen must never have appeared; we're back on SwapVC.
+- assertNotVisible:
+    id: "swapStatus.confirmCard"
+- assertVisible:
+    id: "swap.nextButton"
 
-# ── VULNERABLE PATH ─────────────────────────────────────────────────────────
-# The fees alert means the app accepted the attacker's lockup address.
-# Proceed, let it broadcast the onchain payment, prove the swap never
-# completes — then fail loudly.
-- runFlow:
-    when:
-      visible:
-        id: "alert.button.1"
-    commands:
-      - takeScreenshot: shared/docs/screenshots/evil_boltz_wrong_address/02_vulnerable_fees_alert
-      # Proceed → the app sends the onchain lockup to the attacker's address.
-      # (Unlike the lightning leg, no outgoing-payment transaction screen
-      # appears here — the send just goes out and the swap waits on Boltz.)
-      - tapOn:
-          id: "alert.button.1"
-      # The lockup tx confirms — at the ATTACKER's address, which Boltz is not
-      # watching. Mine 6 and let everything settle.
-      - evalScript: ${output.blocksToMine = 6}
-      - runScript: ../scripts/mine_blocks.js
-      # "Swap complete" must never appear — Boltz never saw a lockup at the
-      # address it generated, so it never pays the lightning invoice. The theft
-      # itself is verifiable on-chain at the attacker address (see below).
-      - assertNotVisible:
-          text: "Swap complete"
-      - takeScreenshot: shared/docs/screenshots/evil_boltz_wrong_address/03_vulnerable_stuck_swap
-      - evalScript: |
-          ${output.failureMessage = "SEC-02 VULNERABLE: the app sent the onchain lockup to Boltz's returned address without deriving it from the swap tree + keys. 50000 sats now sit at the attacker-controlled address bcrt1pcz9mae53csyv8d0t4fansh446jdjey2pg2djn5utqver5e42gp5s507k3j (check https://esplora.bittr.io) and no refund path exists. See SECURITY_REVIEW.md SEC-02."}
-      - runScript: ../scripts/fail.js
-
-# ── FIXED PATH ──────────────────────────────────────────────────────────────
-# No Proceed button: an error alert aborted the swap before the onchain send.
-- runFlow:
-    when:
-      notVisible:
-        id: "alert.button.1"
-    commands:
-      - takeScreenshot: shared/docs/screenshots/evil_boltz_wrong_address/02_fixed_aborted
-      - assertVisible:
-          id: "alert.button.0"
-      - tapOn:
-          id: "alert.button.0"
-      # The swap status screen must never have appeared.
-      - assertNotVisible:
-          id: "swapStatus.confirmCard"
+# 4) Return to Home so the next test starts clean: swipe down to dismiss SwapVC,
+#    then again to dismiss MoveVC (the same landing as swap.yaml).
+- swipe:
+    direction: DOWN
+    duration: 800
+- swipe:
+    direction: DOWN
+    duration: 800
+- assertVisible:
+    id: "home.headerLabel"
