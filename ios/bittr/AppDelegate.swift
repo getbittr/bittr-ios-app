@@ -15,6 +15,12 @@ class AppDelegate: UIResponder, UIApplicationDelegate, UNUserNotificationCenterD
         
         SentryManager.start()
 
+        #if DEBUG
+        // Logs a 🚨 banner at launch when the swap-tamper test harness
+        // (Helpers/EvilBoltz.swift) is armed via launch argument / env var.
+        EvilBoltz.logStatus()
+        #endif
+
         // Migrate any legacy UserDefaults-stored secrets (mnemonic, PIN) into the
         // Keychain. Safe to call on every launch; a no-op once migrated. The
         // getters also self-heal on first read, so this is just eager cleanup.

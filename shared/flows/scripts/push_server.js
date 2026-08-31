@@ -9,7 +9,9 @@
 //   node shared/flows/scripts/push_server.js
 //
 // Maestro flows POST to http://localhost:8888/push with the APNS JSON in
-// the body. Bundle ID is fixed to com.bittr.bittr-regtest.
+// the body. Bundle ID defaults to com.bittr.bittr-regtest; override it
+// per request with ?bundleId=... (e.g. com.bittr.bittr-evil for the
+// EvilBoltz test app) or process-wide via BITTR_PUSH_BUNDLE_ID.
 
 const http = require('http');
 const fs = require('fs');
@@ -18,21 +20,23 @@ const path = require('path');
 const { spawnSync } = require('child_process');
 
 const PORT = 8888;
-const BUNDLE_ID = 'com.bittr.bittr-regtest';
+const DEFAULT_BUNDLE_ID = process.env.BITTR_PUSH_BUNDLE_ID || 'com.bittr.bittr-regtest';
 
 http.createServer((req, res) => {
-    if (req.method !== 'POST' || req.url !== '/push') {
+    const requestUrl = new URL(req.url, 'http://localhost');
+    if (req.method !== 'POST' || requestUrl.pathname !== '/push') {
         res.writeHead(404);
         res.end('only POST /push is supported');
         return;
     }
+    const bundleId = requestUrl.searchParams.get('bundleId') || DEFAULT_BUNDLE_ID;
     let body = '';
     req.on('data', (chunk) => { body += chunk; });
     req.on('end', () => {
         const tempPath = path.join(os.tmpdir(), `maestro-push-${Date.now()}.json`);
         try {
             fs.writeFileSync(tempPath, body);
-            const result = spawnSync('xcrun', ['simctl', 'push', 'booted', BUNDLE_ID, tempPath]);
+            const result = spawnSync('xcrun', ['simctl', 'push', 'booted', bundleId, tempPath]);
             const stdout = result.stdout?.toString() ?? '';
             const stderr = result.stderr?.toString() ?? '';
             if (result.status !== 0) {
@@ -41,7 +45,7 @@ http.createServer((req, res) => {
                 res.end(JSON.stringify({ ok: false, status: result.status, stderr }));
                 return;
             }
-            console.log(`pushed ${body.length}-byte payload to ${BUNDLE_ID}`);
+            console.log(`pushed ${body.length}-byte payload to ${bundleId}`);
             res.writeHead(200, { 'Content-Type': 'application/json' });
             res.end(JSON.stringify({ ok: true, stdout, stderr }));
         } catch (err) {
@@ -54,5 +58,5 @@ http.createServer((req, res) => {
     });
 }).listen(PORT, '127.0.0.1', () => {
     console.log(`maestro push helper listening on http://127.0.0.1:${PORT}/push`);
-    console.log(`forwarding to: xcrun simctl push booted ${BUNDLE_ID} <payload>`);
+    console.log(`forwarding to: xcrun simctl push booted ${DEFAULT_BUNDLE_ID} <payload> (override per request with ?bundleId=...)`);
 });

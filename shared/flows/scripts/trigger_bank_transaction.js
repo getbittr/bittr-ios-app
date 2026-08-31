@@ -59,8 +59,32 @@ if (response == null || response.status < 200 || response.status >= 300) {
 }
 
 // Capture the fields the calling flow needs to fake the matching APNS push
-// (notification_id + bitcoin_amount go into bittr_specific_data).
+// (see build_payout_push.js for how they're used).
+//
+// notification_id may be ABSENT — for a channel-open (first) deposit the
+// backend hasn't created a notification record yet; the app completes those
+// via an htlc_notification push + /htlc-interceptor/ready (deposit-code
+// signed), which needs no notification id.
+//
+// bitcoin_amount must be present, and is STRINGIFIED here: the iOS app parses
+// the push's bitcoin_amount AS A STRING (NotificationManager.toNotification:
+// `bitcoin_amount as? String`), so a numeric e2e response field would make
+// the app's payout guard fail with "Required data unavailable while trying
+// to handle notification payout."
 var data = JSON.parse(response.body);
-output.notificationId = data.notification_id;
-output.bitcoinAmount = data.bitcoin_amount;
+
+if (data.notification_id != null) {
+    output.notificationId = String(data.notification_id);
+} else {
+    output.notificationId = null;
+    console.log('note: response has no notification_id — treating as channel-open deposit (htlc push)');
+}
+
+if (data.bitcoin_amount == null) {
+    throw new Error(
+        'e2e bank-transaction response is missing bitcoin_amount — ' +
+        'the response shape may have changed. Body: ' + response.body
+    );
+}
+output.bitcoinAmount = String(data.bitcoin_amount);
 console.log('Captured notification_id=' + output.notificationId + ' bitcoin_amount=' + output.bitcoinAmount);

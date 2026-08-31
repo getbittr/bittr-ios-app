@@ -15,10 +15,16 @@
 #      and the Profit screen have updated.
 #
 # Run: maestro test shared/flows/features/buy_incoming.yaml
+#
+# App injection: by default this runs against the regtest app. A caller may
+# set output.APP_ID before runFlow-ing this file to target a different build.
 
 appId: com.bittr.bittr-regtest
 ---
-- launchApp
+# Resolve the app under test (default: the regtest app).
+- evalScript: "${output.APP_ID = (output.APP_ID == null ? 'com.bittr.bittr-regtest' : output.APP_ID)}"
+- launchApp:
+    appId: ${output.APP_ID}
 
 - runFlow:
     when:

@@ -1,0 +1,92 @@
+# Helper: provisions the "bittr evil" app (com.bittr.bittr-evil — the
+# Debug-EvilBoltz build with the swap-tamper harness armed, see
+# ios/bittr/Helpers/EvilBoltz.swift) from scratch:
+#
+#   1. Wipe app data + keychain, create wallet, complete bittr signup
+#      (onboarding/fresh_install.yaml with output.APP_ID injected).
+#   2. Fund the lightning channel with a first e2e bank deposit — mirrors
+#      features/buy_incoming.yaml, except the payout push is FAKED via
+#      push_server.js targeted at the evil bundle id: the staging backend's
+#      real APNs topic only matches com.bittr.bittr-regtest, so a real push
+#      would never reach the evil app on the simulator.
+#
+# Ends on Home with a funded lightning channel, ready for a swap attempt.
+#
+# Prerequisites: push_server.js running (Terminal A), bittr evil app installed
+# once via the `bittr evil` Xcode scheme.
+#
+# Override the target app by setting output.APP_ID (and optionally
+# output.pushBundleId) before runFlow-ing this file — both default to
+# com.bittr.bittr-evil.
+
+appId: com.bittr.bittr-evil
+---
+# Resolve the app under test + the push target (default: the evil app).
+- evalScript: "${output.APP_ID = (output.APP_ID == null ? 'com.bittr.bittr-evil' : output.APP_ID)}"
+- evalScript: "${output.pushBundleId = (output.pushBundleId == null ? output.APP_ID : output.pushBundleId)}"
+
+# 1) Clean onboarding: wallet + bittr account. Ends on Home.
+- runFlow: ../onboarding/fresh_install.yaml
+
+# 2) Fund the channel. Wait for the post-signup sync, then open Buy and copy
+#    the deposit code.
+- extendedWaitUntil:
+    notVisible:
+      id: "home.headerSpinner"
+    timeout: 120000
+- tapOn:
+    id: "home.buyButton"
+- assertVisible:
+    id: "buy.yourCode"
+- copyTextFrom:
+    id: "buy.yourCode"
+- evalScript: ${output.depositCode = maestro.copiedText}
+
+# Dismiss BuyVC so alert layers (added to CoreVC.view) are visible to Maestro.
+- swipe:
+    direction: DOWN
+    duration: 800
+- assertVisible:
+    id: "home.headerLabel"
+
+# Trigger the e2e bank transaction (backend default amount), capturing
+# notification_id (absent for channel-open deposits) + bitcoin_amount.
+- runScript: ../scripts/trigger_bank_transaction.js
+
+# Build the matching fake push (lightningPayout vs htlcIncoming, depending on
+# whether the response had a notification_id) and fire it at the EVIL bundle
+# id (the staging backend's real APNs topic only matches com.bittr.bittr-regtest,
+# so a real push would never reach the evil app).
+- runScript: ../scripts/build_payout_push.js
+- runScript: ../scripts/push_notification.js
+
+# A "bittr payout" alert may appear (as in buy_more.yaml) — give it a moment,
+# then tap it away if it's there. (First-deposit processing per
+# buy_incoming.yaml shows no blocking alert, but the fake push is shaped like
+# buy_more's, so handle both.)
+- evalScript: ${output.sleepMs = 5000}
+- runScript: ../scripts/sleep.js
+- runFlow:
+    when:
+      visible:
+        id: "alert.button.0"
+    commands:
+      - tapOn:
+          id: "alert.button.0"
+
+# Mine 6 blocks so the lightning channel opens and confirms.
+- evalScript: ${output.blocksToMine = 6}
+- runScript: ../scripts/mine_blocks.js
+
+# Backend processes the deposit → app settles on the transaction screen.
+- extendedWaitUntil:
+    visible:
+      id: "transaction.labelAmount"
+    timeout: 60000
+- takeScreenshot: shared/docs/screenshots/evil_bootstrap/01_funding_transaction
+
+# Close the transaction screen → Home with a funded channel.
+- tapOn:
+    id: "header.downButton"
+- assertVisible:
+    id: "home.headerLabel"

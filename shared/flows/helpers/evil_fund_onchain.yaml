@@ -1,0 +1,82 @@
+# Helper: fund the evil app's ONCHAIN balance (needed for submarine
+# onchain→lightning swap tests like evil_boltz_wrong_address.yaml).
+#
+# Assumes evil_bootstrap.yaml has already run (Home, wallet + bittr account +
+# lightning channel open). The lightning channel alone can't fund a submarine
+# swap — the app needs an onchain UTXO to send to Boltz's lockup address.
+#
+# Steps: toggle the deposit code's payout mode to onchain (server-confirmed),
+# trigger a second e2e bank deposit, mine, resync, and land back on Home with
+# an onchain balance. The payout mode is intentionally left on onchain — swap
+# flows don't depend on it.
+#
+# NOTE: no fake push here. Onchain payouts need no app involvement — the
+# backend pays an address derived from the registered xpub directly (that's
+# how the no-notifications signup path completes on-chain). Faking a
+# lightningPayout push would instead make the app create an invoice and ask
+# for a LIGHTNING payout — the opposite of what we want. We simply mine and
+# let the wallet sync pick up the UTXO. Funding is implicitly verified by the
+# swap leg that follows (it waits for a nonzero "available" amount).
+#
+# Prerequisites: same as evil_bootstrap.yaml.
+
+appId: com.bittr.bittr-evil
+---
+# Wait for any in-flight sync, then open Buy.
+- extendedWaitUntil:
+    notVisible:
+      id: "home.headerSpinner"
+    timeout: 120000
+- tapOn:
+    id: "home.buyButton"
+- assertVisible:
+    id: "buy.yourCode"
+
+# Toggle payout mode to onchain. The PATCH is server-confirmed: the switch
+# settles to off only after the backend acknowledges (payment_mode.yaml).
+- tapOn:
+    id: "buy.paymentModeSwitch"
+- extendedWaitUntil:
+    visible:
+      id: "buy.paymentModeSwitch"
+      checked: false
+    timeout: 60000
+- takeScreenshot: shared/docs/screenshots/evil_fund_onchain/01_onchain_payout
+
+- copyTextFrom:
+    id: "buy.yourCode"
+- evalScript: ${output.depositCode = maestro.copiedText}
+
+# Dismiss BuyVC → Home.
+- swipe:
+    direction: DOWN
+    duration: 800
+- assertVisible:
+    id: "home.headerLabel"
+
+# Second bank deposit — pays out onchain to the registered xpub.
+- runScript: ../scripts/trigger_bank_transaction.js
+
+# Confirm it, then pull Home down to force a wallet resync so the new UTXO
+# shows up.
+- evalScript: ${output.blocksToMine = 6}
+- runScript: ../scripts/mine_blocks.js
+- swipe:
+    direction: DOWN
+    duration: 800
+- extendedWaitUntil:
+    notVisible:
+      id: "home.headerSpinner"
+    timeout: 120000
+
+# If a transaction detail screen appeared for the incoming payout, close it.
+- runFlow:
+    when:
+      visible:
+        id: "header.downButton"
+    commands:
+      - tapOn:
+          id: "header.downButton"
+- assertVisible:
+    id: "home.headerLabel"
+- takeScreenshot: shared/docs/screenshots/evil_fund_onchain/02_home_funded
