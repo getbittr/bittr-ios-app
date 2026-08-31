@@ -56,13 +56,29 @@ class CoreViewController: UIViewController {
     var downloadedAcademy:[Level]?
     
     // Top bar
-    @IBOutlet weak var animationContainer: UIView!
-    @IBOutlet weak var finalLogoDarkMode: UIImageView!
+    @IBOutlet weak var topBarHeight: NSLayoutConstraint!
+    @IBOutlet weak var topBarTop: NSLayoutConstraint!
+    @IBOutlet weak var logoTop: NSLayoutConstraint!
     @IBOutlet weak var topBar: UIView!
     @IBOutlet weak var lowerTopBar: UIView!
-    @IBOutlet weak var bittrTextDarkMode: UIImageView!
     @IBOutlet weak var upperYellowCurve: BottomCurveView!
     @IBOutlet weak var lowerYellowCurve: BottomCurveView!
+    
+    // Logo animation
+    @IBOutlet weak var logoView: UIView!
+    @IBOutlet weak var logoTextDarkMode: UIImageView!
+    @IBOutlet weak var logoIconDarkMode: UIImageView!
+    @IBOutlet weak var coverView: UIView!
+    @IBOutlet weak var coin1: UIImageView!
+    @IBOutlet weak var coin3: UIImageView!
+    @IBOutlet weak var firstCoin: UIView!
+    @IBOutlet weak var secondCoin: UIView!
+    @IBOutlet weak var firstCoinCenterY: NSLayoutConstraint!
+    @IBOutlet weak var firstCoinCenterX: NSLayoutConstraint!
+    @IBOutlet weak var blackCoin: UIImageView!
+    @IBOutlet weak var logoViewWidth: NSLayoutConstraint!
+    @IBOutlet weak var finalLogo: UIImageView!
+    var logoHasMovedUp = false
     
     // Year view
     @IBOutlet weak var yearView: UIView!
@@ -143,9 +159,6 @@ class CoreViewController: UIViewController {
         // Set words.
         self.setWords()
         self.setBasicStyling()
-
-        // Taps on the animationContainer go through it down to PinVC or SignupVC.
-        self.animationContainer.isUserInteractionEnabled = false
 
         // Check wallet.
         self.checkWalletAvailability()
