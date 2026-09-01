@@ -29,6 +29,7 @@
 appId: com.bittr.bittr-regtest
 ---
 - launchApp
+- runFlow: ../helpers/wait_for_launch.yaml
 
 # Existing wallet → launch lands on the PIN unlock screen. Enter the PIN.
 - assertVisible:

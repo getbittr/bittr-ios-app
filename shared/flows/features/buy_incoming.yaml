@@ -25,6 +25,7 @@ appId: com.bittr.bittr-regtest
 - evalScript: "${output.APP_ID = (output.APP_ID == null ? 'com.bittr.bittr-regtest' : output.APP_ID)}"
 - launchApp:
     appId: ${output.APP_ID}
+- runFlow: ../helpers/wait_for_launch.yaml
 
 - runFlow:
     when:

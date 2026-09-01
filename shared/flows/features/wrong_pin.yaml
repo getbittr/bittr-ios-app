@@ -35,6 +35,7 @@
 appId: com.bittr.bittr-regtest
 ---
 - launchApp
+- runFlow: ../helpers/wait_for_launch.yaml
 
 # Self-provision a wallet if there isn't one. Let the cold-start launch
 # animation settle first — right after launchApp nothing has rendered yet, so
@@ -55,6 +56,7 @@ appId: com.bittr.bittr-regtest
 
 # Back to the locked unlock screen (no-op relaunch if a wallet already existed).
 - launchApp
+- runFlow: ../helpers/wait_for_launch.yaml
 - takeScreenshot: shared/docs/screenshots/wrong_pin/01_unlock
 
 # Enter the wrong PIN ten times -> lockout + background wipe begins.

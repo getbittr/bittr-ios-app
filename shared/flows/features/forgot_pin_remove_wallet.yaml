@@ -39,6 +39,7 @@
 appId: com.bittr.bittr-regtest
 ---
 - launchApp
+- runFlow: ../helpers/wait_for_launch.yaml
 
 # Self-provision a wallet WITH a Lightning channel if there's none — i.e. the
 # app launched to the create-wallet signup screen. Skipped if a wallet exists.
@@ -51,6 +52,7 @@ appId: com.bittr.bittr-regtest
 # Land on the locked PIN unlock screen (relaunch — a freshly-provisioned or an
 # existing wallet both lock on launch). Fail loudly otherwise: no wallet to remove.
 - launchApp
+- runFlow: ../helpers/wait_for_launch.yaml
 - assertVisible:
     id: "unlock.topLabel"
 - takeScreenshot: shared/docs/screenshots/forgot_pin_remove_wallet/01_unlock
@@ -156,6 +158,7 @@ appId: com.bittr.bittr-regtest
       # confirmation.
       - stopApp
       - launchApp
+      - runFlow: ../helpers/wait_for_launch.yaml
 
       # Resume prompt (removalinprogress): [Cancel, Remove wallet]. Tap Remove
       # wallet (index 1) → resumeWalletRemoval re-syncs and, with the close now

@@ -328,5 +328,8 @@
         "backButton": null
       }
     }
+  },
+  "core": {
+    "launchComplete": null
   }
 }

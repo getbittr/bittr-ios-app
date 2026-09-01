@@ -26,6 +26,7 @@
 appId: com.bittr.bittr-regtest
 ---
 - launchApp
+- runFlow: ../helpers/wait_for_launch.yaml
 
 # Split the env-var mnemonic into a 1-indexed object on output.words[1..12],
 # matching the pattern happy_path_wallet uses when it captures words from the

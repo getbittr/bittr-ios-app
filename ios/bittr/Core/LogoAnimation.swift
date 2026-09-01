@@ -100,6 +100,10 @@ extension CoreViewController {
             self.upperYellowCurve.alpha = 1
             self.coreVCBackground.alpha = 0
             self.changeColors()
+
+            // Tells Maestro the opening animation is over. Until it is, the
+            // cover is over the screen and swallows every tap.
+            self.topBar.accessibilityIdentifier = TestID.Core.launchComplete
             NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "changecolors"), object: nil, userInfo: nil) as Notification)
         }
     }
