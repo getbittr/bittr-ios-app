@@ -586,7 +586,10 @@ class Language: NSObject {
             "connectionclosed": "Connection closed",
             "pendingclosure": "Your lightning connection was recently closed. These funds (<pendingfunds> satoshis) will be deposited into your regular wallet.",
             "viewactiveconnection": "View active connection",
-            "channelclosuretransaction": "These are the funds from your closed lightning connection, returning to your regular wallet."
+            "channelclosuretransaction": "These are the funds from your closed lightning connection, returning to your regular wallet.",
+            "mapvctoplabel": "Find spots in your area that accept bitcoin payments.",
+            "mapvcpoweredby": "Powered by BTCMap.org",
+            "mapvcpoweredbyalert": "<b>BTCMap.org</b> uses OpenStreetMap to tag places that accept bitcoin, and display those merchants in their beautiful apps.<br><br>Their apps and the underlying data are free and open-source.<br><br>Bittr does not save your location or share your location with third parties."
             
         ]
         

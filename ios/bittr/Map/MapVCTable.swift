@@ -12,8 +12,9 @@ extension MapViewController {
     override func viewDidLayoutSubviews() {
         super.viewDidLayoutSubviews()
         let bottomSafeArea = self.view.safeAreaInsets.bottom
-        self.placesTableView.contentInset = UIEdgeInsets(top: 30, left: 0, bottom: bottomSafeArea, right: 0
+        self.placesTableView.contentInset = UIEdgeInsets(top: 60, left: 0, bottom: bottomSafeArea, right: 0
         )
+        self.poweredByFade.addGradient()
     }
     
     func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
