@@ -100,9 +100,23 @@ class BoltzRefund {
         }
         
         if let swapOutput = detectSwap(tweakedKey: tweakedKey, transactionHex: lockupTxHex) {
-            
+
+            // Verify Boltz funded the lockup with what we're paying for BEFORE
+            // claiming. Claiming broadcasts the preimage, which settles the
+            // (held) Lightning invoice in full — so if the lockup is short we
+            // must NOT claim: leaving the preimage secret lets the held invoice
+            // time out and refund. Without this, a Boltz that underfunds the
+            // lockup would take the whole Lightning payment for a partial payout.
+            let expectedLockup = ongoingSwap.satoshisAmount + claimFee
+            let tolerance = max(ongoingSwap.satoshisAmount / 100, 1000)
+            guard swapOutput.value >= UInt64(max(0, expectedLockup - tolerance)) else {
+                Log.info("Refusing to claim underfunded reverse swap: locked \(swapOutput.value) sat, expected ~\(expectedLockup). Not revealing the preimage; the held invoice will refund.")
+                SentryManager.capture("Underfunded Boltz reverse-swap lockup", context: "claimLightningToOnchainSwap: locked \(swapOutput.value) < expected \(expectedLockup)")
+                return ClaimResult(success: false, transactionId: nil)
+            }
+
             let destinationAddress = ongoingSwap.destinationAddress!
-            
+
             let claimTx = constructClaimTransaction(
                 swapOutput: swapOutput,
                 destinationAddress: destinationAddress,
