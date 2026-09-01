@@ -215,6 +215,12 @@ enum CacheKeys {
     static let handledEvents = CacheKey<[String]>("handledevents", environmentScoped: false)
     static let completedLessons = CacheKey<[String]>("completedlessons", environmentScoped: false)
     static let notificationsToken = CacheKey<String>("notificationstoken", environmentScoped: false)
+
+    /// The server-signed Boltz webhook URL (carries the HMAC `token`), and the
+    /// APNS device token the server hashed to mint it. Environment-scoped: the
+    /// HMAC and host differ between staging and production.
+    static let boltzWebhookURL = CacheKey<String>("boltzwebhookurl")
+    static let boltzWebhookDeviceToken = CacheKey<String>("boltzwebhookdevicetoken")
     
     // MARK: Preferences
     

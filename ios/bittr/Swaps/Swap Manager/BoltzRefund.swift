@@ -421,11 +421,20 @@ enum SwapValidationError: LocalizedError {
     }
 }
 
+/// Boltz's published fee for a swap direction (from its fee/limits endpoint):
+/// a percentage of the amount plus a fixed miner fee, both in the units Boltz
+/// quotes them. Used to bound the amount Boltz asks for at create time.
+struct BoltzFeeQuote {
+    let percentage: Double   // e.g. 0.25 == 0.25%
+    let minerFee: Int        // satoshis
+}
+
 enum BoltzSwapValidation {
-    
-    // The most a quote may ask for, as a multiple of the amount requested.
+
+    // Loose fallback ceiling (multiple of the requested amount) used only when
+    // Boltz's fee schedule couldn't be fetched — see validateQuotedAmount.
     static let maximumQuoteRatio = 2.0
-    
+
     // MARK: Lockup address
 
     /// Rebuilds the Taproot output key a swap's funds lock to: the MuSig
@@ -632,10 +641,22 @@ enum BoltzSwapValidation {
 
     // MARK: Amounts
 
-    // Checks that what Boltz quotes for a swap is not nonsense.
-    static func validateQuotedAmount(requested: Int, quoted: Int) throws {
-        guard quoted >= requested,
-              Double(quoted) <= Double(requested) * maximumQuoteRatio else {
+    // Checks Boltz's quoted amount is no more than its published fee allows:
+    // base + base×percentage + a fixed miner fee, plus a small tolerance for
+    // rounding and for miner-fee drift between the quote and the swap. Falls
+    // back to the loose ratio bound when the fee schedule wasn't available, so
+    // a fee-endpoint hiccup doesn't block a swap.
+    static func validateQuotedAmount(requested: Int, quoted: Int, fee: BoltzFeeQuote?) throws {
+        let maxQuoted: Int
+        if let fee {
+            let percentageFee = Int((Double(requested) * fee.percentage / 100.0).rounded(.up))
+            let tolerance = max(requested / 100, 1000)   // rounding + miner-fee drift
+            maxQuoted = requested + percentageFee + fee.minerFee + tolerance
+        } else {
+            maxQuoted = Int(Double(requested) * maximumQuoteRatio)
+        }
+
+        guard quoted >= requested, quoted <= maxQuoted else {
             throw SwapValidationError.amountOutOfRange(requested: requested, quoted: quoted)
         }
     }
@@ -649,7 +670,8 @@ enum BoltzSwapValidation {
     static func validateReverseInvoice(
         _ invoice: String,
         preimageHashHex: String,
-        requestedOnchainAmountSats: Int
+        requestedOnchainAmountSats: Int,
+        fee: BoltzFeeQuote?
     ) throws {
         guard let parsedInvoice = Bindings.Bolt11Invoice.fromStr(s: invoice).getValue(),
               let invoiceAmountMilli = parsedInvoice.amountMilliSatoshis(),
@@ -662,7 +684,7 @@ enum BoltzSwapValidation {
             throw SwapValidationError.paymentHashMismatch(expected: preimageHashHex.lowercased(), received: paymentHashHex)
         }
 
-        try validateQuotedAmount(requested: requestedOnchainAmountSats, quoted: Int(invoiceAmountMilli / 1000))
+        try validateQuotedAmount(requested: requestedOnchainAmountSats, quoted: Int(invoiceAmountMilli / 1000), fee: fee)
     }
 }
 

@@ -33,8 +33,124 @@ class SwapManager: NSObject {
     // 6. invoice.expired or swap.expired > User didn't pay invoice in time
     // 7. transaction.failed > Boltz couldn't send onchain transaction
     // 8. transaction.refunded > User didn't claim onchain transaction in time
-    
-    
+
+
+    /// The signed webhook URL to hand Boltz on swap create. Bittr's API now
+    /// rejects unsigned Boltz callbacks — the URL is a server-minted HMAC. The
+    /// returned `url` is used verbatim: its path is the HMAC alone, the app
+    /// never puts the APNS device token in it (the server maps the HMAC back to
+    /// the device when Boltz POSTs). Minted once via `GET /boltz/webhook-token`
+    /// (signed with the LN node key, same stack as `GET /notifications` but with
+    /// a `boltz_webhook:` prefix), cached next to the APNS device token, and
+    /// reused for every swap. Re-mints when there's no cache yet or the cached
+    /// URL's device token no longer matches the current APNS token. Returns nil
+    /// when it can't produce a signed URL (no device token, signing failure, or
+    /// the mint call failed) — the caller must not create a swap with an
+    /// unsigned webhook, which would 404.
+    static func boltzWebhookURL() async -> String? {
+        guard let deviceToken = CacheManager.getRegistrationToken(), !deviceToken.isEmpty else {
+            return nil
+        }
+
+        // Reuse the cached URL only while it matches the current APNS token AND
+        // is the current URL format. The path was shortened to a bare HMAC with
+        // no query; a URL cached before that still carries the device token and a
+        // `?token=` query. Treat any `?` as the old (too-long) shape and re-mint,
+        // so existing installs self-heal on the next swap without a reinstall
+        // (which would lose channel state).
+        if let cachedURL = CacheManager.getBoltzWebhookURL(),
+           CacheManager.getBoltzWebhookDeviceToken() == deviceToken,
+           !cachedURL.contains("?") {
+            return cachedURL
+        }
+
+        guard let pubkey = BitcoinManager.shared.nodeId() else { return nil }
+        let timestamp = Int(Date().timeIntervalSince1970)
+
+        let signature: String
+        do {
+            signature = try await BitcoinManager.shared.signMessage(message: "boltz_webhook:\(pubkey):\(timestamp)")
+        } catch {
+            Log.info("Could not sign Boltz webhook-token request: \(error.localizedDescription)")
+            return nil
+        }
+
+        let mintURL = "\(EnvironmentConfig.bittrAPIBaseURL)/boltz/webhook-token?pubkey=\(pubkey)&timestamp=\(timestamp)&signature=\(signature)"
+
+        let response: NSDictionary? = await withCheckedContinuation { continuation in
+            Task {
+                await CallsManager.makeApiCall(url: mintURL, parameters: nil, getOrPost: .get) { result in
+                    switch result {
+                    case .success(let dictionary):
+                        continuation.resume(returning: dictionary)
+                    case .failure(let error):
+                        Log.info("Boltz webhook-token mint failed: \(error.localizedDescription)")
+                        continuation.resume(returning: nil)
+                    }
+                }
+            }
+        }
+
+        guard let response,
+              response["success"] as? Bool == true,
+              let url = response["url"] as? String,
+              let hashedDeviceToken = response["device_token"] as? String else {
+            if let error = response?["error"] as? String {
+                Log.info("Boltz webhook-token mint rejected: \(error)")
+            }
+            return nil
+        }
+
+        if hashedDeviceToken != deviceToken {
+            // The server HMACs the token on the customer record, not one we
+            // pass. A mismatch means the backend hasn't got our current APNS
+            // token yet; cache against the server's value so we re-mint once it
+            // catches up (and Boltz pushes reach the right device in between).
+            Log.info("Boltz webhook-token minted for a device token that differs from the current APNS token — backend customer record may be stale.")
+        }
+
+        CacheManager.storeBoltzWebhook(url: url, deviceToken: hashedDeviceToken)
+        return url
+    }
+
+    /// Boltz's published fee for a swap direction, from its fee/limits endpoint
+    /// (`GET /swap/submarine` | `/swap/reverse`). The create response carries no
+    /// fee field, so this is the independent reference the amount check bounds
+    /// against. Returns nil if unavailable — the check then falls back to the
+    /// loose ratio rather than blocking the swap.
+    static func fetchBoltzFeeQuote(reverse: Bool) async -> BoltzFeeQuote? {
+        let endpoint = reverse ? "swap/reverse" : "swap/submarine"
+        let url = "\(EnvironmentConfig.boltzBaseURL)/\(endpoint)"
+
+        let response: NSDictionary? = await withCheckedContinuation { continuation in
+            Task {
+                await CallsManager.makeApiCall(url: url, parameters: nil, getOrPost: .get) { result in
+                    continuation.resume(returning: try? result.get())
+                }
+            }
+        }
+
+        guard let fees = ((response?["BTC"] as? NSDictionary)?["BTC"] as? NSDictionary)?["fees"] as? NSDictionary,
+              let percentage = (fees["percentage"] as? NSNumber)?.doubleValue else {
+            Log.info("Boltz fee schedule unavailable (\(endpoint)); amount check will use the fallback bound.")
+            return nil
+        }
+
+        // Submarine quotes a single miner fee; reverse breaks it into lockup +
+        // claim, where the lockup is the Boltz-side cost folded into the invoice.
+        let minerFee: Int
+        if let single = (fees["minerFees"] as? NSNumber)?.intValue {
+            minerFee = single
+        } else if let breakdown = fees["minerFees"] as? NSDictionary {
+            minerFee = (breakdown["lockup"] as? NSNumber)?.intValue
+                ?? (breakdown["claim"] as? NSNumber)?.intValue ?? 0
+        } else {
+            minerFee = 0
+        }
+
+        return BoltzFeeQuote(percentage: percentage, minerFee: minerFee)
+    }
+
     static func onchainToLightning(amountMsat:UInt64? = nil, swapVC:SwapViewController, existingInvoice:String? = nil) async {
         // Get Swap ID.
         let idString = createDateId()
@@ -83,13 +199,19 @@ class SwapManager: NSObject {
         
         let (privateKey, publicKey) = try! BitcoinManager.shared.getPrivatePublicKeyForPath(path: dynamicPath)
         
-        // Get device token for webhook URL
-        guard let deviceToken = CacheManager.getRegistrationToken(), !deviceToken.isEmpty else {
+        // The webhook needs both an APNS device token and a server-signed URL:
+        // Bittr's API now rejects unsigned Boltz callbacks (they 404, breaking
+        // swap-status pushes and payout retry). Mint the signed URL — cached
+        // after the first swap and reused for every swap.
+        guard CacheManager.getRegistrationToken()?.isEmpty == false else {
             swapVC.cancelSwap(alertTitle: Language.getWord(withID: "notificationsrequired"), alertMessage: Language.getWord(withID: "notificationsrequiredmessage"), alertButtons: [.action(Language.getWord(withID: "okay")) { swapVC.askForPushNotifications() }])
             return
         }
-        
-        let webhookURL = "\(EnvironmentConfig.bittrAPIBaseURL)/webhook/boltz/\(deviceToken)"
+
+        guard let webhookURL = await SwapManager.boltzWebhookURL() else {
+            swapVC.cancelSwap(alertMessage: Language.getWord(withID: "couldntconnect"))
+            return
+        }
         
         // Create POST API call.
         let parameters: [String: Any] = [
@@ -99,10 +221,11 @@ class SwapManager: NSObject {
             "refundPublicKey": publicKey,
             "webhook": [
                 "url": webhookURL,
-                "hashSwapId": false
+                "hashSwapId": true
             ]
         ]
         
+        let feeQuote = await fetchBoltzFeeQuote(reverse: false)
         let apiURL = EnvironmentConfig.boltzBaseURL
         Task {
             await CallsManager.makeApiCall(url: "\(apiURL)/swap/submarine", parameters: parameters, getOrPost: .post) { result in
@@ -115,7 +238,7 @@ class SwapManager: NSObject {
                         swapVC.cancelSwap(alertMessage: errorMessage)
                         return
                     }
-                    
+
                     // EVIL-BOLTZ-INJECTION — SEC-02 test harness (see Helpers/EvilBoltz.swift).
                     // The response handler is wrapped in `processSubmarineResponse` so the
                     // DEBUG-only harness can feed it a tampered response. In Release the call
@@ -157,7 +280,8 @@ class SwapManager: NSObject {
                             )
                             try BoltzSwapValidation.validateQuotedAmount(
                                 requested: Int(invoiceAmountMsat / 1000),
-                                quoted: expectedAmount
+                                quoted: expectedAmount,
+                                fee: feeQuote
                             )
                         } catch {
                             Log.info("Refused the submarine swap response: \(error.localizedDescription)")
@@ -380,13 +504,19 @@ class SwapManager: NSObject {
         // Get Swap ID.
         let idString = createDateId()
         
-        // Get device token for webhook URL
-        guard let deviceToken = CacheManager.getRegistrationToken(), !deviceToken.isEmpty else {
+        // The webhook needs both an APNS device token and a server-signed URL:
+        // Bittr's API now rejects unsigned Boltz callbacks (they 404, breaking
+        // swap-status pushes and payout retry). Mint the signed URL — cached
+        // after the first swap and reused for every swap.
+        guard CacheManager.getRegistrationToken()?.isEmpty == false else {
             swapVC.cancelSwap(alertTitle: Language.getWord(withID: "notificationsrequired"), alertMessage: Language.getWord(withID: "notificationsrequiredmessage"), alertButtons: [.action(Language.getWord(withID: "okay")) { swapVC.askForPushNotifications() }])
             return
         }
-        
-        let webhookURL = "\(EnvironmentConfig.bittrAPIBaseURL)/webhook/boltz/\(deviceToken)"
+
+        guard let webhookURL = await SwapManager.boltzWebhookURL() else {
+            swapVC.cancelSwap(alertMessage: Language.getWord(withID: "couldntconnect"))
+            return
+        }
         
         let parameters: [String: Any] = [
             "from": "BTC",
@@ -396,13 +526,14 @@ class SwapManager: NSObject {
             "onchainAmount": onchainAmountWithFee, // Use amount with fee included
             "webhook": [
                 "url": webhookURL,
-                "hashSwapId": false,
+                "hashSwapId": true,
                 "status": ["transaction.mempool", "transaction.confirmed", "invoice.settled", "swap.expired", "transaction.failed"]
             ]
         ]
         
+        let feeQuote = await fetchBoltzFeeQuote(reverse: true)
         let apiURL = EnvironmentConfig.boltzBaseURL
-        
+
         Task {
             await CallsManager.makeApiCall(url: "\(apiURL)/swap/reverse", parameters: parameters, getOrPost: .post) { result in
                 
@@ -414,7 +545,7 @@ class SwapManager: NSObject {
                         swapVC.cancelSwap(alertMessage: errorMessage)
                         return
                     }
-                    
+
                     // EVIL-BOLTZ-INJECTION — SEC-01 test harness (see Helpers/EvilBoltz.swift).
                     // The response handler is wrapped in `processReverseResponse` so the
                     // DEBUG-only harness can feed it a tampered response. In Release the call
@@ -451,7 +582,8 @@ class SwapManager: NSObject {
                             try BoltzSwapValidation.validateReverseInvoice(
                                 boltzInvoice,
                                 preimageHashHex: randomPreimageHashHex,
-                                requestedOnchainAmountSats: onchainAmountWithFee
+                                requestedOnchainAmountSats: onchainAmountWithFee,
+                                fee: feeQuote
                             )
                             try BoltzSwapValidation.validateReverseLockup(
                                 address: lockupAddress,
@@ -505,15 +637,24 @@ class SwapManager: NSObject {
     static func sha256Hash(of data: Data) -> Data {
         return Data(SHA256.hash(data: data))
     }
+
+    /// The SHA-256 (lowercase hex) of a Boltz swap id — the value Boltz puts in
+    /// its webhook when the swap was created with `hashSwapId` on, and the name
+    /// its details file is stored under, so a status push resolves to the swap
+    /// without the plaintext id ever reaching bittr.
+    static func hashedSwapID(_ swapID: String) -> String {
+        return sha256Hash(of: Data(swapID.utf8)).hexEncodedString()
+    }
     
     static func saveSwapDetailsToFile(swapID: String, swapDictionary: NSDictionary) {
         do {
             // Convert NSDictionary to JSON Data
             let jsonData = try JSONSerialization.data(withJSONObject: swapDictionary, options: .prettyPrinted)
 
-            // Get the documents directory
-            let documentsPath = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
-            let fileURL = documentsPath.appendingPathComponent("\(swapID).json")
+            // Store under sha256(swapID): the filename is the same value Boltz
+            // puts in a hashSwapId webhook, so a status push opens the file
+            // directly and the plaintext Boltz id never reaches bittr.
+            let fileURL = swapFile(named: hashedSwapID(swapID))
 
             // Write the JSON data to file. The swap file DELIBERATELY contains
             // the Boltz refund key in plain text: it is the user-facing
@@ -524,34 +665,50 @@ class SwapManager: NSObject {
             // device passcode (readable after first unlock, so background
             // swap processing and the user's export both keep working).
             try jsonData.write(to: fileURL, options: [.atomic, .completeFileProtectionUntilFirstUserAuthentication])
-            
+
             Log.debug("Swap details saved to: \(fileURL.path)")
         } catch {
             Log.info("Error saving swap details to file: \(error)")
             SentryManager.capture(error, context: "SwapManager row 519")
         }
     }
-    
+
     static func loadSwapDetailsFromFile(swapID: String) -> NSDictionary? {
-        do {
-            // Get the documents directory
-            let documentsPath = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
-            let fileURL = documentsPath.appendingPathComponent("\(swapID).json")
-            
-            // Read the JSON data from file
-            let jsonData = try Data(contentsOf: fileURL)
-            
-            // Convert JSON Data to NSDictionary
-            if let dictionary = try JSONSerialization.jsonObject(with: jsonData, options: []) as? NSDictionary {
-                return dictionary
-            }
-        } catch {
-            Log.info("Error loading swap details from file: \(error)")
-            SentryManager.capture(error, context: "SwapManager row 542")
-        }
-        return nil
+        // New swaps are stored under sha256(id); fall back to the plaintext name
+        // for swaps written before that change (they age out as they complete).
+        return swapDetails(atFileNamed: hashedSwapID(swapID)) ?? swapDetails(atFileNamed: swapID)
     }
-    
+
+    /// Resolve the swap a status push refers to. The push id is already the file
+    /// stem — sha256(boltzID) for hashSwapId swaps, the plaintext id for older
+    /// ones — so open it directly.
+    static func loadSwapDetails(forPushedID pushedID: String) -> NSDictionary? {
+        return swapDetails(atFileNamed: pushedID)
+    }
+
+    /// On-disk URL of a swap's JSON, for reading/exporting the file directly.
+    /// Prefers the sha256-named file, falling back to a legacy plaintext name.
+    static func swapFileURL(for swapID: String) -> URL {
+        let hashed = swapFile(named: hashedSwapID(swapID))
+        if FileManager.default.fileExists(atPath: hashed.path) { return hashed }
+        let legacy = swapFile(named: swapID)
+        return FileManager.default.fileExists(atPath: legacy.path) ? legacy : hashed
+    }
+
+    private static func swapFile(named stem: String) -> URL {
+        return FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
+            .appendingPathComponent("\(stem).json")
+    }
+
+    private static func swapDetails(atFileNamed stem: String) -> NSDictionary? {
+        guard let jsonData = try? Data(contentsOf: swapFile(named: stem)),
+              let object = try? JSONSerialization.jsonObject(with: jsonData, options: []),
+              let dictionary = object as? NSDictionary else {
+            return nil
+        }
+        return dictionary
+    }
+
     static func updateSwapFileWithLockupTx(swapID: String, lockupTx: String) {
         
         // Load existing swap details

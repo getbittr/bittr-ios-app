@@ -302,7 +302,11 @@ class SwapViewController: UIViewController, UITextFieldDelegate, UNUserNotificat
     
     func handleSwapNotification(_ notification: BittrNotification) {
         Log.info("Received swap notification.")
-        guard notification.swapID != nil, let ongoingSwap = SwapManager.loadSwapDetailsFromFile(swapID: notification.swapID!)?.toSwap() else { return }
+        // The push id is already the swap file's stem — sha256(boltzID) with
+        // hashSwapId on, the plaintext id for older swaps — so resolve it
+        // directly rather than assuming a plaintext id.
+        guard let pushedSwapID = notification.swapID,
+              let ongoingSwap = SwapManager.loadSwapDetails(forPushedID: pushedSwapID)?.toSwap() else { return }
         
         // Set up the confirm view with loaded data
         self.thisSwap = ongoingSwap

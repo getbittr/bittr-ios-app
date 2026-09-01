@@ -226,6 +226,23 @@ class CacheManager: NSObject {
     static func getRegistrationToken() -> String? {
         return CacheStore.value(for: CacheKeys.notificationsToken)
     }
+
+    // MARK: - Boltz webhook token
+
+    /// Persist the server-signed Boltz webhook URL alongside the device token it
+    /// was minted for, so a token rotation can be detected and re-minted.
+    static func storeBoltzWebhook(url:String, deviceToken:String) {
+        CacheStore.set(url, for: CacheKeys.boltzWebhookURL)
+        CacheStore.set(deviceToken, for: CacheKeys.boltzWebhookDeviceToken)
+    }
+
+    static func getBoltzWebhookURL() -> String? {
+        return CacheStore.value(for: CacheKeys.boltzWebhookURL)
+    }
+
+    static func getBoltzWebhookDeviceToken() -> String? {
+        return CacheStore.value(for: CacheKeys.boltzWebhookDeviceToken)
+    }
     
     // MARK: - Invoice timestamp
     
