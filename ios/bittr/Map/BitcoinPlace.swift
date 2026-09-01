@@ -58,12 +58,14 @@ extension MapViewController {
     
     func resyncBTCPlaces() async {
         do {
-            let lastSync = UserDefaults.standard.string(forKey: "btcMapLastUpdatedAt")
+            let cachedPlaces = BitcoinPlacesCache.shared.loadPlaces()
+            
+            // Nothing cached means a full download.
+            let lastSync = cachedPlaces.isEmpty ? nil : UserDefaults.standard.string(forKey: "btcMapLastUpdatedAt")
+            
             let syncedPlaces = try await syncBTCPlaces(updatedSince: lastSync)
             
-            BitcoinPlacesCache.shared.applySyncedPlaces(syncedPlaces)
-            
-            let allCachedPlaces = BitcoinPlacesCache.shared.loadPlaces()
+            let allCachedPlaces = BitcoinPlacesCache.shared.applySyncedPlaces(syncedPlaces, to: cachedPlaces)
             
             await MainActor.run {
                 self.mapSpinner.stopAnimating()
@@ -128,18 +130,20 @@ final class BitcoinPlacesCache {
         }
     }
 
-    func savePlaces(_ places: [BitcoinPlace]) {
+    @discardableResult
+    func savePlaces(_ places: [BitcoinPlace]) -> Bool {
         do {
             let data = try JSONEncoder().encode(places)
             try data.write(to: fileURL, options: [.atomic])
+            return true
         } catch {
             Log.info("Failed to save BTC places cache: \(error.localizedDescription)")
+            return false
         }
     }
-
-    func applySyncedPlaces(_ syncedPlaces: [BitcoinPlace]) {
-        var cachedPlaces = loadPlaces()
-        
+    
+    @discardableResult
+    func applySyncedPlaces(_ syncedPlaces: [BitcoinPlace], to cachedPlaces: [BitcoinPlace]) -> [BitcoinPlace] {
         var placesById = Dictionary(uniqueKeysWithValues: cachedPlaces.map { ($0.id, $0) })
         
         for place in syncedPlaces {
@@ -150,14 +154,17 @@ final class BitcoinPlacesCache {
             }
         }
         
-        cachedPlaces = Array(placesById.values)
-        savePlaces(cachedPlaces)
+        let mergedPlaces = Array(placesById.values)
+        
+        // Only claim to be synced up to here once the places are actually on disk.
+        guard savePlaces(mergedPlaces) else { return mergedPlaces }
         
         let newestUpdatedAt = syncedPlaces.compactMap { $0.updatedAt }.max()
-        
         if let newestUpdatedAt {
             UserDefaults.standard.set(newestUpdatedAt, forKey: "btcMapLastUpdatedAt")
         }
+        
+        return mergedPlaces
     }
 }
 
