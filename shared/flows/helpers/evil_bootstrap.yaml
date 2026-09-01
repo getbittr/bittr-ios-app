@@ -95,9 +95,23 @@ appId: com.bittr.bittr-evil
     when:
       true: ${output.lightningBalance == "0 sats"}
     commands:
-      # Open Buy and copy the deposit code.
+      # Open Buy and copy the deposit code. An existing account renders it; a
+      # wallet with no account yet (e.g. reinstalled with the Keychain wallet
+      # surviving) opens the empty Buy, so complete the signup first. The wait
+      # is optional so the empty case doesn't block, and it stops the funded
+      # case from racing Buy's async render (which would wrongly look empty).
       - tapOn:
           id: "home.buyButton"
+      - extendedWaitUntil:
+          visible:
+            id: "buy.yourCode"
+          timeout: 15000
+          optional: true
+      - runFlow:
+          when:
+            notVisible:
+              id: "buy.yourCode"
+          file: ../helpers/complete_bittr_signup.yaml
       - assertVisible:
           id: "buy.yourCode"
       - copyTextFrom:
@@ -111,38 +125,56 @@ appId: com.bittr.bittr-evil
       - assertVisible:
           id: "home.headerLabel"
 
-      # Trigger the e2e bank transaction (backend default amount), capturing
-      # notification_id (absent for channel-open deposits) + bitcoin_amount.
+      # Trigger the e2e bank transaction (backend default amount) — the
+      # channel-open deposit that funds the lightning channel.
       - runScript: ../scripts/trigger_bank_transaction.js
 
-      # Build the matching fake push (lightningPayout vs htlcIncoming, depending
-      # on whether the response had a notification_id) and fire it at the EVIL
-      # bundle id (the staging backend's real APNs topic only matches
-      # com.bittr.bittr-regtest, so a real push would never reach the evil app).
-      - runScript: ../scripts/build_payout_push.js
-      - runScript: ../scripts/push_notification.js
+      # No fake push: a channel-open deposit settles on its own once confirmed.
+      # A channel-open has no held HTLC to resume, so faking an htlcIncoming just
+      # makes the app call /htlc-interceptor/ready, get `no_held_htlc`, and show
+      # two dead-end "incoming payment" alerts.
 
-      # A "bittr payout" alert may appear (as in buy_more.yaml) — give it a
-      # moment, then tap it away if it's there.
-      - evalScript: ${output.sleepMs = 5000}
-      - runScript: ../scripts/sleep.js
-      - tapOn:
-          id: "alert.button.0"
-          optional: true
-
-      # Mine 6 blocks so the lightning channel opens and confirms.
+      # Mine 6 blocks so the channel funding confirms, then pull Home to resync.
       - evalScript: ${output.blocksToMine = 6}
       - runScript: ../scripts/mine_blocks.js
+      - swipe:
+          direction: DOWN
+          duration: 800
 
-      # Backend processes the deposit → app settles on the transaction screen.
+      # The completed channel-funding payment opens the transaction detail
+      # screen once the sync picks it up — wait for it (proof the channel
+      # funded), then close it back to Home.
       - extendedWaitUntil:
           visible:
             id: "transaction.labelAmount"
-          timeout: 60000
-      - takeScreenshot: shared/docs/screenshots/evil_bootstrap/01_funding_transaction
-
-      # Close the transaction screen → Home with a funded channel.
+          timeout: 120000
+      - takeScreenshot: shared/docs/screenshots/evil_bootstrap/01_funding_settled
       - tapOn:
           id: "header.downButton"
       - assertVisible:
           id: "home.headerLabel"
+
+      # Relaunch to fully bring the freshly-opened channel up. Right after the
+      # open, LDK hasn't re-established it enough to include it as a private
+      # routing hint, so a submarine swap's receive-invoice has no route and
+      # Boltz reports "could not find route to pay invoice". A restart fixes it;
+      # the channel then stays active for the rest of the session (both swaps).
+      - launchApp:
+          appId: ${output.APP_ID}
+      - extendedWaitUntil:
+          visible:
+            id: "unlock.topLabel"
+          timeout: 30000
+          optional: true
+      - runFlow:
+          when:
+            visible:
+              id: "unlock.topLabel"
+          commands:
+            - runFlow: ../helpers/unlock.yaml
+      - assertVisible:
+          id: "home.headerLabel"
+      - extendedWaitUntil:
+          notVisible:
+            id: "home.headerSpinner"
+          timeout: 120000

@@ -1,0 +1,72 @@
+# Reusable subflow: completes the bittr signup from an already-open, EMPTY Buy
+# screen — a wallet that has no bittr account yet (e.g. a reinstall where the
+# Keychain wallet survived but the account data in Documents/UserDefaults did
+# not). Ends back on Buy with the account's deposit code (buy.yourCode) shown.
+#
+# Assumes: app launched + unlocked, BuyVC open on its empty state. No launchApp
+# — the caller owns app state, so this works for any build (incl. bittr evil).
+# Same IBAN/email/OTP path as onboarding/happy_path_signup.yaml and
+# features/buy_signup.yaml.
+
+appId: com.bittr.bittr-evil
+---
+# "Check options" → RegisterIbanViewController, which embeds Signup7 first.
+- assertVisible:
+    id: "buy.headerLabel"
+- tapOn:
+    id: "buy.continueButton"
+
+# Signup7 (wallet-ready), hosted by RegisterIban — topLabelOne is hidden here,
+# so anchor on the still-visible Next button.
+- assertVisible:
+    id: "signup.create.ready.continueButton"
+- tapOn:
+    id: "signup.create.ready.continueButton"
+
+# Transfer1: IBAN + email (same values as happy_path_signup).
+- assertVisible:
+    id: "signup.bittr.start.ibanTextField"
+- inputText: "NL27ABNA0451135725"
+- tapOn:
+    id: "signup.bittr.start.emailButton"
+- inputText: "e2ebittr@getbittr.com"
+- pressKey: Enter
+
+# Transfer2: OTP — test-mode fixed code, auto-submits at 6 digits.
+- assertVisible:
+    id: "signup.bittr.otp.codeTextField"
+- inputText: "123456"
+
+# Push-permission alerts (in-app, then iOS system) — optional on reruns.
+- tapOn:
+    id: "alert.button.0"
+    optional: true
+- tapOn:
+    text: "Allow"
+    optional: true
+
+# Transfer3: signup success (long async chain after OTP).
+- extendedWaitUntil:
+    visible:
+      id: "signup.bittr.success.topLabelOne"
+    timeout: 90000
+- tapOn:
+    id: "signup.bittr.success.nextButton"
+
+# Transfer4: explanation cards → "Let's go".
+- assertVisible:
+    id: "signup.bittr.transferInfo.amountTitle"
+- scrollUntilVisible:
+    element:
+      id: "signup.bittr.transferInfo.nextButton"
+- tapOn:
+    id: "signup.bittr.transferInfo.nextButton"
+
+# "Open your banking app" modal — Done dismisses it + the RegisterIban modal;
+# Buy reappears with the new IBAN cell + deposit code.
+- tapOn:
+    id: "alert.button.0"
+- extendedWaitUntil:
+    visible:
+      id: "buy.yourCode"
+    timeout: 20000

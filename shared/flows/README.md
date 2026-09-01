@@ -219,6 +219,8 @@ shared/flows/
                           invoice) and waits out the QR spinner. Needs a channel.
   scripts/         Maestro `runScript` helpers (GraalJS).
     mine_blocks.js              POST /e2e/mine-blocks on the regtest backend.
+                                Optional output.mineBlocksAddress sends coinbase
+                                rewards to that address (mine ≥101 blocks).
     trigger_bank_transaction.js POST /e2e/bank-transaction (incoming SEPA).
     push_notification.js        POSTs an APNS payload to push_server.js.
     push_server.js              Local helper bridging Maestro → `xcrun simctl push`.
