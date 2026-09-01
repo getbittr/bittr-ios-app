@@ -32,15 +32,30 @@ appId: com.bittr.bittr-evil
 - assertVisible:
     id: "buy.yourCode"
 
-# Toggle payout mode to onchain. The PATCH is server-confirmed: the switch
-# settles to off only after the backend acknowledges (payment_mode.yaml).
-- tapOn:
+# Put the payout mode on onchain — but only tap if it is still on lightning.
+# This helper deliberately leaves the mode on onchain (see the note above), so
+# on a re-run the switch already starts off and tapping would turn lightning
+# back ON. The PATCH is server-confirmed: the switch settles to off only after
+# the backend acknowledges (payment_mode.yaml).
+- runFlow:
+    when:
+      visible:
+        id: "buy.paymentModeSwitch"
+        checked: true
+    commands:
+      - tapOn:
+          id: "buy.paymentModeSwitch"
+      - extendedWaitUntil:
+          visible:
+            id: "buy.paymentModeSwitch"
+            checked: false
+          timeout: 60000
+
+# Either path has to end on onchain, so state it rather than assume it. The
+# deposit below pays out by whatever mode the backend has stored.
+- assertVisible:
     id: "buy.paymentModeSwitch"
-- extendedWaitUntil:
-    visible:
-      id: "buy.paymentModeSwitch"
-      checked: false
-    timeout: 60000
+    checked: false
 - takeScreenshot: shared/docs/screenshots/evil_fund_onchain/01_onchain_payout
 
 - copyTextFrom:

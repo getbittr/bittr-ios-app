@@ -30,7 +30,37 @@ appId: com.bittr.bittr-evil
 # - runFlow: ../helpers/evil_bootstrap.yaml
 # - runFlow: ../helpers/evil_fund_onchain.yaml
 
-# 2) Submarine leg (onchain → lightning, 50000 sats) — mirrors swap.yaml's
+# 2) Make sure there is an onchain UTXO to send to Boltz's lockup address, but
+#    only if there isn't one already. Peek the regular (onchain) balance off
+#    MoveVC the way evil_bootstrap.yaml peeks the instant one, and fund via a
+#    second bank deposit if it cannot cover the 50000 sats swapped below.
+#
+#    Not via a lightning→onchain swap: this app arms EvilBoltz mode `all`,
+#    which tampers reverse-swap responses too, so the funding swap would be
+#    rejected by the very validation under test.
+- extendedWaitUntil:
+    notVisible:
+      id: "home.headerSpinner"
+    timeout: 120000
+- tapOn:
+    id: "home.balanceLabel"
+- assertVisible:
+    id: "move.subtitleLabel"
+- copyTextFrom:
+    id: "move.satsRegular"
+# "50 000 sats" → 50000. MoveVC.updateLabels formats it with addSpaces().
+- evalScript: ${output.onchainSats = parseInt(maestro.copiedText.replace(/\D/g, ""), 10) || 0}
+- swipe:
+    direction: DOWN
+    duration: 800
+- assertVisible:
+    id: "home.headerLabel"
+- runFlow:
+    when:
+      true: ${output.onchainSats < 50000}
+    file: ../helpers/evil_fund_onchain.yaml
+
+# 3) Submarine leg (onchain → lightning, 50000 sats) — mirrors swap.yaml's
 #    second leg. Settle any sync first so balances are stable.
 - extendedWaitUntil:
     notVisible:
@@ -60,6 +90,12 @@ appId: com.bittr.bittr-evil
 - tapOn:
     id: "alert.button.0"
     optional: true
+# Still on SwapVC: with no onchain funds the app drops back to MoveVC here, and
+# then "Move up to 0 sats." is not visible simply because the whole screen is
+# gone — the wait below would pass and the failure would surface later, on the
+# amount field, pointing at the wrong thing.
+- assertVisible:
+    id: "swap.amountTextField"
 - extendedWaitUntil:
     notVisible:
       text: "Move up to 0 sats."
