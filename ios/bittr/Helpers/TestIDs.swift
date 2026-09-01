@@ -82,6 +82,7 @@ enum TestID {
         static let placeCellButton = "map.placeCellButton"
         static let placeName = "map.placeName"
         static let placesTableView = "map.placesTableView"
+        static let poweredByButton = "map.poweredByButton"
         static let userLocationButton = "map.userLocationButton"
     }
     enum Move {

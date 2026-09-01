@@ -52,6 +52,7 @@
   },
   "map": {
     "mapView": null,
+    "poweredByButton": null,
     "mapSpinner": null,
     "placesTableView": null,
     "userLocationButton": null,

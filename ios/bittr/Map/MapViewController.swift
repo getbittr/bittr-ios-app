@@ -61,6 +61,7 @@ class MapViewController: UIViewController, CLLocationManagerDelegate, MKMapViewD
         self.mapSpinner.accessibilityIdentifier = TestID.Map.mapSpinner
         self.placesTableView.accessibilityIdentifier = TestID.Map.placesTableView
         self.userLocationButton.accessibilityIdentifier = TestID.Map.userLocationButton
+        self.poweredByButton.accessibilityIdentifier = TestID.Map.poweredByButton
 
         // Table view
         self.placesTableView.delegate = self
