@@ -65,6 +65,8 @@ class CoreViewController: UIViewController {
     @IBOutlet weak var lowerYellowCurve: BottomCurveView!
     
     // Logo animation
+    @IBOutlet weak var coreVCBackground: UIView!
+    @IBOutlet weak var animationCover: UIView!
     @IBOutlet weak var logoView: UIView!
     @IBOutlet weak var logoTextDarkMode: UIImageView!
     @IBOutlet weak var logoIconDarkMode: UIImageView!
@@ -165,13 +167,8 @@ class CoreViewController: UIViewController {
     }
     
     @objc func checkWalletAvailability() {
+        // Decide which screen the launch ends on based on whether a wallet exists.
         
-        // Decide which screen to show based on whether a wallet exists. The
-        // containers are revealed here, at viewDidLoad, and stay interactable
-        // during the launch animation: the animation cover passes taps
-        // through (its isUserInteractionEnabled is false), so the PIN/signup
-        // screen is usable while it becomes visible — and automation taps
-        // can't be swallowed by the cover.
         switch CacheManager.walletSecretsPresence() {
         case .present:
             Log.info("Wallet is available.")

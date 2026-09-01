@@ -40,8 +40,6 @@ extension CoreViewController {
     
     override func viewDidAppear(_ animated: Bool) {
         // Start startup animation sequence.
-        self.pinContainerView.alpha = 0
-        
         self.coinSlidesIntoSlot()
     }
     
@@ -69,12 +67,14 @@ extension CoreViewController {
     
     func logoSlidesToTop() {
         
+        self.coreVCBackground.backgroundColor = Colors.getColor("yelloworblue3")
+        
         UIView.animate(withDuration: 0.7, delay: 0.3, usingSpringWithDamping: 0.65, initialSpringVelocity: 0, options: .curveEaseInOut) {
             
             // Move up topBar.
             self.logoHasMovedUp = true
             self.topBarTop.constant = 0
-            self.pinContainerView.alpha = 1
+            self.animationCover.alpha = 0
             
             // Hide logo elements.
             self.coin1.alpha = 0
@@ -97,6 +97,8 @@ extension CoreViewController {
             self.homeContainerView.alpha = 1
             self.menuBarContainer.alpha = 1
             self.blackSignupBackground.alpha = 1
+            self.upperYellowCurve.alpha = 1
+            self.coreVCBackground.alpha = 0
             self.changeColors()
             NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "changecolors"), object: nil, userInfo: nil) as Notification)
         }
