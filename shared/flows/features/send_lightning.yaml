@@ -15,11 +15,11 @@
 #      (label reads BTC) → enter 0.00001 → Done → Confirm screen → Send →
 #      TransactionViewController → close it.
 #   3. Lightning Address (LNURL-pay): type it into the invoice field, press
-#      return → "Handling LNURL" spinner → a "Pay request" alert announces the
-#      payable range → Okay → enter 1500 sats → Done → "Handling LNURL" spinner
-#      again → Confirm screen (resolved invoice + amount), the same
-#      ConfirmSendViewController flow as the invoice paths → Send →
-#      TransactionViewController → close it → close Send.
+#      return → "Handling lightning request" spinner → the amount field is focused
+#      automatically (no range popup; the range is validated on confirm) → enter
+#      1500 sats → Done → "Handling lightning request" spinner again → Confirm
+#      screen (resolved invoice + amount), the same ConfirmSendViewController flow
+#      as the invoice paths → Send → TransactionViewController → close it → close Send.
 #
 # Payment targets (no --env needed — all server-side):
 #   - The two invoices (normal + zero-amount) are fetched fresh per run from the
@@ -277,7 +277,7 @@ appId: com.bittr.bittr-regtest
 
 # Type the bittr e2e Lightning Address into the invoice field and press the
 # keyboard return. The return key recognises the "@" address and kicks off LNURL
-# handling, which briefly shows the "Handling LNURL" spinner. The spinner can
+# handling, which briefly shows the "Handling lightning request" spinner. The spinner can
 # come and go faster than Maestro can catch, so rather than asserting it appears
 # we just wait for it to have cleared (it resolves once the LNURL call returns).
 - tapOn:
@@ -285,36 +285,31 @@ appId: com.bittr.bittr-regtest
 - inputText: "e2ebittr@staging.getbittr.com"
 - pressKey: Enter
 
-# LNURL resolves: the "Handling LNURL" loading overlay clears and (when the
-# address has a payable range) a "Pay request" alert announces the range. Wait
-# the overlay out, confirm the alert message, then tap Okay (single button at
-# index 0). Match a substring so the exact min/max numbers and the apostrophe
-# don't matter. (The overlay is the shared bottom loading popup — matched by its
-# label text, since it has no test-id.)
+# LNURL resolves: the "Handling lightning request" loading overlay clears and, for an address
+# with a payable range, the amount field is focused automatically — there is no
+# upfront range popup any more. The range is kept behind the scenes and only
+# surfaced (as an alert) if the amount entered on confirm is out of range. Wait
+# the overlay out, then let the keyboard animate up. (The overlay is the shared
+# bottom loading popup — matched by its label text, since it has no test-id.)
 - extendedWaitUntil:
     notVisible:
-      text: ".*Handling LNURL.*"
+      text: ".*Handling lightning request.*"
     timeout: 30000
-- extendedWaitUntil:
-    visible:
-      text: ".*send between.*satoshis.*"
-    timeout: 30000
-- takeScreenshot: shared/docs/screenshots/send_lightning/09_lnurl_prompt
-- tapOn:
-    id: "alert.button.0"
+- waitForAnimationToEnd:
+    timeout: 3000
+- takeScreenshot: shared/docs/screenshots/send_lightning/09_lnurl_amount
 
-# Now enter 1500 (sats) in range and tap Done. With pending LNURL data set, Done
-# fetches the invoice from the LNURL callback — the "Handling LNURL" spinner
-# flashes again.
-- tapOn:
-    id: "send.amountTextField"
+# The amount field is already focused, so type an in-range amount (1500 sats)
+# straight in — no tapping into the field first — and tap Done. With pending
+# LNURL data set, Done fetches the invoice from the LNURL callback, so the
+# "Handling lightning request" spinner flashes again.
 - inputText: "1500"
 - tapOn:
     text: "Done"
 
 # After the callback returns, LNURL now follows the same
 # ConfirmSendViewController flow as the invoice paths (no more [Cancel, Confirm]
-# alert). The "Handling LNURL" spinner clears into the Confirm screen — wait it
+# alert). The "Handling lightning request" spinner clears into the Confirm screen — wait it
 # out, then verify the details. For LNURL the address label shows the Lightning
 # Address itself (the resolved bolt11 invoice is irrelevant to the user), so
 # match the e2e address rather than .*lnbcrt.*.

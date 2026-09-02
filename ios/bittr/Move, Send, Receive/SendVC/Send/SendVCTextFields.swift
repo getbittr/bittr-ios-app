@@ -13,6 +13,11 @@ extension SendViewController {
     func textField(_ textField: UITextField, shouldChangeCharactersIn range: NSRange, replacementString string: String) -> Bool {
         // Reset didTapAvailable boolean upon manual changes.
         if textField == self.amountTextField { self.didTapAvailable = false }
+        // Editing the destination invalidates any LNURL we resolved for the
+        // previous destination — drop it so a stale callback/invoice can't hijack
+        // the next send (e.g. Next paying the old lightning address after the user
+        // has swapped in an on-chain address).
+        if textField == self.toTextField { self.clearPendingLnurlState() }
         return true
     }
     
