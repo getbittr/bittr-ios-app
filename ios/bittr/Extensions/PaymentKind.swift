@@ -71,12 +71,13 @@ extension PaymentDetails {
         return self.kind.stableID ?? self.id
     }
     
-    // Every key that data might be found under: the stable one, then the
-    // preimage, which is what versions before stableID wrote against.
+    // Every key that data might be found under: the stable one first, then the
+    // legacy keys older versions wrote against — the preimage (transactionID) and
+    // the payment id (used while the preimage was still nil, pre-settlement).
     var cacheIDs: [String] {
         var ids = [self.cacheID]
-        if let transactionID = self.kind.transactionID, transactionID != self.cacheID {
-            ids.append(transactionID)
+        for legacy in [self.kind.transactionID, self.id].compactMap({ $0 }) where !ids.contains(legacy) {
+            ids.append(legacy)
         }
         return ids
     }

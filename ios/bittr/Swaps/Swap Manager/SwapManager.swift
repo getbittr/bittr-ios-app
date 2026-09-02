@@ -472,7 +472,7 @@ class SwapManager: NSObject {
         // We need to add the claim transaction fee to ensure they receive exactly what they input
         let claimTransactionFee = await BoltzRefund.calculateClaimOrRefundTransactionFee()
         let onchainAmountWithFee = amountSat + claimTransactionFee
-        await MainActor.run { swapVC.thisSwap?.claimTransactionFee = claimTransactionFee }
+        DispatchQueue.main.async { swapVC.thisSwap?.claimTransactionFee = claimTransactionFee }
         
         // Call /v2/swap/reverse to receive the Lightning invoice we should pay.
         let randomPreimage = self.generateRandomPreimage()
