@@ -353,6 +353,7 @@ class Language: NSObject {
             "swapstatusinvoicepending": "Awaiting swap payout",
             "swapstatusswapcomplete": "Swap complete",
             "gatheringdetails": "Gathering details",
+            "swapstatusclaiming": "Claiming your bitcoin",
             "swapstatusfailedtopay": "Swap failed (couldn't pay invoice)",
             "swapstatusexpired": "Swap expired",
             "swapstatusincorrectamount": "Swap failed (incorrect amount)",

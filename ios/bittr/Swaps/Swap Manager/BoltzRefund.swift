@@ -29,14 +29,25 @@ class BoltzRefund {
     // Both claim and refund transactions are always this size.
     static let claimOrRefundTransactionVBytes: Double = 99
     
+    // The rate to fall back on when there is no new or cached estimate.
+    static let fallbackFeeRatePerVb = 50
+    
     // Calculates transaction fee using the highest priority fee rate
-    static func calculateClaimOrRefundTransactionFee() async throws -> Int {
-        guard let feeEstimates = await BitcoinManager.shared.getFeeEstimates() else {
-            throw BoltzAPIError.requestFailed("Could not fetch fee estimates for the claim/refund transaction.")
+    static func calculateClaimOrRefundTransactionFee() async -> Int {
+        // Check if we can fetch fresh fee estimates.
+        if let feeEstimates = await BitcoinManager.shared.getFeeEstimates() {
+            return Int(feeEstimates.fastest * claimOrRefundTransactionVBytes)
         }
-        let calculatedFee = Int(feeEstimates.fastest * claimOrRefundTransactionVBytes)
-        
-        return calculatedFee
+        // Cannot fetch fresh estimates. Check if we have a cached estimate.
+        if let lastKnownFeeRate = CacheManager.getLastKnownFeeRate() {
+            Log.info("Fee estimates unavailable. Using the last known rate of \(lastKnownFeeRate) sat/vB for the claim/refund transaction.")
+            SentryManager.countMetric("swap.claimfee.lastknown")
+            return lastKnownFeeRate * Int(claimOrRefundTransactionVBytes)
+        }
+        // No fresh or cached fees available. Use the default fallback rate.
+        Log.info("Fee estimates unavailable and none cached. Using \(fallbackFeeRatePerVb) sat/vB for the claim/refund transaction.")
+        SentryManager.countMetric("swap.claimfee.fallback")
+        return fallbackFeeRatePerVb * Int(claimOrRefundTransactionVBytes)
     }
     
     // MARK: - Main Claim Function
@@ -53,7 +64,7 @@ class BoltzRefund {
         if let storedFee = ongoingSwap.claimTransactionFee {
             claimFee = storedFee
         } else {
-            claimFee = try await calculateClaimOrRefundTransactionFee()
+            claimFee = await calculateClaimOrRefundTransactionFee()
             // Store the calculated fee for future use
             ongoingSwap.claimTransactionFee = claimFee
             swapVC.thisSwap = ongoingSwap
@@ -270,7 +281,7 @@ class BoltzRefund {
             }
             
             // Calculate refund transaction fee
-            let refundFee = try await calculateClaimOrRefundTransactionFee()
+            let refundFee = await calculateClaimOrRefundTransactionFee()
             
             let refundTx = constructSingleRefundTransaction(
                 swapOutput: swapOutput,        // Same output from detectSwap

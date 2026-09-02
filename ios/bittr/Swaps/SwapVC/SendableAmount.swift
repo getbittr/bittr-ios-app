@@ -92,10 +92,11 @@ extension SwapViewController {
         Task {
             guard let feeEstimates = await BitcoinManager.shared.getFeeEstimates() else {
                 Log.info("Could not fetch fee estimates.")
+                let spendableSatoshis = max(BitcoinManager.shared.bittrWallet.satoshisOnchainSpendable ?? 0, 0)
                 DispatchQueue.main.async {
                     guard self.swapDirection == requestedDirection else { return }
                     self.bdkSpinner.stopAnimating()
-                    self.availableAmountLabel.text = Language.getWord(withID: "satsatatime").replacingOccurrences(of: "<amount>", with: "0")
+                    self.availableAmountLabel.text = Language.getWord(withID: "satsatatime").replacingOccurrences(of: "<amount>", with: "\(min(availableChannelSpace, spendableSatoshis))".addSpaces())
                 }
                 return
             }

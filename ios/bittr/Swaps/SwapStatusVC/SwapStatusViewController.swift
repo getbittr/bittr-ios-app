@@ -47,6 +47,10 @@ class SwapStatusViewController: UIViewController {
     
     // Variables
     var thisSwap:Swap?
+
+    // Durable "the swap has completed" flag, independent of the label's text, so a
+    // late non-complete status can't overwrite the completed state.
+    var hasCompleted = false
     var coreVC:CoreViewController?
     var swapVC:SwapViewController?
     var webSocketManager:WebSocketManager?
@@ -148,15 +152,29 @@ class SwapStatusViewController: UIViewController {
     }
     
     var isShowingSwapComplete:Bool {
-        return self.confirmStatusLabel.text == Language.getWord(withID: "swapstatusswapcomplete")
+        return self.hasCompleted
     }
-    
+
     func markSwapComplete() {
         DispatchQueue.main.async {
+            self.hasCompleted = true
             self.confirmStatusSpinner.stopAnimating()
             self.confirmStatusLabel.alpha = 1
             self.confirmStatusLabel.text = Language.getWord(withID: "swapstatusswapcomplete")
         }
+    }
+
+    func showStatus(_ status:String) {
+        guard let ongoingSwap = self.thisSwap else { return }
+
+        let completeText = Language.getWord(withID: "swapstatusswapcomplete")
+        let statusText = status.userFriendlyStatus(direction: ongoingSwap.swapDirection)
+
+        // Once completed, a late non-complete status must not overwrite it.
+        guard !self.hasCompleted || statusText == completeText else { return }
+
+        if statusText == completeText { self.hasCompleted = true }
+        self.confirmStatusLabel.text = statusText
     }
     
     func receivedStatusUpdate(status:String, fullMessage: [String: Any]) {
@@ -164,7 +182,7 @@ class SwapStatusViewController: UIViewController {
 
         self.syncSuggestedSwapMarker(status: status)
         self.statusQuestionButton.boundString = status
-        self.confirmStatusLabel.text = status.userFriendlyStatus(direction: self.thisSwap!.swapDirection)
+        self.showStatus(status)
         
         if status == "invoice.failedToPay" || status == "transaction.lockupFailed" {
             self.confirmStatusSpinner.stopAnimating()
@@ -220,6 +238,7 @@ class SwapStatusViewController: UIViewController {
                 // Handle the result on main thread
                 DispatchQueue.main.async {
                     if claimResult.success {
+                        self.hasCompleted = true
                         self.confirmStatusLabel.text = Language.getWord(withID: "swapstatusswapcomplete")
                         self.confirmStatusSpinner.stopAnimating()
                         self.webSocketManager?.disconnect()
@@ -272,7 +291,7 @@ class SwapStatusViewController: UIViewController {
 
                     self.syncSuggestedSwapMarker(status: receivedStatus)
                     self.statusQuestionButton.boundString = receivedStatus
-                    self.confirmStatusLabel.text = receivedStatus.userFriendlyStatus(direction: self.thisSwap!.swapDirection)
+                    self.showStatus(receivedStatus)
                     
                     if receivedStatus == "invoice.failedToPay" || receivedStatus == "swap.expired" || receivedStatus == "transaction.lockupFailed" {
                         Log.info("Swap failed with status: \(receivedStatus)")
@@ -477,7 +496,8 @@ extension String {
         case "transaction.confirmed": if direction == .onchainToLightning {
             return Language.getWord(withID: "swapstatusawaitingpayment")
         } else {
-            return Language.getWord(withID: "swapstatusswapcomplete")
+            // Lockup confirmed. Will claim satoshis.
+            return Language.getWord(withID: "swapstatusclaiming")
         }
         case "invoice.pending": return Language.getWord(withID: "swapstatusinvoicepending")
         case "invoice.paid": return Language.getWord(withID: "swapstatusswapcomplete")

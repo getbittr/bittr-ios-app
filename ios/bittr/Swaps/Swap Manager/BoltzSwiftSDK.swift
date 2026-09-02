@@ -1088,7 +1088,11 @@ func constructClaimTransaction(
     }
     
     // Calculate output value
-    let outputValue = swapOutput.value - UInt64(fee)
+    let feeSats = UInt64(max(0, fee))
+    if feeSats >= swapOutput.value {
+        Log.info("Claim/refund fee of \(feeSats) sats is not payable from an output of \(swapOutput.value) sats.")
+    }
+    let outputValue = swapOutput.value > feeSats ? swapOutput.value - feeSats : 0
     
     // Add output
     tx.addOutput(value: outputValue, script: destinationScript)

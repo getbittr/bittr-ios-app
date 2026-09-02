@@ -252,11 +252,19 @@ class CacheManager: NSObject {
     }
     
     static func getInvoiceTimestamp(preimage:String) -> Int {
-        
-        if let cached = keyedCache(CacheKeys.invoiceTimestamps)[preimage] { return cached }
+        return self.getInvoiceTimestamp(preimages: [preimage])
+    }
+    
+    static func getInvoiceTimestamp(preimages:[String]) -> Int {
+        let cache = keyedCache(CacheKeys.invoiceTimestamps)
+        for eachPreimage in preimages {
+            if let cached = cache[eachPreimage] { return cached }
+        }
         
         let now = Int(Date().timeIntervalSince1970)
-        self.storeInvoiceTimestamp(preimage: preimage, timestamp: now)
+        if let stableID = preimages.first {
+            self.storeInvoiceTimestamp(preimage: stableID, timestamp: now)
+        }
         return now
     }
     
@@ -294,7 +302,15 @@ class CacheManager: NSObject {
     }
     
     static func getInvoiceDescription(preimage:String) -> String {
-        return keyedCache(CacheKeys.invoiceDescriptions)[preimage] ?? ""
+        return self.getInvoiceDescription(preimages: [preimage])
+    }
+    
+    static func getInvoiceDescription(preimages:[String]) -> String {
+        let cache = keyedCache(CacheKeys.invoiceDescriptions)
+        for eachPreimage in preimages {
+            if let cached = cache[eachPreimage] { return cached }
+        }
+        return ""
     }
     
     // MARK: - Transaction note
@@ -319,7 +335,15 @@ class CacheManager: NSObject {
     }
     
     static func getLightningFees(preimage:String) -> Int {
-        return keyedCache(CacheKeys.paymentFees)[preimage] ?? 0
+        return self.getLightningFees(preimages: [preimage])
+    }
+    
+    static func getLightningFees(preimages:[String]) -> Int {
+        let cache = keyedCache(CacheKeys.paymentFees)
+        for eachPreimage in preimages {
+            if let cached = cache[eachPreimage] { return cached }
+        }
+        return 0
     }
     
     // MARK: - Mnemonic
@@ -807,6 +831,15 @@ class CacheManager: NSObject {
     
     static func resetSwapIndex() {
         CacheStore.set(0, for: CacheKeys.swapIndex)
+    }
+    
+    // The last fee rate the fee API returned, in whole sat/vB.
+    static func storeLastKnownFeeRate(_ satPerVb:Double) {
+        CacheStore.set(max(1, Int(satPerVb.rounded())), for: CacheKeys.lastKnownFeeRate)
+    }
+    
+    static func getLastKnownFeeRate() -> Int? {
+        return CacheStore.value(for: CacheKeys.lastKnownFeeRate)
     }
     
     static func getCurrentSwapIndex() -> Int {

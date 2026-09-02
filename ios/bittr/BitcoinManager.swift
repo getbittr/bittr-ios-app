@@ -524,7 +524,7 @@ class BitcoinManager {
         do {
             feeDictionary = try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<NSDictionary, Error>) in
                 Task {
-                    await CallsManager.makeApiCall(url: "https://mempool.space/api/v1/fees/precise", parameters: nil, getOrPost: .get) { result in
+                    await CallsManager.makeApiCall(url: "https://mempool.space/api/v1/fees/precise", parameters: nil, getOrPost: .get, timeout: 10) { result in
                         switch result {
                         case .success(let receivedDictionary):
                             // Build a fresh dictionary of validated Double fee rates: skip any
@@ -557,7 +557,10 @@ class BitcoinManager {
             Log.info("Fee estimate response was missing one or more expected rates.")
             return nil
         }
-
+        
+        // Remember the rate that worked.
+        CacheManager.storeLastKnownFeeRate(fastest)
+        
         return FeeEstimates(fastest: fastest, hour: hour, economy: economy)
     }
     

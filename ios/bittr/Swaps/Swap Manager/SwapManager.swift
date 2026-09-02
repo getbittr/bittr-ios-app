@@ -183,8 +183,8 @@ class SwapManager: NSObject {
         DispatchQueue.main.async {
             if let invoiceHash = invoice.description.getInvoiceHash(), let paymentDetails = BitcoinManager.shared.getPaymentDetails(paymentHash: invoiceHash) {
                 let newTimestamp = Int(Date().timeIntervalSince1970)
-                CacheManager.storeInvoiceTimestamp(preimage: paymentDetails.kind.transactionID ?? paymentDetails.id, timestamp: newTimestamp)
-                CacheManager.storeInvoiceDescription(preimage: paymentDetails.kind.transactionID ?? paymentDetails.id, desc: "Swap onchain to lightning \(idString)")
+                CacheManager.storeInvoiceTimestamp(preimage: paymentDetails.cacheID, timestamp: newTimestamp)
+                CacheManager.storeInvoiceDescription(preimage: paymentDetails.cacheID, desc: "Swap onchain to lightning \(idString)")
                 Log.info("Did cache invoice data.")
             }
             
@@ -470,8 +470,9 @@ class SwapManager: NSObject {
         
         // For lightning-to-onchain swaps, the user's input is the final amount they want to receive
         // We need to add the claim transaction fee to ensure they receive exactly what they input
-        let claimTransactionFee = try? await BoltzRefund.calculateClaimOrRefundTransactionFee()
-        let onchainAmountWithFee = amountSat + (claimTransactionFee ?? 0)
+        let claimTransactionFee = await BoltzRefund.calculateClaimOrRefundTransactionFee()
+        let onchainAmountWithFee = amountSat + claimTransactionFee
+        DispatchQueue.main.async { swapVC.thisSwap?.claimTransactionFee = claimTransactionFee }
         
         // Call /v2/swap/reverse to receive the Lightning invoice we should pay.
         let randomPreimage = self.generateRandomPreimage()
@@ -612,7 +613,7 @@ class SwapManager: NSObject {
                         
                         // Store transaction details in cache.
                         CacheManager.storeSwapID(dateID: swapVC.thisSwap!.dateID, swapID: swapVC.thisSwap!.boltzID!)
-                        CacheManager.storeInvoiceDescription(preimage: swapVC.thisSwap!.preimage!, desc: swapVC.thisSwap!.dateID)
+                        CacheManager.storeInvoiceDescription(preimage: randomPreimageHashHex, desc: swapVC.thisSwap!.dateID)
                         if swapVC.thisSwap!.isSuggested {
                             CacheManager.storeSuggestedSwap(dateID: swapVC.thisSwap!.dateID)
                         }
@@ -846,31 +847,25 @@ class SwapManager: NSObject {
         let lightningFees = swapVC.getLightningFeesInSatoshis(parsedInvoice: parsedInvoice, amountMsat: nil)
         
         // Calculate claim transaction fee
+        let storedClaimTransactionFee = swapVC.thisSwap!.claimTransactionFee
         Task {
-            do {
-                let claimTransactionFee = try await BoltzRefund.calculateClaimOrRefundTransactionFee()
+            let claimTransactionFee:Int
+            if let storedClaimTransactionFee {
+                // Fee rates have already been fetched for this swap.
+                claimTransactionFee = storedClaimTransactionFee
+            } else {
+                // Fetch fresh fee rates.
+                claimTransactionFee = await BoltzRefund.calculateClaimOrRefundTransactionFee()
+            }
+            
+            DispatchQueue.main.async {
+                swapVC.thisSwap!.boltzExpectedAmount = invoiceAmount
+                swapVC.thisSwap!.onchainFees = onchainFees
+                swapVC.thisSwap!.lightningFees = lightningFees
+                swapVC.thisSwap!.claimTransactionFee = claimTransactionFee
                 
-                DispatchQueue.main.async {
-                    swapVC.thisSwap!.boltzExpectedAmount = invoiceAmount
-                    swapVC.thisSwap!.onchainFees = onchainFees
-                    swapVC.thisSwap!.lightningFees = lightningFees
-                    swapVC.thisSwap!.claimTransactionFee = claimTransactionFee
-                    
-                    // Confirm fees with user.
-                    swapVC.confirmExpectedFees()
-                }
-            } catch {
-                Log.info("Failed to calculate claim transaction fee: \(error)")
-                // Fallback to default fee calculation without claim transaction fee
-                DispatchQueue.main.async {
-                    swapVC.thisSwap!.boltzExpectedAmount = invoiceAmount
-                    swapVC.thisSwap!.onchainFees = onchainFees
-                    swapVC.thisSwap!.lightningFees = lightningFees
-                    
-                    // Confirm fees with user.
-                    swapVC.confirmExpectedFees()
-                    SentryManager.capture(error, context: "SwapManager row 654")
-                }
+                // Confirm fees with user.
+                swapVC.confirmExpectedFees()
             }
         }
     }

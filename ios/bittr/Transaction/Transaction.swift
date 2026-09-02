@@ -166,7 +166,7 @@ extension PaymentDetails {
         default:
             // Lightning payment.
             thisTransaction.isLightning = true
-            thisTransaction.timestamp = CacheManager.getInvoiceTimestamp(preimage: thisTransaction.id)
+            thisTransaction.timestamp = CacheManager.getInvoiceTimestamp(preimages: self.cacheIDs)
             
             // Set channel ID.
             if let activeChannel = BitcoinManager.shared.bittrWallet.lightningChannels.getActiveChannel() {
@@ -180,14 +180,14 @@ extension PaymentDetails {
         } else {
             thisTransaction.sent = Int(self.amountMsat ?? 0)/1000
             if thisTransaction.isLightning {
-                thisTransaction.fee = CacheManager.getLightningFees(preimage: thisTransaction.id)
+                thisTransaction.fee = CacheManager.getLightningFees(preimages: self.cacheIDs)
             } else {
                 thisTransaction.fee = Int(self.feePaidMsat ?? 0)/1000
             }
         }
         
         // Description.
-        thisTransaction.lnDescription = CacheManager.getInvoiceDescription(preimage: thisTransaction.id)
+        thisTransaction.lnDescription = CacheManager.getInvoiceDescription(preimages: self.cacheIDs)
         
         // Check if transaction is Bittr.
         if bittrTransactions != nil, let thisBittrTransaction = bittrTransactions![thisTransaction.id] {
