@@ -32,15 +32,24 @@ extension SendViewController {
     }
     
     func checkSendLightning() {
-        guard self.checkInternetConnection() else { return }
-        
-        // Recognize pending LNURL invoice if needed.
+        // Recognize any pending LNURL invoice/note up front — before any early
+        // return — so a stale one can never survive to attach itself to a later
+        // send. If we bail below (e.g. no internet), the LNURL is simply dropped;
+        // tapping Next again re-resolves it from the address field.
         let lnurlInvoice = self.pendingLnurlInvoice
         self.pendingLnurlInvoice = nil
-        
+        // A normal (non-LNURL) send carries no note: drop any note left over from a
+        // previous LNURL that was resolved but never paid, so it can't attach itself
+        // to this payment's transaction.
+        if lnurlInvoice == nil {
+            self.pendingLnurlNote = nil
+        }
+
+        guard self.checkInternetConnection() else { return }
+
         // Check invoice field.
         guard let enteredInvoice = lnurlInvoice ?? self.toTextField.text?.trimmingCharacters(in: .whitespacesAndNewlines), !enteredInvoice.isEmpty else {
-            self.showAlert(title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "enteraddress"), buttons: [.dismiss(Language.getWord(withID: "okay"))])
+            self.showAlert(title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "enterinvoice"), buttons: [.dismiss(Language.getWord(withID: "okay"))])
             return
         }
         
@@ -50,15 +59,43 @@ extension SendViewController {
             return
         }
         
-        // Show entered LNURL in ConfirmSendVC if needed.
+        // Show the typed lightning address in ConfirmSendVC when we resolved it via
+        // LNURL — but only if it really is a lightning address. Otherwise the field
+        // (which the user may have edited to something else) must not stand in for
+        // the actual destination on the confirmation screen.
         let typedAddress = (self.toTextField.text ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
-        self.confirmLnurlEmail = (lnurlInvoice != nil && !typedAddress.isEmpty) ? typedAddress : nil
+        let typedIsLightningAddress = typedAddress.isValidEmail() || typedAddress.lowercased().hasPrefix("lnurl")
+        self.confirmLnurlEmail = (lnurlInvoice != nil && typedIsLightningAddress) ? typedAddress : nil
         
         // Get invoice amount.
         let satoshisAmount:Int
         let maximumRoutingFeesSat:Int
-        var isBolt12Offer:Bool = false
         if let parsedInvoice = enteredInvoice.bolt11Invoice() {
+            // Reject an invoice for a different network (e.g. a mainnet invoice on a
+            // regtest build) up front, with a clear message rather than a payment
+            // that just fails later.
+            let invoiceMatchesNetwork: Bool
+            switch (EnvironmentConfig.ldkNetwork, parsedInvoice.currency()) {
+            case (.bitcoin, .Bitcoin), (.testnet, .BitcoinTestnet), (.regtest, .Regtest), (.signet, .Signet):
+                invoiceMatchesNetwork = true
+            default:
+                invoiceMatchesNetwork = false
+            }
+            guard invoiceMatchesNetwork else {
+                self.showAlert(title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "wrongnetworkinvoice"), buttons: [.dismiss(Language.getWord(withID: "okay"))])
+                return
+            }
+
+            // Reject paying ourselves: the payee key recovered from the invoice is
+            // our own node. LDK would otherwise fail this deep in routing with an
+            // unhelpful error. Covers both a self-made invoice and the user's own
+            // lightning address (which resolves to an invoice from our node).
+            if let ourNodeId = BitcoinManager.shared.nodeId(),
+               Data(parsedInvoice.recoverPayeePubKey()).hex.lowercased() == ourNodeId.lowercased() {
+                self.showAlert(title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "cannotpayself"), buttons: [.dismiss(Language.getWord(withID: "okay"))])
+                return
+            }
+
             // Valid invoice.
             if let invoiceAmountMilli = parsedInvoice.amountMilliSatoshis() {
                 // Normal invoice.
@@ -75,32 +112,31 @@ extension SendViewController {
                 maximumRoutingFeesSat = self.getLightningFeesInSatoshis(parsedInvoice: parsedInvoice, amountMsat: UInt64(satoshisAmount*1000))
             }
         } else if enteredInvoice.bolt12Offer() != nil {
-            // BOLT12 offer. Needs amount.
-            guard let enteredAmount = self.amountTextField.text?.trimmingCharacters(in: .whitespacesAndNewlines), !enteredAmount.isEmpty, let parsedSatoshis = self.getSatoshisFrom(enteredAmount: enteredAmount), parsedSatoshis > 0 else {
-                // No amount has been entered.
-                self.showAlert(title: Language.getWord(withID: "invoice"), message: Language.getWord(withID: "amountmissing"), buttons: [.dismiss(Language.getWord(withID: "okay"))])
-                return
-            }
-            satoshisAmount = parsedSatoshis
-            maximumRoutingFeesSat = Int((CGFloat(parsedSatoshis)/100).rounded()) + 50
-            isBolt12Offer = true
+            // BOLT12 offers aren't supported yet — reject them up front.
+            self.showAlert(title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "bolt12notsupported"), buttons: [.dismiss(Language.getWord(withID: "okay"))])
+            return
+        } else if let onchainAddress = enteredInvoice.asBitcoinAddress() {
+            // Not an invoice/offer/LNURL but a valid on-chain address — the user is
+            // on the Instant tab with a Regular destination (e.g. pasted an address,
+            // or swapped the invoice out for one). Switch to Regular and hand off to
+            // checkSendOnchain, mirroring how checkSendOnchain redirects an LNURL to
+            // Instant. The amount already typed carries over.
+            self.toTextField.text = onchainAddress
+            self.onchainOrLightning = .onchain
+            self.updateLabels()
+            self.checkSendOnchain()
+            return
         } else {
-            // Invalid invoice. Ask for amount.
-            self.showAlert(title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "enteramount"), buttons: [.dismiss(Language.getWord(withID: "okay"))])
+            // Not a recognisable invoice, offer, LNURL or on-chain address.
+            self.showAlert(title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "invalidinvoice2").replacingOccurrences(of: "<invoice>", with: enteredInvoice), buttons: [.dismiss(Language.getWord(withID: "okay"))])
             return
         }
         
         // Check if we have sufficient Lightning balance.
         let availableLightningBalance = (BitcoinManager.shared.bittrWallet.lightningChannels.getActiveChannel()?.outboundCapacityMsat ?? 0)/1000
         guard satoshisAmount <= availableLightningBalance else {
-            // Insufficient Lightning balance.
-            if !isBolt12Offer {
-                // BOLT11 invoice. Check if we have sufficient onchain balance for a swap.
-                self.checkAvailableOnchainBalance(invoiceAmount: satoshisAmount, availableLightningBalance: availableLightningBalance, invoiceText: enteredInvoice)
-            } else {
-                // BOLT12 offer. Insufficient funds available.
-                self.showAlert(title: Language.getWord(withID: "insufficientfunds"), message: Language.getWord(withID: "lightninginsufficientfunds").replacingOccurrences(of: "<amount>", with: "\(availableLightningBalance)".addSpaces()), buttons: [.dismiss(Language.getWord(withID: "okay"))])
-            }
+            // Insufficient Lightning balance — see if an onchain swap can cover it.
+            self.checkAvailableOnchainBalance(invoiceAmount: satoshisAmount, availableLightningBalance: availableLightningBalance, invoiceText: enteredInvoice)
             return
         }
         
