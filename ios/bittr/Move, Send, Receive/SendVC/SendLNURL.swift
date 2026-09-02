@@ -19,18 +19,27 @@ extension SendViewController {
     func handleLNURLAmountCompletion() {
         Log.info("Will handle LNURL amount completion.")
         
+        // The pending LNURL data must still be here; if it's gone, something is
+        // genuinely wrong with the request. (Stop the spinner in case we got here
+        // straight from resolution — the amount-already-entered path leaves it
+        // running; a no-op otherwise.)
         guard let callback = pendingLNURLCallback,
               let minAmount = pendingLNURLMinAmount,
-              let maxAmount = pendingLNURLMaxAmount,
-              let amountText = amountTextField.text,
-              !amountText.isEmpty else {
+              let maxAmount = pendingLNURLMaxAmount else {
             Log.info("Information for pending LNURL incomplete.")
+            self.stopLNURLSpinner()
             self.showAlert(title: Language.getWord(withID: "lnurl"), message: Language.getWord(withID: "lnurlfail3"), buttons: [.dismiss(Language.getWord(withID: "okay"))])
             return
         }
-        
-        // Convert amount to millisatoshis based on current currency
-        guard let enteredSatoshis = self.getSatoshisFrom(enteredAmount: amountText), enteredSatoshis > 0 else {
+
+        // An amount is required. If the user clicked Next without entering one (or
+        // it isn't a positive number), just ask for it — the same prompt the invoice
+        // and offer paths use, not a scary error. This only fires on an explicit
+        // Next; the initial resolution simply focuses the field.
+        let amountText = (self.amountTextField.text ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !amountText.isEmpty, let enteredSatoshis = self.getSatoshisFrom(enteredAmount: amountText), enteredSatoshis > 0 else {
+            self.stopLNURLSpinner()
+            self.showAlert(title: Language.getWord(withID: "invoice"), message: Language.getWord(withID: "amountmissing"), buttons: [.dismiss(Language.getWord(withID: "okay"))])
             return
         }
         let enteredAmount = enteredSatoshis * 1000
@@ -40,6 +49,7 @@ extension SendViewController {
             Log.info("Entered amount is not within range of the LNURL limits.")
             let minSats = minAmount / 1000
             let maxSats = maxAmount / 1000
+            self.stopLNURLSpinner()
             self.showAlert(title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "lnurlbetween").replacingOccurrences(of: "<min>", with: "\(minSats)").replacingOccurrences(of: "<max>", with: "\(maxSats)"), buttons: [.dismiss(Language.getWord(withID: "okay"))])
             return
         }
@@ -94,7 +104,27 @@ extension SendViewController {
         self.amountTextField.resignFirstResponder()
         self.sendWithdrawRequest(callbackURL: callback, amount: enteredAmount, k1: k1)
     }
-    
+
+    /// Drops every piece of state we hold from resolving an LNURL / lightning
+    /// address (pay or withdraw) for the *current* destination. Call this whenever
+    /// the destination field changes: the resolution belonged to the old address,
+    /// so keeping it lets a stale callback/invoice hijack the next send (e.g.
+    /// paying the old lightning address after the user has typed an on-chain one)
+    /// or mislabel the confirmation screen.
+    func clearPendingLnurlState() {
+        self.pendingLNURLCallback = nil
+        self.pendingLNURLDescription = nil
+        self.pendingLNURLMinAmount = nil
+        self.pendingLNURLMaxAmount = nil
+        self.pendingWithdrawCallback = nil
+        self.pendingWithdrawK1 = nil
+        self.pendingWithdrawMinAmount = nil
+        self.pendingWithdrawMaxAmount = nil
+        self.pendingLnurlInvoice = nil
+        self.pendingLnurlNote = nil
+        self.confirmLnurlEmail = nil
+    }
+
 }
 
 extension UIViewController {
@@ -149,12 +179,17 @@ extension UIViewController {
             await CallsManager.makeApiCall(url: url, parameters: nil, getOrPost: .get) { result in
                 
                 DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
-                    sendVC?.stopLNURLSpinner()
-                    
+                    // The loading overlay is intentionally left running here and only
+                    // stopped in the branches below that don't chain into another request.
+                    // When we continue straight on to sendPayRequest (fixed amount, or an
+                    // amount already entered), keeping it up gives one continuous "Handling
+                    // lightning request" overlay instead of it flashing off and back on —
+                    // showLoading is idempotent, so sendPayRequest reuses the existing one.
                     switch result {
                     case .success(let actualDataDict):
                         SentryManager.countMetric("lnurl.api.success")
                         guard let receivedTag = actualDataDict["tag"] as? String else {
+                            sendVC?.stopLNURLSpinner()
                             self.showAlert(title: Language.getWord(withID: "lnurl"), message: Language.getWord(withID: "lnurlfail4"), buttons: [.dismiss(Language.getWord(withID: "okay"))])
                             return
                         }
@@ -179,28 +214,32 @@ extension UIViewController {
                                 self.sendPayRequest(callbackURL: receivedCallback.replacingOccurrences(of: "\0", with: "").trimmingCharacters(in: .controlCharacters), amount: minSendable, receivedDescription: receivedDescription)
                             } else {
                                 // Min and max are different. Store the request so the
-                                // amount the user enters next completes the payment, then
-                                // tell them the payable range via an alert.
-                                let minSats = minSendable / 1000
-                                let maxSats = maxSendable / 1000
-
-                                // Store the callback and description for when user enters amount
+                                // amount the user enters next completes the payment. The
+                                // payable range is kept behind the scenes (pendingLNURLMin/
+                                // MaxAmount) and validated on confirm in
+                                // handleLNURLAmountCompletion, which only alerts if the
+                                // entered amount falls outside it.
                                 sendVC?.pendingLNURLCallback = receivedCallback.replacingOccurrences(of: "\0", with: "").trimmingCharacters(in: .controlCharacters)
                                 sendVC?.pendingLNURLDescription = receivedDescription
                                 sendVC?.pendingLNURLMinAmount = minSendable
                                 sendVC?.pendingLNURLMaxAmount = maxSendable
 
-                                // Clear the amount field, ready for an in-range amount.
-                                sendVC?.amountTextField.text = ""
-
-                                // Show the payable range. The user taps Okay, then enters
-                                // the amount in the field.
-                                self.showAlert(
-                                    title: Language.getWord(withID: "payrequest"),
-                                    message: Language.getWord(withID: "payrequest1")
-                                        .replacingOccurrences(of: "<minsendable>", with: "\(minSats)".addSpaces())
-                                        .replacingOccurrences(of: "<maxsendable>", with: "\(maxSats)".addSpaces()),
-                                    buttons: [.dismiss(Language.getWord(withID: "okay"))])
+                                // If the user already entered an amount before this
+                                // resolved, complete straight to the confirmation screen
+                                // with it — no need to make them re-enter. This validates
+                                // the payable range and only alerts if it's out of bounds
+                                // (leaving the pending request in place so they can adjust).
+                                // Otherwise open the keyboard so they can enter an amount.
+                                let enteredAmount = (sendVC?.amountTextField.text ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+                                if !enteredAmount.isEmpty {
+                                    // Chains into sendPayRequest — leave the spinner up.
+                                    sendVC?.handleLNURLAmountCompletion()
+                                } else {
+                                    // Terminal: waiting on the user to type an amount.
+                                    sendVC?.stopLNURLSpinner()
+                                    sendVC?.amountTextField.text = ""
+                                    sendVC?.amountTextField.becomeFirstResponder()
+                                }
                             }
                         } else if receivedTag == "withdrawRequest",
                             let receivedCallback = actualDataDict["callback"] as? String,
@@ -208,6 +247,7 @@ extension UIViewController {
                             let minWithdrawable = actualDataDict["minWithdrawable"] as? Int,
                             let maxWithdrawable = actualDataDict["maxWithdrawable"] as? Int {
                                 
+                            sendVC?.stopLNURLSpinner()
                             var alert = UIAlertController(title: Language.getWord(withID: "withdrawrequest"), message: "\(Language.getWord(withID: "withdrawrequest1"))".replacingOccurrences(of: "<minwithdrawable>", with: "\(minWithdrawable/1000)").replacingOccurrences(of: "<maxwithdrawable>", with: "\(maxWithdrawable/1000)"), preferredStyle: .alert)
                             if minWithdrawable == maxWithdrawable {
                                 // Min and max are the same.
@@ -234,7 +274,8 @@ extension UIViewController {
                             let receivedCallback = actualDataDict["callback"] as? String,
                             let receivedK1 = actualDataDict["k1"] as? String {
                             let receivedAction = actualDataDict["action"] as? String
-                            
+                            sendVC?.stopLNURLSpinner()
+
                             guard let callbackURL = URL(string: receivedCallback), let k1Data = Data(hexString: receivedK1) else { return }
 
                             let request = LNURLAuthRequest(
@@ -245,9 +286,11 @@ extension UIViewController {
 
                             self.showLNURLAuthConfirmation(request)
                         } else {
+                            sendVC?.stopLNURLSpinner()
                             self.showAlert(title: Language.getWord(withID: "lnurl"), message: Language.getWord(withID: "lnurlfail4"), buttons: [.dismiss(Language.getWord(withID: "okay"))])
                         }
                     case .failure(let error):
+                        sendVC?.stopLNURLSpinner()
                         SentryManager.capture(error, context: "SendLNURL row 239")
                         SentryManager.countMetric("lnurl.api.failure.1")
                         Log.info("Error 111: \(error.localizedDescription)")
