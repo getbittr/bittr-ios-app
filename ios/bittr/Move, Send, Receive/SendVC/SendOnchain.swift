@@ -18,18 +18,33 @@ extension SendViewController {
             
         // Check address.
         guard let enteredAddress = self.toTextField.text?.trimmingCharacters(in: .whitespacesAndNewlines), !enteredAddress.isEmpty else {
-            self.showAlert(title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "enteraddress"), buttons: [.dismiss(Language.getWord(withID: "okay"))])
+            self.showAlert(title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "enterbitcoinaddress"), buttons: [.dismiss(Language.getWord(withID: "okay"))])
             return
         }
         
-        // Check for LNURL address.
-        if enteredAddress.lowercased().contains("lnurl") || enteredAddress.lowercased().isValidEmail() {
-            // Handle LNURL.
+        // If the field holds a lightning destination — an LNURL/lightning address, a
+        // bolt11 invoice, or a bolt12 offer — rather than an on-chain address, switch
+        // to Instant and hand off to checkSendLightning. Mirrors how checkSendLightning
+        // redirects an on-chain address back to Regular, so pasting/typing an invoice
+        // on the wrong tab just works instead of failing to parse as an address.
+        if enteredAddress.lowercased().contains("lnurl") || enteredAddress.lowercased().isValidEmail()
+            || enteredAddress.bolt11Invoice() != nil || enteredAddress.bolt12Offer() != nil {
             self.onchainOrLightning = .lightning
+            self.updateLabels()
             self.checkSendLightning()
             return
         }
-        
+
+        // A genuine onchain send is never an LNURL payment: drop any LNURL state
+        // left over from a resolved-but-abandoned lightning-address payment. Without
+        // this, a leftover note attaches to this onchain transaction (the shared
+        // addNewPaymentToTable stores pendingLnurlNote keyed by whatever payment
+        // completes next), and a leftover invoice could resurface on a later
+        // lightning send.
+        self.pendingLnurlInvoice = nil
+        self.pendingLnurlNote = nil
+        self.confirmLnurlEmail = nil
+
         // Check amount.
         guard let enteredAmount = self.amountTextField.text?.trimmingCharacters(in: .whitespacesAndNewlines), !enteredAmount.isEmpty else {
             self.showAlert(title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "enteramount"), buttons: [.dismiss(Language.getWord(withID: "okay"))])
@@ -122,26 +137,29 @@ extension SendViewController {
                 }
             } catch {
                 Log.info("Error: \(error.localizedDescription)")
-                
-                // Generate error message.
+
+                // Recognized, user-actionable errors get a plain consumer message;
+                // anything internal or unknown (incl. future BDK errors) falls back to
+                // the generic "we couldn't proceed" line. Only capture genuine bugs to
+                // Sentry — a bad/wrong-network address is user input, not a fault.
+                var friendlyMessage: String?
                 var sendToSentry = true
-                var errorMessage = error.localizedDescription
                 if let bdkError = error as? BitcoinDevKit.CreateTxError {
-                    errorMessage = bdkError.getErrorMessage()
-                    switch bdkError {
-                    case .CoinSelection(errorMessage: _): sendToSentry = false
-                    default: sendToSentry = true
-                    }
+                    friendlyMessage = bdkError.consumerFriendlyMessage()
+                    if case .CoinSelection = bdkError { sendToSentry = false }
                 } else if let bdkError = error as? BitcoinDevKit.AddressParseError {
-                    errorMessage = bdkError.getErrorMessage()
+                    friendlyMessage = bdkError.consumerFriendlyMessage()
+                    sendToSentry = false
                 }
-                
+
+                let message = friendlyMessage ?? (Language.getWord(withID: "cannotproceed") + ".")
+
                 // Show alert.
                 DispatchQueue.main.async {
                     self.nextLabel.alpha = 1
                     self.arrowIcon.alpha = 1
                     self.nextSpinner.stopAnimating()
-                    self.showAlert(title: Language.getWord(withID: "oops"), message: "\(Language.getWord(withID: "cannotproceed")). Error: \(errorMessage)", buttons: [.dismiss(Language.getWord(withID: "okay"))])
+                    self.showAlert(title: Language.getWord(withID: "oops"), message: message, buttons: [.dismiss(Language.getWord(withID: "okay"))])
                     if sendToSentry {
                         SentryManager.capture(error, context: "SendOnchain row 167")
                     }
