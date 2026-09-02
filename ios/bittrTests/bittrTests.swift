@@ -250,3 +250,143 @@ final class BoltzClaimLeafTests: XCTestCase {
         XCTAssertNotEqual(try BoltzSwapValidation.claimLeafPreimageHash160(tamperedLeaf), expected)
     }
 }
+
+// MARK: - Reverse-swap lockup validation (end-to-end)
+
+// Exercises the whole validateReverseLockup path — address check, our-key check,
+// and the claim-leaf preimage-hash check — instead of only the parser. This is
+// the trustlessness case we can't yet drive through the live EvilBoltz flow: a
+// rogue Boltz funds a lockup whose address and our claim key both check out, but
+// whose claim leaf commits to a preimage we do NOT hold, so the uncooperative
+// script-path claim would be unspendable by us. The check must reject it before
+// the invoice is paid.
+//
+// We can't capture a real swap's private key, so we stand in a known keypair
+// (privkey 0x01, whose public key is the secp256k1 generator point G) and derive
+// the lockup address exactly the way the app does (tweakedLockupKey), reusing a
+// real regtest Boltz refund key + refund leaf. Both the address and our-key
+// checks then pass on genuine data, so a wrong preimage can only be caught by
+// the claim-leaf hash check under test.
+final class BoltzReverseLockupTests: XCTestCase {
+
+    // privkey 0x01 → public key G; Gx is its x-only key and G has an even Y, so
+    // the compressed key is 02 || Gx.
+    private let ourPrivateKeyHex = String(repeating: "0", count: 63) + "1"
+    private let ourXonlyKey = "79be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798"
+    private var ourClaimPublicKeyHex: String { "02" + ourXonlyKey }
+
+    // A real regtest Boltz refund key + refund leaf (from the lightningToOnchain
+    // example response), used only as Boltz's side of the aggregate.
+    private let boltzRefundPublicKey = "035578a38b772461f2481b2a9c6f6802419b11282fb3719cde6af337c077e3d5f3"
+    private let refundLeaf = "205578a38b772461f2481b2a9c6f6802419b11282fb3719cde6af337c077e3d5f3ad024d01b1"
+
+    private let ourPreimage = Data((0..<32).map { UInt8($0) })
+
+    private func claimLeaf(committingTo preimage: Data) -> String {
+        "82012088a914" + RIPEMD160.hash160(preimage).hex + "8820" + ourXonlyKey + "ac"
+    }
+
+    // The P2TR lockup address our keys + these leaves actually produce. Gated
+    // against the production decoder so an encoder bug can't masquerade as a
+    // validateReverseLockup pass/fail.
+    private func lockupAddress(claimLeafHex: String) throws -> String {
+        let tweaked = try BoltzSwapValidation.tweakedLockupKey(
+            boltzPublicKeyHex: boltzRefundPublicKey,
+            ourPrivateKeyHex: ourPrivateKeyHex,
+            claimLeafOutputHex: claimLeafHex,
+            refundLeafOutputHex: refundLeaf
+        )
+        let address = Bech32mEncoder.encodeP2TR(program: tweaked, hrp: "bcrt")
+        var expectedScript = Data([0x51, 0x20])
+        expectedScript.append(tweaked)
+        XCTAssertEqual(AddressHandler.toOutputScript(address: address, network: .regtest), expectedScript,
+                       "test bech32m encoder must round-trip through the production decoder")
+        return address
+    }
+
+    // Genuine reverse lockup: the claim leaf commits to the preimage we hold, so
+    // the whole validation passes.
+    func testAcceptsSelfConsistentReverseLockup() throws {
+        let leaf = claimLeaf(committingTo: ourPreimage)
+        let address = try lockupAddress(claimLeafHex: leaf)
+        XCTAssertNoThrow(try BoltzSwapValidation.validateReverseLockup(
+            address: address,
+            refundPublicKeyHex: boltzRefundPublicKey,
+            claimPrivateKeyHex: ourPrivateKeyHex,
+            ourClaimPublicKeyHex: ourClaimPublicKeyHex,
+            preimageHex: ourPreimage.hex,
+            claimLeafOutputHex: leaf,
+            refundLeafOutputHex: refundLeaf,
+            network: .regtest
+        ))
+    }
+
+    // The adversarial case: the leaf commits to a preimage only Boltz holds, and
+    // the address is the one that leaf really produces (so the address and
+    // our-key checks pass). Only the claim-leaf hash check stands between us and
+    // paying for coins we could never claim on the script path.
+    func testRejectsClaimLeafCommittingToAnotherPreimage() throws {
+        let boltzOnlyPreimage = Data((0..<32).map { UInt8(0xff - $0) })
+        let tamperedLeaf = claimLeaf(committingTo: boltzOnlyPreimage)
+        let address = try lockupAddress(claimLeafHex: tamperedLeaf)
+
+        XCTAssertThrowsError(try BoltzSwapValidation.validateReverseLockup(
+            address: address,
+            refundPublicKeyHex: boltzRefundPublicKey,
+            claimPrivateKeyHex: ourPrivateKeyHex,
+            ourClaimPublicKeyHex: ourClaimPublicKeyHex,
+            preimageHex: ourPreimage.hex,                 // we hold THIS preimage, not the leaf's
+            claimLeafOutputHex: tamperedLeaf,
+            refundLeafOutputHex: refundLeaf,
+            network: .regtest
+        )) { error in
+            guard case SwapValidationError.claimLeafHashMismatch = error else {
+                return XCTFail("expected claimLeafHashMismatch, got \(error)")
+            }
+        }
+    }
+}
+
+// Minimal BIP-350 bech32m encoder — TEST ONLY. bittr ships only a decoder
+// (Bech32.decode / AddressHandler.toOutputScript); building a lockup address
+// from an output key needs the encode direction, which is why the end-to-end
+// reverse-lockup case was blocked before. Every address it produces is gated
+// against the production decoder in BoltzReverseLockupTests.lockupAddress(...).
+private enum Bech32mEncoder {
+    private static let charset = Array("qpzry9x8gf2tvdw0s3jn54khce6mua7l")
+    private static let generator: [UInt32] = [0x3b6a57b2, 0x26508e6d, 0x1ea119fa, 0x3d4233dd, 0x2a1462b3]
+
+    private static func polymod(_ values: [UInt8]) -> UInt32 {
+        var chk: UInt32 = 1
+        for v in values {
+            let top = chk >> 25
+            chk = (chk & 0x1ffffff) << 5 ^ UInt32(v)
+            for i in 0..<5 { chk ^= ((top >> i) & 1) == 0 ? 0 : generator[i] }
+        }
+        return chk
+    }
+
+    private static func hrpExpand(_ hrp: String) -> [UInt8] {
+        let b = Array(hrp.utf8)
+        return b.map { $0 >> 5 } + [0] + b.map { $0 & 31 }
+    }
+
+    private static func to5Bit(_ data: [UInt8]) -> [UInt8] {
+        var acc = 0, bits = 0, ret: [UInt8] = []
+        for value in data {
+            acc = (acc << 8) | Int(value)
+            bits += 8
+            while bits >= 5 { bits -= 5; ret.append(UInt8((acc >> bits) & 31)) }
+        }
+        if bits > 0 { ret.append(UInt8((acc << (5 - bits)) & 31)) }
+        return ret
+    }
+
+    // Witness version 1 + 32-byte program, checksummed with the bech32m constant.
+    static func encodeP2TR(program: Data, hrp: String) -> String {
+        let data = [UInt8(1)] + to5Bit(Array(program))
+        let mod = polymod(hrpExpand(hrp) + data + [0, 0, 0, 0, 0, 0]) ^ 0x2bc830a3
+        let checksum = (0..<6).map { UInt8((mod >> (5 * (5 - $0))) & 31) }
+        return hrp + "1" + String((data + checksum).map { charset[Int($0)] })
+    }
+}
