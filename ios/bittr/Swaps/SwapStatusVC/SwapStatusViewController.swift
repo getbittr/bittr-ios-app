@@ -330,42 +330,9 @@ class SwapStatusViewController: UIViewController {
     }
     
     private func loadLockupTxFromFile(swapID: String) -> String? {
-        Log.debug("Loading lockup transaction from file: \(swapID).json")
-        
-        do {
-            // Get the documents directory
-            let documentsPath = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
-            let fileURL = documentsPath.appendingPathComponent("\(swapID).json")
-            
-            // Check if file exists
-            guard FileManager.default.fileExists(atPath: fileURL.path) else {
-                Log.debug("Swap file not found at: \(fileURL.path)")
-                return nil
-            }
-            
-            // Read the JSON data from file
-            let jsonData = try Data(contentsOf: fileURL)
-            
-            // Convert JSON Data to NSDictionary
-            guard let dictionary = try JSONSerialization.jsonObject(with: jsonData, options: []) as? NSDictionary else {
-                Log.info("❌ Failed to parse JSON from file")
-                return nil
-            }
-            
-            // Extract lockup transaction
-            if let lockupTx = dictionary["lockupTx"] as? String {
-                Log.info("Found lockup transaction in JSON file")
-                return lockupTx
-            } else {
-                Log.info("No lockup transaction found in JSON file")
-                return nil
-            }
-            
-        } catch {
-            Log.info("Error loading lockup transaction from file: \(error)")
-            SentryManager.capture(error, context: "SwapViewController row 1009")
-            return nil
-        }
+        // The swap file is stored under sha256(boltzID); SwapManager resolves
+        // that (with a legacy plaintext fallback) so callers still pass boltzID.
+        return SwapManager.loadSwapDetailsFromFile(swapID: swapID)?["lockupTx"] as? String
     }
     
     @IBAction func downloadSwapFileTapped(_ sender: UIButton) {
@@ -373,10 +340,10 @@ class SwapStatusViewController: UIViewController {
         guard let ongoingSwap = self.thisSwap else { return }
         
         do {
-            // Get the documents directory
-            let documentsPath = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
-            let fileURL = documentsPath.appendingPathComponent("\(ongoingSwap.boltzID!).json")
-            
+            // Stored under sha256(boltzID) (legacy plaintext fallback handled by
+            // SwapManager); the exported copy keeps a readable name below.
+            let fileURL = SwapManager.swapFileURL(for: ongoingSwap.boltzID!)
+
             // Read the JSON data from file
             let jsonData = try Data(contentsOf: fileURL)
             

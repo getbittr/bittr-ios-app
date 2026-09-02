@@ -1,0 +1,63 @@
+# EvilBoltz end-to-end test — SEC-01 (reverse swap, lightning → onchain):
+# the app must verify that Boltz's returned invoice pays to the preimage hash
+# it submitted. The "bittr evil" app (Debug-EvilBoltz build, harness armed)
+# replaces that invoice with a REAL regtest invoice of the same amount whose
+# preimage only the "attacker" (the e2e service) knows.
+#
+# The fix rejects the tampered response during swap creation: right after Next
+# an error alert appears ("We could not verify the swap details…") before any
+# payment, and no SwapStatus screen is ever reached. This flow confirms that
+# rejection, then returns to Home so the next test starts clean.
+#
+# (A build WITHOUT the fix would instead pay the attacker's invoice and strand
+# the swap; that vulnerable-path assertion was removed once the fix landed.)
+#
+# Prerequisites:
+#   - "bittr evil" app installed once via the `bittr evil` Xcode scheme
+#   - push_server.js running: node shared/flows/scripts/push_server.js
+#
+# The flow provisions (or reuses) the evil app via helpers/evil_bootstrap.yaml,
+# so it runs standalone:
+#
+# Run: maestro test shared/flows/features/evil_boltz_wrong_invoice.yaml
+
+appId: com.bittr.bittr-evil
+---
+# 1) Provision: wipe → create wallet → bittr signup → fund lightning channel.
+- runFlow: ../helpers/evil_bootstrap.yaml
+
+# 2) Reverse-swap leg (lightning → onchain, 75000 sats), ending at Next —
+#    which triggers swap creation and, on an armed build, the tampered
+#    response (watch the console for the 🚨 EVIL BOLTZ log).
+- runFlow: ../helpers/swap_leg1.yaml
+
+# 3) The fix rejects the tampered response right after Next — an error alert
+#    (single Okay button) appears before any payment.
+- extendedWaitUntil:
+    visible:
+      id: "alert.button.0"
+    timeout: 30000
+- takeScreenshot: shared/docs/screenshots/evil_boltz_wrong_invoice/01_fixed_aborted
+# Confirm the fix's rejection (swapvalidationfailed — no funds sent). Maestro
+# matches `text` as a regex against the element's WHOLE text, so wrap the
+# distinctive substring in .* to match within the long message label.
+- assertVisible:
+    text: ".*could not verify the swap details.*"
+- tapOn:
+    id: "alert.button.0"
+# The swap status screen must never have appeared; we're back on SwapVC.
+- assertNotVisible:
+    id: "swapStatus.confirmCard"
+- assertVisible:
+    id: "swap.nextButton"
+
+# 4) Return to Home so the next test starts clean: swipe down to dismiss SwapVC,
+#    then again to dismiss MoveVC (the same landing as swap.yaml).
+- swipe:
+    direction: DOWN
+    duration: 800
+- swipe:
+    direction: DOWN
+    duration: 800
+- assertVisible:
+    id: "home.headerLabel"

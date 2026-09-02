@@ -84,8 +84,15 @@ struct Bech32 {
         return ret
     }
     
-    private static func verifyChecksum(_ hrp: String, _ data: [UInt8]) -> Bool {
-        return polymod(hrpExpand(hrp) + data) == 1
+    // BIP-173 encodes witness v0 with bech32, BIP-350 encodes v1 and up — every
+    // Taproot address among them — with bech32m. The two differ only in the
+    // constant the checksum settles on, and picking the wrong one rejects a
+    // perfectly valid address.
+    private static let bech32Checksum: UInt32 = 1
+    private static let bech32mChecksum: UInt32 = 0x2bc830a3
+    
+    private static func checksum(_ hrp: String, _ data: [UInt8]) -> UInt32 {
+        return polymod(hrpExpand(hrp) + data)
     }
     
     private static func convertBits(data: [UInt8], fromBits: Int, toBits: Int, pad: Bool) -> [UInt8]? {
@@ -135,15 +142,16 @@ struct Bech32 {
             values.append(UInt8(charset.distance(from: charset.startIndex, to: index)))
         }
         
-        // Verify checksum
-        guard verifyChecksum(hrp, values) else { return nil }
-        
         // Remove checksum (last 6 characters)
         let dataValues = Array(values.prefix(values.count - 6))
         guard !dataValues.isEmpty else { return nil }
         
         let version = dataValues[0]
+        guard version <= 16 else { return nil }
         let program = Array(dataValues[1...])
+        
+        // Verify checksum against the constant this witness version encodes with
+        guard checksum(hrp, values) == (version == 0 ? bech32Checksum : bech32mChecksum) else { return nil }
         
         // Convert from 5-bit to 8-bit
         guard let decoded = convertBits(data: program, fromBits: 5, toBits: 8, pad: false) else { return nil }

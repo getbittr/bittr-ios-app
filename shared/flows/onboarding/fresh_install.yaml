@@ -2,10 +2,17 @@
 # scratch. Use this when you want a guaranteed-clean wallet state.
 #
 # Run: maestro test shared/flows/onboarding/fresh_install.yaml
+#
+# App injection: by default this onboards the regtest app. A caller may set
+# output.APP_ID before runFlow-ing this file (e.g. helpers/evil_bootstrap.yaml
+# sets com.bittr.bittr-evil) to onboard a different build instead.
 
 appId: com.bittr.bittr-regtest
 ---
+# Resolve the app under test (default: the regtest app).
+- evalScript: "${output.APP_ID = (output.APP_ID == null ? 'com.bittr.bittr-regtest' : output.APP_ID)}"
 - launchApp:
+    appId: ${output.APP_ID}
     clearState: true
     clearKeychain: true
 - runFlow: happy_path_wallet.yaml

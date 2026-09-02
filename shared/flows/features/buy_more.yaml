@@ -82,17 +82,10 @@ appId: com.bittr.bittr-regtest
 # the response into output.
 - runScript: ../scripts/trigger_bank_transaction.js
 
-# Real APNS push doesn't reach iOS Simulator. Fake it: build a
-# bittr_specific_data payload (lightning payout type) using the captured
-# fields, then xcrun simctl push.
-- evalScript: |
-    ${output.notificationPayload = JSON.stringify({
-      aps: { alert: { title: "Bitcoin received", body: "+ sats from bittr" }, sound: "default" },
-      bittr_specific_data: {
-        notification_id: output.notificationId,
-        bitcoin_amount: output.bitcoinAmount
-      }
-    })}
+# Real APNS push doesn't reach iOS Simulator. Fake it: build the matching
+# payout push (lightningPayout with the captured fields — or htlcIncoming if
+# the response had no notification_id), then relay via push_server.js.
+- runScript: ../scripts/build_payout_push.js
 - runScript: ../scripts/push_notification.js
 
 # bittr's HandlePaymentNotification shows an in-app "bittr payout" alert

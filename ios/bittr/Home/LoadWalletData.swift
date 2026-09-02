@@ -248,8 +248,12 @@ extension HomeViewController {
         let isWholeBitcoin = satoshis >= Bitcoin.satoshisPerBitcoin
         
         // Get the bitcoin amount with spaces (i.e. A.BC DEF GHI).
+        let whole = satoshis / Bitcoin.satoshisPerBitcoin
         let decimals = String(format: "%08ld", satoshis % Bitcoin.satoshisPerBitcoin)
-        let grouped = "\(satoshis / Bitcoin.satoshisPerBitcoin)." + decimals.prefix(2) + " " + decimals.dropFirst(2).prefix(3) + " " + decimals.dropFirst(5)
+        let group1 = decimals.prefix(2)
+        let group2 = decimals.dropFirst(2).prefix(3)
+        let group3 = decimals.dropFirst(5)
+        let grouped = "\(whole).\(group1) \(group2) \(group3)"
         
         // Distinguish dimmed and filled pieces of text.
         let dimmed:String

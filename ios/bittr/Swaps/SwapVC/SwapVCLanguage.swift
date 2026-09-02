@@ -40,6 +40,15 @@ extension SwapViewController {
     
     func setBasicStyling() {
         
+        // Accessibility identifiers
+        self.subtitleLabel.accessibilityIdentifier = TestID.Swap.subtitleLabel
+        self.amountTextField.accessibilityIdentifier = TestID.Swap.amountTextField
+        self.nextButton.accessibilityIdentifier = TestID.Swap.nextButton
+        self.nextButton.accessibilityLabel = Language.getWord(withID: "next")
+        self.fromLabel.accessibilityIdentifier = TestID.Swap.fromLabel
+        self.fromButton.accessibilityIdentifier = TestID.Swap.fromButton
+        self.fromButton.accessibilityLabel = "Swap direction"
+        
         // Button titles
         self.centerBackground.setTitle("", for: .normal)
         self.contentBackground.setTitle("", for: .normal)
@@ -102,6 +111,38 @@ extension SwapViewController {
             
             self.view.layoutIfNeeded()
         }
+    }
+    
+    // MARK: - Input Accessory View
+    func createInputAccessoryView() -> UIView {
+        let containerView = UIView(frame: CGRect(x: 0, y: 0, width: UIScreen.main.bounds.width, height: 44))
+        containerView.backgroundColor = Colors.getColor("whiteorblue3")
+        
+        let toolbar = UIToolbar(frame: containerView.bounds)
+        toolbar.translatesAutoresizingMaskIntoConstraints = false
+        toolbar.backgroundColor = .clear
+        
+        let flexSpace = UIBarButtonItem(barButtonSystemItem: .flexibleSpace, target: nil, action: nil)
+        let doneButton = UIBarButtonItem(title: Language.getWord(withID: "done"), style: .done, target: self, action: #selector(backgroundTapped))
+        
+        toolbar.items = [flexSpace, doneButton]
+        toolbar.tintColor = Colors.getColor("blackorwhite")
+        
+        containerView.addSubview(toolbar)
+        
+        NSLayoutConstraint.activate([
+            toolbar.leadingAnchor.constraint(equalTo: containerView.leadingAnchor),
+            toolbar.trailingAnchor.constraint(equalTo: containerView.trailingAnchor),
+            toolbar.topAnchor.constraint(equalTo: containerView.topAnchor),
+            toolbar.bottomAnchor.constraint(equalTo: containerView.bottomAnchor)
+        ])
+        
+        return containerView
+    }
+    
+    func textFieldShouldReturn(_ textField: UITextField) -> Bool {
+        self.view.endEditing(true)
+        return false
     }
     
 }

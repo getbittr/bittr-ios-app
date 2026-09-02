@@ -33,43 +33,150 @@ class SwapManager: NSObject {
     // 6. invoice.expired or swap.expired > User didn't pay invoice in time
     // 7. transaction.failed > Boltz couldn't send onchain transaction
     // 8. transaction.refunded > User didn't claim onchain transaction in time
-    
-    
-    static func onchainToLightning(amountMsat:UInt64, swapVC:SwapViewController, existingInvoice:String? = nil) async {
-            
-        let dateFormatter = DateFormatter()
-        dateFormatter.dateFormat = "yyyyMMddHHmmss"
-        let idString = dateFormatter.string(from: Date())
-        
-        let invoice: String
-        var actualAmountMsat: UInt64 = amountMsat
-        
-        if let existingInvoice = existingInvoice {
-            Log.info("Use the existing invoice (for Lightning payment case)")
-            invoice = existingInvoice
-            
-            // Parse the existing invoice to get the actual amount
-            if let parsedInvoice = Bindings.Bolt11Invoice.fromStr(s: existingInvoice).getValue() {
-                if let invoiceAmountMilli = parsedInvoice.amountMilliSatoshis() {
-                    actualAmountMsat = invoiceAmountMilli
+
+
+    /// The signed webhook URL to hand Boltz on swap create. Bittr's API now
+    /// rejects unsigned Boltz callbacks — the URL is a server-minted HMAC. The
+    /// returned `url` is used verbatim: its path is the HMAC alone, the app
+    /// never puts the APNS device token in it (the server maps the HMAC back to
+    /// the device when Boltz POSTs). Minted once via `GET /boltz/webhook-token`
+    /// (signed with the LN node key, same stack as `GET /notifications` but with
+    /// a `boltz_webhook:` prefix), cached next to the APNS device token, and
+    /// reused for every swap. Re-mints when there's no cache yet or the cached
+    /// URL's device token no longer matches the current APNS token. Returns nil
+    /// when it can't produce a signed URL (no device token, signing failure, or
+    /// the mint call failed) — the caller must not create a swap with an
+    /// unsigned webhook, which would 404.
+    static func boltzWebhookURL() async -> String? {
+        guard let deviceToken = CacheManager.getRegistrationToken(), !deviceToken.isEmpty else {
+            return nil
+        }
+
+        // Reuse the cached URL only while it matches the current APNS token AND
+        // is the current URL format. The path was shortened to a bare HMAC with
+        // no query; a URL cached before that still carries the device token and a
+        // `?token=` query. Treat any `?` as the old (too-long) shape and re-mint,
+        // so existing installs self-heal on the next swap without a reinstall
+        // (which would lose channel state).
+        if let cachedURL = CacheManager.getBoltzWebhookURL(),
+           CacheManager.getBoltzWebhookDeviceToken() == deviceToken,
+           !cachedURL.contains("?") {
+            return cachedURL
+        }
+
+        guard let pubkey = BitcoinManager.shared.nodeId() else { return nil }
+        let timestamp = Int(Date().timeIntervalSince1970)
+
+        let signature: String
+        do {
+            signature = try await BitcoinManager.shared.signMessage(message: "boltz_webhook:\(pubkey):\(timestamp)")
+        } catch {
+            Log.info("Could not sign Boltz webhook-token request: \(error.localizedDescription)")
+            return nil
+        }
+
+        let mintURL = "\(EnvironmentConfig.bittrAPIBaseURL)/boltz/webhook-token?pubkey=\(pubkey)&timestamp=\(timestamp)&signature=\(signature)"
+
+        let response: NSDictionary? = await withCheckedContinuation { continuation in
+            Task {
+                await CallsManager.makeApiCall(url: mintURL, parameters: nil, getOrPost: .get) { result in
+                    switch result {
+                    case .success(let dictionary):
+                        continuation.resume(returning: dictionary)
+                    case .failure(let error):
+                        Log.info("Boltz webhook-token mint failed: \(error.localizedDescription)")
+                        continuation.resume(returning: nil)
+                    }
                 }
             }
+        }
+
+        guard let response,
+              response["success"] as? Bool == true,
+              let url = response["url"] as? String,
+              let hashedDeviceToken = response["device_token"] as? String else {
+            if let error = response?["error"] as? String {
+                Log.info("Boltz webhook-token mint rejected: \(error)")
+            }
+            return nil
+        }
+
+        if hashedDeviceToken != deviceToken {
+            // The server HMACs the token on the customer record, not one we
+            // pass. A mismatch means the backend hasn't got our current APNS
+            // token yet; cache against the server's value so we re-mint once it
+            // catches up (and Boltz pushes reach the right device in between).
+            Log.info("Boltz webhook-token minted for a device token that differs from the current APNS token — backend customer record may be stale.")
+        }
+
+        CacheManager.storeBoltzWebhook(url: url, deviceToken: hashedDeviceToken)
+        return url
+    }
+
+    /// Boltz's published fee for a swap direction, from its fee/limits endpoint
+    /// (`GET /swap/submarine` | `/swap/reverse`). The create response carries no
+    /// fee field, so this is the independent reference the amount check bounds
+    /// against. Returns nil if unavailable — the check then falls back to the
+    /// loose ratio rather than blocking the swap.
+    static func fetchBoltzFeeQuote(reverse: Bool) async -> BoltzFeeQuote? {
+        let endpoint = reverse ? "swap/reverse" : "swap/submarine"
+        let url = "\(EnvironmentConfig.boltzBaseURL)/\(endpoint)"
+
+        let response: NSDictionary? = await withCheckedContinuation { continuation in
+            Task {
+                await CallsManager.makeApiCall(url: url, parameters: nil, getOrPost: .get) { result in
+                    continuation.resume(returning: try? result.get())
+                }
+            }
+        }
+
+        guard let fees = ((response?["BTC"] as? NSDictionary)?["BTC"] as? NSDictionary)?["fees"] as? NSDictionary,
+              let percentage = (fees["percentage"] as? NSNumber)?.doubleValue else {
+            Log.info("Boltz fee schedule unavailable (\(endpoint)); amount check will use the fallback bound.")
+            return nil
+        }
+
+        // Submarine quotes a single miner fee; reverse breaks it into lockup +
+        // claim, where the lockup is the Boltz-side cost folded into the invoice.
+        let minerFee: Int
+        if let single = (fees["minerFees"] as? NSNumber)?.intValue {
+            minerFee = single
+        } else if let breakdown = fees["minerFees"] as? NSDictionary {
+            minerFee = (breakdown["lockup"] as? NSNumber)?.intValue
+                ?? (breakdown["claim"] as? NSNumber)?.intValue ?? 0
+        } else {
+            minerFee = 0
+        }
+
+        return BoltzFeeQuote(percentage: percentage, minerFee: minerFee)
+    }
+
+    static func onchainToLightning(amountMsat:UInt64? = nil, swapVC:SwapViewController, existingInvoice:String? = nil) async {
+        // Get Swap ID.
+        let idString = createDateId()
+        
+        // Get invoice
+        let invoice: String
+        if let existingInvoice {
+            Log.info("Use the existing invoice (for Lightning payment case)")
+            invoice = existingInvoice
         } else {
             Log.info("Create an invoice for the amount we want to move.")
-            guard let thisInvoice = await BitcoinManager.shared.getInvoice(
+            guard let amountMsat, let thisInvoice = await BitcoinManager.shared.getInvoice(
                 amountMsat: amountMsat,
                 description: "Swap onchain to lightning \(idString)",
                 expirySecs: 3600)
             else {
-                DispatchQueue.main.async {
-                    swapVC.nextLabel.alpha = 1
-                    swapVC.arrowIcon.alpha = 1
-                    swapVC.nextSpinner.stopAnimating()
-                    swapVC.showAlert(title: Language.getWord(withID: "unexpectederror"), message: Language.getWord(withID: "invoicecreatefail"), buttons: [.dismiss(Language.getWord(withID: "okay"))])
-                }
+                swapVC.cancelSwap(alertMessage: Language.getWord(withID: "invoicecreatefail"))
                 return
             }
             invoice = thisInvoice.description
+        }
+        
+        // Get invoice amount.
+        guard let invoiceAmountMsat = Bindings.Bolt11Invoice.fromStr(s: invoice).getValue()?.amountMilliSatoshis() else {
+            swapVC.cancelSwap(alertMessage: Language.getWord(withID: "swaperror2"))
+            return
         }
         
         // Store invoice in cache.
@@ -92,24 +199,19 @@ class SwapManager: NSObject {
         
         let (privateKey, publicKey) = try! BitcoinManager.shared.getPrivatePublicKeyForPath(path: dynamicPath)
         
-        // Get device token for webhook URL
-        let deviceToken = CacheManager.getRegistrationToken() ?? ""
-        
-        // Check if we have a registration token (notifications enabled)
-        if deviceToken.isEmpty {
-            DispatchQueue.main.async {
-                swapVC.nextLabel.alpha = 1
-                swapVC.arrowIcon.alpha = 1
-                swapVC.nextSpinner.stopAnimating()
-                swapVC.showAlert(
-                    title: Language.getWord(withID: "notificationsrequired"),
-                    message: Language.getWord(withID: "notificationsrequiredmessage"),
-                    buttons: [.action(Language.getWord(withID: "okay")) { swapVC.askForPushNotifications() }])
-            }
+        // The webhook needs both an APNS device token and a server-signed URL:
+        // Bittr's API now rejects unsigned Boltz callbacks (they 404, breaking
+        // swap-status pushes and payout retry). Mint the signed URL — cached
+        // after the first swap and reused for every swap.
+        guard CacheManager.getRegistrationToken()?.isEmpty == false else {
+            swapVC.cancelSwap(alertTitle: Language.getWord(withID: "notificationsrequired"), alertMessage: Language.getWord(withID: "notificationsrequiredmessage"), alertButtons: [.action(Language.getWord(withID: "okay")) { swapVC.askForPushNotifications() }])
             return
         }
-        
-        let webhookURL = "\(EnvironmentConfig.bittrAPIBaseURL)/webhook/boltz/\(deviceToken)"
+
+        guard let webhookURL = await SwapManager.boltzWebhookURL() else {
+            swapVC.cancelSwap(alertMessage: Language.getWord(withID: "couldntconnect"))
+            return
+        }
         
         // Create POST API call.
         let parameters: [String: Any] = [
@@ -119,41 +221,34 @@ class SwapManager: NSObject {
             "refundPublicKey": publicKey,
             "webhook": [
                 "url": webhookURL,
-                "hashSwapId": false
+                "hashSwapId": true
             ]
         ]
-
-        let apiURL = EnvironmentConfig.boltzBaseURL
         
+        let feeQuote = await fetchBoltzFeeQuote(reverse: false)
+        let apiURL = EnvironmentConfig.boltzBaseURL
         Task {
             await CallsManager.makeApiCall(url: "\(apiURL)/swap/submarine", parameters: parameters, getOrPost: .post) { result in
                 
                 switch result {
                 case .failure(let error):
-                    DispatchQueue.main.async {
-                        swapVC.nextLabel.alpha = 1
-                        swapVC.arrowIcon.alpha = 1
-                        swapVC.nextSpinner.stopAnimating()
-                        swapVC.showAlert(title: Language.getWord(withID: "error"), message: error.localizedDescription, buttons: [.dismiss(Language.getWord(withID: "okay"))])
-                    }
+                    swapVC.cancelSwap(alertMessage: error.localizedDescription)
                 case .success(let receivedDictionary):
                     if let errorMessage = receivedDictionary["error"] as? String {
-                        DispatchQueue.main.async {
-                            swapVC.nextLabel.alpha = 1
-                            swapVC.arrowIcon.alpha = 1
-                            swapVC.nextSpinner.stopAnimating()
-                            swapVC.showAlert(
-                                title: Language.getWord(withID: "error"),
-                                message: errorMessage,
-                                buttons: [.dismiss(Language.getWord(withID: "okay"))])
-                        }
+                        swapVC.cancelSwap(alertMessage: errorMessage)
                         return
                     }
-                    
+
+                    // EVIL-BOLTZ-INJECTION — SEC-02 test harness (see Helpers/EvilBoltz.swift).
+                    // The response handler is wrapped in `processSubmarineResponse` so the
+                    // DEBUG-only harness can feed it a tampered response. In Release the call
+                    // after this block is a plain passthrough — behavior is identical.
+                    let processSubmarineResponse: ([String: Any]) -> Void = { receivedDictionary in
+
                     // Example success {"bip21":"bitcoin:bcrt1pfalvfpkhtha6qmxmkgvljnajnc2hvl2c828euxh5679e302gk9wsh3e9af?amount=0.00050352&label=Send%20to%20BTC%20lightning","acceptZeroConf":false,"expectedAmount":50352,"id":"ChTExx2srRLT","address":"bcrt1pfalvfpkhtha6qmxmkgvljnajnc2hvl2c828euxh5679e302gk9wsh3e9af","swapTree":{"claimLeaf":{"version":192,"output":"a914ed96f252263cd8cc0a616602875f76bfb0c70fcd8820611b80e6aa832718caae89c59f16576888db6f911f88c2d1fc3533bee7efc61fac"},"refundLeaf":{"version":192,"output":"2004cac31242618cac8211d342bc733a1d1fdfe063cfe053977eacd9fac9a89d24ad02df01b1"}},"claimPublicKey":"03611b80e6aa832718caae89c59f16576888db6f911f88c2d1fc3533bee7efc61f","timeoutBlockHeight":479}
                     
                     DispatchQueue.main.async {
-                        if
+                        guard
                             let onchainAddress = receivedDictionary["address"] as? String,
                             let expectedAmount = receivedDictionary["expectedAmount"] as? Int,
                             let swapID = receivedDictionary["id"] as? String,
@@ -162,44 +257,62 @@ class SwapManager: NSObject {
                             let claimLeafOutput = claimLeaf["output"] as? String,
                             let refundLeaf = swapTree["refundLeaf"] as? NSDictionary,
                             let refundLeafOutput = refundLeaf["output"] as? String,
-                            let claimPublicKey = receivedDictionary["claimPublicKey"] as? String {
-                            
-                            if swapVC.thisSwap == nil {
-                                // SwapVC has been closed while awaiting API response.
-                                return
-                            }
-                            
-                            swapVC.thisSwap!.privateKey = privateKey
-                            swapVC.thisSwap!.boltzID = swapID
-                            swapVC.thisSwap!.boltzOnchainAddress = onchainAddress
-                            swapVC.thisSwap!.boltzExpectedAmount = expectedAmount
-                            swapVC.thisSwap!.claimLeafOutput = claimLeafOutput
-                            swapVC.thisSwap!.refundLeafOutput = refundLeafOutput
-                            swapVC.thisSwap!.claimPublicKey = claimPublicKey
-                            
-                            self.saveSwapDetailsToFile(swapID: swapID, swapDictionary: swapVC.thisSwap!.toDictionary())
-                            
-                            Task {
-                                await self.checkOnchainFees(swapVC: swapVC)
-                            }
-                        } else {
-                            // Expected data unavailable.
-                            DispatchQueue.main.async {
-                                swapVC.nextLabel.alpha = 1
-                                swapVC.arrowIcon.alpha = 1
-                                swapVC.nextSpinner.stopAnimating()
-                                swapVC.showAlert(
-                                    title: Language.getWord(withID: "error"),
-                                    message: Language.getWord(withID: "swaperror2"),
-                                    buttons: [.dismiss(Language.getWord(withID: "okay"))])
-                            }
+                            let claimPublicKey = receivedDictionary["claimPublicKey"] as? String
+                        else {
+                            Log.info("Expected data unavailable.")
+                            swapVC.cancelSwap(alertMessage: Language.getWord(withID: "swaperror2"))
+                            return
+                        }
+                        guard swapVC.thisSwap != nil else {
+                            Log.info("SwapVC has been closed while awaiting API response.")
+                            return
+                        }
+                        
+                        Log.info("Validate Boltz address and amount.")
+                        do {
+                            try BoltzSwapValidation.validateSubmarineLockup(
+                                address: onchainAddress,
+                                claimPublicKeyHex: claimPublicKey,
+                                refundPrivateKeyHex: privateKey,
+                                ourRefundPublicKeyHex: publicKey,
+                                claimLeafOutputHex: claimLeafOutput,
+                                refundLeafOutputHex: refundLeafOutput
+                            )
+                            try BoltzSwapValidation.validateQuotedAmount(
+                                requested: Int(invoiceAmountMsat / 1000),
+                                quoted: expectedAmount,
+                                fee: feeQuote
+                            )
+                        } catch {
+                            Log.info("Refused the submarine swap response: \(error.localizedDescription)")
+                            swapVC.cancelSwap(alertMessage: Language.getWord(withID: "swapvalidationfailed"))
+                            SentryManager.countMetric("swap.onchaintolightning.responserejected")
+                            SentryManager.capture(error, context: "SwapManager submarine response validation")
+                            return
+                        }
+                        
+                        swapVC.thisSwap!.privateKey = privateKey
+                        swapVC.thisSwap!.boltzID = swapID
+                        swapVC.thisSwap!.boltzOnchainAddress = onchainAddress
+                        swapVC.thisSwap!.boltzExpectedAmount = expectedAmount
+                        swapVC.thisSwap!.claimLeafOutput = claimLeafOutput
+                        swapVC.thisSwap!.refundLeafOutput = refundLeafOutput
+                        swapVC.thisSwap!.claimPublicKey = claimPublicKey
+                        swapVC.thisSwap!.refundPublicKey = publicKey
+                        
+                        self.saveSwapDetailsToFile(swapID: swapID, swapDictionary: swapVC.thisSwap!.toDictionary())
+                        
+                        Task {
+                            await self.checkOnchainFees(swapVC: swapVC)
                         }
                     }
+                    } // processSubmarineResponse
+                    EvilBoltz.tamperSubmarineResponse(receivedDictionary as? [String: Any] ?? [:], completion: processSubmarineResponse)
                 }
             }
         }
     }
-    
+
     static func checkOnchainFees(swapVC:SwapViewController) async {
         guard let ongoingSwap = await swapVC.thisSwap else {return}
         
@@ -208,15 +321,9 @@ class SwapManager: NSObject {
             if swapVC.highestFeePerVbyte == nil {
                 guard let feeEstimates = await BitcoinManager.shared.getFeeEstimates() else {
                     Log.info("Could not fetch fee estimates.")
-                    DispatchQueue.main.async {
-                        swapVC.nextLabel.alpha = 1
-                        swapVC.arrowIcon.alpha = 1
-                        swapVC.nextSpinner.stopAnimating()
-                        swapVC.showAlert(title: Language.getWord(withID: "oops"), message: "\(Language.getWord(withID: "cannotproceed")). Error: Could not get fee estimates.", buttons: [.dismiss(Language.getWord(withID: "okay"))])
-                    }
+                    swapVC.cancelSwap(alertTitle: Language.getWord(withID: "oops"), alertMessage: "\(Language.getWord(withID: "cannotproceed")). Error: Could not get fee estimates.")
                     return
                 }
-
                 // Select highest fee.
                 swapVC.highestFeePerVbyte = feeEstimates.fastest
             }
@@ -241,34 +348,28 @@ class SwapManager: NSObject {
                 }
 
                 DispatchQueue.main.async {
-                    // Reset the spinner UI so the user can try a different amount.
-                    swapVC.nextLabel.alpha = 1
-                    swapVC.arrowIcon.alpha = 1
-                    swapVC.nextSpinner.stopAnimating()
-
+                    let alertTitle:String
+                    let alertMessage:String
                     if isInsufficientFunds {
-                        let balance = BitcoinManager.shared.bittrWallet.satoshisOnchain ?? 0
+                        let balance = BitcoinManager.shared.bittrWallet.satoshisOnchain
                         let message = Language.getWord(withID: "onchaininsufficientfunds")
                             .replacingOccurrences(of: "<amount>", with: "\(balance)")
-                        swapVC.showAlert(
-                            title: Language.getWord(withID: "insufficientfunds"),
-                            message: message,
-                            buttons: [.dismiss(Language.getWord(withID: "okay"))])
+                        alertTitle = Language.getWord(withID: "insufficientfunds")
+                        alertMessage = message
                     } else {
                         var errorMessage = error.localizedDescription
                         if let bdkError = error as? BitcoinDevKit.CreateTxError {
                             errorMessage = bdkError.getErrorMessage()
                         }
-                        swapVC.showAlert(
-                            title: Language.getWord(withID: "oops"),
-                            message: "\(Language.getWord(withID: "cannotproceed")). Error: \(errorMessage).",
-                            buttons: [.dismiss(Language.getWord(withID: "okay"))])
+                        alertTitle = Language.getWord(withID: "oops")
+                        alertMessage = "\(Language.getWord(withID: "cannotproceed")). Error: \(errorMessage)."
                         SentryManager.capture(error, context: "SwapManager row 249")
                     }
+                    swapVC.cancelSwap(alertTitle: alertTitle, alertMessage: alertMessage)
                 }
                 return
             }
-                
+            
             // Calculate fees.
             let feesForOnchainPayment:Int = swapVC.highestFeePerVbyte!.feeSats(forVsize: Double(size))
             let feesForLightningPayment:Int = ongoingSwap.boltzExpectedAmount! - ongoingSwap.satoshisAmount
@@ -285,11 +386,11 @@ class SwapManager: NSObject {
     }
     
     static func sendOnchainPayment(swapVC:SwapViewController) {
-        guard swapVC.thisSwap != nil else { return }
+        guard let ongoingSwap = swapVC.thisSwap else { return }
         
-        let address = swapVC.thisSwap!.boltzOnchainAddress!
-        let amountSats = swapVC.thisSwap!.boltzExpectedAmount!
-        let feeHigh = swapVC.thisSwap!.feeHigh!
+        let address = ongoingSwap.boltzOnchainAddress!
+        let amountSats = ongoingSwap.boltzExpectedAmount!
+        let feeHigh = ongoingSwap.feeHigh!
         
         // Send onchain transaction.
         DispatchQueue.global(qos: .userInitiated).async {
@@ -303,10 +404,7 @@ class SwapManager: NSObject {
                 Log.info("Transaction error: \(error.localizedDescription)")
 
                 DispatchQueue.main.async {
-                    swapVC.showAlert(
-                        title: Language.getWord(withID: "paymentfailed"),
-                        message: Language.getWord(withID: "paymentfailed3"),
-                        buttons: [.dismiss(Language.getWord(withID: "okay"))])
+                    swapVC.cancelSwap(alertTitle: Language.getWord(withID: "paymentfailed"), alertMessage: Language.getWord(withID: "paymentfailed3"))
                     SentryManager.countMetric("swap.onchaintolightning.failed")
                     SentryManager.capture(error, context: "SwapManager row 308")
                 }
@@ -379,7 +477,7 @@ class SwapManager: NSObject {
         let randomPreimage = self.generateRandomPreimage()
         let randomPreimageHash = self.sha256Hash(of: randomPreimage)
         let randomPreimageHashHex = randomPreimageHash.hexEncodedString()
-
+        
         // Get next swap index and derive key dynamically
         let swapIndex = CacheManager.incrementSwapIndex()
         let dynamicPath = "m/503'/0'/0'/0/\(swapIndex)"
@@ -388,7 +486,7 @@ class SwapManager: NSObject {
         
         // Use provided payout address if available, otherwise get a new unused address
         let destinationAddress: String?
-        if let payoutAddress = payoutAddress {
+        if let payoutAddress {
             destinationAddress = payoutAddress
         } else {
             Log.info("DEBUG - Getting new unused address for payout")
@@ -397,40 +495,28 @@ class SwapManager: NSObject {
         
         guard let destinationAddress else {
             Log.info("No payout address available; not starting the swap.")
-            DispatchQueue.main.async {
-                swapVC.nextLabel.alpha = 1
-                swapVC.arrowIcon.alpha = 1
-                swapVC.nextSpinner.stopAnimating()
-                swapVC.showAlert(title: Language.getWord(withID: "error"), message: Language.getWord(withID: "swaperror2"), buttons: [.dismiss(Language.getWord(withID: "okay"))])
-            }
+            swapVC.cancelSwap(alertMessage: Language.getWord(withID: "swaperror2"))
             return
         }
         
         Log.debug("randomPreimage: \(randomPreimage.hexEncodedString())")
         
-        let dateFormatter = DateFormatter()
-        dateFormatter.dateFormat = "yyyyMMddHHmmss"
-        let idString = dateFormatter.string(from: Date())
+        // Get Swap ID.
+        let idString = createDateId()
         
-        // Get device token for webhook URL
-        let deviceToken = CacheManager.getRegistrationToken() ?? ""
-        
-        // Check if we have a registration token (notifications enabled)
-        if deviceToken.isEmpty {
-            DispatchQueue.main.async {
-                swapVC.nextLabel.alpha = 1
-                swapVC.arrowIcon.alpha = 1
-                swapVC.nextSpinner.stopAnimating()
-                swapVC.showAlert(
-                    title: Language.getWord(withID: "notificationsrequired"),
-                    message: Language.getWord(withID: "notificationsrequiredmessage"),
-                    buttons: [.action(Language.getWord(withID: "okay")) { swapVC.askForPushNotifications() }])
-            }
+        // The webhook needs both an APNS device token and a server-signed URL:
+        // Bittr's API now rejects unsigned Boltz callbacks (they 404, breaking
+        // swap-status pushes and payout retry). Mint the signed URL — cached
+        // after the first swap and reused for every swap.
+        guard CacheManager.getRegistrationToken()?.isEmpty == false else {
+            swapVC.cancelSwap(alertTitle: Language.getWord(withID: "notificationsrequired"), alertMessage: Language.getWord(withID: "notificationsrequiredmessage"), alertButtons: [.action(Language.getWord(withID: "okay")) { swapVC.askForPushNotifications() }])
             return
         }
-        
-        
-        let webhookURL = "\(EnvironmentConfig.bittrAPIBaseURL)/webhook/boltz/\(deviceToken)"
+
+        guard let webhookURL = await SwapManager.boltzWebhookURL() else {
+            swapVC.cancelSwap(alertMessage: Language.getWord(withID: "couldntconnect"))
+            return
+        }
         
         let parameters: [String: Any] = [
             "from": "BTC",
@@ -440,38 +526,32 @@ class SwapManager: NSObject {
             "onchainAmount": onchainAmountWithFee, // Use amount with fee included
             "webhook": [
                 "url": webhookURL,
-                "hashSwapId": false,
+                "hashSwapId": true,
                 "status": ["transaction.mempool", "transaction.confirmed", "invoice.settled", "swap.expired", "transaction.failed"]
             ]
         ]
         
+        let feeQuote = await fetchBoltzFeeQuote(reverse: true)
         let apiURL = EnvironmentConfig.boltzBaseURL
-        
+
         Task {
             await CallsManager.makeApiCall(url: "\(apiURL)/swap/reverse", parameters: parameters, getOrPost: .post) { result in
                 
                 switch result {
                 case .failure(let error):
-                    DispatchQueue.main.async {
-                        swapVC.nextLabel.alpha = 1
-                        swapVC.arrowIcon.alpha = 1
-                        swapVC.nextSpinner.stopAnimating()
-                        swapVC.showAlert(title: Language.getWord(withID: "swapfunds2"), message: "\(Language.getWord(withID: "error")): \(error)", buttons: [.dismiss(Language.getWord(withID: "okay"))])
-                    }
+                    swapVC.cancelSwap(alertTitle: Language.getWord(withID: "swapfunds2"), alertMessage: "\(Language.getWord(withID: "error")): \(error)")
                 case .success(let receivedDictionary):
                     if let errorMessage = receivedDictionary["error"] as? String {
-                        DispatchQueue.main.async {
-                            swapVC.nextLabel.alpha = 1
-                            swapVC.arrowIcon.alpha = 1
-                            swapVC.nextSpinner.stopAnimating()
-                            swapVC.showAlert(
-                                title: Language.getWord(withID: "error"),
-                                message: errorMessage,
-                                buttons: [.dismiss(Language.getWord(withID: "okay"))])
-                        }
+                        swapVC.cancelSwap(alertMessage: errorMessage)
                         return
                     }
-                    
+
+                    // EVIL-BOLTZ-INJECTION — SEC-01 test harness (see Helpers/EvilBoltz.swift).
+                    // The response handler is wrapped in `processReverseResponse` so the
+                    // DEBUG-only harness can feed it a tampered response. In Release the call
+                    // after this block is a plain passthrough — behavior is identical.
+                    let processReverseResponse: ([String: Any]) -> Void = { receivedDictionary in
+
                     // Example success: {id = yes7P5Hn2FD5; invoice = lnbcrt505610n1p58093msp5k4f2jxgmu059lc8awdccdy8ppx9uw0wtxhmwa0ytna48ykpjlu9spp5augg6x7kd2dj2gs0z5lnpj98pvyyf4kpmrtt43sp8vawdrgm7l2qdql2djkuepqw3hjqsj5gvsxzerywfjhxucxqyp2xqcqzyl9qyysgq3glstd77evhlg2qywjku4lj4mffufgc2wy6trxsjar5a2mdzp6e9308z4d4prhjs03vegamm7raw0ln5k94l5lz8vu5yewz7hf6w7yqpjqj2mj; lockupAddress = bcrt1p32hqu3ve32x524994sxpewdvdznfjgd0ya2xh40z6x9tj5s2mmusx273a3; refundPublicKey = 035578a38b772461f2481b2a9c6f6802419b11282fb3719cde6af337c077e3d5f3; swapTree = {claimLeaf = {output = 82012088a91475b687397f92783b38c7381725bfcf27d65eef3f8820036f6171920eec6d2f377e4c0ab88960307c7d9d817ddf65585bc28a8334be1aac; version = 192;}; refundLeaf = {output = 205578a38b772461f2481b2a9c6f6802419b11282fb3719cde6af337c077e3d5f3ad024d01b1; version = 192;};}; timeoutBlockHeight = 333;}
                     
                     DispatchQueue.main.async {
@@ -481,46 +561,70 @@ class SwapManager: NSObject {
                         swapVC.thisSwap!.destinationAddress = destinationAddress
                         
                         // Save swap details to file
-                        if let swapID = receivedDictionary["id"] as? String,
-                           let boltzInvoice = receivedDictionary["invoice"] as? String,
-                           let swapTree = receivedDictionary["swapTree"] as? NSDictionary,
-                           let claimLeaf = swapTree["claimLeaf"] as? NSDictionary,
-                           let claimLeafOutput = claimLeaf["output"] as? String,
-                           let refundLeaf = swapTree["refundLeaf"] as? NSDictionary,
-                           let refundLeafOutput = refundLeaf["output"] as? String,
-                           let refundPublicKey = receivedDictionary["refundPublicKey"] as? String {
-                            swapVC.thisSwap!.boltzID = swapID
-                            swapVC.thisSwap!.boltzInvoice = boltzInvoice
-                            swapVC.thisSwap!.claimLeafOutput = claimLeafOutput
-                            swapVC.thisSwap!.refundLeafOutput = refundLeafOutput
-                            swapVC.thisSwap!.refundPublicKey = refundPublicKey
-                            self.saveSwapDetailsToFile(swapID: swapID, swapDictionary: swapVC.thisSwap!.toDictionary())
-                            
-                            // Store transaction details in cache.
-                            CacheManager.storeSwapID(dateID: swapVC.thisSwap!.dateID, swapID: swapVC.thisSwap!.boltzID!)
-                            CacheManager.storeInvoiceDescription(preimage: swapVC.thisSwap!.preimage!, desc: swapVC.thisSwap!.dateID)
-                            if swapVC.thisSwap!.isSuggested {
-                                CacheManager.storeSuggestedSwap(dateID: swapVC.thisSwap!.dateID)
-                            }
-                            self.checkReverseSwapFees(swapVC: swapVC)
-                        } else {
+                        guard
+                            let swapID = receivedDictionary["id"] as? String,
+                            let boltzInvoice = receivedDictionary["invoice"] as? String,
+                            let swapTree = receivedDictionary["swapTree"] as? NSDictionary,
+                            let claimLeaf = swapTree["claimLeaf"] as? NSDictionary,
+                            let claimLeafOutput = claimLeaf["output"] as? String,
+                            let refundLeaf = swapTree["refundLeaf"] as? NSDictionary,
+                            let refundLeafOutput = refundLeaf["output"] as? String,
+                            let refundPublicKey = receivedDictionary["refundPublicKey"] as? String,
+                            let lockupAddress = receivedDictionary["lockupAddress"] as? String
+                        else {
                             // Expected data unavailable.
-                            DispatchQueue.main.async {
-                                swapVC.nextLabel.alpha = 1
-                                swapVC.arrowIcon.alpha = 1
-                                swapVC.nextSpinner.stopAnimating()
-                                swapVC.showAlert(
-                                    title: Language.getWord(withID: "error"),
-                                    message: Language.getWord(withID: "swaperror2"),
-                                    buttons: [.dismiss(Language.getWord(withID: "okay"))])
-                            }
+                            swapVC.cancelSwap(alertMessage: Language.getWord(withID: "swaperror2"))
+                            return
                         }
+                        
+                        // Validate Boltz invoice and lockup address.
+                        do {
+                            try BoltzSwapValidation.validateReverseInvoice(
+                                boltzInvoice,
+                                preimageHashHex: randomPreimageHashHex,
+                                requestedOnchainAmountSats: onchainAmountWithFee,
+                                fee: feeQuote
+                            )
+                            try BoltzSwapValidation.validateReverseLockup(
+                                address: lockupAddress,
+                                refundPublicKeyHex: refundPublicKey,
+                                claimPrivateKeyHex: privateKey,
+                                ourClaimPublicKeyHex: publicKey,
+                                preimageHex: randomPreimage.hexEncodedString(),
+                                claimLeafOutputHex: claimLeafOutput,
+                                refundLeafOutputHex: refundLeafOutput
+                            )
+                        } catch {
+                            Log.info("Refused the reverse swap response: \(error.localizedDescription)")
+                            swapVC.cancelSwap(alertMessage: Language.getWord(withID: "swapvalidationfailed"))
+                            SentryManager.countMetric("swap.lightningtoonchain.responserejected")
+                            SentryManager.capture(error, context: "SwapManager reverse response validation")
+                            return
+                        }
+                        
+                        swapVC.thisSwap!.boltzID = swapID
+                        swapVC.thisSwap!.boltzInvoice = boltzInvoice
+                        swapVC.thisSwap!.claimLeafOutput = claimLeafOutput
+                        swapVC.thisSwap!.refundLeafOutput = refundLeafOutput
+                        swapVC.thisSwap!.refundPublicKey = refundPublicKey
+                        swapVC.thisSwap!.claimPublicKey = publicKey
+                        self.saveSwapDetailsToFile(swapID: swapID, swapDictionary: swapVC.thisSwap!.toDictionary())
+                        
+                        // Store transaction details in cache.
+                        CacheManager.storeSwapID(dateID: swapVC.thisSwap!.dateID, swapID: swapVC.thisSwap!.boltzID!)
+                        CacheManager.storeInvoiceDescription(preimage: swapVC.thisSwap!.preimage!, desc: swapVC.thisSwap!.dateID)
+                        if swapVC.thisSwap!.isSuggested {
+                            CacheManager.storeSuggestedSwap(dateID: swapVC.thisSwap!.dateID)
+                        }
+                        self.checkReverseSwapFees(swapVC: swapVC)
                     }
+                    } // processReverseResponse
+                    EvilBoltz.tamperReverseResponse(receivedDictionary as? [String: Any] ?? [:], completion: processReverseResponse)
                 }
             }
         }
     }
-    
+
     static func generateRandomPreimage() -> Data {
         var preimage = Data(count: 32)
         let result = preimage.withUnsafeMutableBytes { SecRandomCopyBytes(kSecRandomDefault, 32, $0.baseAddress!) }
@@ -533,15 +637,24 @@ class SwapManager: NSObject {
     static func sha256Hash(of data: Data) -> Data {
         return Data(SHA256.hash(data: data))
     }
+
+    /// The SHA-256 (lowercase hex) of a Boltz swap id — the value Boltz puts in
+    /// its webhook when the swap was created with `hashSwapId` on, and the name
+    /// its details file is stored under, so a status push resolves to the swap
+    /// without the plaintext id ever reaching bittr.
+    static func hashedSwapID(_ swapID: String) -> String {
+        return sha256Hash(of: Data(swapID.utf8)).hexEncodedString()
+    }
     
     static func saveSwapDetailsToFile(swapID: String, swapDictionary: NSDictionary) {
         do {
             // Convert NSDictionary to JSON Data
             let jsonData = try JSONSerialization.data(withJSONObject: swapDictionary, options: .prettyPrinted)
 
-            // Get the documents directory
-            let documentsPath = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
-            let fileURL = documentsPath.appendingPathComponent("\(swapID).json")
+            // Store under sha256(swapID): the filename is the same value Boltz
+            // puts in a hashSwapId webhook, so a status push opens the file
+            // directly and the plaintext Boltz id never reaches bittr.
+            let fileURL = swapFile(named: hashedSwapID(swapID))
 
             // Write the JSON data to file. The swap file DELIBERATELY contains
             // the Boltz refund key in plain text: it is the user-facing
@@ -552,34 +665,50 @@ class SwapManager: NSObject {
             // device passcode (readable after first unlock, so background
             // swap processing and the user's export both keep working).
             try jsonData.write(to: fileURL, options: [.atomic, .completeFileProtectionUntilFirstUserAuthentication])
-            
+
             Log.debug("Swap details saved to: \(fileURL.path)")
         } catch {
             Log.info("Error saving swap details to file: \(error)")
             SentryManager.capture(error, context: "SwapManager row 519")
         }
     }
-    
+
     static func loadSwapDetailsFromFile(swapID: String) -> NSDictionary? {
-        do {
-            // Get the documents directory
-            let documentsPath = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
-            let fileURL = documentsPath.appendingPathComponent("\(swapID).json")
-            
-            // Read the JSON data from file
-            let jsonData = try Data(contentsOf: fileURL)
-            
-            // Convert JSON Data to NSDictionary
-            if let dictionary = try JSONSerialization.jsonObject(with: jsonData, options: []) as? NSDictionary {
-                return dictionary
-            }
-        } catch {
-            Log.info("Error loading swap details from file: \(error)")
-            SentryManager.capture(error, context: "SwapManager row 542")
-        }
-        return nil
+        // New swaps are stored under sha256(id); fall back to the plaintext name
+        // for swaps written before that change (they age out as they complete).
+        return swapDetails(atFileNamed: hashedSwapID(swapID)) ?? swapDetails(atFileNamed: swapID)
     }
-    
+
+    /// Resolve the swap a status push refers to. The push id is already the file
+    /// stem — sha256(boltzID) for hashSwapId swaps, the plaintext id for older
+    /// ones — so open it directly.
+    static func loadSwapDetails(forPushedID pushedID: String) -> NSDictionary? {
+        return swapDetails(atFileNamed: pushedID)
+    }
+
+    /// On-disk URL of a swap's JSON, for reading/exporting the file directly.
+    /// Prefers the sha256-named file, falling back to a legacy plaintext name.
+    static func swapFileURL(for swapID: String) -> URL {
+        let hashed = swapFile(named: hashedSwapID(swapID))
+        if FileManager.default.fileExists(atPath: hashed.path) { return hashed }
+        let legacy = swapFile(named: swapID)
+        return FileManager.default.fileExists(atPath: legacy.path) ? legacy : hashed
+    }
+
+    private static func swapFile(named stem: String) -> URL {
+        return FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
+            .appendingPathComponent("\(stem).json")
+    }
+
+    private static func swapDetails(atFileNamed stem: String) -> NSDictionary? {
+        guard let jsonData = try? Data(contentsOf: swapFile(named: stem)),
+              let object = try? JSONSerialization.jsonObject(with: jsonData, options: []),
+              let dictionary = object as? NSDictionary else {
+            return nil
+        }
+        return dictionary
+    }
+
     static func updateSwapFileWithLockupTx(swapID: String, lockupTx: String) {
         
         // Load existing swap details
@@ -786,3 +915,8 @@ extension Data {
     }
 }
 
+func createDateId() -> String {
+    let dateFormatter = DateFormatter()
+    dateFormatter.dateFormat = "yyyyMMddHHmmss"
+    return dateFormatter.string(from: Date())
+}

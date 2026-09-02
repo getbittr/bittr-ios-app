@@ -346,6 +346,7 @@ class Language: NSObject {
             "status": "Status",
             "swaperror1": "We could not initiate this swap.",
             "swaperror2": "We encountered some issue while processing your swap. No funds have been swapped. Please try again.",
+            "swapvalidationfailed": "We could not verify the swap details we received. No funds have been sent. Please try again.",
             "swapstatuspreparing": "Preparing",
             "swapstatusawaitingconfirmation": "Waiting to be mined",
             "swapstatusawaitingpayment": "Awaiting payment",
