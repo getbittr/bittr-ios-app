@@ -213,6 +213,35 @@ appId: com.bittr.bittr-regtest
       # UIViewController.addHeader).
       - tapOn:
           id: "header.downButton"
+      - assertVisible:
+          id: "home.headerLabel"
+
+      # The closure payout is the newest transaction, so it is row 0 of Home's
+      # history table. Open it and check TransactionVC says where the funds came
+      # from: descriptionText() falls back to the channelclosuretransaction
+      # string when a transaction carries no lightning description of its own
+      # and its txid is in the channel-closure cache, which loadWalletData fills
+      # from listBalances().pendingBalancesFromChannelClosures.
+      - extendedWaitUntil:
+          visible:
+            id: "history.transactionButton0"
+          timeout: 30000
+      - tapOn:
+          id: "history.transactionButton0"
+      - extendedWaitUntil:
+          visible:
+            id: "transaction.yellowCard"
+          timeout: 30000
+      - assertVisible:
+          id: "transaction.descriptionLabel"
+          text: ".*closed lightning connection.*"
+      - takeScreenshot: shared/docs/screenshots/remove_wallet/09b_closure_description
+
+      # Back to Home, then on to the reset.
+      - tapOn:
+          id: "header.downButton"
+      - assertVisible:
+          id: "home.headerLabel"
 
       # Settings → Device details → Remove wallet again. With the channel
       # now closed and confirmed, listChannels has no active channel, so
