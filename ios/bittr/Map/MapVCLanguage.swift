@@ -30,6 +30,9 @@ extension MapViewController {
         self.noPlacesLabel.text = Language.getWord(withID: "noplaces")
         self.topLabel.text = Language.getWord(withID: "mapvctoplabel")
         self.poweredByLabel.text = Language.getWord(withID: "mapvcpoweredby")
+
+        // The button sits invisibly over the label, so give VoiceOver its text.
+        self.poweredByButton.accessibilityLabel = Language.getWord(withID: "mapvcpoweredby")
     }
     
     func changeColors() {
