@@ -478,6 +478,45 @@ extension HomeViewController {
         self.calculatedCurrentValue = accumulatedCurrentValue
     }
     
+    // Warm the price caches ValueVC reads (the historical series + the current
+    // value) so opening the Value screen doesn't have to hit the network or flash
+    // its loading spinner. Runs at background priority after a short settle delay
+    // so it never competes with app startup; no-ops when the caches are still
+    // fresh; best-effort — on failure ValueVC just fetches on demand, as before.
+    func prefetchPriceData() {
+        Task(priority: .background) { [weak self] in
+            // Let startup fully settle before touching the network at all.
+            try? await Task.sleep(nanoseconds: 2_000_000_000)
+            guard let self else { return }
+
+            let freshCutoff = Calendar.current.date(byAdding: .minute, value: -15, to: Date())!
+            let bitcoinValue = BitcoinManager.shared.bittrWallet.getCorrectBitcoinValue()
+            let isChf = (bitcoinValue.chosenCurrency == "CHF")
+
+            // Historical series for the currently selected currency.
+            let historyFetched = (isChf ? self.chfDataFetched : self.eurDataFetched) ?? .distantPast
+            if historyFetched <= freshCutoff,
+               let url = URL(string: bitcoinValue.apiUrl),
+               let (data, _) = try? await URLSession.shared.data(from: url) {
+                await MainActor.run {
+                    if isChf { self.chfData = data; self.chfDataFetched = Date() }
+                    else { self.eurData = data; self.eurDataFetched = Date() }
+                }
+            }
+
+            // Current value.
+            let currentFetched = self.currentValueFetched ?? .distantPast
+            if currentFetched <= freshCutoff,
+               let url = URL(string: "https://getbittr.com/api/price/btc"),
+               let (data, _) = try? await URLSession.shared.data(from: url) {
+                await MainActor.run {
+                    self.currentValue = data
+                    self.currentValueFetched = Date()
+                }
+            }
+        }
+    }
+
     func finalizeSync() {
         
         // Check if conversion rates have been fetched successfully.
@@ -489,6 +528,10 @@ extension HomeViewController {
         self.headerSpinner.stopAnimating()
         self.coreVC!.walletHasSynced = true
         self.coreVC!.completeSync(.final)
+
+        // App is fully ready — warm the Value-screen price caches in the
+        // background so opening that screen is instant. Off the startup path.
+        self.prefetchPriceData()
         
         // Check if notification needs handling.
         if self.coreVC!.needsToHandleURI() {

@@ -7,6 +7,69 @@
 
 import UIKit
 
+struct PricePoint {
+    let date:Date
+    let price:CGFloat
+}
+
+enum GraphSpan:String, CaseIterable {
+    case week
+    case month
+    case year
+    case fiveYears = "5years"
+
+    // Where this span's series sits in the historical API's payload.
+    var apiIndex:Int {
+        switch self {
+        case .week: return 2
+        case .month: return 3
+        case .year: return 6
+        case .fiveYears: return 7
+        }
+    }
+    
+    func startDate(from date:Date) -> Date {
+        switch self {
+        case .week: return Calendar.current.date(byAdding: .day, value: -7, to: date)!
+        case .month: return Calendar.current.date(byAdding: .month, value: -1, to: date)!
+        case .year: return Calendar.current.date(byAdding: .year, value: -1, to: date)!
+        case .fiveYears: return Calendar.current.date(byAdding: .year, value: -5, to: date)!
+        }
+    }
+    
+    var sampleEvery:Int {
+        // For the five year series, only plot every second point.
+        return self == .fiveYears ? 2 : 1
+    }
+    
+    var tick:(every:DateComponents, format:String, onMonthStart:Bool)? {
+        switch self {
+        case .week: return (DateComponents(day: 2), "dd MMM", false)
+        case .month: return (DateComponents(day: 7), "dd MMM", false)
+        case .year: return (DateComponents(month: 3), "MMM", true)
+        case .fiveYears: return nil
+        }
+    }
+    
+    var longTitle:String {
+        switch self {
+        case .week: return "1 week"
+        case .month: return "1 month"
+        case .year: return "1 year"
+        case .fiveYears: return "5 years"
+        }
+    }
+    
+    var shortTitle:String {
+        switch self {
+        case .week: return "w"
+        case .month: return "m"
+        case .year: return "y"
+        case .fiveYears: return "5y"
+        }
+    }
+}
+
 class ValueViewController: UIViewController {
 
     // General
@@ -39,23 +102,15 @@ class ValueViewController: UIViewController {
     @IBOutlet weak var graphView: GraphView!
     
     // Data
-    var week:[CGFloat] = []
-    var month:[CGFloat] = []
-    var year:[CGFloat] = []
-    var fiveYears:[CGFloat] = []
-    var allWeekData = [NSDictionary]()
-    var allMonthData = [NSDictionary]()
-    var allYearsData = [NSDictionary]()
-    var allFiveYearsData = [NSDictionary]()
-    var allDataPoints = [NSDictionary]()
+    var series:[GraphSpan:[PricePoint]] = [:]
+    var allDataPoints = [PricePoint]()
     
     // Variables
     var currentValue:CGFloat = 0
-    var currentLowestValue:CGFloat = 0
-    var currentHighestValue:CGFloat = 0
-    var selectedSpan = "week"
+    var selectedSpan:GraphSpan = .week
     var isFetchingData = true
     var homeVC:HomeViewController?
+    let axisTag = "graphaxis"
 
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -65,10 +120,10 @@ class ValueViewController: UIViewController {
         // Tag the span buttons so changeSpan can route the tap.
         // (Was set on accessibilityIdentifier in IB; moved here so that slot
         // stays free for Maestro test IDs.)
-        self.weekButton.boundString = "week"
-        self.monthButton.boundString = "month"
-        self.yearButton.boundString = "year"
-        self.fiveYearsButton.boundString = "5years"
+        self.weekButton.boundString = GraphSpan.week.rawValue
+        self.monthButton.boundString = GraphSpan.month.rawValue
+        self.yearButton.boundString = GraphSpan.year.rawValue
+        self.fiveYearsButton.boundString = GraphSpan.fiveYears.rawValue
 
         // Maestro test IDs.
         self.currentValueLabel.accessibilityIdentifier = TestID.Value.currentValueLabel
@@ -118,18 +173,20 @@ class ValueViewController: UIViewController {
         self.isFetchingData = true
         self.noDataLabel.alpha = 0
         
+        // Start from empty arrays.
+        self.series = [:]
+        
         // Get latest value
         Task {
             do {
                 let bitcoinValue = BitcoinManager.shared.bittrWallet.getCorrectBitcoinValue()
                 let eurUrl = URL(string: bitcoinValue.apiUrl)!
                 var eurData = Data()
-                if bitcoinValue.chosenCurrency == "CHF", self.homeVC?.chfData != nil, (self.homeVC?.chfDataFetched!)! > Calendar.current.date(byAdding: .minute, value: -15, to: Date())! {
-                    
-                    eurData = self.homeVC!.chfData!
-                } else if bitcoinValue.chosenCurrency != "CHF", self.homeVC?.eurData != nil, (self.homeVC?.eurDataFetched!)! > Calendar.current.date(byAdding: .minute, value: -15, to: Date())! {
-                    
-                    eurData = self.homeVC!.eurData!
+                let freshCutoff = Calendar.current.date(byAdding: .minute, value: -15, to: Date())!
+                if bitcoinValue.chosenCurrency == "CHF", let cached = self.homeVC?.chfData, let fetchedAt = self.homeVC?.chfDataFetched, fetchedAt > freshCutoff {
+                    eurData = cached
+                } else if bitcoinValue.chosenCurrency != "CHF", let cached = self.homeVC?.eurData, let fetchedAt = self.homeVC?.eurDataFetched, fetchedAt > freshCutoff {
+                    eurData = cached
                 } else {
                     (eurData, _) = try await URLSession.shared.data(from: eurUrl)
                     if bitcoinValue.chosenCurrency == "CHF" {
@@ -141,127 +198,79 @@ class ValueViewController: UIViewController {
                     }
                 }
                 
-                if let json = try JSONSerialization.jsonObject(with: eurData) as? [NSDictionary], let weekData = json[2]["data"] as? [NSDictionary], let monthData = json[3]["data"] as? [NSDictionary], let yearData = json[6]["data"] as? [NSDictionary], let fiveYearData = json[7]["data"] as? [NSDictionary] {
-                    
-                    // Data consists of dictionaries:
-                    // - [0] Minute intervals
-                    // - [1] Hourly intervals
-                    // - [2] Daily intervals
-                    // - [3] Monthly intervals
-                    // - [4] Semi-annually intervals
-                    // - [5] YTD
-                    // - [6] 1 year
-                    // - [7] 5 years
-                    // - [8] Max
-                    // Each dictionary consists of 5 key-value pairs
-                    // - [0] time_retrieved_unix_iso8601 (2025-01-13T05:55:58Z)
-                    // - [1] interval (daily)
-                    // - [2] time_retrieved_unix (1736747758)
-                    // - [3] data (12 dictionaries)
-                    // - [4] pair (eur)
-                    // The 12 data dictionaries consist of 3 key-value pairs.
-                    // - [0] time_iso8601
-                    // - [1] price (92189.2)
-                    // - [2] time_unix
-                    
-                    // Parse each data point once with a single shared formatter
-                    // and pre-computed cutoffs. Previously every iteration built a
-                    // fresh ISO8601DateFormatter (twice) and re-derived the cutoff
-                    // date from Date() — thousands of expensive allocations across
-                    // the four spans, the bulk of this screen's parse cost.
-                    let isoFormatter = ISO8601DateFormatter()
-                    let now = Date()
-                    let weekCutoff = Calendar.current.date(byAdding: .day, value: -7, to: now)!
-                    let monthCutoff = Calendar.current.date(byAdding: .month, value: -1, to: now)!
-                    let yearCutoff = Calendar.current.date(byAdding: .year, value: -1, to: now)!
-                    let fiveYearCutoff = Calendar.current.date(byAdding: .year, value: -5, to: now)!
+                guard let json = try JSONSerialization.jsonObject(with: eurData) as? [NSDictionary] else { return }
+                
+                // Data consists of dictionaries:
+                // - [0] Minute intervals
+                // - [1] Hourly intervals
+                // - [2] Daily intervals
+                // - [3] Monthly intervals
+                // - [4] Semi-annually intervals
+                // - [5] YTD
+                // - [6] 1 year
+                // - [7] 5 years
+                // - [8] Max
+                // Each dictionary consists of 5 key-value pairs
+                // - [0] time_retrieved_unix_iso8601 (2025-01-13T05:55:58Z)
+                // - [1] interval (daily)
+                // - [2] time_retrieved_unix (1736747758)
+                // - [3] data (12 dictionaries)
+                // - [4] pair (eur)
+                // The 12 data dictionaries consist of 3 key-value pairs.
+                // - [0] time_iso8601
+                // - [1] price (92189.2)
+                // - [2] time_unix
+                
+                // Parse each data point once with a single shared formatter.
+                let isoFormatter = ISO8601DateFormatter()
+                let now = Date()
+                
+                var parsedSeries = [GraphSpan:[PricePoint]]()
+                for eachSpan in GraphSpan.allCases {
+                    guard json.count > eachSpan.apiIndex, let rawPoints = json[eachSpan.apiIndex]["data"] as? [NSDictionary] else { return }
+                    parsedSeries[eachSpan] = self.pricePoints(from: rawPoints, span: eachSpan, formatter: isoFormatter, now: now)
+                }
+                
+                var data = Data()
+                
+                if let cached = self.homeVC?.currentValue, let fetchedAt = self.homeVC?.currentValueFetched, fetchedAt > freshCutoff {
+                    data = cached
+                } else {
+                    let envUrl = URL(string: "https://getbittr.com/api/price/btc")!
+                    (data, _) = try await URLSession.shared.data(from: envUrl)
 
-                    var last7Days = [CGFloat]()
-                    for eachDataPoint in weekData {
-                        guard let date = isoFormatter.date(from: eachDataPoint["time_iso8601"] as! String), weekCutoff < date else { continue }
-                        let price = (eachDataPoint["price"] as! String).toNumber()
-                        last7Days += [price]
-                        self.allWeekData += [["price": price, "date": date]]
-                    }
-
-                    var lastMonth = [CGFloat]()
-                    for eachDataPoint in monthData {
-                        guard let date = isoFormatter.date(from: eachDataPoint["time_iso8601"] as! String), monthCutoff < date else { continue }
-                        let price = (eachDataPoint["price"] as! String).toNumber()
-                        lastMonth += [price]
-                        self.allMonthData += [["price": price, "date": date]]
-                    }
-
-                    var lastYear = [CGFloat]()
-                    for eachDataPoint in yearData {
-                        guard let date = isoFormatter.date(from: eachDataPoint["time_iso8601"] as! String), yearCutoff < date else { continue }
-                        let price = (eachDataPoint["price"] as! String).toNumber()
-                        lastYear += [price]
-                        self.allYearsData += [["price": price, "date": date]]
-                    }
-
-                    var lastFiveYears = [CGFloat]()
-                    var doAdd = true
-                    for eachDataPoint in fiveYearData {
-                        guard let date = isoFormatter.date(from: eachDataPoint["time_iso8601"] as! String), fiveYearCutoff < date else { continue }
-                        if doAdd {
-                            let price = (eachDataPoint["price"] as! String).toNumber()
-                            lastFiveYears += [price]
-                            self.allFiveYearsData += [["price": price, "date": date]]
-                            doAdd = false
-                        } else {
-                            doAdd = true
-                        }
+                    self.homeVC?.currentValue = data
+                    self.homeVC?.currentValueFetched = Date()
+                }
+                
+                guard let currentJson = try JSONSerialization.jsonObject(with: data) as? [String: Any], let actualEurValue = currentJson["btc_eur"] as? String, let actualChfValue = currentJson["btc_chf"] as? String else { return }
+                    
+                DispatchQueue.main.async {
+                    let formattedEurValue = self.formatEuroValue(actualEurValue)
+                    let formattedChfValue = self.formatEuroValue(actualChfValue)
+                    
+                    self.currentValue = actualEurValue.toNumber()
+                    var preferredCurrency = "€"
+                    var valueToDisplay = formattedEurValue
+                    if bitcoinValue.chosenCurrency == "CHF" {
+                        preferredCurrency = "CHF"
+                        valueToDisplay = formattedChfValue
+                        self.currentValue = actualChfValue.toNumber()
                     }
                     
-                    var data = Data()
+                    Log.debug("EUR value: \(formattedEurValue), CHF value: \(formattedChfValue), currency: \(preferredCurrency)")
                     
-                    if self.homeVC!.currentValue != nil, (self.homeVC?.currentValueFetched!)! > Calendar.current.date(byAdding: .minute, value: -15, to: Date())! {
-                        data = self.homeVC!.currentValue!
-                    } else {
-                        let envUrl = URL(string: "https://getbittr.com/api/price/btc")!
-                        (data, _) = try await URLSession.shared.data(from: envUrl)
-                        
-                        self.homeVC?.currentValue = data
-                        self.homeVC?.currentValueFetched = Date()
+                    // Append the current value so each graph ends on the value shown above it.
+                    let currentPoint = PricePoint(date: Date(), price: self.currentValue)
+                    for eachSpan in GraphSpan.allCases {
+                        self.series[eachSpan] = (parsedSeries[eachSpan] ?? []) + [currentPoint]
                     }
                     
-                    if let currentJson = try JSONSerialization.jsonObject(with: data) as? [String: Any], let actualEurValue = currentJson["btc_eur"] as? String, let actualChfValue = currentJson["btc_chf"] as? String {
-                        // Create an entry with the fetched data
-                        
-                        DispatchQueue.main.async {
-                            
-                            let formattedEurValue = self.formatEuroValue(actualEurValue)
-                            let formattedChfValue = self.formatEuroValue(actualChfValue)
-                            
-                            self.currentValue = actualEurValue.toNumber()
-                            var preferredCurrency = "€"
-                            var valueToDisplay = formattedEurValue
-                            if bitcoinValue.chosenCurrency == "CHF" {
-                                preferredCurrency = "CHF"
-                                valueToDisplay = formattedChfValue
-                                self.currentValue = actualChfValue.toNumber()
-                            }
-                            
-                            Log.debug("EUR value: \(formattedEurValue), CHF value: \(formattedChfValue), currency: \(preferredCurrency)")
-                            
-                            // Data arrays
-                            self.week = last7Days + [self.currentValue]
-                            self.month = lastMonth + [self.currentValue]
-                            self.year = lastYear + [self.currentValue]
-                            self.fiveYears = lastFiveYears + [self.currentValue]
-                            self.allWeekData = self.allWeekData + [["price":self.currentValue,"date":Date()]]
-                            self.allMonthData = self.allMonthData + [["price":self.currentValue,"date":Date()]]
-                            self.allYearsData = self.allYearsData + [["price":self.currentValue,"date":Date()]]
-                            self.allFiveYearsData = self.allFiveYearsData + [["price":self.currentValue,"date":Date()]]
-                            
-                            self.currentValueLabel.text = "\(preferredCurrency) \(valueToDisplay)"
-                            
-                            self.valueSpinner.stopAnimating()
-                            self.drawGraph()
-                            self.isFetchingData = false
-                        }
-                    }
+                    self.currentValueLabel.text = "\(preferredCurrency) \(valueToDisplay)"
+                    
+                    self.valueSpinner.stopAnimating()
+                    self.drawGraph()
+                    self.isFetchingData = false
                 }
             } catch {
                 Log.info("Error fetching data: \(error.localizedDescription)")
@@ -280,15 +289,39 @@ class ValueViewController: UIViewController {
         }
     }
     
-    func formatEuroValue(_ actualEurValue: String) -> String {
+    func pricePoints(from rawPoints:[NSDictionary], span:GraphSpan, formatter:ISO8601DateFormatter, now:Date) -> [PricePoint] {
+        
+        let cutoff = span.startDate(from: now)
+        var points = [PricePoint]()
+        var kept = 0
+        
+        for eachDataPoint in rawPoints {
+            guard let iso = eachDataPoint["time_iso8601"] as? String, let date = formatter.date(from: iso), cutoff < date else { continue }
+            kept += 1
+            guard (kept - 1) % span.sampleEvery == 0 else { continue }
+            guard let priceString = eachDataPoint["price"] as? String else { continue }
+            points += [PricePoint(date: date, price: priceString.toNumber())]
+        }
+        
+        // Drop the API's copy of the latest price.
+        if !points.isEmpty { points.removeLast() }
+        
+        return points
+    }
+    
+    static let valueFormatter:NumberFormatter = {
         let formatter = NumberFormatter()
         formatter.numberStyle = .decimal // Automatically adds separators
         formatter.maximumFractionDigits = 0 // Round to whole numbers
-        formatter.locale = Locale.current // Use current locale for separators
+        formatter.locale = Locale.autoupdatingCurrent // Use current locale for separators
+        return formatter
+    }()
+    
+    func formatEuroValue(_ actualEurValue: String) -> String {
         
         // Convert string to number and format it
         if let number = Double(actualEurValue) {
-            return formatter.string(from: NSNumber(value: round(number))) ?? "0"
+            return ValueViewController.valueFormatter.string(from: NSNumber(value: round(number))) ?? "0"
         } else {
             return "0" // Fallback in case of invalid input
         }
@@ -298,81 +331,44 @@ class ValueViewController: UIViewController {
 
         if self.isFetchingData { return }
 
-        let span = sender.boundString ?? "week"
-        self.selectedSpan = span
+        self.selectedSpan = GraphSpan(rawValue: sender.boundString ?? "") ?? .week
         self.drawGraph()
-
-        var shadowOpacities = [Float]()
-        var backgroundColors = [UIColor]()
-        var words = [String]()
-        switch span {
-        case "week":
-            shadowOpacities = [0.1,0,0,0]
-            backgroundColors = [.white, UIColor(white: 1, alpha: 0.7), UIColor(white: 1, alpha: 0.7), UIColor(white: 1, alpha: 0.7)]
-            words = ["1 week", "m", "y", "5y"]
-        case "month":
-            shadowOpacities = [0,0.1,0,0]
-            backgroundColors = [UIColor(white: 1, alpha: 0.7), .white, UIColor(white: 1, alpha: 0.7), UIColor(white: 1, alpha: 0.7)]
-            words = ["w", "1 month", "y", "5y"]
-        case "year":
-            shadowOpacities = [0,0,0.1,0]
-            backgroundColors = [UIColor(white: 1, alpha: 0.7), UIColor(white: 1, alpha: 0.7), .white, UIColor(white: 1, alpha: 0.7)]
-            words = ["w", "m", "1 year", "5y"]
-        case "5years":
-            shadowOpacities = [0,0,0,0.1]
-            backgroundColors = [UIColor(white: 1, alpha: 0.7), UIColor(white: 1, alpha: 0.7), UIColor(white: 1, alpha: 0.7), .white]
-            words = ["w", "m", "y", "5 years"]
-        default:
-            shadowOpacities = [0.1,0,0,0]
-            backgroundColors = [.white, UIColor(white: 1, alpha: 0.7), UIColor(white: 1, alpha: 0.7), UIColor(white: 1, alpha: 0.7)]
-            words = ["1 week", "m", "y", "5y"]
+        self.showSelectedSpan()
+    }
+    
+    func showSelectedSpan() {
+        
+        let spanButtons:[(span:GraphSpan, view:UIView, label:UILabel)] = [
+            (.week, self.weekView, self.weekLabel),
+            (.month, self.monthView, self.monthLabel),
+            (.year, self.yearView, self.yearLabel),
+            (.fiveYears, self.fiveYearsView, self.fiveYearsLabel)
+        ]
+        
+        for eachButton in spanButtons {
+            let isSelected = (eachButton.span == self.selectedSpan)
+            eachButton.view.layer.shadowOpacity = isSelected ? 0.1 : 0
+            eachButton.view.backgroundColor = isSelected ? .white : UIColor(white: 1, alpha: 0.7)
+            eachButton.label.text = isSelected ? eachButton.span.longTitle : eachButton.span.shortTitle
         }
-
-        self.weekView.layer.shadowOpacity = shadowOpacities[0]
-        self.monthView.layer.shadowOpacity = shadowOpacities[1]
-        self.yearView.layer.shadowOpacity = shadowOpacities[2]
-        self.fiveYearsView.layer.shadowOpacity = shadowOpacities[3]
-        self.weekView.backgroundColor = backgroundColors[0]
-        self.monthView.backgroundColor = backgroundColors[1]
-        self.yearView.backgroundColor = backgroundColors[2]
-        self.fiveYearsView.backgroundColor = backgroundColors[3]
-        self.weekLabel.text = words[0]
-        self.monthLabel.text = words[1]
-        self.yearLabel.text = words[2]
-        self.fiveYearsLabel.text = words[3]
     }
     
     func drawGraph() {
         
         // Remove existing lines and labels.
-        for eachSubview in self.centerCard.subviews {
-            if eachSubview != self.graphView, eachSubview != self.currentValueLabel, eachSubview != self.weekView, eachSubview != self.monthView, eachSubview != self.yearView, eachSubview != self.fiveYearsView, eachSubview != self.buttonsView, eachSubview != self.profitView {
-                eachSubview.removeFromSuperview()
-            }
+        for eachSubview in self.centerCard.subviews where eachSubview.boundString == self.axisTag {
+            eachSubview.removeFromSuperview()
         }
         
-        var currentArray = self.month
-        self.allDataPoints = self.allMonthData
-        if self.selectedSpan == "week" {
-            currentArray = self.week
-            self.allDataPoints = self.allWeekData
-        } else if self.selectedSpan == "year" {
-            currentArray = self.year
-            self.allDataPoints = self.allYearsData
-        } else if self.selectedSpan == "5years" {
-            currentArray = self.fiveYears
-            self.allDataPoints = self.allFiveYearsData
-        }
+        self.allDataPoints = self.series[self.selectedSpan] ?? []
+        let currentArray = self.allDataPoints.map { $0.price }
+        
         if currentArray.count == 0 {
-            if self.noDataLabel != nil {
-                self.noDataLabel.alpha = 1
-            }
+            self.noDataLabel.alpha = 1
             self.graphView.alpha = 0
             return
         } else {
-            if self.noDataLabel != nil {
-                self.noDataLabel.alpha = 0
-            }
+            self.noDataLabel.alpha = 0
             self.graphView.alpha = 1
         }
         self.graphView.data = currentArray
@@ -384,13 +380,13 @@ class ValueViewController: UIViewController {
         
         if let lowestNumber = currentArray.min(), let highestNumber = currentArray.max() {
             
-            self.currentLowestValue = lowestNumber
-            self.currentHighestValue = highestNumber
             thisHighestNumber = highestNumber
             totalSpan = highestNumber - lowestNumber
             
             // Set profit label
-            let profitPercentage = "\(Int((currentArray[currentArray.count-1] - currentArray[0])/currentArray[0] * 100)) %"
+            let firstPrice = currentArray[0]
+            let profit = firstPrice > 0 ? (currentArray[currentArray.count-1] - firstPrice)/firstPrice * 100 : 0
+            let profitPercentage = "\(Int(profit)) %"
             self.profitLabel.text = profitPercentage
             if profitPercentage.contains("-") {
                 self.profitLabel.textColor = Colors.getColor("losstext")
@@ -404,6 +400,8 @@ class ValueViewController: UIViewController {
                 self.profitArrowImage.image = UIImage(systemName: "arrow.up")
             }
             self.profitView.alpha = 1
+            
+            if totalSpan == 0 { return }
             
             var differential:CGFloat = 2500
             if totalSpan > 60000 {
@@ -434,6 +432,7 @@ class ValueViewController: UIViewController {
                 thisLine.backgroundColor = Colors.getColor("blackorwhite")
                 thisLine.layer.zPosition = 0
                 thisLine.alpha = 0.2
+                thisLine.boundString = self.axisTag
                 self.centerCard.addSubview(thisLine)
                 
                 let thisLineHeight = NSLayoutConstraint(item: thisLine, attribute: .height, relatedBy: .equal, toItem: nil, attribute: .notAnAttribute, multiplier: 1, constant: 1)
@@ -450,6 +449,7 @@ class ValueViewController: UIViewController {
                 thisLabel.textColor = Colors.getColor("blackorwhite")
                 thisLabel.layer.zPosition = 0
                 thisLabel.alpha = 0.4
+                thisLabel.boundString = self.axisTag
                 self.centerCard.addSubview(thisLabel)
                 
                 let thisLabelHeight = NSLayoutConstraint(item: thisLabel, attribute: .height, relatedBy: .greaterThanOrEqual, toItem: nil, attribute: .notAnAttribute, multiplier: 1, constant: 0)
@@ -463,103 +463,7 @@ class ValueViewController: UIViewController {
         }
         
         // Set X axis.
-        var totalDataPoints:CGFloat = 0
-        var dataPoints = [CGFloat]()
-        var labels = [String]()
-        
-        if self.selectedSpan == "5years" {
-            
-            // Get total days
-            let currentDate = Date()
-            let currentYear = Calendar.current.component(.year, from: currentDate)
-            let startYear = currentYear - 5
-            let endYear = currentYear
-            for year in startYear..<endYear {
-                if self.isLeapYear(year: year) {
-                    totalDataPoints += 366
-                } else {
-                    totalDataPoints += 365
-                }
-            }
-            
-            // Get 1 Januarys
-            let startDate = Calendar.current.date(byAdding: .year, value: -5, to: currentDate)!
-            for year in startYear...endYear {
-                let firstOfJanuary = Calendar.current.date(from: DateComponents(year: year, month: 1, day: 1))!
-                let dayNumber = Calendar.current.dateComponents([.day], from: startDate, to: firstOfJanuary).day!
-                if dayNumber > 0 {
-                    dataPoints += [CGFloat(dayNumber)]
-                    labels += ["\(year)"]
-                }
-            }
-        } else if selectedSpan == "year" {
-            
-            let currentDate = Date()
-            var startDate = Calendar.current.date(byAdding: .year, value: -1, to: currentDate)!
-            let originalStartDate = startDate
-            totalDataPoints = CGFloat(Calendar.current.dateComponents([.day], from: startDate, to: currentDate).day!)
-            
-            while Calendar.current.date(byAdding: .month, value: 3, to: startDate)! <= currentDate {
-                if let newDate = Calendar.current.date(byAdding: .month, value: 3, to: startDate) {
-                    
-                    let components = Calendar.current.dateComponents([.year, .month], from: newDate)
-                    
-                    dataPoints += [CGFloat(Calendar.current.dateComponents([.day], from: originalStartDate, to: Calendar.current.date(from: DateComponents(year: components.year, month: components.month, day: 1))!).day!)]
-                    
-                    let dateFormatter = DateFormatter()
-                    dateFormatter.dateFormat = "MMM"
-                    labels += [dateFormatter.string(from: newDate)]
-                    
-                    startDate = newDate
-                }
-            }
-        } else if selectedSpan == "month" {
-            
-            let currentDate = Date()
-            var startDate = Calendar.current.date(byAdding: .month, value: -1, to: currentDate)!
-            let originalStartDate = startDate
-            totalDataPoints = CGFloat(Calendar.current.dateComponents([.day], from: startDate, to: currentDate).day!)
-            
-            while Calendar.current.date(byAdding: .day, value: 7, to: startDate)! <= currentDate {
-                if let newDate = Calendar.current.date(byAdding: .day, value: 7, to: startDate) {
-                    
-                    dataPoints += [CGFloat(Calendar.current.dateComponents([.day], from: originalStartDate, to: newDate).day!)]
-                    
-                    let dateFormatter = DateFormatter()
-                    dateFormatter.dateFormat = "dd MMM"
-                    var dateString = dateFormatter.string(from: newDate)
-                    if dateString.first == "0" {
-                        dateString = String(dateString.dropFirst())
-                    }
-                    labels += [dateString]
-                    
-                    startDate = newDate
-                }
-            }
-        } else if selectedSpan == "week" {
-            
-            let currentDate = Date()
-            var startDate = Calendar.current.date(byAdding: .day, value: -7, to: currentDate)!
-            let originalStartDate = startDate
-            totalDataPoints = CGFloat(Calendar.current.dateComponents([.day], from: startDate, to: currentDate).day!)
-            
-            while Calendar.current.date(byAdding: .day, value: 2, to: startDate)! <= currentDate {
-                if let newDate = Calendar.current.date(byAdding: .day, value: 2, to: startDate) {
-                    
-                    dataPoints += [CGFloat(Calendar.current.dateComponents([.day], from: originalStartDate, to: newDate).day!)]
-                    
-                    let dateFormatter = DateFormatter()
-                    dateFormatter.dateFormat = "dd MMM"
-                    var dateString = dateFormatter.string(from: newDate)
-                    if dateString.first == "0" {
-                        dateString = String(dateString.dropFirst())
-                    }
-                    labels += [dateString]
-                    
-                    startDate = newDate
-                }
-            }
-        }
+        let (totalDataPoints, dataPoints, labels) = self.xAxisTicks()
         
         for (index, eachDataPoint) in dataPoints.enumerated() {
             
@@ -568,6 +472,7 @@ class ValueViewController: UIViewController {
             thisLine.backgroundColor = Colors.getColor("blackorwhite")
             thisLine.layer.zPosition = 0
             thisLine.alpha = 0.2
+            thisLine.boundString = self.axisTag
             self.centerCard.addSubview(thisLine)
             
             let thisLineWidth = NSLayoutConstraint(item: thisLine, attribute: .width, relatedBy: .equal, toItem: nil, attribute: .notAnAttribute, multiplier: 1, constant: 1)
@@ -584,6 +489,7 @@ class ValueViewController: UIViewController {
             thisLabel.textColor = Colors.getColor("blackorwhite")
             thisLabel.layer.zPosition = 0
             thisLabel.alpha = 0.4
+            thisLabel.boundString = self.axisTag
             self.centerCard.addSubview(thisLabel)
             
             let thisLabelHeight = NSLayoutConstraint(item: thisLabel, attribute: .height, relatedBy: .greaterThanOrEqual, toItem: nil, attribute: .notAnAttribute, multiplier: 1, constant: 0)
@@ -594,6 +500,63 @@ class ValueViewController: UIViewController {
             thisLabel.addConstraints([thisLabelHeight, thisLabelWidth])
         }
         
+    }
+    
+    // Where the vertical date lines go.
+    func xAxisTicks() -> (total:CGFloat, offsets:[CGFloat], labels:[String]) {
+        
+        let currentDate = Date()
+        let startDate = self.selectedSpan.startDate(from: currentDate)
+        var offsets = [CGFloat]()
+        var labels = [String]()
+        
+        // Five years is laid out per calendar year: a line on each 1 January.
+        guard let tick = self.selectedSpan.tick else {
+            
+            var totalDataPoints:CGFloat = 0
+            let currentYear = Calendar.current.component(.year, from: currentDate)
+            let startYear = currentYear - 5
+            
+            for eachYear in startYear..<currentYear {
+                totalDataPoints += self.isLeapYear(year: eachYear) ? 366 : 365
+            }
+            
+            for eachYear in startYear...currentYear {
+                let firstOfJanuary = Calendar.current.date(from: DateComponents(year: eachYear, month: 1, day: 1))!
+                let dayNumber = Calendar.current.dateComponents([.day], from: startDate, to: firstOfJanuary).day!
+                if dayNumber > 0 {
+                    offsets += [CGFloat(dayNumber)]
+                    labels += ["\(eachYear)"]
+                }
+            }
+            
+            return (totalDataPoints, offsets, labels)
+        }
+        
+        let totalDataPoints = CGFloat(Calendar.current.dateComponents([.day], from: startDate, to: currentDate).day!)
+        let dateFormatter = DateFormatter()
+        dateFormatter.dateFormat = tick.format
+        
+        var walkedDate = startDate
+        while let nextDate = Calendar.current.date(byAdding: tick.every, to: walkedDate), nextDate <= currentDate {
+            
+            // The year graph names whole months, so its lines sit on the 1st.
+            var lineDate = nextDate
+            if tick.onMonthStart {
+                lineDate = Calendar.current.date(from: Calendar.current.dateComponents([.year, .month], from: nextDate))!
+            }
+            offsets += [CGFloat(Calendar.current.dateComponents([.day], from: startDate, to: lineDate).day!)]
+            
+            var dateString = dateFormatter.string(from: nextDate)
+            if dateString.first == "0" {
+                dateString = String(dateString.dropFirst())
+            }
+            labels += [dateString]
+            
+            walkedDate = nextDate
+        }
+        
+        return (totalDataPoints, offsets, labels)
     }
     
     func isLeapYear(year: Int) -> Bool {
