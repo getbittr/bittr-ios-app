@@ -12,6 +12,7 @@ import CoreLocation
 class MapViewController: UIViewController, CLLocationManagerDelegate, MKMapViewDelegate, UITableViewDelegate, UITableViewDataSource {
     
     // UI elements
+    @IBOutlet weak var topLabel: UILabel!
     @IBOutlet weak var mapBackground: UIView!
     @IBOutlet weak var mapContainer: UIView!
     @IBOutlet weak var mapView: MKMapView!
@@ -21,6 +22,11 @@ class MapViewController: UIViewController, CLLocationManagerDelegate, MKMapViewD
     @IBOutlet weak var placesTableView: UITableView!
     @IBOutlet weak var noPlacesLabel: UILabel!
     @IBOutlet weak var mapSpinner: UIActivityIndicatorView!
+    
+    // Powered by BTCMap.org
+    @IBOutlet weak var poweredByFade: UIView!
+    @IBOutlet weak var poweredByLabel: UILabel!
+    @IBOutlet weak var poweredByButton: UIButton!
     
     // One place
     @IBOutlet weak var onePlaceStack: UIView!
@@ -55,6 +61,7 @@ class MapViewController: UIViewController, CLLocationManagerDelegate, MKMapViewD
         self.mapSpinner.accessibilityIdentifier = TestID.Map.mapSpinner
         self.placesTableView.accessibilityIdentifier = TestID.Map.placesTableView
         self.userLocationButton.accessibilityIdentifier = TestID.Map.userLocationButton
+        self.poweredByButton.accessibilityIdentifier = TestID.Map.poweredByButton
 
         // Table view
         self.placesTableView.delegate = self
@@ -91,6 +98,10 @@ class MapViewController: UIViewController, CLLocationManagerDelegate, MKMapViewD
     
     @IBAction func placeCellTapped(_ sender: UIButton) {
         self.showOnePlace(index: sender.tag)
+    }
+    
+    @IBAction func poweredByTapped(_ sender: UIButton) {
+        self.showAlert(title: Language.getWord(withID: "paywithbitcoin"), message: Language.getWord(withID: "mapvcpoweredbyalert"), buttons: [.dismiss(Language.getWord(withID: "close"))])
     }
     
     deinit {

@@ -118,6 +118,7 @@ class OnePlaceViewController: UIViewController {
         self.websiteLabel.textColor = Colors.getColor("blackorwhite")
         self.hoursLabel.textColor = Colors.getColor("blackorwhite")
         self.goToMapsView.backgroundColor = Colors.getColor("white0.7orblue3")
+        self.goToMapsLabel.textColor = Colors.getColor("blackorwhite")
     }
     
     func setStyling() {

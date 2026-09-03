@@ -150,7 +150,9 @@ extension MapViewController {
         
         self.placesTableView.reloadData()
         self.placesTableView.layoutIfNeeded()
-        DispatchQueue.main.async { self.placesTableView.setContentOffset(CGPoint(x: 0, y: -30), animated: true) }
+        DispatchQueue.main.async {
+            self.placesTableView.setContentOffset(CGPoint(x: 0, y: -self.placesTableView.adjustedContentInset.top), animated: true)
+        }
     }
     
     func showDefaultSwitzerlandRegion() {

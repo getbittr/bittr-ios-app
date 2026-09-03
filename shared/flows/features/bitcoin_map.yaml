@@ -57,6 +57,20 @@ appId: com.bittr.bittr-regtest
     id: "map.mapView"
 - takeScreenshot: shared/docs/screenshots/bitcoin_map/03_map_loading
 
+# Read the BTCMap.org credit under the map and close it again. Done here, on
+# arrival, rather than after the sync: the label is there from the moment the
+# screen opens, and dismissing the alert before the wait below keeps it from
+# sitting over the spinner that wait is watching.
+- tapOn:
+    id: "map.poweredByButton"
+- assertVisible:
+    id: "alert.button.0"
+- takeScreenshot: shared/docs/screenshots/bitcoin_map/03a_powered_by
+- tapOn:
+    id: "alert.button.0"
+- assertNotVisible:
+    id: "alert.button.0"
+
 # Wait for the BTC-places sync to finish. mapSpinner (hidesWhenStopped) is
 # stopped in resyncBTCPlaces once the btcmap.org sync completes. A first-ever
 # sync downloads the full dataset, so allow a generous timeout.

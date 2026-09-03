@@ -22,11 +22,17 @@ extension MapViewController {
         // Button titles
         self.userLocationButton.setTitle("", for: .normal)
         self.onePlaceBackgroundButton.setTitle("", for: .normal)
+        self.poweredByButton.setTitle("", for: .normal)
     }
     
     func setWords() {
         
         self.noPlacesLabel.text = Language.getWord(withID: "noplaces")
+        self.topLabel.text = Language.getWord(withID: "mapvctoplabel")
+        self.poweredByLabel.text = Language.getWord(withID: "mapvcpoweredby")
+
+        // The button sits invisibly over the label, so give VoiceOver its text.
+        self.poweredByButton.accessibilityLabel = Language.getWord(withID: "mapvcpoweredby")
     }
     
     func changeColors() {
@@ -36,6 +42,8 @@ extension MapViewController {
         self.noPlacesLabel.textColor = Colors.getColor("blackorwhite")
         self.onePlaceContainer.backgroundColor = Colors.getColor("yelloworblue1")
         self.mapSpinner.color = Colors.getColor("blackorwhite")
+        self.topLabel.textColor = Colors.getColor("blackorwhite")
+        self.poweredByLabel.textColor = Colors.getColor("blackorwhite")
         
         self.iconUserLocation.image = CacheManager.darkModeIsOn() ? UIImage(named: "iconmylocationwhite") : UIImage(named: "iconmylocationyellow")
         
