@@ -170,7 +170,16 @@ extension AppDelegate {
         
         let request = notification.request
         self.handleNotification(userInfo: request.content.userInfo, id: request.identifier, title: request.content.title, body: request.content.body)
-        
+
+        // Swap-status pushes are already reflected in the swap screen and the
+        // Dynamic Island Live Activity, so don't also show a redundant banner
+        // while the app is open. (On the Lock Screen / when backgrounded this is
+        // out of our hands — the sender must mark the push silent to hide it.)
+        if request.content.userInfo.toNotification().type == .swap {
+            completionHandler([])
+            return
+        }
+
         completionHandler([.banner, .list])
     }
     
