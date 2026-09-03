@@ -43,6 +43,7 @@ appId: com.bittr.bittr-regtest
 ---
 # Launch without clearState so existing wallet state is preserved across runs.
 - launchApp
+- runFlow: ../helpers/wait_for_launch.yaml
 
 # Auto-recover if no wallet exists yet (full onboarding lands on Home).
 - runFlow:

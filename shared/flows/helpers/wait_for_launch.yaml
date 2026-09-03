@@ -1,0 +1,22 @@
+# Reusable subflow: waits for the opening animation to finish.
+#
+# CoreViewController runs the coin/logo animation on every launch, roughly two
+# and a half seconds, with animationCover over the top of whichever screen is
+# underneath. The screen beneath is fully rendered the whole time, so a gate
+# like `assertVisible: unlock.topLabel` passes straight away — but the cover
+# swallows the tap that follows, which is how this shows up: a flow that looks
+# right and taps into nothing.
+#
+# The app sets core.launchComplete once the animation is done, so this waits
+# for a fact rather than for the screen to stop moving. waitForAnimationToEnd
+# is not enough on its own here: the sequence pauses between its stages, and a
+# pause looks exactly like the end.
+#
+# Put this straight after every launchApp, before any gate or tap.
+
+appId: com.bittr.bittr-regtest
+---
+- extendedWaitUntil:
+    visible:
+      id: "core.launchComplete"
+    timeout: 15000

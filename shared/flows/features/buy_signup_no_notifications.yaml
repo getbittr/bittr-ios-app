@@ -67,6 +67,7 @@ appId: com.bittr.bittr-regtest
 - launchApp:
     permissions:
       notifications: deny
+- runFlow: ../helpers/wait_for_launch.yaml
 
 # This test REQUIRES an existing wallet (see the header) and only unlocks —
 # it deliberately does NOT auto-create one. Wallet creation runs a clearState

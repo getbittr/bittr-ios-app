@@ -43,6 +43,7 @@ appId: com.bittr.bittr-regtest
 - launchApp:
     permissions:
       notifications: allow
+- runFlow: ../helpers/wait_for_launch.yaml
 
 # Auto-recover if no wallet exists yet (full onboarding lands on Home).
 - runFlow:

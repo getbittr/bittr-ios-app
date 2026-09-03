@@ -40,6 +40,7 @@ appId: com.bittr.bittr-regtest
 
 # Cold relaunch the app — an existing wallet boots to the PIN unlock screen.
 - launchApp
+- runFlow: ../helpers/wait_for_launch.yaml
 
 # Fixed test mnemonic — matches restore_wallet.yaml above, so RestoreVC's check
 # against the cached mnemonic passes. 1-indexed to match the access below.

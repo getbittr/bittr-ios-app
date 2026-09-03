@@ -26,6 +26,7 @@ appId: com.bittr.bittr-regtest
     clearKeychain: true
     permissions:
       notifications: allow
+- runFlow: wait_for_launch.yaml
 
 # Fresh onboarding: create the wallet and complete the bittr signup. The signup
 # step allows notifications (happy_path_signup taps Allow on the prompt), which

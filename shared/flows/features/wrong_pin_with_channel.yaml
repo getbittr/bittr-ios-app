@@ -33,6 +33,7 @@
 appId: com.bittr.bittr-regtest
 ---
 - launchApp
+- runFlow: ../helpers/wait_for_launch.yaml
 
 # --- Self-provision: ensure a wallet with an OPEN channel --------------------
 # 1) Ensure a wallet and reach Home. Let the cold-start launch animation settle
@@ -90,6 +91,7 @@ appId: com.bittr.bittr-regtest
 #    channel already existed) or on Home (we just built one) — either way the
 #    relaunch lands on the unlock screen with the fail counter at 0.
 - launchApp
+- runFlow: ../helpers/wait_for_launch.yaml
 - takeScreenshot: shared/docs/screenshots/wrong_pin_with_channel/01_unlock
 
 # Enter the wrong PIN ten times -> lockout + background wipe begins.

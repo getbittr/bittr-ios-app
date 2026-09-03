@@ -31,6 +31,7 @@
 appId: com.bittr.bittr-regtest
 ---
 - launchApp
+- runFlow: ../helpers/wait_for_launch.yaml
 
 - runFlow:
     when:

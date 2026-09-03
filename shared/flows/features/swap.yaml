@@ -40,6 +40,7 @@ appId: com.bittr.bittr-regtest
 - launchApp:
     permissions:
       notifications: allow
+- runFlow: ../helpers/wait_for_launch.yaml
 
 # If app launched into the PIN unlock screen, enter it.
 - runFlow:

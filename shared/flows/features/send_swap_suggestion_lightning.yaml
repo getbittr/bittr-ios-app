@@ -38,6 +38,7 @@ appId: com.bittr.bittr-regtest
 ---
 # Launch without clearState so existing wallet state is preserved across runs.
 - launchApp
+- runFlow: ../helpers/wait_for_launch.yaml
 
 # If the app launched into the PIN unlock screen (existing wallet), enter PIN.
 - runFlow:

@@ -25,6 +25,9 @@ enum TestID {
         static let yourEmail = "buy.yourEmail"
         static let yourIban = "buy.yourIban"
     }
+    enum Core {
+        static let launchComplete = "core.launchComplete"
+    }
     enum Device {
         enum Darkmode {
             static let deviceButton = "device.darkmode.deviceButton"
