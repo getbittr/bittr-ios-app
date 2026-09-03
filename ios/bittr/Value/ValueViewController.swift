@@ -182,12 +182,11 @@ class ValueViewController: UIViewController {
                 let bitcoinValue = BitcoinManager.shared.bittrWallet.getCorrectBitcoinValue()
                 let eurUrl = URL(string: bitcoinValue.apiUrl)!
                 var eurData = Data()
-                if bitcoinValue.chosenCurrency == "CHF", self.homeVC?.chfData != nil, (self.homeVC?.chfDataFetched!)! > Calendar.current.date(byAdding: .minute, value: -15, to: Date())! {
-                    
-                    eurData = self.homeVC!.chfData!
-                } else if bitcoinValue.chosenCurrency != "CHF", self.homeVC?.eurData != nil, (self.homeVC?.eurDataFetched!)! > Calendar.current.date(byAdding: .minute, value: -15, to: Date())! {
-                    
-                    eurData = self.homeVC!.eurData!
+                let freshCutoff = Calendar.current.date(byAdding: .minute, value: -15, to: Date())!
+                if bitcoinValue.chosenCurrency == "CHF", let cached = self.homeVC?.chfData, let fetchedAt = self.homeVC?.chfDataFetched, fetchedAt > freshCutoff {
+                    eurData = cached
+                } else if bitcoinValue.chosenCurrency != "CHF", let cached = self.homeVC?.eurData, let fetchedAt = self.homeVC?.eurDataFetched, fetchedAt > freshCutoff {
+                    eurData = cached
                 } else {
                     (eurData, _) = try await URLSession.shared.data(from: eurUrl)
                     if bitcoinValue.chosenCurrency == "CHF" {
@@ -228,14 +227,14 @@ class ValueViewController: UIViewController {
                 
                 var parsedSeries = [GraphSpan:[PricePoint]]()
                 for eachSpan in GraphSpan.allCases {
-                    guard let rawPoints = json[eachSpan.apiIndex]["data"] as? [NSDictionary] else { return }
+                    guard json.count > eachSpan.apiIndex, let rawPoints = json[eachSpan.apiIndex]["data"] as? [NSDictionary] else { return }
                     parsedSeries[eachSpan] = self.pricePoints(from: rawPoints, span: eachSpan, formatter: isoFormatter, now: now)
                 }
                 
                 var data = Data()
                 
-                if self.homeVC!.currentValue != nil, (self.homeVC?.currentValueFetched!)! > Calendar.current.date(byAdding: .minute, value: -15, to: Date())! {
-                    data = self.homeVC!.currentValue!
+                if let cached = self.homeVC?.currentValue, let fetchedAt = self.homeVC?.currentValueFetched, fetchedAt > freshCutoff {
+                    data = cached
                 } else {
                     let envUrl = URL(string: "https://getbittr.com/api/price/btc")!
                     (data, _) = try await URLSession.shared.data(from: envUrl)
@@ -297,10 +296,11 @@ class ValueViewController: UIViewController {
         var kept = 0
         
         for eachDataPoint in rawPoints {
-            guard let date = formatter.date(from: eachDataPoint["time_iso8601"] as! String), cutoff < date else { continue }
+            guard let iso = eachDataPoint["time_iso8601"] as? String, let date = formatter.date(from: iso), cutoff < date else { continue }
             kept += 1
             guard (kept - 1) % span.sampleEvery == 0 else { continue }
-            points += [PricePoint(date: date, price: (eachDataPoint["price"] as! String).toNumber())]
+            guard let priceString = eachDataPoint["price"] as? String else { continue }
+            points += [PricePoint(date: date, price: priceString.toNumber())]
         }
         
         // Drop the API's copy of the latest price.
@@ -316,8 +316,6 @@ class ValueViewController: UIViewController {
         formatter.locale = Locale.autoupdatingCurrent // Use current locale for separators
         return formatter
     }()
-    
-    static let axisDateFormatter = DateFormatter()
     
     func formatEuroValue(_ actualEurValue: String) -> String {
         
@@ -536,7 +534,7 @@ class ValueViewController: UIViewController {
         }
         
         let totalDataPoints = CGFloat(Calendar.current.dateComponents([.day], from: startDate, to: currentDate).day!)
-        let dateFormatter = ValueViewController.axisDateFormatter
+        let dateFormatter = DateFormatter()
         dateFormatter.dateFormat = tick.format
         
         var walkedDate = startDate
