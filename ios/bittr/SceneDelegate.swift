@@ -103,7 +103,13 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
             self.handleLightningURI(lightningContext.url)
             return
         }
-        
+
+        // Tapped a swap Live Activity (Dynamic Island / Lock Screen) → open its status.
+        if URLContexts.contains(where: { $0.url.scheme == "bittr" && $0.url.host == "swapstatus" }) {
+            NotificationCenter.default.post(name: NSNotification.Name(rawValue: "openSwapStatus"), object: nil)
+            return
+        }
+
         // Handle existing widget deeplink
         self.launchBittrValue(urlContexts: URLContexts, delay: 0)
     }

@@ -123,6 +123,8 @@
 		05AF89742D436920009D629C /* SwapManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05AF89732D436920009D629C /* SwapManager.swift */; };
 		05AF89762D437073009D629C /* SwapViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05AF89752D437073009D629C /* SwapViewController.swift */; };
 		05B30E2E2E26281200CF10EC /* Swap.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05B30E2D2E26281200CF10EC /* Swap.swift */; };
+		05DA11AC0000000000000D01 /* SwapLiveActivityController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05DA11AC0000000000000C01 /* SwapLiveActivityController.swift */; };
+		05DA11AC0000000000000B01 /* SwapActivityAttributes.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05DA11AC0000000000000A01 /* SwapActivityAttributes.swift */; };
 		05BE46192BB9A83100555B9B /* SPConfetti in Frameworks */ = {isa = PBXBuildFile; productRef = 05BE46182BB9A83100555B9B /* SPConfetti */; };
 		05BFCEB72A3B113E00565E2A /* Transfer2ViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05BFCEB62A3B113E00565E2A /* Transfer2ViewController.swift */; };
 		05BFCEB92A3B1A1100565E2A /* RegisterIbanViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05BFCEB82A3B1A1100565E2A /* RegisterIbanViewController.swift */; };
@@ -141,7 +143,6 @@
 		05C5A0EF2A334E30004CC671 /* Transfer3ViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05C5A0EE2A334E30004CC671 /* Transfer3ViewController.swift */; };
 		05CF0FE62D32557300DF2D9F /* GraphView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05CF0FE52D32557300DF2D9F /* GraphView.swift */; };
 		05CF63B93004ECB800E55351 /* SecureStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05CF63B83004ECB800E55351 /* SecureStore.swift */; };
-		05EBB0172EA00000000000A1 /* EvilBoltz.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05EBB0172EA00000000000A2 /* EvilBoltz.swift */; };
 		05CF933A2A1E711B0084A221 /* Signup3ViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05CF93392A1E711B0084A221 /* Signup3ViewController.swift */; };
 		05D5D0E72A66825000A1E771 /* BitcoinManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05D5D0E62A66825000A1E771 /* BitcoinManager.swift */; settings = {COMPILER_FLAGS = "-fno-objc-arc"; }; };
 		05D5D0EA2A66836300A1E771 /* LightningStorage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05D5D0E92A66836300A1E771 /* LightningStorage.swift */; };
@@ -161,6 +162,7 @@
 		05EB5C9E2F4D832F00FF2157 /* UITextField.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05EB5C9D2F4D832D00FF2157 /* UITextField.swift */; };
 		05EB5CA02F4D834600FF2157 /* SendURI.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05EB5C9F2F4D834300FF2157 /* SendURI.swift */; };
 		05EB5CA22F4D846D00FF2157 /* Int.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05EB5CA12F4D846C00FF2157 /* Int.swift */; };
+		05EBB0172EA00000000000A1 /* EvilBoltz.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05EBB0172EA00000000000A2 /* EvilBoltz.swift */; };
 		05F1FB5E2C33DD08004AE14F /* AddressParsing.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05F1FB5D2C33DD08004AE14F /* AddressParsing.swift */; };
 		05F1FB602C33E043004AE14F /* SendOnchain.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05F1FB5F2C33E043004AE14F /* SendOnchain.swift */; };
 		05F1FB622C33E1CD004AE14F /* SendLightning.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05F1FB612C33E1CD004AE14F /* SendLightning.swift */; };
@@ -337,6 +339,8 @@
 		05AF89732D436920009D629C /* SwapManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SwapManager.swift; sourceTree = "<group>"; };
 		05AF89752D437073009D629C /* SwapViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SwapViewController.swift; sourceTree = "<group>"; };
 		05B30E2D2E26281200CF10EC /* Swap.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Swap.swift; sourceTree = "<group>"; };
+		05DA11AC0000000000000C01 /* SwapLiveActivityController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SwapLiveActivityController.swift; sourceTree = "<group>"; };
+		05DA11AC0000000000000A01 /* SwapActivityAttributes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = SwapActivityAttributes.swift; path = BittrWidget/SwapActivityAttributes.swift; sourceTree = SOURCE_ROOT; };
 		05BFCEB62A3B113E00565E2A /* Transfer2ViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Transfer2ViewController.swift; sourceTree = "<group>"; };
 		05BFCEB82A3B1A1100565E2A /* RegisterIbanViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RegisterIbanViewController.swift; sourceTree = "<group>"; };
 		05C3C08129CCB55600C1E695 /* bittr.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = bittr.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -358,7 +362,6 @@
 		05C5A0EE2A334E30004CC671 /* Transfer3ViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Transfer3ViewController.swift; sourceTree = "<group>"; };
 		05CF0FE52D32557300DF2D9F /* GraphView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GraphView.swift; sourceTree = "<group>"; };
 		05CF63B83004ECB800E55351 /* SecureStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SecureStore.swift; sourceTree = "<group>"; };
-		05EBB0172EA00000000000A2 /* EvilBoltz.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EvilBoltz.swift; sourceTree = "<group>"; };
 		05CF93392A1E711B0084A221 /* Signup3ViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Signup3ViewController.swift; sourceTree = "<group>"; };
 		05D5D0E62A66825000A1E771 /* BitcoinManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BitcoinManager.swift; sourceTree = "<group>"; };
 		05D5D0E92A66836300A1E771 /* LightningStorage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LightningStorage.swift; sourceTree = "<group>"; };
@@ -375,6 +378,7 @@
 		05EB5C9D2F4D832D00FF2157 /* UITextField.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UITextField.swift; sourceTree = "<group>"; };
 		05EB5C9F2F4D834300FF2157 /* SendURI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SendURI.swift; sourceTree = "<group>"; };
 		05EB5CA12F4D846C00FF2157 /* Int.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Int.swift; sourceTree = "<group>"; };
+		05EBB0172EA00000000000A2 /* EvilBoltz.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EvilBoltz.swift; sourceTree = "<group>"; };
 		05ECDAAA2B249768002A410D /* bittr.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = bittr.entitlements; sourceTree = "<group>"; };
 		05F1FB5D2C33DD08004AE14F /* AddressParsing.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddressParsing.swift; sourceTree = "<group>"; };
 		05F1FB5F2C33E043004AE14F /* SendOnchain.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SendOnchain.swift; sourceTree = "<group>"; };
@@ -756,6 +760,8 @@
 				057B42EF2F5AD5E900BA5C44 /* SwapStatusVC */,
 				057B42EE2F5AD5CE00BA5C44 /* Swap Manager */,
 				05B30E2D2E26281200CF10EC /* Swap.swift */,
+				05DA11AC0000000000000C01 /* SwapLiveActivityController.swift */,
+				05DA11AC0000000000000A01 /* SwapActivityAttributes.swift */,
 			);
 			path = Swaps;
 			sourceTree = "<group>";
@@ -1264,6 +1270,8 @@
 				05EB5C9C2F4D814300FF2157 /* String.swift in Sources */,
 				051015E52F9F383200D3F631 /* MapVCLocations.swift in Sources */,
 				05B30E2E2E26281200CF10EC /* Swap.swift in Sources */,
+				05DA11AC0000000000000D01 /* SwapLiveActivityController.swift in Sources */,
+				05DA11AC0000000000000B01 /* SwapActivityAttributes.swift in Sources */,
 				057B42E92F5AA20E00BA5C44 /* SwapStatusViewController.swift in Sources */,
 				052171262CB4157E006C5663 /* Language.swift in Sources */,
 				05A8BD8C2B7513B7002F0282 /* FetchAndPrint.swift in Sources */,
