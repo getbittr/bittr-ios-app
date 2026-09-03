@@ -328,53 +328,90 @@ class SwapManager: NSObject {
                 swapVC.highestFeePerVbyte = feeEstimates.fastest
             }
             
-            var size:UInt64
-            do {
-                // Calculate transaction size.
-                size = try BitcoinManager.shared.getSize(address: ongoingSwap.boltzOnchainAddress!, amountSats: ongoingSwap.boltzExpectedAmount!, selectedVbyte: swapVC.highestFeePerVbyte)
-            } catch {
-                Log.info("Error: \(error.localizedDescription)")
+            let feesForOnchainPayment:Int
+            let feesForLightningPayment:Int
 
-                // Insufficient onchain funds is the common case — show a friendly
-                // message instead of leaking the raw BDK error text to the user.
-                var isInsufficientFunds = false
-                if let bdkError = error as? BitcoinDevKit.CreateTxError {
-                    switch bdkError {
-                    case .CoinSelection, .InsufficientFunds:
-                        isInsufficientFunds = true
-                    default:
-                        break
-                    }
-                }
-
-                DispatchQueue.main.async {
-                    let alertTitle:String
-                    let alertMessage:String
-                    if isInsufficientFunds {
-                        let balance = BitcoinManager.shared.bittrWallet.satoshisOnchain
-                        let message = Language.getWord(withID: "onchaininsufficientfunds")
-                            .replacingOccurrences(of: "<amount>", with: "\(balance)")
-                        alertTitle = Language.getWord(withID: "insufficientfunds")
-                        alertMessage = message
-                    } else {
-                        var errorMessage = error.localizedDescription
-                        if let bdkError = error as? BitcoinDevKit.CreateTxError {
-                            errorMessage = bdkError.getErrorMessage()
+            if swapVC.isDrainingOnchainMax {
+                // Drain (max swap): quote the send-all mining fee (a change-less
+                // sweep) and confirm the drainable balance still covers Boltz's
+                // expected amount — fee rates can move between quoting the shown
+                // max and confirming here.
+                do {
+                    let preview = try BitcoinManager.shared.maximumSendableOnchainDrain(
+                        toAddress: ongoingSwap.boltzOnchainAddress!,
+                        satPerVb: swapVC.highestFeePerVbyte!.wholeSatPerVb
+                    )
+                    guard Int(preview.sendableSats) >= ongoingSwap.boltzExpectedAmount! else {
+                        DispatchQueue.main.async {
+                            let balance = BitcoinManager.shared.bittrWallet.satoshisOnchain
+                            let message = Language.getWord(withID: "onchaininsufficientfunds")
+                                .replacingOccurrences(of: "<amount>", with: "\(balance)")
+                            swapVC.cancelSwap(alertTitle: Language.getWord(withID: "insufficientfunds"), alertMessage: message)
                         }
-                        alertTitle = Language.getWord(withID: "oops")
-                        alertMessage = "\(Language.getWord(withID: "cannotproceed")). Error: \(errorMessage)."
-                        SentryManager.capture(error, context: "SwapManager row 249")
+                        return
                     }
-                    swapVC.cancelSwap(alertTitle: alertTitle, alertMessage: alertMessage)
+                    feesForOnchainPayment = Int(preview.feeSats)
+                    // The drain sends the whole drainable balance to Boltz, so the
+                    // swap fee is everything above the lightning amount received.
+                    feesForLightningPayment = max(Int(preview.sendableSats) - ongoingSwap.satoshisAmount, 0)
+                } catch {
+                    Log.info("Drain fee preview failed: \(error.localizedDescription)")
+                    DispatchQueue.main.async {
+                        swapVC.cancelSwap(alertTitle: Language.getWord(withID: "oops"), alertMessage: "\(Language.getWord(withID: "cannotproceed")).")
+                        SentryManager.capture(error, context: "SwapManager drain fee")
+                    }
+                    return
                 }
-                return
+            } else {
+                var size:UInt64
+                do {
+                    // Calculate transaction size.
+                    size = try BitcoinManager.shared.getSize(address: ongoingSwap.boltzOnchainAddress!, amountSats: ongoingSwap.boltzExpectedAmount!, selectedVbyte: swapVC.highestFeePerVbyte)
+                } catch {
+                    Log.info("Error: \(error.localizedDescription)")
+
+                    // Insufficient onchain funds is the common case — show a friendly
+                    // message instead of leaking the raw BDK error text to the user.
+                    var isInsufficientFunds = false
+                    if let bdkError = error as? BitcoinDevKit.CreateTxError {
+                        switch bdkError {
+                        case .CoinSelection, .InsufficientFunds:
+                            isInsufficientFunds = true
+                        default:
+                            break
+                        }
+                    }
+
+                    DispatchQueue.main.async {
+                        let alertTitle:String
+                        let alertMessage:String
+                        if isInsufficientFunds {
+                            let balance = BitcoinManager.shared.bittrWallet.satoshisOnchain
+                            let message = Language.getWord(withID: "onchaininsufficientfunds")
+                                .replacingOccurrences(of: "<amount>", with: "\(balance)")
+                            alertTitle = Language.getWord(withID: "insufficientfunds")
+                            alertMessage = message
+                        } else {
+                            var errorMessage = error.localizedDescription
+                            if let bdkError = error as? BitcoinDevKit.CreateTxError {
+                                errorMessage = bdkError.getErrorMessage()
+                            }
+                            alertTitle = Language.getWord(withID: "oops")
+                            alertMessage = "\(Language.getWord(withID: "cannotproceed")). Error: \(errorMessage)."
+                            SentryManager.capture(error, context: "SwapManager row 249")
+                        }
+                        swapVC.cancelSwap(alertTitle: alertTitle, alertMessage: alertMessage)
+                    }
+                    return
+                }
+
+                // Calculate fees.
+                feesForOnchainPayment = swapVC.highestFeePerVbyte!.feeSats(forVsize: Double(size))
+                feesForLightningPayment = ongoingSwap.boltzExpectedAmount! - ongoingSwap.satoshisAmount
             }
-            
-            // Calculate fees.
-            let feesForOnchainPayment:Int = swapVC.highestFeePerVbyte!.feeSats(forVsize: Double(size))
-            let feesForLightningPayment:Int = ongoingSwap.boltzExpectedAmount! - ongoingSwap.satoshisAmount
+
             Log.debug("Fees lightning: \(feesForLightningPayment). Fees onchain: \(feesForOnchainPayment).")
-            
+
             // Confirm fees with user.
             DispatchQueue.main.async {
                 swapVC.thisSwap!.feeHigh = swapVC.highestFeePerVbyte!
@@ -387,55 +424,87 @@ class SwapManager: NSObject {
     
     static func sendOnchainPayment(swapVC:SwapViewController) {
         guard let ongoingSwap = swapVC.thisSwap else { return }
-        
+
         let address = ongoingSwap.boltzOnchainAddress!
         let amountSats = ongoingSwap.boltzExpectedAmount!
         let feeHigh = ongoingSwap.feeHigh!
-        
-        // Send onchain transaction.
-        DispatchQueue.global(qos: .userInitiated).async {
-            
-            // Send onchain transaction.
-            let txIdAndRawData:[String]
-            do {
-                txIdAndRawData = try BitcoinManager.shared.sendOnchainTransaction(address: address, amountSats: amountSats, selectedVbyte: feeHigh)
-            } catch {
-                // Log the exact error for debugging
-                Log.info("Transaction error: \(error.localizedDescription)")
+        let isDraining = swapVC.isDrainingOnchainMax
 
-                DispatchQueue.main.async {
+        Task {
+            let txId:String
+            let rawData:String
+            do {
+                if isDraining {
+                    // Max swap: drain the whole onchain balance to Boltz (LDK Node
+                    // retains the anchor-channel reserve). sendAllToAddress returns
+                    // only a txid, so fetch the raw tx hex from esplora afterwards —
+                    // the refund flow needs it if Boltz ever fails to pay.
+                    txId = try BitcoinManager.shared.sendAllOnchainPayment(address: address, feeRateSatVb: feeHigh.wholeSatPerVb)
+                    rawData = await fetchRawTransactionHex(txid: txId) ?? ""
+                    if rawData.isEmpty {
+                        Log.info("Drained swap \(txId) but could not fetch its raw tx hex; a refund could not reconstruct the lockup.")
+                        SentryManager.countMetric("swap.onchaintolightning.rawhexmissing")
+                    }
+                } else {
+                    let txIdAndRawData = try BitcoinManager.shared.sendOnchainTransaction(address: address, amountSats: amountSats, selectedVbyte: feeHigh)
+                    txId = txIdAndRawData[0]
+                    rawData = txIdAndRawData[1]
+                    // Small settle window before we start watching the swap.
+                    try? await Task.sleep(nanoseconds: 2_000_000_000)
+                }
+            } catch {
+                Log.info("Transaction error: \(error.localizedDescription)")
+                await MainActor.run {
                     swapVC.cancelSwap(alertTitle: Language.getWord(withID: "paymentfailed"), alertMessage: Language.getWord(withID: "paymentfailed3"))
                     SentryManager.countMetric("swap.onchaintolightning.failed")
                     SentryManager.capture(error, context: "SwapManager row 308")
                 }
                 return
             }
-            let txId = txIdAndRawData[0]
-            let rawData = txIdAndRawData[1]
+
             Log.debug("Transaction ID: \(txId)")
-            
-            DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
-                Log.info("Successful transaction.")
-                
-                // Update swap object.
-                swapVC.thisSwap!.sentOnchainTransactionID = txId
-                swapVC.thisSwap!.lockupTx = rawData
-                self.updateSwapFileWithLockupTx(swapID: swapVC.thisSwap!.boltzID!, lockupTx: swapVC.thisSwap!.lockupTx!)
-                
-                // Create transaction object.
-                CacheManager.storeInvoiceDescription(preimage: txId, desc: swapVC.thisSwap!.dateID)
-                CacheManager.storeSwapID(dateID: swapVC.thisSwap!.dateID, swapID: swapVC.thisSwap!.boltzID!)
-                if swapVC.thisSwap!.isSuggested {
-                    CacheManager.storeSuggestedSwap(dateID: swapVC.thisSwap!.dateID)
-                }
-                
-                // Update Home table.
-                BitcoinManager.shared.lightSync() { _ in }
-                
-                // Call didCompleteOnchainTransaction to set up WebSocket monitoring
-                swapVC.swapStatusVC?.didCompleteOnchainTransaction()
-            }
+            await MainActor.run { self.finalizeOnchainSend(swapVC: swapVC, txId: txId, rawData: rawData) }
         }
+    }
+
+    private static func finalizeOnchainSend(swapVC:SwapViewController, txId:String, rawData:String) {
+        Log.info("Successful transaction.")
+
+        // Update swap object.
+        swapVC.thisSwap!.sentOnchainTransactionID = txId
+        swapVC.thisSwap!.lockupTx = rawData
+        self.updateSwapFileWithLockupTx(swapID: swapVC.thisSwap!.boltzID!, lockupTx: rawData)
+
+        // Create transaction object.
+        CacheManager.storeInvoiceDescription(preimage: txId, desc: swapVC.thisSwap!.dateID)
+        CacheManager.storeSwapID(dateID: swapVC.thisSwap!.dateID, swapID: swapVC.thisSwap!.boltzID!)
+        if swapVC.thisSwap!.isSuggested {
+            CacheManager.storeSuggestedSwap(dateID: swapVC.thisSwap!.dateID)
+        }
+
+        // Update Home table.
+        BitcoinManager.shared.lightSync() { _ in }
+
+        // Set up WebSocket monitoring.
+        swapVC.swapStatusVC?.didCompleteOnchainTransaction()
+    }
+
+    // Fetch a broadcast transaction's raw hex from esplora, retrying while it
+    // propagates. Used to recover the lockup hex after a send-all drain (which
+    // only returns a txid) so the refund path still works.
+    static func fetchRawTransactionHex(txid:String, retries:Int = 6) async -> String? {
+        guard let url = URL(string: "\(EnvironmentConfig.esploraURL)/tx/\(txid)/hex") else { return nil }
+        for _ in 0..<retries {
+            if let (data, response) = try? await URLSession.shared.data(from: url),
+               let http = response as? HTTPURLResponse, (200...299).contains(http.statusCode),
+               let hex = String(data: data, encoding: .utf8)?.trimmingCharacters(in: .whitespacesAndNewlines),
+               !hex.isEmpty {
+                return hex
+            }
+            // The tx may not have reached esplora yet — back off and retry.
+            try? await Task.sleep(nanoseconds: 1_500_000_000)
+        }
+        return nil
     }
     
     static func checkSwapStatus(_ swapID:String, completion: @escaping (NSDictionary?) -> Void) {
@@ -915,3 +984,4 @@ func createDateId() -> String {
     dateFormatter.dateFormat = "yyyyMMddHHmmss"
     return dateFormatter.string(from: Date())
 }
+

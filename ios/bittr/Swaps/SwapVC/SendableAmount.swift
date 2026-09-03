@@ -61,8 +61,41 @@ extension SwapViewController {
         
         if self.swapDirection == .lightningToOnchain {
             // Swap direction: lightning-to-onchain.
-            // We can send the channel's outbound capacity.
-            self.availableAmountLabel.text = Language.getWord(withID: "satsatatime").replacingOccurrences(of: "<amount>", with: "\(Int(activeChannel.outboundCapacityMsat/1000))".addSpaces())
+            //
+            // The displayed number is what the user RECEIVES onchain, but paying
+            // for it costs more over lightning: the Boltz reverse fee and our
+            // claim-tx fee are folded into the invoice, and LDK needs routing
+            // headroom on top — all of which must fit inside the channel's
+            // outbound capacity (which already excludes the channel reserve). So
+            // we cap the receivable amount to leave room for those, rather than
+            // showing the raw capacity (which always overspends when entered).
+            let outboundSats = Int(activeChannel.outboundCapacityMsat / 1000)
+            self.availableAmountLabel.text = Language.getWord(withID: "satsatatime").replacingOccurrences(of: "<amount>", with: "0")
+            self.bdkSpinner.startAnimating()
+            let requestedDirection = self.swapDirection
+
+            Task {
+                let quote = await SwapManager.fetchBoltzFeeQuote(reverse: true)
+                let claimFee = await BoltzRefund.calculateClaimOrRefundTransactionFee()
+
+                // Leave ~1% of outbound capacity for routing fees, then undo the
+                // Boltz reverse fee (percentage + lockup miner fee, both folded
+                // into the invoice) to get the max onchain lockup, and finally
+                // subtract our own claim-tx fee to reach what the user receives.
+                let routingHeadroom = Double(outboundSats) * 0.01
+                let maxInvoice = Double(outboundSats) - routingHeadroom
+                let pct = quote?.percentage ?? 0.5          // conservative fallback
+                let lockupFee = quote?.minerFee ?? 0
+                let maxOnchainLockup = maxInvoice * (1.0 - pct / 100.0) - Double(lockupFee)
+                let maxReceivable = max(Int(maxOnchainLockup) - claimFee, 0)
+
+                await MainActor.run {
+                    guard self.swapDirection == requestedDirection else { return }
+                    self.bdkSpinner.stopAnimating()
+                    self.maxLightningToOnchainSats = maxReceivable
+                    self.availableAmountLabel.text = Language.getWord(withID: "satsatatime").replacingOccurrences(of: "<amount>", with: "\(maxReceivable)".addSpaces())
+                }
+            }
             return
         }
         // Swap direction: onchain-to-lightning.
@@ -156,11 +189,26 @@ extension SwapViewController {
                 return
             }
             
+            // sendableSatoshis is the max we can put ON-CHAIN (a full drain, after
+            // the mining fee). But the number the user enters is the LIGHTNING
+            // amount, and Boltz then requires that amount PLUS its submarine fee
+            // on-chain. So invert the Boltz fee to the largest lightning amount
+            // whose on-chain requirement still fits the drain, and show that.
+            let submarineQuote = await SwapManager.fetchBoltzFeeQuote(reverse: false)
+            let pct = submarineQuote?.percentage ?? 0.5      // conservative fallback
+            let boltzMinerFee = submarineQuote?.minerFee ?? 0
+            let invertible = Double(max(sendableSatoshis - boltzMinerFee, 0)) / (1.0 + pct / 100.0)
+            // -2 sat margin so Boltz's own rounding of the percentage can't tip the
+            // required on-chain amount just past the drainable balance.
+            let lightningMax = max(Int(invertible.rounded(.down)) - 2, 0)
+            let shownMax = min(availableChannelSpace, lightningMax)
+
             // Set label.
-            DispatchQueue.main.async {
+            await MainActor.run {
                 guard self.swapDirection == requestedDirection else { return }
                 self.bdkSpinner.stopAnimating()
-                self.availableAmountLabel.text = Language.getWord(withID: "satsatatime").replacingOccurrences(of: "<amount>", with: "\(min(availableChannelSpace, sendableSatoshis))".addSpaces())
+                self.maxOnchainToLightningSats = shownMax
+                self.availableAmountLabel.text = Language.getWord(withID: "satsatatime").replacingOccurrences(of: "<amount>", with: "\(shownMax)".addSpaces())
             }
         }
     }

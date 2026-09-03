@@ -264,7 +264,18 @@ class BoltzRefund {
         
         let tweakedKeyHex = tweakedXonlyKey.bytes.map { String(format: "%02x", $0) }.joined()
         
-        let lockupTxHex = ongoingSwap.lockupTx!
+        let lockupTxHex: String
+        if let stored = ongoingSwap.lockupTx, !stored.isEmpty {
+            lockupTxHex = stored
+        } else if let txid = ongoingSwap.sentOnchainTransactionID,
+                  let fetched = await SwapManager.fetchRawTransactionHex(txid: txid) {
+            // A drained max swap only stored a txid if the send-time esplora fetch
+            // failed; recover the raw lockup hex now so the refund can proceed.
+            lockupTxHex = fetched
+        } else {
+            Log.info("No lockup tx hex available for refund; cannot reconstruct the lockup.")
+            return ClaimResult(success: false, transactionId: nil)
+        }
         
         // Calculate the correct transaction hash from the lockup transaction
         guard let txHash = calculateTransactionHash(from: lockupTxHex),
