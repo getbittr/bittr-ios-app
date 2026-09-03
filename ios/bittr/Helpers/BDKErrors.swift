@@ -34,8 +34,12 @@ extension BitcoinDevKit.CreateTxError {
             return Language.getWord(withID: "FeeTooLow").replacingOccurrences(of: "<required>", with: required)
         case .NoUtxosSelected:
             return Language.getWord(withID: "NoUtxosSelected")
-        case .OutputBelowDustLimit(index: let index):
-            return Language.getWord(withID: "OutputBelowDustLimit").replacingOccurrences(of: "dustlimit", with: "\(index)")
+        case .OutputBelowDustLimit:
+            // BDK's error carries only the offending output's index, not the dust
+            // threshold, so there is no number to substitute here. (The old code
+            // spliced the index into "<dustlimit>" without the angle brackets,
+            // producing the nonsensical "dust limit of <0> satoshis".)
+            return Language.getWord(withID: "OutputBelowDustLimit")
         case .ChangePolicyDescriptor:
             return Language.getWord(withID: "ChangePolicyDescriptor")
         case .CoinSelection(errorMessage: let errorMessage):
@@ -58,6 +62,23 @@ extension BitcoinDevKit.CreateTxError {
             return Language.getWord(withID: "PushBytesError")
         case .LockTimeConversionError:
             return Language.getWord(withID: "LockTimeConversionError")
+        }
+    }
+
+    /// A self-contained, consumer-friendly message for the errors a user can
+    /// actually act on. Returns nil for internal/technical errors — and, via the
+    /// default, for any future BDK case — so the caller falls back to a generic
+    /// "we couldn't proceed" message rather than surfacing a cryptic string.
+    func consumerFriendlyMessage() -> String? {
+        switch self {
+        case .InsufficientFunds(needed: let needed, available: let available):
+            return Language.getWord(withID: "InsufficientFunds").replacingOccurrences(of: "<less>", with: "\(needed - available)")
+        case .OutputBelowDustLimit:
+            return Language.getWord(withID: "OutputBelowDustLimit")
+        case .FeeTooLow(required: let required), .FeeRateTooLow(required: let required):
+            return Language.getWord(withID: "FeeTooLow").replacingOccurrences(of: "<required>", with: required)
+        default:
+            return nil
         }
     }
 }
@@ -122,9 +143,21 @@ extension BitcoinDevKit.AddressParseError {
         case .InvalidLegacyPrefix:
             return "[InvalidLegacyPrefix]"
         case .NetworkValidation:
-            return "[NetworkValidation]"
+            return Language.getWord(withID: "wrongnetworkaddress")
         case .OtherAddressParseErr:
             return "[OtherAddressParseErr]"
+        }
+    }
+
+    /// Every address parse failure is a user-input problem, so all map to a
+    /// friendly message: wrong-network gets its own, everything else (incl. any
+    /// future case) is simply "not a valid address".
+    func consumerFriendlyMessage() -> String? {
+        switch self {
+        case .NetworkValidation:
+            return Language.getWord(withID: "wrongnetworkaddress")
+        default:
+            return Language.getWord(withID: "invalidbitcoinaddress")
         }
     }
 }

@@ -12,6 +12,19 @@ extension ConfirmSendViewController {
     
     func setBasicStyling() {
         
+        // Tag the fee buttons so feeButtonTapped can route the tap.
+        self.buttonFast.boundString = "high"
+        self.buttonMedium.boundString = "medium"
+        self.buttonSlow.boundString = "low"
+        
+        // Accessibility identifiers
+        self.addressLabel.accessibilityIdentifier = TestID.Send.Confirm.addressLabel
+        self.amountLabel.accessibilityIdentifier = TestID.Send.Confirm.amountLabel
+        self.amountFiatLabel.accessibilityIdentifier = TestID.Send.Confirm.amountFiatLabel
+        self.buttonFast.accessibilityIdentifier = TestID.Send.Confirm.feeFastButton
+        self.buttonSlow.accessibilityIdentifier = TestID.Send.Confirm.feeSlowButton
+        self.confirmButton.accessibilityIdentifier = TestID.Send.Confirm.confirmButton
+        
         // Buttons
         self.buttonFast.setTitle("", for: .normal)
         self.buttonMedium.setTitle("", for: .normal)

@@ -23,7 +23,7 @@ extension SendViewController {
         
         if self.onchainOrLightning == .onchain {
             self.toLabel.text = Language.getWord(withID: "addressandamount")
-            self.toTextField.placeholder = Language.getWord(withID: "enteraddress")
+            self.toTextField.placeholder = Language.getWord(withID: "enterbitcoinaddress")
             
             self.viewRegular.layer.shadowOpacity = 0.1
             self.viewInstant.layer.shadowOpacity = 0

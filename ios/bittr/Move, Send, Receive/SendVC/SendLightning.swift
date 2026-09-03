@@ -32,45 +32,111 @@ extension SendViewController {
     }
     
     func checkSendLightning() {
-        
+        // Recognize any pending LNURL invoice/note up front — before any early
+        // return — so a stale one can never survive to attach itself to a later
+        // send. If we bail below (e.g. no internet), the LNURL is simply dropped;
+        // tapping Next again re-resolves it from the address field.
+        let lnurlInvoice = self.pendingLnurlInvoice
+        self.pendingLnurlInvoice = nil
+        // A normal (non-LNURL) send carries no note: drop any note left over from a
+        // previous LNURL that was resolved but never paid, so it can't attach itself
+        // to this payment's transaction.
+        if lnurlInvoice == nil {
+            self.pendingLnurlNote = nil
+        }
+
+        guard self.checkInternetConnection() else { return }
+
         // Check invoice field.
-        let enteredInvoice = (self.toTextField.text ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
-        if enteredInvoice.isEmpty {
-            self.showAlert(title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "enteraddress"), buttons: [.dismiss(Language.getWord(withID: "okay"))])
+        guard let enteredInvoice = lnurlInvoice ?? self.toTextField.text?.trimmingCharacters(in: .whitespacesAndNewlines), !enteredInvoice.isEmpty else {
+            self.showAlert(title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "enterinvoice"), buttons: [.dismiss(Language.getWord(withID: "okay"))])
             return
         }
         
-        // Check amount.
+        // Check for LNURL
+        if enteredInvoice.lowercased().isValidEmail() || enteredInvoice.lowercased().hasPrefix("lnurl") {
+            self.handleLNURL(code: enteredInvoice.lowercased())
+            return
+        }
+        
+        // Show the typed lightning address in ConfirmSendVC when we resolved it via
+        // LNURL — but only if it really is a lightning address. Otherwise the field
+        // (which the user may have edited to something else) must not stand in for
+        // the actual destination on the confirmation screen.
+        let typedAddress = (self.toTextField.text ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+        let typedIsLightningAddress = typedAddress.isValidEmail() || typedAddress.lowercased().hasPrefix("lnurl")
+        self.confirmLnurlEmail = (lnurlInvoice != nil && typedIsLightningAddress) ? typedAddress : nil
+        
+        // Get invoice amount.
         let satoshisAmount:Int
-        if let parsedInvoice = Bindings.Bolt11Invoice.fromStr(s: enteredInvoice).getValue() {
+        let maximumRoutingFeesSat:Int
+        if let parsedInvoice = enteredInvoice.bolt11Invoice() {
+            // Reject an invoice for a different network (e.g. a mainnet invoice on a
+            // regtest build) up front, with a clear message rather than a payment
+            // that just fails later.
+            let invoiceMatchesNetwork: Bool
+            switch (EnvironmentConfig.ldkNetwork, parsedInvoice.currency()) {
+            case (.bitcoin, .Bitcoin), (.testnet, .BitcoinTestnet), (.regtest, .Regtest), (.signet, .Signet):
+                invoiceMatchesNetwork = true
+            default:
+                invoiceMatchesNetwork = false
+            }
+            guard invoiceMatchesNetwork else {
+                self.showAlert(title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "wrongnetworkinvoice"), buttons: [.dismiss(Language.getWord(withID: "okay"))])
+                return
+            }
+
+            // Reject paying ourselves: the payee key recovered from the invoice is
+            // our own node. LDK would otherwise fail this deep in routing with an
+            // unhelpful error. Covers both a self-made invoice and the user's own
+            // lightning address (which resolves to an invoice from our node).
+            if let ourNodeId = BitcoinManager.shared.nodeId(),
+               Data(parsedInvoice.recoverPayeePubKey()).hex.lowercased() == ourNodeId.lowercased() {
+                self.showAlert(title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "cannotpayself"), buttons: [.dismiss(Language.getWord(withID: "okay"))])
+                return
+            }
+
             // Valid invoice.
             if let invoiceAmountMilli = parsedInvoice.amountMilliSatoshis() {
                 // Normal invoice.
                 satoshisAmount = Int(invoiceAmountMilli)/1000
+                maximumRoutingFeesSat = self.getLightningFeesInSatoshis(parsedInvoice: parsedInvoice, amountMsat: nil)
             } else {
                 // Zero invoice, needs amount.
-                let enteredAmount = self.amountTextField.text?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
-                guard !enteredAmount.isEmpty, let parsedSatoshis = self.getSatoshisFrom(enteredAmount: enteredAmount) else {
+                guard let enteredAmount = self.amountTextField.text?.trimmingCharacters(in: .whitespacesAndNewlines), !enteredAmount.isEmpty, let parsedSatoshis = self.getSatoshisFrom(enteredAmount: enteredAmount), parsedSatoshis > 0 else {
+                    // No amount has been entered.
                     self.showAlert(title: Language.getWord(withID: "invoice"), message: Language.getWord(withID: "amountmissing"), buttons: [.dismiss(Language.getWord(withID: "okay"))])
                     return
                 }
                 satoshisAmount = parsedSatoshis
+                maximumRoutingFeesSat = self.getLightningFeesInSatoshis(parsedInvoice: parsedInvoice, amountMsat: UInt64(satoshisAmount*1000))
             }
-        } else if enteredInvoice.lowercased().isValidEmail() || enteredInvoice.lowercased().hasPrefix("lnurl") {
-            // LNURL. No amount needed.
-            self.handleLNURL(code: enteredInvoice.lowercased())
-            return
         } else if enteredInvoice.bolt12Offer() != nil {
-            // BOLT12 offer. Needs amount.
-            let enteredAmount = self.amountTextField.text?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
-            guard !enteredAmount.isEmpty, let parsedSatoshis = self.getSatoshisFrom(enteredAmount: enteredAmount) else {
-                self.showAlert(title: Language.getWord(withID: "invoice"), message: Language.getWord(withID: "amountmissing"), buttons: [.dismiss(Language.getWord(withID: "okay"))])
-                return
-            }
-            satoshisAmount = parsedSatoshis
+            // BOLT12 offers aren't supported yet — reject them up front.
+            self.showAlert(title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "bolt12notsupported"), buttons: [.dismiss(Language.getWord(withID: "okay"))])
+            return
+        } else if let onchainAddress = enteredInvoice.asBitcoinAddress() {
+            // Not an invoice/offer/LNURL but a valid on-chain address — the user is
+            // on the Instant tab with a Regular destination (e.g. pasted an address,
+            // or swapped the invoice out for one). Switch to Regular and hand off to
+            // checkSendOnchain, mirroring how checkSendOnchain redirects an LNURL to
+            // Instant. The amount already typed carries over.
+            self.toTextField.text = onchainAddress
+            self.onchainOrLightning = .onchain
+            self.updateLabels()
+            self.checkSendOnchain()
+            return
         } else {
-            // Invalid invoice. Ask for amount.
-            self.showAlert(title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "enteramount"), buttons: [.dismiss(Language.getWord(withID: "okay"))])
+            // Not a recognisable invoice, offer, LNURL or on-chain address.
+            self.showAlert(title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "invalidinvoice2").replacingOccurrences(of: "<invoice>", with: enteredInvoice), buttons: [.dismiss(Language.getWord(withID: "okay"))])
+            return
+        }
+        
+        // Check if we have sufficient Lightning balance.
+        let availableLightningBalance = (BitcoinManager.shared.bittrWallet.lightningChannels.getActiveChannel()?.outboundCapacityMsat ?? 0)/1000
+        guard satoshisAmount <= availableLightningBalance else {
+            // Insufficient Lightning balance — see if an onchain swap can cover it.
+            self.checkAvailableOnchainBalance(invoiceAmount: satoshisAmount, availableLightningBalance: availableLightningBalance, invoiceText: enteredInvoice)
             return
         }
         
@@ -82,90 +148,9 @@ extension SendViewController {
         // Confirm
         self.confirmSatoshis = satoshisAmount
         self.confirmAddress = enteredInvoice
-        
-        self.confirmLightningTransaction(lnurlinvoice: nil, lnurlNote: nil)
-    }
-    
-    func confirmLightningTransaction(lnurlinvoice:String?, lnurlNote:String?) {
-        guard self.checkInternetConnection() else { return }
-        
-        // Set LNURL invoice or manually pasted invoice.
-        let invoiceText = (lnurlinvoice ?? self.toTextField.text ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !invoiceText.isEmpty else { return }
-        
-        // Check for LNURL address.
-        if invoiceText.lowercased().contains("lnurl") || invoiceText.lowercased().isValidEmail() {
-            // LNURL code.
-            self.handleLNURL(code: invoiceText.replacingOccurrences(of: "lightning:", with: ""))
-            return
-        }
-        
-        // Lightning invoice.
-        let parsedInvoice = Bindings.Bolt11Invoice.fromStr(s: invoiceText).getValue()
-        let bolt12Offer = invoiceText.bolt12Offer()
-        guard !(parsedInvoice == nil && bolt12Offer == nil) else {
-            // Invalid invoice.
-            Log.info("Invalid invoice: \(invoiceText)")
-            SentryManager.capture("Invalid invoice.", context: "SendLightning row 180")
-            self.showAlert(title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "invalidinvoice2").replacingOccurrences(of: "<invoice>", with: invoiceText), buttons: [.dismiss(Language.getWord(withID: "okay"))])
-            return
-        }
-        
-        // Get invoice amount and routing fees.
-        let maximumRoutingFeesSat:Int
-        let invoiceAmount:Int
-        
-        if parsedInvoice != nil {
-            if let invoiceAmountMilli = parsedInvoice!.amountMilliSatoshis() {
-                // Regular invoice.
-                invoiceAmount = Int(invoiceAmountMilli)/1000
-                
-                // Calculate maximum total routing fees.
-                maximumRoutingFeesSat = self.getLightningFeesInSatoshis(parsedInvoice: parsedInvoice!, amountMsat: nil)
-            } else {
-                // Zero invoice.
-                invoiceAmount = self.amountTextField.text?.parsedUserAmount(allowingFraction: false)?.satoshis() ?? 0
-                
-                if invoiceAmount > 0 {
-                    // Calculate maximum total routing fees.
-                    maximumRoutingFeesSat = self.getLightningFeesInSatoshis(parsedInvoice: parsedInvoice!, amountMsat: UInt64(invoiceAmount*1000))
-                } else {
-                    return
-                }
-            }
-        } else {
-            // BOLT12 offer.
-            invoiceAmount = self.amountTextField.text?.parsedUserAmount(allowingFraction: false)?.satoshis() ?? 0
-            maximumRoutingFeesSat = Int((CGFloat(invoiceAmount)/100).rounded()) + 50
-        }
-        
-        // Check if we have sufficient Lightning balance.
-        let availableLightningBalance = (BitcoinManager.shared.bittrWallet.lightningChannels.getActiveChannel()?.outboundCapacityMsat ?? 0)/1000
-        if invoiceAmount > availableLightningBalance {
-            // Insufficient Lightning balance.
-            if bolt12Offer == nil {
-                // BOLT11 invoice. Check if we have sufficient onchain balance for a swap.
-                self.checkAvailableOnchainBalance(invoiceAmount: invoiceAmount, availableLightningBalance: availableLightningBalance, invoiceText: invoiceText)
-            } else {
-                // BOLT12 offer. Insufficient funds available.
-                self.showAlert(title: Language.getWord(withID: "insufficientfunds"), message: Language.getWord(withID: "lightninginsufficientfunds").replacingOccurrences(of: "<amount>", with: "\(availableLightningBalance)".addSpaces()), buttons: [.dismiss(Language.getWord(withID: "okay"))])
-            }
-            return
-        }
-        
-        // Set LNURL values.
-        if lnurlinvoice != nil {
-            self.confirmAddress = self.toTextField.text ?? invoiceText
-            self.confirmSatoshis = invoiceAmount
-        }
-        
-        // Proceed with invoice payment.
-        self.temporaryInvoiceText = invoiceText
-        self.temporaryInvoiceAmount = invoiceAmount
-        self.temporaryInvoiceNote = lnurlNote
-        
-        // Confirm details.
         self.confirmLightningFees = maximumRoutingFeesSat
+        
+        // Slide to ConfirmSendVC
         self.slideFromSendToConfirm()
     }
     
@@ -247,12 +232,12 @@ extension UIViewController {
             // Is connected to peer.
             
             // Get invoice and amount.
-            let invoiceText = (sendVC?.temporaryInvoiceText ?? swapVC!.thisSwap!.boltzInvoice!).replacingOccurrences(of: " ", with: "")
-            let invoiceAmount = sendVC?.temporaryInvoiceAmount ?? 0
+            let invoiceText = (sendVC?.confirmAddress ?? swapVC!.thisSwap!.boltzInvoice!).replacingOccurrences(of: " ", with: "")
+            let invoiceAmount = sendVC?.confirmSatoshis ?? 0
             
             // Reset variables.
-            sendVC?.temporaryInvoiceText = ""
-            sendVC?.temporaryInvoiceAmount = 0
+            sendVC?.confirmAddress = ""
+            sendVC?.confirmSatoshis = 0
             
             Log.debug("Invoice text: " + String(invoiceText))
             
@@ -356,9 +341,9 @@ extension UIViewController {
         sendVC?.slideFromConfirmToSend()
         
         // Cache invoice note.
-        if let temporaryInvoiceNote = sendVC?.temporaryInvoiceNote {
-            CacheManager.storeTransactionNote(txid: thisPayment.kind.transactionID ?? thisPayment.id, note: temporaryInvoiceNote)
-            sendVC?.temporaryInvoiceNote = nil
+        if let pendingLnurlNote = sendVC?.pendingLnurlNote {
+            CacheManager.storeTransactionNote(txid: thisPayment.kind.transactionID ?? thisPayment.id, note: pendingLnurlNote)
+            sendVC?.pendingLnurlNote = nil
         }
         
         // Create transaction.

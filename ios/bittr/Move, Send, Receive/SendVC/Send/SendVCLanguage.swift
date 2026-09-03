@@ -64,6 +64,34 @@ extension SendViewController {
     
     func setBasicStyling() {
         
+        // Tag the onchain/lightning switch buttons.
+        self.regularButton.boundString = "onchain"
+        self.instantButton.boundString = "lightning"
+        
+        // Text fields
+        self.toTextField.delegate = self
+        self.toTextField.autocorrectionType = .no
+        self.toTextField.autocapitalizationType = .none
+        self.toTextField.smartQuotesType = .no
+        self.toTextField.smartDashesType = .no
+        self.amountTextField.delegate = self
+        self.amountTextField.inputAccessoryView = createAmountInputAccessoryView()
+        
+        self.toLabel.accessibilityIdentifier = TestID.Send.toLabel
+        self.toTextField.accessibilityIdentifier = TestID.Send.toTextField
+        self.amountTextField.accessibilityIdentifier = TestID.Send.amountTextField
+        self.pasteButton.accessibilityIdentifier = TestID.Send.pasteButton
+        self.qrButton.accessibilityIdentifier = TestID.Send.scanButton
+        self.regularButton.accessibilityIdentifier = TestID.Send.regularButton
+        self.switchQuestionButton.accessibilityIdentifier = TestID.Send.switchQuestionButton
+        self.btcButton.accessibilityIdentifier = TestID.Send.currencyButton
+        self.btcLabel.accessibilityIdentifier = TestID.Send.currencyLabel
+        self.bdkSpinner.accessibilityIdentifier = TestID.Send.bdkSpinner
+        self.availableButton.accessibilityIdentifier = TestID.Send.availableButton
+        self.availableAmount.accessibilityIdentifier = TestID.Send.availableLabel
+        self.availableQuestionButton.accessibilityIdentifier = TestID.Send.availableQuestionButton
+        self.nextButton.accessibilityIdentifier = TestID.Send.nextButton
+        
         // Button titles
         self.amountButton.setTitle("", for: .normal)
         self.availableButton.setTitle("", for: .normal)
@@ -101,5 +129,52 @@ extension SendViewController {
         self.viewRegular.layer.shadowOpacity = 0
         self.viewInstant.setShadow()
         self.viewInstant.layer.shadowOpacity = 0.1
+    }
+    
+    override func viewWillAppear(_ animated: Bool) {
+        NotificationCenter.default.addObserver(self, selector: #selector(keyboardWillDisappear), name: UIResponder.keyboardWillHideNotification, object: nil)
+        NotificationCenter.default.addObserver(self, selector: #selector(keyboardWillAppear), name: UIResponder.keyboardWillShowNotification, object: nil)
+    }
+    
+    func checkContentViewHeight() {
+        let centerViewHeight = self.centerView.bounds.height
+        if self.centerView.bounds.height + 60 > self.contentView.bounds.height {
+            NSLayoutConstraint.deactivate([self.contentViewHeight])
+            self.contentViewHeight = NSLayoutConstraint(item: self.contentView, attribute: .height, relatedBy: .equal, toItem: nil, attribute: .notAnAttribute, multiplier: 1, constant: centerViewHeight + 120)
+            NSLayoutConstraint.activate([self.contentViewHeight])
+            self.view.layoutIfNeeded()
+        } else {
+            NSLayoutConstraint.deactivate([self.contentViewHeight])
+            self.contentViewHeight = NSLayoutConstraint(item: self.contentView, attribute: .height, relatedBy: .equal, toItem: self.contentView.superview, attribute: .height, multiplier: 1, constant: 0)
+            NSLayoutConstraint.activate([self.contentViewHeight])
+            self.view.layoutIfNeeded()
+        }
+    }
+    
+    @objc func keyboardWillDisappear() {
+        
+        self.amountButton.alpha = 1
+        self.toButton.alpha = 1
+        
+        self.scrollViewBottom.constant = self.view.safeAreaInsets.bottom
+        self.view.layoutIfNeeded()
+        self.checkContentViewHeight()
+    }
+    
+    @objc func keyboardWillAppear(_ notification:Notification) {
+        
+        if let keyboardSize = (notification.userInfo?[UIResponder.keyboardFrameEndUserInfoKey] as? NSValue)?.cgRectValue {
+            
+            let keyboardHeight = keyboardSize.height
+            
+            self.scrollViewBottom.constant = -keyboardHeight + self.view.safeAreaInsets.bottom
+            self.view.layoutIfNeeded()
+            self.checkContentViewHeight()
+            
+            // Scroll view up to text field.
+            var fieldFrame = self.scrollView.convert(self.amountTextField.bounds, from: self.amountTextField.superview)
+            fieldFrame = fieldFrame.insetBy(dx: 0, dy: -25)
+            self.scrollView.scrollRectToVisible(fieldFrame, animated: true)
+        }
     }
 }
