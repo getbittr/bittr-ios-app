@@ -180,7 +180,7 @@ class SwapStatusViewController: UIViewController {
 
         // Mirror the status into the Dynamic Island for onchain→lightning swaps.
         if ongoingSwap.swapDirection == .onchainToLightning, let boltzID = ongoingSwap.boltzID {
-            SwapLiveActivityController.update(boltzID: boltzID, boltzStatus: status, statusLine: statusText)
+            SwapLiveActivityController.update(boltzID: boltzID, boltzStatus: status)
         }
     }
     

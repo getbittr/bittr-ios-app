@@ -18,36 +18,34 @@ private let bittrYellow = Color(red: 0.98, green: 0.79, blue: 0.14)
 // so we keep it long enough that it rarely tops out before confirmation.
 private let estimatedConfirmationWindow: TimeInterval = 15 * 60
 
-// Tapping the activity opens the app here; the app routes it to the swap status.
-private let swapDeepLink = URL(string: "bittr://swapstatus")
 
 // MARK: - Phase presentation helpers
 
 private extension SwapPhase {
     var title: String {
         switch self {
-        case .preparing:           return "Preparing swap"
-        case .waitingConfirmation: return "Waiting for confirmation"
-        case .completing:          return "Finishing up"
+        case .preparing:           return "Getting ready"
+        case .waitingConfirmation: return "Confirming your transfer"
+        case .completing:          return "Almost there"
         case .complete:            return "Swap complete"
-        case .failed:              return "Swap failed"
+        case .failed:              return "Swap didn't go through"
         }
     }
 
     var subtitle: String {
         switch self {
-        case .preparing:           return "Setting things up"
-        case .waitingConfirmation: return "Your bitcoin is being mined into a block"
-        case .completing:          return "Paying your lightning invoice"
-        case .complete:            return "Your lightning balance is ready ⚡️"
-        case .failed:              return "Tap to see what happened"
+        case .preparing:           return "Setting up your transfer"
+        case .waitingConfirmation: return "This usually takes 10–30 minutes"
+        case .completing:          return "Adding it to your instant balance"
+        case .complete:            return "Your bitcoin is ready for instant payments ⚡️"
+        case .failed:              return "Tap to sort it out"
         }
     }
 
     var systemIcon: String {
         switch self {
         case .preparing:           return "hourglass"
-        case .waitingConfirmation: return "shippingbox.fill"     // "mining into a block"
+        case .waitingConfirmation: return "clock.fill"
         case .completing:          return "bolt.horizontal.fill"
         case .complete:            return "checkmark.circle.fill"
         case .failed:              return "xmark.circle.fill"
@@ -63,12 +61,20 @@ private extension SwapPhase {
     }
 
     var showsTimer: Bool { self == .waitingConfirmation || self == .completing }
+
+    // Where a tap on the activity takes the user. During the final leg (the
+    // incoming lightning payment) the wallet must come online to receive it, so
+    // route the tap to the resume flow — the same place the HTLC-resume
+    // notification goes — rather than just the status screen.
+    var deepLink: URL? {
+        URL(string: self == .completing ? "bittr://resumeswap" : "bittr://swapstatus")
+    }
 }
 
 // MARK: - Small building blocks
 
-// The animated "mining" bar (fills over the estimated window) or a filled/idle
-// bar for terminal states.
+// The animated progress bar (fills over the estimated confirmation window) or a
+// filled/idle bar for terminal states.
 private struct SwapProgressBar: View {
     let state: SwapActivityAttributes.ContentState
 
@@ -76,7 +82,7 @@ private struct SwapProgressBar: View {
         switch state.phase {
         case .waitingConfirmation, .completing:
             ProgressView(
-                timerInterval: state.startedAt...state.startedAt.addingTimeInterval(estimatedConfirmationWindow),
+                timerInterval: state.startDate...state.startDate.addingTimeInterval(estimatedConfirmationWindow),
                 countsDown: false
             ) { EmptyView() } currentValueLabel: { EmptyView() }
             .progressViewStyle(.linear)
@@ -97,7 +103,7 @@ private struct TimerOrIcon: View {
 
     var body: some View {
         if state.phase.showsTimer {
-            Text(state.startedAt, style: .timer)
+            Text(state.startDate, style: .timer)
                 .font(compact ? .body : .title3).monospacedDigit().fontWeight(.semibold)
                 .foregroundStyle(bittrYellow)
                 .frame(maxWidth: compact ? 52 : 74, alignment: .trailing)
@@ -139,7 +145,7 @@ struct SwapLockScreenView: View {
             HStack {
                 Text(state.phase.subtitle).font(.caption).foregroundStyle(.secondary)
                 Spacer(minLength: 6)
-                Text("\(context.attributes.targetSats.formatted()) sats → lightning")
+                Text("\(context.attributes.targetSats.formatted()) sats → instant")
                     .font(.caption2).foregroundStyle(.secondary)
             }
         }
@@ -153,7 +159,7 @@ struct SwapLiveActivity: Widget {
         ActivityConfiguration(for: SwapActivityAttributes.self) { context in
             SwapLockScreenView(context: context)
                 .padding(14)
-                .widgetURL(swapDeepLink)
+                .widgetURL(context.state.phase.deepLink)
                 // No forced black tint — use the system's adaptive material so
                 // it stays readable in both light and dark.
 
@@ -170,7 +176,7 @@ struct SwapLiveActivity: Widget {
                 }
                 DynamicIslandExpandedRegion(.trailing) {
                     if state.phase.showsTimer {
-                        Text(state.startedAt, style: .timer)
+                        Text(state.startDate, style: .timer)
                             .monospacedDigit().fontWeight(.semibold)
                             .foregroundStyle(bittrYellow)
                             .frame(maxWidth: 60, alignment: .trailing)
@@ -182,22 +188,22 @@ struct SwapLiveActivity: Widget {
                     VStack(alignment: .leading, spacing: 8) {
                         Text(state.phase.title).font(.headline)
                         SwapProgressBar(state: state)
-                        Text("\(context.attributes.targetSats.formatted()) sats → lightning")
+                        Text("\(context.attributes.targetSats.formatted()) sats → instant")
                             .font(.caption2).foregroundStyle(.secondary)
                     }
                     .padding(.top, 2)
-                    .widgetURL(swapDeepLink)
+                    .widgetURL(context.state.phase.deepLink)
                 }
             } compactLeading: {
                 Image(systemName: "bolt.fill").foregroundStyle(bittrYellow)
-                    .widgetURL(swapDeepLink)
+                    .widgetURL(context.state.phase.deepLink)
             } compactTrailing: {
                 TimerOrIcon(state: state, compact: true)
-                    .widgetURL(swapDeepLink)
+                    .widgetURL(context.state.phase.deepLink)
             } minimal: {
                 Image(systemName: state.phase.showsTimer ? "bolt.fill" : state.phase.systemIcon)
                     .foregroundStyle(state.phase.tint)
-                    .widgetURL(swapDeepLink)
+                    .widgetURL(context.state.phase.deepLink)
             }
             .keylineTint(bittrYellow)
         }

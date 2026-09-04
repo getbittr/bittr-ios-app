@@ -64,18 +64,9 @@ class SwapManager: NSObject {
             return cachedURL
         }
 
-        guard let pubkey = BitcoinManager.shared.nodeId() else { return nil }
-        let timestamp = Int(Date().timeIntervalSince1970)
+        guard let signed = await signBittrRequest(prefix: "boltz_webhook") else { return nil }
 
-        let signature: String
-        do {
-            signature = try await BitcoinManager.shared.signMessage(message: "boltz_webhook:\(pubkey):\(timestamp)")
-        } catch {
-            Log.info("Could not sign Boltz webhook-token request: \(error.localizedDescription)")
-            return nil
-        }
-
-        let mintURL = "\(EnvironmentConfig.bittrAPIBaseURL)/boltz/webhook-token?pubkey=\(pubkey)&timestamp=\(timestamp)&signature=\(signature)"
+        let mintURL = "\(EnvironmentConfig.bittrAPIBaseURL)/boltz/webhook-token?pubkey=\(signed.pubkey)&timestamp=\(signed.timestamp)&signature=\(signed.signature)"
 
         let response: NSDictionary? = await withCheckedContinuation { continuation in
             Task {
@@ -111,6 +102,49 @@ class SwapManager: NSObject {
 
         CacheManager.storeBoltzWebhook(url: url, deviceToken: hashedDeviceToken)
         return url
+    }
+
+    /// Signs a bittr API request with the LN node key: builds the message the
+    /// server verifies (`<prefix>:<pubkey>:<timestamp>`) and returns the
+    /// (pubkey, timestamp, signature) triple. The same signed-request stack backs
+    /// the Boltz webhook mint (`boltz_webhook`) and the Live Activity token
+    /// registration (`boltz_live_activity`).
+    static func signBittrRequest(prefix: String) async -> (pubkey: String, timestamp: Int, signature: String)? {
+        guard let pubkey = BitcoinManager.shared.nodeId() else { return nil }
+        let timestamp = Int(Date().timeIntervalSince1970)
+        do {
+            let signature = try await BitcoinManager.shared.signMessage(message: "\(prefix):\(pubkey):\(timestamp)")
+            return (pubkey, timestamp, signature)
+        } catch {
+            Log.info("Could not sign \(prefix) request: \(error.localizedDescription)")
+            return nil
+        }
+    }
+
+    /// Registers a swap's Live Activity push token with the backend so it can send
+    /// `apns-push-type: liveactivity` updates straight to the Dynamic Island —
+    /// reusing the webhook mint's signed-request stack, keyed by the Boltz swap id
+    /// so it slots alongside the swap's webhook.
+    static func registerLiveActivityToken(swapID: String, token: String, startedAt: Double) async {
+        guard let signed = await signBittrRequest(prefix: "boltz_live_activity") else { return }
+        let params: [String: Any] = [
+            "pubkey": signed.pubkey,
+            "timestamp": signed.timestamp,
+            "signature": signed.signature,
+            // Hashed to match the swap's webhook, which is registered with Boltz
+            // using hashSwapId: true — the backend keys swaps by sha256(swap id).
+            "swap_id": hashedSwapID(swapID),
+            "live_activity_token": token,
+            "started_at": startedAt
+        ]
+        await CallsManager.makeApiCall(url: "\(EnvironmentConfig.bittrAPIBaseURL)/boltz/live-activity-token", parameters: params, getOrPost: .post) { result in
+            switch result {
+            case .success:
+                Log.info("Registered Live Activity push token for swap \(swapID).")
+            case .failure(let error):
+                Log.info("Live Activity token registration failed: \(error.localizedDescription)")
+            }
+        }
     }
 
     /// Boltz's published fee for a swap direction, from its fee/limits endpoint
@@ -197,7 +231,15 @@ class SwapManager: NSObject {
         let swapIndex = CacheManager.incrementSwapIndex()
         let dynamicPath = "m/503'/0'/0'/0/\(swapIndex)"
         
-        let (privateKey, publicKey) = try! BitcoinManager.shared.getPrivatePublicKeyForPath(path: dynamicPath)
+        let privateKey: String
+        let publicKey: String
+        do {
+            (privateKey, publicKey) = try BitcoinManager.shared.getPrivatePublicKeyForPath(path: dynamicPath)
+        } catch {
+            Log.info("Could not derive swap key: \(error.localizedDescription)")
+            swapVC.cancelSwap(alertMessage: Language.getWord(withID: "swaperror2"))
+            return
+        }
         
         // The webhook needs both an APNS device token and a server-signed URL:
         // Bittr's API now rejects unsigned Boltz callbacks (they 404, breaking
@@ -552,7 +594,15 @@ class SwapManager: NSObject {
         let swapIndex = CacheManager.incrementSwapIndex()
         let dynamicPath = "m/503'/0'/0'/0/\(swapIndex)"
         
-        let (privateKey, publicKey) = try! BitcoinManager.shared.getPrivatePublicKeyForPath(path: dynamicPath)
+        let privateKey: String
+        let publicKey: String
+        do {
+            (privateKey, publicKey) = try BitcoinManager.shared.getPrivatePublicKeyForPath(path: dynamicPath)
+        } catch {
+            Log.info("Could not derive swap key: \(error.localizedDescription)")
+            swapVC.cancelSwap(alertMessage: Language.getWord(withID: "swaperror2"))
+            return
+        }
         
         // Use provided payout address if available, otherwise get a new unused address
         let destinationAddress: String?

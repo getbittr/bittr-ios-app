@@ -44,11 +44,21 @@ enum SwapPhase: String, Codable, Hashable {
 
 struct SwapActivityAttributes: ActivityAttributes {
 
-    // Dynamic state — updated as the swap progresses.
+    // Dynamic state — updated as the swap progresses. Kept minimal and
+    // primitive so a remote Live Activity push only has to send these two
+    // fields, and so there's no ambiguity in the pushed JSON:
+    //  - boltzStatus: the raw Boltz status; the widget derives the phase and all
+    //    labels from it (single source of truth via SwapPhase.from), so the
+    //    backend never has to replicate the mapping.
+    //  - startedAt: Unix epoch seconds (a plain number). ActivityKit decodes a
+    //    Date in content-state as seconds-since-2001, which is a classic footgun;
+    //    a Double sidesteps it.
     public struct ContentState: Codable, Hashable {
-        var phase: SwapPhase
-        var statusLine: String   // short, already-localized human text
-        var startedAt: Date      // drives the live elapsed timer in the island
+        var boltzStatus: String
+        var startedAt: Double
+
+        var phase: SwapPhase { SwapPhase.from(boltzStatus: boltzStatus) }
+        var startDate: Date { Date(timeIntervalSince1970: startedAt) }
     }
 
     // Static attributes — fixed for the life of the activity.

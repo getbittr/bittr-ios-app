@@ -5,12 +5,12 @@
 //  App-side control of the onchain→lightning swap Live Activity (Dynamic Island
 //  / Lock Screen): started when the swap begins, updated as the app learns new
 //  Boltz statuses, ended (with a lingering "done" state) on completion. The
-//  shared attributes live in SwapActivityAttributes.swift, which is compiled
-//  into both the app and the widget extension.
+//  shared attributes live in SwapActivityAttributes.swift, compiled into both
+//  the app and the widget extension.
 //
-//  Phase 1: local updates only. The elapsed timer renders on-device, so it keeps
-//  ticking while the app is suspended; phase changes still need the app (or,
-//  later, an ActivityKit push) to deliver them.
+//  The activity is requested with a push token so the backend can update it in
+//  real time (apns-push-type: liveactivity) while the app is backgrounded — the
+//  foreground WebSocket still drives it when the app is open.
 //
 
 import Foundation
@@ -37,14 +37,18 @@ enum SwapLiveActivityController {
             expectedOnchainSats: swap.boltzExpectedAmount ?? 0
         )
         let state = SwapActivityAttributes.ContentState(
-            phase: .preparing,
-            statusLine: Language.getWord(withID: "swapstatuspreparing"),
-            startedAt: Date()
+            boltzStatus: "swap.created",
+            startedAt: Date().timeIntervalSince1970
         )
 
         do {
-            _ = try Activity.request(attributes: attributes, content: .init(state: state, staleDate: nil))
+            let activity = try Activity.request(
+                attributes: attributes,
+                content: .init(state: state, staleDate: nil),
+                pushType: .token
+            )
             Log.info("Started swap Live Activity for \(boltzID).")
+            observePushToken(of: activity, swapID: boltzID)
             return true
         } catch {
             Log.info("Failed to start swap Live Activity: \(error)")
@@ -53,13 +57,12 @@ enum SwapLiveActivityController {
     }
 
     // Update — or, on a terminal status, finish — the activity from a Boltz status.
-    static func update(boltzID: String, boltzStatus: String, statusLine: String) {
+    static func update(boltzID: String, boltzStatus: String) {
         let phase = SwapPhase.from(boltzStatus: boltzStatus)
         Task {
             for activity in activities(for: boltzID) {
                 let newState = SwapActivityAttributes.ContentState(
-                    phase: phase,
-                    statusLine: statusLine,
+                    boltzStatus: boltzStatus,
                     startedAt: activity.content.state.startedAt   // preserve the timer origin
                 )
 
@@ -79,6 +82,14 @@ enum SwapLiveActivityController {
         }
     }
 
+    // Re-attach push-token observers to any activities that outlived a relaunch,
+    // so a rotated token still reaches the backend. Call once at launch.
+    static func resumeTokenObservation() {
+        for activity in Activity<SwapActivityAttributes>.activities {
+            observePushToken(of: activity, swapID: activity.attributes.swapID)
+        }
+    }
+
     // Force-end any live swap activities (e.g. on manual cancel).
     static func endAll() {
         Task {
@@ -88,7 +99,44 @@ enum SwapLiveActivityController {
         }
     }
 
+    // End any activity that has finished or gone stale. A swap can complete via a
+    // push while the app is closed — so the app never runs its own terminal end
+    // (that only happens via the foreground socket or a regular push) — leaving
+    // the activity stranded. Call on launch / foreground to clean those up.
+    static func endStaleActivities() {
+        // A swap never legitimately runs this long; past it the activity is dead.
+        let maxAge: TimeInterval = 3 * 60 * 60
+        Task {
+            for activity in Activity<SwapActivityAttributes>.activities {
+                let state = activity.content.state
+                let isTerminal = SwapPhase.from(boltzStatus: state.boltzStatus).isTerminal
+                let isStale = (Date().timeIntervalSince1970 - state.startedAt) > maxAge
+                if isTerminal || isStale {
+                    await activity.end(activity.content, dismissalPolicy: .immediate)
+                }
+            }
+        }
+    }
+
     // MARK: - Helpers
+
+    // Stream the activity's push token to the backend so it can send
+    // liveactivity pushes. The sequence ends when the activity ends.
+    private static func observePushToken(of activity: Activity<SwapActivityAttributes>, swapID: String) {
+        Task {
+            for await tokenData in activity.pushTokenUpdates {
+                let hex = tokenData.map { String(format: "%02x", $0) }.joined()
+                Log.info("Swap Live Activity push token for \(swapID): \(hex.prefix(12))…")
+                // Send startedAt too: every liveactivity push must carry the full
+                // content-state, and only the app knows the activity's start time.
+                await SwapManager.registerLiveActivityToken(
+                    swapID: swapID,
+                    token: hex,
+                    startedAt: activity.content.state.startedAt
+                )
+            }
+        }
+    }
 
     private static func activities(for boltzID: String) -> [Activity<SwapActivityAttributes>] {
         Activity<SwapActivityAttributes>.activities.filter { $0.attributes.swapID == boltzID }
@@ -100,7 +148,7 @@ enum SwapLiveActivityController {
 
     private static func completionAlert(for phase: SwapPhase) -> AlertConfiguration {
         phase == .complete
-            ? AlertConfiguration(title: "Swap complete", body: "Your lightning balance is ready ⚡️", sound: .default)
-            : AlertConfiguration(title: "Swap failed", body: "Tap to see what happened.", sound: .default)
+            ? AlertConfiguration(title: "Swap complete", body: "Your bitcoin is ready for instant payments ⚡️", sound: .default)
+            : AlertConfiguration(title: "Swap didn't go through", body: "Tap to sort it out.", sound: .default)
     }
 }
