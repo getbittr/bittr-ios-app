@@ -71,16 +71,21 @@ class BoltzRefund {
             CacheManager.saveLatestSwap(ongoingSwap)
         }
         
-        let boltzServerPublicKeyBytes = try! ongoingSwap.refundPublicKey!.bytes
-        
-        let boltzServerPublicKey = try! P256K.Schnorr.PublicKey(
+        guard let refundPublicKeyHex = ongoingSwap.refundPublicKey, let privateKeyHex = ongoingSwap.privateKey else {
+            Log.info("Refund aborted: swap is missing its refund/private key.")
+            return ClaimResult(success: false, transactionId: nil)
+        }
+
+        let boltzServerPublicKeyBytes = try refundPublicKeyHex.bytes
+
+        let boltzServerPublicKey = try P256K.Schnorr.PublicKey(
             dataRepresentation: boltzServerPublicKeyBytes,
             format: .compressed
         )
-        
-        let hexPrivateKey = try! ongoingSwap.privateKey!.bytes
-        
-        let ourPrivateKey = try! P256K.Schnorr.PrivateKey.init(dataRepresentation: hexPrivateKey)
+
+        let hexPrivateKey = try privateKeyHex.bytes
+
+        let ourPrivateKey = try P256K.Schnorr.PrivateKey.init(dataRepresentation: hexPrivateKey)
         
         // Aggregate public keys without sorting
         let publicKeys = [boltzServerPublicKey, ourPrivateKey.publicKey]
@@ -234,16 +239,21 @@ class BoltzRefund {
             return ClaimResult(success: false, transactionId: nil)
         }
         
-        let boltzServerPublicKeyBytes = try! ongoingSwap.claimPublicKey!.bytes
-        
-        let boltzServerPublicKey = try! P256K.Schnorr.PublicKey(
+        guard let claimPublicKeyHex = ongoingSwap.claimPublicKey, let privateKeyHex = ongoingSwap.privateKey else {
+            Log.info("Claim aborted: swap is missing its claim/private key.")
+            return ClaimResult(success: false, transactionId: nil)
+        }
+
+        let boltzServerPublicKeyBytes = try claimPublicKeyHex.bytes
+
+        let boltzServerPublicKey = try P256K.Schnorr.PublicKey(
             dataRepresentation: boltzServerPublicKeyBytes,
             format: .compressed
         )
-        
-        let hexPrivateKey = try! ongoingSwap.privateKey!.bytes
-        
-        let ourPrivateKey = try! P256K.Schnorr.PrivateKey.init(dataRepresentation: hexPrivateKey)
+
+        let hexPrivateKey = try privateKeyHex.bytes
+
+        let ourPrivateKey = try P256K.Schnorr.PrivateKey.init(dataRepresentation: hexPrivateKey)
         
         // Aggregate public keys without sorting
         let publicKeys = [boltzServerPublicKey, ourPrivateKey.publicKey]

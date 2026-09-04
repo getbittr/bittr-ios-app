@@ -298,8 +298,16 @@ class Transfer2ViewController: UIViewController, UITextFieldDelegate, UNUserNoti
         // but persists the new IBAN), so rebuilding would break signature verification.
         let message = restoreMessage ?? "I confirm I'm the sole owner of the bitcoin address I provided and I will be sending my own funds to bittr. Order: \(ibanEntity.emailToken.prefix(32)). IBAN: \(ibanEntity.yourIbanNumber)"
         let signingPath = BitcoinManager.shared.defaultBip84SigningPath()
-        let signature = try! BitcoinManager.shared.signMessageForPath(path: signingPath, message: message)
-        
+        let signature: String
+        do {
+            signature = try BitcoinManager.shared.signMessageForPath(path: signingPath, message: message)
+        } catch {
+            Log.info("Could not sign registration message: \(error.localizedDescription)")
+            SentryManager.capture(error, context: "Transfer2ViewController gatherParameters signing")
+            self.showAlert(title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "verificationfail"), buttons: [.dismiss(Language.getWord(withID: "okay"))])
+            return
+        }
+
         Task {
             let lightningSignature:String
             do {

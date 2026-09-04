@@ -210,11 +210,25 @@ extension String {
         let thisText:String = self.replacingOccurrences(of: "\n", with: "<br>").replacingOccurrences(of: "<b>", with: "</span><span style=\"font-family: \'Gilroy-Bold\', \'-apple-system\'; font-size: 16px; color: rgb(\(thisColor)); line-height: 1.28\">").replacingOccurrences(of: "</b>", with: "</span><span style=\"font-family: \'Gilroy-Regular\', \'-apple-system\'; font-size: 16px; color: rgb(\(thisColor)); line-height: 1.28\">")
         
         let htmlString:String = "<center><span style=\"font-family: \'Gilroy-Regular\', \'-apple-system\'; font-size: 16px; color: rgb(\(thisColor)); line-height: 1.28;\">\(thisText)</span></center>"
-        
-        guard let htmlData = htmlString.data(using: .unicode) else { return NSAttributedString() }
-        
-        let attributedText = try! NSAttributedString(data: htmlData, options: [NSAttributedString.DocumentReadingOptionKey.documentType : NSAttributedString.DocumentType.html], documentAttributes: nil)
-        
+
+        // Plain-text fallback (bold tags stripped, newlines kept) so a formatting
+        // failure can never crash. The HTML importer is WebKit-backed: it must run
+        // on the main thread and fails when the app is backgrounded (e.g. woken by
+        // a silent push to show an alert), returning error 259 — which the old
+        // `try!` turned into a fatal crash.
+        let plainFallback = NSAttributedString(string: self
+            .replacingOccurrences(of: "<b>", with: "")
+            .replacingOccurrences(of: "</b>", with: ""))
+
+        guard let htmlData = htmlString.data(using: .unicode),
+              let attributedText = try? NSAttributedString(
+                data: htmlData,
+                options: [NSAttributedString.DocumentReadingOptionKey.documentType : NSAttributedString.DocumentType.html],
+                documentAttributes: nil
+              ) else {
+            return plainFallback
+        }
+
         return attributedText
     }
     
