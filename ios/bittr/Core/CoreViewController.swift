@@ -33,6 +33,10 @@ class CoreViewController: UIViewController {
     // Pending notifications
     var wasNotified = false
     var lightningNotification:BittrNotification?
+    // Guards the incoming-payment resume: it can be triggered from both the
+    // HTLC-resume push and a Live Activity tap around the same time, so we only
+    // run it once (reset when the resume finishes).
+    var isHandlingIncomingHTLC = false
     var receivedBittrTransaction:Transaction?
     var pendingNotificationId:String?
     var pendingSuggestedSwapAmount:Int = 0

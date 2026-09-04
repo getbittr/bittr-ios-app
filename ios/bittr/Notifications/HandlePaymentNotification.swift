@@ -37,7 +37,7 @@ extension CoreViewController {
     }
     
     func handleHTLCNotification(_ notification: BittrNotification) {
-        Log.info("Will handle HTLC (incoming payment) notification.")
+        Log.info("Will handle HTLC (incoming payment) notification. signedIn=\(self.userHasSignedIn) synced=\(self.walletHasSynced) wasNotified=\(self.wasNotified) alreadyHandling=\(self.isHandlingIncomingHTLC)")
         self.lightningNotification = notification
         if !self.userHasSignedIn {
             self.wasNotified = true
@@ -45,6 +45,14 @@ extension CoreViewController {
         } else if !self.walletHasSynced {
             self.showLoading(message: Language.getWord(withID: "syncingwallet3"))
         } else {
+            // The incoming payment can be triggered from both the HTLC-resume push
+            // AND a Live Activity tap around the same time — handle it only once.
+            guard !self.isHandlingIncomingHTLC else {
+                Log.info("Incoming HTLC already being handled; ignoring duplicate trigger.")
+                return
+            }
+            self.isHandlingIncomingHTLC = true
+            UserDefaults.standard.removeObject(forKey: "pendingSwapResume")
             if !self.wasNotified {
                 self.showAlert(title: Language.getWord(withID: "incomingpayment"), message: Language.getWord(withID: "newbittrpayment"), buttons: [.action(Language.getWord(withID: "okay")) { self.triggerHTLCReady() }])
             } else {
@@ -72,11 +80,13 @@ extension CoreViewController {
     private func facilitateHTLCReady() {
         guard let depositCode = BitcoinManager.shared.bittrWallet.ibanEntities.first(where: { !$0.yourUniqueCode.isEmpty })?.yourUniqueCode else {
             self.hideLoading()
+            self.isHandlingIncomingHTLC = false
             self.showAlert(title: Language.getWord(withID: "incomingpayment"), message: Language.getWord(withID: "bittrpayoutfail"), buttons: [.dismiss(Language.getWord(withID: "close"))])
             return
         }
         guard let pubkey = BitcoinManager.shared.nodeId() else {
             self.hideLoading()
+            self.isHandlingIncomingHTLC = false
             self.showAlert(title: Language.getWord(withID: "incomingpayment"), message: Language.getWord(withID: "bittrpayoutfail2"), buttons: [.dismiss(Language.getWord(withID: "close"))])
             return
         }
@@ -88,6 +98,7 @@ extension CoreViewController {
                 let response = try await BittrService.shared.htlcReady(depositCode: depositCode, timestamp: timestamp, pubkey: pubkey, signature: signature)
                 await MainActor.run {
                     self.hideLoading()
+                    self.isHandlingIncomingHTLC = false
                     if response.success, response.action == "resumed" {
                         // No alert – the incoming payment screen will show automatically
                     } else if response.success, response.action == "failed_timeout" {
@@ -102,6 +113,7 @@ extension CoreViewController {
             } catch {
                 await MainActor.run {
                     self.hideLoading()
+                    self.isHandlingIncomingHTLC = false
                     // A non-2xx response makes htlcReady throw
                     // BittrServiceError.serverError(<raw code>), so pull the code
                     // out and map it too — otherwise the raw code (e.g.
@@ -641,6 +653,22 @@ extension CoreViewController {
                 // The segue lives on the Home scene, so perform it on homeVC.
                 self.homeVC?.performSegue(withIdentifier: "HomeToSwapStatus", sender: self.homeVC)
             }
+        }
+    }
+
+    // Tapping the swap Live Activity during its final leg routes here: the swap's
+    // incoming lightning payment can only complete while the wallet is online, so
+    // we run the exact same flow as the backend's HTLC-resume push — a synthetic
+    // incoming-HTLC notification. handleHTLCNotification gates on sign-in/sync, so
+    // on a cold launch it stores this and the wallet-load flow (LoadWalletData)
+    // resumes it once the wallet is ready.
+    @objc func resumeSwapPayment() {
+        Log.info("resumeSwapPayment: Live Activity tap → routing to incoming-HTLC handling.")
+        UserDefaults.standard.removeObject(forKey: "pendingSwapResume")
+        DispatchQueue.main.async {
+            let htlc = BittrNotification()
+            htlc.type = .htlcIncoming
+            self.handleHTLCNotification(htlc)
         }
     }
     

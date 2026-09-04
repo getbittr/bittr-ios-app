@@ -32,8 +32,14 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
                 self.handleLightningURI(lightningContext.url)
                 return
             }
+
+            // Tapped a swap Live Activity from a fully-killed app (cold launch).
+            if let bittrContext = connectionOptions.urlContexts.first(where: { $0.url.scheme == "bittr" }) {
+                self.handleBittrDeepLink(bittrContext.url)
+                return
+            }
         }
-        
+
         self.launchBittrValue(urlContexts: connectionOptions.urlContexts, delay: 1.8)
     }
 
@@ -70,7 +76,11 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         // Use this method to undo the changes made on entering the background.
         
         NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "setupblur"), object: nil, userInfo: nil) as Notification)
-        
+
+        // Clean up any swap Live Activity that finished or went stale while we were
+        // backgrounded (a push may have completed it without the app running).
+        SwapLiveActivityController.endStaleActivities()
+
         DispatchQueue.global(qos: .background).async {
             if BitcoinManager.shared.status()?.isRunning == true {
                 Log.info("Check peer connection upon entering foreground.")
@@ -104,14 +114,30 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
             return
         }
 
-        // Tapped a swap Live Activity (Dynamic Island / Lock Screen) → open its status.
-        if URLContexts.contains(where: { $0.url.scheme == "bittr" && $0.url.host == "swapstatus" }) {
-            NotificationCenter.default.post(name: NSNotification.Name(rawValue: "openSwapStatus"), object: nil)
+        // Tapped a swap Live Activity (Dynamic Island / Lock Screen).
+        if let bittrContext = URLContexts.first(where: { $0.url.scheme == "bittr" }) {
+            self.handleBittrDeepLink(bittrContext.url)
             return
         }
 
         // Handle existing widget deeplink
         self.launchBittrValue(urlContexts: URLContexts, delay: 0)
+    }
+
+    // Routes a bittr:// deep link from a tapped swap Live Activity.
+    private func handleBittrDeepLink(_ url: URL) {
+        switch url.host {
+        case "resumeswap":
+            // The swap's final leg needs the wallet online to receive the incoming
+            // lightning payment. Flag it (survives a cold launch, checked once the
+            // wallet loads) and nudge the running app to resume immediately.
+            UserDefaults.standard.set(true, forKey: "pendingSwapResume")
+            NotificationCenter.default.post(name: NSNotification.Name(rawValue: "resumeSwapPayment"), object: nil)
+        case "swapstatus":
+            NotificationCenter.default.post(name: NSNotification.Name(rawValue: "openSwapStatus"), object: nil)
+        default:
+            break
+        }
     }
     
     private func handleBitcoinURI(_ url: URL) {
