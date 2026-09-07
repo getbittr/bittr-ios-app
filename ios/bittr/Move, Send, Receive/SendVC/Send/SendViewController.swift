@@ -345,6 +345,10 @@ class SendViewController: UIViewController, UITextFieldDelegate, OnchainSyncFail
                 swapVC.pendingOnchainAddress = self.pendingOnchainAddress
                 swapVC.coreVC = self.coreVC
                 self.coreVC?.swapVC = swapVC
+                
+                // Clear pending data.
+                self.pendingOnchainAddress = ""
+                self.pendingOnchainAmount = 0
             }
         } else if segue.identifier == "SendToScanner" {
             if let scannerVC = segue.destination as? ScannerViewController {

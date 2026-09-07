@@ -270,21 +270,20 @@ extension UIViewController {
     }
     
     func swapAndPayLightning() {
-        
-        let sendVC = self as? SendViewController
-        
         // Navigate to swap screen with the pending invoice using existing segue pattern
-        if let coreVC = sendVC?.coreVC {
-            // Store the pending invoice in a way that can be accessed by the swap screen
-            let pendingInvoice = sendVC?.pendingLightningInvoice ?? ""
-            
-            // First dismiss the current view controller
-            self.dismiss(animated: true) {
-                // Then navigate through the existing segue pattern
-                coreVC.isFromLightningPayment = true
-                coreVC.pendingLightningInvoice = pendingInvoice
-                coreVC.performSegue(withIdentifier: "CoreToSwap", sender: coreVC)
-            }
+        let sendVC = self as? SendViewController
+        guard let coreVC = sendVC?.coreVC else { return }
+        
+        // Get and clear pending invoice.
+        let pendingInvoice = sendVC?.pendingLightningInvoice ?? ""
+        sendVC?.pendingLightningInvoice = ""
+        
+        // First dismiss the current view controller
+        self.dismiss(animated: true) {
+            // Then navigate through the existing segue pattern
+            coreVC.isFromLightningPayment = true
+            coreVC.pendingLightningInvoice = pendingInvoice
+            coreVC.performSegue(withIdentifier: "CoreToSwap", sender: coreVC)
         }
     }
     

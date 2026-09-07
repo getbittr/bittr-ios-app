@@ -13,6 +13,9 @@ extension SendViewController {
         self.toTextField.text = nil
         self.amountTextField.text = nil
         self.didTapAvailable = false
+        self.pendingLightningInvoice = ""
+        self.pendingOnchainAddress = ""
+        self.pendingOnchainAmount = 0
     }
     
     func updateLabels() {

@@ -264,13 +264,14 @@ class ConfirmSendViewController: UIViewController {
     @IBAction func confirmButtonTapped(_ sender: UIButton) {
         if self.confirmSpinner.isAnimating { return }
         guard self.checkInternetConnection() else { return }
+        guard let onchainOrLightning, let addressOrInvoice, let satoshisAmount else { return }
         
-        if self.onchainOrLightning == .onchain {
+        if onchainOrLightning == .onchain {
             // Send onchain transaction.
             self.confirmSendOnchain()
         } else {
             // Send lightning payment.
-            self.performLightningPayment(invoiceText: self.addressOrInvoice!, satoshisAmount: self.satoshisAmount!)
+            self.performLightningPayment(invoiceText: addressOrInvoice, satoshisAmount: satoshisAmount)
         }
     }
     
