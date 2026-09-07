@@ -175,6 +175,7 @@ extension UIViewController {
         invoiceText:String,
         satoshisAmount:Int = 0
     ) {
+        let invoiceText = invoiceText.components(separatedBy: .whitespacesAndNewlines).joined()
         
         // Identify originating view controller.
         let confirmSendVC = self as? ConfirmSendViewController
