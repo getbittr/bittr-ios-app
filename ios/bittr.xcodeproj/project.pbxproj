@@ -141,7 +141,6 @@
 		05C5A0EF2A334E30004CC671 /* Transfer3ViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05C5A0EE2A334E30004CC671 /* Transfer3ViewController.swift */; };
 		05CF0FE62D32557300DF2D9F /* GraphView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05CF0FE52D32557300DF2D9F /* GraphView.swift */; };
 		05CF63B93004ECB800E55351 /* SecureStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05CF63B83004ECB800E55351 /* SecureStore.swift */; };
-		05EBB0172EA00000000000A1 /* EvilBoltz.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05EBB0172EA00000000000A2 /* EvilBoltz.swift */; };
 		05CF933A2A1E711B0084A221 /* Signup3ViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05CF93392A1E711B0084A221 /* Signup3ViewController.swift */; };
 		05D5D0E72A66825000A1E771 /* BitcoinManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05D5D0E62A66825000A1E771 /* BitcoinManager.swift */; settings = {COMPILER_FLAGS = "-fno-objc-arc"; }; };
 		05D5D0EA2A66836300A1E771 /* LightningStorage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05D5D0E92A66836300A1E771 /* LightningStorage.swift */; };
@@ -161,6 +160,7 @@
 		05EB5C9E2F4D832F00FF2157 /* UITextField.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05EB5C9D2F4D832D00FF2157 /* UITextField.swift */; };
 		05EB5CA02F4D834600FF2157 /* SendURI.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05EB5C9F2F4D834300FF2157 /* SendURI.swift */; };
 		05EB5CA22F4D846D00FF2157 /* Int.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05EB5CA12F4D846C00FF2157 /* Int.swift */; };
+		05EBB0172EA00000000000A1 /* EvilBoltz.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05EBB0172EA00000000000A2 /* EvilBoltz.swift */; };
 		05F1FB5E2C33DD08004AE14F /* AddressParsing.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05F1FB5D2C33DD08004AE14F /* AddressParsing.swift */; };
 		05F1FB602C33E043004AE14F /* SendOnchain.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05F1FB5F2C33E043004AE14F /* SendOnchain.swift */; };
 		05F1FB622C33E1CD004AE14F /* SendLightning.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05F1FB612C33E1CD004AE14F /* SendLightning.swift */; };
@@ -359,7 +359,6 @@
 		05C5A0EE2A334E30004CC671 /* Transfer3ViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Transfer3ViewController.swift; sourceTree = "<group>"; };
 		05CF0FE52D32557300DF2D9F /* GraphView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GraphView.swift; sourceTree = "<group>"; };
 		05CF63B83004ECB800E55351 /* SecureStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SecureStore.swift; sourceTree = "<group>"; };
-		05EBB0172EA00000000000A2 /* EvilBoltz.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EvilBoltz.swift; sourceTree = "<group>"; };
 		05CF93392A1E711B0084A221 /* Signup3ViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Signup3ViewController.swift; sourceTree = "<group>"; };
 		05D5D0E62A66825000A1E771 /* BitcoinManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BitcoinManager.swift; sourceTree = "<group>"; };
 		05D5D0E92A66836300A1E771 /* LightningStorage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LightningStorage.swift; sourceTree = "<group>"; };
@@ -376,6 +375,7 @@
 		05EB5C9D2F4D832D00FF2157 /* UITextField.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UITextField.swift; sourceTree = "<group>"; };
 		05EB5C9F2F4D834300FF2157 /* SendURI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SendURI.swift; sourceTree = "<group>"; };
 		05EB5CA12F4D846C00FF2157 /* Int.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Int.swift; sourceTree = "<group>"; };
+		05EBB0172EA00000000000A2 /* EvilBoltz.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EvilBoltz.swift; sourceTree = "<group>"; };
 		05ECDAAA2B249768002A410D /* bittr.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = bittr.entitlements; sourceTree = "<group>"; };
 		05F1FB5D2C33DD08004AE14F /* AddressParsing.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddressParsing.swift; sourceTree = "<group>"; };
 		05F1FB5F2C33E043004AE14F /* SendOnchain.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SendOnchain.swift; sourceTree = "<group>"; };

@@ -16,10 +16,8 @@ extension SendViewController {
     func getSatoshisFrom(enteredAmount:String) -> Int? {
         
         switch self.selectedCurrency {
-        case .satoshis:
-            return enteredAmount.parsedUserAmount(allowingFraction: false)?.satoshis()
-        case .bitcoin:
-            return enteredAmount.parsedUserAmount()?.satoshisFromBitcoin()
+        case .satoshis: return enteredAmount.parsedUserAmount(allowingFraction: false)?.satoshis()
+        case .bitcoin: return enteredAmount.parsedUserAmount()?.satoshisFromBitcoin()
         case .currency:
             let bitcoinValue = BitcoinManager.shared.bittrWallet.getCorrectBitcoinValue()
             let rate = Decimal(Double(bitcoinValue.currentValue))
@@ -54,7 +52,7 @@ extension SendViewController {
         // Show entered LNURL in ConfirmSendVC if needed.
         let typedAddress = (self.toTextField.text ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
         let typedIsLightningAddress = typedAddress.isValidEmail() || typedAddress.lowercased().hasPrefix("lnurl")
-        self.confirmLnurlEmail = (lnurlInvoice != nil && typedIsLightningAddress) ? typedAddress : nil
+        let confirmLnurlEmail = (lnurlInvoice != nil && typedIsLightningAddress) ? typedAddress : nil
         
         // Get invoice amount.
         let satoshisAmount:Int
@@ -125,12 +123,15 @@ extension SendViewController {
         self.btcLabel.text = "Sats"
         self.selectedCurrency = .satoshis
         
-        // Confirm
-        self.confirmSatoshis = satoshisAmount
-        self.confirmAddress = enteredInvoice
-        self.confirmLightningFees = maximumRoutingFeesSat
-        
         // Slide to ConfirmSendVC
+        guard let confirmVC = self.getConfirmView() else { return }
+        confirmVC.setLabels(
+            onchainOrLightning: .lightning,
+            addressOrInvoice: enteredInvoice,
+            satoshisAmount: satoshisAmount,
+            lnurlEmail: confirmLnurlEmail,
+            lightningFees: maximumRoutingFeesSat
+        )
         self.slideFromSendToConfirm()
     }
     
@@ -171,16 +172,16 @@ extension UIViewController {
         return maximumRoutingFeesSat
     }
     
-    func performLightningPayment() {
+    func performLightningPayment(
+        invoiceText:String,
+        satoshisAmount:Int = 0
+    ) {
         
+        // Identify originating view controller.
         let confirmSendVC = self as? ConfirmSendViewController
-        let sendVC = (self as? SendViewController) ?? confirmSendVC?.sendVC
         let swapVC = self as? SwapViewController
         
-        sendVC?.nextLabel.alpha = 0
-        sendVC?.arrowIcon.alpha = 0
-        sendVC?.nextSpinner.startAnimating()
-        
+        // Animate ConfirmSendVC.
         confirmSendVC?.confirmLabel.alpha = 0
         confirmSendVC?.confirmSpinner.startAnimating()
         
@@ -192,18 +193,15 @@ extension UIViewController {
                     // Did reconnect.
                     Log.info("Did reconnect to peer.")
                     DispatchQueue.main.async {
-                        self.performLightningPayment()
+                        self.performLightningPayment(invoiceText: invoiceText, satoshisAmount: satoshisAmount)
                     }
                 } else {
                     // Can't reconnect.
                     Log.info("Could not reconnect to peer.")
                     DispatchQueue.main.async {
-                        sendVC?.nextLabel.alpha = 1
-                        sendVC?.arrowIcon.alpha = 1
-                        sendVC?.nextSpinner.stopAnimating()
                         confirmSendVC?.confirmLabel.alpha = 1
                         confirmSendVC?.confirmSpinner.stopAnimating()
-                        self.showAlert(title: Language.getWord(withID: "bittrpeer"), message: Language.getWord(withID: "bittrpeer3"), buttons: [.dismiss(Language.getWord(withID: "close")), .action(Language.getWord(withID: "connect")) { self.performLightningPayment() }])
+                        self.showAlert(title: Language.getWord(withID: "bittrpeer"), message: Language.getWord(withID: "bittrpeer3"), buttons: [.dismiss(Language.getWord(withID: "close")), .action(Language.getWord(withID: "connect")) { self.performLightningPayment(invoiceText: invoiceText, satoshisAmount: satoshisAmount) }])
                         SentryManager.countMetric("lightning.payment.failure.peerUnreachable")
                     }
                 }
@@ -211,20 +209,14 @@ extension UIViewController {
             }
             // Is connected to peer.
             
-            // Get invoice and amount.
-            let invoiceText = (sendVC?.confirmAddress ?? swapVC!.thisSwap!.boltzInvoice!).replacingOccurrences(of: " ", with: "")
-            let invoiceAmount = sendVC?.confirmSatoshis ?? 0
-            
-            // Reset variables.
-            sendVC?.confirmAddress = ""
-            sendVC?.confirmSatoshis = 0
-            
-            Log.debug("Invoice text: " + String(invoiceText))
+            Log.debug("Invoice text: " + invoiceText)
             
             do {
                 if let bolt12Offer = invoiceText.bolt12Offer() {
-                    Log.info("Perform BOLT12 payment.")
-                    let _ = try BitcoinManager.shared.sendBolt12Payment(offer: bolt12Offer, amount: invoiceAmount)
+                    Log.info("Reject BOLT12 payment.")
+                    self.showAlert(title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "bolt12notsupported"), buttons: [.action(Language.getWord(withID: "okay"), {
+                        confirmSendVC?.sendVC?.slideFromConfirmToSend()
+                    })])
                 } else {
                     Log.info("Perform BOLT11 payment.")
                     let invoice = try Bolt11Invoice.fromStr(invoiceStr: invoiceText)
@@ -232,7 +224,7 @@ extension UIViewController {
                     // Check invoice type.
                     if invoice.amountMilliSatoshis() == nil {
                         Log.info("Perform sendZeroAmountPayment.")
-                        let _ = try BitcoinManager.shared.sendZeroAmountPayment(invoice: invoice, amount: invoiceAmount)
+                        let _ = try BitcoinManager.shared.sendZeroAmountPayment(invoice: invoice, amount: satoshisAmount)
                     } else {
                         Log.info("Perform sendPayment.")
                         let paymentHash = try BitcoinManager.shared.sendPayment(invoice: invoice)
@@ -254,28 +246,17 @@ extension UIViewController {
                     }
                 }()
                 DispatchQueue.main.async {
-                    // Clear UI.
-                    sendVC?.nextLabel.alpha = 1
-                    sendVC?.arrowIcon.alpha = 1
-                    sendVC?.nextSpinner.stopAnimating()
-                    confirmSendVC?.confirmLabel.alpha = 1
-                    confirmSendVC?.confirmSpinner.stopAnimating()
-                    
                     // Show alert.
                     self.showAlert(title: Language.getWord(withID: "unexpectederror"), message: Language.getWord(withID: "failedinvoicepayment1").replacingOccurrences(of: "<message>", with: errorMessage), buttons: [.dismiss(Language.getWord(withID: "okay"))])
                     
                     // Slide back from ConfirmSendVC to SendVC.
-                    sendVC?.slideFromConfirmToSend()
+                    confirmSendVC?.confirmLabel.alpha = 1
+                    confirmSendVC?.confirmSpinner.stopAnimating()
+                    confirmSendVC?.sendVC?.slideFromConfirmToSend()
                     
                     // Count Sentry metrics.
-                    if swapVC != nil {
-                        SentryManager.countMetric("swap.lightningtoonchain.failed")
-                    }
-                    if invoiceText.bolt12Offer() != nil {
-                        SentryManager.countMetric("lightning.bolt12payment.failure.\(error.paymentFailureReason)")
-                    } else {
-                        SentryManager.countMetric("lightning.payment.failure.\(error.paymentFailureReason)")
-                    }
+                    if swapVC != nil { SentryManager.countMetric("swap.lightningtoonchain.failed") }
+                    SentryManager.countMetric("lightning.payment.failure.\(error.paymentFailureReason)")
                     
                     // Capture Sentry error.
                     SentryManager.capture(error, context: "SendLightning row 233")

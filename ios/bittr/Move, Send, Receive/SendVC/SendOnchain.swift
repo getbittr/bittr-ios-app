@@ -34,7 +34,6 @@ extension SendViewController {
         // A genuine onchain send is never an LNURL payment: drop any LNURL state left over.
         self.pendingLnurlInvoice = nil
         self.pendingLnurlNote = nil
-        self.confirmLnurlEmail = nil
         
         // Check amount.
         guard let enteredAmount = self.amountTextField.text?.trimmingCharacters(in: .whitespacesAndNewlines), !enteredAmount.isEmpty else {
@@ -43,7 +42,7 @@ extension SendViewController {
         }
         
         // Convert the entered amount to satoshis.
-        guard let enteredSatoshis = self.getSatoshisFrom(enteredAmount: enteredAmount) else { return }
+        guard var enteredSatoshis = self.getSatoshisFrom(enteredAmount: enteredAmount) else { return }
         guard enteredSatoshis > 0 else {
             self.showAlert(title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "enteramount"), buttons: [.dismiss(Language.getWord(withID: "okay"))])
             return
@@ -80,10 +79,6 @@ extension SendViewController {
         self.arrowIcon.alpha = 0
         self.nextSpinner.startAnimating()
         
-        // Set confirmation variables.
-        self.confirmAddress = enteredAddress
-        self.confirmSatoshis = enteredSatoshis
-        
         // Create transaction.
         Task {
             guard let feeEstimates = await BitcoinManager.shared.getFeeEstimates() else {
@@ -95,12 +90,9 @@ extension SendViewController {
                 }
                 return
             }
-            self.feePerVbLow = feeEstimates.economy
-            self.feePerVbMedium = feeEstimates.hour
-            self.feePerVbHigh = feeEstimates.fastest
             
             // Check the maximum sendable onchain amount.
-            let drain = try? BitcoinManager.shared.maximumSendableOnchainDrain(toAddress: enteredAddress, satPerVb: self.feePerVbMedium.wholeSatPerVb)
+            let drain = try? BitcoinManager.shared.maximumSendableOnchainDrain(toAddress: enteredAddress, satPerVb: feeEstimates.hour.wholeSatPerVb)
             
             // Check whether user tapped their available funds.
             if let quotedMaximum = self.maximumSendableOnchainSats, enteredSatoshis == quotedMaximum {
@@ -109,22 +101,21 @@ extension SendViewController {
             }
             
             // Check whether the user intends to empty their onchain funds.
-            if let drain = drain, self.didTapAvailable || enteredSatoshis >= Int(drain.sendableSats) {
-                self.confirmSatoshis = Int(drain.sendableSats)
-                self.drainTotalSats = Int(drain.sendableSats + drain.feeSats)
-                self.isSendingMaximum = true
-            } else {
-                self.drainTotalSats = nil
-                self.isSendingMaximum = false
+            var isSendingMaximum = false
+            var drainTotalSats:Int? = nil
+            if let drain, self.didTapAvailable || enteredSatoshis >= Int(drain.sendableSats) {
+                enteredSatoshis = Int(drain.sendableSats)
+                drainTotalSats = Int(drain.sendableSats + drain.feeSats)
+                isSendingMaximum = true
             }
             
             // Get transaction size.
             let size:UInt64
             do {
-                if self.isSendingMaximum, let drain = drain {
+                if isSendingMaximum, let drain {
                     size = drain.vsize
                 } else {
-                    size = try BitcoinManager.shared.getSize(address: enteredAddress, amountSats: enteredSatoshis, selectedVbyte: self.feePerVbMedium)
+                    size = try BitcoinManager.shared.getSize(address: enteredAddress, amountSats: enteredSatoshis, selectedVbyte: feeEstimates.hour)
                 }
             } catch {
                 Log.info("Error: \(error.localizedDescription)")
@@ -154,13 +145,23 @@ extension SendViewController {
                 }
                 return
             }
-            self.confirmTxSize = Double(size)
             
             // Animation from main view to confirm view.
             DispatchQueue.main.async {
+                guard let confirmVC = self.getConfirmView() else { return }
                 self.nextLabel.alpha = 1
                 self.arrowIcon.alpha = 1
                 self.nextSpinner.stopAnimating()
+                
+                confirmVC.setLabels(
+                    onchainOrLightning: .onchain,
+                    addressOrInvoice: enteredAddress,
+                    satoshisAmount: enteredSatoshis,
+                    onchainTxSize: Double(size),
+                    feeEstimates: feeEstimates,
+                    isSendingMaximum: isSendingMaximum,
+                    drainTotalSats: drainTotalSats
+                )
                 self.slideFromSendToConfirm()
             }
         }
@@ -184,10 +185,19 @@ extension ConfirmSendViewController {
     
     func proceedWithOnchainConfirmation() {
         
-        let feeSatoshis = self.selectedFeeRatePerVb().feeSats(forVsize: self.sendVC!.confirmTxSize)
+        let feeSatoshis = self.selectedFeeRatePerVb().feeSats(forVsize: self.onchainTxSize!)
         
         // Double-check transaction details.
-        self.showAlert(title: Language.getWord(withID: "sendtransaction"), message: Language.getWord(withID: "sendconfirmation").replacingOccurrences(of: "<amount>", with: "\(self.sendVC!.confirmSatoshis)".addSpaces()).replacingOccurrences(of: "<fees>", with: "\(feeSatoshis)".addSpaces()).replacingOccurrences(of: "<address>", with: self.sendVC!.confirmAddress), buttons: [.dismiss(Language.getWord(withID: "cancel")), .action(Language.getWord(withID: "confirm")) { self.performOnchainTransaction() }])
+        self.showAlert(
+            title: Language.getWord(withID: "sendtransaction"),
+            message: Language.getWord(withID: "sendconfirmation")
+                .replacingOccurrences(of: "<amount>", with: "\(self.satoshisAmount!)".addSpaces())
+                .replacingOccurrences(of: "<fees>", with: "\(feeSatoshis)".addSpaces())
+                .replacingOccurrences(of: "<address>", with: self.addressOrInvoice!),
+            buttons: [
+                .dismiss(Language.getWord(withID: "cancel")),
+                .action(Language.getWord(withID: "confirm")) { self.performOnchainTransaction() }
+            ])
     }
     
     func performOnchainTransaction() {
@@ -199,19 +209,16 @@ extension ConfirmSendViewController {
         
         // Get fees (minimum 1 sat/Vbyte).
         let feeRateSatVb = self.selectedFeeRatePerVb().wholeSatPerVb
-        let isSendingMaximum = self.sendVC!.isSendingMaximum
-        let address = self.sendVC!.confirmAddress
-        let amountSats = UInt64(self.sendVC!.confirmSatoshis)
         
         // Broadcast transaction.
         DispatchQueue.global(qos: .userInitiated).async {
             
             let txid:String
             do {
-                if isSendingMaximum {
-                    txid = try BitcoinManager.shared.sendAllOnchainPayment(address: address, feeRateSatVb: feeRateSatVb)
+                if self.isSendingMaximum {
+                    txid = try BitcoinManager.shared.sendAllOnchainPayment(address: self.addressOrInvoice!, feeRateSatVb: feeRateSatVb)
                 } else {
-                    txid = try BitcoinManager.shared.sendOnchainPayment(address: address, amountSats: amountSats, feeRateSatVb: feeRateSatVb)
+                    txid = try BitcoinManager.shared.sendOnchainPayment(address: self.addressOrInvoice!, amountSats: UInt64(self.satoshisAmount!), feeRateSatVb: feeRateSatVb)
                 }
             } catch {
                 Log.info("Transaction error: \(error.localizedDescription)")
@@ -244,7 +251,7 @@ extension ConfirmSendViewController {
                 self.confirmLabel.alpha = 1
                 self.confirmSpinner.stopAnimating()
                 self.newTxId = txid
-
+                
                 if let payment = payment {
                     Log.info("Transaction is available. Launch TransactionVC.")
                     self.sendVC?.addNewPaymentToTable(thisPayment: payment)

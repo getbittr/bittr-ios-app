@@ -10,6 +10,14 @@ import UIKit
 
 extension ConfirmSendViewController {
     
+    override func viewDidLoad() {
+        super.viewDidLoad()
+
+        self.setBasicStyling()
+        self.changeColors()
+        self.setLanguage()
+    }
+    
     func setBasicStyling() {
         
         // Tag the fee buttons so feeButtonTapped can route the tap.
@@ -99,5 +107,23 @@ extension ConfirmSendViewController {
         self.timeMedium.text = Language.getWord(withID: "1hour")
         self.timeSlow.text = Language.getWord(withID: "1day")
         
+    }
+    
+    func highlightFee(_ selectedFee:SelectedFee) {
+        self.selectedFee = selectedFee
+        switch selectedFee {
+        case .medium:
+            self.feesViewFast.backgroundColor = Colors.getColor("white0.7orblue1")
+            self.feesViewMedium.backgroundColor = Colors.getColor("whiteorblue3")
+            self.feesViewSlow.backgroundColor = Colors.getColor("white0.7orblue1")
+        case .high:
+            self.feesViewFast.backgroundColor = Colors.getColor("whiteorblue3")
+            self.feesViewMedium.backgroundColor = Colors.getColor("white0.7orblue1")
+            self.feesViewSlow.backgroundColor = Colors.getColor("white0.7orblue1")
+        default:
+            self.feesViewFast.backgroundColor = Colors.getColor("white0.7orblue1")
+            self.feesViewMedium.backgroundColor = Colors.getColor("white0.7orblue1")
+            self.feesViewSlow.backgroundColor = Colors.getColor("whiteorblue3")
+        }
     }
 }

@@ -177,4 +177,11 @@ extension SendViewController {
             self.scrollView.scrollRectToVisible(fieldFrame, animated: true)
         }
     }
+    
+    override func viewDidDisappear(_ animated: Bool) {
+        super.viewDidDisappear(animated)
+        guard self.isBeingDismissed || self.isMovingFromParent else { return }
+        if self.homeVC?.sendVC === self { self.homeVC?.sendVC = nil }
+    }
+    
 }

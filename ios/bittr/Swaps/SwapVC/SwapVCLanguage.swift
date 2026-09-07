@@ -91,6 +91,15 @@ extension SwapViewController {
         self.clearPendingSwapData()
     }
     
+    override func viewDidDisappear(_ animated: Bool) {
+        super.viewDidDisappear(animated)
+        
+        guard self.isBeingDismissed || self.isMovingFromParent else { return }
+        let moveVC = self.homeVC?.moveVC ?? self.coreVC?.homeVC?.moveVC
+        if moveVC?.swapVC === self { moveVC?.swapVC = nil }
+        if self.coreVC?.swapVC === self { self.coreVC?.swapVC = nil }
+    }
+    
     @objc func keyboardWillDisappear() {
         
         NSLayoutConstraint.deactivate([self.mainContentViewBottom])

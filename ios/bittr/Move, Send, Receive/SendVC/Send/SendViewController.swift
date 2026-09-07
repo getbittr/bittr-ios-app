@@ -77,12 +77,9 @@ class SendViewController: UIViewController, UITextFieldDelegate, OnchainSyncFail
     
     // Variables
     var coreVC:CoreViewController?
+    var homeVC:HomeViewController?
     var maximumSendableOnchainSats:Int?
-    var didTapAvailable = false // User has tapped the maximum available onchain amount.
-    var isSendingMaximum = false // User intends to empty their onchain funds.
-    // Drain amount + its fee, so the confirm screen can restate the amount when
-    // the user switches fee rate — a drain is whatever is left after the fee.
-    var drainTotalSats:Int?
+    var didTapAvailable = false
     var completedTransaction:Transaction?
     var bitcoinQR = ""
     var pendingLightningInvoice = ""
@@ -118,14 +115,7 @@ class SendViewController: UIViewController, UITextFieldDelegate, OnchainSyncFail
     
     // Confirm variables
     var confirmSendVC:ConfirmSendViewController?
-    var confirmSatoshis:Int = 0
-    var confirmAddress = ""
-    var confirmLnurlEmail:String?
-    var feePerVbLow:Double = 0
-    var feePerVbMedium:Double = 0
-    var feePerVbHigh:Double = 0
-    var confirmTxSize:Double = 0
-    var confirmLightningFees:Int = 0
+    var feeEstimates:FeeEstimates?
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -147,6 +137,7 @@ class SendViewController: UIViewController, UITextFieldDelegate, OnchainSyncFail
     }
     
     func setSendAllLabel() {
+        guard self.isViewLoaded else { return }
         
         if self.onchainOrLightning == .onchain {
             // Set "Send all" for onchain transactions.
@@ -158,7 +149,7 @@ class SendViewController: UIViewController, UITextFieldDelegate, OnchainSyncFail
                 Log.info("BDK wallet is available.")
                 
                 // Ensure current fee rates have been fetched.
-                guard self.feePerVbMedium > 0 else {
+                guard let feeEstimates else {
                     self.bdkSpinner.startAnimating()
                     Task { await self.fetchFeeEstimatesThenSetSendAllLabel() }
                     return
@@ -167,9 +158,8 @@ class SendViewController: UIViewController, UITextFieldDelegate, OnchainSyncFail
                 // Calculate maximum sendable onchain amount.
                 // Minimum 0 satoshis. Minimum 1 sat/Vbyte.
                 self.bdkSpinner.startAnimating()
-                let satPerVb = self.feePerVbMedium.wholeSatPerVb
                 DispatchQueue.global(qos: .userInitiated).async {
-                    let sendable = self.getMaximumSendableSats(satPerVb: satPerVb)
+                    let sendable = self.getMaximumSendableSats(satPerVb: feeEstimates.hour.wholeSatPerVb)
                         ?? max(BitcoinManager.shared.bittrWallet.satoshisOnchainSpendable ?? 0, 0)
                     
                     DispatchQueue.main.async {
@@ -201,10 +191,7 @@ class SendViewController: UIViewController, UITextFieldDelegate, OnchainSyncFail
                 self.availableAmount.text = Language.getWord(withID:"youcansend").replacingOccurrences(of: "<amount>", with: "\(spendable)".addSpaces())
                 return
             }
-            
-            self.feePerVbLow = feeEstimates.economy
-            self.feePerVbMedium = feeEstimates.hour
-            self.feePerVbHigh = feeEstimates.fastest
+            self.feeEstimates = feeEstimates
             
             self.setSendAllLabel()
         }
@@ -281,37 +268,18 @@ class SendViewController: UIViewController, UITextFieldDelegate, OnchainSyncFail
         self.selectedCurrency = type
     }
     
-    @objc func selectBTCCurrency() {
-        self.btcLabel.text = "BTC"
-        self.selectedCurrency = .bitcoin
-    }
-    
-    @objc func selectSatsCurrency() {
-        self.btcLabel.text = "Sats"
-        self.selectedCurrency = .satoshis
-    }
-    
-    @objc func selectFiatCurrency() {
-        let currency = CacheStore.value(for: CacheKeys.currency) ?? "EUR"
-        self.btcLabel.text = currency
-        self.selectedCurrency = .currency
-    }
-    
     @IBAction func availableButtonTapped(_ sender: UIButton) {
+        self.selectCurrency(.satoshis)
         
         if self.onchainOrLightning == .onchain {
             // Regular - use satoshis for onchain too
             let sendableInSatoshis:Int = self.maximumSendableOnchainSats ?? max(BitcoinManager.shared.bittrWallet.satoshisOnchainSpendable ?? 0, 0)
             self.amountTextField.text = "\(sendableInSatoshis)"
-            self.btcLabel.text = "Sats"
-            self.selectedCurrency = .satoshis
             self.didTapAvailable = true
         } else {
             // Instant
             let sendableInSatoshis:Int = Int((BitcoinManager.shared.bittrWallet.lightningChannels.getActiveChannel()?.outboundCapacityMsat ?? 0)/1000)
             self.amountTextField.text = "\(sendableInSatoshis)"
-            self.btcLabel.text = "Sats"
-            self.selectedCurrency = .satoshis
         }
     }
     

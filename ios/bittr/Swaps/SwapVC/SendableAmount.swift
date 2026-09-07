@@ -49,6 +49,8 @@ extension SwapViewController {
     }
 
     func calculateSendableAmount() {
+        guard self.isViewLoaded else { return }
+        
         self.bdkSpinner.stopAnimating()
         
         // Get active Lightning channel.

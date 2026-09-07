@@ -249,6 +249,7 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
         } else if segue.identifier == "HomeToSend" {
             if let sendVC = segue.destination as? SendViewController {
                 sendVC.coreVC = self.coreVC
+                sendVC.homeVC = self
                 self.sendVC = sendVC
                 
                 // Pass pending URI data if available

@@ -24,8 +24,6 @@ extension SendViewController {
     
     func slideFromSendToConfirm() {
         DispatchQueue.main.async {
-            self.loadConfirmView()
-            
             UIView.animate(withDuration: 0.3, delay: 0, options: .curveEaseInOut) {
                 NSLayoutConstraint.deactivate([self.scrollViewTrailing])
                 self.scrollViewTrailing = NSLayoutConstraint(item: self.scrollView, attribute: .trailing, relatedBy: .equal, toItem: self.view, attribute: .leading, multiplier: 1, constant: 0)
@@ -35,7 +33,7 @@ extension SendViewController {
         }
     }
     
-    func loadConfirmView() {
+    func getConfirmView() -> ConfirmSendViewController? {
         let storyboard = UIStoryboard(name: "Main", bundle: Bundle.main)
         let newChild = storyboard.instantiateViewController(withIdentifier: "ConfirmSend")
         (newChild as? ConfirmSendViewController)?.coreVC = self.coreVC
@@ -46,6 +44,8 @@ extension SendViewController {
         newChild.view.frame.size = self.confirmContainer.frame.size
         self.confirmContainer.addSubview(newChild.view)
         newChild.didMove(toParent: self)
+        
+        return (newChild as? ConfirmSendViewController)
     }
     
     func removeConfirmView() {

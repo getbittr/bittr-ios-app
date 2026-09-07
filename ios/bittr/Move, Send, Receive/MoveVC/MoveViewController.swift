@@ -112,6 +112,8 @@ class MoveViewController: UIViewController {
         if segue.identifier == "MoveToSend" {
             if let sendVC = segue.destination as? SendViewController {
                 sendVC.coreVC = self.coreVC
+                sendVC.homeVC = self.homeVC
+                self.homeVC?.sendVC = sendVC
             }
         } else if segue.identifier == "MoveToReceive" {
             if let receiveVC = segue.destination as? ReceiveViewController {

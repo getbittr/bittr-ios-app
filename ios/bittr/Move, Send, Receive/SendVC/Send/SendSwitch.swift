@@ -13,7 +13,6 @@ extension SendViewController {
         self.toTextField.text = nil
         self.amountTextField.text = nil
         self.didTapAvailable = false
-        self.isSendingMaximum = false
     }
     
     func updateLabels() {

@@ -86,4 +86,8 @@ extension SendViewController {
         
         return containerView
     }
+    
+    @objc func selectBTCCurrency() { self.selectCurrency(.bitcoin) }
+    @objc func selectSatsCurrency() { self.selectCurrency(.satoshis) }
+    @objc func selectFiatCurrency() { self.selectCurrency(.currency) }
 }

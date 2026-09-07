@@ -109,7 +109,6 @@ extension SendViewController {
         self.pendingWithdrawMaxAmount = nil
         self.pendingLnurlInvoice = nil
         self.pendingLnurlNote = nil
-        self.confirmLnurlEmail = nil
     }
     
 }
