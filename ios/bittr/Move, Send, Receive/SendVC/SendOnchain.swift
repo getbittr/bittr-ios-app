@@ -22,11 +22,7 @@ extension SendViewController {
             return
         }
         
-        // If the field holds a lightning destination — an LNURL/lightning address, a
-        // bolt11 invoice, or a bolt12 offer — rather than an on-chain address, switch
-        // to Instant and hand off to checkSendLightning. Mirrors how checkSendLightning
-        // redirects an on-chain address back to Regular, so pasting/typing an invoice
-        // on the wrong tab just works instead of failing to parse as an address.
+        // Check for any lightning address.
         if enteredAddress.lowercased().contains("lnurl") || enteredAddress.lowercased().isValidEmail()
             || enteredAddress.bolt11Invoice() != nil || enteredAddress.bolt12Offer() != nil {
             self.onchainOrLightning = .lightning
@@ -34,17 +30,12 @@ extension SendViewController {
             self.checkSendLightning()
             return
         }
-
-        // A genuine onchain send is never an LNURL payment: drop any LNURL state
-        // left over from a resolved-but-abandoned lightning-address payment. Without
-        // this, a leftover note attaches to this onchain transaction (the shared
-        // addNewPaymentToTable stores pendingLnurlNote keyed by whatever payment
-        // completes next), and a leftover invoice could resurface on a later
-        // lightning send.
+        
+        // A genuine onchain send is never an LNURL payment: drop any LNURL state left over.
         self.pendingLnurlInvoice = nil
         self.pendingLnurlNote = nil
         self.confirmLnurlEmail = nil
-
+        
         // Check amount.
         guard let enteredAmount = self.amountTextField.text?.trimmingCharacters(in: .whitespacesAndNewlines), !enteredAmount.isEmpty else {
             self.showAlert(title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "enteramount"), buttons: [.dismiss(Language.getWord(withID: "okay"))])
@@ -137,11 +128,8 @@ extension SendViewController {
                 }
             } catch {
                 Log.info("Error: \(error.localizedDescription)")
-
-                // Recognized, user-actionable errors get a plain consumer message;
-                // anything internal or unknown (incl. future BDK errors) falls back to
-                // the generic "we couldn't proceed" line. Only capture genuine bugs to
-                // Sentry — a bad/wrong-network address is user input, not a fault.
+                
+                // Generate error message.
                 var friendlyMessage: String?
                 var sendToSentry = true
                 if let bdkError = error as? BitcoinDevKit.CreateTxError {
@@ -151,9 +139,9 @@ extension SendViewController {
                     friendlyMessage = bdkError.consumerFriendlyMessage()
                     sendToSentry = false
                 }
-
+                
                 let message = friendlyMessage ?? (Language.getWord(withID: "cannotproceed") + ".")
-
+                
                 // Show alert.
                 DispatchQueue.main.async {
                     self.nextLabel.alpha = 1

@@ -35,10 +35,6 @@ extension BitcoinDevKit.CreateTxError {
         case .NoUtxosSelected:
             return Language.getWord(withID: "NoUtxosSelected")
         case .OutputBelowDustLimit:
-            // BDK's error carries only the offending output's index, not the dust
-            // threshold, so there is no number to substitute here. (The old code
-            // spliced the index into "<dustlimit>" without the angle brackets,
-            // producing the nonsensical "dust limit of <0> satoshis".)
             return Language.getWord(withID: "OutputBelowDustLimit")
         case .ChangePolicyDescriptor:
             return Language.getWord(withID: "ChangePolicyDescriptor")
@@ -64,11 +60,7 @@ extension BitcoinDevKit.CreateTxError {
             return Language.getWord(withID: "LockTimeConversionError")
         }
     }
-
-    /// A self-contained, consumer-friendly message for the errors a user can
-    /// actually act on. Returns nil for internal/technical errors — and, via the
-    /// default, for any future BDK case — so the caller falls back to a generic
-    /// "we couldn't proceed" message rather than surfacing a cryptic string.
+    
     func consumerFriendlyMessage() -> String? {
         switch self {
         case .InsufficientFunds(needed: let needed, available: let available):
@@ -148,10 +140,7 @@ extension BitcoinDevKit.AddressParseError {
             return "[OtherAddressParseErr]"
         }
     }
-
-    /// Every address parse failure is a user-input problem, so all map to a
-    /// friendly message: wrong-network gets its own, everything else (incl. any
-    /// future case) is simply "not a valid address".
+    
     func consumerFriendlyMessage() -> String? {
         switch self {
         case .NetworkValidation:

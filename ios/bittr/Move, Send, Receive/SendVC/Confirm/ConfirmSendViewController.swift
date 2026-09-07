@@ -105,9 +105,6 @@ class ConfirmSendViewController: UIViewController {
         
         // Address
         self.addressTitle.text = Language.getWord(withID: self.sendVC!.onchainOrLightning == .onchain ? "address" : "invoice")
-        // Show the typed LNURL/lightning address instead of the resolved invoice
-        // when there is one, but only for a Lightning send — an onchain send must
-        // always show the bitcoin address, even if a prior LNURL left an email set.
         self.addressLabel.text = self.sendVC!.onchainOrLightning == .lightning
             ? (self.sendVC!.confirmLnurlEmail ?? self.sendVC!.confirmAddress)
             : self.sendVC!.confirmAddress

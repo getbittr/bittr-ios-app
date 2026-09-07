@@ -32,21 +32,13 @@ extension SendViewController {
     }
     
     func checkSendLightning() {
-        // Recognize any pending LNURL invoice/note up front — before any early
-        // return — so a stale one can never survive to attach itself to a later
-        // send. If we bail below (e.g. no internet), the LNURL is simply dropped;
-        // tapping Next again re-resolves it from the address field.
+        // Recognize any pending LNURL invoice/note up front.
         let lnurlInvoice = self.pendingLnurlInvoice
         self.pendingLnurlInvoice = nil
-        // A normal (non-LNURL) send carries no note: drop any note left over from a
-        // previous LNURL that was resolved but never paid, so it can't attach itself
-        // to this payment's transaction.
-        if lnurlInvoice == nil {
-            self.pendingLnurlNote = nil
-        }
-
+        if lnurlInvoice == nil { self.pendingLnurlNote = nil }
+        
         guard self.checkInternetConnection() else { return }
-
+        
         // Check invoice field.
         guard let enteredInvoice = lnurlInvoice ?? self.toTextField.text?.trimmingCharacters(in: .whitespacesAndNewlines), !enteredInvoice.isEmpty else {
             self.showAlert(title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "enterinvoice"), buttons: [.dismiss(Language.getWord(withID: "okay"))])
@@ -59,10 +51,7 @@ extension SendViewController {
             return
         }
         
-        // Show the typed lightning address in ConfirmSendVC when we resolved it via
-        // LNURL — but only if it really is a lightning address. Otherwise the field
-        // (which the user may have edited to something else) must not stand in for
-        // the actual destination on the confirmation screen.
+        // Show entered LNURL in ConfirmSendVC if needed.
         let typedAddress = (self.toTextField.text ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
         let typedIsLightningAddress = typedAddress.isValidEmail() || typedAddress.lowercased().hasPrefix("lnurl")
         self.confirmLnurlEmail = (lnurlInvoice != nil && typedIsLightningAddress) ? typedAddress : nil
@@ -71,9 +60,7 @@ extension SendViewController {
         let satoshisAmount:Int
         let maximumRoutingFeesSat:Int
         if let parsedInvoice = enteredInvoice.bolt11Invoice() {
-            // Reject an invoice for a different network (e.g. a mainnet invoice on a
-            // regtest build) up front, with a clear message rather than a payment
-            // that just fails later.
+            // Reject an invoice for a different network.
             let invoiceMatchesNetwork: Bool
             switch (EnvironmentConfig.ldkNetwork, parsedInvoice.currency()) {
             case (.bitcoin, .Bitcoin), (.testnet, .BitcoinTestnet), (.regtest, .Regtest), (.signet, .Signet):
@@ -85,17 +72,14 @@ extension SendViewController {
                 self.showAlert(title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "wrongnetworkinvoice"), buttons: [.dismiss(Language.getWord(withID: "okay"))])
                 return
             }
-
-            // Reject paying ourselves: the payee key recovered from the invoice is
-            // our own node. LDK would otherwise fail this deep in routing with an
-            // unhelpful error. Covers both a self-made invoice and the user's own
-            // lightning address (which resolves to an invoice from our node).
+            
+            // Reject paying ourselves.
             if let ourNodeId = BitcoinManager.shared.nodeId(),
                Data(parsedInvoice.recoverPayeePubKey()).hex.lowercased() == ourNodeId.lowercased() {
                 self.showAlert(title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "cannotpayself"), buttons: [.dismiss(Language.getWord(withID: "okay"))])
                 return
             }
-
+            
             // Valid invoice.
             if let invoiceAmountMilli = parsedInvoice.amountMilliSatoshis() {
                 // Normal invoice.
@@ -116,11 +100,7 @@ extension SendViewController {
             self.showAlert(title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "bolt12notsupported"), buttons: [.dismiss(Language.getWord(withID: "okay"))])
             return
         } else if let onchainAddress = enteredInvoice.asBitcoinAddress() {
-            // Not an invoice/offer/LNURL but a valid on-chain address — the user is
-            // on the Instant tab with a Regular destination (e.g. pasted an address,
-            // or swapped the invoice out for one). Switch to Regular and hand off to
-            // checkSendOnchain, mirroring how checkSendOnchain redirects an LNURL to
-            // Instant. The amount already typed carries over.
+            // Not an invoice/offer/LNURL but a valid on-chain address.
             self.toTextField.text = onchainAddress
             self.onchainOrLightning = .onchain
             self.updateLabels()
