@@ -211,11 +211,15 @@ extension UIViewController {
             Log.debug("Invoice text: " + invoiceText)
             
             do {
-                if let bolt12Offer = invoiceText.bolt12Offer() {
+                if invoiceText.bolt12Offer() != nil {
                     Log.info("Reject BOLT12 payment.")
-                    self.showAlert(title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "bolt12notsupported"), buttons: [.action(Language.getWord(withID: "okay"), {
-                        confirmSendVC?.sendVC?.slideFromConfirmToSend()
-                    })])
+                    DispatchQueue.main.async {
+                        confirmSendVC?.confirmLabel.alpha = 1
+                        confirmSendVC?.confirmSpinner.stopAnimating()
+                        self.showAlert(title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "bolt12notsupported"), buttons: [.action(Language.getWord(withID: "okay"), {
+                            confirmSendVC?.sendVC?.slideFromConfirmToSend()
+                        })])
+                    }
                 } else {
                     Log.info("Perform BOLT11 payment.")
                     let invoice = try Bolt11Invoice.fromStr(invoiceStr: invoiceText)
