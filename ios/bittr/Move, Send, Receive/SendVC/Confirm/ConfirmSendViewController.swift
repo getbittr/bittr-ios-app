@@ -189,6 +189,7 @@ class ConfirmSendViewController: UIViewController {
     }
 
     @IBAction func feeButtonTapped(_ sender: UIButton) {
+        if self.confirmSpinner.isAnimating { return }
         self.switchToFee(sender.boundString.toSelectedFee())
     }
     

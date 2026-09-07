@@ -202,6 +202,8 @@ extension ConfirmSendViewController {
     
     func performOnchainTransaction() {
         if self.confirmSpinner.isAnimating { return }
+        guard let address = self.addressOrInvoice, let amountSats = self.satoshisAmount else { return }
+        let isSendingMaximum = self.isSendingMaximum
         
         // Start spinner.
         self.confirmLabel.alpha = 0
@@ -215,10 +217,10 @@ extension ConfirmSendViewController {
             
             let txid:String
             do {
-                if self.isSendingMaximum {
-                    txid = try BitcoinManager.shared.sendAllOnchainPayment(address: self.addressOrInvoice!, feeRateSatVb: feeRateSatVb)
+                if isSendingMaximum {
+                    txid = try BitcoinManager.shared.sendAllOnchainPayment(address: address, feeRateSatVb: feeRateSatVb)
                 } else {
-                    txid = try BitcoinManager.shared.sendOnchainPayment(address: self.addressOrInvoice!, amountSats: UInt64(self.satoshisAmount!), feeRateSatVb: feeRateSatVb)
+                    txid = try BitcoinManager.shared.sendOnchainPayment(address: address, amountSats: UInt64(amountSats), feeRateSatVb: feeRateSatVb)
                 }
             } catch {
                 Log.info("Transaction error: \(error.localizedDescription)")
