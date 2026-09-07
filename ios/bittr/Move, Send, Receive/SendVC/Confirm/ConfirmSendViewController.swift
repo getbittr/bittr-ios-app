@@ -104,16 +104,75 @@ class ConfirmSendViewController: UIViewController {
         }
     }
     
-    func setLabels(
+    func setLightningLabels(
+        invoice:String,
+        satoshisAmount:Int,
+        lnurlEmail:String?,
+        lightningFees:Int)
+    {
+        // Confirming values
+        self.lnurlEmail = lnurlEmail
+        self.lightningFees = lightningFees
+        self.lightningFeesLabel.text = "1 - " + "\(lightningFees)".addSpaces() + " sats"
+        
+        // Show the typed lightning address rather than the invoice it resolved to.
+        self.setSharedLabels(onchainOrLightning: .lightning, addressOrInvoice: invoice, satoshisAmount: satoshisAmount, displayedAddress: lnurlEmail ?? invoice)
+    }
+    
+    func setOnchainLabels(
+        address:String,
+        satoshisAmount:Int,
+        onchainTxSize:Double,
+        feeEstimates:FeeEstimates,
+        isSendingMaximum:Bool,
+        drainTotalSats:Int?)
+    {
+        // Confirming values
+        self.feePerVbLow = feeEstimates.economy
+        self.feePerVbMedium = feeEstimates.hour
+        self.feePerVbHigh = feeEstimates.fastest
+        self.onchainTxSize = onchainTxSize
+        self.isSendingMaximum = isSendingMaximum
+        self.drainTotalSats = drainTotalSats
+        
+        self.setSharedLabels(onchainOrLightning: .onchain, addressOrInvoice: address, satoshisAmount: satoshisAmount, displayedAddress: address)
+        
+        // Check fee availability
+        let lowestSats = feeEstimates.economy.feeSats(forVsize: onchainTxSize)
+        let availableSatsForFee = (BitcoinManager.shared.bittrWallet.satoshisOnchainSpendable ?? 0) - satoshisAmount
+        if lowestSats > availableSatsForFee {
+            // There aren't enough sats available to pay for the cheapest fee.
+            // Calculate the cheapest possible fee (minimum 1sat/Vbyte).
+            let availableSatsPerVb = onchainTxSize > 0 ? Double(availableSatsForFee) / onchainTxSize : 1
+            self.maxAvailableFeePerVb = max(availableSatsPerVb, 1)
+
+            self.timeSlow.text = Language.getWord(withID: "slow")
+            self.highlightFee(.low)
+            self.selectedFee = .low
+        }
+        
+        // Fees
+        self.feesFast.text = "\(feeEstimates.fastest.feeSats(forVsize: onchainTxSize)) sats"
+        self.feesMedium.text = "\(feeEstimates.hour.feeSats(forVsize: onchainTxSize)) sats"
+        self.feesSlow.text = "\(feeEstimates.economy.feeSats(forVsize: onchainTxSize)) sats"
+        
+        // Set converted fees
+        self.feesFiatFast.text = feeEstimates.fastest.feeSats(forVsize: onchainTxSize).formattedFiatAmount()
+        self.feesFiatMedium.text = feeEstimates.hour.feeSats(forVsize: onchainTxSize).formattedFiatAmount()
+        self.feesFiatSlow.text = feeEstimates.economy.feeSats(forVsize: onchainTxSize).formattedFiatAmount()
+        
+        // Custom fee
+        if let maxAvailableFeePerVb = self.maxAvailableFeePerVb {
+            self.feesSlow.text = "\(maxAvailableFeePerVb.feeSats(forVsize: onchainTxSize)) sats"
+            self.feesFiatSlow.text = maxAvailableFeePerVb.feeSats(forVsize: onchainTxSize).formattedFiatAmount()
+        }
+    }
+    
+    private func setSharedLabels(
         onchainOrLightning:OnchainOrLightning,
         addressOrInvoice:String,
         satoshisAmount:Int,
-        lnurlEmail:String? = nil,
-        lightningFees:Int = 0,
-        onchainTxSize:Double = 0,
-        feeEstimates:FeeEstimates? = nil,
-        isSendingMaximum:Bool = false,
-        drainTotalSats:Int? = nil)
+        displayedAddress:String)
     {
         
         // Confirming values
@@ -123,7 +182,7 @@ class ConfirmSendViewController: UIViewController {
         
         // Address
         self.addressTitle.text = Language.getWord(withID: onchainOrLightning == .onchain ? "address" : "invoice")
-        self.addressLabel.text = onchainOrLightning == .lightning ? (lnurlEmail ?? addressOrInvoice) : addressOrInvoice
+        self.addressLabel.text = displayedAddress
         
         // Amount
         self.amountLabel.text = satoshisAmount.formattedAmount()
@@ -138,54 +197,6 @@ class ConfirmSendViewController: UIViewController {
         NSLayoutConstraint.activate([self.lightningFeesStackHeight, self.onchainFeesStackHeight])
         self.lightningFeesStack.alpha = (onchainOrLightning == .lightning) ? 1 : 0
         self.onchainFeesStack.alpha = (onchainOrLightning == .lightning) ? 0 : 1
-        
-        // Fees labels
-        if onchainOrLightning == .lightning {
-            // Lightning
-            self.lnurlEmail = lnurlEmail
-            self.lightningFees = lightningFees
-            self.lightningFeesLabel.text = "1 - " + "\(lightningFees)".addSpaces() + " sats"
-        } else {
-            // Onchain
-            guard let feeEstimates else { return }
-            self.feePerVbLow = feeEstimates.economy
-            self.feePerVbMedium = feeEstimates.hour
-            self.feePerVbHigh = feeEstimates.fastest
-            self.onchainTxSize = onchainTxSize
-            self.isSendingMaximum = isSendingMaximum
-            self.drainTotalSats = drainTotalSats
-            
-            // Check fee availability
-            let lowestSats = self.feePerVbLow!.feeSats(forVsize: onchainTxSize)
-            let availableSatsForFee = (BitcoinManager.shared.bittrWallet.satoshisOnchainSpendable ?? 0) - satoshisAmount
-            if lowestSats > availableSatsForFee {
-                // There aren't enough sats available to pay for the cheapest fee.
-                // Calculate the cheapest possible fee (minimum 1sat/Vbyte).
-                let availableSatsPerVb = onchainTxSize > 0 ? Double(availableSatsForFee) / onchainTxSize : 1
-                self.maxAvailableFeePerVb = max(availableSatsPerVb, 1)
-                
-                self.timeSlow.text = Language.getWord(withID: "slow")
-                self.highlightFee(.low)
-                self.selectedFee = .low
-            }
-            
-            // Fees
-            self.feesFast.text = "\(self.feePerVbHigh!.feeSats(forVsize: onchainTxSize)) sats"
-            self.feesMedium.text = "\(self.feePerVbMedium!.feeSats(forVsize: onchainTxSize)) sats"
-            self.feesSlow.text = "\(self.feePerVbLow!.feeSats(forVsize: onchainTxSize)) sats"
-            
-            // Set converted fees
-            self.feesFiatFast.text = self.feePerVbHigh!.feeSats(forVsize: onchainTxSize).formattedFiatAmount()
-            self.feesFiatMedium.text = self.feePerVbMedium!.feeSats(forVsize: onchainTxSize).formattedFiatAmount()
-            self.feesFiatSlow.text = self.feePerVbLow!.feeSats(forVsize: onchainTxSize).formattedFiatAmount()
-            
-            // Custom fee
-            if let maxAvailableFeePerVb = self.maxAvailableFeePerVb {
-                self.feesSlow.text = "\(maxAvailableFeePerVb.feeSats(forVsize: onchainTxSize)) sats"
-                self.feesFiatSlow.text = maxAvailableFeePerVb.feeSats(forVsize: onchainTxSize).formattedFiatAmount()
-            }
-        }
-        
     }
 
     @IBAction func feeButtonTapped(_ sender: UIButton) {

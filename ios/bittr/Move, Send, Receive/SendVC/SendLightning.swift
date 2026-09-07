@@ -125,9 +125,8 @@ extension SendViewController {
         
         // Slide to ConfirmSendVC
         guard let confirmVC = self.getConfirmView() else { return }
-        confirmVC.setLabels(
-            onchainOrLightning: .lightning,
-            addressOrInvoice: enteredInvoice,
+        confirmVC.setLightningLabels(
+            invoice: enteredInvoice,
             satoshisAmount: satoshisAmount,
             lnurlEmail: confirmLnurlEmail,
             lightningFees: maximumRoutingFeesSat

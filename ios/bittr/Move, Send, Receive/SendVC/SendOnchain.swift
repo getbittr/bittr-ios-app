@@ -153,9 +153,8 @@ extension SendViewController {
                 self.arrowIcon.alpha = 1
                 self.nextSpinner.stopAnimating()
                 
-                confirmVC.setLabels(
-                    onchainOrLightning: .onchain,
-                    addressOrInvoice: enteredAddress,
+                confirmVC.setOnchainLabels(
+                    address: enteredAddress,
                     satoshisAmount: enteredSatoshis,
                     onchainTxSize: Double(size),
                     feeEstimates: feeEstimates,
