@@ -542,24 +542,14 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate, UIContextMen
     }
     
     @IBAction func btcButtonTapped(_ sender: UIButton) {
-        
-        let actionSheet = UIAlertController(title: nil, message: nil, preferredStyle: .actionSheet)
-        let btcOption = UIAlertAction(title: "Bitcoin", style: .default) { (action) in
-            self.selectCurrency(.bitcoin)
-        }
-        let satsOption = UIAlertAction(title: "Satoshis", style: .default) { (action) in
-            self.selectCurrency(.satoshis)
-        }
+        self.view.endEditing(true)
         let bitcoinValue = BitcoinManager.shared.bittrWallet.getCorrectBitcoinValue()
-        let currencyOption = UIAlertAction(title: bitcoinValue.chosenCurrency, style: .default) { (action) in
-            self.selectCurrency(.currency)
-        }
-        let cancelAction = UIAlertAction(title: Language.getWord(withID: "cancel"), style: .cancel, handler: nil)
-        actionSheet.addAction(btcOption)
-        actionSheet.addAction(satsOption)
-        actionSheet.addAction(currencyOption)
-        actionSheet.addAction(cancelAction)
-        present(actionSheet, animated: true, completion: nil)
+        self.showAlert(title: Language.getWord(withID: "selectcurrency"), message: Language.getWord(withID: "selectcurrencymessage"), buttons: [
+            .dismiss(Language.getWord(withID: "cancel")),
+            .action(bitcoinValue.chosenCurrency) { self.selectCurrency(.currency) },
+            .action("Satoshis") { self.selectCurrency(.satoshis) },
+            .action("Bitcoin") { self.selectCurrency(.bitcoin) }
+        ])
     }
     
     func selectCurrency(_ type:SelectedCurrency) {
