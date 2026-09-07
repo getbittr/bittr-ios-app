@@ -824,11 +824,17 @@ class SwapManager: NSObject {
     }
     
     static func checkReverseSwapFees(swapVC:SwapViewController) {
-        guard swapVC.thisSwap != nil else { return }
-        guard swapVC.checkInternetConnection() else { return }
+        guard swapVC.thisSwap != nil, swapVC.checkInternetConnection() else {
+            swapVC.resetNextButton()
+            return
+        }
         
         // Check requested invoice amount.
-        guard let parsedInvoice = swapVC.thisSwap!.boltzInvoice!.bolt11Invoice(), let invoiceAmountMilli = parsedInvoice.amountMilliSatoshis() else { return }
+        guard let parsedInvoice = swapVC.thisSwap!.boltzInvoice!.bolt11Invoice(), let invoiceAmountMilli = parsedInvoice.amountMilliSatoshis() else {
+            Log.info("Could not parse the Boltz invoice.")
+            swapVC.cancelSwap(alertMessage: Language.getWord(withID: "swaperror2"))
+            return
+        }
         
         // Lightning invoice.
         let invoiceAmount = Int(invoiceAmountMilli)/1000
@@ -843,7 +849,11 @@ class SwapManager: NSObject {
         // so the user will receive exactly the amount they input
         
         // Calculate maximum total routing fees.
-        guard let lightningFees = swapVC.thisSwap!.boltzInvoice!.getLightningFeesInSatoshis() else { return }
+        guard let lightningFees = swapVC.thisSwap!.boltzInvoice!.getLightningFeesInSatoshis() else {
+            Log.info("Could not calculate routing fees for the Boltz invoice.")
+            swapVC.cancelSwap(alertMessage: Language.getWord(withID: "swaperror2"))
+            return
+        }
         
         // Calculate claim transaction fee
         let storedClaimTransactionFee = swapVC.thisSwap!.claimTransactionFee

@@ -200,11 +200,7 @@ class SwapViewController: UIViewController, UITextFieldDelegate, UNUserNotificat
     }
     
     func confirmExpectedFees() {
-        
-        self.nextLabel.alpha = 1
-        self.arrowIcon.alpha = 1
-        self.nextSpinner.stopAnimating()
-        
+        self.resetNextButton()
         guard self.thisSwap != nil else { return }
         
         let bitcoinValue = BitcoinManager.shared.bittrWallet.getCorrectBitcoinValue()
@@ -394,11 +390,15 @@ class SwapViewController: UIViewController, UITextFieldDelegate, UNUserNotificat
         }
     }
     
+    func resetNextButton() {
+        self.nextLabel.alpha = 1
+        self.arrowIcon.alpha = 1
+        self.nextSpinner.stopAnimating()
+    }
+    
     func cancelSwap(alertTitle:String = Language.getWord(withID: "error"), alertMessage:String, alertButtons:[AlertButton] = [.dismiss(Language.getWord(withID: "okay"))]) {
         DispatchQueue.main.async {
-            self.nextLabel.alpha = 1
-            self.arrowIcon.alpha = 1
-            self.nextSpinner.stopAnimating()
+            self.resetNextButton()
             self.showAlert(title: alertTitle, message: alertMessage, buttons: alertButtons)
         }
     }
