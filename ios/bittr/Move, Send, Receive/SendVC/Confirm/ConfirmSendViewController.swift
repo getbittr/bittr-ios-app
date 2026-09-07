@@ -72,7 +72,7 @@ class ConfirmSendViewController: UIViewController {
     @IBOutlet weak var confirmSpinner: UIActivityIndicatorView!
     
     // Variables
-    var sendVC:SendViewController?
+    weak var sendVC:SendViewController?
     var coreVC:CoreViewController?
     
     // Confirming values
@@ -239,8 +239,8 @@ class ConfirmSendViewController: UIViewController {
         self.satoshisAmount = max((BitcoinManager.shared.bittrWallet.satoshisOnchainSpendable ?? 0) - self.selectedFeeInSats, 0)
         
         // Update SendVC amount text field.
-        self.sendVC!.amountTextField.text = self.satoshisAmount!.inBTC().formattedBitcoin()
-        self.sendVC!.selectCurrency(.bitcoin)
+        self.sendVC?.amountTextField.text = self.satoshisAmount!.inBTC().formattedBitcoin()
+        self.sendVC?.selectCurrency(.bitcoin)
         
         // Update confirmation labels.
         self.amountLabel.text = self.satoshisAmount!.formattedAmount()

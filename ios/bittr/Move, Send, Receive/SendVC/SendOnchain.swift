@@ -267,8 +267,8 @@ extension ConfirmSendViewController {
     
     func wrapupOnchainTransaction() {
         BitcoinManager.shared.lightSync() { _ in }
-        self.sendVC!.resetFields()
-        self.sendVC!.slideFromConfirmToSend()
+        self.sendVC?.resetFields()
+        self.sendVC?.slideFromConfirmToSend()
     }
 }
 

@@ -11,13 +11,17 @@ extension SendViewController {
     
     func slideFromConfirmToSend() {
         DispatchQueue.main.async {
+            // Keep track of departing ConfirmVC.
+            let departingConfirmVC = self.confirmSendVC
+            self.confirmSendVC = nil
+            
             UIView.animate(withDuration: 0.3, delay: 0, options: .curveEaseInOut) {
                 NSLayoutConstraint.deactivate([self.scrollViewTrailing])
                 self.scrollViewTrailing = NSLayoutConstraint(item: self.scrollView, attribute: .trailing, relatedBy: .equal, toItem: self.view, attribute: .trailing, multiplier: 1, constant: 0)
                 NSLayoutConstraint.activate([self.scrollViewTrailing])
                 self.view.layoutIfNeeded()
             } completion: { _ in
-                self.removeConfirmView()
+                self.removeConfirmView(departingConfirmVC)
             }
         }
     }
@@ -34,6 +38,9 @@ extension SendViewController {
     }
     
     func getConfirmView() -> ConfirmSendViewController? {
+        // Remove old ConfirmSendVC if present.
+        self.removeConfirmView(self.confirmSendVC)
+        
         let storyboard = UIStoryboard(name: "Main", bundle: Bundle.main)
         let newChild = storyboard.instantiateViewController(withIdentifier: "ConfirmSend")
         (newChild as? ConfirmSendViewController)?.coreVC = self.coreVC
@@ -48,9 +55,10 @@ extension SendViewController {
         return (newChild as? ConfirmSendViewController)
     }
     
-    func removeConfirmView() {
-        for eachSubview in self.confirmContainer.subviews {
-            eachSubview.removeFromSuperview()
-        }
+    func removeConfirmView(_ confirmVC:ConfirmSendViewController?) {
+        guard let confirmVC else { return }
+        confirmVC.willMove(toParent: nil)
+        confirmVC.view.removeFromSuperview()
+        confirmVC.removeFromParent()
     }
 }
