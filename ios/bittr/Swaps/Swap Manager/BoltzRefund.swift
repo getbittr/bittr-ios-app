@@ -7,7 +7,7 @@
 import P256K
 import Foundation
 import CryptoKit
-import LightningDevKit
+import LDKNode
 
 // MARK: - Claim Result
 
@@ -698,14 +698,12 @@ enum BoltzSwapValidation {
         requestedOnchainAmountSats: Int,
         fee: BoltzFeeQuote?
     ) throws {
-        guard let parsedInvoice = Bindings.Bolt11Invoice.fromStr(s: invoice).getValue(),
-              let invoiceAmountMilli = parsedInvoice.amountMilliSatoshis(),
-              let paymentHash = parsedInvoice.paymentHash() else {
+        guard let parsedInvoice = invoice.bolt11Invoice(),
+              let invoiceAmountMilli = parsedInvoice.amountMilliSatoshis() else {
             throw SwapValidationError.unparsableInvoice
         }
-
-        let paymentHashHex = Data(paymentHash).hex
-        guard paymentHashHex.lowercased() == preimageHashHex.lowercased() else {
+        let paymentHashHex = parsedInvoice.paymentHash().lowercased()
+        guard paymentHashHex == preimageHashHex.lowercased() else {
             throw SwapValidationError.paymentHashMismatch(expected: preimageHashHex.lowercased(), received: paymentHashHex)
         }
 

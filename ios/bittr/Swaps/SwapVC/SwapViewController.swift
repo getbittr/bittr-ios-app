@@ -8,7 +8,6 @@
 import UIKit
 import LDKNode
 import UserNotifications
-import LightningDevKit
 
 class SwapViewController: UIViewController, UITextFieldDelegate, UNUserNotificationCenterDelegate, OnchainSyncFailureReporting {
 
@@ -318,7 +317,7 @@ class SwapViewController: UIViewController, UITextFieldDelegate, UNUserNotificat
     
     func handlePendingLightningInvoice() {
         // Parse the pending Lightning invoice to get the amount.
-        guard let parsedInvoice = Bindings.Bolt11Invoice.fromStr(s: self.pendingLightningInvoice).getValue() else {
+        guard let parsedInvoice = self.pendingLightningInvoice.bolt11Invoice() else {
             // Invalid invoice
             self.showAlert(title: Language.getWord(withID: "error"), message: Language.getWord(withID: "invalidinvoice"), buttons: [.dismiss(Language.getWord(withID: "okay"))])
             return

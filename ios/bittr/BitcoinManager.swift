@@ -785,6 +785,18 @@ class BitcoinManager {
     
 }
 
+extension String {
+    
+    func bolt11Invoice() -> LDKNode.Bolt11Invoice? {
+        do {
+            let invoice = try LDKNode.Bolt11Invoice.fromStr(invoiceStr: self)
+            return invoice
+        } catch {
+            return nil
+        }
+    }
+}
+
 /// Recommended on-chain fee rates in sat/vByte, already normalized by
 /// `getFeeEstimates()`: each rate is at least 1 and rounded, as LDKNode requires.
 struct FeeEstimates {

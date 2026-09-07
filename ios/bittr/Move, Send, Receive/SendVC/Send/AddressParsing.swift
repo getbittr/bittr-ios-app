@@ -8,7 +8,7 @@
 import UIKit
 import BitcoinDevKit
 import LNURLDecoder
-import LightningDevKit
+import LDKNode
 
 extension SendViewController {
     
@@ -132,8 +132,7 @@ extension String {
     
     func isValidInvoice() -> Bool {
         guard self.hasPrefix("ln") else { return false }
-        let bolt11Invoice = Bolt11Invoice.fromStr(s: self)
-        if bolt11Invoice.isOk(), bolt11Invoice.getValue() != nil {
+        if self.bolt11Invoice() != nil {
             return true
         } else {
             if let _ = self.bolt12Offer() {

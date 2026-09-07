@@ -10,7 +10,6 @@ import BitcoinDevKit
 import LDKNode
 import P256K
 import CryptoKit
-import LightningDevKit
 
 class SwapManager: NSObject {
     
@@ -174,7 +173,7 @@ class SwapManager: NSObject {
         }
         
         // Get invoice amount.
-        guard let invoiceAmountMsat = Bindings.Bolt11Invoice.fromStr(s: invoice).getValue()?.amountMilliSatoshis() else {
+        guard let invoiceAmountMsat = invoice.bolt11Invoice()?.amountMilliSatoshis() else {
             swapVC.cancelSwap(alertMessage: Language.getWord(withID: "swaperror2"))
             return
         }
@@ -829,7 +828,7 @@ class SwapManager: NSObject {
         guard swapVC.checkInternetConnection() else { return }
         
         // Check requested invoice amount.
-        guard let parsedInvoice = Bindings.Bolt11Invoice.fromStr(s: swapVC.thisSwap!.boltzInvoice!).getValue(), let invoiceAmountMilli = parsedInvoice.amountMilliSatoshis() else { return }
+        guard let parsedInvoice = swapVC.thisSwap!.boltzInvoice!.bolt11Invoice(), let invoiceAmountMilli = parsedInvoice.amountMilliSatoshis() else { return }
         
         // Lightning invoice.
         let invoiceAmount = Int(invoiceAmountMilli)/1000
@@ -844,7 +843,7 @@ class SwapManager: NSObject {
         // so the user will receive exactly the amount they input
         
         // Calculate maximum total routing fees.
-        let lightningFees = swapVC.getLightningFeesInSatoshis(parsedInvoice: parsedInvoice, amountMsat: nil)
+        guard let lightningFees = swapVC.thisSwap!.boltzInvoice!.getLightningFeesInSatoshis() else { return }
         
         // Calculate claim transaction fee
         let storedClaimTransactionFee = swapVC.thisSwap!.claimTransactionFee
