@@ -175,71 +175,18 @@ extension UIViewController {
                         }
                         
                         if receivedTag == "payRequest",
-                            let receivedCallback = actualDataDict["callback"] as? String,
-                            let minSendable = actualDataDict["minSendable"] as? Int,
-                            let maxSendable = actualDataDict["maxSendable"] as? Int {
-                                
-                            // Check if this LNURL contains a description.
-                            var receivedDescription:String?
-                            if let receivedMetadata = actualDataDict["metadata"] as? String, let metadataData = receivedMetadata.data(using: .utf8), let parsedMetadata = try? JSONSerialization.jsonObject(with: metadataData, options: []) as? [[String]] {
-                                for eachDataPair in parsedMetadata {
-                                    if eachDataPair.count == 2, eachDataPair[0] == "text/plain" {
-                                        receivedDescription = eachDataPair[1]
-                                    }
-                                }
-                            }
+                            let _ = actualDataDict["callback"] as? String,
+                            let _ = actualDataDict["minSendable"] as? Int,
+                            let _ = actualDataDict["maxSendable"] as? Int {
                             
-                            if minSendable == maxSendable {
-                                // Min and max are the same.
-                                self.sendPayRequest(callbackURL: receivedCallback.replacingOccurrences(of: "\0", with: "").trimmingCharacters(in: .controlCharacters), amount: minSendable, receivedDescription: receivedDescription)
-                            } else {
-                                // Min and max are different.
-                                sendVC?.pendingLNURLCallback = receivedCallback.replacingOccurrences(of: "\0", with: "").trimmingCharacters(in: .controlCharacters)
-                                sendVC?.pendingLNURLDescription = receivedDescription
-                                sendVC?.pendingLNURLMinAmount = minSendable
-                                sendVC?.pendingLNURLMaxAmount = maxSendable
-                                
-                                // Check whether the user has entered an amount.
-                                let enteredAmount = (sendVC?.amountTextField.text ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
-                                if !enteredAmount.isEmpty {
-                                    // Amount has been entered.
-                                    sendVC?.handleLNURLAmountCompletion()
-                                } else {
-                                    // No amount has been entered.
-                                    sendVC?.stopLNURLSpinner()
-                                    sendVC?.amountTextField.text = ""
-                                    sendVC?.amountTextField.becomeFirstResponder()
-                                }
-                            }
+                            self.handlePayRequest(receivedData: actualDataDict)
                         } else if receivedTag == "withdrawRequest",
-                            let receivedCallback = actualDataDict["callback"] as? String,
-                            let receivedK1 = actualDataDict["k1"] as? String,
-                            let minWithdrawable = actualDataDict["minWithdrawable"] as? Int,
-                            let maxWithdrawable = actualDataDict["maxWithdrawable"] as? Int {
-                                
-                            sendVC?.stopLNURLSpinner()
-                            var alert = UIAlertController(title: Language.getWord(withID: "withdrawrequest"), message: "\(Language.getWord(withID: "withdrawrequest1"))".replacingOccurrences(of: "<minwithdrawable>", with: "\(minWithdrawable/1000)").replacingOccurrences(of: "<maxwithdrawable>", with: "\(maxWithdrawable/1000)"), preferredStyle: .alert)
-                            if minWithdrawable == maxWithdrawable {
-                                // Min and max are the same.
-                                alert = UIAlertController(title: Language.getWord(withID: "withdrawrequest"), message: "\(Language.getWord(withID: "withdrawrequest3"))".replacingOccurrences(of: "<withdrawable>", with: "\(minWithdrawable/1000)"), preferredStyle: .alert)
-                            } else {
-                                // Min and max aren't the same. Choose amount.
-                                alert.addTextField { (textField) in
-                                    textField.keyboardType = .numberPad
-                                }
-                            }
-                            alert.addAction(UIAlertAction(title: Language.getWord(withID: "confirm"), style: .default, handler: { (save) in
-                                
-                                var amountText = minWithdrawable
-                                if minWithdrawable != maxWithdrawable {
-                                    // Min and max aren't the same.
-                                    let entered = (alert.textFields?.first?.text ?? "").parsedUserAmount(allowingFraction: false)?.satoshis() ?? 0
-                                    amountText = entered * 1000
-                                }
-                                self.sendWithdrawRequest(callbackURL: receivedCallback.replacingOccurrences(of: "\0", with: "").trimmingCharacters(in: .controlCharacters), amount: amountText, k1: receivedK1)
-                            }))
-                            alert.addAction(UIAlertAction(title: Language.getWord(withID: "cancel"), style: .cancel, handler: nil))
-                            self.present(alert, animated: true)
+                            let _ = actualDataDict["callback"] as? String,
+                            let _ = actualDataDict["k1"] as? String,
+                            let _ = actualDataDict["minWithdrawable"] as? Int,
+                            let _ = actualDataDict["maxWithdrawable"] as? Int {
+                            
+                            self.handleWithdrawRequest(receivedData: actualDataDict)
                         } else if receivedTag == "login",
                             let receivedCallback = actualDataDict["callback"] as? String,
                             let receivedK1 = actualDataDict["k1"] as? String {
@@ -273,6 +220,93 @@ extension UIViewController {
         // {"tag":"withdrawRequest","callback":"https://spiritedlizard2.lnbits.com/withdraw/api/v1/lnurl/cb/eKbrKxF2PAi8wNX65ab4HM","k1":"9YxWRdFQFSQngwM2EmuNoh","minWithdrawable":10000,"maxWithdrawable":10000,"defaultDescription":"vouchers","webhook_url":null,"webhook_headers":null,"webhook_body":null}
         
         // {"tag":"payRequest","callback":"https://spiritedlizard2.lnbits.com/lnurlp/api/v1/lnurl/cb/FRV7Uj","minSendable":10000,"maxSendable":10000,"metadata":"[[\"text/plain\", \"Payment to tom\"], [\"text/identifier\", \"tom@spiritedlizard2.lnbits.com\"]]"}
+    }
+    
+    func handlePayRequest(receivedData:NSDictionary) {
+        let sendVC = self as? SendViewController
+        let receivedCallback = receivedData["callback"] as! String
+        let minSendable = receivedData["minSendable"] as! Int
+        let maxSendable = receivedData["maxSendable"] as! Int
+        
+        // Check if this LNURL contains a description.
+        var receivedDescription:String?
+        if let receivedMetadata = receivedData["metadata"] as? String,
+            let metadataData = receivedMetadata.data(using: .utf8),
+            let parsedMetadata = try? JSONSerialization.jsonObject(with: metadataData, options: []) as? [[String]] {
+            for eachDataPair in parsedMetadata {
+                if eachDataPair.count == 2, eachDataPair[0] == "text/plain" {
+                    receivedDescription = eachDataPair[1]
+                }
+            }
+        }
+        
+        if minSendable == maxSendable {
+            // Min and max are the same.
+            self.sendPayRequest(callbackURL: receivedCallback.replacingOccurrences(of: "\0", with: "").trimmingCharacters(in: .controlCharacters), amount: minSendable, receivedDescription: receivedDescription)
+        } else {
+            // Min and max are different.
+            sendVC?.pendingLNURLCallback = receivedCallback.replacingOccurrences(of: "\0", with: "").trimmingCharacters(in: .controlCharacters)
+            sendVC?.pendingLNURLDescription = receivedDescription
+            sendVC?.pendingLNURLMinAmount = minSendable
+            sendVC?.pendingLNURLMaxAmount = maxSendable
+            
+            // Check whether the user has entered an amount.
+            let enteredAmount = (sendVC?.amountTextField.text ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+            if !enteredAmount.isEmpty {
+                // Amount has been entered.
+                sendVC?.handleLNURLAmountCompletion()
+            } else {
+                // No amount has been entered.
+                sendVC?.stopLNURLSpinner()
+                sendVC?.amountTextField.text = ""
+                sendVC?.amountTextField.becomeFirstResponder()
+            }
+        }
+    }
+    
+    func handleWithdrawRequest(receivedData:NSDictionary) {
+        let sendVC = self as? SendViewController
+        let receivedCallback = receivedData["callback"] as! String
+        let receivedK1 = receivedData["k1"] as! String
+        let minWithdrawable = receivedData["minWithdrawable"] as! Int
+        let maxWithdrawable = receivedData["maxWithdrawable"] as! Int
+        
+        sendVC?.stopLNURLSpinner()
+        
+        let callbackURL = receivedCallback.replacingOccurrences(of: "\0", with: "").trimmingCharacters(in: .controlCharacters)
+        
+        guard minWithdrawable != maxWithdrawable else {
+            // One amount on offer, so there is nothing to enter — just confirm it.
+            self.showAlert(title: Language.getWord(withID: "withdrawrequest"), message: Language.getWord(withID: "withdrawrequest3").replacingOccurrences(of: "<withdrawable>", with: "\(minWithdrawable/1000)"), buttons: [.dismiss(Language.getWord(withID: "cancel")), .action(Language.getWord(withID: "confirm")) { self.sendWithdrawRequest(callbackURL: callbackURL, amount: minWithdrawable, k1: receivedK1) }])
+            return
+        }
+        
+        self.askForWithdrawAmount(callbackURL: callbackURL, k1: receivedK1, minWithdrawable: minWithdrawable, maxWithdrawable: maxWithdrawable)
+    }
+    
+    func askForWithdrawAmount(callbackURL:String, k1:String, minWithdrawable:Int, maxWithdrawable:Int) {
+        
+        let payableRange = Language.getWord(withID: "withdrawrequest1")
+            .replacingOccurrences(of: "<minwithdrawable>", with: "\(minWithdrawable/1000)")
+            .replacingOccurrences(of: "<maxwithdrawable>", with: "\(maxWithdrawable/1000)")
+        
+        self.showTextFieldAlert(title: Language.getWord(withID: "withdrawrequest"), message: payableRange, initialText: "", placeholder: Language.getWord(withID: "amountinsatoshis"), keyboardType: .numberPad, cancelTitle: Language.getWord(withID: "cancel"), saveTitle: Language.getWord(withID: "confirm")) { enteredText in
+            
+            // Check whether an amount larger then zero has been entered.
+            guard let enteredSatoshis = enteredText.parsedUserAmount(allowingFraction: false)?.satoshis(), enteredSatoshis > 0 else {
+                self.askForWithdrawAmount(callbackURL: callbackURL, k1: k1, minWithdrawable: minWithdrawable, maxWithdrawable: maxWithdrawable)
+                return
+            }
+            
+            // Check whether entered amount fits the range.
+            let amountMsat = enteredSatoshis * 1000
+            guard amountMsat >= minWithdrawable, amountMsat <= maxWithdrawable else {
+                self.askForWithdrawAmount(callbackURL: callbackURL, k1: k1, minWithdrawable: minWithdrawable, maxWithdrawable: maxWithdrawable)
+                return
+            }
+            
+            self.sendWithdrawRequest(callbackURL: callbackURL, amount: amountMsat, k1: k1)
+        }
     }
     
     func sendPayRequest(callbackURL:String, amount:Int, receivedDescription:String?) {

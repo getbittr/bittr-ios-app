@@ -347,7 +347,7 @@ extension UIViewController {
         }
     }
     
-    func showTextFieldAlert(presentingController: UIViewController? = nil, title: String, initialText: String, placeholder: String, cancelTitle: String, saveTitle: String, onSave: @escaping (String) -> Void) {
+    func showTextFieldAlert(presentingController: UIViewController? = nil, title: String, message: String = "", initialText: String, placeholder: String, keyboardType: UIKeyboardType = .default, cancelTitle: String, saveTitle: String, onSave: @escaping (String) -> Void) {
         
         let host = presentingController ?? self.alertHost
         
@@ -361,6 +361,19 @@ extension UIViewController {
             let card = chrome.card
             
             let alertIcon = self.addAlertHeader(to: card, title: title, trailingLimit: card)
+            
+            // Add message, if present.
+            let messageLabel: UILabel?
+            if message.isEmpty {
+                messageLabel = nil
+            } else {
+                let label = UILabel()
+                label.translatesAutoresizingMaskIntoConstraints = false
+                label.numberOfLines = 0
+                label.attributedText = message.attributed()
+                card.addSubview(label)
+                messageLabel = label
+            }
             
             // Text field container.
             let fieldView = UIView()
@@ -378,13 +391,14 @@ extension UIViewController {
             textField.text = initialText
             textField.placeholder = placeholder
             textField.textAlignment = .left
-            textField.autocapitalizationType = .sentences
+            textField.keyboardType = keyboardType
+            textField.autocapitalizationType = (keyboardType == .default) ? .sentences : .none
             textField.returnKeyType = .done
             textField.accessibilityIdentifier = "alert.textField"
             fieldView.addSubview(textField)
             
             // Dismissal helper.
-            let dismiss: () -> Void = { [weak self] in
+            let dismiss: (@escaping () -> Void) -> Void = { [weak self] completion in
                 if let tokens = overlay.keyboardObserverTokens {
                     tokens.forEach { NotificationCenter.default.removeObserver($0) }
                     overlay.keyboardObserverTokens = nil
@@ -392,6 +406,7 @@ extension UIViewController {
                 // No keyboard up (e.g. it was dismissed via Done) — just exit.
                 guard host.view.endEditing(true) else {
                     self?.hideAlert()
+                    completion()
                     return
                 }
                 chrome.cardBottom.constant = -host.view.safeAreaInsets.bottom
@@ -399,14 +414,14 @@ extension UIViewController {
                     host.view.layoutIfNeeded()
                 }) { _ in
                     self?.hideAlert()
+                    completion()
                 }
             }
             
-            let cancelButton = self.makeAlertButton(title: cancelTitle, index: 0) { dismiss() }
+            let cancelButton = self.makeAlertButton(title: cancelTitle, index: 0) { dismiss({}) }
             let saveButton = self.makeAlertButton(title: saveTitle, index: 1) {
-                let noteText = textField.text ?? ""
-                dismiss()
-                onSave(noteText)
+                let enteredText = textField.text ?? ""
+                dismiss({ onSave(enteredText) })
             }
             
             let buttonsStack = UIStackView(arrangedSubviews: [cancelButton, saveButton])
@@ -417,8 +432,16 @@ extension UIViewController {
             buttonsStack.clipsToBounds = false
             card.addSubview(buttonsStack)
             
+            if let messageLabel {
+                NSLayoutConstraint.activate([
+                    messageLabel.topAnchor.constraint(equalTo: alertIcon.bottomAnchor, constant: 25),
+                    messageLabel.leadingAnchor.constraint(equalTo: card.leadingAnchor, constant: 40),
+                    messageLabel.trailingAnchor.constraint(equalTo: card.trailingAnchor, constant: -40)
+                ])
+            }
+            
             NSLayoutConstraint.activate([
-                fieldView.topAnchor.constraint(equalTo: alertIcon.bottomAnchor, constant: 25),
+                fieldView.topAnchor.constraint(equalTo: (messageLabel ?? alertIcon).bottomAnchor, constant: 25),
                 fieldView.leadingAnchor.constraint(equalTo: card.leadingAnchor, constant: 20),
                 fieldView.trailingAnchor.constraint(equalTo: card.trailingAnchor, constant: -20),
                 fieldView.heightAnchor.constraint(equalToConstant: 45),
