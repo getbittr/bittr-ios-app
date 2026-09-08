@@ -106,6 +106,7 @@ private struct TimerOrIcon: View {
             Text(state.startDate, style: .timer)
                 .font(compact ? .body : .title3).monospacedDigit().fontWeight(.semibold)
                 .foregroundStyle(bittrYellow)
+                .multilineTextAlignment(.trailing)
                 .frame(maxWidth: compact ? 52 : 74, alignment: .trailing)
         } else {
             Image(systemName: state.phase.systemIcon)
@@ -179,6 +180,7 @@ struct SwapLiveActivity: Widget {
                         Text(state.startDate, style: .timer)
                             .monospacedDigit().fontWeight(.semibold)
                             .foregroundStyle(bittrYellow)
+                            .multilineTextAlignment(.trailing)
                             .frame(maxWidth: 60, alignment: .trailing)
                     } else {
                         Image(systemName: state.phase.systemIcon).foregroundStyle(state.phase.tint)
