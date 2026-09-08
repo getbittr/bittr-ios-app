@@ -23,28 +23,25 @@ extension HomeHeaderTableViewCell {
         // Profit.
         self.calculateProfit()
         
-        // Check if conversion rates have been fetched successfully.
-        if homeVC.couldNotFetchConversion {
-            self.headerProblemImage.alpha = 1
-        }
-        
-        // Stop sync status spinner
+        // Stop sync status spinner.
         if homeVC.coreVC!.walletHasSynced {
             self.showLabels()
         } else {
             self.headerSpinner.startAnimating()
         }
+        
+        // Check noTransactionsLabel.
+        self.noTransactionsLabel.alpha = (!homeVC.didStartReset && homeVC.visibleTransactions.count == 0) ? 1 : 0
     }
     
     func showLabels() {
         self.profitView.alpha = 1
         self.balanceView.alpha = 1
         self.conversionLabel.alpha = 1
-        self.headerProblemImage.alpha = 0
         self.headerSpinner.stopAnimating()
         
         guard let homeVC = self.homeVC else { return }
-        self.noTransactionsLabel.alpha = (homeVC.visibleTransactions.count == 0) ? 1 : 0
+        self.headerProblemImage.alpha = homeVC.couldNotFetchConversion ? 1 : 0
     }
     
     func hideLabels() {
