@@ -36,7 +36,7 @@ appId: com.bittr.bittr-regtest
 ---
 - launchApp:
     permissions:
-      location: inuse
+      location: allow
 - runFlow: ../helpers/wait_for_launch.yaml
 
 # Existing wallet → launch lands on the PIN unlock screen. Enter the PIN.
