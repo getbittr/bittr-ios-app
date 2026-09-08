@@ -1,0 +1,197 @@
+name: Android — build + Maestro smoke
+
+# The Android definition of done is "the Maestro suite passes on Android", so this
+# workflow is the gate that claim is measured by. It runs on every push that can
+# affect the Android app or the shared flows/test IDs.
+#
+# Shape, and why:
+#   - Build and emulator are separate jobs. The emulator is the slow, flaky-prone
+#     part; there is no reason to hold it open while Gradle compiles, and a
+#     compile error should fail in ~1 minute rather than after an emulator boot.
+#   - No retries anywhere. A flow that needs a retry to pass is a failing flow —
+#     see shared/flows/README.md. If the emulator itself is unreliable, that gets
+#     reported as a blocker, not papered over with `continue-on-error`.
+
+on:
+  push:
+    paths:
+      - 'android/**'
+      - 'shared/flows/**'
+      - 'shared/test-ids/**'
+      - '.github/workflows/android-maestro.yml'
+  pull_request:
+    paths:
+      - 'android/**'
+      - 'shared/flows/**'
+      - 'shared/test-ids/**'
+      - '.github/workflows/android-maestro.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: android-maestro-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  JAVA_VERSION: '17'
+  # Must match android/app/build.gradle.kts: applicationId + debug applicationIdSuffix.
+  APP_ID: com.bittr.android.regtest
+
+jobs:
+  build:
+    name: Build debug APK
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: ${{ env.JAVA_VERSION }}
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          build-scan-publish: false
+
+      - name: Check every flow ID is registered
+        # A flow selecting an ID that is in no registry entry fails at run time
+        # with "element not found" — indistinguishable from a missing testTag in
+        # the app, and it costs an emulator boot to find out. Fail here instead.
+        run: python3 shared/test-ids/check_flow_ids.py
+
+      - name: Check generated test IDs are in sync
+        # The generated TestIDs.swift/.kt are committed for diff visibility. If
+        # someone edits test-ids.json without regenerating, iOS and Android drift
+        # apart silently and the shared flows start failing on one platform only.
+        # Cheapest possible place to catch it.
+        #
+        # Android is a hard failure. iOS is advisory only: the Android port may
+        # not change iOS sources without sign-off (BIT-7 deliverable 2), so the
+        # Swift file is allowed to lag test-ids.json until that lands. The notice
+        # keeps the pending diff visible rather than silent.
+        run: |
+          python3 shared/test-ids/build.py --platform android
+          git diff --exit-code -- android/core/common/src/main/kotlin/com/bittr/android/core/common/TestIDs.kt \
+            || { echo "::error::Generated Android test IDs are stale. Run ./shared/test-ids/build.py --platform android and commit the result."; exit 1; }
+          python3 shared/test-ids/build.py --platform ios
+          git diff --quiet -- ios/bittr/Helpers/TestIDs.swift \
+            || echo "::notice::TestIDs.swift is behind test-ids.json. Regenerating it is an iOS change and needs sign-off."
+          git checkout -- ios/bittr/Helpers/TestIDs.swift
+
+      - name: Unit tests
+        working-directory: android
+        # `test`, not `testDebugUnitTest`. The pure-Kotlin modules (:core:common,
+        # :core:wallet, :core:wallet-stub) have no Android variants, so their test
+        # task is plain `test` — `testDebugUnitTest` reports NO-SOURCE for them and
+        # goes green having run nothing. That includes the test-tag checks below.
+        run: ./gradlew test --no-daemon
+
+      - name: Assemble debug APK
+        working-directory: android
+        run: ./gradlew :app:assembleDebug --no-daemon
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-debug-apk
+          path: android/app/build/outputs/apk/debug/*.apk
+          retention-days: 7
+          if-no-files-found: error
+
+  maestro:
+    name: Maestro smoke (emulator)
+    runs-on: ubuntu-latest
+    needs: build
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download APK
+        uses: actions/download-artifact@v4
+        with:
+          name: app-debug-apk
+          path: apk
+
+      - name: Set up JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: ${{ env.JAVA_VERSION }}
+
+      - name: Enable KVM
+        # GitHub-hosted Linux runners expose /dev/kvm but not to non-root users by
+        # default. Without this the emulator falls back to software rendering and
+        # goes from "about a minute to boot" to "does not finish".
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' \
+            | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      - name: Install Maestro
+        run: |
+          curl -fsSL "https://get.maestro.mobile.dev" | bash
+          echo "$HOME/.maestro/bin" >> "$GITHUB_PATH"
+
+      - name: Cache AVD
+        uses: actions/cache@v4
+        id: avd-cache
+        with:
+          path: |
+            ~/.android/avd/*
+            ~/.android/adb*
+          key: avd-api34-aosp-atd-x86_64
+
+      - name: Create AVD snapshot
+        if: steps.avd-cache.outputs.cache-hit != 'true'
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 34
+          target: aosp_atd
+          arch: x86_64
+          profile: pixel_6
+          force-avd-creation: false
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
+          disable-animations: false
+          script: echo "AVD created and snapshotted"
+
+      - name: Run Maestro smoke flow
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 34
+          # aosp_atd = Automated Test Device: a stripped AOSP image built for CI.
+          # No Play Services, no Google apps, materially faster to boot and less
+          # prone to a background service waking up mid-flow. The app has no Play
+          # Services dependency yet; when FCM lands, this must move to a
+          # google_apis image and the boot-time number below gets re-measured.
+          target: aosp_atd
+          arch: x86_64
+          profile: pixel_6
+          force-avd-creation: false
+          emulator-options: -no-snapshot-save -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
+          disable-animations: true
+          script: |
+            set -euo pipefail
+            adb install -r apk/*.apk
+            maestro test \
+              --debug-output maestro-debug \
+              --format junit \
+              --output maestro-report.xml \
+              shared/flows/android/scaffold_smoke.yaml
+
+      - name: Upload Maestro artefacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: maestro-debug-output
+          # --debug-output carries the screenshot-on-failure, the view hierarchy
+          # dump at the point of failure, and the maestro log. The hierarchy dump
+          # is the one that actually explains "element not found".
+          path: |
+            maestro-debug/**
+            maestro-report.xml
+            shared/docs/screenshots/android_scaffold_smoke/**
+          retention-days: 14
+          if-no-files-found: warn

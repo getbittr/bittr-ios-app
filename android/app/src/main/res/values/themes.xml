@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  XML theme for the window before Compose takes over (splash background, status bar).
+  The app's actual theming is BittrTheme in :core:designsystem — keep this file
+  minimal so there is only one place colours are defined.
+-->
+<resources>
+    <style name="Theme.Bittr" parent="android:Theme.Material.Light.NoActionBar" />
+</resources>
