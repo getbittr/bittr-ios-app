@@ -10,7 +10,28 @@ import UIKit
 
 extension ConfirmSendViewController {
     
+    override func viewDidLoad() {
+        super.viewDidLoad()
+
+        self.setBasicStyling()
+        self.changeColors()
+        self.setLanguage()
+    }
+    
     func setBasicStyling() {
+        
+        // Tag the fee buttons so feeButtonTapped can route the tap.
+        self.buttonFast.boundString = "high"
+        self.buttonMedium.boundString = "medium"
+        self.buttonSlow.boundString = "low"
+        
+        // Accessibility identifiers
+        self.addressLabel.accessibilityIdentifier = TestID.Send.Confirm.addressLabel
+        self.amountLabel.accessibilityIdentifier = TestID.Send.Confirm.amountLabel
+        self.amountFiatLabel.accessibilityIdentifier = TestID.Send.Confirm.amountFiatLabel
+        self.buttonFast.accessibilityIdentifier = TestID.Send.Confirm.feeFastButton
+        self.buttonSlow.accessibilityIdentifier = TestID.Send.Confirm.feeSlowButton
+        self.confirmButton.accessibilityIdentifier = TestID.Send.Confirm.confirmButton
         
         // Buttons
         self.buttonFast.setTitle("", for: .normal)
@@ -86,5 +107,23 @@ extension ConfirmSendViewController {
         self.timeMedium.text = Language.getWord(withID: "1hour")
         self.timeSlow.text = Language.getWord(withID: "1day")
         
+    }
+    
+    func highlightFee(_ selectedFee:SelectedFee) {
+        self.selectedFee = selectedFee
+        switch selectedFee {
+        case .medium:
+            self.feesViewFast.backgroundColor = Colors.getColor("white0.7orblue1")
+            self.feesViewMedium.backgroundColor = Colors.getColor("whiteorblue3")
+            self.feesViewSlow.backgroundColor = Colors.getColor("white0.7orblue1")
+        case .high:
+            self.feesViewFast.backgroundColor = Colors.getColor("whiteorblue3")
+            self.feesViewMedium.backgroundColor = Colors.getColor("white0.7orblue1")
+            self.feesViewSlow.backgroundColor = Colors.getColor("white0.7orblue1")
+        default:
+            self.feesViewFast.backgroundColor = Colors.getColor("white0.7orblue1")
+            self.feesViewMedium.backgroundColor = Colors.getColor("white0.7orblue1")
+            self.feesViewSlow.backgroundColor = Colors.getColor("whiteorblue3")
+        }
     }
 }
