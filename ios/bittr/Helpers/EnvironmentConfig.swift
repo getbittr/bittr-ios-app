@@ -89,7 +89,7 @@ struct EnvironmentConfig {
     
     /// Electrum URL based on environment
     static var electrumURL: String {
-        isDevelopment ? "tcp://electrum.bittr.io:60402" : "ssl://electrum.blockstream.info:50002"
+        isDevelopment ? "tcp://electrum.bittr.io:60402" : "ssl://esplora.getbittr.com:50002"
     }
     
     /// Esplora URL based on environment

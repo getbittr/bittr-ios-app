@@ -8,6 +8,8 @@ We started tracking the changelog at **0.1.184** (the TestFlight build current w
 
 ## [Unreleased]
 
+## [0.1.185] - 2026-09-08
+
 ### Added
 
 - **Swap Live Activity in the Dynamic Island and on the Lock Screen** for onchain→lightning swaps: a boarding-pass-style status with a live elapsed timer and progress bar, updated in real time, that deep-links back into the app — including the incoming-payment (HTLC-resume) flow during the final leg so the wallet comes online to receive. (#89)
@@ -16,6 +18,7 @@ We started tracking the changelog at **0.1.184** (the TestFlight build current w
 
 ### Changed
 
+- Production Electrum server switched to bittr's own (`ssl://esplora.getbittr.com:50002`) instead of Blockstream's public server.
 - Entering the shown swap **maximum** now works: onchain→lightning drains the on-chain wallet (fee-aware), and lightning→onchain caps at outbound capacity minus the Boltz fee, claim fee, and a small routing headroom. (#89)
 - The Home screen refreshes when a swap completes, merging the on-chain and lightning legs into a single row instead of leaving a stale outgoing payment behind. (#89)
 - Friendlier, consumer-facing error messages throughout the Send flow, with guards against sending to the wrong network or paying your own invoice; unsupported BOLT12 offers are rejected up front. (#80)
