@@ -28,11 +28,34 @@ on:
   workflow_dispatch:
 
 concurrency:
-  group: android-maestro-${{ github.ref }}
+  # Pushes and pull_request updates supersede each other: once a newer commit exists
+  # on a ref, the older commit's emulator run is dead weight and should be cancelled.
+  #
+  # A workflow_dispatch must NEVER be cancelled by the next one, and this is not a
+  # nicety — it is the definition of done. BIT-5 closes on three CONSECUTIVE dispatches
+  # of the same ref. Under a single shared group every dispatch would cancel the one
+  # before it, so dispatching three times would leave two cancellations and one result.
+  # On a self-hosted runner it is worse and quieter: one runner serialises jobs, so runs
+  # 1 and 2 get cancelled while still QUEUED, having never booted an emulator. The run
+  # list shows greys rather than reds, which reads as "I cancelled something" rather
+  # than "the harness ate my evidence".
+  #
+  # Keying manual runs on github.run_id gives each dispatch its own group, so dispatches
+  # queue behind each other instead of replacing each other.
+  group: android-maestro-${{ github.ref }}-${{ github.event_name == 'workflow_dispatch' && github.run_id || 'auto' }}
   cancel-in-progress: true
 
 env:
   JAVA_VERSION: '17'
+  # Pinned deliberately. The definition of done is three consecutive green runs, which
+  # only means something if the three runs used the same tooling — an unpinned installer
+  # makes the Maestro version a variable that can change between run 1 and run 3, and
+  # "it went red and nothing changed" is the single most expensive kind of CI failure to
+  # chase. Maestro does move under this: recent versions route `takeScreenshot` output
+  # into the --debug-output bundle rather than writing it CWD-relative.
+  #
+  # Bump this on purpose, in its own commit, and re-run the three dispatches.
+  MAESTRO_VERSION: '2.10.0'
   # Must match android/app/build.gradle.kts: applicationId + debug applicationIdSuffix.
   APP_ID: com.bittr.android.regtest
 
@@ -43,6 +66,61 @@ jobs:
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
+
+      - name: Lint this workflow
+        # A workflow is the one file in the repo that nothing else type-checks, and its
+        # mistakes are only discovered by running it — which here costs an emulator boot.
+        # actionlint validates ${{ }} expressions against the real context types and runs
+        # shellcheck over every `run:` block. Pinned so the check itself cannot change
+        # under a run; runs first because it costs about two seconds.
+        run: |
+          set -euo pipefail
+          curl -fsSL -o /tmp/actionlint.tar.gz \
+            "https://github.com/rhysd/actionlint/releases/download/v${ACTIONLINT_VERSION}/actionlint_${ACTIONLINT_VERSION}_linux_amd64.tar.gz"
+          tar -xzf /tmp/actionlint.tar.gz -C /tmp actionlint
+          /tmp/actionlint -color
+        env:
+          ACTIONLINT_VERSION: '1.7.12'
+
+      - name: Check a dispatch cannot cancel the previous dispatch
+        # This one is invisible to actionlint — the bad version is perfectly valid YAML
+        # and a perfectly sensible concurrency rule; it is only wrong because of what
+        # BIT-5 measures. Keying manual runs on the ref alone means dispatch N cancels
+        # dispatch N-1, so "three consecutive green runs" silently becomes one result and
+        # two cancellations. On a single self-hosted runner the cancelled runs never even
+        # boot an emulator, so they show as greys rather than reds and are easy to miss.
+        #
+        # Guards the property, not the exact string, so the group can still be rewritten.
+        # No PyYAML: shared/test-ids/*.py deliberately parse with `re` so the checks run
+        # on any python3 without a pip step, and this stays consistent with that.
+        run: |
+          set -euo pipefail
+          python3 - <<'EOF'
+          import re, sys
+          from pathlib import Path
+
+          text = Path(".github/workflows/android-maestro.yml").read_text()
+          # The concurrency block: from the top-level key to the next top-level key.
+          match = re.search(r"^concurrency:\n(.*?)(?=^\S)", text, re.MULTILINE | re.DOTALL)
+          if not match:
+              sys.exit("No top-level `concurrency:` block found — this guard is now checking nothing.")
+          block = match.group(1)
+
+          cancels = re.search(r"^\s+cancel-in-progress:\s*true\s*$", block, re.MULTILINE)
+          group = re.search(r"^\s+group:\s*(.+?)\s*$", block, re.MULTILINE)
+          if not group:
+              sys.exit("`concurrency.group` not found inside the concurrency block.")
+
+          if cancels and "github.run_id" not in group.group(1):
+              sys.exit(
+                  "concurrency.group must vary by github.run_id while cancel-in-progress is "
+                  "true, or each manual dispatch cancels the one before it and the "
+                  "three-consecutive-runs definition of done cannot be measured.\n"
+                  f"  group = {group.group(1)}\n"
+                  "See android/docs/self-hosted-runner.md, 'Why three dispatches in a row is safe'."
+              )
+          print(f"concurrency group is dispatch-safe: {group.group(1)}")
+          EOF
 
       - name: Set up JDK
         uses: actions/setup-java@v4
@@ -178,10 +256,32 @@ jobs:
           fi
           echo "KVM OK on ${{ runner.environment }} runner '${{ runner.name }}' as $(id -un)."
 
-      - name: Install Maestro
+      - name: Preflight — ANDROID_HOME is set
+        # android-emulator-runner installs the SDK components itself, but it resolves
+        # them against $ANDROID_HOME. GitHub-hosted images set it; a freshly registered
+        # self-hosted runner does not. Unset, the action expands the path to the literal
+        # string "undefined/cmdline-tools" and the failure surfaces much later as a
+        # confusing sdkmanager error rather than a missing variable.
+        if: runner.environment != 'github-hosted'
         run: |
-          curl -fsSL "https://get.maestro.mobile.dev" | bash
+          set -euo pipefail
+          if [ -z "${ANDROID_HOME:-}" ]; then
+            echo "::error::ANDROID_HOME is not set on runner '${{ runner.name }}'. android-emulator-runner installs the SDK itself but needs somewhere to put it. Export ANDROID_HOME (e.g. /opt/android-sdk, writable by the runner user) in the runner service environment. See android/docs/self-hosted-runner.md."
+            exit 1
+          fi
+          mkdir -p "$ANDROID_HOME"
+          echo "ANDROID_HOME=$ANDROID_HOME"
+
+      - name: Install Maestro
+        # MAESTRO_VERSION is read by the installer (unset would fetch releases/latest).
+        # The version is echoed so each run's log records which Maestro produced its
+        # result — without that, comparing three "consecutive" runs assumes something
+        # nobody actually checked.
+        run: |
+          set -euo pipefail
+          curl -fsSL "https://get.maestro.mobile.dev" | MAESTRO_VERSION="${MAESTRO_VERSION}" bash
           echo "$HOME/.maestro/bin" >> "$GITHUB_PATH"
+          "$HOME/.maestro/bin/maestro" --version
 
       - name: Cache AVD
         uses: actions/cache@v4

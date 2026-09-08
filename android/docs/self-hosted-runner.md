@@ -66,12 +66,33 @@ preflight still fails after "I added the group".
 sudo apt-get install -y openjdk-17-jdk curl unzip
 ```
 
-The workflow installs the Android SDK, AVD and Maestro itself, so nothing else needs
-pre-installing. Java is pinned to 17 (see `JAVA_VERSION` in the workflow);
-`actions/setup-java` will provision it, but having a system JDK avoids a download
-per job.
+The workflow installs the Android SDK, AVD and Maestro itself. Java is pinned to 17
+(see `JAVA_VERSION` in the workflow); `actions/setup-java` will provision it, but
+having a system JDK avoids a download per job.
 
-### 3. Disk
+### 3. `ANDROID_HOME` — the one thing the workflow cannot install for you
+
+`android-emulator-runner` downloads and installs the SDK components (`cmdline-tools`,
+`platform-tools`, `emulator`, the system image) rather than expecting them, so they do
+**not** need pre-installing. But it installs them *into* `$ANDROID_HOME`, and it does
+not pick a default. GitHub-hosted images set the variable; a freshly registered
+self-hosted runner does not — and unset, the action expands the target path to the
+literal string `undefined/cmdline-tools`. The failure then surfaces several steps later
+as an `sdkmanager` error about a path nobody wrote, which is a poor clue.
+
+Set it in the **runner service** environment, not your login shell — the service does
+not read `.bashrc`. In the runner directory, `.env` is read at service start:
+
+```sh
+echo 'ANDROID_HOME=/opt/android-sdk' >> .env    # then restart the runner service
+sudo mkdir -p /opt/android-sdk
+sudo chown "$(id -un)" /opt/android-sdk         # the runner user must be able to write it
+```
+
+The workflow preflights this on non-GitHub-hosted runners and names the variable, so a
+missing value costs seconds rather than a debugging session.
+
+### 4. Disk
 
 Budget **~25 GB**: system image (~8 GB), SDK and platform tools (~5 GB), AVD
 snapshot (~3 GB), Gradle caches, plus artefacts. A self-hosted runner does **not**
@@ -121,3 +142,28 @@ Run the workflow via `workflow_dispatch` and check, in order:
    for BIT-5, and one green run does not establish it — a flaky pass is a failure.
 
 Then report the per-run wall-clock number.
+
+### Why three dispatches in a row is safe to do
+
+It was not, until recently. The workflow's `concurrency` group used to be keyed on the
+ref alone with `cancel-in-progress: true`, which is right for pushes — an older commit's
+emulator run is dead weight — and actively destructive here: dispatch 2 would cancel
+dispatch 1, dispatch 3 would cancel dispatch 2, and the evidence for the definition of
+done would be one result and two cancellations. On this host it would have been quieter
+still, because a single runner serialises jobs: runs 1 and 2 would have been cancelled
+while **queued**, having never booted an emulator, showing up as greys in the run list
+rather than reds.
+
+Manual runs are now keyed on `github.run_id`, so each dispatch gets its own group and
+they queue behind each other instead of replacing each other. Push and `pull_request`
+runs still supersede as before.
+
+### The three runs must use the same Maestro
+
+`MAESTRO_VERSION` in the workflow is pinned (currently `2.10.0`) and the install step
+echoes `maestro --version` into the log. This matters more than it looks: the installer
+defaults to `releases/latest`, so an unpinned harness lets the tool change between run 1
+and run 3 — and "it went red and nothing changed" is the most expensive kind of CI
+failure to chase. Maestro does move under this; recent versions route `takeScreenshot`
+output into the `--debug-output` bundle rather than writing it relative to the working
+directory. Bump the pin deliberately, in its own commit, and re-run the three dispatches.
