@@ -21,6 +21,11 @@ android {
         versionName = "0.1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+
+        // Whether unlock may show BiometricPrompt (DEV-17) before the PIN pad.
+        // On by default — the shipped app follows Android convention. The debug
+        // build overrides it to false; see below.
+        buildConfigField("boolean", "BIOMETRIC_UNLOCK_ENABLED", "true")
     }
 
     buildTypes {
@@ -30,6 +35,16 @@ android {
             applicationIdSuffix = ".regtest"
             versionNameSuffix = "-regtest"
             isMinifyEnabled = false
+
+            // Biometrics OFF in the build Maestro installs, so every flow lands on
+            // the PIN pad regardless of what the emulator image has enrolled.
+            //
+            // 296 of the 329 takeScreenshot steps sit behind a PIN entry. A
+            // BiometricPrompt appearing ahead of the PIN pad does not degrade the
+            // suite, it collapses it — and early, so every downstream flow looks
+            // independently broken. Enforced by BiometricUnlockFlagTest and
+            // BiometricApiGuardTest; consumed via core.common.AuthCapabilities.
+            buildConfigField("boolean", "BIOMETRIC_UNLOCK_ENABLED", "false")
         }
         release {
             isMinifyEnabled = true
@@ -51,12 +66,30 @@ android {
 
     buildFeatures {
         compose = true
+        // Required for the buildConfigField calls above — AGP does not generate
+        // BuildConfig unless asked.
+        buildConfig = true
     }
 
     packaging {
         resources {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
         }
+    }
+}
+
+// AGP 9 only creates a unit-test component for the debug variant. `./gradlew test`
+// still describes itself as "Run unit tests for all variants" and still goes green,
+// so a test whose assertion is about the release build never runs and reports
+// success — BiometricUnlockFlagTest asserts biometrics stay ON in the shipped
+// build, and that half was silently dead until this was turned on.
+// (AGP 9 replaced HasUnitTestBuilder.enableUnitTest with the hostTests map;
+// `enableUnitTest` still exists as an interface but application variants no longer
+// implement it, so it fails to resolve rather than deprecating.)
+androidComponents {
+    beforeVariants(selector().withBuildType("release")) { variant ->
+        variant.hostTests[com.android.build.api.variant.HostTestBuilder.UNIT_TEST_TYPE]
+            ?.enable = true
     }
 }
 
