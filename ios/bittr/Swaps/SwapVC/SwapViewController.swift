@@ -67,6 +67,11 @@ class SwapViewController: UIViewController, UITextFieldDelegate, UNUserNotificat
     var thisSwap:Swap?
     var didRescanForStaleBdk = false
     
+    // Maximum sendable satoshis each way.
+    var maxLightningToOnchainSats:Int?
+    var maxOnchainToLightningSats:Int?
+    var isDrainingOnchainMax = false
+    
     override func viewDidLoad() {
         super.viewDidLoad()
 
@@ -121,7 +126,7 @@ class SwapViewController: UIViewController, UITextFieldDelegate, UNUserNotificat
         }
         
         // Check amount to be sent.
-        guard let amountToBeSent = (self.amountTextField.text ?? "").parsedUserAmount(allowingFraction: false)?.satoshis(), amountToBeSent > 0 else {
+        guard var amountToBeSent = (self.amountTextField.text ?? "").parsedUserAmount(allowingFraction: false)?.satoshis(), amountToBeSent > 0 else {
             // No amount has been entered.
             self.showAlert(title: Language.getWord(withID: "swapfunds2"), message: Language.getWord(withID: "enteramountofsatoshis"), buttons: [.dismiss(Language.getWord(withID: "okay"))])
             return
@@ -135,6 +140,17 @@ class SwapViewController: UIViewController, UITextFieldDelegate, UNUserNotificat
         guard !(amountToBeSent > maxAmount) else {
             // You can't receive or send this much.
             self.showAlert(title: Language.getWord(withID: "swapfunds2"), message: Language.getWord(withID: "swapamountexceeded").replacingOccurrences(of: "<amount>", with: "\(maxAmount)"), buttons: [.dismiss(Language.getWord(withID: "okay"))])
+            return
+        }
+        
+        // Apply the fee-aware maximum for this direction.
+        self.isDrainingOnchainMax = false
+        if self.swapDirection == .onchainToLightning, let onchainMax = self.maxOnchainToLightningSats, amountToBeSent >= onchainMax {
+            // At (or above) the max → drain the whole onchain balance to Boltz.
+            amountToBeSent = onchainMax
+            self.isDrainingOnchainMax = true
+        } else if self.swapDirection == .lightningToOnchain, let lightningMax = self.maxLightningToOnchainSats, amountToBeSent > lightningMax {
+            self.showAlert(title: Language.getWord(withID: "swapfunds2"), message: Language.getWord(withID: "swapamountexceeded").replacingOccurrences(of: "<amount>", with: "\(lightningMax)"), buttons: [.dismiss(Language.getWord(withID: "okay"))])
             return
         }
         
@@ -264,6 +280,10 @@ class SwapViewController: UIViewController, UITextFieldDelegate, UNUserNotificat
         // Send payment.
         if self.thisSwap!.swapDirection == .onchainToLightning {
             SentryManager.countMetric("swap.onchaintolightning.initiated")
+            
+            // Surface the on-chain confirmation wait in the Dynamic Island.
+            SwapLiveActivityController.start(swap: self.thisSwap!)
+            
             SwapManager.sendOnchainPayment(swapVC: self)
         } else {
             SentryManager.countMetric("swap.lightningtoonchain.initiated")

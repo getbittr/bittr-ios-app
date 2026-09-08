@@ -12,5 +12,6 @@ import SwiftUI
 struct BittrWidgetBundle: WidgetBundle {
     var body: some Widget {
         BittrWidget()
+        SwapLiveActivity()
     }
 }

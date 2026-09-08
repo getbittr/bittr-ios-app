@@ -71,16 +71,21 @@ class BoltzRefund {
             CacheManager.saveLatestSwap(ongoingSwap)
         }
         
-        let boltzServerPublicKeyBytes = try! ongoingSwap.refundPublicKey!.bytes
-        
-        let boltzServerPublicKey = try! P256K.Schnorr.PublicKey(
+        guard let refundPublicKeyHex = ongoingSwap.refundPublicKey, let privateKeyHex = ongoingSwap.privateKey else {
+            Log.info("Refund aborted: swap is missing its refund/private key.")
+            return ClaimResult(success: false, transactionId: nil)
+        }
+
+        let boltzServerPublicKeyBytes = try refundPublicKeyHex.bytes
+
+        let boltzServerPublicKey = try P256K.Schnorr.PublicKey(
             dataRepresentation: boltzServerPublicKeyBytes,
             format: .compressed
         )
-        
-        let hexPrivateKey = try! ongoingSwap.privateKey!.bytes
-        
-        let ourPrivateKey = try! P256K.Schnorr.PrivateKey.init(dataRepresentation: hexPrivateKey)
+
+        let hexPrivateKey = try privateKeyHex.bytes
+
+        let ourPrivateKey = try P256K.Schnorr.PrivateKey.init(dataRepresentation: hexPrivateKey)
         
         // Aggregate public keys without sorting
         let publicKeys = [boltzServerPublicKey, ourPrivateKey.publicKey]
@@ -234,16 +239,21 @@ class BoltzRefund {
             return ClaimResult(success: false, transactionId: nil)
         }
         
-        let boltzServerPublicKeyBytes = try! ongoingSwap.claimPublicKey!.bytes
-        
-        let boltzServerPublicKey = try! P256K.Schnorr.PublicKey(
+        guard let claimPublicKeyHex = ongoingSwap.claimPublicKey, let privateKeyHex = ongoingSwap.privateKey else {
+            Log.info("Claim aborted: swap is missing its claim/private key.")
+            return ClaimResult(success: false, transactionId: nil)
+        }
+
+        let boltzServerPublicKeyBytes = try claimPublicKeyHex.bytes
+
+        let boltzServerPublicKey = try P256K.Schnorr.PublicKey(
             dataRepresentation: boltzServerPublicKeyBytes,
             format: .compressed
         )
-        
-        let hexPrivateKey = try! ongoingSwap.privateKey!.bytes
-        
-        let ourPrivateKey = try! P256K.Schnorr.PrivateKey.init(dataRepresentation: hexPrivateKey)
+
+        let hexPrivateKey = try privateKeyHex.bytes
+
+        let ourPrivateKey = try P256K.Schnorr.PrivateKey.init(dataRepresentation: hexPrivateKey)
         
         // Aggregate public keys without sorting
         let publicKeys = [boltzServerPublicKey, ourPrivateKey.publicKey]
@@ -264,7 +274,18 @@ class BoltzRefund {
         
         let tweakedKeyHex = tweakedXonlyKey.bytes.map { String(format: "%02x", $0) }.joined()
         
-        let lockupTxHex = ongoingSwap.lockupTx!
+        let lockupTxHex: String
+        if let stored = ongoingSwap.lockupTx, !stored.isEmpty {
+            lockupTxHex = stored
+        } else if let txid = ongoingSwap.sentOnchainTransactionID,
+                  let fetched = await SwapManager.fetchRawTransactionHex(txid: txid) {
+            // A drained max swap only stored a txid if the send-time esplora fetch
+            // failed; recover the raw lockup hex now so the refund can proceed.
+            lockupTxHex = fetched
+        } else {
+            Log.info("No lockup tx hex available for refund; cannot reconstruct the lockup.")
+            return ClaimResult(success: false, transactionId: nil)
+        }
         
         // Calculate the correct transaction hash from the lockup transaction
         guard let txHash = calculateTransactionHash(from: lockupTxHex),

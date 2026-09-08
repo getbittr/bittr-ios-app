@@ -47,10 +47,8 @@ class SwapStatusViewController: UIViewController {
     
     // Variables
     var thisSwap:Swap?
-
-    // Durable "the swap has completed" flag, independent of the label's text, so a
-    // late non-complete status can't overwrite the completed state.
     var hasCompleted = false
+    var didRefreshHomeAfterSwap = false
     var coreVC:CoreViewController?
     var swapVC:SwapViewController?
     var webSocketManager:WebSocketManager?
@@ -175,6 +173,11 @@ class SwapStatusViewController: UIViewController {
 
         if statusText == completeText { self.hasCompleted = true }
         self.confirmStatusLabel.text = statusText
+
+        // Mirror the status into the Dynamic Island for onchain→lightning swaps.
+        if ongoingSwap.swapDirection == .onchainToLightning, let boltzID = ongoingSwap.boltzID {
+            SwapLiveActivityController.update(boltzID: boltzID, boltzStatus: status)
+        }
     }
     
     func receivedStatusUpdate(status:String, fullMessage: [String: Any]) {
@@ -208,6 +211,19 @@ class SwapStatusViewController: UIViewController {
             self.confirmStatusSpinner.stopAnimating()
             // We should also close the websocket connection and stop the background task
             self.webSocketManager?.disconnect()
+        }
+        
+        // When an onchain→lightning swap completes, rebuild Home to merge the swap transactions.
+        if self.thisSwap?.swapDirection == .onchainToLightning, SwapPhase.from(boltzStatus: status) == .complete {
+            self.refreshHomeAfterSwapCompletion()
+        }
+    }
+    
+    private func refreshHomeAfterSwapCompletion() {
+        guard !self.didRefreshHomeAfterSwap else { return }
+        self.didRefreshHomeAfterSwap = true
+        DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
+            self.coreVC?.homeVC?.loadWalletData()
         }
     }
     
@@ -248,6 +264,9 @@ class SwapStatusViewController: UIViewController {
                         if let transactionId = claimResult.transactionId {
                             SwapManager.addOnchainTransactionToUI(transactionId: transactionId, swapVC: self)
                         }
+                        
+                        // Merge the two transactions on Home.
+                        self.refreshHomeAfterSwapCompletion()
                     } else {
                         self.confirmStatusLabel.text = Language.getWord(withID: "swapstatusfailed")
                     }

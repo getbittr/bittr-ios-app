@@ -477,33 +477,6 @@ extension BitcoinManager {
         return details
     }
     
-    func sendOnchainTransaction(address:String, amountSats:Int, selectedVbyte:Double?) throws -> [String] {
-        
-        // Create transaction.
-        let tx:BitcoinDevKit.Transaction
-        do {
-            tx = try self.getTx(address: address, amountSats: amountSats, selectedVbyte: selectedVbyte)
-        } catch {
-            throw error
-        }
-        
-        // Check Electrum availability.
-        guard self.electrumClient != nil else {
-            throw WalletError.clientNotInitiated
-        }
-        
-        // Broadcast transaction.
-        let txId:String
-        do {
-            txId = try self.electrumClient!.transactionBroadcast(tx: tx)
-        } catch {
-            throw error
-        }
-        
-        let rawData = tx.serialize().map { String(format: "%02hhx", $0) }.joined()
-        return [txId, rawData]
-    }
-    
     func isValidMnemonic(_ thisMnemonic:String) -> Bool {
         do {
             _ = try BitcoinDevKit.Mnemonic.fromString(mnemonic: thisMnemonic)

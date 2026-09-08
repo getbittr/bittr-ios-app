@@ -15,9 +15,6 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
 
 
     func scene(_ scene: UIScene, willConnectTo session: UISceneSession, options connectionOptions: UIScene.ConnectionOptions) {
-        // Use this method to optionally configure and attach the UIWindow `window` to the provided UIWindowScene `scene`.
-        // If using a storyboard, the `window` property will automatically be initialized and attached to the scene.
-        // This delegate does not imply the connecting scene or session are new (see `application:configurationForConnectingSceneSession` instead).
         guard let _ = (scene as? UIWindowScene) else { return }
         
         // Handle URIs when app is launched from a completely killed state
@@ -30,6 +27,12 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
             
             if let lightningContext = connectionOptions.urlContexts.first(where: { $0.url.scheme == "lightning" }) {
                 self.handleLightningURI(lightningContext.url)
+                return
+            }
+            
+            // Tapped a swap Live Activity from a fully-killed app (cold launch).
+            if let bittrContext = connectionOptions.urlContexts.first(where: { $0.url.scheme == "bittr" }) {
+                self.handleBittrDeepLink(bittrContext.url)
                 return
             }
         }
@@ -71,6 +74,9 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         
         NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "setupblur"), object: nil, userInfo: nil) as Notification)
         
+        // Clean up any swap Live Activity that finished or went stale while we were backgrounded.
+        SwapLiveActivityController.endStaleActivities()
+        
         DispatchQueue.global(qos: .background).async {
             if BitcoinManager.shared.status()?.isRunning == true {
                 Log.info("Check peer connection upon entering foreground.")
@@ -103,9 +109,29 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
             self.handleLightningURI(lightningContext.url)
             return
         }
-        
+
+        // Tapped a swap Live Activity (Dynamic Island / Lock Screen).
+        if let bittrContext = URLContexts.first(where: { $0.url.scheme == "bittr" }) {
+            self.handleBittrDeepLink(bittrContext.url)
+            return
+        }
+
         // Handle existing widget deeplink
         self.launchBittrValue(urlContexts: URLContexts, delay: 0)
+    }
+
+    // Routes a bittr:// deep link from a tapped swap Live Activity.
+    private func handleBittrDeepLink(_ url: URL) {
+        switch url.host {
+        case "resumeswap":
+            // Set flag and check when the wallet has loaded.
+            UserDefaults.standard.set(true, forKey: "pendingSwapResume")
+            NotificationCenter.default.post(name: NSNotification.Name(rawValue: "resumeSwapPayment"), object: nil)
+        case "swapstatus":
+            NotificationCenter.default.post(name: NSNotification.Name(rawValue: "openSwapStatus"), object: nil)
+        default:
+            break
+        }
     }
     
     private func handleBitcoinURI(_ url: URL) {

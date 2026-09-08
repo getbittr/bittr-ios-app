@@ -34,6 +34,12 @@ class AppDelegate: UIResponder, UIApplicationDelegate, UNUserNotificationCenterD
         
         UNUserNotificationCenter.current().delegate = self
         
+        // Re-attach push-token observers to any swap Live Activity that survived a
+        // relaunch, so a rotated token still reaches the backend.
+        SwapLiveActivityController.resumeTokenObservation()
+        // Clean up any activity that finished or went stale while the app was closed.
+        SwapLiveActivityController.endStaleActivities()
+        
         return true
     }
 

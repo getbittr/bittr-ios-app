@@ -33,6 +33,7 @@ class CoreViewController: UIViewController {
     // Pending notifications
     var wasNotified = false
     var lightningNotification:BittrNotification?
+    var isHandlingIncomingHTLC = false
     var receivedBittrTransaction:Transaction?
     var pendingNotificationId:String?
     var pendingSuggestedSwapAmount:Int = 0

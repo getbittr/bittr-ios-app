@@ -90,6 +90,8 @@ extension CoreViewController {
         NotificationCenter.default.addObserver(self, selector: #selector(newNotification), name: NSNotification.Name(rawValue: "newNotification"), object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(handleBitcoinURI), name: NSNotification.Name(rawValue: "handleBitcoinURI"), object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(handleLightningURI), name: NSNotification.Name(rawValue: "handleLightningURI"), object: nil)
+        NotificationCenter.default.addObserver(self, selector: #selector(openSwapStatus), name: NSNotification.Name(rawValue: "openSwapStatus"), object: nil)
+        NotificationCenter.default.addObserver(self, selector: #selector(resumeSwapPayment), name: NSNotification.Name(rawValue: "resumeSwapPayment"), object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(changeColors), name: NSNotification.Name(rawValue: "changecolors"), object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(setWords), name: NSNotification.Name(rawValue: "changecolors"), object: nil)
         

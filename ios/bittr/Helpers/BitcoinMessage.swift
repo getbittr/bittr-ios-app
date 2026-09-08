@@ -67,7 +67,7 @@ class BitcoinMessage {
     }
     
     static func sign(message: String, privateKeyHex: String, segwitType: SegwitType = .none) throws -> String {
-        let privateBytes = try! privateKeyHex.bytes
+        let privateBytes = try privateKeyHex.bytes
         let messageHash = magicHash(message: message)
         
         // Create recovery private key
@@ -393,7 +393,7 @@ public class SimpleKeyDerivation {
             
             let (privateKeyHex, publicKeyHex) = try keyDerivation.getPrivatePublicKeyForPath(testPath)
             
-            let signature = try! BitcoinMessage.sign(message: "Hello World", privateKeyHex: privateKeyHex, segwitType: .p2wpkh)
+            let signature = try BitcoinMessage.sign(message: "Hello World", privateKeyHex: privateKeyHex, segwitType: .p2wpkh)
             
             Log.info("=== KEY DERIVATION TEST ===")
             Log.debug("Mnemonic: \(testMnemonic)")

@@ -553,6 +553,9 @@ extension HomeViewController {
                 // It's an LNURL notification.
                 self.coreVC!.handleLightningAddressNotification(actualNotification)
             }
+        } else if UserDefaults.standard.bool(forKey: "pendingSwapResume") {
+            Log.info("Resuming swap payment from Live Activity tap.")
+            self.coreVC!.resumeSwapPayment()
         } else {
             var userHasBittrAccount = false
             for eachIbanEntity in BitcoinManager.shared.bittrWallet.ibanEntities where eachIbanEntity.yourUniqueCode != "" {
