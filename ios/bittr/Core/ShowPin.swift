@@ -11,11 +11,12 @@ extension CoreViewController {
     
     func lowerPinView(spinner:UIActivityIndicatorView) {
         
-        UIView.animate(withDuration: 0.4, delay: 0, options: .curveEaseInOut) {
-            NSLayoutConstraint.deactivate([self.pinBottom])
-            self.pinBottom = NSLayoutConstraint(item: self.pinContainerView, attribute: .top, relatedBy: .equal, toItem: self.view, attribute: .bottom, multiplier: 1, constant: 0)
-            NSLayoutConstraint.activate([self.pinBottom])
-            self.blackSignupBackground.alpha = 0
+        UIView.animate(withDuration: 0.8, delay: 0, usingSpringWithDamping: 0.75, initialSpringVelocity: 0, options: .curveEaseInOut) {
+            NSLayoutConstraint.deactivate([self.pinBottom, self.homeContainerTop, self.menuBarBottom])
+            self.pinBottom = NSLayoutConstraint(item: self.pinContainerView, attribute: .bottom, relatedBy: .equal, toItem: self.view, attribute: .top, multiplier: 1, constant: 0)
+            self.homeContainerTop = NSLayoutConstraint(item: self.homeContainerView, attribute: .top, relatedBy: .equal, toItem: self.view, attribute: .top, multiplier: 1, constant: 0)
+            self.menuBarBottom = NSLayoutConstraint(item: self.menuBarContainer, attribute: .bottom, relatedBy: .equal, toItem: self.view.safeAreaLayoutGuide, attribute: .bottom, multiplier: 1, constant: 10)
+            NSLayoutConstraint.activate([self.pinBottom, self.homeContainerTop, self.menuBarBottom])
             self.view.layoutIfNeeded()
         } completion: { finished in
             self.pinContainerView.alpha = 0
@@ -39,7 +40,6 @@ extension CoreViewController {
             NSLayoutConstraint.deactivate([self.signupBottom])
             self.signupBottom = NSLayoutConstraint(item: self.signupContainerView, attribute: .bottom, relatedBy: .equal, toItem: self.view, attribute: .bottom, multiplier: 1, constant: 0)
             NSLayoutConstraint.activate([self.signupBottom])
-            self.blackSignupBackground.alpha = 1
             self.view.layoutIfNeeded()
         } completion: { finished in
             // Hide PinVC.
@@ -55,7 +55,6 @@ extension CoreViewController {
             NSLayoutConstraint.deactivate([self.signupBottom])
             self.signupBottom = NSLayoutConstraint(item: self.signupContainerView, attribute: .top, relatedBy: .equal, toItem: self.view, attribute: .bottom, multiplier: 1, constant: 0)
             NSLayoutConstraint.activate([self.signupBottom])
-            self.blackSignupBackground.alpha = 0
             self.view.layoutIfNeeded()
         } completion: { finished in
             // Remove signup view from container.

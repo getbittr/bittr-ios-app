@@ -91,10 +91,12 @@ class CoreViewController: UIViewController {
     @IBOutlet weak var homeContainerView: UIView!
     @IBOutlet weak var homeContainerViewLeading: NSLayoutConstraint!
     @IBOutlet weak var homeContainerViewTrailing: NSLayoutConstraint!
+    @IBOutlet weak var homeContainerTop: NSLayoutConstraint!
     @IBOutlet weak var infoContainerView: UIView!
     
     // Menu bar elements
     @IBOutlet weak var menuBarContainer: UIView!
+    @IBOutlet weak var menuBarBottom: NSLayoutConstraint!
     @IBOutlet weak var selectedView: UIView!
     @IBOutlet weak var selectedViewLeading: NSLayoutConstraint!
     @IBOutlet weak var selectedViewTrailing: NSLayoutConstraint!
@@ -114,7 +116,6 @@ class CoreViewController: UIViewController {
     @IBOutlet weak var pinContainerView: UIView!
     @IBOutlet weak var signupContainerView: UIView!
     @IBOutlet weak var signupBottom: NSLayoutConstraint!
-    @IBOutlet weak var blackSignupBackground: UIView!
     @IBOutlet weak var pinBottom: NSLayoutConstraint!
     
     // Syncing status

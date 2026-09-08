@@ -179,6 +179,6 @@ class HomeHeaderTableViewCell: UITableViewCell {
     }
     
     func updateLayout(topSafeArea: CGFloat) {
-        self.balanceCardTop.constant = topSafeArea + 30
+        self.balanceCardTop.constant = topSafeArea + 75
     }
 }

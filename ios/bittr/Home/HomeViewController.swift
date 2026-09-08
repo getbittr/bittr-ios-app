@@ -13,6 +13,7 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
     
     // Home table view
     @IBOutlet weak var homeTableView: UITableView!
+    var appliedTopSafeArea:CGFloat?
     
     // Profit calculations
     var calculatedProfit = 0
@@ -55,6 +56,8 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
         // Table view
         self.homeTableView.delegate = self
         self.homeTableView.dataSource = self
+        self.homeTableView.estimatedRowHeight = 430
+        self.homeTableView.contentInsetAdjustmentBehavior = .never
         
         // Check if dark mode is on.
         self.changeColors()
@@ -84,7 +87,8 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
     override func viewDidLayoutSubviews() {
         
         // Set table insets.
-        let bottomInset:CGFloat = self.coreVC!.view.safeAreaInsets.bottom == 0 ? 130 : 80
+        let bottomSafeArea = self.coreVC!.view.safeAreaInsets.bottom
+        let bottomInset:CGFloat = bottomSafeArea == 0 ? 130 : bottomSafeArea + 80
         self.homeTableView.contentInset = UIEdgeInsets(top: 0, left: 0, bottom: bottomInset, right: 0)
     }
     

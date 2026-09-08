@@ -190,12 +190,19 @@ extension HomeViewController {
     
     override func viewSafeAreaInsetsDidChange() {
         super.viewSafeAreaInsetsDidChange()
-
+        
         let topSafeArea = view.safeAreaInsets.top
+        guard topSafeArea != self.appliedTopSafeArea else { return }
+        self.appliedTopSafeArea = topSafeArea
+        
         self.homeTableView.visibleCells.forEach { cell in
             if let cell = cell as? HomeHeaderTableViewCell {
                 cell.updateLayout(topSafeArea: topSafeArea)
             }
+        }
+        UIView.performWithoutAnimation {
+            self.homeTableView.beginUpdates()
+            self.homeTableView.endUpdates()
         }
     }
 
