@@ -13,6 +13,8 @@
 # Usage:
 #   shared/flows/test_suite.sh                 # full suite (every flow in suite.yaml)
 #   shared/flows/test_suite.sh --keep-going    # full suite, don't stop on first failure
+#   shared/flows/test_suite.sh --from features/bitcoin_map.yaml  # resume the suite
+#                                              # at a flow (skip the ones before it)
 #   shared/flows/test_suite.sh --evil          # full suite + EvilBoltz flows
 #   shared/flows/test_suite.sh --evil-only     # just the EvilBoltz flows
 #   shared/flows/test_suite.sh features/swap.yaml features/receive.yaml
@@ -78,6 +80,7 @@ RUN_EVIL=0
 RUN_UNHAPPY=0
 KEEP_GOING=0
 EXPECT_VULNERABLE=0
+FROM_FLOW=""
 EXPLICIT_FLOWS=()
 
 while [[ $# -gt 0 ]]; do
@@ -87,6 +90,9 @@ while [[ $# -gt 0 ]]; do
         --unhappy)           RUN_UNHAPPY=1 ;;
         --keep-going)        KEEP_GOING=1 ;;
         --expect-vulnerable) EXPECT_VULNERABLE=1 ;;
+        --from)              shift; FROM_FLOW="${1:-}"
+                             [[ -n "${FROM_FLOW}" ]] || { echo "--from needs a flow (e.g. --from features/bitcoin_map.yaml)" >&2; exit 2; } ;;
+        --from=*)            FROM_FLOW="${1#*=}" ;;
         -h|--help)
             sed -n '2,30p' "${BASH_SOURCE[0]}" | sed 's/^# \?//'
             exit 0
@@ -103,6 +109,23 @@ done
 
 if [[ ${#EXPLICIT_FLOWS[@]} -gt 0 ]]; then
     RUN_CORE=0
+fi
+
+# --from: resume the suite at a given flow, skipping everything before it (handy
+# after a mid-suite failure). Matches on a substring of the suite.yaml path, so
+# --from bitcoin_map is enough. Applies to the suite list only.
+if [[ -n "${FROM_FLOW}" ]]; then
+    if [[ ${#EXPLICIT_FLOWS[@]} -gt 0 ]]; then
+        echo "--from can't be combined with explicit flow paths" >&2; exit 2
+    fi
+    _start=-1
+    for _i in "${!CORE_FLOWS[@]}"; do
+        if [[ "${CORE_FLOWS[$_i]}" == *"${FROM_FLOW}"* ]]; then _start=${_i}; break; fi
+    done
+    if [[ ${_start} -lt 0 ]]; then
+        echo "--from: no suite flow matches '${FROM_FLOW}' (see shared/flows/suite.yaml)" >&2; exit 2
+    fi
+    CORE_FLOWS=("${CORE_FLOWS[@]:${_start}}")
 fi
 
 # ── Pretty printing ──────────────────────────────────────────────────────────
