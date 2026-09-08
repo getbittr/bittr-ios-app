@@ -315,6 +315,7 @@ class Language: NSObject {
             "withdrawrequest": "Withdraw request",
             "withdrawrequest1": "You can withdraw between <minwithdrawable> and <maxwithdrawable> satoshis. How many satoshis would you like to withdraw?",
             "withdrawrequest3": "Are you sure you'd like to withdraw <withdrawable> satoshis?",
+            "withdrawoutofrange": "Please enter an amount within the range shown.",
             "lnurlpayment": "Copy this invoice and go to Send to make your instant payment.",
             "lnurlfail1": "We could not complete this withdraw request. Error:",
             "lnurlfail2": "We could not complete your pay request. Error:",
