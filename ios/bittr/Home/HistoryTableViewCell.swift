@@ -21,6 +21,7 @@ class HistoryTableViewCell: UITableViewCell {
     // Card and button
     @IBOutlet weak var transactionButton: UIButton!
     @IBOutlet weak var cardView: UIView!
+    @IBOutlet weak var cellHeight: NSLayoutConstraint! // 75 or 102
     
     // Bittr stack
     @IBOutlet weak var bittrStack: UIView!

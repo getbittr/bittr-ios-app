@@ -10,7 +10,7 @@ import UIKit
 extension HomeViewController {
     
     func scrollViewDidScroll(_ scrollView: UIScrollView) {
-        if scrollView.contentOffset.y < -200, !self.didStartReset, !self.headerSpinner.isAnimating {
+        if scrollView.contentOffset.y < -200, !self.didStartReset {
             Log.info("Reload wallet when pulling down the view.")
             
             guard self.coreVC!.checkInternetConnection() else { return }
@@ -51,19 +51,10 @@ extension HomeViewController {
         BitcoinManager.shared.bittrWallet.satoshisOnchainSpendable = nil
         BitcoinManager.shared.bittrWallet.satoshisLightning = 0
         
-        self.noTransactionsLabel.alpha = 0
-        self.balanceCardProfitView.alpha = 0
-        self.balanceCardGainLabel.alpha = 0
-        self.balanceLabel.alpha = 0
-        self.bitcoinSign.alpha = 0
-        self.conversionLabel.alpha = 0
-        self.homeTableView.reloadData()
-        
-        self.headerSpinner.startAnimating()
-        self.headerProblemImage.alpha = 0
         self.couldNotFetchConversion = false
         self.didFetchConversion = false
         self.coreVC?.walletHasSynced = false
+        self.homeTableView.reloadData()
         
         if self.coreVC!.walletSync != nil {
             self.coreVC!.walletSync!.stop()

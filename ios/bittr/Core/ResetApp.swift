@@ -405,9 +405,7 @@ extension CoreViewController {
         BitcoinManager.shared.bittrWallet.lightningChannels = [ChannelDetails]()
         BitcoinManager.shared.bittrWallet.satoshisLightning = 0
         
-        if self.homeVC!.balanceLabel.alpha == 1 {
-            self.homeVC!.setTotalSats()
-        }
+        self.homeVC?.reloadTransactionsTable()
         
         // Trigger a fresh sync to get updated channel data.
         DispatchQueue.global(qos: .userInitiated).async {
@@ -429,9 +427,7 @@ extension CoreViewController {
                 BitcoinManager.shared.bittrWallet.lightningChannels = updatedChannels
                 
                 // Update balance if needed
-                if self.homeVC!.balanceLabel.alpha == 1 {
-                    self.homeVC!.setTotalSats()
-                }
+                self.homeVC?.reloadTransactionsTable()
                 
                 Log.info("Channel cache updated successfully")
             }
