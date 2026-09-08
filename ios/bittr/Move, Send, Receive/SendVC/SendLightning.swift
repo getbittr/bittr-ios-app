@@ -173,7 +173,7 @@ extension UIViewController {
     
     func performLightningPayment(
         invoiceText:String,
-        satoshisAmount:Int = 0
+        satoshisAmount:Int
     ) {
         let invoiceText = invoiceText.components(separatedBy: .whitespacesAndNewlines).joined()
         

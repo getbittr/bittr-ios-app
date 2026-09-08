@@ -183,16 +183,20 @@ extension SendViewController {
 extension ConfirmSendViewController {
     
     func proceedWithOnchainConfirmation() {
-        
-        let feeSatoshis = self.selectedFeeRatePerVb().feeSats(forVsize: self.onchainTxSize!)
-        
+
+        guard let onchainTxSize = self.onchainTxSize,
+              let satoshisAmount = self.satoshisAmount,
+              let addressOrInvoice = self.addressOrInvoice else { return }
+
+        let feeSatoshis = self.selectedFeeRatePerVb().feeSats(forVsize: onchainTxSize)
+
         // Double-check transaction details.
         self.showAlert(
             title: Language.getWord(withID: "sendtransaction"),
             message: Language.getWord(withID: "sendconfirmation")
-                .replacingOccurrences(of: "<amount>", with: "\(self.satoshisAmount!)".addSpaces())
+                .replacingOccurrences(of: "<amount>", with: "\(satoshisAmount)".addSpaces())
                 .replacingOccurrences(of: "<fees>", with: "\(feeSatoshis)".addSpaces())
-                .replacingOccurrences(of: "<address>", with: self.addressOrInvoice!),
+                .replacingOccurrences(of: "<address>", with: addressOrInvoice),
             buttons: [
                 .dismiss(Language.getWord(withID: "cancel")),
                 .action(Language.getWord(withID: "confirm")) { self.performOnchainTransaction() }

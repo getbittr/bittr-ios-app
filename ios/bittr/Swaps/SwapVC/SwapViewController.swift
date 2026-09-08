@@ -272,7 +272,8 @@ class SwapViewController: UIViewController, UITextFieldDelegate, UNUserNotificat
             SwapManager.sendOnchainPayment(swapVC: self)
         } else {
             SentryManager.countMetric("swap.lightningtoonchain.initiated")
-            self.performLightningPayment(invoiceText: self.thisSwap!.boltzInvoice!)
+            // The Boltz invoice carries its own amount, so no separate amount is needed.
+            self.performLightningPayment(invoiceText: self.thisSwap!.boltzInvoice!, satoshisAmount: 0)
         }
     }
     

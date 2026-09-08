@@ -205,9 +205,12 @@ class ConfirmSendViewController: UIViewController {
     }
     
     func switchToFee(_ tappedFee:SelectedFee) {
+        // Fee tiers only apply to onchain sends; without a transaction size
+        // there's nothing to quote.
+        guard let onchainTxSize = self.onchainTxSize else { return }
         // Switch selected fee rate.
         self.selectedFee = tappedFee
-        self.selectedFeeInSats = self.selectedFeeRatePerVb().feeSats(forVsize: self.onchainTxSize!)
+        self.selectedFeeInSats = self.selectedFeeRatePerVb().feeSats(forVsize: onchainTxSize)
         
         // For a drain, recalculate the satoshis amount after subtracting the fees.
         if self.isSendingMaximum, let drainTotal = self.drainTotalSats {
@@ -228,8 +231,9 @@ class ConfirmSendViewController: UIViewController {
             return true
         }
         
+        guard let satoshisAmount = self.satoshisAmount else { return true }
         let spendable = BitcoinManager.shared.bittrWallet.satoshisOnchainSpendable ?? 0
-        if (self.selectedFeeInSats + self.satoshisAmount!) > spendable {
+        if (self.selectedFeeInSats + satoshisAmount) > spendable {
             self.showAlert(title: Language.getWord(withID: "balance2"), message: Language.getWord(withID: "insufficientonchainbalance").replacingOccurrences(of: "<fee>", with: "\(spendable) sats"), buttons: [.action(Language.getWord(withID: "updateamount")) { self.handleAmountChange() }, .dismiss(Language.getWord(withID: "close"))])
             return false
         } else {
@@ -238,8 +242,11 @@ class ConfirmSendViewController: UIViewController {
     }
     
     func checkHighFeeRate() {
-        // Check if selected fee rate is too high.
-        if (CGFloat(self.selectedFeeInSats) / CGFloat(self.satoshisAmount!)) > 0.1 {
+        // Check if selected fee rate is too high. Guard against a zero amount
+        // (e.g. a drain that nets to nothing after fees) so we don't divide by
+        // zero and raise a spurious high-fee alert.
+        guard let satoshisAmount = self.satoshisAmount, satoshisAmount > 0 else { return }
+        if (CGFloat(self.selectedFeeInSats) / CGFloat(satoshisAmount)) > 0.1 {
             self.showAlert(title: Language.getWord(withID: "highfeerate"), message: Language.getWord(withID: "highfeerate2"), buttons: [.dismiss(Language.getWord(withID: "okay"))])
         }
     }
