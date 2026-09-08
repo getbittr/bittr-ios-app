@@ -637,7 +637,11 @@ extension CoreViewController {
             guard CacheManager.getLatestSwap() != nil else { return }
             
             if let swapVC = self.swapVC {
-                guard swapVC.presentingViewController == nil else { return } // already showing
+                // Already on screen — presented modally, or embedded as a child of
+                // the swap flow. In either case there's nothing to do; only present
+                // it when it's free-standing (presenting a parented VC would crash
+                // with "already has a parent").
+                guard swapVC.presentingViewController == nil, swapVC.parent == nil else { return }
                 self.present(swapVC, animated: true)
             } else if self.homeVC?.swapStatusVC == nil {
                 // The segue lives on the Home scene, so perform it on homeVC.

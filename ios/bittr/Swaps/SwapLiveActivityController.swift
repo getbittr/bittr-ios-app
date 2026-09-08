@@ -56,26 +56,52 @@ enum SwapLiveActivityController {
         }
     }
 
-    // Update — or, on a terminal status, finish — the activity from a Boltz status.
+    // Swaps whose terminal finish (completion alert + end) has already been kicked
+    // off. Several distinct Boltz statuses collapse to the same terminal phase
+    // (invoice.paid / transaction.claimed / invoice.settled all map to .complete),
+    // and the socket and a push can deliver them around the same time — this makes
+    // sure the alert fires, and the end is scheduled, only once per swap.
+    @MainActor private static var finishingSwapIDs = Set<String>()
+
+    // Fire-and-forget update from a Boltz status (foreground socket / regular push).
     static func update(boltzID: String, boltzStatus: String) {
+        Task { await applyUpdate(boltzID: boltzID, boltzStatus: boltzStatus) }
+    }
+
+    // Update — or, on a terminal status, finish — the activity from a Boltz status.
+    // Returns once the (local) content-state update has been applied, so a caller
+    // that needs to keep a background slot alive (the remote-push handler) can await
+    // it. The terminal linger-then-end runs in a detached task so it never blocks
+    // that caller.
+    //
+    // Note: the linger-then-end only completes while the app stays alive. From a
+    // background push the app is usually suspended once the handler returns, so the
+    // activity is left in its terminal state and swept by endStaleActivities() on
+    // the next launch/foreground rather than lingering-then-ending here.
+    @MainActor
+    static func applyUpdate(boltzID: String, boltzStatus: String) async {
         let phase = SwapPhase.from(boltzStatus: boltzStatus)
-        Task {
-            for activity in activities(for: boltzID) {
-                let newState = SwapActivityAttributes.ContentState(
-                    boltzStatus: boltzStatus,
-                    startedAt: activity.content.state.startedAt   // preserve the timer origin
-                )
+        for activity in activities(for: boltzID) where activity.activityState == .active {
+            let newState = SwapActivityAttributes.ContentState(
+                boltzStatus: boltzStatus,
+                startedAt: activity.content.state.startedAt   // preserve the timer origin
+            )
 
-                guard phase.isTerminal else {
-                    await activity.update(.init(state: newState, staleDate: nil))
-                    continue
-                }
+            // Non-terminal, or a terminal status for a swap we're already finishing:
+            // just reflect the state, no (second) alert or end.
+            guard phase.isTerminal, !finishingSwapIDs.contains(boltzID) else {
+                await activity.update(.init(state: newState, staleDate: nil))
+                continue
+            }
+            finishingSwapIDs.insert(boltzID)
 
-                // Announce the finish — a little island pop + haptic — then let the
-                // final state linger visibly before ending (an ended activity leaves
-                // the Dynamic Island almost immediately).
-                await activity.update(.init(state: newState, staleDate: nil),
-                                      alertConfiguration: completionAlert(for: phase))
+            // Announce the finish — a little island pop + haptic — then let the
+            // final state linger visibly before ending (an ended activity leaves
+            // the Dynamic Island almost immediately). The linger runs detached so
+            // it doesn't block an awaiting caller.
+            await activity.update(.init(state: newState, staleDate: nil),
+                                  alertConfiguration: completionAlert(for: phase))
+            Task {
                 try? await Task.sleep(nanoseconds: 8_000_000_000)
                 await activity.end(.init(state: newState, staleDate: nil), dismissalPolicy: .after(.now + 60))
             }

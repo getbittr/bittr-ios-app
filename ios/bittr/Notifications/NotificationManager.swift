@@ -11,18 +11,16 @@ import UIKit
 
 // MARK: Handling
 extension AppDelegate {
-    func handleNotification(userInfo:[AnyHashable:Any], id:String?, title:String?, body:String?) {
-        
-        let thisNotification = userInfo.toNotification()
+    // Takes the already-parsed notification so each entry point parses userInfo
+    // once. Driving the swap Live Activity is left to the callers: the foreground
+    // paths fire-and-forget, while the background push handler awaits the update so
+    // it doesn't end its background slot before the state lands.
+    func handleNotification(_ thisNotification: BittrNotification, id:String?, title:String?, body:String?) {
+
         thisNotification.id = id
         thisNotification.title = title
         thisNotification.body = body
-        
-        // Push the swap status straight into the Live Activity, before the dedup gate below.
-        if thisNotification.type == .swap, let boltzID = thisNotification.swapID, let status = thisNotification.status {
-            SwapLiveActivityController.update(boltzID: boltzID, boltzStatus: status)
-        }
-        
+
         // Make sure the notification hasn't already been handled (same ID, or another within 10 seconds).
         if CacheManager.getLastNotification() == nil || ((CacheManager.getLastNotification()!.id == nil || CacheManager.getLastNotification()!.id! != id) && (CacheManager.getLastNotification()!.date == nil || Date().timeIntervalSince(CacheManager.getLastNotification()!.date!) > 10)) {
             Log.info("Will cache new notification.")
@@ -162,7 +160,11 @@ extension AppDelegate {
         Log.info("Did receive notification while app was closed.")
         
         let request = response.notification.request
-        self.handleNotification(userInfo: request.content.userInfo, id: request.identifier, title: request.content.title, body: request.content.body)
+        let thisNotification = request.content.userInfo.toNotification()
+        if thisNotification.type == .swap, let boltzID = thisNotification.swapID, let status = thisNotification.status {
+            SwapLiveActivityController.update(boltzID: boltzID, boltzStatus: status)
+        }
+        self.handleNotification(thisNotification, id: request.identifier, title: request.content.title, body: request.content.body)
     }
     
     // Notification comes in while the app is in the foreground.
@@ -170,25 +172,34 @@ extension AppDelegate {
         Log.info("Did receive notification while app was open.")
         
         let request = notification.request
-        self.handleNotification(userInfo: request.content.userInfo, id: request.identifier, title: request.content.title, body: request.content.body)
-        
-        if request.content.userInfo.toNotification().type == .swap {
+        let thisNotification = request.content.userInfo.toNotification()
+        if thisNotification.type == .swap, let boltzID = thisNotification.swapID, let status = thisNotification.status {
+            SwapLiveActivityController.update(boltzID: boltzID, boltzStatus: status)
+        }
+        self.handleNotification(thisNotification, id: request.identifier, title: request.content.title, body: request.content.body)
+
+        if thisNotification.type == .swap {
             // Don't show banner while swap Live Activity is present anyway.
             completionHandler([])
             return
         }
-        
+
         completionHandler([.banner, .list])
     }
     
     func application(_ application: UIApplication, didReceiveRemoteNotification userInfo: [AnyHashable : Any], fetchCompletionHandler completionHandler: @escaping (UIBackgroundFetchResult) -> Void) {
         Log.info("Did receive notification while app was closed. 2")
         
-        self.handleNotification(userInfo: userInfo, id: UUID().uuidString, title: nil, body: nil)
-        
-        if userInfo.toNotification().type == .swap {
-            // Wait for the Live Activity to update asynchronously.
-            DispatchQueue.main.asyncAfter(deadline: .now() + 3) { completionHandler(.newData) }
+        let thisNotification = userInfo.toNotification()
+        self.handleNotification(thisNotification, id: UUID().uuidString, title: nil, body: nil)
+
+        if thisNotification.type == .swap, let boltzID = thisNotification.swapID, let status = thisNotification.status {
+            // Await the Live Activity's local update so we don't end the background
+            // slot before it lands — instead of guessing a fixed delay.
+            Task {
+                await SwapLiveActivityController.applyUpdate(boltzID: boltzID, boltzStatus: status)
+                completionHandler(.newData)
+            }
         } else {
             completionHandler(.newData)
         }
