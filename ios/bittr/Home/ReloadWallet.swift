@@ -10,7 +10,7 @@ import UIKit
 extension HomeViewController {
     
     func scrollViewDidScroll(_ scrollView: UIScrollView) {
-        if scrollView.contentOffset.y < -200, !self.didStartReset {
+        if scrollView.contentOffset.y < -200, !self.didStartReset, self.coreVC?.walletHasSynced == true {
             Log.info("Reload wallet when pulling down the view.")
             
             guard self.coreVC!.checkInternetConnection() else { return }

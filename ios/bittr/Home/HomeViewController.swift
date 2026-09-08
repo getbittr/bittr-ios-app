@@ -237,7 +237,10 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
         // Update cache
         CacheManager.cachedHomeTransactions = self.visibleTransactions
         
-        guard !didFindDuplicateTransaction else { return }
+        guard !didFindDuplicateTransaction else {
+            self.reloadTransactionsTable()
+            return
+        }
         
         // Update balance and transactions.
         // For funding transactions, .channelReady will update the balance.

@@ -17,6 +17,10 @@ extension HomeHeaderTableViewCell {
             self.hideLabels()
         }
         
+        // Words and colors.
+        self.setWords()
+        self.changeColors()
+        
         // Balance and conversion.
         self.updateBalanceLabel()
         
