@@ -7,7 +7,6 @@
 
 import UIKit
 import LDKNode
-import LightningDevKit
 
 class SendViewController: UIViewController, UITextFieldDelegate, OnchainSyncFailureReporting {
     

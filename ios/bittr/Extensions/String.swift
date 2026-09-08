@@ -6,7 +6,6 @@
 //
 
 import UIKit
-import LightningDevKit
 import LDKNode
 
 extension String {
@@ -155,22 +154,7 @@ extension String {
     }
     
     func getInvoiceHash() -> String? {
-        let result = Bolt11Invoice.fromStr(s: self)
-        if result.isOk() {
-            if let invoice = result.getValue() {
-                Log.debug("Invoice parsed successfully: \(invoice)")
-                let paymentHash:[UInt8] = invoice.paymentHash()!
-                let hexString = paymentHash.map { String(format: "%02x", $0) }.joined()
-                return hexString
-            } else {
-                return nil
-            }
-        } else if let error = result.getError() {
-            Log.info("Failed to parse invoice: \(error)")
-            return nil
-        } else {
-            return nil
-        }
+        return self.bolt11Invoice()?.paymentHash().lowercased()
     }
     
     var length: Int {
@@ -305,10 +289,6 @@ extension String {
         }
         
         return finalImage
-    }
-    
-    func bolt11Invoice() -> Bindings.Bolt11Invoice? {
-        return Bindings.Bolt11Invoice.fromStr(s: self).getValue()
     }
     
     func bolt12Offer() -> LDKNode.Offer? {

@@ -9,7 +9,6 @@ import UIKit
 import LDKNode
 import CodeScanner
 import AVFoundation
-import LightningDevKit
 
 extension SendViewController {
     
@@ -56,12 +55,12 @@ extension SendViewController {
         
         // Get invoice amount.
         let satoshisAmount:Int
-        let maximumRoutingFeesSat:Int
+        var maximumRoutingFeesSat:Int?
         if let parsedInvoice = enteredInvoice.bolt11Invoice() {
             // Reject an invoice for a different network.
             let invoiceMatchesNetwork: Bool
             switch (EnvironmentConfig.ldkNetwork, parsedInvoice.currency()) {
-            case (.bitcoin, .Bitcoin), (.testnet, .BitcoinTestnet), (.regtest, .Regtest), (.signet, .Signet):
+            case (.bitcoin, .bitcoin), (.testnet, .bitcoinTestnet), (.regtest, .regtest), (.signet, .signet):
                 invoiceMatchesNetwork = true
             default:
                 invoiceMatchesNetwork = false
@@ -73,7 +72,7 @@ extension SendViewController {
             
             // Reject paying ourselves.
             if let ourNodeId = BitcoinManager.shared.nodeId(),
-               Data(parsedInvoice.recoverPayeePubKey()).hex.lowercased() == ourNodeId.lowercased() {
+               parsedInvoice.recoverPayeePubKey().lowercased() == ourNodeId.lowercased() {
                 self.showAlert(title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "cannotpayself"), buttons: [.dismiss(Language.getWord(withID: "okay"))])
                 return
             }
@@ -82,7 +81,7 @@ extension SendViewController {
             if let invoiceAmountMilli = parsedInvoice.amountMilliSatoshis() {
                 // Normal invoice.
                 satoshisAmount = Int(invoiceAmountMilli)/1000
-                maximumRoutingFeesSat = self.getLightningFeesInSatoshis(parsedInvoice: parsedInvoice, amountMsat: nil)
+                maximumRoutingFeesSat = enteredInvoice.getLightningFeesInSatoshis()
             } else {
                 // Zero invoice, needs amount.
                 guard let enteredAmount = self.amountTextField.text?.trimmingCharacters(in: .whitespacesAndNewlines), !enteredAmount.isEmpty, let parsedSatoshis = self.getSatoshisFrom(enteredAmount: enteredAmount), parsedSatoshis > 0 else {
@@ -91,7 +90,7 @@ extension SendViewController {
                     return
                 }
                 satoshisAmount = parsedSatoshis
-                maximumRoutingFeesSat = self.getLightningFeesInSatoshis(parsedInvoice: parsedInvoice, amountMsat: UInt64(satoshisAmount*1000))
+                maximumRoutingFeesSat = enteredInvoice.getLightningFeesInSatoshis(amountMsat: UInt64(satoshisAmount*1000))
             }
         } else if enteredInvoice.bolt12Offer() != nil {
             // BOLT12 offers aren't supported yet — reject them up front.
@@ -106,6 +105,11 @@ extension SendViewController {
             return
         } else {
             // Not a recognisable invoice, offer, LNURL or on-chain address.
+            self.showAlert(title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "invalidinvoice2").replacingOccurrences(of: "<invoice>", with: enteredInvoice), buttons: [.dismiss(Language.getWord(withID: "okay"))])
+            return
+        }
+        
+        guard let maximumRoutingFeesSat else {
             self.showAlert(title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "invalidinvoice2").replacingOccurrences(of: "<invoice>", with: enteredInvoice), buttons: [.dismiss(Language.getWord(withID: "okay"))])
             return
         }
@@ -154,22 +158,6 @@ extension SendViewController {
 }
 
 extension UIViewController {
-    
-    func getLightningFeesInSatoshis(parsedInvoice: LightningDevKit.Bolt11Invoice, amountMsat: UInt64?) -> Int {
-        
-        var invoicePaymentResult:Bindings.Result_C3Tuple_ThirtyTwoBytesRecipientOnionFieldsRouteParametersZNoneZ
-        if amountMsat == nil {
-            // Standard invoice.
-            invoicePaymentResult = Bindings.paymentParametersFromInvoice(invoice: parsedInvoice)
-        } else {
-            // Zero amount invoice.
-            invoicePaymentResult = Bindings.paymentParametersFromZeroAmountInvoice(invoice: parsedInvoice, amountMsat: amountMsat!)
-        }
-        let (_, _, tryRouteParams) = invoicePaymentResult.getValue()!
-        let maximumRoutingFeesMsat:Int = Int(tryRouteParams.getMaxTotalRoutingFeeMsat() ?? 0)
-        let maximumRoutingFeesSat:Int = maximumRoutingFeesMsat/1000
-        return maximumRoutingFeesSat
-    }
     
     func performLightningPayment(
         invoiceText:String,
@@ -293,7 +281,6 @@ extension UIViewController {
         let sendVC = self as? SendViewController
         let receiveVC = self as? ReceiveViewController
         let swapVC = self as? SwapViewController
-        let coreVC = sendVC?.coreVC ?? receiveVC?.coreVC ?? swapVC?.coreVC
         
         // Update views.
         sendVC?.nextLabel.alpha = 1

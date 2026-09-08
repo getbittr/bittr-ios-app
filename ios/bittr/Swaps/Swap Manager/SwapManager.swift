@@ -10,7 +10,6 @@ import BitcoinDevKit
 import LDKNode
 import P256K
 import CryptoKit
-import LightningDevKit
 
 class SwapManager: NSObject {
     
@@ -174,7 +173,7 @@ class SwapManager: NSObject {
         }
         
         // Get invoice amount.
-        guard let invoiceAmountMsat = Bindings.Bolt11Invoice.fromStr(s: invoice).getValue()?.amountMilliSatoshis() else {
+        guard let invoiceAmountMsat = invoice.bolt11Invoice()?.amountMilliSatoshis() else {
             swapVC.cancelSwap(alertMessage: Language.getWord(withID: "swaperror2"))
             return
         }
@@ -825,11 +824,17 @@ class SwapManager: NSObject {
     }
     
     static func checkReverseSwapFees(swapVC:SwapViewController) {
-        guard swapVC.thisSwap != nil else { return }
-        guard swapVC.checkInternetConnection() else { return }
+        guard swapVC.thisSwap != nil, swapVC.checkInternetConnection() else {
+            swapVC.resetNextButton()
+            return
+        }
         
         // Check requested invoice amount.
-        guard let parsedInvoice = Bindings.Bolt11Invoice.fromStr(s: swapVC.thisSwap!.boltzInvoice!).getValue(), let invoiceAmountMilli = parsedInvoice.amountMilliSatoshis() else { return }
+        guard let parsedInvoice = swapVC.thisSwap!.boltzInvoice!.bolt11Invoice(), let invoiceAmountMilli = parsedInvoice.amountMilliSatoshis() else {
+            Log.info("Could not parse the Boltz invoice.")
+            swapVC.cancelSwap(alertMessage: Language.getWord(withID: "swaperror2"))
+            return
+        }
         
         // Lightning invoice.
         let invoiceAmount = Int(invoiceAmountMilli)/1000
@@ -844,7 +849,11 @@ class SwapManager: NSObject {
         // so the user will receive exactly the amount they input
         
         // Calculate maximum total routing fees.
-        let lightningFees = swapVC.getLightningFeesInSatoshis(parsedInvoice: parsedInvoice, amountMsat: nil)
+        guard let lightningFees = swapVC.thisSwap!.boltzInvoice!.getLightningFeesInSatoshis() else {
+            Log.info("Could not calculate routing fees for the Boltz invoice.")
+            swapVC.cancelSwap(alertMessage: Language.getWord(withID: "swaperror2"))
+            return
+        }
         
         // Calculate claim transaction fee
         let storedClaimTransactionFee = swapVC.thisSwap!.claimTransactionFee

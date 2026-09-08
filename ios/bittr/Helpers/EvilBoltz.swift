@@ -87,9 +87,7 @@
 //
 
 import Foundation
-#if DEBUG
-import LightningDevKit
-#endif
+import LDKNode
 
 enum EvilBoltz {
 
@@ -161,7 +159,7 @@ enum EvilBoltz {
             // original was a zero-amount invoice, which the e2e endpoint
             // supports as well.)
             var amountSats = 0
-            if let parsed = Bindings.Bolt11Invoice.fromStr(s: originalInvoice).getValue(),
+            if let parsed = originalInvoice.bolt11Invoice(),
                let msat = parsed.amountMilliSatoshis() {
                 amountSats = Int(msat) / 1000
             }
