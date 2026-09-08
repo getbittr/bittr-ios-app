@@ -126,6 +126,28 @@ as a pre-job step or in the runner's job-started hook. A leaked emulator present
 exactly the kind of intermittent failure that BIT-5 says to treat as a blocker
 rather than paper over with retries — so it is worth eliminating structurally.
 
+**The failure video needs the emulator console auth token.** On failure the job
+uploads `maestro-video/scaffold_smoke.webm`, recorded via `adb emu screenrecord` —
+an *emulator console* command, not an `adb shell` one. The console authenticates
+against `~/.emulator_console_auth_token`, read from the **home directory of the user
+running `adb`**. On a GitHub-hosted runner one user does everything, so this is
+invisible. On a self-hosted host it is not: if the emulator is launched by a
+different user than the runner service, or the service has no writable `HOME`, the
+recording silently does not start.
+
+That failure is non-fatal by design — the job still passes or fails on the flow
+alone, and prints:
+
+```
+::warning::Could not start emulator screen recording (...)
+```
+
+So the symptom is a missing video on the one run you wanted it for. If you see that
+warning, check `HOME` for the runner service and confirm
+`~/.emulator_console_auth_token` exists after a boot. Everything else in
+`maestro-debug/` (screenshot, view hierarchy, logs) is unaffected — it comes from
+Maestro, not the console.
+
 **Security.** A self-hosted runner executes code from any workflow that targets it.
 Do not attach this runner to a public fork-PR workflow; the `pull_request` trigger
 on a public repo runs fork code. `bittr-ios-app` being private is what makes this

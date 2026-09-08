@@ -323,11 +323,63 @@ jobs:
           script: |
             set -euo pipefail
             adb install -r apk/*.apk
+
+            # Video of the run, kept when the flow fails.
+            #
+            # --debug-output already gives a screenshot and a view hierarchy dump at
+            # the moment of failure, and for a missing test tag that is the whole
+            # answer. It is the wrong instrument for anything transient: a splash
+            # that never dismisses, a dialog that steals focus for 400ms, an
+            # animation still settling. Those leave a final frame that looks
+            # unremarkable, and the hierarchy dump agrees with it.
+            #
+            # `adb emu screenrecord`, not `adb shell screenrecord`. The console
+            # command records the emulator's display pipeline straight to a file on
+            # the HOST: no /sdcard space, no adb pull, and no SIGINT-to-finalise
+            # dance (device-side screenrecord writes an unplayable file if the
+            # process is killed any other way). It also works headless under
+            # swiftshader, which is the only configuration this job runs in.
+            #
+            # Every recorder call below is non-fatal by construction. A diagnostic
+            # must not be able to fail the thing it is diagnosing — the worst case
+            # here is "no video, plus a warning saying so", which is exactly the
+            # behaviour that existed before this block.
+            mkdir -p maestro-video
+            video="$PWD/maestro-video/scaffold_smoke.webm"
+            recording=no
+            if rec_out=$(adb emu screenrecord start "$video" 2>&1) \
+               && ! printf '%s' "$rec_out" | grep -qi '^KO'; then
+              recording=yes
+            else
+              echo "::warning::Could not start emulator screen recording (${rec_out:-no output}). The flow still runs; if it fails there will be no video, only maestro-debug/."
+            fi
+
+            # The flow's exit status is the job's result, but the recorder has to be
+            # stopped on the failing path too — that is the path the video exists for.
+            set +e
             maestro test \
               --debug-output maestro-debug \
               --format junit \
               --output maestro-report.xml \
               shared/flows/android/scaffold_smoke.yaml
+            status=$?
+            set -e
+
+            if [ "$recording" = yes ]; then
+              adb emu screenrecord stop \
+                || echo "::warning::Screen recording did not stop cleanly; the video may be truncated."
+            fi
+
+            if [ "$status" -eq 0 ]; then
+              # Green runs keep the junit report and the flow's own screenshot. The
+              # definition of done is three consecutive green dispatches, and paying
+              # an upload for a video nobody opens on all three is pure overhead.
+              rm -f "$video"
+            elif [ ! -s "$video" ]; then
+              echo "::warning::Flow failed and no video was captured (${video##*/} missing or empty). Use maestro-debug/ for the screenshot and view hierarchy."
+            fi
+
+            exit "$status"
 
       - name: Upload Maestro artefacts
         if: always()
@@ -337,8 +389,13 @@ jobs:
           # --debug-output carries the screenshot-on-failure, the view hierarchy
           # dump at the point of failure, and the maestro log. The hierarchy dump
           # is the one that actually explains "element not found".
+          #
+          # maestro-video/ is present only when the flow failed — the run step
+          # deletes it on green. It covers what a final-frame screenshot cannot:
+          # anything that was transient by the time the capture happened.
           path: |
             maestro-debug/**
+            maestro-video/**
             maestro-report.xml
             shared/docs/screenshots/android_scaffold_smoke/**
           retention-days: 14
