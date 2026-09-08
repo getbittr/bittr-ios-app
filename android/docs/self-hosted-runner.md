@@ -155,6 +155,23 @@ acceptable — revisit if that ever changes.
 
 ## Verifying before you trust it
 
+> **Prerequisite that is easy to trip over: `workflow_dispatch` needs this workflow on
+> the _default_ branch.** GitHub only offers the manual trigger for workflow files that
+> exist on the default branch — `master` here, which today contains no
+> `.github/workflows/` directory at all. Until `android-maestro.yml` is merged to
+> `master`, `gh workflow run android-maestro.yml --ref android` fails with *"could not
+> find any workflows named android-maestro.yml"*, which reads like a typo rather than a
+> branch-visibility rule. Merging it to `master` is the fix; the `paths:` filter means
+> it stays dormant there until something under `android/` or `shared/flows/` changes.
+>
+> **Do not substitute three pushes for three dispatches.** Push and `pull_request` runs
+> share the concurrency group `android-maestro-<ref>-auto` with `cancel-in-progress:
+> true`, so three pushes to the same branch cancel runs 1 and 2 — the exact
+> evidence-eating failure that keying dispatches on `github.run_id` exists to prevent,
+> just arriving through a different door. That grouping is *correct* for pushes and
+> should not be weakened; if dispatch is genuinely unavailable, space the pushes so each
+> run finishes before the next one starts, and say so when reporting the result.
+
 Run the workflow via `workflow_dispatch` and check, in order:
 
 1. The `Preflight` step prints `KVM OK` and names your host.
