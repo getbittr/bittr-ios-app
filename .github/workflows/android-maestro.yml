@@ -114,7 +114,19 @@ jobs:
 
   maestro:
     name: Maestro smoke (emulator)
-    runs-on: ubuntu-latest
+    # The emulator job is the one with a hardware requirement (KVM), so it is the
+    # one that gets to move hosts. Set the repository variable
+    # ANDROID_EMULATOR_RUNNER to a self-hosted label to move it; unset, it stays on
+    # GitHub-hosted runners, which have KVM and need no provisioning.
+    #
+    # The variable holds a JSON array, and fromJSON is load-bearing: runs-on matches
+    # a *list* of labels, so a bare "self-hosted,linux,x64" string becomes one label
+    # that matches no runner — and the symptom is a job queued forever, not an error.
+    #
+    # Prerequisites for a self-hosted host are in android/docs/self-hosted-runner.md.
+    # The preflight step below fails fast and points there rather than letting a
+    # misprovisioned host burn the 30-minute timeout.
+    runs-on: ${{ fromJSON(vars.ANDROID_EMULATOR_RUNNER || '["ubuntu-latest"]') }}
     needs: build
     timeout-minutes: 30
     steps:
@@ -136,11 +148,35 @@ jobs:
         # GitHub-hosted Linux runners expose /dev/kvm but not to non-root users by
         # default. Without this the emulator falls back to software rendering and
         # goes from "about a minute to boot" to "does not finish".
+        #
+        # Deliberately NOT run on self-hosted hosts. There it is provisioning, not a
+        # build step: the rule belongs in the host's image (it needs passwordless
+        # sudo to apply, and re-applying it on every job is a persistent change made
+        # by untrusted-ish job code). See android/docs/self-hosted-runner.md.
+        if: runner.environment == 'github-hosted'
         run: |
           echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' \
             | sudo tee /etc/udev/rules.d/99-kvm4all.rules
           sudo udevadm control --reload-rules
           sudo udevadm trigger --name-match=kvm
+
+      - name: Preflight — hardware acceleration is actually available
+        # Without KVM the emulator does not fail, it crawls: boot goes from ~1
+        # minute to past any sane timeout, and the job dies 30 minutes later with
+        # "Timeout waiting for emulator to boot" — which reads like a flaky
+        # emulator rather than a misconfigured host. Six seconds here saves that.
+        run: |
+          set -euo pipefail
+          if [ ! -e /dev/kvm ]; then
+            echo "::error::No /dev/kvm on runner '${{ runner.name }}'. The emulator needs hardware acceleration; without it this job times out rather than failing. If this is a VM, nested virtualisation must be enabled on the hypervisor. See android/docs/self-hosted-runner.md."
+            exit 1
+          fi
+          if [ ! -r /dev/kvm ] || [ ! -w /dev/kvm ]; then
+            echo "::error::/dev/kvm exists but is not read/write for user '$(id -un)'. Add the runner user to the 'kvm' group. See android/docs/self-hosted-runner.md."
+            ls -l /dev/kvm
+            exit 1
+          fi
+          echo "KVM OK on ${{ runner.environment }} runner '${{ runner.name }}' as $(id -un)."
 
       - name: Install Maestro
         run: |
