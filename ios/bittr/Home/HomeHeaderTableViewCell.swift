@@ -56,6 +56,7 @@ class HomeHeaderTableViewCell: UITableViewCell {
     
     // Variables
     var homeVC:HomeViewController?
+    var appliedNoTransactionsHTML:String?
     
     override func awakeFromNib() {
         super.awakeFromNib()
@@ -64,11 +65,6 @@ class HomeHeaderTableViewCell: UITableViewCell {
         self.changeColors()
         self.setWords()
         self.setStyling()
-        
-        // Notification observers
-        NotificationCenter.default.addObserver(self, selector: #selector(changeColors), name: NSNotification.Name(rawValue: "changecolors"), object: nil)
-        NotificationCenter.default.addObserver(self, selector: #selector(setWords), name: NSNotification.Name(rawValue: "changecolors"), object: nil)
-        
     }
     
     func setStyling() {
@@ -160,7 +156,6 @@ class HomeHeaderTableViewCell: UITableViewCell {
         }
         
         self.updateNoTransactionsLabel()
-        self.updateBalanceLabel()
     }
     
     func updateNoTransactionsLabel() {
@@ -168,6 +163,9 @@ class HomeHeaderTableViewCell: UITableViewCell {
         let textColor = CacheManager.darkModeIsOn() ? "255, 255, 255" : "177, 177, 177"
         
         let noTransactionsHTML = "<center><span style=\"font-family: \'Gilroy-Regular\', \'-apple-system\'; font-size: 16; color: rgb(\(textColor)); line-height: 1.2\">\(Language.getWord(withID: "notransactions1"))</span><span style=\"font-family: \'Gilroy-Bold\', \'-apple-system\'; font-size: 16; color: rgb(\(textColor)); line-height: 1.2\">\(Language.getWord(withID: "buy"))</span><span style=\"font-family: \'Gilroy-Regular\', \'-apple-system\'; font-size: 16; color: rgb(\(textColor)); line-height: 1.2\">\(Language.getWord(withID:"notransactions2"))</span></center>"
+        
+        guard noTransactionsHTML != self.appliedNoTransactionsHTML else { return }
+        self.appliedNoTransactionsHTML = noTransactionsHTML
         
         if let htmlData = noTransactionsHTML.data(using: .unicode) {
             do {
