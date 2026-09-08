@@ -173,7 +173,6 @@ class HomeHeaderTableViewCell: UITableViewCell {
             do {
                 let attributedText = try NSAttributedString(data: htmlData, options: [NSAttributedString.DocumentReadingOptionKey.documentType : NSAttributedString.DocumentType.html], documentAttributes: nil)
                 self.noTransactionsLabel.attributedText = attributedText
-                self.noTransactionsLabel.alpha = 1
             } catch {
                 Log.info("Couldn't fetch text: \(error.localizedDescription)")
                 SentryManager.capture(error, context: "LoadWalletData row 489")
