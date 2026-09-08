@@ -12,8 +12,15 @@ android {
     defaultConfig {
         // Note: iOS uses com.bittr.bittr-regtest for the regtest variant. Android
         // applicationIds cannot contain hyphens, so the regtest build is
-        // com.bittr.android.regtest. Maestro flows take the id via ${APP_ID} rather
-        // than hardcoding it — see shared/flows/android/README.md.
+        // com.bittr.android.regtest. The flows hardcode that id today; unifying the
+        // two platforms behind ${APP_ID} is BIT-7, once there is more than one
+        // Android flow to unify. See shared/flows/android/README.md.
+        //
+        // Changing this value or the debug applicationIdSuffix below also requires
+        // updating APP_ID in .github/workflows/android-maestro.yml, the `appId:` in
+        // shared/flows/android/scaffold_smoke.yaml, and BiometricUnlockFlagTest,
+        // which keys the regtest assertion off the applicationId rather than the
+        // build type.
         applicationId = "com.bittr.android"
         minSdk = libs.versions.minSdk.get().toInt()
         targetSdk = libs.versions.targetSdk.get().toInt()
@@ -76,6 +83,16 @@ android {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
         }
     }
+
+    testOptions {
+        unitTests {
+            // AppLaunchTest launches the real MainActivity under Robolectric, which
+            // needs the merged manifest and resources — the activity resolves
+            // @style/Theme.Bittr at attach time. Without this it fails before
+            // reaching the composition.
+            isIncludeAndroidResources = true
+        }
+    }
 }
 
 // AGP 9 only creates a unit-test component for the debug variant. `./gradlew test`
@@ -126,6 +143,14 @@ dependencies {
     ksp(libs.hilt.compiler)
 
     testImplementation(libs.junit)
+    // Robolectric, so the launch path itself is covered on the JVM rather than only
+    // on an emulator. Same set :feature:signup already uses, so this adds no new
+    // artefacts to resolve — see AppLaunchTest.
+    testImplementation(libs.robolectric)
+    testImplementation(libs.androidx.test.ext.junit)
+    testImplementation(platform(libs.androidx.compose.bom))
+    testImplementation(libs.androidx.compose.ui.test.junit4)
+
     androidTestImplementation(libs.androidx.test.ext.junit)
     androidTestImplementation(libs.androidx.espresso.core)
     androidTestImplementation(platform(libs.androidx.compose.bom))
