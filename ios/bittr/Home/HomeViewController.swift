@@ -23,12 +23,11 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
     // Header: Balance card
     @IBOutlet weak var balanceCard: UIView!
     @IBOutlet weak var balanceCardTop: NSLayoutConstraint!
-    @IBOutlet weak var balanceLabelInvisible: UILabel!
     @IBOutlet weak var bitcoinSign: UIImageView!
     @IBOutlet weak var balanceLabel: UILabel!
+    @IBOutlet weak var balanceLabelWidth: NSLayoutConstraint!
     @IBOutlet weak var conversionLabel: UILabel!
     @IBOutlet weak var balanceCardButton: UIButton!
-    var balanceText = "<center><span style=\"font-family: \'Syne-Regular\', \'-apple-system\'; font-size: 38; color: rgb(201, 154, 0); line-height: 0.5\">0.00 000 00</span><span style=\"font-family: \'Syne-Regular\', \'-apple-system\'; font-size: 38; color: rgb(0, 0, 0); line-height: 0.5\">0</span></center>"
     
     // Balance card profit views
     @IBOutlet weak var balanceCardProfitView: UIView!
@@ -190,7 +189,7 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
         
         if !self.coreVC!.walletHasSynced {
             // Wallet isn't ready.
-            self.showAlert(presentingController: self.coreVC!, title: Language.getWord(withID: "syncingwallet"), message: Language.getWord(withID: "syncingwallet2"), buttons: [Language.getWord(withID: "okay")], actions: nil)
+            self.showAlert(title: Language.getWord(withID: "syncingwallet"), message: Language.getWord(withID: "syncingwallet2"), buttons: [.dismiss(Language.getWord(withID: "okay"))])
             return
         }
         
@@ -201,7 +200,7 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
         
         if !self.coreVC!.walletHasSynced {
             // Wallet isn't ready.
-            self.showAlert(presentingController: self.coreVC!, title: Language.getWord(withID: "syncingwallet"), message: Language.getWord(withID: "syncingwallet2"), buttons: [Language.getWord(withID: "okay")], actions: nil)
+            self.showAlert(title: Language.getWord(withID: "syncingwallet"), message: Language.getWord(withID: "syncingwallet2"), buttons: [.dismiss(Language.getWord(withID: "okay"))])
             return
         }
         
@@ -214,7 +213,7 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
         
         if !self.coreVC!.walletHasSynced {
             // Wallet isn't ready.
-            self.showAlert(presentingController: self.coreVC!, title: Language.getWord(withID: "syncingwallet"), message: Language.getWord(withID: "syncingwallet2"), buttons: [Language.getWord(withID: "okay")], actions: nil)
+            self.showAlert(title: Language.getWord(withID: "syncingwallet"), message: Language.getWord(withID: "syncingwallet2"), buttons: [.dismiss(Language.getWord(withID: "okay"))])
             return
         }
         
@@ -250,6 +249,7 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
         } else if segue.identifier == "HomeToSend" {
             if let sendVC = segue.destination as? SendViewController {
                 sendVC.coreVC = self.coreVC
+                sendVC.homeVC = self
                 self.sendVC = sendVC
                 
                 // Pass pending URI data if available
@@ -356,7 +356,7 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
         
         if !self.coreVC!.walletHasSynced {
             // Wallet isn't ready.
-            self.showAlert(presentingController: self.coreVC!, title: Language.getWord(withID: "syncingwallet"), message: Language.getWord(withID: "syncingwallet2"), buttons: [Language.getWord(withID: "okay")], actions: nil)
+            self.showAlert(title: Language.getWord(withID: "syncingwallet"), message: Language.getWord(withID: "syncingwallet2"), buttons: [.dismiss(Language.getWord(withID: "okay"))])
             return
         }
         
@@ -367,7 +367,7 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
         
         if self.coreVC!.walletHasSynced {
             if self.couldNotFetchConversion {
-                self.showAlert(presentingController: self.coreVC!, title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "conversionfail"), buttons: [Language.getWord(withID: "okay")], actions: nil)
+                self.showAlert(title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "conversionfail"), buttons: [.dismiss(Language.getWord(withID: "okay"))])
             } else {
                 self.balanceDetailsButtonTapped(self.balanceCardButton)
             }

@@ -114,7 +114,7 @@ extension CoreViewController {
         let label = userInfo["label"] as? String ?? ""
         
         Log.info("Handling Bitcoin URI.")
-        print("Handling Bitcoin URI - Address: \(address), Amount: \(amount), Label: \(label)")
+        Log.debug("Handling Bitcoin URI - Address: \(address), Amount: \(amount), Label: \(label)")
         
         // Check if user is signed in
         DispatchQueue.main.async {
@@ -124,7 +124,7 @@ extension CoreViewController {
             } else {
                 // User hasn't signed in yet, store URI data for later
                 self.storeBitcoinURIData(address: address, amount: amount, label: label)
-                self.showAlert(presentingController: self, title: Language.getWord(withID: "sendbitcoin"), message: Language.getWord(withID: "pleasesignintosend"), buttons: [Language.getWord(withID: "okay")], actions: nil)
+                self.showAlert(title: Language.getWord(withID: "sendbitcoin"), message: Language.getWord(withID: "pleasesignintosend"), buttons: [.dismiss(Language.getWord(withID: "okay"))])
             }
         }
     }
@@ -139,7 +139,7 @@ extension CoreViewController {
         }
         
         Log.info("Handling Lightning URI.")
-        print("Handling Lightning URI - Invoice: \(invoice)")
+        Log.debug("Handling Lightning URI - Invoice: \(invoice)")
         
         // Check if user is signed in
         DispatchQueue.main.async {
@@ -149,7 +149,7 @@ extension CoreViewController {
             } else {
                 // User hasn't signed in yet, store URI data for later
                 self.storeLightningURIData(invoice: invoice)
-                self.showAlert(presentingController: self, title: Language.getWord(withID: "sendbitcoin"), message: Language.getWord(withID: "pleasesignintosend"), buttons: [Language.getWord(withID: "okay")], actions: nil)
+                self.showAlert(title: Language.getWord(withID: "sendbitcoin"), message: Language.getWord(withID: "pleasesignintosend"), buttons: [.dismiss(Language.getWord(withID: "okay"))])
             }
         }
     }

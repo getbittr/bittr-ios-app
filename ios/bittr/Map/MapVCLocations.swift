@@ -150,7 +150,9 @@ extension MapViewController {
         
         self.placesTableView.reloadData()
         self.placesTableView.layoutIfNeeded()
-        DispatchQueue.main.async { self.placesTableView.setContentOffset(CGPoint(x: 0, y: -30), animated: true) }
+        DispatchQueue.main.async {
+            self.placesTableView.setContentOffset(CGPoint(x: 0, y: -self.placesTableView.adjustedContentInset.top), animated: true)
+        }
     }
     
     func showDefaultSwitzerlandRegion() {
@@ -163,14 +165,14 @@ extension MapViewController {
     }
     
     func locationManager(_ manager: CLLocationManager, didFailWithError error: Error) {
-        print("Location error: \(error)")
+        Log.info("Location error: \(error)")
         self.showDefaultSwitzerlandRegion()
     }
     
     func goToMyLocation() {
         DispatchQueue.global(qos: .background).async {
             guard CLLocationManager.locationServicesEnabled() else {
-                self.showAlert(presentingController: self, title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "locationunavailable"), buttons: [Language.getWord(withID: "okay")], actions: nil)
+                self.showAlert(title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "locationunavailable"), buttons: [.dismiss(Language.getWord(withID: "okay"))])
                 return
             }
             
@@ -187,7 +189,7 @@ extension MapViewController {
                     }
                     self.locationManager.requestLocation()
                 case .restricted, .denied:
-                    self.showAlert(presentingController: self, title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "locationunavailable"), buttons: [Language.getWord(withID: "okay")], actions: nil)
+                    self.showAlert(title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "locationunavailable"), buttons: [.dismiss(Language.getWord(withID: "okay"))])
                 @unknown default:
                     break
                 }

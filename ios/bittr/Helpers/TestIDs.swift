@@ -25,6 +25,9 @@ enum TestID {
         static let yourEmail = "buy.yourEmail"
         static let yourIban = "buy.yourIban"
     }
+    enum Core {
+        static let launchComplete = "core.launchComplete"
+    }
     enum Device {
         enum Darkmode {
             static let deviceButton = "device.darkmode.deviceButton"
@@ -79,6 +82,7 @@ enum TestID {
         static let placeCellButton = "map.placeCellButton"
         static let placeName = "map.placeName"
         static let placesTableView = "map.placesTableView"
+        static let poweredByButton = "map.poweredByButton"
         static let userLocationButton = "map.userLocationButton"
     }
     enum Move {
@@ -308,6 +312,7 @@ enum TestID {
         static let copyBottomIdButton = "transaction.copyBottomIdButton"
         static let copyIdButton = "transaction.copyIdButton"
         static let descriptionButton = "transaction.descriptionButton"
+        static let descriptionLabel = "transaction.descriptionLabel"
         static let labelAmount = "transaction.labelAmount"
         static let labelDate = "transaction.labelDate"
         static let labelNote = "transaction.labelNote"

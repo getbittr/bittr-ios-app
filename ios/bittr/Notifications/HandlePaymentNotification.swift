@@ -27,7 +27,7 @@ extension CoreViewController {
             if !self.wasNotified {
                 // App was open when notification came in.
                 Log.info("Will notify user of alert.")
-                self.showAlert(presentingController: self, title: Language.getWord(withID: "bittrpayout"), message: Language.getWord(withID: "newbittrpayment"), buttons: [Language.getWord(withID: "okay")], actions: [#selector(self.triggerPayout)])
+                self.showAlert(title: Language.getWord(withID: "bittrpayout"), message: Language.getWord(withID: "newbittrpayment"), buttons: [.action(Language.getWord(withID: "okay")) { self.triggerPayout() }])
             } else {
                 // App was closed when notification came in and was subsequently opened.
                 Log.info("User has been notified of alert.")
@@ -37,7 +37,7 @@ extension CoreViewController {
     }
     
     func handleHTLCNotification(_ notification: BittrNotification) {
-        Log.info("Will handle HTLC (incoming payment) notification.")
+        Log.info("Will handle HTLC (incoming payment) notification. signedIn=\(self.userHasSignedIn) synced=\(self.walletHasSynced) wasNotified=\(self.wasNotified) alreadyHandling=\(self.isHandlingIncomingHTLC)")
         self.lightningNotification = notification
         if !self.userHasSignedIn {
             self.wasNotified = true
@@ -45,16 +45,23 @@ extension CoreViewController {
         } else if !self.walletHasSynced {
             self.showLoading(message: Language.getWord(withID: "syncingwallet3"))
         } else {
+            // The incoming payment can be triggered from both the HTLC-resume push
+            // AND a Live Activity tap around the same time — handle it only once.
+            guard !self.isHandlingIncomingHTLC else {
+                Log.info("Incoming HTLC already being handled; ignoring duplicate trigger.")
+                return
+            }
+            self.isHandlingIncomingHTLC = true
+            UserDefaults.standard.removeObject(forKey: "pendingSwapResume")
             if !self.wasNotified {
-                self.showAlert(presentingController: self, title: Language.getWord(withID: "incomingpayment"), message: Language.getWord(withID: "newbittrpayment"), buttons: [Language.getWord(withID: "okay")], actions: [#selector(self.triggerHTLCReady)])
+                self.showAlert(title: Language.getWord(withID: "incomingpayment"), message: Language.getWord(withID: "newbittrpayment"), buttons: [.action(Language.getWord(withID: "okay")) { self.triggerHTLCReady() }])
             } else {
                 self.triggerHTLCReady()
             }
         }
     }
     
-    @objc func triggerHTLCReady() {
-        self.hideAlert()
+    func triggerHTLCReady() {
         self.showLoading(message: Language.getWord(withID: "receivingpayment"))
         self.lightningNotification = nil
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
@@ -73,12 +80,14 @@ extension CoreViewController {
     private func facilitateHTLCReady() {
         guard let depositCode = BitcoinManager.shared.bittrWallet.ibanEntities.first(where: { !$0.yourUniqueCode.isEmpty })?.yourUniqueCode else {
             self.hideLoading()
-            self.showAlert(presentingController: self, title: Language.getWord(withID: "incomingpayment"), message: Language.getWord(withID: "bittrpayoutfail"), buttons: [Language.getWord(withID: "close")], actions: nil)
+            self.isHandlingIncomingHTLC = false
+            self.showAlert(title: Language.getWord(withID: "incomingpayment"), message: Language.getWord(withID: "bittrpayoutfail"), buttons: [.dismiss(Language.getWord(withID: "close"))])
             return
         }
         guard let pubkey = BitcoinManager.shared.nodeId() else {
             self.hideLoading()
-            self.showAlert(presentingController: self, title: Language.getWord(withID: "incomingpayment"), message: Language.getWord(withID: "bittrpayoutfail2"), buttons: [Language.getWord(withID: "close")], actions: nil)
+            self.isHandlingIncomingHTLC = false
+            self.showAlert(title: Language.getWord(withID: "incomingpayment"), message: Language.getWord(withID: "bittrpayoutfail2"), buttons: [.dismiss(Language.getWord(withID: "close"))])
             return
         }
         let timestamp = Int(Date().timeIntervalSince1970)
@@ -89,20 +98,22 @@ extension CoreViewController {
                 let response = try await BittrService.shared.htlcReady(depositCode: depositCode, timestamp: timestamp, pubkey: pubkey, signature: signature)
                 await MainActor.run {
                     self.hideLoading()
+                    self.isHandlingIncomingHTLC = false
                     if response.success, response.action == "resumed" {
                         // No alert – the incoming payment screen will show automatically
                     } else if response.success, response.action == "failed_timeout" {
-                        self.showAlert(presentingController: self, title: Language.getWord(withID: "incomingpayment"), message: Language.getWord(withID: "bittrpayoutfail"), buttons: [Language.getWord(withID: "close")], actions: nil)
+                        self.showAlert(title: Language.getWord(withID: "incomingpayment"), message: Language.getWord(withID: "bittrpayoutfail"), buttons: [.dismiss(Language.getWord(withID: "close"))])
                     } else {
                         // Backend returned 200 with success == false: translate
                         // the raw error code into a friendly message.
                         Log.info("htlc_ready failed: \(response.error ?? "unknown")")
-                        self.showAlert(presentingController: self, title: Language.getWord(withID: "incomingpayment"), message: self.htlcReadyFriendlyMessage(forCode: response.error), buttons: [Language.getWord(withID: "close")], actions: nil)
+                        self.showAlert(title: Language.getWord(withID: "incomingpayment"), message: self.htlcReadyFriendlyMessage(forCode: response.error), buttons: [.dismiss(Language.getWord(withID: "close"))])
                     }
                 }
             } catch {
                 await MainActor.run {
                     self.hideLoading()
+                    self.isHandlingIncomingHTLC = false
                     // A non-2xx response makes htlcReady throw
                     // BittrServiceError.serverError(<raw code>), so pull the code
                     // out and map it too — otherwise the raw code (e.g.
@@ -112,7 +123,7 @@ extension CoreViewController {
                     if let bittrError = error as? BittrServiceError, case let .serverError(message) = bittrError {
                         code = message
                     }
-                    self.showAlert(presentingController: self, title: Language.getWord(withID: "incomingpayment"), message: self.htlcReadyFriendlyMessage(forCode: code), buttons: [Language.getWord(withID: "close")], actions: nil)
+                    self.showAlert(title: Language.getWord(withID: "incomingpayment"), message: self.htlcReadyFriendlyMessage(forCode: code), buttons: [.dismiss(Language.getWord(withID: "close"))])
                 }
             }
         }
@@ -129,16 +140,14 @@ extension CoreViewController {
         return Language.getWord(withID: "bittrpayoutfail2")
     }
 
-    @objc func triggerPayout() {
-        self.hideAlert()
+    func triggerPayout() {
         self.showLoading(message: Language.getWord(withID: "receivingpayment"))
         DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
             self.facilitateNotificationPayout()
         }
     }
     
-    @objc func facilitateNotificationPayout() {
-        self.hideAlert()
+    func facilitateNotificationPayout() {
         Log.info("Will start payout process.")
         
         // Extract required data.
@@ -151,14 +160,14 @@ extension CoreViewController {
             SentryManager.capture("Required data unavailable while trying to handle notification payout.", context: "HandlePaymentNotification row 108")
             self.hideLoading()
             self.lightningNotification = nil
-            self.showAlert(presentingController: self, title: Language.getWord(withID: "bittrpayout"), message: Language.getWord(withID: "bittrpayoutfail"), buttons: [Language.getWord(withID: "close")], actions: nil)
+            self.showAlert(title: Language.getWord(withID: "bittrpayout"), message: Language.getWord(withID: "bittrpayoutfail"), buttons: [.dismiss(Language.getWord(withID: "close"))])
             return
         }
             
         // Get pubkey.
         guard let pubkey:String = BitcoinManager.shared.nodeId() else {
             Log.info("Pubkey unavailable.")
-            self.showAlert(presentingController: self, title: Language.getWord(withID: "bittrpayout"), message: Language.getWord(withID: "bittrpayoutfail2"), buttons: [Language.getWord(withID: "close"), Language.getWord(withID: "tryagain")], actions: [nil, #selector(self.facilitateNotificationPayout)])
+            self.showAlert(title: Language.getWord(withID: "bittrpayout"), message: Language.getWord(withID: "bittrpayoutfail2"), buttons: [.dismiss(Language.getWord(withID: "close")), .action(Language.getWord(withID: "tryagain")) { self.facilitateNotificationPayout() }])
             return
         }
 
@@ -176,7 +185,7 @@ extension CoreViewController {
                     DispatchQueue.main.async {
                         self.hideLoading()
                         self.lightningNotification = nil
-                        self.showAlert(presentingController: self, title: Language.getWord(withID: "bittrpayout"), message: Language.getWord(withID: "bittrpayoutfail"), buttons: [Language.getWord(withID: "close")], actions: nil)
+                        self.showAlert(title: Language.getWord(withID: "bittrpayout"), message: Language.getWord(withID: "bittrpayoutfail"), buttons: [.dismiss(Language.getWord(withID: "close"))])
                     }
                     return
                 }
@@ -184,8 +193,8 @@ extension CoreViewController {
                 // Cache payment details.
                 if let invoiceHash = invoice.description.getInvoiceHash(), let paymentDetails = BitcoinManager.shared.getPaymentDetails(paymentHash: invoiceHash) {
                     let newTimestamp = Int(Date().timeIntervalSince1970)
-                    CacheManager.storeInvoiceTimestamp(preimage: paymentDetails.kind.transactionID ?? paymentDetails.id, timestamp: newTimestamp)
-                    CacheManager.storeInvoiceDescription(preimage: paymentDetails.kind.transactionID ?? paymentDetails.id, desc: notificationId)
+                    CacheManager.storeInvoiceTimestamp(preimage: paymentDetails.cacheID, timestamp: newTimestamp)
+                    CacheManager.storeInvoiceDescription(preimage: paymentDetails.cacheID, desc: notificationId)
                     Log.info("Did cache invoice data.")
                 }
                 
@@ -200,7 +209,7 @@ extension CoreViewController {
                         SentryManager.capture(error, context: "HandlePaymentNotification row 163")
                         self.hideLoading()
                         self.lightningNotification = nil
-                        self.showAlert(presentingController: self, title: Language.getWord(withID: "bittrpayout"), message: Language.getWord(withID: "bittrpayoutfail"), buttons: [Language.getWord(withID: "close")], actions: nil)
+                        self.showAlert(title: Language.getWord(withID: "bittrpayout"), message: Language.getWord(withID: "bittrpayoutfail"), buttons: [.dismiss(Language.getWord(withID: "close"))])
                     }
                     return
                 }
@@ -210,7 +219,7 @@ extension CoreViewController {
                     let payoutResponse = try await BittrService.shared.payoutLightning(notificationId: notificationId, invoice: invoice.description, signature: lightningSignature, pubkey: pubkey)
                     
                     Log.info("Payout successful.")
-                    print("PreImage: \(payoutResponse.preImage ?? "N/A")")
+                    Log.debug("PreImage: \(payoutResponse.preImage ?? "N/A")")
                     DispatchQueue.main.async {
                         CacheManager.didHandleNotification(notificationId)
                         self.hideLoading()
@@ -227,11 +236,27 @@ extension CoreViewController {
                                 // Handle channel full with swap suggestion
                                 sendToSentry = false
                                 self.handleChannelFullWithSwapSuggestion(message: message, suggestedAmount: suggestedAmount, notificationId: notificationId)
+                            case .paymentProcessing(let message):
+                                // The attempt is committed and its outcome is ambiguous, so
+                                // never offer a retry: resending would mint a new invoice that
+                                // could be paid on top of an in-flight one. Close-only. This is
+                                // an expected transient state, not a fault, so it's kept out of
+                                // Sentry. lightningNotification is deliberately left set — if the
+                                // payment does settle, the .paymentReceived handler reconciles it
+                                // as the Bittr payout rather than as a stray incoming payment.
+                                sendToSentry = false
+                                self.showAlert(title: Language.getWord(withID: "bittrpayout"), message: message, buttons: [.dismiss(Language.getWord(withID: "close"))])
+                            case .paymentTooLarge(let message):
+                                // Permanent: resending the same amount will fail again, so no
+                                // retry. Expected business rule, not a fault — keep it out of Sentry.
+                                sendToSentry = false
+                                self.showAlert(title: Language.getWord(withID: "bittrpayout"), message: message, buttons: [.dismiss(Language.getWord(withID: "close"))])
+                                self.lightningNotification = nil
                             case .serverError(let message):
                                 if message.contains("try again"), self.lightningNotification != nil {
-                                    self.showAlert(presentingController: self, title: Language.getWord(withID: "bittrpayout"), message: message, buttons: [Language.getWord(withID: "close"), Language.getWord(withID: "tryagain")], actions: [nil, #selector(self.facilitateNotificationPayout)])
+                                    self.showAlert(title: Language.getWord(withID: "bittrpayout"), message: message, buttons: [.dismiss(Language.getWord(withID: "close")), .action(Language.getWord(withID: "tryagain")) { self.facilitateNotificationPayout() }])
                                 } else {
-                                    self.showAlert(presentingController: self, title: Language.getWord(withID: "bittrpayout"), message: message, buttons: [Language.getWord(withID: "close")], actions: nil)
+                                    self.showAlert(title: Language.getWord(withID: "bittrpayout"), message: message, buttons: [.dismiss(Language.getWord(withID: "close"))])
                                     if message == "This payment has already been processed." {
                                         // No need to notify Sentry.
                                         sendToSentry = false
@@ -239,14 +264,14 @@ extension CoreViewController {
                                     self.lightningNotification = nil
                                 }
                             default:
-                                self.showAlert(presentingController: self, title: Language.getWord(withID: "bittrpayout"), message: error.localizedDescription, buttons: [Language.getWord(withID: "close")], actions: nil)
+                                self.showAlert(title: Language.getWord(withID: "bittrpayout"), message: error.localizedDescription, buttons: [.dismiss(Language.getWord(withID: "close"))])
                                 self.lightningNotification = nil
                             }
                         } else {
                             if error.localizedDescription.contains("try again"), self.lightningNotification != nil {
-                                self.showAlert(presentingController: self, title: Language.getWord(withID: "bittrpayout"), message: "\(error.localizedDescription)", buttons: [Language.getWord(withID: "close"), Language.getWord(withID: "tryagain")], actions: [nil, #selector(self.facilitateNotificationPayout)])
+                                self.showAlert(title: Language.getWord(withID: "bittrpayout"), message: "\(error.localizedDescription)", buttons: [.dismiss(Language.getWord(withID: "close")), .action(Language.getWord(withID: "tryagain")) { self.facilitateNotificationPayout() }])
                             } else {
-                                self.showAlert(presentingController: self, title: Language.getWord(withID: "bittrpayout"), message: "\(error.localizedDescription)", buttons: [Language.getWord(withID: "close")], actions: nil)
+                                self.showAlert(title: Language.getWord(withID: "bittrpayout"), message: "\(error.localizedDescription)", buttons: [.dismiss(Language.getWord(withID: "close"))])
                                 self.lightningNotification = nil
                             }
                         }
@@ -261,15 +286,13 @@ extension CoreViewController {
             Log.info("Not connected to peer.")
             DispatchQueue.main.async {
                 self.hideLoading()
-                self.showAlert(presentingController: self, title: Language.getWord(withID: "bittrpayout"), message: Language.getWord(withID: "couldntconnect"), buttons: [Language.getWord(withID: "close"), Language.getWord(withID: "tryagain")], actions: [nil, #selector(self.reconnectToPeer)])
+                self.showAlert(title: Language.getWord(withID: "bittrpayout"), message: Language.getWord(withID: "couldntconnect"), buttons: [.dismiss(Language.getWord(withID: "close")), .action(Language.getWord(withID: "tryagain")) { self.reconnectToPeer() }])
             }
         }
     }
     
     
-    @objc func reconnectToPeer() {
-        self.hideAlert()
-        
+    func reconnectToPeer() {
         Task {
             _ = await BitcoinManager.shared.didEstablishPeerConnection()
             DispatchQueue.main.async {
@@ -280,7 +303,7 @@ extension CoreViewController {
     
     func ldkEventReceived(event:LDKNode.Event) {
         
-        print("Event found. \(event)")
+        Log.debug("Event found. \(event)")
         
         if CacheManager.hasHandledEvent(event: "\(event)"), !event.isPaymentFailed() {
             // Event has already been handled.
@@ -376,10 +399,12 @@ extension CoreViewController {
                             (sendVC ?? receiveVC)!.addNewPaymentToTable(thisPayment: paymentDetails)
                         } else {
                             // Handle transaction in HomeVC.
-                            self.homeVC!.addLightningTransaction(thisTransaction: newTransaction, paymentDetails: paymentDetails)
-                            if !newTransaction.isSwap, !newTransaction.isSwapPayment {
-                                self.homeVC!.tappedTransaction = newTransaction
-                                self.homeVC!.performSegue(withIdentifier: "HomeToTransaction", sender: self)
+                            if let homeVC = self.homeVC {
+                                homeVC.addLightningTransaction(thisTransaction: newTransaction, paymentDetails: paymentDetails)
+                                if !newTransaction.isSwap, !newTransaction.isSwapPayment {
+                                    homeVC.tappedTransaction = newTransaction
+                                    homeVC.performSegue(withIdentifier: "HomeToTransaction", sender: homeVC)
+                                }
                             }
                             CacheManager.storeLightningTransaction(newTransaction)
                         }
@@ -425,7 +450,7 @@ extension CoreViewController {
                     
                     // Show alert.
                     let reasonText = failureReason.isEmpty ? "" : " \(failureReason)."
-                    self.showAlert(presentingController: (sendVC ?? receiveVC ?? swapVC ?? self), title: Language.getWord(withID: "paymentfailed"), message: Language.getWord(withID: "paymentfailed2").replacingOccurrences(of: "<reason>", with: reasonText), buttons: [Language.getWord(withID: "okay")], actions: nil)
+                    self.showAlert(presentingController: sendVC ?? receiveVC ?? swapVC, title: Language.getWord(withID: "paymentfailed"), message: Language.getWord(withID: "paymentfailed2").replacingOccurrences(of: "<reason>", with: reasonText), buttons: [.dismiss(Language.getWord(withID: "okay"))])
                 }
                 
             case .paymentClaimable(paymentId: _, paymentHash: _, claimableAmountMsat: _, claimDeadline: _, customRecords: _):
@@ -458,7 +483,9 @@ extension CoreViewController {
             // Launch TransactionVC after ReceiveVC has dismissed.
             let presentTransactionVC = { [weak self] in
                 guard let self else { return }
-                if !thisTransaction.isSwapPayment {
+                if thisTransaction.isSwapPayment {
+                    SwapManager.openCompletedSwapTransaction(dateID: thisTransaction.lnDescription, homeVC: self.homeVC)
+                } else {
                     self.homeVC?.performSegue(withIdentifier: "HomeToTransaction", sender: self)
                 }
             }
@@ -506,11 +533,6 @@ extension CoreViewController {
                     // Debug: Print the raw API response data
                     if bittrApiTransactions.count > 0, let firstTransaction = bittrApiTransactions.first {
                         Log.info("DEBUG - Bittr API returned transaction:")
-                        print("  - txId: \(firstTransaction.txId)")
-                        print("  - bitcoinAmount: '\(firstTransaction.bitcoinAmount)'")
-                        print("  - currency: '\(firstTransaction.currency)'")
-                        print("  - transferFee: '\(firstTransaction.transferFee)'")
-                        print("  - datetime: '\(firstTransaction.datetime)'")
                     }
                     
                     CacheManager.updateSentToBittr(txids: [paymentPreimage])
@@ -530,7 +552,7 @@ extension CoreViewController {
                         }
                     } else {
                         Log.info("channelPending: Received no transaction details from Bittr API.")
-                        print("Funding txid: \(paymentPreimage)")
+                        Log.debug("Funding txid: \(paymentPreimage)")
                         if paymentDetails != nil {
                             let thisTransaction = paymentDetails!.createTransaction(bittrTransactions: nil)
                             self.launchTransactionVC(thisTransaction: thisTransaction, paymentDetails: paymentDetails!)
@@ -599,7 +621,7 @@ extension CoreViewController {
             self.wasNotified = true
             self.lightningNotification = notification
             
-            self.showAlert(presentingController: self, title: Language.getWord(withID: "swapstatusupdate"), message: Language.getWord(withID: "pleasesignin"), buttons: [Language.getWord(withID: "okay")], actions: nil)
+            self.showAlert(title: Language.getWord(withID: "swapstatusupdate"), message: Language.getWord(withID: "pleasesignin"), buttons: [.dismiss(Language.getWord(withID: "okay"))])
         } else if !self.walletHasSynced {
             Log.info("Wallet hasn't synced yet.")
             self.lightningNotification = notification
@@ -614,10 +636,44 @@ extension CoreViewController {
         self.lightningNotification = nil
         self.hideLoading()
         
-        // Load swap details from file
-        if CacheManager.getLatestSwap() != nil {
-            Log.info("Loaded swap details from background.")
-            self.performSegue(withIdentifier: "HomeToSwapStatus", sender: self)
+        guard CacheManager.getLatestSwap() != nil else { return }
+        Log.info("Loaded swap details from background.")
+        
+        guard UIApplication.shared.applicationState == .active else {
+            Log.info("App not active; skipping swap-status presentation.")
+            return
+        }
+        
+        self.homeVC?.performSegue(withIdentifier: "HomeToSwapStatus", sender: self.homeVC)
+    }
+    
+    // Tapping the swap Live Activity (Dynamic Island / Lock Screen) routes here.
+    @objc func openSwapStatus() {
+        DispatchQueue.main.async {
+            guard CacheManager.getLatestSwap() != nil else { return }
+            
+            if let swapVC = self.swapVC {
+                // Already on screen — presented modally, or embedded as a child of
+                // the swap flow. In either case there's nothing to do; only present
+                // it when it's free-standing (presenting a parented VC would crash
+                // with "already has a parent").
+                guard swapVC.presentingViewController == nil, swapVC.parent == nil else { return }
+                self.present(swapVC, animated: true)
+            } else if self.homeVC?.swapStatusVC == nil {
+                // The segue lives on the Home scene, so perform it on homeVC.
+                self.homeVC?.performSegue(withIdentifier: "HomeToSwapStatus", sender: self.homeVC)
+            }
+        }
+    }
+    
+    // Tapping the swap Live Activity during its final leg routes here.
+    @objc func resumeSwapPayment() {
+        Log.info("resumeSwapPayment: Live Activity tap → routing to incoming-HTLC handling.")
+        UserDefaults.standard.removeObject(forKey: "pendingSwapResume")
+        DispatchQueue.main.async {
+            let htlc = BittrNotification()
+            htlc.type = .htlcIncoming
+            self.handleHTLCNotification(htlc)
         }
     }
     
@@ -629,16 +685,12 @@ extension CoreViewController {
         // Show alert with swap suggestion
         let recommendationMessage = Language.getWord(withID: "channelfullswaprecommendation").replacingOccurrences(of: "<amount>", with: suggestedAmount)
         self.showAlert(
-            presentingController: self,
             title: Language.getWord(withID: "insufficientfunds"),
             message: "\(message)\n\n\(recommendationMessage)",
-            buttons: [Language.getWord(withID: "receiveonchain"), Language.getWord(withID: "swapandreceiveinstantly")],
-            actions: [#selector(self.receiveOnchainForNotification), #selector(self.swapAndPayForNotification)]
-        )
+            buttons: [.action(Language.getWord(withID: "receiveonchain")) { self.receiveOnchainForNotification() }, .action(Language.getWord(withID: "swapandreceiveinstantly")) { self.swapAndPayForNotification() }])
     }
     
-    @objc func receiveOnchainForNotification() {
-        self.hideAlert()
+    func receiveOnchainForNotification() {
         
         guard let notificationId = self.pendingNotificationId else {
             Log.info("ERROR: No pending notification ID for on-chain payout")
@@ -655,12 +707,9 @@ extension CoreViewController {
         } else {
             self.hideLoading()
             self.showAlert(
-                presentingController: self,
-                title: "Error",
-                message: "Failed to schedule on-chain payment: Wallet has not been synced.",
-                buttons: [Language.getWord(withID: "okay")],
-                actions: nil
-            )
+                title: Language.getWord(withID: "error"),
+                message: Language.getWord(withID: "onchainpayoutfail").replacingOccurrences(of: "<message>", with: Language.getWord(withID: "walletnotsynced")),
+                buttons: [.dismiss(Language.getWord(withID: "okay"))])
             return
         }
         
@@ -675,17 +724,14 @@ extension CoreViewController {
                 )
                 
                 Log.info("On-chain payout marked successfully.")
-                print("Payout response: \(response)")
+                Log.debug("Payout response: \(response)")
                 
                 DispatchQueue.main.async {
                     self.hideLoading()
                     self.showAlert(
-                        presentingController: self,
-                        title: "Payment Scheduled",
-                        message: "Your payment has been scheduled for on-chain delivery within 4-24 hours. You'll receive a notification when it's completed.",
-                        buttons: [Language.getWord(withID: "okay")],
-                        actions: nil
-                    )
+                        title: Language.getWord(withID: "onchainpayoutscheduled"),
+                        message: Language.getWord(withID: "onchainpayoutscheduled2"),
+                        buttons: [.dismiss(Language.getWord(withID: "okay"))])
                     
                     // Clear pending data
                     self.pendingNotificationId = nil
@@ -698,20 +744,15 @@ extension CoreViewController {
                     SentryManager.capture(error, context: "HandlePaymentNotification row 637")
                     self.hideLoading()
                     self.showAlert(
-                        presentingController: self,
-                        title: "Error",
-                        message: "Failed to schedule on-chain payment: \(error.localizedDescription)",
-                        buttons: [Language.getWord(withID: "okay")],
-                        actions: nil
-                    )
+                        title: Language.getWord(withID: "error"),
+                        message: Language.getWord(withID: "onchainpayoutfail").replacingOccurrences(of: "<message>", with: error.localizedDescription),
+                        buttons: [.dismiss(Language.getWord(withID: "okay"))])
                 }
             }
         }
     }
     
-    @objc func swapAndPayForNotification() {
-        self.hideAlert()
-        
+    func swapAndPayForNotification() {
         // Navigate to swap screen using existing pattern
         // Use the stored suggested swap amount
         Log.info("swapAndPayForNotification called.")

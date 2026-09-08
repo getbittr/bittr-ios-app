@@ -33,6 +33,7 @@ class CoreViewController: UIViewController {
     // Pending notifications
     var wasNotified = false
     var lightningNotification:BittrNotification?
+    var isHandlingIncomingHTLC = false
     var receivedBittrTransaction:Transaction?
     var pendingNotificationId:String?
     var pendingSuggestedSwapAmount:Int = 0
@@ -56,13 +57,31 @@ class CoreViewController: UIViewController {
     var downloadedAcademy:[Level]?
     
     // Top bar
-    @IBOutlet weak var animationContainer: UIView!
-    @IBOutlet weak var finalLogoDarkMode: UIImageView!
+    @IBOutlet weak var topBarHeight: NSLayoutConstraint!
+    @IBOutlet weak var topBarTop: NSLayoutConstraint!
+    @IBOutlet weak var logoTop: NSLayoutConstraint!
     @IBOutlet weak var topBar: UIView!
     @IBOutlet weak var lowerTopBar: UIView!
-    @IBOutlet weak var bittrTextDarkMode: UIImageView!
     @IBOutlet weak var upperYellowCurve: BottomCurveView!
     @IBOutlet weak var lowerYellowCurve: BottomCurveView!
+    
+    // Logo animation
+    @IBOutlet weak var coreVCBackground: UIView!
+    @IBOutlet weak var animationCover: UIView!
+    @IBOutlet weak var logoView: UIView!
+    @IBOutlet weak var logoTextDarkMode: UIImageView!
+    @IBOutlet weak var logoIconDarkMode: UIImageView!
+    @IBOutlet weak var coverView: UIView!
+    @IBOutlet weak var coin1: UIImageView!
+    @IBOutlet weak var coin3: UIImageView!
+    @IBOutlet weak var firstCoin: UIView!
+    @IBOutlet weak var secondCoin: UIView!
+    @IBOutlet weak var firstCoinCenterY: NSLayoutConstraint!
+    @IBOutlet weak var firstCoinCenterX: NSLayoutConstraint!
+    @IBOutlet weak var blackCoin: UIImageView!
+    @IBOutlet weak var logoViewWidth: NSLayoutConstraint!
+    @IBOutlet weak var finalLogo: UIImageView!
+    var logoHasMovedUp = false
     
     // Year view
     @IBOutlet weak var yearView: UIView!
@@ -144,21 +163,13 @@ class CoreViewController: UIViewController {
         self.setWords()
         self.setBasicStyling()
 
-        // Taps on the animationContainer go through it down to PinVC or SignupVC.
-        self.animationContainer.isUserInteractionEnabled = false
-
         // Check wallet.
         self.checkWalletAvailability()
     }
     
-    func checkWalletAvailability() {
+    @objc func checkWalletAvailability() {
+        // Decide which screen the launch ends on based on whether a wallet exists.
         
-        // Decide which screen to show based on whether a wallet exists. The
-        // containers are revealed here, at viewDidLoad, and stay interactable
-        // during the launch animation: the animation cover passes taps
-        // through (its isUserInteractionEnabled is false), so the PIN/signup
-        // screen is usable while it becomes visible — and automation taps
-        // can't be swallowed by the cover.
         switch CacheManager.walletSecretsPresence() {
         case .present:
             Log.info("Wallet is available.")
@@ -187,17 +198,13 @@ class CoreViewController: UIViewController {
         self.pinContainerView.alpha = 1
         self.fullViewCover.alpha = 0.8
         self.genericSpinner.startAnimating()
-
+        
         if !self.isAwaitingProtectedData {
             self.isAwaitingProtectedData = true
-            NotificationCenter.default.addObserver(self, selector: #selector(self.retryReadingKeychain), name: UIApplication.protectedDataDidBecomeAvailableNotification, object: nil)
+            NotificationCenter.default.addObserver(self, selector: #selector(self.checkWalletAvailability), name: UIApplication.protectedDataDidBecomeAvailableNotification, object: nil)
         }
-
-        self.showAlert(presentingController: self,
-                       title: Language.getWord(withID: "keychainunavailabletitle"),
-                       message: Language.getWord(withID: "keychainunavailable"),
-                       buttons: [Language.getWord(withID: "tryagain")],
-                       actions: [#selector(self.retryReadingKeychain)])
+        
+        self.showAlert(title: Language.getWord(withID: "keychainunavailabletitle"), message: Language.getWord(withID: "keychainunavailable"), buttons: [.action(Language.getWord(withID: "tryagain")) { self.checkWalletAvailability() }])
     }
     
     private func finishAwaitingProtectedDataIfNeeded() {
@@ -208,11 +215,6 @@ class CoreViewController: UIViewController {
         self.genericSpinner.stopAnimating()
     }
     
-    @objc private func retryReadingKeychain() {
-        self.hideAlert()
-        self.checkWalletAvailability()
-    }
-    
     func checkWalletRemoval() {
         // Upon app launch, check whether the user is locked out.
         // Or whether the user has previously tried removing the wallet.
@@ -221,13 +223,13 @@ class CoreViewController: UIViewController {
             self.removingWalletForIncorrectPin = true
             self.fullViewCover.alpha = 0.8
             self.genericSpinner.startAnimating()
-            self.showAlert(presentingController: self, title: Language.getWord(withID: "restorewallet"), message: Language.getWord(withID: "pinlock"), buttons: [Language.getWord(withID: "okay")], actions: nil)
+            self.showAlert(title: Language.getWord(withID: "restorewallet"), message: Language.getWord(withID: "pinlock"), buttons: [.dismiss(Language.getWord(withID: "okay"))])
             
             // Start wallet in background.
             self.startWallet()
         } else if CacheManager.walletRemovalIsInProgress() {
             Log.info("A wallet removal was left in progress — offering to resume it on launch.")
-            self.showAlert(presentingController: self, title: Language.getWord(withID: "removewalletfromdevice"), message: Language.getWord(withID: "removalinprogress"), buttons: [Language.getWord(withID: "cancel"), Language.getWord(withID: "removewalletfromdevice")], actions: [#selector(self.cancelWalletRemoval), #selector(self.resumeWalletRemoval)])
+            self.showAlert(title: Language.getWord(withID: "removewalletfromdevice"), message: Language.getWord(withID: "removalinprogress"), buttons: [.action(Language.getWord(withID: "cancel")) { self.cancelWalletRemoval() }, .action(Language.getWord(withID: "removewalletfromdevice")) { self.resumeWalletRemoval() }])
         }
     }
     

@@ -21,6 +21,7 @@
 appId: com.bittr.bittr-regtest
 ---
 - launchApp
+- runFlow: ../helpers/wait_for_launch.yaml
 
 # 1) Ensure a wallet and reach Home, WITHOUT wiping an existing wallet:
 #    - Restore only if there's genuinely no wallet, i.e. the app launched to the

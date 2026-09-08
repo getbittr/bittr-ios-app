@@ -36,6 +36,7 @@ appId: com.bittr.bittr-regtest
 - launchApp:
     clearState: true
     clearKeychain: true
+- runFlow: ../helpers/wait_for_launch.yaml
 
 # Signup1 (start).
 - assertVisible:

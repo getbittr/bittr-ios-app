@@ -23,7 +23,7 @@ class Swap: NSObject {
     // Fees
     var onchainFees:Int?
     var lightningFees:Int?
-    var feeHigh:Float?
+    var feeHigh:Double?
     var claimTransactionFee:Int? // Fee for claiming lightning-to-onchain swaps
     
     // Onchain to Lightning
@@ -163,7 +163,7 @@ extension NSDictionary {
         // Fees
         thisSwap.onchainFees = self["onchainFees"] as? Int
         thisSwap.lightningFees = self["lightningFees"] as? Int
-        thisSwap.feeHigh = self["feeHigh"] as? Float
+        thisSwap.feeHigh = (self["feeHigh"] as? NSNumber)?.doubleValue
         thisSwap.claimTransactionFee = self["claimTransactionFee"] as? Int
 
         // Onchain to Lightning

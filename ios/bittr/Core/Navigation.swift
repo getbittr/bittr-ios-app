@@ -108,10 +108,6 @@ extension CoreViewController {
                 self.pendingLightningInvoice = ""
                 self.pendingSuggestedSwapAmount = 0
             }
-        } else if segue.identifier == "CoreToAnimation" {
-            if let animationVC = segue.destination as? AnimationViewController {
-                animationVC.coreVC = self
-            }
         }
     }
     

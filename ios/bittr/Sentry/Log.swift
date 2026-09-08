@@ -11,10 +11,8 @@ struct Log {
     
     static func info(_ message: String) {
         
+        printToConsole(message)
         DispatchQueue.main.async {
-            // Print message.
-            print(message)
-            
             // Add message to Sentry breadcrumbs.
             let breadcrumb = Breadcrumb()
             breadcrumb.level = .info
@@ -24,5 +22,17 @@ struct Log {
             
             SentrySDK.addBreadcrumb(breadcrumb)
         }
+    }
+    
+    static func debug(_ message: @autoclosure () -> String) {
+        #if DEBUG
+        printToConsole(message())
+        #endif
+    }
+    
+    private static func printToConsole(_ message: String) {
+        #if DEBUG
+        DispatchQueue.main.async { print(message) }
+        #endif
     }
 }

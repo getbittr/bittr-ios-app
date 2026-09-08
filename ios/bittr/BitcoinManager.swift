@@ -496,11 +496,17 @@ class BitcoinManager {
             if self.bittrWallet.satoshisOnchain != Int(balances.totalOnchainBalanceSats) || self.bittrWallet.pendingBalancesFromChannelClosures != pendingClosureSatoshis || self.bittrWallet.allTransactions.count != self.listPayments().count {
                 Log.info("Did find updates in light sync.")
                 
+                DispatchQueue.main.async {
+                    // If the SendVC is open, update the maximum sendable label.
+                    self.coreVC!.homeVC!.sendVC?.setSendAllLabel()
+                }
+                
                 Task {
                     // Get latest block height.
                     let _ = await self.didGetLatestBlockHeight()
                     
                     DispatchQueue.main.async {
+                        // Update HomeVC and MoveVC data.
                         self.coreVC!.homeVC!.loadWalletData()
                         self.coreVC!.homeVC!.moveVC?.updateLabels()
                         completion(true)
@@ -518,7 +524,7 @@ class BitcoinManager {
         do {
             feeDictionary = try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<NSDictionary, Error>) in
                 Task {
-                    await CallsManager.makeApiCall(url: "https://mempool.space/api/v1/fees/precise", parameters: nil, getOrPost: .get) { result in
+                    await CallsManager.makeApiCall(url: "https://mempool.space/api/v1/fees/precise", parameters: nil, getOrPost: .get, timeout: 10) { result in
                         switch result {
                         case .success(let receivedDictionary):
                             // Build a fresh dictionary of validated Double fee rates: skip any
@@ -551,7 +557,10 @@ class BitcoinManager {
             Log.info("Fee estimate response was missing one or more expected rates.")
             return nil
         }
-
+        
+        // Remember the rate that worked.
+        CacheManager.storeLastKnownFeeRate(fastest)
+        
         return FeeEstimates(fastest: fastest, hour: hour, economy: economy)
     }
     
@@ -774,6 +783,18 @@ class BitcoinManager {
         return "m/84'/\(coinType)'/\(account)'/\(change)/\(addressIndex)"
     }
     
+}
+
+extension String {
+    
+    func bolt11Invoice() -> LDKNode.Bolt11Invoice? {
+        do {
+            let invoice = try LDKNode.Bolt11Invoice.fromStr(invoiceStr: self)
+            return invoice
+        } catch {
+            return nil
+        }
+    }
 }
 
 /// Recommended on-chain fee rates in sat/vByte, already normalized by

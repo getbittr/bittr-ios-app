@@ -1,9 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<document type="com.apple.InterfaceBuilder3.CocoaTouch.Storyboard.XIB" version="3.0" toolsVersion="21507" targetRuntime="iOS.CocoaTouch" propertyAccessControl="none" useAutolayout="YES" launchScreen="YES" useTraitCollections="YES" useSafeAreas="YES" colorMatched="YES" initialViewController="01J-lp-oVM">
+<document type="com.apple.InterfaceBuilder3.CocoaTouch.Storyboard.XIB" version="3.0" toolsVersion="24765" targetRuntime="iOS.CocoaTouch" propertyAccessControl="none" useAutolayout="YES" launchScreen="YES" useTraitCollections="YES" useSafeAreas="YES" colorMatched="YES" initialViewController="01J-lp-oVM">
     <device id="retina6_12" orientation="portrait" appearance="light"/>
     <dependencies>
-        <deployment identifier="iOS"/>
-        <plugIn identifier="com.apple.InterfaceBuilder.IBCocoaTouchPlugin" version="21505"/>
+        <plugIn identifier="com.apple.InterfaceBuilder.IBCocoaTouchPlugin" version="24743"/>
         <capability name="Safe area layout guides" minToolsVersion="9.0"/>
         <capability name="documents saved in the Xcode 8 format" minToolsVersion="8.0"/>
     </dependencies>
@@ -17,17 +16,17 @@
                         <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                         <subviews>
                             <imageView clipsSubviews="YES" userInteractionEnabled="NO" contentMode="scaleAspectFit" horizontalHuggingPriority="251" verticalHuggingPriority="251" image="coin1" translatesAutoresizingMaskIntoConstraints="NO" id="ksX-gF-nvi">
-                                <rect key="frame" x="181.66666666666666" y="423.66666666666669" width="30" height="30"/>
+                                <rect key="frame" x="181.66666666666666" y="411" width="30" height="30"/>
                                 <constraints>
                                     <constraint firstAttribute="width" constant="30" id="4rD-zj-OeI"/>
                                     <constraint firstAttribute="height" constant="30" id="EYB-Uq-6HL"/>
                                 </constraints>
                             </imageView>
                             <imageView clipsSubviews="YES" userInteractionEnabled="NO" contentMode="scaleAspectFit" horizontalHuggingPriority="251" verticalHuggingPriority="251" image="coin4" translatesAutoresizingMaskIntoConstraints="NO" id="2eN-la-NWW">
-                                <rect key="frame" x="186" y="428" width="21" height="21"/>
+                                <rect key="frame" x="186" y="415.66666666666669" width="21" height="21"/>
                             </imageView>
                             <imageView clipsSubviews="YES" userInteractionEnabled="NO" contentMode="scaleAspectFit" horizontalHuggingPriority="251" verticalHuggingPriority="251" image="coin3" translatesAutoresizingMaskIntoConstraints="NO" id="Zjv-Tl-TdL">
-                                <rect key="frame" x="181.66666666666666" y="434.66666666666669" width="18.666666666666657" height="19"/>
+                                <rect key="frame" x="181.66666666666666" y="422" width="18.666666666666657" height="19"/>
                             </imageView>
                         </subviews>
                         <viewLayoutGuide key="safeArea" id="6Tk-OE-BBY"/>
@@ -37,7 +36,7 @@
                             <constraint firstItem="2eN-la-NWW" firstAttribute="centerX" secondItem="ksX-gF-nvi" secondAttribute="centerX" id="Dc8-c9-ZKK"/>
                             <constraint firstItem="2eN-la-NWW" firstAttribute="height" secondItem="ksX-gF-nvi" secondAttribute="height" multiplier="0.7" id="FGn-QF-9nx"/>
                             <constraint firstItem="ksX-gF-nvi" firstAttribute="centerX" secondItem="6Tk-OE-BBY" secondAttribute="centerX" id="QZl-fQ-Dzw"/>
-                            <constraint firstItem="ksX-gF-nvi" firstAttribute="centerY" secondItem="6Tk-OE-BBY" secondAttribute="centerY" id="X8t-aC-twv"/>
+                            <constraint firstItem="ksX-gF-nvi" firstAttribute="centerY" secondItem="Ze5-6b-2t3" secondAttribute="centerY" id="X8t-aC-twv"/>
                             <constraint firstItem="Zjv-Tl-TdL" firstAttribute="height" secondItem="ksX-gF-nvi" secondAttribute="height" multiplier="0.63" id="bNR-VH-hkC"/>
                             <constraint firstItem="Zjv-Tl-TdL" firstAttribute="bottom" secondItem="ksX-gF-nvi" secondAttribute="bottom" id="fFi-8G-3yA"/>
                             <constraint firstItem="Zjv-Tl-TdL" firstAttribute="leading" secondItem="ksX-gF-nvi" secondAttribute="leading" id="j0t-cI-dNh"/>

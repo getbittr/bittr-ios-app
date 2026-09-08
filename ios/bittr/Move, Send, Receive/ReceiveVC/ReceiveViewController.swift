@@ -129,7 +129,7 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate, UIContextMen
         self.qrImageView.addInteraction(UIContextMenuInteraction(delegate: self))
         
         // Set default currency to satoshis.
-        self.selectSatsCurrency()
+        self.selectCurrency(.satoshis)
         
         self.addressTitle.accessibilityIdentifier = TestID.Receive.addressTitle
         self.addressLabel.accessibilityIdentifier = TestID.Receive.addressLabel
@@ -177,7 +177,7 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate, UIContextMen
                 if newAddress {
                     let nextUnusedAddress = BitcoinManager.shared.bittrWallet.onchainAddresses?.getNextUnusedAddress()
                     if nextUnusedAddress == nil {
-                        self.showAlert(presentingController: self, title: Language.getWord(withID: "address"), message: Language.getWord(withID: "noaddressavailable"), buttons: [Language.getWord(withID: "okay")], actions: nil)
+                        self.showAlert(title: Language.getWord(withID: "address"), message: Language.getWord(withID: "noaddressavailable"), buttons: [.dismiss(Language.getWord(withID: "okay"))])
                     }
                     return nextUnusedAddress ?? self.getCachedOnchainAddress() ?? Language.getWord(withID: "unavailable")
                 } else {
@@ -190,48 +190,41 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate, UIContextMen
         
         let enteredDescription = (self.bothDescriptionTextField.text?.trimmingCharacters(in: .whitespacesAndNewlines) ?? "")
         
-        let amountInBTC:CGFloat? = {
-            if self.bothAmountTextField.text != nil, self.bothAmountTextField.text!.trimmingCharacters(in: .whitespacesAndNewlines) != "" {
-                // An amount has been entered. Create a regular invoice.
-                
-                // Convert selected currency to bitcoin.
-                if self.selectedCurrency == .satoshis {
-                    return (Int(self.bothAmountTextField.text!.trimmingCharacters(in: .whitespacesAndNewlines)) ?? 0).inBTC()
-                } else if self.selectedCurrency == .bitcoin {
-                    return self.bothAmountTextField.text!.trimmingCharacters(in: .whitespacesAndNewlines).toNumber()
-                } else if self.selectedCurrency == .currency {
-                    let fiatAmount = self.bothAmountTextField.text!.trimmingCharacters(in: .whitespacesAndNewlines).toNumber()
-                    let bitcoinValue = BitcoinManager.shared.bittrWallet.getCorrectBitcoinValue()
-                    let btcAmount = fiatAmount / bitcoinValue.currentValue
-                    
-                    // Safety check for invalid values
-                    guard btcAmount.isFinite && !btcAmount.isNaN && bitcoinValue.currentValue > 0 else {
-                        Log.info("84 Invalid values.")
-                        print("⚠️ Warning: Invalid values - fiatAmount: \(fiatAmount), bitcoinValue: \(bitcoinValue.currentValue), btcAmount: \(btcAmount)")
-                        return nil
-                    }
-                    
-                    return btcAmount
-                } else {
-                    return nil
-                }
-            } else {
+        // Read the entered amount once, as whole satoshis, and derive everything else from it.
+        let amountInSatoshis:Int? = {
+            let enteredAmount = (self.bothAmountTextField.text ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !enteredAmount.isEmpty else {
                 // No amount has been entered. Create a zero invoice.
                 return nil
             }
+            
+            // An amount has been entered. Convert the selected currency to satoshis.
+            switch self.selectedCurrency {
+            case .satoshis:
+                return enteredAmount.parsedUserAmount(allowingFraction: false)?.satoshis()
+            case .bitcoin:
+                return enteredAmount.parsedUserAmount()?.satoshisFromBitcoin()
+            case .currency:
+                let bitcoinValue = BitcoinManager.shared.bittrWallet.getCorrectBitcoinValue()
+                let rate = Decimal(Double(bitcoinValue.currentValue))
+                guard let fiatAmount = enteredAmount.parsedUserAmount(), rate > 0 else {
+                    Log.info("Could not read the entered amount.")
+                    return nil
+                }
+                return (fiatAmount / rate).satoshisFromBitcoin()
+            }
         }()
+        let amountInBTC:CGFloat? = amountInSatoshis.map { $0.inBTC() }
         
         let lightningInvoice:String = await {
             guard !(type == .onchain || type == .lnurl) else {
                 return nil
             }
             
-            if amountInBTC == nil {
+            guard let amountInSatoshis = amountInSatoshis, amountInSatoshis > 0 else {
                 return await self.getZeroInvoice(enteredDescription: enteredDescription)
-            } else {
-                let amountInMsat = amountInBTC!.inSatoshis() * 1_000
-                return await self.getRegularInvoice(amountMsat: UInt64(amountInMsat), description: enteredDescription, expirySecs: 3600)
             }
+            return await self.getRegularInvoice(amountMsat: UInt64(amountInSatoshis) * 1_000, description: enteredDescription, expirySecs: 3600)
         }() ?? Language.getWord(withID: "unavailable")
         
         var amountText:String = ""
@@ -428,17 +421,16 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate, UIContextMen
     @IBAction func copyTapped(_ sender: UIButton) {
         let copyingText = self.currentCopyableText
         UIPasteboard.general.string = copyingText
-        self.showAlert(presentingController: self, title: Language.getWord(withID: "copied"), message: copyingText, buttons: [Language.getWord(withID: "okay")], actions: nil)
+        self.showAlert(title: Language.getWord(withID: "copied"), message: copyingText, buttons: [.dismiss(Language.getWord(withID: "okay"))])
     }
     
     @IBAction func refreshTapped(_ sender: UIButton) {
         self.view.endEditing(true)
         
-        self.showAlert(presentingController: self, title: Language.getWord(withID: "newaddress"), message: Language.getWord(withID: "newaddress2"), buttons: [Language.getWord(withID: "cancel"), Language.getWord(withID: "confirm")], actions: [nil, #selector(self.confirmOnchainAddress)])
+        self.showAlert(title: Language.getWord(withID: "newaddress"), message: Language.getWord(withID: "newaddress2"), buttons: [.dismiss(Language.getWord(withID: "cancel")), .action(Language.getWord(withID: "confirm")) { self.confirmOnchainAddress() }])
     }
     
-    @objc func confirmOnchainAddress() {
-        self.hideAlert()
+    func confirmOnchainAddress() {
         self.alertTapped(for: .onchain, newAddress: true)
     }
     
@@ -454,27 +446,7 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate, UIContextMen
     @IBAction func moreTapped(_ sender: UIButton) {
         self.view.endEditing(true)
         
-        self.showAlert(presentingController: self, title: Language.getWord(withID: "transactiontype"), message: Language.getWord(withID: "selecttransactiontype"), buttons: [Language.getWord(withID: "cancel"), Language.getWord(withID: "getaddress"), Language.getWord(withID: "getbitcoinqr"), Language.getWord(withID: "createinvoice"), Language.getWord(withID: "showlnurl")], actions: [nil, #selector(self.tappedOnchain), #selector(self.tappedBitcoinqr), #selector(self.tappedLightning), #selector(self.tappedLnurl)])
-    }
-    
-    @objc func tappedOnchain() {
-        self.hideAlert()
-        self.alertTapped(for: .onchain)
-    }
-    
-    @objc func tappedLightning() {
-        self.hideAlert()
-        self.alertTapped(for: .lightning)
-    }
-    
-    @objc func tappedBitcoinqr() {
-        self.hideAlert()
-        self.alertTapped(for: .bitcoinqr)
-    }
-    
-    @objc func tappedLnurl() {
-        self.hideAlert()
-        self.alertTapped(for: .lnurl)
+        self.showAlert(title: Language.getWord(withID: "transactiontype"), message: Language.getWord(withID: "selecttransactiontype"), buttons: [.dismiss(Language.getWord(withID: "cancel")), .action(Language.getWord(withID: "getaddress")) { self.alertTapped(for: .onchain) }, .action(Language.getWord(withID: "getbitcoinqr")) { self.alertTapped(for: .bitcoinqr) }, .action(Language.getWord(withID: "createinvoice")) { self.alertTapped(for: .lightning) }, .action(Language.getWord(withID: "showlnurl")) { self.alertTapped(for: .lnurl) }])
     }
     
     func alertTapped(for type:TransactionType, withoutAnimation:Bool = false, newAddress:Bool = false) {
@@ -570,43 +542,30 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate, UIContextMen
     }
     
     @IBAction func btcButtonTapped(_ sender: UIButton) {
-        
-        let actionSheet = UIAlertController(title: nil, message: nil, preferredStyle: .actionSheet)
-        let btcOption = UIAlertAction(title: "Bitcoin", style: .default) { (action) in
-            self.selectBTCCurrency()
-        }
-        let satsOption = UIAlertAction(title: "Satoshis", style: .default) { (action) in
-            self.selectSatsCurrency()
-        }
+        self.view.endEditing(true)
         let bitcoinValue = BitcoinManager.shared.bittrWallet.getCorrectBitcoinValue()
-        let currencyOption = UIAlertAction(title: bitcoinValue.chosenCurrency, style: .default) { (action) in
-            self.selectFiatCurrency()
+        self.showAlert(title: Language.getWord(withID: "selectcurrency"), message: Language.getWord(withID: "selectcurrencymessage"), buttons: [
+            .dismiss(Language.getWord(withID: "cancel")),
+            .action(bitcoinValue.chosenCurrency) { self.selectCurrency(.currency) },
+            .action("Satoshis") { self.selectCurrency(.satoshis) },
+            .action("Bitcoin") { self.selectCurrency(.bitcoin) }
+        ])
+    }
+    
+    func selectCurrency(_ type:SelectedCurrency) {
+        switch type {
+        case .bitcoin:
+            self.btcLabel.text = "BTC"
+            self.bothAmountTextField.keyboardType = .decimalPad
+        case .satoshis:
+            self.btcLabel.text = "Sats"
+            self.bothAmountTextField.keyboardType = .numberPad
+        case .currency:
+            let currency = CacheStore.value(for: CacheKeys.currency) ?? "EUR"
+            self.btcLabel.text = currency
+            self.bothAmountTextField.keyboardType = .decimalPad
         }
-        let cancelAction = UIAlertAction(title: Language.getWord(withID: "cancel"), style: .cancel, handler: nil)
-        actionSheet.addAction(btcOption)
-        actionSheet.addAction(satsOption)
-        actionSheet.addAction(currencyOption)
-        actionSheet.addAction(cancelAction)
-        present(actionSheet, animated: true, completion: nil)
-    }
-    
-    @objc func selectBTCCurrency() {
-        self.btcLabel.text = "BTC"
-        self.selectedCurrency = .bitcoin
-        self.bothAmountTextField.keyboardType = .decimalPad
-    }
-    
-    @objc func selectSatsCurrency() {
-        self.btcLabel.text = "Sats"
-        self.selectedCurrency = .satoshis
-        self.bothAmountTextField.keyboardType = .numberPad
-    }
-    
-    @objc func selectFiatCurrency() {
-        let currency = UserDefaults.standard.value(forKey: "currency") as? String ?? "EUR"
-        self.btcLabel.text = currency
-        self.selectedCurrency = .currency
-        self.bothAmountTextField.keyboardType = .decimalPad
+        self.selectedCurrency = type
     }
     
     @objc func doneButtonTapped() {
@@ -671,7 +630,7 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate, UIContextMen
             message = Language.getWord(withID: "alertmessagelnurl")
         }
         
-        self.showAlert(presentingController: self, title: title, message: message, buttons: [Language.getWord(withID: "okay")], actions: nil)
+        self.showAlert(title: title, message: message, buttons: [.dismiss(Language.getWord(withID: "okay"))])
     }
     
     func lightningIsAvailable() -> Bool {

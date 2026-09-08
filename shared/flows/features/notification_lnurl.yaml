@@ -43,6 +43,7 @@ appId: com.bittr.bittr-regtest
 - launchApp:
     permissions:
       notifications: allow
+- runFlow: ../helpers/wait_for_launch.yaml
 
 # Auto-provision a wallet if none exists yet. happy_path leaves us on Home
 # (signed in), so relaunch inside this block to get back to the locked PIN screen
@@ -59,6 +60,7 @@ appId: com.bittr.bittr-regtest
       - launchApp:
           permissions:
             notifications: allow
+      - runFlow: ../helpers/wait_for_launch.yaml
 
 # Must be on the PIN unlock screen (CoreViewController is loaded and observing
 # "newNotification" behind it, with userHasSignedIn still false).

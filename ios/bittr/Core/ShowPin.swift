@@ -48,7 +48,7 @@ extension CoreViewController {
     }
     
     
-    @objc func hideSignup() {
+    func hideSignup() {
         
         // Hide SignupVC.
         UIView.animate(withDuration: 0.4, delay: 0, options: .curveEaseInOut) {

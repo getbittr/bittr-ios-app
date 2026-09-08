@@ -34,8 +34,8 @@ extension BitcoinDevKit.CreateTxError {
             return Language.getWord(withID: "FeeTooLow").replacingOccurrences(of: "<required>", with: required)
         case .NoUtxosSelected:
             return Language.getWord(withID: "NoUtxosSelected")
-        case .OutputBelowDustLimit(index: let index):
-            return Language.getWord(withID: "OutputBelowDustLimit").replacingOccurrences(of: "dustlimit", with: "\(index)")
+        case .OutputBelowDustLimit:
+            return Language.getWord(withID: "OutputBelowDustLimit")
         case .ChangePolicyDescriptor:
             return Language.getWord(withID: "ChangePolicyDescriptor")
         case .CoinSelection(errorMessage: let errorMessage):
@@ -58,6 +58,19 @@ extension BitcoinDevKit.CreateTxError {
             return Language.getWord(withID: "PushBytesError")
         case .LockTimeConversionError:
             return Language.getWord(withID: "LockTimeConversionError")
+        }
+    }
+    
+    func consumerFriendlyMessage() -> String? {
+        switch self {
+        case .InsufficientFunds(needed: let needed, available: let available):
+            return Language.getWord(withID: "InsufficientFunds").replacingOccurrences(of: "<less>", with: "\(needed - available)")
+        case .OutputBelowDustLimit:
+            return Language.getWord(withID: "OutputBelowDustLimit")
+        case .FeeTooLow(required: let required), .FeeRateTooLow(required: let required):
+            return Language.getWord(withID: "FeeTooLow").replacingOccurrences(of: "<required>", with: required)
+        default:
+            return nil
         }
     }
 }
@@ -122,9 +135,18 @@ extension BitcoinDevKit.AddressParseError {
         case .InvalidLegacyPrefix:
             return "[InvalidLegacyPrefix]"
         case .NetworkValidation:
-            return "[NetworkValidation]"
+            return Language.getWord(withID: "wrongnetworkaddress")
         case .OtherAddressParseErr:
             return "[OtherAddressParseErr]"
+        }
+    }
+    
+    func consumerFriendlyMessage() -> String? {
+        switch self {
+        case .NetworkValidation:
+            return Language.getWord(withID: "wrongnetworkaddress")
+        default:
+            return Language.getWord(withID: "invalidbitcoinaddress")
         }
     }
 }

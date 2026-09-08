@@ -6,62 +6,47 @@
 //
 
 import UIKit
-import LightningDevKit
 
 extension SendViewController {
     
     func textField(_ textField: UITextField, shouldChangeCharactersIn range: NSRange, replacementString string: String) -> Bool {
         // Reset didTapAvailable boolean upon manual changes.
         if textField == self.amountTextField { self.didTapAvailable = false }
+        if textField == self.toTextField { self.clearPendingLnurlState() }
         return true
     }
     
     func textFieldShouldReturn(_ textField: UITextField) -> Bool {
         // Same logic as doneButtonTapped for return key
         if textField == self.toTextField {
-            // If it's a lightning invoice with amount, go straight to confirmation
-            if (textField.text ?? "").hasPrefix("ln") {
-                if let parsedInvoice = Bindings.Bolt11Invoice.fromStr(s: textField.text!).getValue(), let invoiceAmountMilli = parsedInvoice.amountMilliSatoshis() {
-                    // Invoice has amount, go straight to confirmation
-                    self.onchainOrLightning = .lightning
-                    self.updateLabels()
-                    self.checkSendLightning()
-                    return true
-                }
-            } else if (textField.text ?? "").contains("@") {
+            let enteredText = (textField.text ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+            
+            // Check whether this is an invoice or LNURL.
+            let lightningInvoice = enteredText.extractLightningInvoice()
+            let lnurl = enteredText.extractLNURL()
+            if lightningInvoice != nil || lnurl != nil {
                 self.view.endEditing(true)
                 self.onchainOrLightning = .lightning
                 self.updateLabels()
-                self.handleLNURL(code: textField.text!)
-                return true
+                if let lnurl {
+                    self.handleLNURL(code: lnurl)
+                    return true
+                } else if let lightningInvoice, lightningInvoice.bolt11Invoice()?.amountMilliSatoshis() != nil {
+                    self.checkSendLightning()
+                    return true
+                }
             }
             
             // Otherwise, move to amount field
             self.amountTextField.becomeFirstResponder()
             return true
-        } else if textField == amountTextField {
             
-            // Check if we have pending LNURL data
-            if let callback = self.pendingLNURLCallback,
-               let minAmount = self.pendingLNURLMinAmount,
-               let maxAmount = self.pendingLNURLMaxAmount {
-                // Handle LNURL amount completion
-                self.handleLNURLAmountCompletion()
-            } else if let callback = self.pendingWithdrawCallback,
-                      let minAmount = self.pendingWithdrawMinAmount,
-                      let maxAmount = self.pendingWithdrawMaxAmount {
-                // Handle withdraw request amount completion
-                self.handleWithdrawAmountCompletion()
-            } else {
-                // Normal flow - move to next step
-                self.nextButtonTapped(nextButton)
-            }
+        } else if textField == self.amountTextField {
+            self.nextButtonTapped(self.nextButton)
             return true
         }
-        
         return false
     }
-    
     
     func createAmountInputAccessoryView() -> UIView {
         let containerView = UIView(frame: CGRect(x: 0, y: 0, width: UIScreen.main.bounds.width, height: 44))
@@ -74,7 +59,7 @@ extension SendViewController {
         // Currency selection buttons
         let btcButton = UIBarButtonItem(title: "BTC", style: .plain, target: self, action: #selector(selectBTCCurrency))
         let satsButton = UIBarButtonItem(title: "Sats", style: .plain, target: self, action: #selector(selectSatsCurrency))
-        let currencyButton = UIBarButtonItem(title: UserDefaults.standard.value(forKey: "currency") as? String ?? "EUR", style: .plain, target: self, action: #selector(selectFiatCurrency))
+        let currencyButton = UIBarButtonItem(title: CacheStore.value(for: CacheKeys.currency) ?? "EUR", style: .plain, target: self, action: #selector(selectFiatCurrency))
         
         // Style the buttons with better contrast for dark mode
         // Force black color for better visibility in dark mode
@@ -100,4 +85,8 @@ extension SendViewController {
         
         return containerView
     }
+    
+    @objc func selectBTCCurrency() { self.selectCurrency(.bitcoin) }
+    @objc func selectSatsCurrency() { self.selectCurrency(.satoshis) }
+    @objc func selectFiatCurrency() { self.selectCurrency(.currency) }
 }

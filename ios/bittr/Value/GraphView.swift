@@ -13,9 +13,18 @@ class GraphView: UIView, UIGestureRecognizerDelegate {
 
     var data:[CGFloat] = [] {
         didSet {
+            self.currency = BitcoinManager.shared.bittrWallet.getCorrectBitcoinValue().chosenCurrency
             setNeedsDisplay()
         }
     }
+    
+    var currency = ""
+    
+    static let cardDateFormatter:DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "dd MMM yyyy"
+        return formatter
+    }()
     
     override init(frame: CGRect) {
         super.init(frame: frame)
@@ -94,8 +103,8 @@ class GraphView: UIView, UIGestureRecognizerDelegate {
             let highestNumber = self.data.max() ?? 0
             let lowestNumber = self.data.min() ?? 0
             let dataSpan = highestNumber - lowestNumber
-            let thisPrice = thisDataPoint["price"] as! CGFloat
-            let priceRelativeToSpan = (thisPrice - lowestNumber)/dataSpan
+            let thisPrice = thisDataPoint.price
+            let priceRelativeToSpan = dataSpan > 0 ? (thisPrice - lowestNumber)/dataSpan : 0.5
             let yConstraint = 30 + (priceRelativeToSpan * (self.bounds.height - 30))
             
             let thisCard = UIView()
@@ -117,9 +126,7 @@ class GraphView: UIView, UIGestureRecognizerDelegate {
             let dateLabel = UILabel()
             dateLabel.translatesAutoresizingMaskIntoConstraints = false
             dateLabel.font = UIFont(name: "Gilroy-Regular", size: 10)
-            let dateFormatter = DateFormatter()
-            dateFormatter.dateFormat = "dd MMM yyyy"
-            dateLabel.text = dateFormatter.string(from: thisDataPoint["date"] as! Date)
+            dateLabel.text = GraphView.cardDateFormatter.string(from: thisDataPoint.date)
             dateLabel.textColor = .black
             dateLabel.alpha = 0.4
             thisCard.addSubview(dateLabel)
@@ -135,8 +142,7 @@ class GraphView: UIView, UIGestureRecognizerDelegate {
             priceLabel.translatesAutoresizingMaskIntoConstraints = false
             priceLabel.accessibilityIdentifier = TestID.Value.graphValueLabel
             priceLabel.font = UIFont(name: "Gilroy-Bold", size: 12)
-            let currency = BitcoinManager.shared.bittrWallet.getCorrectBitcoinValue().chosenCurrency
-            priceLabel.text = currency + " " + self.valueVC!.formatEuroValue("\(Int(thisDataPoint["price"] as! CGFloat))")
+            priceLabel.text = self.currency + " " + self.valueVC!.formatEuroValue("\(Int(thisDataPoint.price))")
             priceLabel.textColor = .black
             thisCard.addSubview(priceLabel)
             
@@ -153,6 +159,7 @@ class GraphView: UIView, UIGestureRecognizerDelegate {
     func coordYFor(index: Int) -> CGFloat {
         let differenceValueAndMin = data[index] - (data.min() ?? 0)
         let differenceMaxAndMin = (data.max() ?? 0) - (data.min() ?? 0)
+        guard differenceMaxAndMin > 0 else { return (bounds.height - 25) - ((bounds.height - 30) / 2) }
         return (bounds.height - 25) - ((bounds.height - 30) * ((differenceValueAndMin) / (differenceMaxAndMin)))
     }
 
@@ -179,6 +186,12 @@ class GraphView: UIView, UIGestureRecognizerDelegate {
     func quadCurvedPath() -> UIBezierPath {
         
         let path = UIBezierPath()
+        
+        guard data.count > 1 else {
+            if data.count == 1 { drawPoint(point: CGPoint(x: 30, y: coordYFor(index: 0)), color: Colors.getColor("whiteoryellow"), radius: 2) }
+            return path
+        }
+        
         let step = (bounds.width - 60) / CGFloat(data.count - 1)
         
         var p1 = CGPoint(x: 30, y: coordYFor(index: 0))

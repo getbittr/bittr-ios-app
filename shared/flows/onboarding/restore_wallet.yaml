@@ -26,6 +26,7 @@ appId: com.bittr.bittr-regtest
 - launchApp:
     clearState: true
     clearKeychain: true
+- runFlow: ../helpers/wait_for_launch.yaml
 
 # Fixed test mnemonic — building output.words[1..12] up front mirrors the
 # 1-indexed access pattern used by forgot_pin.yaml (via parse_mnemonic.js)

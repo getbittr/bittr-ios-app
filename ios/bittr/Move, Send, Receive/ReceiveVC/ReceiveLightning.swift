@@ -27,7 +27,7 @@ extension ReceiveViewController {
                 }
             }()
             DispatchQueue.main.async {
-                self.showAlert(presentingController: self, title: Language.getWord(withID: "unexpectederror"), message: errorMessage, buttons: [Language.getWord(withID: "okay")], actions: nil)
+                self.showAlert(title: Language.getWord(withID: "unexpectederror"), message: errorMessage, buttons: [.dismiss(Language.getWord(withID: "okay"))])
                 SentryManager.capture(error, context: "ReceiveLightning row 45")
             }
             return nil
@@ -36,9 +36,9 @@ extension ReceiveViewController {
         DispatchQueue.main.async {
             if let invoiceHash = zeroInvoice.description.getInvoiceHash(), let paymentDetails = BitcoinManager.shared.getPaymentDetails(paymentHash: invoiceHash) {
                 let newTimestamp = Int(Date().timeIntervalSince1970)
-                CacheManager.storeInvoiceTimestamp(preimage: paymentDetails.kind.transactionID ?? paymentDetails.id, timestamp: newTimestamp)
+                CacheManager.storeInvoiceTimestamp(preimage: paymentDetails.cacheID, timestamp: newTimestamp)
                 if enteredDescription != "" {
-                    CacheManager.storeInvoiceDescription(preimage: paymentDetails.kind.transactionID ?? paymentDetails.id, desc: enteredDescription)
+                    CacheManager.storeInvoiceDescription(preimage: paymentDetails.cacheID, desc: enteredDescription)
                 }
             }
         }
@@ -54,14 +54,14 @@ extension ReceiveViewController {
             expirySecs: expirySecs)
         else {
             DispatchQueue.main.async {
-                self.showAlert(presentingController: self, title: Language.getWord(withID: "unexpectederror"), message: Language.getWord(withID: "invoicecreatefail"), buttons: [Language.getWord(withID: "okay")], actions: nil)
+                self.showAlert(title: Language.getWord(withID: "unexpectederror"), message: Language.getWord(withID: "invoicecreatefail"), buttons: [.dismiss(Language.getWord(withID: "okay"))])
             }
             return nil
         }
         
         DispatchQueue.main.async {
             if let invoiceHash = invoice.description.getInvoiceHash(), let paymentDetails = BitcoinManager.shared.getPaymentDetails(paymentHash: invoiceHash) {
-                CacheManager.storeInvoiceTimestamp(preimage: paymentDetails.kind.transactionID ?? paymentDetails.id, timestamp: Int(Date().timeIntervalSince1970))
+                CacheManager.storeInvoiceTimestamp(preimage: paymentDetails.cacheID, timestamp: Int(Date().timeIntervalSince1970))
             }
         }
         return "\(invoice)"

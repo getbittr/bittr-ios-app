@@ -162,6 +162,7 @@ class TransactionViewController: UIViewController {
         self.labelAmount.accessibilityIdentifier = TestID.Transaction.labelAmount
         self.buttonSwapStatus.accessibilityIdentifier = TestID.Transaction.swapStatusButton
         self.buttonDescription.accessibilityIdentifier = TestID.Transaction.descriptionButton
+        self.labelDescription.accessibilityIdentifier = TestID.Transaction.descriptionLabel
         self.copyButtonTopId.accessibilityIdentifier = TestID.Transaction.copyIdButton
         self.urlButtonTopId.accessibilityIdentifier = TestID.Transaction.urlIdButton
         self.copyButtonBottomId.accessibilityIdentifier = TestID.Transaction.copyBottomIdButton
@@ -563,7 +564,7 @@ class TransactionViewController: UIViewController {
             self.labelBittrFee.text = "\(self.tappedTransaction.bittrFee.toString()) \(currencySymbol)"
             
             // Transfer fee
-            self.labelTransferFee.text = "\(Int(self.tappedTransaction.transferFee.rounded()))".addSpaces() + " sats"
+            self.labelTransferFee.text = "\(self.tappedTransaction.transferFee)".addSpaces() + " sats"
             
             // Current value
             self.labelBittrCurrentValue.text = balanceValue + " " + bitcoinValue.chosenCurrency
@@ -653,7 +654,6 @@ class TransactionViewController: UIViewController {
     @IBAction func noteButtonTapped(_ sender: UIButton) {
 
         self.showTextFieldAlert(
-            presentingController: self,
             title: Language.getWord(withID: "addanote"),
             initialText: self.labelNote.text ?? "",
             placeholder: Language.getWord(withID: "addanote"),
@@ -681,7 +681,7 @@ class TransactionViewController: UIViewController {
 
         if let thisId = sender.boundString {
             UIPasteboard.general.string = thisId
-            self.showAlert(presentingController: self, title: Language.getWord(withID: "copied"), message: thisId, buttons: [Language.getWord(withID: "okay")], actions: nil)
+            self.showAlert(title: Language.getWord(withID: "copied"), message: thisId, buttons: [.dismiss(Language.getWord(withID: "okay"))])
         }
     }
     
@@ -696,18 +696,18 @@ class TransactionViewController: UIViewController {
         
         let copyingText = self.descriptionText()
         UIPasteboard.general.string = copyingText
-        self.showAlert(presentingController: self, title: Language.getWord(withID: "copied"), message: copyingText, buttons: [Language.getWord(withID: "okay")], actions: nil)
+        self.showAlert(title: Language.getWord(withID: "copied"), message: copyingText, buttons: [.dismiss(Language.getWord(withID: "okay"))])
     }
     
     @IBAction func lightningIDTapped(_ sender: UIButton) {
         
         UIPasteboard.general.string = self.tappedTransaction.lightningID
-        self.showAlert(presentingController: self, title: Language.getWord(withID: "copied"), message: self.tappedTransaction.lightningID, buttons: [Language.getWord(withID: "okay")], actions: nil)
+        self.showAlert(title: Language.getWord(withID: "copied"), message: self.tappedTransaction.lightningID, buttons: [.dismiss(Language.getWord(withID: "okay"))])
     }
     
     @IBAction func feesQuestionButtonTapped(_ sender: UIButton) {
         let baseMessage = Language.getWord(withID: "lightningchannelfees2")
-        let dynamicMessage = baseMessage.replacingOccurrences(of: "This fee", with: "This \(Int(self.tappedTransaction.transferFee.rounded())) satoshi fee")
+        let dynamicMessage = baseMessage.replacingOccurrences(of: "This fee", with: "This \(self.tappedTransaction.transferFee) satoshi fee")
         self.coreVC!.launchQuestion(question: Language.getWord(withID: "lightningchannelfees"), answer: dynamicMessage, type: nil)
     }
     
@@ -749,7 +749,7 @@ class TransactionViewController: UIViewController {
         default: return
         }
         
-        self.showAlert(presentingController: self, title: notificationTitle, message: notificationBody, buttons: [Language.getWord(withID: "okay")], actions: nil)
+        self.showAlert(title: notificationTitle, message: notificationBody, buttons: [.dismiss(Language.getWord(withID: "okay"))])
     }
     
     override func prepare(for segue: UIStoryboardSegue, sender: Any?) {

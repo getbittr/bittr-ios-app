@@ -47,17 +47,12 @@ extension HomeViewController {
         
         // Store channel closure txIDs.
         CacheManager.storeChannelClosureTxIDs(txIDs: balances.pendingBalancesFromChannelClosures.spendingTxIDs())
-
-        // A force close is recognised via the sweep txIDs above; its commitment
-        // tx never appears in the BDK wallet, so storeChannelClosureTxIDIfFound's
-        // cooperative-close scan would keep re-scanning for it on every sync
-        // forever. Pending closure funds (> 0) only ever come from a force close,
-        // so drop the cached funding outpoint here to end that scan. A
-        // cooperative close leaves this at 0 and keeps the outpoint for the scan.
+        
         if pendingBalancesFromChannelClosures > 0 {
+            // A force-close has happened. No need to hold on to the funding outpoint.
             CacheManager.removeChannelFundingOutpoint()
         }
-
+        
         // Apply the snapshot to the shared wallet on the main thread.
         let apply = {
             BitcoinManager.shared.bittrWallet.satoshisLightning = satoshisLightning
@@ -240,6 +235,7 @@ extension HomeViewController {
         let totalBalanceSatsString = "\(totalBalanceSats)"
         
         // Load balance label.
+        CacheManager.cachedSatsBalance = totalBalanceSatsString
         self.loadBalanceLabel(amount: totalBalanceSatsString)
         
         // Convert balance to EUR / CHF.
@@ -248,60 +244,63 @@ extension HomeViewController {
     
     func loadBalanceLabel(amount:String) {
         
-        // Update bitcoin sign alpha.
-        var bitcoinSignAlpha = CacheManager.darkModeIsOn() ? 0.47 : 0.18
+        let satoshis = Int(amount) ?? 0
+        let isWholeBitcoin = satoshis >= Bitcoin.satoshisPerBitcoin
         
-        // Create balance representation with bold satoshis.
-        let allZeros = ["", "0.00 000 00", "0.00 000 0", "0.00 000 ", "0.00 00", "0.00 0", "0.00 ", "0.0", "0."]
-        var zeros = ""
-        var numbers = amount.addSpaces()
-        var sats = "  sats"
+        // Get the bitcoin amount with spaces (i.e. A.BC DEF GHI).
+        let whole = satoshis / Bitcoin.satoshisPerBitcoin
+        let decimals = String(format: "%08ld", satoshis % Bitcoin.satoshisPerBitcoin)
+        let group1 = decimals.prefix(2)
+        let group2 = decimals.dropFirst(2).prefix(3)
+        let group3 = decimals.dropFirst(5)
+        let grouped = "\(whole).\(group1) \(group2) \(group3)"
         
-        if amount.count < 9 {
-            zeros = allZeros[amount.count]
+        // Distinguish dimmed and filled pieces of text.
+        let dimmed:String
+        let filled:String
+        if isWholeBitcoin {
+            // Entire text is filled.
+            dimmed = ""
+            filled = grouped
         } else {
-            numbers = "\(amount.toNumber().inBTC())".replacingOccurrences(of: ",", with: ".")
-            let decimalsCount = numbers.split(separator: ".")[1].count
-            var decimalsToAdd = 8 - decimalsCount
-            while decimalsToAdd > 0 {
-                if decimalsToAdd == 6 || decimalsToAdd == 3 {
-                    numbers += " 0"
-                } else {
-                    numbers += "0"
-                }
-                decimalsToAdd -= 1
-            }
-            bitcoinSignAlpha = 1
-            sats = ""
+            // Text is partially dimmed.
+            let firstSignificant = grouped.firstIndex { $0.isNumber && $0 != "0" } ?? grouped.index(before: grouped.endIndex)
+            dimmed = String(grouped[..<firstSignificant])
+            filled = grouped[firstSignificant...] + " sats"
         }
         
-        // Set text to invisible label to calculate font size for HTML text.
-        self.balanceLabelInvisible.text = "B " + zeros + numbers + " sats"
-        let font = self.balanceLabelInvisible.adjustedFont()
-        let adjustedSize = Int(font.pointSize)
+        // Cap the label's width.
+        let maximumWidth = UIScreen.main.bounds.width - 150
+        self.balanceLabelWidth.constant = maximumWidth
         
-        // Set HTML balance text.
-        let transparentColor = CacheManager.darkModeIsOn() ? "170, 190, 217" : "201, 154, 0"
-        let fillColor = CacheManager.darkModeIsOn() ? "255, 255, 255" : "0, 0, 0"
-        self.balanceText = "<center><span style=\"font-family: \'Gilroy-Bold\', \'-apple-system\'; font-size: \(adjustedSize); color: rgb(\(transparentColor)); line-height: 0.5\">\(zeros)</span><span style=\"font-family: \'Gilroy-Bold\', \'-apple-system\'; font-size: \(adjustedSize); color: rgb(\(fillColor)); line-height: 0.5\">\(numbers)\(sats)</span></center>"
+        // Calculate font size.
+        let text = dimmed + filled
+        let fullSize:CGFloat = 40
+        let fullFont = UIFont(name: "Gilroy-Bold", size: fullSize) ?? .boldSystemFont(ofSize: fullSize)
+        let fullWidth = (text as NSString).size(withAttributes: [.font: fullFont]).width
+        let scale = fullWidth > 0 ? min(1, maximumWidth / fullWidth) : 1
+        let pointSize = max(16, (fullSize * scale).rounded(.down))
         
-        guard let htmlData = self.balanceText.data(using: .unicode) else { return }
+        // Create the attributed text.
+        let font = UIFont(name: "Gilroy-Bold", size: pointSize) ?? .boldSystemFont(ofSize: pointSize)
+        let balance = NSMutableAttributedString(string: text, attributes: [.font: font, .foregroundColor: Colors.getColor("blackorwhite")])
         
-        let attributedText:NSAttributedString
-        do {
-            attributedText = try NSAttributedString(data: htmlData, options: [NSAttributedString.DocumentReadingOptionKey.documentType : NSAttributedString.DocumentType.html], documentAttributes: nil)
-        } catch {
-            Log.info("Couldn't fetch text: \(error.localizedDescription)")
-            SentryManager.capture(error, context: "LoadWalletData row 360")
-            return
-        }
+        // Add the dimmed color.
+        let dimmedColor = CacheManager.darkModeIsOn() ? UIColor(red: 170/255, green: 190/255, blue: 217/255, alpha: 1) : UIColor(red: 201/255, green: 154/255, blue: 0, alpha: 1)
+        balance.addAttribute(.foregroundColor, value: dimmedColor, range: NSRange(location: 0, length: (dimmed as NSString).length))
         
-        self.balanceLabel.attributedText = attributedText
+        // Set the text.
+        self.balanceLabel.adjustsFontSizeToFitWidth = true
+        self.balanceLabel.minimumScaleFactor = 16.0 / pointSize
+        self.balanceLabel.attributedText = balance
+        
+        // Hug the text vertically.
+        self.balanceLabel.setContentHuggingPriority(.required, for: .vertical)
+        self.bitcoinSign.setContentCompressionResistancePriority(.defaultLow, for: .vertical)
+        
+        // Make label and bitcoin sign visible.
         self.balanceLabel.alpha = 1
-        self.bitcoinSign.alpha = bitcoinSignAlpha
-        
-        // Store satoshis balance string to cache.
-        CacheManager.cachedSatsBalance = amount
+        self.bitcoinSign.alpha = isWholeBitcoin ? 1 : (CacheManager.darkModeIsOn() ? 0.47 : 0.18)
     }
     
     
@@ -479,6 +478,45 @@ extension HomeViewController {
         self.calculatedCurrentValue = accumulatedCurrentValue
     }
     
+    // Warm the price caches ValueVC reads (the historical series + the current
+    // value) so opening the Value screen doesn't have to hit the network or flash
+    // its loading spinner. Runs at background priority after a short settle delay
+    // so it never competes with app startup; no-ops when the caches are still
+    // fresh; best-effort — on failure ValueVC just fetches on demand, as before.
+    func prefetchPriceData() {
+        Task(priority: .background) { [weak self] in
+            // Let startup fully settle before touching the network at all.
+            try? await Task.sleep(nanoseconds: 2_000_000_000)
+            guard let self else { return }
+
+            let freshCutoff = Calendar.current.date(byAdding: .minute, value: -15, to: Date())!
+            let bitcoinValue = BitcoinManager.shared.bittrWallet.getCorrectBitcoinValue()
+            let isChf = (bitcoinValue.chosenCurrency == "CHF")
+
+            // Historical series for the currently selected currency.
+            let historyFetched = (isChf ? self.chfDataFetched : self.eurDataFetched) ?? .distantPast
+            if historyFetched <= freshCutoff,
+               let url = URL(string: bitcoinValue.apiUrl),
+               let (data, _) = try? await URLSession.shared.data(from: url) {
+                await MainActor.run {
+                    if isChf { self.chfData = data; self.chfDataFetched = Date() }
+                    else { self.eurData = data; self.eurDataFetched = Date() }
+                }
+            }
+
+            // Current value.
+            let currentFetched = self.currentValueFetched ?? .distantPast
+            if currentFetched <= freshCutoff,
+               let url = URL(string: "https://getbittr.com/api/price/btc"),
+               let (data, _) = try? await URLSession.shared.data(from: url) {
+                await MainActor.run {
+                    self.currentValue = data
+                    self.currentValueFetched = Date()
+                }
+            }
+        }
+    }
+
     func finalizeSync() {
         
         // Check if conversion rates have been fetched successfully.
@@ -490,6 +528,10 @@ extension HomeViewController {
         self.headerSpinner.stopAnimating()
         self.coreVC!.walletHasSynced = true
         self.coreVC!.completeSync(.final)
+
+        // App is fully ready — warm the Value-screen price caches in the
+        // background so opening that screen is instant. Off the startup path.
+        self.prefetchPriceData()
         
         // Check if notification needs handling.
         if self.coreVC!.needsToHandleURI() {
@@ -511,6 +553,9 @@ extension HomeViewController {
                 // It's an LNURL notification.
                 self.coreVC!.handleLightningAddressNotification(actualNotification)
             }
+        } else if UserDefaults.standard.bool(forKey: "pendingSwapResume") {
+            Log.info("Resuming swap payment from Live Activity tap.")
+            self.coreVC!.resumeSwapPayment()
         } else {
             var userHasBittrAccount = false
             for eachIbanEntity in BitcoinManager.shared.bittrWallet.ibanEntities where eachIbanEntity.yourUniqueCode != "" {

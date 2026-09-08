@@ -37,12 +37,16 @@ extension CacheManager {
     }
     
     static var cachedHomeTransactions: [Transaction]? {
-        get {
-            guard let records = readCache().transactions else { return nil }
-            return records.map { $0.toTransaction() }.filter { $0.timestamp != 0 }
-        }
-        set { mutateCache { $0.transactions = newValue?.map { CachedTransaction($0) } } }
+        get { readCache().transactions?.filter { $0.timestamp != 0 } }
+        set { mutateCache { $0.transactions = newValue } }
     }
+    
+    static func migrateWalletCacheIfNeeded() {
+        guard CacheStore.plistObject(for: legacyWalletCacheKey) != nil else { return }
+        _ = readCache()
+    }
+    
+    fileprivate static let legacyWalletCacheKey = CacheKey<WalletCache>("cache")
     
     private static func readCache() -> WalletCache {
         cacheQueue.sync { loadCacheLocked() }
@@ -57,14 +61,12 @@ extension CacheManager {
     }
     
     private static func loadCacheLocked() -> WalletCache {
-        let defaults = UserDefaults.standard
-        if let data = defaults.data(forKey: EnvironmentConfig.cacheKey(for: "walletcache")),
-           let cache = try? JSONDecoder().decode(WalletCache.self, from: data) {
-            return cache
-        }
-        guard let legacy = defaults.value(forKey: EnvironmentConfig.cacheKey(for: "cache")) as? NSDictionary else {
+        if let cache = CacheStore.decoded(for: CacheKeys.walletCache) { return cache }
+        
+        guard let legacy = CacheStore.plistObject(for: legacyWalletCacheKey) as? NSDictionary else {
             return WalletCache()
         }
+        
         var cache = WalletCache()
         cache.satsBalance = legacy["satsbalance"] as? String
         cache.conversion = legacy["conversion"] as? String
@@ -72,17 +74,17 @@ extension CacheManager {
         cache.chfValue = legacy["chfvalue"] as? CGFloat
         cache.height = legacy["height"] as? Int
         if let legacyTransactions = legacy["transactions"] as? [NSDictionary] {
-            cache.transactions = self.getTransactions(transactionsDict: legacyTransactions).map { CachedTransaction($0) }
+            cache.transactions = legacyTransactions.compactMap { Transaction(legacyDictionary: $0) }
         }
+        
         saveCacheLocked(cache)
-        defaults.removeObject(forKey: EnvironmentConfig.cacheKey(for: "cache"))
+        CacheStore.remove(legacyWalletCacheKey)
         return cache
     }
     
     /// Persists the cache. Must only be called on `cacheQueue`.
     private static func saveCacheLocked(_ cache: WalletCache) {
-        guard let data = try? JSONEncoder().encode(cache) else { return }
-        UserDefaults.standard.set(data, forKey: EnvironmentConfig.cacheKey(for: "walletcache"))
+        CacheStore.encode(cache, for: CacheKeys.walletCache)
     }
 }
 
@@ -92,96 +94,5 @@ struct WalletCache: Codable {
     var eurValue: CGFloat?
     var chfValue: CGFloat?
     var height: Int?
-    var transactions: [CachedTransaction]?
-}
-
-struct CachedTransaction: Codable {
-    var id: String
-    var fiatNetAmount: CGFloat
-    var fiatGrossAmount: CGFloat
-    var transferFee: CGFloat
-    var surcharge: CGFloat
-    var bittrFee: CGFloat
-    var historicalExchangeRate: CGFloat
-    var received: Int
-    var sent: Int
-    var isBittr: Bool
-    var timestamp: Int
-    var currency: String
-    var height: Int?
-    var isLightning: Bool
-    var fee: Int
-    var channelId: String
-    var isFundingTransaction: Bool
-    var lnDescription: String
-    var isSwap: Bool
-    var swapStatus: String
-    var onchainID: String
-    var lightningID: String
-    var boltzSwapId: String
-    var swapDirection: Int
-
-    init(_ transaction: Transaction) {
-        self.id = transaction.id
-        self.fiatNetAmount = transaction.fiatNetAmount
-        self.fiatGrossAmount = transaction.fiatGrossAmount
-        self.transferFee = transaction.transferFee
-        self.surcharge = transaction.surcharge
-        self.bittrFee = transaction.bittrFee
-        self.historicalExchangeRate = transaction.historicalExchangeRate
-        self.received = transaction.received
-        self.sent = transaction.sent
-        self.isBittr = transaction.isBittr
-        self.timestamp = transaction.timestamp
-        self.currency = transaction.currency
-        self.height = transaction.height
-        self.isLightning = transaction.isLightning
-        self.fee = transaction.fee
-        self.channelId = transaction.channelId
-        self.isFundingTransaction = transaction.isFundingTransaction
-        self.lnDescription = transaction.lnDescription
-        self.isSwap = transaction.isSwap
-        switch transaction.swapStatus {
-        case .pending: self.swapStatus = "pending"
-        case .succeeded: self.swapStatus = "succeeded"
-        case .failed: self.swapStatus = "failed"
-        }
-        self.onchainID = transaction.onchainID
-        self.lightningID = transaction.lightningID
-        self.boltzSwapId = transaction.boltzSwapId
-        self.swapDirection = transaction.swapDirection == .onchainToLightning ? 0 : 1
-    }
-
-    func toTransaction() -> Transaction {
-        let transaction = Transaction()
-        transaction.id = id
-        transaction.fiatNetAmount = fiatNetAmount
-        transaction.fiatGrossAmount = fiatGrossAmount
-        transaction.transferFee = transferFee
-        transaction.surcharge = surcharge
-        transaction.bittrFee = bittrFee
-        transaction.historicalExchangeRate = historicalExchangeRate
-        transaction.received = received
-        transaction.sent = sent
-        transaction.isBittr = isBittr
-        transaction.timestamp = timestamp
-        transaction.currency = currency
-        transaction.height = height
-        transaction.isLightning = isLightning
-        transaction.fee = fee
-        transaction.channelId = channelId
-        transaction.isFundingTransaction = isFundingTransaction
-        transaction.lnDescription = lnDescription
-        transaction.isSwap = isSwap
-        switch swapStatus {
-        case "pending": transaction.swapStatus = .pending
-        case "failed": transaction.swapStatus = .failed
-        default: transaction.swapStatus = .succeeded
-        }
-        transaction.onchainID = onchainID
-        transaction.lightningID = lightningID
-        transaction.boltzSwapId = boltzSwapId
-        transaction.swapDirection = swapDirection == 0 ? .onchainToLightning : .lightningToOnchain
-        return transaction
-    }
+    var transactions: [Transaction]?
 }

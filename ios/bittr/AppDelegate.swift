@@ -15,15 +15,30 @@ class AppDelegate: UIResponder, UIApplicationDelegate, UNUserNotificationCenterD
         
         SentryManager.start()
 
+        #if DEBUG
+        // Logs a 🚨 banner at launch when the swap-tamper test harness
+        // (Helpers/EvilBoltz.swift) is armed via launch argument / env var.
+        EvilBoltz.logStatus()
+        #endif
+
         // Migrate any legacy UserDefaults-stored secrets (mnemonic, PIN) into the
         // Keychain. Safe to call on every launch; a no-op once migrated. The
         // getters also self-heal on first read, so this is just eager cleanup.
         CacheManager.migrateSecretsToKeychainIfNeeded()
 
+        // Convert any cache still stored in the pre-Codable shape.
+        CacheManager.migrateCachesIfNeeded()
+        
         // Keep Documents out of iCloud/Finder backups.
         LightningStorage.excludeFromBackup()
         
         UNUserNotificationCenter.current().delegate = self
+        
+        // Re-attach push-token observers to any swap Live Activity that survived a
+        // relaunch, so a rotated token still reaches the backend.
+        SwapLiveActivityController.resumeTokenObservation()
+        // Clean up any activity that finished or went stale while the app was closed.
+        SwapLiveActivityController.endStaleActivities()
         
         return true
     }
@@ -52,7 +67,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate, UNUserNotificationCenterD
         
         let tokenParts = deviceToken.map { data in String(format: "%02.2hhx", data) }
         let token = tokenParts.joined()
-        print("Device Token: \(token)")
+        Log.debug("Device Token: \(token)")
         
         // Cache token.
         CacheManager.storeNotificationsToken(token: token)

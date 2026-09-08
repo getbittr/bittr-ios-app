@@ -11,7 +11,7 @@ final class BottomCurveView: UIView {
     
     private let shapeLayer = CAShapeLayer()
     
-    public var fillColor: UIColor = .yellow {
+    public var fillColor: UIColor = .clear {
         didSet {
             shapeLayer.fillColor = fillColor.cgColor
         }
@@ -29,7 +29,7 @@ final class BottomCurveView: UIView {
     
     private func commonInit() {
         backgroundColor = .clear
-        shapeLayer.fillColor = Colors.getColor("yelloworblue3").cgColor
+        shapeLayer.fillColor = fillColor.cgColor
         layer.addSublayer(shapeLayer)
     }
 

@@ -35,10 +35,10 @@ class LessonCollectionViewCell: UICollectionViewCell {
         
         // Resistance priority.
         self.lessonTitle.setContentCompressionResistancePriority(.required, for: .vertical)
-
+        
         // Repaint on dark-mode change, like the app's other list cells.
         NotificationCenter.default.addObserver(self, selector: #selector(changeColors), name: NSNotification.Name(rawValue: "changecolors"), object: nil)
-
+        
         // Color management.
         self.changeColors()
     }
@@ -68,7 +68,7 @@ class LessonCollectionViewCell: UICollectionViewCell {
     }
     
     @objc func changeColors() {
-
+        
         self.lessonTitle.textColor = Colors.getColor("blackorwhite")
         
         if CacheManager.darkModeIsOn() {
@@ -81,86 +81,78 @@ class LessonCollectionViewCell: UICollectionViewCell {
 }
 
 class BlurEffect: UIVisualEffectView {
-
+    
     var blurAnimator = UIViewPropertyAnimator(duration: 1, curve: .linear)
-
-    // The size the blur was last built at. Rebuilding a UIVisualEffectView blur
-    // is an expensive main-thread filter regeneration, and the "setupblur"
-    // notification fans out to EVERY attached instance per post (per willDisplay,
-    // per menu navigation, per foreground) — so a re-render storm (e.g. a wallet
-    // reset re-rendering the academy) could multiply into a main-thread hang.
-    // Keying the rebuild on size fixes both problems at once: the effect is built
-    // once at the real, post-layout tile size (not the premature
-    // didMoveToSuperview size, which AutoLayout then stretched into oversized,
-    // blocky patches), and repeated same-size posts become no-ops. Cleared on
-    // detach and on foregrounding (where iOS can drop the paused effect).
+    
+    // The size the blur was last built at.
     private var blurredSize: CGSize?
-
+    // Whether a rebuild is already queued for the end of the current runloop turn.
+    private var blurIsScheduled = false
+    
     override func didMoveToSuperview() {
         guard let superview = superview else {
-            // Removed from the hierarchy (removeBlur / cell reuse): stop
-            // observing and kill the paused animator, so detached instances
-            // don't keep doing effect work on every "setupblur" post.
             NotificationCenter.default.removeObserver(self)
             self.blurAnimator.stopAnimation(true)
             self.blurredSize = nil
+            self.blurIsScheduled = false
             return
         }
         self.backgroundColor = .clear
         self.frame = superview.bounds
-        // Don't build here: the frame is still the pre-layout size. layoutSubviews
-        // builds it once the real tile size is known.
         self.setNeedsLayout()
-
+        
         // didMoveToSuperview can run more than once — never stack observers.
         NotificationCenter.default.removeObserver(self)
         NotificationCenter.default.addObserver(self, selector: #selector(setupBlur), name: NSNotification.Name(rawValue: "setupblur"), object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(invalidateBlur), name: UIApplication.willEnterForegroundNotification, object: nil)
     }
-
+    
     override func layoutSubviews() {
         super.layoutSubviews()
-        // Build/rebuild only when the on-screen size actually changed — this is
-        // what renders the blur at the correct, post-layout size.
         if self.blurredSize != self.bounds.size {
-            self.setupBlur()
+            self.scheduleBlur()
         }
     }
-
+    
+    // Runs setupBlur at the end of the current runloop turn.
+    private func scheduleBlur() {
+        guard !self.blurIsScheduled else { return }
+        self.blurIsScheduled = true
+        
+        DispatchQueue.main.async { [weak self] in
+            self?.blurIsScheduled = false
+            self?.setupBlur()
+        }
+    }
+    
     @objc private func invalidateBlur() {
         // Backgrounding can tear down the paused animator's effect — force one
         // rebuild on the next setupblur post / layout pass.
         self.blurredSize = nil
         self.setNeedsLayout()
     }
-
+    
     @objc private func setupBlur() {
-        // Detached instances have no business animating; a zero size isn't laid
-        // out yet.
+        // Detached instances have no business animating; a zero size isn't laid out yet.
         guard self.superview != nil, self.bounds.size != .zero else { return }
-        // Already built for this size — see blurredSize. Makes repeated
-        // "setupblur" posts (and re-render storms) cheap no-ops.
+        // Already built for this size.
         guard self.blurredSize != self.bounds.size else { return }
         self.blurredSize = self.bounds.size
-
+        
         self.blurAnimator.stopAnimation(true)
         self.effect = nil
         self.overrideUserInterfaceStyle = .light
-
-        // Recreate the animator instead of re-adding animation blocks to the
-        // stopped one: addAnimations on a reused animator ACCUMULATES blocks,
-        // and every setFractionComplete then replays the whole pile through
-        // UIVisualEffectView's deferred-animation machinery on the main
-        // thread.
+        
+        // Recreate the animator.
         self.blurAnimator = UIViewPropertyAnimator(duration: 1, curve: .linear)
         self.blurAnimator.addAnimations { [weak self] in
             self?.effect = UIBlurEffect(style: .regular)
         }
-
+        
         // Determine blur intensity.
         self.blurAnimator.fractionComplete = 0.1
     }
-
+    
     deinit {
         self.blurAnimator.stopAnimation(true)
     }

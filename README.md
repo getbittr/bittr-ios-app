@@ -39,6 +39,21 @@ End-to-end UI tests live in `shared/flows/` and are driven by Maestro. They run 
    Verify with `node --version`.
 4. **Install the regtest app on the simulator** — in Xcode pick the `bittr` scheme and Cmd-R to build & run with the **Debug** configuration (the default for Run). Debug builds target the regtest backend (via the `DEBUG` compilation condition in `EnvironmentConfig`) and are automatically named "bittr regtest" with bundle id `com.bittr.bittr-regtest` — matching the `appId` the Maestro flows use; Release targets production as `com.bittr.bittr`. No manual bundle-id change is needed. After the first install you can quit it — Maestro will relaunch it.
 
+### One-command suite
+
+`shared/flows/test_suite.sh` wraps the whole thing: preflight checks (xcode-select, maestro, node, booted simulator, apps installed), starts the helper servers (`push_server.js`, `clipboard_server.js`; `screenshot_server.js` with `--unhappy`) if they aren't already running — cleaning up only the ones it started — then runs flows in a valid stateful order with a pass/fail summary.
+
+```sh
+shared/flows/test_suite.sh                 # core suite: fresh_install → buy_incoming → buy_more → swap
+shared/flows/test_suite.sh --evil          # core + the two EvilBoltz flows
+shared/flows/test_suite.sh --evil-only     # just the EvilBoltz flows
+shared/flows/test_suite.sh features/receive.yaml features/send_onchain.yaml
+shared/flows/test_suite.sh --keep-going    # don't stop on first failure
+shared/flows/test_suite.sh --expect-vulnerable --evil-only   # red run on an
+                                           # unfixed build: evil-flow failures
+                                           # count as expected, exit 0
+```
+
 ### Each test run
 
 The push-notification helper bridges Maestro to the simulator's APNS push (the `buy_more`, `notification_information` and `notification_lnurl` flows need it). Leave it running in its own terminal:
@@ -172,6 +187,49 @@ maestro test --env MNEMONIC="word1 word2 word3 word4 word5 word6 word7 word8 wor
 # first via runFlow), so no env var or separate setup is needed:
 maestro test shared/flows/features/pin_warning.yaml
 ```
+
+### EvilBoltz swap-tamper testing ("bittr evil" app)
+
+The shared **`bittr evil`** scheme builds the `Debug-EvilBoltz` configuration: the regtest app with the [EvilBoltz](../ios/bittr/Helpers/EvilBoltz.swift) fault-injection harness **armed by default** (mode `all`), its own bundle id `com.bittr.bittr-evil` and display name "bittr evil". It installs alongside "bittr regtest" and has a **separate keychain/wallet** (SecureStore scopes to the bundle id), so destructive swap tests never touch your normal test wallet. Build & run it once from Xcode like any other scheme.
+
+It simulates a malicious Boltz server (SEC-01/SEC-02, see `SECURITY_REVIEW.md`): reverse swaps receive a real regtest invoice whose preimage only the "attacker" knows; submarine swaps receive an attacker-controlled lockup address. A vulnerable build pays/sends and loses the funds; a fixed build must abort at swap creation before any payment.
+
+```yaml
+# In a Maestro flow — no arguments needed, the app is armed out of the box:
+- launchApp:
+    appId: com.bittr.bittr-evil
+
+# Control run (same app, harness disarmed):
+- launchApp:
+    appId: com.bittr.bittr-evil
+    arguments: ["-evilBoltz", "off"]
+
+# Or arm the NORMAL regtest app ad hoc:
+- launchApp:
+    appId: com.bittr.bittr-regtest
+    arguments: ["-evilBoltz", "wrong-address"]   # or wrong-invoice / all
+```
+
+Push-driven flows against the evil app need the push helper to target its bundle id: POST to `http://localhost:8888/push?bundleId=com.bittr.bittr-evil` (default remains `com.bittr.bittr-regtest`, also overridable process-wide via `BITTR_PUSH_BUNDLE_ID`).
+
+**End-to-end EvilBoltz flows** (SEC-01/SEC-02). Each wipes and fully reprovisions the evil app (wallet → signup → funded channel [→ onchain deposit]), then attempts the tampered swap. On a **vulnerable** build the flow drives the theft to its stuck end state and then **fails loudly** — that failure is the demonstration; on a **fixed** build the swap aborts before any payment and the flow passes:
+
+```sh
+# Terminal A — needed for the fake payout pushes:
+node shared/flows/scripts/push_server.js
+
+# SEC-01: reverse swap pays an invoice whose preimage only the attacker knows.
+# Vulnerable = lightning payment goes out, no onchain coins ever arrive:
+maestro test shared/flows/features/evil_boltz_wrong_invoice.yaml
+
+# SEC-02: submarine swap pays an attacker-controlled lockup address.
+# Vulnerable = onchain tx lands at the attacker's address (watch
+# https://esplora.bittr.io/address/bcrt1pcz9mae53csyv8d0t4fansh446jdjey2pg2djn5utqver5e42gp5s507k3j),
+# no refund path exists:
+maestro test shared/flows/features/evil_boltz_wrong_address.yaml
+```
+
+Also, `onboarding/fresh_install.yaml` and `features/buy_incoming.yaml` accept an injected app: set `output.APP_ID` before `runFlow`-ing them (see `helpers/evil_bootstrap.yaml`) — the default stays `com.bittr.bittr-regtest`.
 
 Screenshots land in `shared/docs/screenshots/<flow_name>/<step>.png`.
 

@@ -134,7 +134,7 @@ class WebsiteViewController: UIViewController, WKUIDelegate, WKNavigationDelegat
     func userContentController(_ userContentController: WKUserContentController, didReceive message: WKScriptMessage) {
         
         if !self.isHandlingLnurlAuth, message.name == "lnurl", let url = message.body as? String {
-            print("Did find URL: \(url)")
+            Log.debug("Did find URL: \(url)")
             self.isHandlingLnurlAuth = true
             self.handleLNURL(code: url.replacingOccurrences(of: "lightning:", with: ""))
         }

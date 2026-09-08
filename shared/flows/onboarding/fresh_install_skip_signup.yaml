@@ -14,6 +14,7 @@ appId: com.bittr.bittr-regtest
 - launchApp:
     clearState: true
     clearKeychain: true
+- runFlow: ../helpers/wait_for_launch.yaml
 - runFlow: happy_path_wallet.yaml
 
 # Signup7 (wallet-ready): skip the bittr signup instead of continuing.

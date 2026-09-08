@@ -1,0 +1,144 @@
+# EvilBoltz end-to-end test — SEC-02 (submarine swap, onchain → lightning):
+# the app must locally derive Boltz's lockup address from the swap tree + keys
+# before paying it. The "bittr evil" app (Debug-EvilBoltz build, harness
+# armed) replaces that address with an attacker-controlled regtest address.
+#
+# The fix rejects the tampered response during swap creation: right after Next
+# an error alert appears ("We could not verify the swap details…") before the
+# onchain send, and no SwapStatus screen is ever reached. This flow confirms
+# that rejection, then returns to Home so the next test starts clean.
+# (Attacker address / key documented in ios/bittr/Helpers/EvilBoltz.swift.)
+#
+# (A build WITHOUT the fix would instead broadcast the onchain lockup to the
+# attacker's address and strand the swap; that vulnerable-path assertion was
+# removed once the fix landed.)
+#
+# Prerequisites:
+#   - "bittr evil" app installed once via the `bittr evil` Xcode scheme
+#   - push_server.js running: node shared/flows/scripts/push_server.js
+#   - a provisioned, funded evil app with an onchain balance for the submarine
+#     leg: either run evil_boltz_wrong_invoice first (it leaves the app on Home
+#     with a funded channel) plus a prior onchain deposit, or uncomment the
+#     step-1 helpers below to provision inline.
+#
+# Run: maestro test shared/flows/features/evil_boltz_wrong_address.yaml
+
+appId: com.bittr.bittr-evil
+---
+# 1) Provision: wipe → create wallet → bittr signup → fund lightning channel,
+#    then a second deposit with onchain payout for the submarine leg's UTXO.
+# - runFlow: ../helpers/evil_bootstrap.yaml
+# - runFlow: ../helpers/evil_fund_onchain.yaml
+
+# 2) Make sure there is an onchain UTXO to send to Boltz's lockup address, but
+#    only if there isn't one already. Peek the regular (onchain) balance off
+#    MoveVC the way evil_bootstrap.yaml peeks the instant one, and fund via a
+#    second bank deposit if it cannot cover the 50000 sats swapped below.
+#
+#    Not via a lightning→onchain swap: this app arms EvilBoltz mode `all`,
+#    which tampers reverse-swap responses too, so the funding swap would be
+#    rejected by the very validation under test.
+- extendedWaitUntil:
+    notVisible:
+      id: "home.headerSpinner"
+    timeout: 120000
+- tapOn:
+    id: "home.balanceLabel"
+- assertVisible:
+    id: "move.subtitleLabel"
+- copyTextFrom:
+    id: "move.satsRegular"
+# "50 000 sats" → 50000. MoveVC.updateLabels formats it with addSpaces().
+- evalScript: ${output.onchainSats = parseInt(maestro.copiedText.replace(/\D/g, ""), 10) || 0}
+- swipe:
+    direction: DOWN
+    duration: 800
+- assertVisible:
+    id: "home.headerLabel"
+- runFlow:
+    when:
+      true: ${output.onchainSats < 50000}
+    file: ../helpers/evil_fund_onchain.yaml
+
+# 3) Submarine leg (onchain → lightning, 50000 sats) — mirrors swap.yaml's
+#    second leg. Settle any sync first so balances are stable.
+- extendedWaitUntil:
+    notVisible:
+      id: "home.headerSpinner"
+    timeout: 60000
+
+# Balance card → MoveVC → SwapVC.
+- tapOn:
+    id: "home.balanceCardButton"
+    point: "50%,20%"
+- assertVisible:
+    id: "move.subtitleLabel"
+- tapOn:
+    id: "move.swapButton"
+- assertVisible:
+    id: "swap.amountTextField"
+
+# Flip direction: fromButton opens the picker → "Onchain to Lightning" (index 1).
+- tapOn:
+    id: "swap.fromButton"
+- assertVisible:
+    id: "alert.button.1"
+- tapOn:
+    id: "alert.button.1"
+
+# Dismiss a possible BDK-stale notice, then wait for a real available amount.
+- tapOn:
+    id: "alert.button.0"
+    optional: true
+# Still on SwapVC: with no onchain funds the app drops back to MoveVC here, and
+# then "Move up to 0 sats." is not visible simply because the whole screen is
+# gone — the wait below would pass and the failure would surface later, on the
+# amount field, pointing at the wrong thing.
+- assertVisible:
+    id: "swap.amountTextField"
+- extendedWaitUntil:
+    notVisible:
+      text: "Move up to 0 sats."
+    timeout: 60000
+
+- tapOn:
+    id: "swap.amountTextField"
+- inputText: "50000"
+- tapOn:
+    text: "Done"
+- takeScreenshot: shared/docs/screenshots/evil_boltz_wrong_address/01_submarine_ready
+# Next → swap creation (and, on an armed build, the tampered lockup address —
+# watch the console for the 🚨 EVIL BOLTZ log).
+- tapOn:
+    id: "swap.nextButton"
+
+# 3) The fix rejects the tampered response right after Next — an error alert
+#    (single Okay button) appears before the onchain send.
+- extendedWaitUntil:
+    visible:
+      id: "alert.button.0"
+    timeout: 30000
+- takeScreenshot: shared/docs/screenshots/evil_boltz_wrong_address/02_fixed_aborted
+# Confirm the fix's rejection (swapvalidationfailed — no funds sent). Maestro
+# matches `text` as a regex against the element's WHOLE text, so wrap the
+# distinctive substring in .* to match within the long message label.
+- assertVisible:
+    text: ".*could not verify the swap details.*"
+- tapOn:
+    id: "alert.button.0"
+# The swap status screen must never have appeared; we're back on SwapVC.
+- assertNotVisible:
+    id: "swapStatus.confirmCard"
+- assertVisible:
+    id: "swap.nextButton"
+
+# 4) Return to Home so the next test starts clean: swipe down to dismiss SwapVC,
+#    then again to dismiss MoveVC (the same landing as swap.yaml).
+- swipe:
+    direction: DOWN
+    duration: 800
+- swipe:
+    direction: DOWN
+    duration: 800
+- assertVisible:
+    id: "home.headerLabel"

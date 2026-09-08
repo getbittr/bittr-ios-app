@@ -7,7 +7,6 @@
 
 import UIKit
 import LDKNode
-import LightningDevKit
 
 class SendViewController: UIViewController, UITextFieldDelegate, OnchainSyncFailureReporting {
     
@@ -77,17 +76,14 @@ class SendViewController: UIViewController, UITextFieldDelegate, OnchainSyncFail
     
     // Variables
     var coreVC:CoreViewController?
+    var homeVC:HomeViewController?
     var maximumSendableOnchainSats:Int?
-    var didTapAvailable = false // User has tapped the maximum available onchain amount.
-    var isSendingMaximum = false // User intends to empty their onchain funds.
-    // Drain amount + its fee, so the confirm screen can restate the amount when
-    // the user switches fee rate — a drain is whatever is left after the fee.
-    var drainTotalSats:Int?
+    var didTapAvailable = false
     var completedTransaction:Transaction?
-    var onchainAmountInSatoshis:Int = 0
     var bitcoinQR = ""
     var pendingLightningInvoice = ""
     var pendingOnchainAddress = ""
+    var pendingOnchainAmount:Int = 0
     
     // Pending URI data from segue
     var pendingBitcoinURI: (address: String, amount: String, label: String)?
@@ -105,6 +101,10 @@ class SendViewController: UIViewController, UITextFieldDelegate, OnchainSyncFail
     var pendingWithdrawMinAmount: Int?
     var pendingWithdrawMaxAmount: Int?
     
+    // LNURL Pay request properties
+    var pendingLnurlInvoice:String?
+    var pendingLnurlNote:String?
+    
     // LNURL Auth
     var pendingLnurlAuth: LNURLAuthRequest?
     
@@ -112,53 +112,12 @@ class SendViewController: UIViewController, UITextFieldDelegate, OnchainSyncFail
     var selectedCurrency:SelectedCurrency = .satoshis
     var onchainOrLightning:OnchainOrLightning = .lightning
     
-    // Temporary invoice variables
-    var temporaryInvoiceText = ""
-    var temporaryInvoiceAmount = 0
-    var temporaryInvoiceNote:String?
-    
     // Confirm variables
     var confirmSendVC:ConfirmSendViewController?
-    var confirmSatoshis:Int = 0
-    var confirmAddress = ""
-    var feePerVbLow:Float = 0
-    var feePerVbMedium:Float = 0
-    var feePerVbHigh:Float = 0
-    var confirmTxSize:Float = 0
-    var confirmLightningFees:Int = 0
+    var feeEstimates:FeeEstimates?
     
     override func viewDidLoad() {
         super.viewDidLoad()
-
-        // Tag the onchain/lightning switch buttons so switchTapped can route
-        // the tap. (Was set on accessibilityIdentifier in IB; moved here so
-        // that slot stays free for Maestro test IDs.)
-        self.regularButton.boundString = "onchain"
-        self.instantButton.boundString = "lightning"
-
-        // Text fields
-        self.toTextField.delegate = self
-        self.toTextField.autocorrectionType = .no
-        self.toTextField.autocapitalizationType = .none
-        self.toTextField.smartQuotesType = .no
-        self.toTextField.smartDashesType = .no
-        self.amountTextField.delegate = self
-        self.amountTextField.inputAccessoryView = createAmountInputAccessoryView()
-
-        self.toLabel.accessibilityIdentifier = TestID.Send.toLabel
-        self.toTextField.accessibilityIdentifier = TestID.Send.toTextField
-        self.amountTextField.accessibilityIdentifier = TestID.Send.amountTextField
-        self.pasteButton.accessibilityIdentifier = TestID.Send.pasteButton
-        self.qrButton.accessibilityIdentifier = TestID.Send.scanButton
-        self.regularButton.accessibilityIdentifier = TestID.Send.regularButton
-        self.switchQuestionButton.accessibilityIdentifier = TestID.Send.switchQuestionButton
-        self.btcButton.accessibilityIdentifier = TestID.Send.currencyButton
-        self.btcLabel.accessibilityIdentifier = TestID.Send.currencyLabel
-        self.bdkSpinner.accessibilityIdentifier = TestID.Send.bdkSpinner
-        self.availableButton.accessibilityIdentifier = TestID.Send.availableButton
-        self.availableAmount.accessibilityIdentifier = TestID.Send.availableLabel
-        self.availableQuestionButton.accessibilityIdentifier = TestID.Send.availableQuestionButton
-        self.nextButton.accessibilityIdentifier = TestID.Send.nextButton
 
         // Set colors and language
         self.changeColors()
@@ -177,6 +136,7 @@ class SendViewController: UIViewController, UITextFieldDelegate, OnchainSyncFail
     }
     
     func setSendAllLabel() {
+        guard self.isViewLoaded else { return }
         
         if self.onchainOrLightning == .onchain {
             // Set "Send all" for onchain transactions.
@@ -186,25 +146,21 @@ class SendViewController: UIViewController, UITextFieldDelegate, OnchainSyncFail
                 self.bdkWalletUnavailable()
             } else {
                 Log.info("BDK wallet is available.")
-
+                
                 // Ensure current fee rates have been fetched.
-                guard self.feePerVbMedium > 0 else {
+                guard let feeEstimates else {
                     self.bdkSpinner.startAnimating()
                     Task { await self.fetchFeeEstimatesThenSetSendAllLabel() }
                     return
                 }
-
-                // Calculate maximum sendable onchain amount off the main thread:
-                // this builds and signs a drain PSBT, which is real crypto work
-                // and grows with the number of UTXOs. Keep the spinner up until
-                // there's a number to show.
+                
+                // Calculate maximum sendable onchain amount.
                 // Minimum 0 satoshis. Minimum 1 sat/Vbyte.
                 self.bdkSpinner.startAnimating()
-                let satPerVb = UInt64(max(self.feePerVbMedium, 1))
                 DispatchQueue.global(qos: .userInitiated).async {
-                    let sendable = self.getMaximumSendableSats(satPerVb: satPerVb)
+                    let sendable = self.getMaximumSendableSats(satPerVb: feeEstimates.hour.wholeSatPerVb)
                         ?? max(BitcoinManager.shared.bittrWallet.satoshisOnchainSpendable ?? 0, 0)
-
+                    
                     DispatchQueue.main.async {
                         self.bdkSpinner.stopAnimating()
                         self.maximumSendableOnchainSats = sendable
@@ -228,16 +184,13 @@ class SendViewController: UIViewController, UITextFieldDelegate, OnchainSyncFail
         await MainActor.run {
             self.bdkSpinner.stopAnimating()
             
-            guard let feeEstimates = feeEstimates else {
+            guard let feeEstimates else {
                 Log.info("Could not fetch recommended fees; quoting the spendable balance instead.")
                 let spendable = max(BitcoinManager.shared.bittrWallet.satoshisOnchainSpendable ?? 0, 0)
                 self.availableAmount.text = Language.getWord(withID:"youcansend").replacingOccurrences(of: "<amount>", with: "\(spendable)".addSpaces())
                 return
             }
-
-            self.feePerVbLow = Float(feeEstimates.economy)
-            self.feePerVbMedium = Float(feeEstimates.hour)
-            self.feePerVbHigh = Float(feeEstimates.fastest)
+            self.feeEstimates = feeEstimates
             
             self.setSendAllLabel()
         }
@@ -248,7 +201,7 @@ class SendViewController: UIViewController, UITextFieldDelegate, OnchainSyncFail
         // Show alert.
         self.availableAmount.text = Language.getWord(withID:"youcansend").replacingOccurrences(of: "<amount>", with: "0")
         self.bdkSpinner.startAnimating()
-        self.showAlert(presentingController: self, title: Language.getWord(withID: "syncing"), message: Language.getWord(withID: "awaitingbdksync"), buttons: [Language.getWord(withID: "okay")], actions: nil)
+        self.showAlert(title: Language.getWord(withID: "syncing"), message: Language.getWord(withID: "awaitingbdksync"), buttons: [.dismiss(Language.getWord(withID: "okay"))])
         
         // Check whether BDK wallet is currently scanning.
         if !BitcoinManager.shared.bdkWalletIsScanning {
@@ -283,53 +236,6 @@ class SendViewController: UIViewController, UITextFieldDelegate, OnchainSyncFail
             Log.info("Waiting for BDK wallet to finish scanning.")
         }
     }
-
-    override func viewWillAppear(_ animated: Bool) {
-        NotificationCenter.default.addObserver(self, selector: #selector(keyboardWillDisappear), name: UIResponder.keyboardWillHideNotification, object: nil)
-        NotificationCenter.default.addObserver(self, selector: #selector(keyboardWillAppear), name: UIResponder.keyboardWillShowNotification, object: nil)
-    }
-    
-    func checkContentViewHeight() {
-        let centerViewHeight = self.centerView.bounds.height
-        if self.centerView.bounds.height + 60 > self.contentView.bounds.height {
-            NSLayoutConstraint.deactivate([self.contentViewHeight])
-            self.contentViewHeight = NSLayoutConstraint(item: self.contentView, attribute: .height, relatedBy: .equal, toItem: nil, attribute: .notAnAttribute, multiplier: 1, constant: centerViewHeight + 120)
-            NSLayoutConstraint.activate([self.contentViewHeight])
-            self.view.layoutIfNeeded()
-        } else {
-            NSLayoutConstraint.deactivate([self.contentViewHeight])
-            self.contentViewHeight = NSLayoutConstraint(item: self.contentView, attribute: .height, relatedBy: .equal, toItem: self.contentView.superview, attribute: .height, multiplier: 1, constant: 0)
-            NSLayoutConstraint.activate([self.contentViewHeight])
-            self.view.layoutIfNeeded()
-        }
-    }
-    
-    @objc func keyboardWillDisappear() {
-        
-        self.amountButton.alpha = 1
-        self.toButton.alpha = 1
-        
-        self.scrollViewBottom.constant = self.view.safeAreaInsets.bottom
-        self.view.layoutIfNeeded()
-        self.checkContentViewHeight()
-    }
-    
-    @objc func keyboardWillAppear(_ notification:Notification) {
-        
-        if let keyboardSize = (notification.userInfo?[UIResponder.keyboardFrameEndUserInfoKey] as? NSValue)?.cgRectValue {
-            
-            let keyboardHeight = keyboardSize.height
-            
-            self.scrollViewBottom.constant = -keyboardHeight + self.view.safeAreaInsets.bottom
-            self.view.layoutIfNeeded()
-            self.checkContentViewHeight()
-            
-            // Scroll view up to text field.
-            var fieldFrame = self.scrollView.convert(self.amountTextField.bounds, from: self.amountTextField.superview)
-            fieldFrame = fieldFrame.insetBy(dx: 0, dy: -25)
-            self.scrollView.scrollRectToVisible(fieldFrame, animated: true)
-        }
-    }
     
     @IBAction func amountButtonTapped(_ sender: UIButton) {
         self.amountTextField.becomeFirstResponder()
@@ -344,53 +250,35 @@ class SendViewController: UIViewController, UITextFieldDelegate, OnchainSyncFail
     @objc func doneButtonTapped() {
         // Only handle amount field since address field doesn't have a Done button
         if self.amountTextField.isFirstResponder {
-            
-            // Check if we have pending LNURL data
-            if self.pendingLNURLCallback != nil, self.pendingLNURLMinAmount != nil, self.pendingLNURLMaxAmount != nil {
-                // Handle LNURL amount completion
-                self.handleLNURLAmountCompletion()
-            } else if self.pendingWithdrawCallback != nil, self.pendingWithdrawMinAmount != nil, self.pendingWithdrawMaxAmount != nil {
-                // Handle withdraw request amount completion
-                self.handleWithdrawAmountCompletion()
-            } else {
-                // Move to next step
-                self.amountTextField.resignFirstResponder()
-                self.nextButtonTapped(self.nextButton)
-            }
+            // Move to next step
+            self.amountTextField.resignFirstResponder()
+            self.nextButtonTapped(self.nextButton)
         }
     }
     
-    @objc func selectBTCCurrency() {
-        self.btcLabel.text = "BTC"
-        self.selectedCurrency = .bitcoin
-    }
-    
-    @objc func selectSatsCurrency() {
-        self.btcLabel.text = "Sats"
-        self.selectedCurrency = .satoshis
-    }
-    
-    @objc func selectFiatCurrency() {
-        let currency = UserDefaults.standard.value(forKey: "currency") as? String ?? "EUR"
-        self.btcLabel.text = currency
-        self.selectedCurrency = .currency
+    func selectCurrency(_ type:SelectedCurrency) {
+        switch type {
+        case .bitcoin: self.btcLabel.text = "BTC"
+        case .satoshis: self.btcLabel.text = "Sats"
+        case .currency:
+            let currency = CacheStore.value(for: CacheKeys.currency) ?? "EUR"
+            self.btcLabel.text = currency
+        }
+        self.selectedCurrency = type
     }
     
     @IBAction func availableButtonTapped(_ sender: UIButton) {
+        self.selectCurrency(.satoshis)
         
         if self.onchainOrLightning == .onchain {
             // Regular - use satoshis for onchain too
             let sendableInSatoshis:Int = self.maximumSendableOnchainSats ?? max(BitcoinManager.shared.bittrWallet.satoshisOnchainSpendable ?? 0, 0)
             self.amountTextField.text = "\(sendableInSatoshis)"
-            self.btcLabel.text = "Sats"
-            self.selectedCurrency = .satoshis
             self.didTapAvailable = true
         } else {
             // Instant
             let sendableInSatoshis:Int = Int((BitcoinManager.shared.bittrWallet.lightningChannels.getActiveChannel()?.outboundCapacityMsat ?? 0)/1000)
             self.amountTextField.text = "\(sendableInSatoshis)"
-            self.btcLabel.text = "Sats"
-            self.selectedCurrency = .satoshis
         }
     }
     
@@ -439,52 +327,6 @@ class SendViewController: UIViewController, UITextFieldDelegate, OnchainSyncFail
         }
     }
     
-    func slideFromConfirmToSend() {
-        DispatchQueue.main.async {
-            UIView.animate(withDuration: 0.3, delay: 0, options: .curveEaseInOut) {
-                NSLayoutConstraint.deactivate([self.scrollViewTrailing])
-                self.scrollViewTrailing = NSLayoutConstraint(item: self.scrollView, attribute: .trailing, relatedBy: .equal, toItem: self.view, attribute: .trailing, multiplier: 1, constant: 0)
-                NSLayoutConstraint.activate([self.scrollViewTrailing])
-                self.view.layoutIfNeeded()
-            } completion: { _ in
-                self.removeConfirmView()
-            }
-        }
-    }
-    
-    func slideFromSendToConfirm() {
-        DispatchQueue.main.async {
-            self.loadConfirmView()
-            
-            UIView.animate(withDuration: 0.3, delay: 0, options: .curveEaseInOut) {
-                NSLayoutConstraint.deactivate([self.scrollViewTrailing])
-                self.scrollViewTrailing = NSLayoutConstraint(item: self.scrollView, attribute: .trailing, relatedBy: .equal, toItem: self.view, attribute: .leading, multiplier: 1, constant: 0)
-                NSLayoutConstraint.activate([self.scrollViewTrailing])
-                self.view.layoutIfNeeded()
-            }
-        }
-    }
-    
-    func loadConfirmView() {
-        let storyboard = UIStoryboard(name: "Main", bundle: Bundle.main)
-        let newChild = storyboard.instantiateViewController(withIdentifier: "ConfirmSend")
-        (newChild as? ConfirmSendViewController)?.coreVC = self.coreVC
-        (newChild as? ConfirmSendViewController)?.sendVC = self
-        self.confirmSendVC = newChild as? ConfirmSendViewController
-        
-        self.addChild(newChild)
-        newChild.view.frame.size = self.confirmContainer.frame.size
-        self.confirmContainer.addSubview(newChild.view)
-        newChild.didMove(toParent: self)
-    }
-    
-    func removeConfirmView() {
-        for eachSubview in self.confirmContainer.subviews {
-            eachSubview.removeFromSuperview()
-        }
-    }
-    
-    
     override func prepare(for segue: UIStoryboardSegue, sender: Any?) {
         
         // Show new transaction in TransactionVC.
@@ -498,10 +340,14 @@ class SendViewController: UIViewController, UITextFieldDelegate, OnchainSyncFail
         } else if segue.identifier == "SendToSwap" {
             if let swapVC = segue.destination as? SwapViewController {
                 swapVC.isFromOnchainPayment = true
-                swapVC.pendingOnchainAmount = self.onchainAmountInSatoshis
+                swapVC.pendingOnchainAmount = self.pendingOnchainAmount
                 swapVC.pendingOnchainAddress = self.pendingOnchainAddress
                 swapVC.coreVC = self.coreVC
                 self.coreVC?.swapVC = swapVC
+                
+                // Clear pending data.
+                self.pendingOnchainAddress = ""
+                self.pendingOnchainAmount = 0
             }
         } else if segue.identifier == "SendToScanner" {
             if let scannerVC = segue.destination as? ScannerViewController {
@@ -532,24 +378,7 @@ class SendViewController: UIViewController, UITextFieldDelegate, OnchainSyncFail
         self.view.endEditing(true)
         
         let bitcoinValue = BitcoinManager.shared.bittrWallet.getCorrectBitcoinValue()
-        self.showAlert(presentingController: self, title: Language.getWord(withID: "selectcurrency"), message: Language.getWord(withID: "selectcurrencymessage"), buttons: [Language.getWord(withID: "cancel"), "Bitcoin", "Satoshis", bitcoinValue.chosenCurrency], actions: [nil, #selector(self.tappedBitcoinCurrency), #selector(self.tappedSatsCurrency), #selector(self.tappedFiatCurrency)])
-    }
-
-    // Custom-alert wrappers: the AlertManager doesn't auto-dismiss when a button
-    // has an action, so each hides the alert before applying the currency.
-    @objc func tappedBitcoinCurrency() {
-        self.hideAlert()
-        self.selectBTCCurrency()
-    }
-
-    @objc func tappedSatsCurrency() {
-        self.hideAlert()
-        self.selectSatsCurrency()
-    }
-
-    @objc func tappedFiatCurrency() {
-        self.hideAlert()
-        self.selectFiatCurrency()
+        self.showAlert(title: Language.getWord(withID: "selectcurrency"), message: Language.getWord(withID: "selectcurrencymessage"), buttons: [.dismiss(Language.getWord(withID: "cancel")), .action("Bitcoin") { self.selectCurrency(.bitcoin) }, .action("Satoshis") { self.selectCurrency(.satoshis) }, .action(bitcoinValue.chosenCurrency) { self.selectCurrency(.currency) }])
     }
     
     @IBAction func availableQuestionTapped(_ sender: UIButton) {
@@ -557,14 +386,14 @@ class SendViewController: UIViewController, UITextFieldDelegate, OnchainSyncFail
         if self.onchainOrLightning == .lightning {
             self.coreVC!.launchQuestion(question: Language.getWord(withID: "limitlightning"), answer: Language.getWord(withID: "limitlightninganswer"), type: "lightningsendable")
         } else {
-            self.showAlert(presentingController: self, title: Language.getWord(withID: "sendbitcoin"), message: Language.getWord(withID: "maximumonchain"), buttons: [Language.getWord(withID: "okay")], actions: nil)
+            self.showAlert(title: Language.getWord(withID: "sendbitcoin"), message: Language.getWord(withID: "maximumonchain"), buttons: [.dismiss(Language.getWord(withID: "okay"))])
         }
     }
     
     @IBAction func switchQuestionTapped(_ sender: UIButton) {
         self.view.endEditing(true)
         
-        self.showAlert(presentingController: self, title: Language.getWord(withID: "transactiontype"), message: Language.getWord(withID: "transactiontype3"), buttons: [Language.getWord(withID: "okay")], actions: nil)
+        self.showAlert(title: Language.getWord(withID: "transactiontype"), message: Language.getWord(withID: "transactiontype3"), buttons: [.dismiss(Language.getWord(withID: "okay"))])
     }
     
 }

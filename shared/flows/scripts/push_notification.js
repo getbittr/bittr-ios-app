@@ -13,8 +13,15 @@ if (payload == null) {
     throw new Error('push_notification.js: output.notificationPayload is not set');
 }
 
+// Default target is the regtest app; callers may set output.pushBundleId
+// (e.g. the EvilBoltz flows target com.bittr.bittr-evil).
+var url = 'http://localhost:8888/push';
+if (output.pushBundleId != null) {
+    url += '?bundleId=' + encodeURIComponent(output.pushBundleId);
+}
+
 var response = http.post(
-    'http://localhost:8888/push',
+    url,
     {
         headers: { 'Content-Type': 'application/json' },
         body: payload

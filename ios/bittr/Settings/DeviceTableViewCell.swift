@@ -144,7 +144,7 @@ class DeviceTableViewCell: UITableViewCell {
     }
 }
 
-enum DarkMode {
+enum DarkMode: String {
     case light
     case dark
     case device

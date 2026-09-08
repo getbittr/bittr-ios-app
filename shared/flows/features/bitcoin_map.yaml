@@ -5,11 +5,12 @@
 # already being set up (run onboarding/restore_wallet.yaml first if needed).
 # It is non-destructive and can be run repeatedly.
 #
-# Location: the map requests "when in use" location authorization on appear.
-# We grant it up front via launchApp.permissions so no system permission
-# dialog interrupts the flow. With no simulated location the map falls back to
-# the default Switzerland region (showDefaultSwitzerlandRegion), which is
-# zoomed out far enough that the places table is populated.
+# Location: the map requests "when in use" authorization in viewDidAppear (after
+# the map screen opens). launchApp grants it best-effort — Maestro's location
+# grant is honoured on some iOS versions but not all — so we also tap through the
+# system dialog if it still appears (right after opening the map). With no
+# simulated location the map falls back to the default Switzerland region
+# (showDefaultSwitzerlandRegion), zoomed out far enough to populate the table.
 #
 # Flow:
 #   1. Launch (preserve state, grant location) and unlock with the PIN.
@@ -37,6 +38,7 @@ appId: com.bittr.bittr-regtest
 - launchApp:
     permissions:
       location: inuse
+- runFlow: ../helpers/wait_for_launch.yaml
 
 # Existing wallet → launch lands on the PIN unlock screen. Enter the PIN.
 - assertVisible:
@@ -52,9 +54,33 @@ appId: com.bittr.bittr-regtest
 # Tap the map icon → MapViewController (HomeToMap segue).
 - tapOn:
     id: "home.mapButton"
+
+# The map requests location in viewDidAppear. If launchApp's grant didn't take
+# on this iOS version, the system permission dialog appears here — tap through
+# it. Skipped (no-op) when the permission was already granted.
+- runFlow:
+    when:
+      visible: "Allow While Using App"
+    commands:
+      - tapOn: "Allow While Using App"
+
 - assertVisible:
     id: "map.mapView"
 - takeScreenshot: shared/docs/screenshots/bitcoin_map/03_map_loading
+
+# Read the BTCMap.org credit under the map and close it again. Done here, on
+# arrival, rather than after the sync: the label is there from the moment the
+# screen opens, and dismissing the alert before the wait below keeps it from
+# sitting over the spinner that wait is watching.
+- tapOn:
+    id: "map.poweredByButton"
+- assertVisible:
+    id: "alert.button.0"
+- takeScreenshot: shared/docs/screenshots/bitcoin_map/03a_powered_by
+- tapOn:
+    id: "alert.button.0"
+- assertNotVisible:
+    id: "alert.button.0"
 
 # Wait for the BTC-places sync to finish. mapSpinner (hidesWhenStopped) is
 # stopped in resyncBTCPlaces once the btcmap.org sync completes. A first-ever

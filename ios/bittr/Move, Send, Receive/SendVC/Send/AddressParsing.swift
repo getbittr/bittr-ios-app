@@ -8,12 +8,12 @@
 import UIKit
 import BitcoinDevKit
 import LNURLDecoder
-import LightningDevKit
+import LDKNode
 
 extension SendViewController {
     
     func handleScannedOrPastedString(_ code:String) {
-        print("Code: " + code)
+        Log.debug("Code: " + code)
         
         // Parse code components.
         let bitcoinAddress = code.extractBitcoinAddress()
@@ -35,26 +35,24 @@ extension SendViewController {
             self.onchainOrLightning = .lightning
             
             // Display the invoice amount if it carries one.
-            if let parsedInvoice = Bindings.Bolt11Invoice.fromStr(s: lightningInvoice!).getValue() {
-                if let invoiceAmountMilli = parsedInvoice.amountMilliSatoshis() {
-                    // Regular invoice
-                    let invoiceAmount = Int(invoiceAmountMilli)/1000
-
-                    let availableLightningBalance = (BitcoinManager.shared.bittrWallet.lightningChannels.getActiveChannel()?.outboundCapacityMsat ?? 0)/1000
-                    if invoiceAmount > availableLightningBalance, bitcoinAddress != nil {
-                        // We can't send this much in Lightning, but the unified QR
-                        // carries an onchain address. Send onchain instead.
-                        self.handleScannedOrPastedString(bitcoinAddress!)
-                        return
-                    }
-
-                    // Show the parsed amount regardless of channel capacity. If it
-                    // exceeds the lightning balance (e.g. no channel), the swap
-                    // suggestion on Next handles the insufficient-balance case.
-                    self.amountTextField.text = "\(invoiceAmount)"
-                    self.btcLabel.text = "Sats"
-                    self.selectedCurrency = .satoshis
+            if let invoiceAmountMilli = lightningInvoice!.bolt11Invoice()?.amountMilliSatoshis() {
+                // Regular invoice
+                let invoiceAmount = Int(invoiceAmountMilli)/1000
+                
+                let availableLightningBalance = (BitcoinManager.shared.bittrWallet.lightningChannels.getActiveChannel()?.outboundCapacityMsat ?? 0)/1000
+                if invoiceAmount > availableLightningBalance, bitcoinAddress != nil {
+                    // We can't send this much in Lightning, but the unified QR
+                    // carries an onchain address. Send onchain instead.
+                    self.handleScannedOrPastedString(bitcoinAddress!)
+                    return
                 }
+                
+                // Show the parsed amount regardless of channel capacity. If it
+                // exceeds the lightning balance (e.g. no channel), the swap
+                // suggestion on Next handles the insufficient-balance case.
+                self.amountTextField.text = "\(invoiceAmount)"
+                self.btcLabel.text = "Sats"
+                self.selectedCurrency = .satoshis
             }
             
             if bitcoinAddress != nil {
@@ -65,8 +63,8 @@ extension SendViewController {
             Log.info("Did find onchain address.")
             self.toTextField.text = bitcoinAddress!
             self.onchainOrLightning = .onchain
-            if amount != nil, amount != 0 {
-                self.amountTextField.text = "\(amount!)"
+            if let amount, amount != 0 {
+                self.amountTextField.text = "\(amount)"
                 self.btcLabel.text = "Sats"
                 self.selectedCurrency = .satoshis
             }
@@ -74,7 +72,7 @@ extension SendViewController {
             Log.info("Did not find a valid address or invoice.")
             self.toTextField.text = nil
             self.amountTextField.text = nil
-            self.showAlert(presentingController: self, title: Language.getWord(withID: "nobitcoinaddressfound"), message: Language.getWord(withID: "pleasescan"), buttons: [Language.getWord(withID: "okay")], actions: nil)
+            self.showAlert(title: Language.getWord(withID: "nobitcoinaddressfound"), message: Language.getWord(withID: "pleasescan"), buttons: [.dismiss(Language.getWord(withID: "okay"))])
             return
         }
         
@@ -134,8 +132,7 @@ extension String {
     
     func isValidInvoice() -> Bool {
         guard self.hasPrefix("ln") else { return false }
-        let bolt11Invoice = Bolt11Invoice.fromStr(s: self)
-        if bolt11Invoice.isOk(), bolt11Invoice.getValue() != nil {
+        if self.bolt11Invoice() != nil {
             return true
         } else {
             if let _ = self.bolt12Offer() {

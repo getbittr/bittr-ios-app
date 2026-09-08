@@ -27,8 +27,8 @@ private enum Redaction {
         // Legacy base58 onchain address.
         #"(?<![A-Za-z0-9])[13mn2][1-9A-HJ-NP-Za-km-z]{25,34}(?![A-Za-z0-9])"#,
         
-        // Node pubkey at 66 characters; txid, preimage and payment hash at 64.
-        #"(?<![A-Fa-f0-9])[A-Fa-f0-9]{64,66}(?![A-Fa-f0-9])"#,
+        // Any long run of hex.
+        #"(?<![A-Fa-f0-9])[A-Fa-f0-9]{64,}"#,
         
         // IBAN, written either compactly or in the usual groups of four.
         #"(?<![A-Za-z0-9])[A-Z]{2}[0-9]{2}(?:\s?[A-Z0-9]{2,4}){2,8}(?![A-Za-z0-9])"#,

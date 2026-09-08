@@ -7,35 +7,35 @@
 
 import UIKit
 
-class AnimationViewController: UIViewController {
+extension CoreViewController {
     
-    // Startup animation elements
-    @IBOutlet weak var logoView: UIView!
-    @IBOutlet weak var bittrTextDarkMode: UIImageView!
-    @IBOutlet weak var coverView: UIView!
-    @IBOutlet weak var coin1: UIImageView!
-    @IBOutlet weak var coin3: UIImageView!
-    @IBOutlet weak var firstCoin: UIView!
-    @IBOutlet weak var secondCoin: UIView!
-    @IBOutlet weak var firstCoinCenterY: NSLayoutConstraint!
-    @IBOutlet weak var firstCoinCenterX: NSLayoutConstraint!
-    @IBOutlet weak var blackCoin: UIImageView!
-    @IBOutlet weak var logoViewWidth: NSLayoutConstraint!
-    @IBOutlet weak var logoViewCenterY: NSLayoutConstraint!
-    @IBOutlet weak var finalLogo: UIImageView!
-    @IBOutlet weak var finalLogoDarkMode: UIImageView!
-    var logoViewTop = NSLayoutConstraint()
+    var logoTopInset:CGFloat {
+        return self.view.safeAreaInsets.top + 10
+    }
     
-    // Variables
-    var coreVC:CoreViewController?
+    var centeredTopBarTop:CGFloat {
+        return (self.view.bounds.height / 2) - self.logoTopInset - 15
+    }
     
-    override func viewDidLoad() {
-        super.viewDidLoad()
+    override func viewSafeAreaInsetsDidChange() {
+        super.viewSafeAreaInsetsDidChange()
+        self.topBarHeight.constant = self.view.safeAreaInsets.top + 50
+        self.logoTop.constant = self.logoTopInset
     }
     
     override func viewDidLayoutSubviews() {
+        super.viewDidLayoutSubviews()
+        
+        // Corner radii for startup animation coins.
         self.firstCoin.layer.cornerRadius = self.firstCoin.bounds.height / 2
         self.secondCoin.layer.cornerRadius = self.firstCoin.bounds.height / 2
+        
+        // Place topBar in the vertical center ahead of startup animation.
+        guard !self.logoHasMovedUp else { return }
+        if self.topBarTop.constant != self.centeredTopBarTop {
+            self.topBarTop.constant = self.centeredTopBarTop
+            self.view.layoutIfNeeded()
+        }
     }
     
     override func viewDidAppear(_ animated: Bool) {
@@ -60,23 +60,22 @@ class AnimationViewController: UIViewController {
             self.logoViewWidth.constant = 106
             self.view.layoutIfNeeded()
         } completion: { finished in
-            self.coreVC?.checkWalletRemoval()
+            self.checkWalletRemoval()
             self.logoSlidesToTop()
         }
     }
     
     func logoSlidesToTop() {
         
-        let fadedBackground = self.view.backgroundColor?.withAlphaComponent(0)
-        UIView.animate(withDuration: 0.3, delay: 0.3, options: .curveEaseInOut) {
-            self.view.backgroundColor = fadedBackground
-        }
-
+        self.coreVCBackground.backgroundColor = Colors.getColor("yelloworblue3")
+        
         UIView.animate(withDuration: 0.7, delay: 0.3, usingSpringWithDamping: 0.65, initialSpringVelocity: 0, options: .curveEaseInOut) {
-            NSLayoutConstraint.deactivate([self.logoViewCenterY])
-            self.logoViewTop = NSLayoutConstraint(item: self.logoView, attribute: .top, relatedBy: .equal, toItem: self.view.safeAreaLayoutGuide, attribute: .top, multiplier: 1, constant: 10)
-            NSLayoutConstraint.activate([self.logoViewTop])
-
+            
+            // Move up topBar.
+            self.logoHasMovedUp = true
+            self.topBarTop.constant = 0
+            self.animationCover.alpha = 0
+            
             // Hide logo elements.
             self.coin1.alpha = 0
             self.coin3.alpha = 0
@@ -88,20 +87,23 @@ class AnimationViewController: UIViewController {
             // Show final logo.
             self.finalLogo.alpha = 1
             if CacheManager.darkModeIsOn() {
-                self.finalLogoDarkMode.alpha = 1
-                self.bittrTextDarkMode.alpha = 1
+                self.logoTextDarkMode.alpha = 1
+                self.logoIconDarkMode.alpha = 1
             }
             self.view.layoutIfNeeded()
         } completion: { finished in
             // Final adjustments after animation.
-            self.coreVC?.topBar.alpha = 1
-            self.coreVC?.lowerTopBar.alpha = 1
-            self.coreVC?.homeContainerView.alpha = 1
-            self.coreVC?.menuBarContainer.alpha = 1
-            self.coreVC?.blackSignupBackground.alpha = 1
-            self.coreVC?.changeColors()
-            self.coreVC?.animationContainer.alpha = 0
-            self.coreVC?.animationContainer.isHidden = true
+            self.lowerTopBar.alpha = 1
+            self.homeContainerView.alpha = 1
+            self.menuBarContainer.alpha = 1
+            self.blackSignupBackground.alpha = 1
+            self.upperYellowCurve.alpha = 1
+            self.coreVCBackground.alpha = 0
+            self.changeColors()
+
+            // Tells Maestro the opening animation is over. Until it is, the
+            // cover is over the screen and swallows every tap.
+            self.topBar.accessibilityIdentifier = TestID.Core.launchComplete
             NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "changecolors"), object: nil, userInfo: nil) as Notification)
         }
     }

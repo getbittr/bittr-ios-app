@@ -7,77 +7,55 @@
 
 import Foundation
 
-class OnchainAddress: NSObject {
+class OnchainAddress: NSObject, Codable {
     
     var onchainAddress:String = ""
     var addressIndex:Int = 0
     var hasBeenUsed:Bool = false
     
+    
+    convenience init?(legacyDictionary dictionary:NSDictionary) {
+        guard let onchainAddress = dictionary["onchainAddress"] as? String,
+              let addressIndex = dictionary["addressIndex"] as? Int,
+              let hasBeenUsed = dictionary["hasBeenUsedByBittr"] as? Bool
+        else { return nil }
+        
+        self.init()
+        self.onchainAddress = onchainAddress
+        self.addressIndex = addressIndex
+        self.hasBeenUsed = hasBeenUsed
+    }
 }
 
 extension [OnchainAddress] {
     
-    func toDict() -> [NSDictionary] {
+    func inPoolOrder() -> [OnchainAddress] {
+        let onchainAddresses = self.sorted { $0.addressIndex < $1.addressIndex }
         
-        var onchainAddresses = [NSDictionary]()
-        
-        for eachAddress in self {
-            let thisAddress = NSMutableDictionary()
-            thisAddress.setValue(eachAddress.onchainAddress, forKey: "onchainAddress")
-            thisAddress.setValue(eachAddress.addressIndex, forKey: "addressIndex")
-            thisAddress.setValue(eachAddress.hasBeenUsed, forKey: "hasBeenUsedByBittr")
-            onchainAddresses += [thisAddress]
+        for (position, eachAddress) in onchainAddresses.enumerated() where eachAddress.addressIndex != position {
+            Log.info("Cached onchain addresses are not contiguous from zero; discarding the cached pool.")
+            return [OnchainAddress]()
         }
         
         return onchainAddresses
     }
     
     func toStrings() -> [String] {
-        
-        var onchainAddresses = [String]()
-        
-        for eachAddress in self {
-            onchainAddresses += [eachAddress.onchainAddress]
-        }
-        
-        return onchainAddresses
+        return self.map { $0.onchainAddress }
     }
 }
 
 extension [NSDictionary] {
     
-    func toAddresses() -> [OnchainAddress] {
-        
+    func toLegacyAddresses() -> [OnchainAddress]? {
         var onchainAddresses = [OnchainAddress]()
-        
         for eachDictionary in self {
-            guard
-                let onchainAddress = eachDictionary["onchainAddress"] as? String,
-                let addressIndex = eachDictionary["addressIndex"] as? Int,
-                let hasBeenUsed = eachDictionary["hasBeenUsedByBittr"] as? Bool
-            else {
+            guard let address = OnchainAddress(legacyDictionary: eachDictionary) else {
                 Log.info("Cached onchain addresses could not be read; discarding the cached pool.")
-                return [OnchainAddress]()
+                return nil
             }
-            
-            let thisAddress = OnchainAddress()
-            thisAddress.onchainAddress = onchainAddress
-            thisAddress.addressIndex = addressIndex
-            thisAddress.hasBeenUsed = hasBeenUsed
-            
-            onchainAddresses += [thisAddress]
+            onchainAddresses += [address]
         }
-        
-        onchainAddresses.sort { address1, address2 in
-            address1.addressIndex < address2.addressIndex
-        }
-        
-        // Ensure correct address indices.
-        for (position, eachAddress) in onchainAddresses.enumerated() where eachAddress.addressIndex != position {
-            Log.info("Cached onchain addresses are not contiguous from zero; discarding the cached pool.")
-            return [OnchainAddress]()
-        }
-        
         return onchainAddresses
     }
 }

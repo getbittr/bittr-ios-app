@@ -14,7 +14,7 @@ extension SwapViewController {
     func bdkWalletUnavailable() {
         self.availableAmountLabel.text = Language.getWord(withID: "satsatatime").replacingOccurrences(of: "<amount>", with: "0")
         self.bdkSpinner.startAnimating()
-        self.showAlert(presentingController: self, title: Language.getWord(withID: "syncing"), message: Language.getWord(withID: "awaitingbdksync"), buttons: [Language.getWord(withID: "okay")], actions: nil)
+        self.showAlert(title: Language.getWord(withID: "syncing"), message: Language.getWord(withID: "awaitingbdksync"), buttons: [.dismiss(Language.getWord(withID: "okay"))])
         
         if !BitcoinManager.shared.bdkWalletIsScanning {
             Log.info("BDK wallet isn't scanning. Will start scan.")
@@ -49,134 +49,158 @@ extension SwapViewController {
     }
 
     func calculateSendableAmount() {
+        guard self.isViewLoaded else { return }
+        
         self.bdkSpinner.stopAnimating()
         
+        // Get active Lightning channel.
         let activeChannel:LDKNode.ChannelDetails? = BitcoinManager.shared.bittrWallet.lightningChannels.getActiveChannel()
-        
-        if activeChannel == nil {
+        guard let activeChannel else {
             // There is no active Lightning channel.
             self.availableAmountLabel.text = Language.getWord(withID: "satsatatime").replacingOccurrences(of: "<amount>", with: "0")
-        } else {
-            // There is an active Lightning channel.
+            return
+        }
+        
+        if self.swapDirection == .lightningToOnchain {
+            // Swap direction: lightning-to-onchain.
             
-            if self.swapDirection == .lightningToOnchain {
-                // We can send our Lightning balance minus the reserve.
+            // Calculate sendable sats after Boltz fee and lightning/onchain fees.
+            let outboundSats = Int(activeChannel.outboundCapacityMsat / 1000)
+            self.availableAmountLabel.text = Language.getWord(withID: "satsatatime").replacingOccurrences(of: "<amount>", with: "0")
+            self.bdkSpinner.startAnimating()
+            let requestedDirection = self.swapDirection
+            
+            Task {
+                let quote = await SwapManager.fetchBoltzFeeQuote(reverse: true)
+                let claimFee = await BoltzRefund.calculateClaimOrRefundTransactionFee()
                 
-                self.availableAmountLabel.text = Language.getWord(withID: "satsatatime").replacingOccurrences(of: "<amount>", with: "\(Int(activeChannel!.outboundCapacityMsat/1000))".addSpaces())
-            } else {
-                // We can send our available channel space, if we have enough onchain satoshis.
+                // Leave ~1% of outbound capacity for routing fees.
+                let routingHeadroom = Double(outboundSats) * 0.01
+                let maxInvoice = Double(outboundSats) - routingHeadroom
+                // Get Boltz reverse fee percentage.
+                let pct = quote?.percentage ?? 0.5
+                // Get lockup miner fee.
+                let lockupFee = quote?.minerFee ?? 0
+                // Calculate the max onchain lockup.
+                let maxOnchainLockup = maxInvoice * (1.0 - pct / 100.0) - Double(lockupFee)
+                // Subtract our own claim-tx fee.
+                let maxReceivable = max(Int(maxOnchainLockup) - claimFee, 0)
                 
-                if BitcoinManager.shared.bdkWallet == nil || !BitcoinManager.shared.bdkWalletHasBeenScanned {
-                    Log.info("BDK wallet isn't available yet.")
-                    self.bdkWalletUnavailable()
-                    return
+                await MainActor.run {
+                    guard self.swapDirection == requestedDirection else { return }
+                    self.bdkSpinner.stopAnimating()
+                    self.maxLightningToOnchainSats = maxReceivable
+                    self.availableAmountLabel.text = Language.getWord(withID: "satsatatime").replacingOccurrences(of: "<amount>", with: "\(maxReceivable)".addSpaces())
+                }
+            }
+            return
+        }
+        
+        // Swap direction: onchain-to-lightning.
+        // We can send our available channel space, if we have enough onchain satoshis.
+        
+        if BitcoinManager.shared.bdkWallet == nil || !BitcoinManager.shared.bdkWalletHasBeenScanned {
+            Log.info("BDK wallet isn't available yet.")
+            self.bdkWalletUnavailable()
+            return
+        }
+        
+        if BitcoinManager.shared.bittrWallet.satoshisOnchain == 0 {
+            // There are no onchain funds.
+            self.availableAmountLabel.text = Language.getWord(withID: "satsatatime").replacingOccurrences(of: "<amount>", with: "0")
+            return
+        }
+        
+        // Calculate available channel space.
+        let availableChannelSpace:Int = Int(activeChannel.channelValueSats) - Int(activeChannel.outboundCapacityMsat/1000) - Int(activeChannel.unspendablePunishmentReserve ?? 0) - Int(activeChannel.counterpartyUnspendablePunishmentReserve)
+        
+        self.availableAmountLabel.text = Language.getWord(withID: "satsatatime").replacingOccurrences(of: "<amount>", with: "0")
+        self.bdkSpinner.startAnimating()
+        
+        // Capture intended direction.
+        let requestedDirection = self.swapDirection
+        
+        Task {
+            guard let feeEstimates = await BitcoinManager.shared.getFeeEstimates() else {
+                Log.info("Could not fetch fee estimates.")
+                let spendableSatoshis = max(BitcoinManager.shared.bittrWallet.satoshisOnchainSpendable ?? 0, 0)
+                DispatchQueue.main.async {
+                    guard self.swapDirection == requestedDirection else { return }
+                    self.bdkSpinner.stopAnimating()
+                    self.availableAmountLabel.text = Language.getWord(withID: "satsatatime").replacingOccurrences(of: "<amount>", with: "\(min(availableChannelSpace, spendableSatoshis))".addSpaces())
+                }
+                return
+            }
+            
+            // Select highest fee.
+            self.highestFeePerVbyte = feeEstimates.fastest
+            
+            // Calculate maximum sendable onchain satoshis.
+            let sendableSatoshis:Int
+            do {
+                let preview = try BitcoinManager.shared.maximumSendableOnchainDrain(
+                    toAddress: nil,
+                    satPerVb: self.highestFeePerVbyte!.wholeSatPerVb
+                )
+                sendableSatoshis = Int(preview.sendableSats)
+            } catch {
+                Log.info("Error: \(error.localizedDescription)")
+                
+                // Check whether BDK has gone stale.
+                var bdkLooksStale = false
+                if let bdkError = error as? BitcoinDevKit.CreateTxError {
+                    switch bdkError {
+                    case .CoinSelection, .InsufficientFunds:
+                        bdkLooksStale = BitcoinManager.shared.bittrWallet.satoshisOnchain > 0
+                    default:
+                        break
+                    }
                 }
                 
-                if BitcoinManager.shared.bittrWallet.satoshisOnchain == 0 {
-                    // There are no onchain funds.
-                    self.availableAmountLabel.text = Language.getWord(withID: "satsatatime").replacingOccurrences(of: "<amount>", with: "0")
-                    return
-                }
-                
-                // Calculate available channel space.
-                let availableChannelSpace:Int = Int(activeChannel!.channelValueSats) - Int(activeChannel!.outboundCapacityMsat/1000) - Int(activeChannel!.unspendablePunishmentReserve ?? 0) - Int(activeChannel!.counterpartyUnspendablePunishmentReserve)
-                
-                self.availableAmountLabel.text = Language.getWord(withID: "satsatatime").replacingOccurrences(of: "<amount>", with: "0")
-                self.bdkSpinner.startAnimating()
-                
-                // Capture intended direction.
-                let requestedDirection = self.swapDirection
-
-                Task {
-                    guard let feeEstimates = await BitcoinManager.shared.getFeeEstimates() else {
-                        Log.info("Could not fetch fee estimates.")
-                        DispatchQueue.main.async {
-                            guard self.swapDirection == requestedDirection else { return }
-                            self.bdkSpinner.stopAnimating()
-                            self.availableAmountLabel.text = Language.getWord(withID: "satsatatime").replacingOccurrences(of: "<amount>", with: "0")
-                        }
-                        return
-                    }
-
-                    // Select highest fee.
-                    self.highestFeePerVbyte = Float(feeEstimates.fastest)
-                    
-                    // Calculate maximum sendable onchain satoshis.
-                    let sendableSatoshis:Int
-                    do {
-                        // Go through maximumSendableOnchainDrain rather than
-                        // previewOnchainDrain: BDK will happily drain the reserve
-                        // LDK Node holds back for anchor channels, and only the
-                        // former clamps against LDK's spendable balance. The
-                        // recipient isn't known yet, so this quotes against the
-                        // heaviest common output script.
-                        let preview = try BitcoinManager.shared.maximumSendableOnchainDrain(
-                            toAddress: nil,
-                            satPerVb: UInt64(max(self.highestFeePerVbyte!, 1))
-                        )
-                        sendableSatoshis = Int(preview.sendableSats)
-                    } catch {
-                        Log.info("Error: \(error.localizedDescription)")
-
-                        // bdkWalletHasBeenScanned is sticky — set once on first
-                        // sync and never cleared — so the guard at the top of
-                        // this function doesn't catch the case where BDK has
-                        // scanned in the past but is now stale (e.g. a swap
-                        // claim just landed onchain, so LDK Node sees the new
-                        // UTXO but BDK hasn't rescanned). Detect that here:
-                        // if BDK rejects with insufficient funds while LDK
-                        // Node reports a non-zero balance, force a rescan and
-                        // recompute once it finishes.
-                        var bdkLooksStale = false
-                        if let bdkError = error as? BitcoinDevKit.CreateTxError {
-                            switch bdkError {
-                            case .CoinSelection, .InsufficientFunds:
-                                bdkLooksStale = BitcoinManager.shared.bittrWallet.satoshisOnchain > 0
-                            default:
-                                break
-                            }
-                        }
-
-                        DispatchQueue.main.async {
-                            guard self.swapDirection == requestedDirection else { return }
-                            if bdkLooksStale && !self.didRescanForStaleBdk {
-                                Log.info("BDK looks stale (LDK Node onchain balance: \(BitcoinManager.shared.bittrWallet.satoshisOnchain), BDK rejected). Forcing rescan.")
-                                self.didRescanForStaleBdk = true
-                                // bdkWalletUnavailable keeps the spinner running while it rescans.
-                                self.bdkWalletUnavailable()
-                            } else {
-                                self.bdkSpinner.stopAnimating()
-                                SentryManager.capture(error, context: "SwapVC row 308")
-                                self.availableAmountLabel.text = Language.getWord(withID: "satsatatime").replacingOccurrences(of: "<amount>", with: "0")
-                            }
-                        }
-                        return
-                    }
-                    
-                    // Set label.
-                    DispatchQueue.main.async {
-                        guard self.swapDirection == requestedDirection else { return }
+                DispatchQueue.main.async {
+                    guard self.swapDirection == requestedDirection else { return }
+                    if bdkLooksStale && !self.didRescanForStaleBdk {
+                        Log.info("BDK looks stale (LDK Node onchain balance: \(BitcoinManager.shared.bittrWallet.satoshisOnchain), BDK rejected). Forcing rescan.")
+                        self.didRescanForStaleBdk = true
+                        // bdkWalletUnavailable keeps the spinner running while it rescans.
+                        self.bdkWalletUnavailable()
+                    } else {
                         self.bdkSpinner.stopAnimating()
-                        if sendableSatoshis > availableChannelSpace {
-                            // We have enough onchain satoshis to fill up the entire channel.
-                            self.availableAmountLabel.text = Language.getWord(withID: "satsatatime").replacingOccurrences(of: "<amount>", with: "\(availableChannelSpace)".addSpaces())
-                        } else {
-                            // We don't have enough onchain satoshis to fill up the entire channel.
-                            self.availableAmountLabel.text = Language.getWord(withID: "satsatatime").replacingOccurrences(of: "<amount>", with: "\(sendableSatoshis)".addSpaces())
-                        }
+                        SentryManager.capture(error, context: "SwapVC row 308")
+                        self.availableAmountLabel.text = Language.getWord(withID: "satsatatime").replacingOccurrences(of: "<amount>", with: "0")
                     }
                 }
+                return
+            }
+            
+            // Get Boltz fee percentage.
+            let submarineQuote = await SwapManager.fetchBoltzFeeQuote(reverse: false)
+            let pct = submarineQuote?.percentage ?? 0.5
+            // Get mining fee.
+            let boltzMinerFee = submarineQuote?.minerFee ?? 0
+            let invertible = Double(max(sendableSatoshis - boltzMinerFee, 0)) / (1.0 + pct / 100.0)
+            // -2 sat margin so Boltz's own rounding of the percentage can't tip the
+            // required on-chain amount just past the drainable balance.
+            let lightningMax = max(Int(invertible.rounded(.down)) - 2, 0)
+            let shownMax = min(availableChannelSpace, lightningMax)
+            
+            // Set label.
+            await MainActor.run {
+                guard self.swapDirection == requestedDirection else { return }
+                self.bdkSpinner.stopAnimating()
+                self.maxOnchainToLightningSats = shownMax
+                self.availableAmountLabel.text = Language.getWord(withID: "satsatatime").replacingOccurrences(of: "<amount>", with: "\(shownMax)".addSpaces())
             }
         }
     }
 
     // MARK: - Suggested swap
 
-    func startSuggestedOnchainToLightningSwap(invoiceAmount: Int) {
+    func startSuggestedOnchainToLightningSwap() {
         if BitcoinManager.shared.bdkWallet != nil && BitcoinManager.shared.bdkWalletHasBeenScanned {
             // BDK is ready: refresh the label for the new direction and swap.
             self.calculateSendableAmount()
-            self.beginSuggestedSwap(invoiceAmount: invoiceAmount)
+            self.beginSuggestedSwap()
             return
         }
         
@@ -202,7 +226,7 @@ extension SwapViewController {
             }
             // BDK is ready now: refresh the label and start the swap.
             self.calculateSendableAmount()
-            self.beginSuggestedSwap(invoiceAmount: invoiceAmount)
+            self.beginSuggestedSwap()
         }
     }
     
@@ -249,9 +273,9 @@ extension SwapViewController {
         }
     }
     
-    private func beginSuggestedSwap(invoiceAmount: Int) {
+    private func beginSuggestedSwap() {
         Task {
-            await SwapManager.onchainToLightning(amountMsat: UInt64(invoiceAmount*1000), swapVC: self, existingInvoice: self.pendingLightningInvoice)
+            await SwapManager.onchainToLightning(swapVC: self, existingInvoice: self.pendingLightningInvoice)
         }
     }
 }

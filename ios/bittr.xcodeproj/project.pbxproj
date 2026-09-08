@@ -37,7 +37,6 @@
 		05117AF92EAB74A100A5E4E6 /* Image.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05117AF82EAB749F00A5E4E6 /* Image.swift */; };
 		0514BC5330109C3F00BC05A2 /* PaymentDetails.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0514BC5230109C3B00BC05A2 /* PaymentDetails.swift */; };
 		0514BC553010A17D00BC05A2 /* PaymentKind.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0514BC543010A17B00BC05A2 /* PaymentKind.swift */; };
-		0514BC573010A1AF00BC05A2 /* UILabel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0514BC563010A1AE00BC05A2 /* UILabel.swift */; };
 		051AB88B2F5E816B00DFC39F /* ConfirmSendViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 051AB88A2F5E816B00DFC39F /* ConfirmSendViewController.swift */; };
 		051AB88F2F5E8FB400DFC39F /* ConfirmLanguage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 051AB88E2F5E8FB100DFC39F /* ConfirmLanguage.swift */; };
 		051BE0882B641D41009CED5B /* Reachability.swift in Sources */ = {isa = PBXBuildFile; fileRef = 051BE0872B641D41009CED5B /* Reachability.swift */; };
@@ -67,8 +66,10 @@
 		053190EC29FEE5190072CE76 /* TransactionViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 053190EB29FEE5190072CE76 /* TransactionViewController.swift */; };
 		053190EE29FEE7C90072CE76 /* ArticleViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 053190ED29FEE7C90072CE76 /* ArticleViewController.swift */; };
 		053C37542FD28E8E00A510DF /* BittrArticles.swift in Sources */ = {isa = PBXBuildFile; fileRef = 053C37532FD28E8800A510DF /* BittrArticles.swift */; };
-		054D42DF2F7B739E00599720 /* AnimationViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 054D42DE2F7B739800599720 /* AnimationViewController.swift */; };
+		054BED26304EBC95009F0C06 /* LDKManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 054BED25304EBC93009F0C06 /* LDKManager.swift */; };
+		054D42DF2F7B739E00599720 /* LogoAnimation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 054D42DE2F7B739800599720 /* LogoAnimation.swift */; };
 		05512F26300F80AF00E75272 /* WalletCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05512F25300F80AC00E75272 /* WalletCache.swift */; };
+		05512F28300F80B100E75272 /* CacheStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05512F27300F80B000E75272 /* CacheStore.swift */; };
 		05512F28300F957C00E75272 /* SwapMatching.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05512F27300F957900E75272 /* SwapMatching.swift */; };
 		0554035D2CB7EA04006F27CA /* LNURLDecoder in Frameworks */ = {isa = PBXBuildFile; productRef = 0554035C2CB7EA04006F27CA /* LNURLDecoder */; };
 		0554035F2CB82B2E006F27CA /* ReceiveVCLanguage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0554035E2CB82B28006F27CA /* ReceiveVCLanguage.swift */; };
@@ -123,6 +124,8 @@
 		05AF89742D436920009D629C /* SwapManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05AF89732D436920009D629C /* SwapManager.swift */; };
 		05AF89762D437073009D629C /* SwapViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05AF89752D437073009D629C /* SwapViewController.swift */; };
 		05B30E2E2E26281200CF10EC /* Swap.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05B30E2D2E26281200CF10EC /* Swap.swift */; };
+		05DA11AC0000000000000D01 /* SwapLiveActivityController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05DA11AC0000000000000C01 /* SwapLiveActivityController.swift */; };
+		05DA11AC0000000000000B01 /* SwapActivityAttributes.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05DA11AC0000000000000A01 /* SwapActivityAttributes.swift */; };
 		05BE46192BB9A83100555B9B /* SPConfetti in Frameworks */ = {isa = PBXBuildFile; productRef = 05BE46182BB9A83100555B9B /* SPConfetti */; };
 		05BFCEB72A3B113E00565E2A /* Transfer2ViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05BFCEB62A3B113E00565E2A /* Transfer2ViewController.swift */; };
 		05BFCEB92A3B1A1100565E2A /* RegisterIbanViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05BFCEB82A3B1A1100565E2A /* RegisterIbanViewController.swift */; };
@@ -148,6 +151,7 @@
 		05D80DFF2BA4170800E2F093 /* CodeScanner in Frameworks */ = {isa = PBXBuildFile; productRef = 05D80DFE2BA4170800E2F093 /* CodeScanner */; };
 		05D80E022BA4174E00E2F093 /* BitcoinDevKit in Frameworks */ = {isa = PBXBuildFile; productRef = 05D80E012BA4174E00E2F093 /* BitcoinDevKit */; };
 		05D80E082BA4203600E2F093 /* LightningDevKit in Frameworks */ = {isa = PBXBuildFile; productRef = 05D80E072BA4203600E2F093 /* LightningDevKit */; };
+		05DA8326303C3AAE00157CE9 /* SendToConfirm.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05DA8325303C3A9B00157CE9 /* SendToConfirm.swift */; };
 		05E2995A2A39CB3700FA0AEE /* IbanCollectionViewCell.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05E299592A39CB3700FA0AEE /* IbanCollectionViewCell.swift */; };
 		05E305372F517F56003DE7CF /* ReloadWallet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05E305362F517F4E003DE7CF /* ReloadWallet.swift */; };
 		05E305392F5189D7003DE7CF /* UIView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05E305382F5189D6003DE7CF /* UIView.swift */; };
@@ -159,6 +163,7 @@
 		05EB5C9E2F4D832F00FF2157 /* UITextField.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05EB5C9D2F4D832D00FF2157 /* UITextField.swift */; };
 		05EB5CA02F4D834600FF2157 /* SendURI.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05EB5C9F2F4D834300FF2157 /* SendURI.swift */; };
 		05EB5CA22F4D846D00FF2157 /* Int.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05EB5CA12F4D846C00FF2157 /* Int.swift */; };
+		05EBB0172EA00000000000A1 /* EvilBoltz.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05EBB0172EA00000000000A2 /* EvilBoltz.swift */; };
 		05F1FB5E2C33DD08004AE14F /* AddressParsing.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05F1FB5D2C33DD08004AE14F /* AddressParsing.swift */; };
 		05F1FB602C33E043004AE14F /* SendOnchain.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05F1FB5F2C33E043004AE14F /* SendOnchain.swift */; };
 		05F1FB622C33E1CD004AE14F /* SendLightning.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05F1FB612C33E1CD004AE14F /* SendLightning.swift */; };
@@ -254,7 +259,6 @@
 		05117AF82EAB749F00A5E4E6 /* Image.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Image.swift; sourceTree = "<group>"; };
 		0514BC5230109C3B00BC05A2 /* PaymentDetails.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PaymentDetails.swift; sourceTree = "<group>"; };
 		0514BC543010A17B00BC05A2 /* PaymentKind.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PaymentKind.swift; sourceTree = "<group>"; };
-		0514BC563010A1AE00BC05A2 /* UILabel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UILabel.swift; sourceTree = "<group>"; };
 		051AB88A2F5E816B00DFC39F /* ConfirmSendViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConfirmSendViewController.swift; sourceTree = "<group>"; };
 		051AB88E2F5E8FB100DFC39F /* ConfirmLanguage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConfirmLanguage.swift; sourceTree = "<group>"; };
 		051BE0872B641D41009CED5B /* Reachability.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Reachability.swift; sourceTree = "<group>"; };
@@ -284,8 +288,10 @@
 		053190EB29FEE5190072CE76 /* TransactionViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TransactionViewController.swift; sourceTree = "<group>"; };
 		053190ED29FEE7C90072CE76 /* ArticleViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ArticleViewController.swift; sourceTree = "<group>"; };
 		053C37532FD28E8800A510DF /* BittrArticles.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BittrArticles.swift; sourceTree = "<group>"; };
-		054D42DE2F7B739800599720 /* AnimationViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnimationViewController.swift; sourceTree = "<group>"; };
+		054BED25304EBC93009F0C06 /* LDKManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LDKManager.swift; sourceTree = "<group>"; };
+		054D42DE2F7B739800599720 /* LogoAnimation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LogoAnimation.swift; sourceTree = "<group>"; };
 		05512F25300F80AC00E75272 /* WalletCache.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WalletCache.swift; sourceTree = "<group>"; };
+		05512F27300F80B000E75272 /* CacheStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CacheStore.swift; sourceTree = "<group>"; };
 		05512F27300F957900E75272 /* SwapMatching.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SwapMatching.swift; sourceTree = "<group>"; };
 		0554035E2CB82B28006F27CA /* ReceiveVCLanguage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReceiveVCLanguage.swift; sourceTree = "<group>"; };
 		055403682CC14FC0006F27CA /* SendLNURL.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SendLNURL.swift; sourceTree = "<group>"; };
@@ -336,6 +342,8 @@
 		05AF89732D436920009D629C /* SwapManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SwapManager.swift; sourceTree = "<group>"; };
 		05AF89752D437073009D629C /* SwapViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SwapViewController.swift; sourceTree = "<group>"; };
 		05B30E2D2E26281200CF10EC /* Swap.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Swap.swift; sourceTree = "<group>"; };
+		05DA11AC0000000000000C01 /* SwapLiveActivityController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SwapLiveActivityController.swift; sourceTree = "<group>"; };
+		05DA11AC0000000000000A01 /* SwapActivityAttributes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = SwapActivityAttributes.swift; path = BittrWidget/SwapActivityAttributes.swift; sourceTree = SOURCE_ROOT; };
 		05BFCEB62A3B113E00565E2A /* Transfer2ViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Transfer2ViewController.swift; sourceTree = "<group>"; };
 		05BFCEB82A3B1A1100565E2A /* RegisterIbanViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RegisterIbanViewController.swift; sourceTree = "<group>"; };
 		05C3C08129CCB55600C1E695 /* bittr.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = bittr.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -361,6 +369,7 @@
 		05D5D0E62A66825000A1E771 /* BitcoinManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BitcoinManager.swift; sourceTree = "<group>"; };
 		05D5D0E92A66836300A1E771 /* LightningStorage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LightningStorage.swift; sourceTree = "<group>"; };
 		05D5D0EB2A66843B00A1E771 /* FileManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FileManager.swift; sourceTree = "<group>"; };
+		05DA8325303C3A9B00157CE9 /* SendToConfirm.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SendToConfirm.swift; sourceTree = "<group>"; };
 		05E299592A39CB3700FA0AEE /* IbanCollectionViewCell.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IbanCollectionViewCell.swift; sourceTree = "<group>"; };
 		05E305362F517F4E003DE7CF /* ReloadWallet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReloadWallet.swift; sourceTree = "<group>"; };
 		05E305382F5189D6003DE7CF /* UIView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UIView.swift; sourceTree = "<group>"; };
@@ -372,6 +381,7 @@
 		05EB5C9D2F4D832D00FF2157 /* UITextField.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UITextField.swift; sourceTree = "<group>"; };
 		05EB5C9F2F4D834300FF2157 /* SendURI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SendURI.swift; sourceTree = "<group>"; };
 		05EB5CA12F4D846C00FF2157 /* Int.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Int.swift; sourceTree = "<group>"; };
+		05EBB0172EA00000000000A2 /* EvilBoltz.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EvilBoltz.swift; sourceTree = "<group>"; };
 		05ECDAAA2B249768002A410D /* bittr.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = bittr.entitlements; sourceTree = "<group>"; };
 		05F1FB5D2C33DD08004AE14F /* AddressParsing.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddressParsing.swift; sourceTree = "<group>"; };
 		05F1FB5F2C33E043004AE14F /* SendOnchain.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SendOnchain.swift; sourceTree = "<group>"; };
@@ -536,6 +546,7 @@
 				05F1FB632C341852004AE14F /* SendSwitch.swift */,
 				05F1FB5D2C33DD08004AE14F /* AddressParsing.swift */,
 				05FD3AFB2F5EB92A00974FEA /* ScannerViewController.swift */,
+				05DA8325303C3A9B00157CE9 /* SendToConfirm.swift */,
 			);
 			path = Send;
 			sourceTree = "<group>";
@@ -552,7 +563,6 @@
 		052E98C02F1638F2000035A8 /* Extensions */ = {
 			isa = PBXGroup;
 			children = (
-				0514BC563010A1AE00BC05A2 /* UILabel.swift */,
 				0514BC543010A17B00BC05A2 /* PaymentKind.swift */,
 				0514BC5230109C3B00BC05A2 /* PaymentDetails.swift */,
 				37FC16D12FAD1B05002578B2 /* UIView+AppTag.swift */,
@@ -569,19 +579,12 @@
 			path = Extensions;
 			sourceTree = "<group>";
 		};
-		054D42DD2F7B738200599720 /* Animation */ = {
-			isa = PBXGroup;
-			children = (
-				054D42DE2F7B739800599720 /* AnimationViewController.swift */,
-			);
-			path = Animation;
-			sourceTree = "<group>";
-		};
 		05512F24300F809200E75272 /* Cache */ = {
 			isa = PBXGroup;
 			children = (
 				05980B572A46F8DA001F312F /* CacheManager.swift */,
 				05512F25300F80AC00E75272 /* WalletCache.swift */,
+				05512F27300F80B000E75272 /* CacheStore.swift */,
 			);
 			path = Cache;
 			sourceTree = "<group>";
@@ -713,9 +716,9 @@
 		05A8BD752B750422002F0282 /* Core */ = {
 			isa = PBXGroup;
 			children = (
-				054D42DD2F7B738200599720 /* Animation */,
 				05C3C0B529CCBFED00C1E695 /* CoreViewController.swift */,
 				053021AB2E7017A000B23226 /* CoreVCLanguage.swift */,
+				054D42DE2F7B739800599720 /* LogoAnimation.swift */,
 				05A8BD792B750567002F0282 /* Navigation.swift */,
 				05A8BD7B2B750838002F0282 /* ShowPin.swift */,
 				05A8BD7D2B7509BD002F0282 /* StartLightning.swift */,
@@ -762,6 +765,8 @@
 				057B42EF2F5AD5E900BA5C44 /* SwapStatusVC */,
 				057B42EE2F5AD5CE00BA5C44 /* Swap Manager */,
 				05B30E2D2E26281200CF10EC /* Swap.swift */,
+				05DA11AC0000000000000C01 /* SwapLiveActivityController.swift */,
+				05DA11AC0000000000000A01 /* SwapActivityAttributes.swift */,
 			);
 			path = Swaps;
 			sourceTree = "<group>";
@@ -853,6 +858,7 @@
 				05DA7CBA30205A0900157CE9 /* Sentry */,
 				05D5D0E62A66825000A1E771 /* BitcoinManager.swift */,
 				05546D282F35B86700512129 /* BDKManager.swift */,
+				054BED25304EBC93009F0C06 /* LDKManager.swift */,
 				05622A682DB61E3700D91066 /* AlertManager.swift */,
 				05622A6A2DB8BA3000D91066 /* CallsManager.swift */,
 				051DDEF82C6B185C0002CF2D /* Colors.swift */,
@@ -901,6 +907,7 @@
 				051BE0872B641D41009CED5B /* Reachability.swift */,
 				059704A62E43514F00B56690 /* BitcoinValue.swift */,
 				05CF63B83004ECB800E55351 /* SecureStore.swift */,
+				05EBB0172EA00000000000A2 /* EvilBoltz.swift */,
 			);
 			path = Helpers;
 			sourceTree = "<group>";
@@ -1209,6 +1216,7 @@
 				0521712E2CB41E73006C5663 /* SettingsVCLanguage.swift in Sources */,
 				05E743512A3581F9007755A2 /* RestoreViewController.swift in Sources */,
 				051D778F2A9DEAC8002107C0 /* PinViewController.swift in Sources */,
+				054BED26304EBC95009F0C06 /* LDKManager.swift in Sources */,
 				05E483502D29049D007A5834 /* ValueViewController.swift in Sources */,
 				05A8BD802B750A40002F0282 /* HandlePaymentNotification.swift in Sources */,
 				0554035F2CB82B2E006F27CA /* ReceiveVCLanguage.swift in Sources */,
@@ -1252,6 +1260,7 @@
 				052171302CB421FC006C5663 /* MoveVCLanguage.swift in Sources */,
 				051016602F9F4CF100D3F631 /* PlaceCategories.swift in Sources */,
 				05512F26300F80AF00E75272 /* WalletCache.swift in Sources */,
+				05512F28300F80B100E75272 /* CacheStore.swift in Sources */,
 				051015522F973F9E00D3F631 /* MapViewController.swift in Sources */,
 				05512F28300F957C00E75272 /* SwapMatching.swift in Sources */,
 				057F746E2E696DD600E5CCB3 /* SwapVCLanguage.swift in Sources */,
@@ -1268,6 +1277,8 @@
 				05EB5C9C2F4D814300FF2157 /* String.swift in Sources */,
 				051015E52F9F383200D3F631 /* MapVCLocations.swift in Sources */,
 				05B30E2E2E26281200CF10EC /* Swap.swift in Sources */,
+				05DA11AC0000000000000D01 /* SwapLiveActivityController.swift in Sources */,
+				05DA11AC0000000000000B01 /* SwapActivityAttributes.swift in Sources */,
 				057B42E92F5AA20E00BA5C44 /* SwapStatusViewController.swift in Sources */,
 				052171262CB4157E006C5663 /* Language.swift in Sources */,
 				05A8BD8C2B7513B7002F0282 /* FetchAndPrint.swift in Sources */,
@@ -1278,6 +1289,7 @@
 				051AB88F2F5E8FB400DFC39F /* ConfirmLanguage.swift in Sources */,
 				37CC83002D8C1EAF005E791D /* BoltzRefund.swift in Sources */,
 				05546D292F35B86E00512129 /* BDKManager.swift in Sources */,
+				05DA8326303C3AAE00157CE9 /* SendToConfirm.swift in Sources */,
 				05EB5CA22F4D846D00FF2157 /* Int.swift in Sources */,
 				05A965C22A6FBE1F00265BE6 /* LDKNodeError.swift in Sources */,
 				05E2995A2A39CB3700FA0AEE /* IbanCollectionViewCell.swift in Sources */,
@@ -1295,7 +1307,6 @@
 				05F418EC2BAC12C0005CFAD0 /* HandleBittrNotification.swift in Sources */,
 				051BE0882B641D41009CED5B /* Reachability.swift in Sources */,
 				05C3C08729CCB55600C1E695 /* SceneDelegate.swift in Sources */,
-				0514BC573010A1AF00BC05A2 /* UILabel.swift in Sources */,
 				053021AE2E701EDA00B23226 /* HandleLightningAddressNotification.swift in Sources */,
 				05906EA22C43C54A0053F7DB /* ReceiveLightning.swift in Sources */,
 				057E6E8B2A14DDBC00B37026 /* Article.swift in Sources */,
@@ -1324,6 +1335,7 @@
 				05A8BD7E2B7509BD002F0282 /* StartLightning.swift in Sources */,
 				05D5D0EA2A66836300A1E771 /* LightningStorage.swift in Sources */,
 				05CF63B93004ECB800E55351 /* SecureStore.swift in Sources */,
+				05EBB0172EA00000000000A1 /* EvilBoltz.swift in Sources */,
 				05622A692DB61E3B00D91066 /* AlertManager.swift in Sources */,
 				0509EFBA2FC7FC1F003488D4 /* UIButton.swift in Sources */,
 				058B2FD42EE9B5A70010693D /* URIs.swift in Sources */,
@@ -1336,7 +1348,7 @@
 				05117ADC2EA7333B00A5E4E6 /* Lesson.swift in Sources */,
 				050B4BB12A1BBB9600563F29 /* SignupViewController.swift in Sources */,
 				05A2241129E6C98100F9861F /* HomeViewController.swift in Sources */,
-				054D42DF2F7B739E00599720 /* AnimationViewController.swift in Sources */,
+				054D42DF2F7B739E00599720 /* LogoAnimation.swift in Sources */,
 				05FD3AFC2F5EB92A00974FEA /* ScannerViewController.swift in Sources */,
 				05E305372F517F56003DE7CF /* ReloadWallet.swift in Sources */,
 				05117AE02EA73B6B00A5E4E6 /* LevelTableViewCell.swift in Sources */,
@@ -1411,7 +1423,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME = WidgetBackground;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 175;
+				CURRENT_PROJECT_VERSION = 185;
 				DEVELOPMENT_TEAM = 86MNNX5ZSA;
 				ENABLE_USER_SCRIPT_SANDBOXING = YES;
 				GCC_C_LANGUAGE_STANDARD = gnu17;
@@ -1444,7 +1456,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME = WidgetBackground;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 175;
+				CURRENT_PROJECT_VERSION = 185;
 				DEVELOPMENT_TEAM = 86MNNX5ZSA;
 				ENABLE_USER_SCRIPT_SANDBOXING = YES;
 				GCC_C_LANGUAGE_STANDARD = gnu17;
@@ -1599,7 +1611,7 @@
 				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_ENTITLEMENTS = bittr/bittr.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 179;
+				CURRENT_PROJECT_VERSION = 185;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_TEAM = 86MNNX5ZSA;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -1642,7 +1654,7 @@
 				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_ENTITLEMENTS = bittr/bittr.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 179;
+				CURRENT_PROJECT_VERSION = 185;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_TEAM = 86MNNX5ZSA;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -1750,6 +1762,183 @@
 			};
 			name = Release;
 		};
+		05EBB1E72EA00000000000B1 /* Debug-EvilBoltz */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				BUILD_LIBRARY_FOR_DISTRIBUTION = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_MODULES_AUTOLINK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = NO;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.2;
+				LINK_WITH_STANDARD_LIBRARIES = YES;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				OTHER_LDFLAGS = "";
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG EVIL_BOLTZ";
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+			};
+			name = "Debug-EvilBoltz";
+		};
+		05EBB1E72EA00000000000B2 /* Debug-EvilBoltz */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CLANG_ENABLE_MODULES = YES;
+				CODE_SIGN_ENTITLEMENTS = bittr/bittr.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 185;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				DEVELOPMENT_TEAM = 86MNNX5ZSA;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = bittr/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = "bittr evil";
+				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.finance";
+				INFOPLIST_KEY_NSCameraUsageDescription = "Allow bittr to scan a QR code.";
+				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "We use your location to show nearby places where you can pay with bitcoin.";
+				INFOPLIST_KEY_NSPhotoLibraryAddUsageDescription = "Allow bittr to add this screenshot to your Photo Library.";
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchStoryboardName = LaunchScreen;
+				INFOPLIST_KEY_UIMainStoryboardFile = Main;
+				INFOPLIST_KEY_UIRequiresFullScreen = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = UIInterfaceOrientationPortrait;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
+				IPHONEOS_DEPLOYMENT_TARGET = 17.4;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 0.1;
+				PRODUCT_BUNDLE_IDENTIFIER = "com.bittr.bittr-evil";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = "Debug-EvilBoltz";
+		};
+		05EBB1E72EA00000000000B3 /* Debug-EvilBoltz */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME = WidgetBackground;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 185;
+				DEVELOPMENT_TEAM = 86MNNX5ZSA;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = BittrWidget/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = "bittr evil";
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				IPHONEOS_DEPLOYMENT_TARGET = 17.4;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MARKETING_VERSION = 0.1;
+				PRODUCT_BUNDLE_IDENTIFIER = "com.bittr.bittr-evil.BittrWidget";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = "Debug-EvilBoltz";
+		};
+		05EBB1E72EA00000000000B4 /* Debug-EvilBoltz */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 86MNNX5ZSA;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.4;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.bittr.bittrTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/bittr.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/bittr";
+			};
+			name = "Debug-EvilBoltz";
+		};
+		05EBB1E72EA00000000000B5 /* Debug-EvilBoltz */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 86MNNX5ZSA;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.4;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.bittr.bittrUITests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = bittr;
+			};
+			name = "Debug-EvilBoltz";
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -1758,6 +1947,7 @@
 			buildConfigurations = (
 				05A256662D1155B8009EDC7A /* Debug */,
 				05A256672D1155B8009EDC7A /* Release */,
+				05EBB1E72EA00000000000B3 /* Debug-EvilBoltz */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
@@ -1767,6 +1957,7 @@
 			buildConfigurations = (
 				05C3C0A929CCB55800C1E695 /* Debug */,
 				05C3C0AA29CCB55800C1E695 /* Release */,
+				05EBB1E72EA00000000000B1 /* Debug-EvilBoltz */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
@@ -1776,6 +1967,7 @@
 			buildConfigurations = (
 				05C3C0AC29CCB55800C1E695 /* Debug */,
 				05C3C0AD29CCB55800C1E695 /* Release */,
+				05EBB1E72EA00000000000B2 /* Debug-EvilBoltz */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
@@ -1785,6 +1977,7 @@
 			buildConfigurations = (
 				05C3C0AF29CCB55800C1E695 /* Debug */,
 				05C3C0B029CCB55800C1E695 /* Release */,
+				05EBB1E72EA00000000000B4 /* Debug-EvilBoltz */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
@@ -1794,6 +1987,7 @@
 			buildConfigurations = (
 				05C3C0B229CCB55800C1E695 /* Debug */,
 				05C3C0B329CCB55800C1E695 /* Release */,
+				05EBB1E72EA00000000000B5 /* Debug-EvilBoltz */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

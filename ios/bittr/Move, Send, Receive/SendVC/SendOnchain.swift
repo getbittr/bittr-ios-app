@@ -17,64 +17,58 @@ extension SendViewController {
         guard self.checkInternetConnection() else { return }
             
         // Check address.
-        let enteredAddress = (self.toTextField.text ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
-        if enteredAddress.isEmpty {
-            self.showAlert(presentingController: self, title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "enteraddress"), buttons: [Language.getWord(withID: "okay")], actions: nil)
+        guard let enteredAddress = self.toTextField.text?.trimmingCharacters(in: .whitespacesAndNewlines), !enteredAddress.isEmpty else {
+            self.showAlert(title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "enterbitcoinaddress"), buttons: [.dismiss(Language.getWord(withID: "okay"))])
             return
         }
+        
+        // Check for any lightning address.
+        if enteredAddress.lowercased().contains("lnurl") || enteredAddress.lowercased().isValidEmail()
+            || enteredAddress.bolt11Invoice() != nil || enteredAddress.bolt12Offer() != nil {
+            self.onchainOrLightning = .lightning
+            self.updateLabels()
+            self.checkSendLightning()
+            return
+        }
+        
+        // A genuine onchain send is never an LNURL payment: drop any LNURL state left over.
+        self.pendingLnurlInvoice = nil
+        self.pendingLnurlNote = nil
         
         // Check amount.
-        let enteredAmount = (self.amountTextField.text ?? "0").toNumber()
-        if enteredAmount == 0 {
-            self.showAlert(presentingController: self, title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "enteramount"), buttons: [Language.getWord(withID: "okay")], actions: nil)
+        guard let enteredAmount = self.amountTextField.text?.trimmingCharacters(in: .whitespacesAndNewlines), !enteredAmount.isEmpty else {
+            self.showAlert(title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "enteramount"), buttons: [.dismiss(Language.getWord(withID: "okay"))])
             return
         }
         
-        // Check for LNURL address.
-        if enteredAddress.lowercased().contains("lnurl") || enteredAddress.lowercased().isValidEmail() {
-            // Handle LNURL.
-            self.confirmLightningTransaction(lnurlinvoice: enteredAddress, lnurlNote: nil)
+        // Convert the entered amount to satoshis.
+        guard var enteredSatoshis = self.getSatoshisFrom(enteredAmount: enteredAmount) else { return }
+        guard enteredSatoshis > 0 else {
+            self.showAlert(title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "enteramount"), buttons: [.dismiss(Language.getWord(withID: "okay"))])
             return
-        }
-        
-        // Transfer to bitcoin.
-        var divideBy:CGFloat
-        switch self.selectedCurrency {
-        case .bitcoin: divideBy = 1
-        case .satoshis: divideBy = 100000000
-        case .currency: divideBy = BitcoinManager.shared.bittrWallet.getCorrectBitcoinValue().currentValue
-        }
-        self.onchainAmountInSatoshis = (enteredAmount/divideBy).inSatoshis()
-        
-        // Check whether user intends to empty their onchain funds.
-        if let quotedMaximum = self.maximumSendableOnchainSats, self.onchainAmountInSatoshis == quotedMaximum {
-            // The entered amount matches the maximum sendable onchain funds.
-            self.didTapAvailable = true
         }
         
         // Check balance.
-        guard self.onchainAmountInSatoshis <= (BitcoinManager.shared.bittrWallet.satoshisOnchainSpendable ?? 0) else {
+        guard enteredSatoshis <= (BitcoinManager.shared.bittrWallet.satoshisOnchainSpendable ?? 0) else {
             Log.info("Insufficient onchain balance.")
             Log.info("Check if we have sufficient Lightning balance for a swap.")
             
             let availableLightningBalance = (BitcoinManager.shared.bittrWallet.lightningChannels.getActiveChannel()?.outboundCapacityMsat ?? 0)/1000
             
-            if availableLightningBalance >= self.onchainAmountInSatoshis {
+            if availableLightningBalance >= enteredSatoshis {
                 Log.info("Offering Lightning swap option.")
                 
-                self.showAlert(
-                    presentingController: self,
-                    title: Language.getWord(withID: "insufficientfunds"),
-                    message: Language.getWord(withID: "onchaininsufficientfunds").replacingOccurrences(of: "<amount>", with: String(BitcoinManager.shared.bittrWallet.satoshisOnchain).addSpaces()) + "\n\n" + Language.getWord(withID: "swapinsufficientfundslightning").replacingOccurrences(of: "<amount>", with: "\(availableLightningBalance)".addSpaces()),
-                    buttons: [Language.getWord(withID: "cancel"), Language.getWord(withID: "swapandpay")],
-                    actions: [#selector(self.cancelSwapOffer), #selector(self.swapAndPayOnchain)]
-                )
                 // Store the address for the swap
                 self.pendingOnchainAddress = enteredAddress
+                self.pendingOnchainAmount = enteredSatoshis
+                self.showAlert(
+                    title: Language.getWord(withID: "insufficientfunds"),
+                    message: Language.getWord(withID: "onchaininsufficientfunds").replacingOccurrences(of: "<amount>", with: String(BitcoinManager.shared.bittrWallet.satoshisOnchain).addSpaces()) + "\n\n" + Language.getWord(withID: "swapinsufficientfundslightning").replacingOccurrences(of: "<amount>", with: "\(availableLightningBalance)".addSpaces()),
+                    buttons: [.action(Language.getWord(withID: "cancel")) { self.cancelSwapOffer() }, .action(Language.getWord(withID: "swapandpay")) { self.swapAndPayOnchain() }])
                 
             } else {
                 Log.info("Lightning balance insufficient, showing regular insufficient funds message.")
-                self.showAlert(presentingController: self, title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "spendablebalance"), buttons: [Language.getWord(withID: "okay")], actions: nil)
+                self.showAlert(title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "spendablebalance"), buttons: [.dismiss(Language.getWord(withID: "okay"))])
             }
             return
         }
@@ -85,10 +79,6 @@ extension SendViewController {
         self.arrowIcon.alpha = 0
         self.nextSpinner.startAnimating()
         
-        // Set confirmation variables.
-        self.confirmAddress = enteredAddress
-        self.confirmSatoshis = self.onchainAmountInSatoshis
-        
         // Create transaction.
         Task {
             guard let feeEstimates = await BitcoinManager.shared.getFeeEstimates() else {
@@ -96,202 +86,192 @@ extension SendViewController {
                     self.nextLabel.alpha = 1
                     self.arrowIcon.alpha = 1
                     self.nextSpinner.stopAnimating()
-                    self.showAlert(presentingController: self, title: Language.getWord(withID: "oops"), message: "\(Language.getWord(withID: "cannotproceed")). Error: Couldn't fetch recommended fees.", buttons: [Language.getWord(withID: "okay")], actions: nil)
+                    self.showAlert(title: Language.getWord(withID: "oops"), message: "\(Language.getWord(withID: "cannotproceed")). Error: Couldn't fetch recommended fees.", buttons: [.dismiss(Language.getWord(withID: "okay"))])
                 }
                 return
             }
-            self.feePerVbLow = Float(feeEstimates.economy)
-            self.feePerVbMedium = Float(feeEstimates.hour)
-            self.feePerVbHigh = Float(feeEstimates.fastest)
             
             // Check the maximum sendable onchain amount.
-            let drain = try? BitcoinManager.shared.maximumSendableOnchainDrain(toAddress: enteredAddress, satPerVb: UInt64(max(self.feePerVbMedium, 1)))
+            let drain = try? BitcoinManager.shared.maximumSendableOnchainDrain(toAddress: enteredAddress, satPerVb: feeEstimates.hour.wholeSatPerVb)
             
-            // Check whether the user intends to empty their onchain funds —
-            // either by tapping the quoted maximum, or by typing an amount at or
-            // above it (the balance guard above only rejects amounts over the
-            // spendable balance, and the drain maximum sits a fee below that).
-            //
-            // Either way, restate the amount as the drain figure. sendAllToAddress
-            // ignores confirmSatoshis and sends whatever is left after the fee, so
-            // leaving the typed amount in place would let the confirmation screen
-            // promise a number the wallet never broadcasts.
-            if let drain = drain, self.didTapAvailable || self.onchainAmountInSatoshis >= Int(drain.sendableSats) {
-                self.onchainAmountInSatoshis = Int(drain.sendableSats)
-                self.confirmSatoshis = Int(drain.sendableSats)
-                self.drainTotalSats = Int(drain.sendableSats + drain.feeSats)
-                self.isSendingMaximum = true
-            } else {
-                self.drainTotalSats = nil
-                self.isSendingMaximum = false
+            // Check whether user tapped their available funds.
+            if let quotedMaximum = self.maximumSendableOnchainSats, enteredSatoshis == quotedMaximum {
+                // The entered amount matches the maximum sendable onchain funds.
+                self.didTapAvailable = true
+            }
+            
+            // Check whether the user intends to empty their onchain funds.
+            var isSendingMaximum = false
+            var drainTotalSats:Int? = nil
+            if let drain, self.didTapAvailable || enteredSatoshis >= Int(drain.sendableSats) {
+                enteredSatoshis = Int(drain.sendableSats)
+                drainTotalSats = Int(drain.sendableSats + drain.feeSats)
+                isSendingMaximum = true
             }
             
             // Get transaction size.
             let size:UInt64
             do {
-                if self.isSendingMaximum, let drain = drain {
+                if isSendingMaximum, let drain {
                     size = drain.vsize
                 } else {
-                    size = try BitcoinManager.shared.getSize(address: enteredAddress, amountSats: self.onchainAmountInSatoshis, selectedVbyte: self.feePerVbMedium)
+                    size = try BitcoinManager.shared.getSize(address: enteredAddress, amountSats: enteredSatoshis, selectedVbyte: feeEstimates.hour)
                 }
             } catch {
                 Log.info("Error: \(error.localizedDescription)")
                 
                 // Generate error message.
+                var friendlyMessage: String?
                 var sendToSentry = true
-                var errorMessage = error.localizedDescription
                 if let bdkError = error as? BitcoinDevKit.CreateTxError {
-                    errorMessage = bdkError.getErrorMessage()
-                    switch bdkError {
-                    case .CoinSelection(errorMessage: _): sendToSentry = false
-                    default: sendToSentry = true
-                    }
+                    friendlyMessage = bdkError.consumerFriendlyMessage()
+                    if case .CoinSelection = bdkError { sendToSentry = false }
                 } else if let bdkError = error as? BitcoinDevKit.AddressParseError {
-                    errorMessage = bdkError.getErrorMessage()
+                    friendlyMessage = bdkError.consumerFriendlyMessage()
+                    sendToSentry = false
                 }
+                
+                let message = friendlyMessage ?? (Language.getWord(withID: "cannotproceed") + ".")
                 
                 // Show alert.
                 DispatchQueue.main.async {
                     self.nextLabel.alpha = 1
                     self.arrowIcon.alpha = 1
                     self.nextSpinner.stopAnimating()
-                    self.showAlert(presentingController: self, title: Language.getWord(withID: "oops"), message: "\(Language.getWord(withID: "cannotproceed")). Error: \(errorMessage)", buttons: [Language.getWord(withID: "okay")], actions: nil)
+                    self.showAlert(title: Language.getWord(withID: "oops"), message: message, buttons: [.dismiss(Language.getWord(withID: "okay"))])
                     if sendToSentry {
                         SentryManager.capture(error, context: "SendOnchain row 167")
                     }
                 }
                 return
             }
-            self.confirmTxSize = Float(size)
             
             // Animation from main view to confirm view.
             DispatchQueue.main.async {
+                guard let confirmVC = self.getConfirmView() else { return }
                 self.nextLabel.alpha = 1
                 self.arrowIcon.alpha = 1
                 self.nextSpinner.stopAnimating()
+                
+                confirmVC.setOnchainLabels(
+                    address: enteredAddress,
+                    satoshisAmount: enteredSatoshis,
+                    onchainTxSize: Double(size),
+                    feeEstimates: feeEstimates,
+                    isSendingMaximum: isSendingMaximum,
+                    drainTotalSats: drainTotalSats
+                )
                 self.slideFromSendToConfirm()
             }
         }
     }
     
-    @objc func cancelSwapOffer() {
-        self.hideAlert()
+    func cancelSwapOffer() {
         // Clear the pending data when user cancels the swap offer
         self.pendingOnchainAddress = ""
+        self.pendingOnchainAmount = 0
         // Also clear the amount field to make it obvious this is cancelled
         self.amountTextField.text = ""
     }
     
-    @objc func swapAndPayOnchain() {
-        self.hideAlert()
+    func swapAndPayOnchain() {
         Log.info("swapAndPayOnchain called.")
-        
         self.performSegue(withIdentifier: "SendToSwap", sender: self)
     }
 }
 
 extension ConfirmSendViewController {
     
-    @objc func proceedWithOnchainConfirmation() {
-        self.hideAlert()
-        
-        var feeSatoshis:Int
-        switch self.selectedFee {
-        case .medium: feeSatoshis = Int(self.sendVC!.feePerVbMedium * self.sendVC!.confirmTxSize)
-        case .high: feeSatoshis = Int(self.sendVC!.feePerVbHigh * self.sendVC!.confirmTxSize)
-        default: feeSatoshis = Int((self.maxAvailableFeePerVb ?? self.sendVC!.feePerVbLow) * self.sendVC!.confirmTxSize)
-        }
-        
+    func proceedWithOnchainConfirmation() {
+
+        guard let onchainTxSize = self.onchainTxSize,
+              let satoshisAmount = self.satoshisAmount,
+              let addressOrInvoice = self.addressOrInvoice else { return }
+
+        let feeSatoshis = self.selectedFeeRatePerVb().feeSats(forVsize: onchainTxSize)
+
         // Double-check transaction details.
-        self.showAlert(presentingController: self, title: Language.getWord(withID: "sendtransaction"), message: Language.getWord(withID: "sendconfirmation").replacingOccurrences(of: "<amount>", with: "\(self.sendVC!.confirmSatoshis)".addSpaces()).replacingOccurrences(of: "<fees>", with: "\(feeSatoshis)".addSpaces()).replacingOccurrences(of: "<address>", with: self.sendVC!.confirmAddress), buttons: [Language.getWord(withID: "cancel"), Language.getWord(withID: "confirm")], actions: [nil, #selector(self.performOnchainTransaction)])
+        self.showAlert(
+            title: Language.getWord(withID: "sendtransaction"),
+            message: Language.getWord(withID: "sendconfirmation")
+                .replacingOccurrences(of: "<amount>", with: "\(satoshisAmount)".addSpaces())
+                .replacingOccurrences(of: "<fees>", with: "\(feeSatoshis)".addSpaces())
+                .replacingOccurrences(of: "<address>", with: addressOrInvoice),
+            buttons: [
+                .dismiss(Language.getWord(withID: "cancel")),
+                .action(Language.getWord(withID: "confirm")) { self.performOnchainTransaction() }
+            ])
     }
     
-    @objc func performOnchainTransaction() {
-        // An on-chain send reaches the broadcast from the confirmation alert's
-        // Confirm button, not from confirmButtonTapped — which shows that alert
-        // and returns without ever starting the spinner. So the guard on the
-        // button can't catch this; it has to sit here, where the spinner goes up.
-        // sendOnchainPayment below blocks main, so a second tap queues behind it
-        // and gets delivered once the broadcast is already under way.
+    func performOnchainTransaction() {
         if self.confirmSpinner.isAnimating { return }
-
-        self.hideAlert()
+        guard let address = self.addressOrInvoice, let amountSats = self.satoshisAmount else { return }
+        let isSendingMaximum = self.isSendingMaximum
         
         // Start spinner.
         self.confirmLabel.alpha = 0
         self.confirmSpinner.startAnimating()
         
         // Get fees (minimum 1 sat/Vbyte).
-        var selectedVbyte:Float
-        switch self.selectedFee {
-        case .medium: selectedVbyte = self.sendVC!.feePerVbMedium
-        case .high: selectedVbyte = self.sendVC!.feePerVbHigh
-        default: selectedVbyte = self.maxAvailableFeePerVb ?? self.sendVC!.feePerVbLow
-        }
-        // Clamp before converting: UInt64(_:) traps on a negative or NaN Float,
-        // so max() has to run on the Float side to actually guard anything.
-        let feeRateSatVb = UInt64(max(selectedVbyte, 1))
+        let feeRateSatVb = self.selectedFeeRatePerVb().wholeSatPerVb
         
         // Broadcast transaction.
-        let txid:String
-        do {
-            if self.sendVC!.isSendingMaximum {
-                txid = try BitcoinManager.shared.sendAllOnchainPayment(address: self.sendVC!.confirmAddress, feeRateSatVb: feeRateSatVb)
-            } else {
-                txid = try BitcoinManager.shared.sendOnchainPayment(address: self.sendVC!.confirmAddress, amountSats: UInt64(self.sendVC!.confirmSatoshis), feeRateSatVb: feeRateSatVb)
-            }
-        } catch {
-            Log.info("Transaction error: \(error.localizedDescription)")
-
-            // Unwrap LDKNode errors to their human-readable detail (e.g. the
-            // plain "insufficient funds" message) via the shared handler,
-            // instead of showing the raw NodeError enum description.
-            let errorMessage:String = {
-                if let nodeError = error as? NodeError {
-                    return "\(handleNodeError(nodeError).detail)"
+        DispatchQueue.global(qos: .userInitiated).async {
+            
+            let txid:String
+            do {
+                if isSendingMaximum {
+                    txid = try BitcoinManager.shared.sendAllOnchainPayment(address: address, feeRateSatVb: feeRateSatVb)
                 } else {
-                    return error.localizedDescription
+                    txid = try BitcoinManager.shared.sendOnchainPayment(address: address, amountSats: UInt64(amountSats), feeRateSatVb: feeRateSatVb)
                 }
-            }()
-
+            } catch {
+                Log.info("Transaction error: \(error.localizedDescription)")
+                // Unwrap LDKNode errors to their human-readable detail.
+                let errorMessage:String = {
+                    if let nodeError = error as? NodeError {
+                        return "\(handleNodeError(nodeError).detail)"
+                    } else {
+                        return error.localizedDescription
+                    }
+                }()
+                
+                DispatchQueue.main.async {
+                    self.confirmLabel.alpha = 1
+                    self.confirmSpinner.stopAnimating()
+                    self.showAlert(title: Language.getWord(withID: "error"), message: Language.getWord(withID: "transactionerror") + ": " + errorMessage, buttons: [.dismiss(Language.getWord(withID: "okay"))])
+                    SentryManager.capture(error, context: "SendOnchain row 349")
+                    SentryManager.countMetric("onchain.transaction.failure.2")
+                }
+                return
+            }
+            Log.debug("Transaction ID: \(txid)")
+            
+            try? BitcoinManager.shared.syncWallets()
+            let payment = BitcoinManager.shared.listPayments().first { $0.kind.transactionID == txid }
+            
             DispatchQueue.main.async {
+                Log.info("Successful transaction.")
+                SentryManager.countMetric("onchain.transaction.success")
                 self.confirmLabel.alpha = 1
                 self.confirmSpinner.stopAnimating()
-                self.showAlert(presentingController: self, title: Language.getWord(withID: "error"), message: Language.getWord(withID: "transactionerror") + ": " + errorMessage, buttons: [Language.getWord(withID: "okay")], actions: nil)
-                SentryManager.capture(error, context: "SendOnchain row 349")
-                SentryManager.countMetric("onchain.transaction.failure.2")
+                self.newTxId = txid
+                
+                if let payment = payment {
+                    Log.info("Transaction is available. Launch TransactionVC.")
+                    self.sendVC?.addNewPaymentToTable(thisPayment: payment)
+                } else {
+                    Log.info("Transaction not yet available, show alert.")
+                    self.showAlert(title: Language.getWord(withID: "success"), message: Language.getWord(withID: "transactionsuccess"), buttons: [.action(Language.getWord(withID: "okay")) { self.wrapupOnchainTransaction() }])
+                }
             }
-            return
-        }
-        print("Transaction ID: \(txid)")
-        
-        DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
-            Log.info("Successful transaction.")
-            SentryManager.countMetric("onchain.transaction.success")
-            self.confirmLabel.alpha = 1
-            self.confirmSpinner.stopAnimating()
-            self.newTxId = txid
-            
-            self.showAlert(presentingController: self, title: Language.getWord(withID: "success"), message: Language.getWord(withID: "transactionsuccess"), buttons: [Language.getWord(withID: "okay")], actions: [#selector(self.addNewTxToTable)])
         }
     }
     
-    @objc func addNewTxToTable() {
-        self.hideAlert()
-        
-        BitcoinManager.shared.lightSync() { success in
-            if success {
-                for eachTransaction in BitcoinManager.shared.bittrWallet.allTransactions {
-                    if eachTransaction.kind.transactionID == self.newTxId {
-                        self.sendVC!.completedTransaction = eachTransaction.createTransaction(bittrTransactions: nil)
-                        self.sendVC!.performSegue(withIdentifier: "SendToTransaction", sender: self)
-                    }
-                }
-            }
-        }
-        
-        self.sendVC!.resetFields()
-        self.sendVC!.slideFromConfirmToSend()
+    func wrapupOnchainTransaction() {
+        BitcoinManager.shared.lightSync() { _ in }
+        self.sendVC?.resetFields()
+        self.sendVC?.slideFromConfirmToSend()
     }
 }
 
