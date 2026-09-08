@@ -47,11 +47,7 @@ class SwapStatusViewController: UIViewController {
     
     // Variables
     var thisSwap:Swap?
-
-    // Durable "the swap has completed" flag, independent of the label's text, so a
-    // late non-complete status can't overwrite the completed state.
     var hasCompleted = false
-    // Ensures we only force one Home rebuild when an onchain→lightning swap completes.
     var didRefreshHomeAfterSwap = false
     var coreVC:CoreViewController?
     var swapVC:SwapViewController?
@@ -216,20 +212,13 @@ class SwapStatusViewController: UIViewController {
             // We should also close the websocket connection and stop the background task
             self.webSocketManager?.disconnect()
         }
-
-        // When an onchain→lightning swap completes, rebuild Home so its two legs
-        // merge into a single swap row (reuses the shared phase mapper as the one
-        // source of truth for what "complete" means).
+        
+        // When an onchain→lightning swap completes, rebuild Home to merge the swap transactions.
         if self.thisSwap?.swapDirection == .onchainToLightning, SwapPhase.from(boltzStatus: status) == .complete {
             self.refreshHomeAfterSwapCompletion()
         }
     }
-
-    /// Force the full Home rebuild that pull-to-refresh performs, once, after a
-    /// swap completes — so its on-chain and lightning legs merge into a single
-    /// swap row instead of leaving a stale entry. A plain sync no-ops when the tx
-    /// counts already match, so we call loadWalletData() directly; the delay lets
-    /// the freshly-settled leg land in listPayments first.
+    
     private func refreshHomeAfterSwapCompletion() {
         guard !self.didRefreshHomeAfterSwap else { return }
         self.didRefreshHomeAfterSwap = true
@@ -237,7 +226,7 @@ class SwapStatusViewController: UIViewController {
             self.coreVC?.homeVC?.loadWalletData()
         }
     }
-
+    
     private func handleTransactionMempool(transactionHex: String) {
         Log.debug("handleTransactionMempool called with transaction hex length: \(transactionHex.count)")
         
@@ -275,9 +264,8 @@ class SwapStatusViewController: UIViewController {
                         if let transactionId = claimResult.transactionId {
                             SwapManager.addOnchainTransactionToUI(transactionId: transactionId, swapVC: self)
                         }
-
-                        // Merge the two legs on Home (addOnchainTransactionToUI only
-                        // schedules a lightSync, which no-ops when tx counts match).
+                        
+                        // Merge the two transactions on Home.
                         self.refreshHomeAfterSwapCompletion()
                     } else {
                         self.confirmStatusLabel.text = Language.getWord(withID: "swapstatusfailed")

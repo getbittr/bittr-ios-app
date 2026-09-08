@@ -61,34 +61,29 @@ extension SwapViewController {
         
         if self.swapDirection == .lightningToOnchain {
             // Swap direction: lightning-to-onchain.
-            //
-            // The displayed number is what the user RECEIVES onchain, but paying
-            // for it costs more over lightning: the Boltz reverse fee and our
-            // claim-tx fee are folded into the invoice, and LDK needs routing
-            // headroom on top — all of which must fit inside the channel's
-            // outbound capacity (which already excludes the channel reserve). So
-            // we cap the receivable amount to leave room for those, rather than
-            // showing the raw capacity (which always overspends when entered).
+            
+            // Calculate sendable sats after Boltz fee and lightning/onchain fees.
             let outboundSats = Int(activeChannel.outboundCapacityMsat / 1000)
             self.availableAmountLabel.text = Language.getWord(withID: "satsatatime").replacingOccurrences(of: "<amount>", with: "0")
             self.bdkSpinner.startAnimating()
             let requestedDirection = self.swapDirection
-
+            
             Task {
                 let quote = await SwapManager.fetchBoltzFeeQuote(reverse: true)
                 let claimFee = await BoltzRefund.calculateClaimOrRefundTransactionFee()
-
-                // Leave ~1% of outbound capacity for routing fees, then undo the
-                // Boltz reverse fee (percentage + lockup miner fee, both folded
-                // into the invoice) to get the max onchain lockup, and finally
-                // subtract our own claim-tx fee to reach what the user receives.
+                
+                // Leave ~1% of outbound capacity for routing fees.
                 let routingHeadroom = Double(outboundSats) * 0.01
                 let maxInvoice = Double(outboundSats) - routingHeadroom
-                let pct = quote?.percentage ?? 0.5          // conservative fallback
+                // Get Boltz reverse fee percentage.
+                let pct = quote?.percentage ?? 0.5
+                // Get lockup miner fee.
                 let lockupFee = quote?.minerFee ?? 0
+                // Calculate the max onchain lockup.
                 let maxOnchainLockup = maxInvoice * (1.0 - pct / 100.0) - Double(lockupFee)
+                // Subtract our own claim-tx fee.
                 let maxReceivable = max(Int(maxOnchainLockup) - claimFee, 0)
-
+                
                 await MainActor.run {
                     guard self.swapDirection == requestedDirection else { return }
                     self.bdkSpinner.stopAnimating()
@@ -98,6 +93,7 @@ extension SwapViewController {
             }
             return
         }
+        
         // Swap direction: onchain-to-lightning.
         // We can send our available channel space, if we have enough onchain satoshis.
         
@@ -140,12 +136,6 @@ extension SwapViewController {
             // Calculate maximum sendable onchain satoshis.
             let sendableSatoshis:Int
             do {
-                // Go through maximumSendableOnchainDrain rather than
-                // previewOnchainDrain: BDK will happily drain the reserve
-                // LDK Node holds back for anchor channels, and only the
-                // former clamps against LDK's spendable balance. The
-                // recipient isn't known yet, so this quotes against the
-                // heaviest common output script.
                 let preview = try BitcoinManager.shared.maximumSendableOnchainDrain(
                     toAddress: nil,
                     satPerVb: self.highestFeePerVbyte!.wholeSatPerVb
@@ -153,16 +143,8 @@ extension SwapViewController {
                 sendableSatoshis = Int(preview.sendableSats)
             } catch {
                 Log.info("Error: \(error.localizedDescription)")
-
-                // bdkWalletHasBeenScanned is sticky — set once on first
-                // sync and never cleared — so the guard at the top of
-                // this function doesn't catch the case where BDK has
-                // scanned in the past but is now stale (e.g. a swap
-                // claim just landed onchain, so LDK Node sees the new
-                // UTXO but BDK hasn't rescanned). Detect that here:
-                // if BDK rejects with insufficient funds while LDK
-                // Node reports a non-zero balance, force a rescan and
-                // recompute once it finishes.
+                
+                // Check whether BDK has gone stale.
                 var bdkLooksStale = false
                 if let bdkError = error as? BitcoinDevKit.CreateTxError {
                     switch bdkError {
@@ -189,20 +171,17 @@ extension SwapViewController {
                 return
             }
             
-            // sendableSatoshis is the max we can put ON-CHAIN (a full drain, after
-            // the mining fee). But the number the user enters is the LIGHTNING
-            // amount, and Boltz then requires that amount PLUS its submarine fee
-            // on-chain. So invert the Boltz fee to the largest lightning amount
-            // whose on-chain requirement still fits the drain, and show that.
+            // Get Boltz fee percentage.
             let submarineQuote = await SwapManager.fetchBoltzFeeQuote(reverse: false)
-            let pct = submarineQuote?.percentage ?? 0.5      // conservative fallback
+            let pct = submarineQuote?.percentage ?? 0.5
+            // Get mining fee.
             let boltzMinerFee = submarineQuote?.minerFee ?? 0
             let invertible = Double(max(sendableSatoshis - boltzMinerFee, 0)) / (1.0 + pct / 100.0)
             // -2 sat margin so Boltz's own rounding of the percentage can't tip the
             // required on-chain amount just past the drainable balance.
             let lightningMax = max(Int(invertible.rounded(.down)) - 2, 0)
             let shownMax = min(availableChannelSpace, lightningMax)
-
+            
             // Set label.
             await MainActor.run {
                 guard self.swapDirection == requestedDirection else { return }

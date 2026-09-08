@@ -12,29 +12,23 @@ import UIKit
 // MARK: Handling
 extension AppDelegate {
     func handleNotification(userInfo:[AnyHashable:Any], id:String?, title:String?, body:String?) {
-
+        
         let thisNotification = userInfo.toNotification()
         thisNotification.id = id
         thisNotification.title = title
         thisNotification.body = body
-
-        // Push the swap status straight into the Live Activity, BEFORE the dedup
-        // gate below. While the app is backgrounded this push is the only thing
-        // that refreshes the activity (the status WebSocket is torn down when we
-        // suspend), and rapid statuses within 10s would otherwise be dropped by
-        // the gate — so the activity would never reach "complete".
+        
+        // Push the swap status straight into the Live Activity, before the dedup gate below.
         if thisNotification.type == .swap, let boltzID = thisNotification.swapID, let status = thisNotification.status {
             SwapLiveActivityController.update(boltzID: boltzID, boltzStatus: status)
         }
-
-        // Make sure the notification hasn't already been handled (same ID, or
-        // another within 10 seconds).
+        
+        // Make sure the notification hasn't already been handled (same ID, or another within 10 seconds).
         if CacheManager.getLastNotification() == nil || ((CacheManager.getLastNotification()!.id == nil || CacheManager.getLastNotification()!.id! != id) && (CacheManager.getLastNotification()!.date == nil || Date().timeIntervalSince(CacheManager.getLastNotification()!.date!) > 10)) {
             Log.info("Will cache new notification.")
-            CacheManager.cacheLastNotification(thisNotification)
-
             Log.info("Notification type: \(thisNotification.type)")
-
+            CacheManager.cacheLastNotification(thisNotification)
+            
             // Handle incoming notification.
             DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
                 thisNotification.handle()
@@ -177,27 +171,23 @@ extension AppDelegate {
         
         let request = notification.request
         self.handleNotification(userInfo: request.content.userInfo, id: request.identifier, title: request.content.title, body: request.content.body)
-
-        // Swap-status pushes are already reflected in the swap screen and the
-        // Dynamic Island Live Activity, so don't also show a redundant banner
-        // while the app is open. (On the Lock Screen / when backgrounded this is
-        // out of our hands — the sender must mark the push silent to hide it.)
+        
         if request.content.userInfo.toNotification().type == .swap {
+            // Don't show banner while swap Live Activity is present anyway.
             completionHandler([])
             return
         }
-
+        
         completionHandler([.banner, .list])
     }
     
     func application(_ application: UIApplication, didReceiveRemoteNotification userInfo: [AnyHashable : Any], fetchCompletionHandler completionHandler: @escaping (UIBackgroundFetchResult) -> Void) {
         Log.info("Did receive notification while app was closed. 2")
-
+        
         self.handleNotification(userInfo: userInfo, id: UUID().uuidString, title: nil, body: nil)
-
-        // A swap push updates the Live Activity asynchronously; stay alive a moment
-        // so the update lands before iOS suspends us. Other pushes finish now.
+        
         if userInfo.toNotification().type == .swap {
+            // Wait for the Live Activity to update asynchronously.
             DispatchQueue.main.asyncAfter(deadline: .now() + 3) { completionHandler(.newData) }
         } else {
             completionHandler(.newData)

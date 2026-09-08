@@ -382,8 +382,7 @@ extension CoreViewController {
                             // SendVC or ReceiveVC if open. Handle transaction there.
                             (sendVC ?? receiveVC)!.addNewPaymentToTable(thisPayment: paymentDetails)
                         } else {
-                            // Handle transaction in HomeVC (guard homeVC: a payment
-                            // can arrive before Home has loaded — don't force-unwrap).
+                            // Handle transaction in HomeVC.
                             if let homeVC = self.homeVC {
                                 homeVC.addLightningTransaction(thisTransaction: newTransaction, paymentDetails: paymentDetails)
                                 if !newTransaction.isSwap, !newTransaction.isSwapPayment {
@@ -620,32 +619,23 @@ extension CoreViewController {
     func handleSwapNotificationImmediately() {
         self.lightningNotification = nil
         self.hideLoading()
-
+        
         guard CacheManager.getLatestSwap() != nil else { return }
         Log.info("Loaded swap details from background.")
-
-        // The HomeToSwapStatus segue is defined on the Home scene, so it must be
-        // performed on homeVC — performing it on CoreViewController throws
-        // "has no segue with identifier 'HomeToSwapStatus'". Also, a silent push
-        // can wake us in the background, where presenting a VC is invalid, so only
-        // present when active (the Live Activity already reflects the update, and
-        // tapping it opens this screen once the app is foregrounded).
+        
         guard UIApplication.shared.applicationState == .active else {
             Log.info("App not active; skipping swap-status presentation.")
             return
         }
+        
         self.homeVC?.performSegue(withIdentifier: "HomeToSwapStatus", sender: self.homeVC)
     }
-
+    
     // Tapping the swap Live Activity (Dynamic Island / Lock Screen) routes here.
     @objc func openSwapStatus() {
         DispatchQueue.main.async {
             guard CacheManager.getLatestSwap() != nil else { return }
-
-            // If the live swap session is still retained but off-screen (we
-            // returned to Home when the swap started), re-present it so the user
-            // sees the current status. Otherwise (e.g. after a relaunch) open a
-            // fresh status screen from the cached swap.
+            
             if let swapVC = self.swapVC {
                 guard swapVC.presentingViewController == nil else { return } // already showing
                 self.present(swapVC, animated: true)
@@ -655,13 +645,8 @@ extension CoreViewController {
             }
         }
     }
-
-    // Tapping the swap Live Activity during its final leg routes here: the swap's
-    // incoming lightning payment can only complete while the wallet is online, so
-    // we run the exact same flow as the backend's HTLC-resume push — a synthetic
-    // incoming-HTLC notification. handleHTLCNotification gates on sign-in/sync, so
-    // on a cold launch it stores this and the wallet-load flow (LoadWalletData)
-    // resumes it once the wallet is ready.
+    
+    // Tapping the swap Live Activity during its final leg routes here.
     @objc func resumeSwapPayment() {
         Log.info("resumeSwapPayment: Live Activity tap → routing to incoming-HTLC handling.")
         UserDefaults.standard.removeObject(forKey: "pendingSwapResume")

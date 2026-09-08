@@ -554,8 +554,6 @@ extension HomeViewController {
                 self.coreVC!.handleLightningAddressNotification(actualNotification)
             }
         } else if UserDefaults.standard.bool(forKey: "pendingSwapResume") {
-            // A swap Live Activity was tapped from a fully-killed app during its
-            // final leg; resume the incoming lightning payment now the wallet is up.
             Log.info("Resuming swap payment from Live Activity tap.")
             self.coreVC!.resumeSwapPayment()
         } else {

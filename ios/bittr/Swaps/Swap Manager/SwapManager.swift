@@ -33,41 +33,25 @@ class SwapManager: NSObject {
     // 6. invoice.expired or swap.expired > User didn't pay invoice in time
     // 7. transaction.failed > Boltz couldn't send onchain transaction
     // 8. transaction.refunded > User didn't claim onchain transaction in time
-
-
-    /// The signed webhook URL to hand Boltz on swap create. Bittr's API now
-    /// rejects unsigned Boltz callbacks — the URL is a server-minted HMAC. The
-    /// returned `url` is used verbatim: its path is the HMAC alone, the app
-    /// never puts the APNS device token in it (the server maps the HMAC back to
-    /// the device when Boltz POSTs). Minted once via `GET /boltz/webhook-token`
-    /// (signed with the LN node key, same stack as `GET /notifications` but with
-    /// a `boltz_webhook:` prefix), cached next to the APNS device token, and
-    /// reused for every swap. Re-mints when there's no cache yet or the cached
-    /// URL's device token no longer matches the current APNS token. Returns nil
-    /// when it can't produce a signed URL (no device token, signing failure, or
-    /// the mint call failed) — the caller must not create a swap with an
-    /// unsigned webhook, which would 404.
+    
+    
+    // The signed webhook URL to hand Boltz on swap create.
     static func boltzWebhookURL() async -> String? {
         guard let deviceToken = CacheManager.getRegistrationToken(), !deviceToken.isEmpty else {
             return nil
         }
-
-        // Reuse the cached URL only while it matches the current APNS token AND
-        // is the current URL format. The path was shortened to a bare HMAC with
-        // no query; a URL cached before that still carries the device token and a
-        // `?token=` query. Treat any `?` as the old (too-long) shape and re-mint,
-        // so existing installs self-heal on the next swap without a reinstall
-        // (which would lose channel state).
+        
+        // Reuse the cached URL only while it matches the current APNS token AND is the current URL format.
         if let cachedURL = CacheManager.getBoltzWebhookURL(),
            CacheManager.getBoltzWebhookDeviceToken() == deviceToken,
            !cachedURL.contains("?") {
             return cachedURL
         }
-
+        
         guard let signed = await signBittrRequest(prefix: "boltz_webhook") else { return nil }
-
+        
         let mintURL = "\(EnvironmentConfig.bittrAPIBaseURL)/boltz/webhook-token?pubkey=\(signed.pubkey)&timestamp=\(signed.timestamp)&signature=\(signed.signature)"
-
+        
         let response: NSDictionary? = await withCheckedContinuation { continuation in
             Task {
                 await CallsManager.makeApiCall(url: mintURL, parameters: nil, getOrPost: .get) { result in
@@ -81,7 +65,7 @@ class SwapManager: NSObject {
                 }
             }
         }
-
+        
         guard let response,
               response["success"] as? Bool == true,
               let url = response["url"] as? String,
@@ -91,24 +75,16 @@ class SwapManager: NSObject {
             }
             return nil
         }
-
+        
         if hashedDeviceToken != deviceToken {
-            // The server HMACs the token on the customer record, not one we
-            // pass. A mismatch means the backend hasn't got our current APNS
-            // token yet; cache against the server's value so we re-mint once it
-            // catches up (and Boltz pushes reach the right device in between).
             Log.info("Boltz webhook-token minted for a device token that differs from the current APNS token — backend customer record may be stale.")
         }
-
+        
         CacheManager.storeBoltzWebhook(url: url, deviceToken: hashedDeviceToken)
         return url
     }
-
-    /// Signs a bittr API request with the LN node key: builds the message the
-    /// server verifies (`<prefix>:<pubkey>:<timestamp>`) and returns the
-    /// (pubkey, timestamp, signature) triple. The same signed-request stack backs
-    /// the Boltz webhook mint (`boltz_webhook`) and the Live Activity token
-    /// registration (`boltz_live_activity`).
+    
+    // Sign a bittr API request with the LN node key.
     static func signBittrRequest(prefix: String) async -> (pubkey: String, timestamp: Int, signature: String)? {
         guard let pubkey = BitcoinManager.shared.nodeId() else { return nil }
         let timestamp = Int(Date().timeIntervalSince1970)
@@ -120,19 +96,14 @@ class SwapManager: NSObject {
             return nil
         }
     }
-
-    /// Registers a swap's Live Activity push token with the backend so it can send
-    /// `apns-push-type: liveactivity` updates straight to the Dynamic Island —
-    /// reusing the webhook mint's signed-request stack, keyed by the Boltz swap id
-    /// so it slots alongside the swap's webhook.
+    
+    // Register swap Live Activity push token with the backend, so it can send updates to the Dynamic Island.
     static func registerLiveActivityToken(swapID: String, token: String, startedAt: Double) async {
         guard let signed = await signBittrRequest(prefix: "boltz_live_activity") else { return }
         let params: [String: Any] = [
             "pubkey": signed.pubkey,
             "timestamp": signed.timestamp,
             "signature": signed.signature,
-            // Hashed to match the swap's webhook, which is registered with Boltz
-            // using hashSwapId: true — the backend keys swaps by sha256(swap id).
             "swap_id": hashedSwapID(swapID),
             "live_activity_token": token,
             "started_at": startedAt
@@ -146,16 +117,12 @@ class SwapManager: NSObject {
             }
         }
     }
-
-    /// Boltz's published fee for a swap direction, from its fee/limits endpoint
-    /// (`GET /swap/submarine` | `/swap/reverse`). The create response carries no
-    /// fee field, so this is the independent reference the amount check bounds
-    /// against. Returns nil if unavailable — the check then falls back to the
-    /// loose ratio rather than blocking the swap.
+    
+    // Boltz's published fee for a swap direction.
     static func fetchBoltzFeeQuote(reverse: Bool) async -> BoltzFeeQuote? {
         let endpoint = reverse ? "swap/reverse" : "swap/submarine"
         let url = "\(EnvironmentConfig.boltzBaseURL)/\(endpoint)"
-
+        
         let response: NSDictionary? = await withCheckedContinuation { continuation in
             Task {
                 await CallsManager.makeApiCall(url: url, parameters: nil, getOrPost: .get) { result in
@@ -163,13 +130,13 @@ class SwapManager: NSObject {
                 }
             }
         }
-
+        
         guard let fees = ((response?["BTC"] as? NSDictionary)?["BTC"] as? NSDictionary)?["fees"] as? NSDictionary,
               let percentage = (fees["percentage"] as? NSNumber)?.doubleValue else {
             Log.info("Boltz fee schedule unavailable (\(endpoint)); amount check will use the fallback bound.")
             return nil
         }
-
+        
         // Submarine quotes a single miner fee; reverse breaks it into lockup +
         // claim, where the lockup is the Boltz-side cost folded into the invoice.
         let minerFee: Int
@@ -181,10 +148,10 @@ class SwapManager: NSObject {
         } else {
             minerFee = 0
         }
-
+        
         return BoltzFeeQuote(percentage: percentage, minerFee: minerFee)
     }
-
+    
     static func onchainToLightning(amountMsat:UInt64? = nil, swapVC:SwapViewController, existingInvoice:String? = nil) async {
         // Get Swap ID.
         let idString = createDateId()
@@ -370,32 +337,20 @@ class SwapManager: NSObject {
                 swapVC.highestFeePerVbyte = feeEstimates.fastest
             }
             
+            // Calculate onchain and lightning fees.
             let feesForOnchainPayment:Int
             let feesForLightningPayment:Int
-
+            
+            // Check swap type.
             if swapVC.isDrainingOnchainMax {
-                // Drain (max swap): quote the send-all mining fee (a change-less
-                // sweep) and confirm the drainable balance still covers Boltz's
-                // expected amount — fee rates can move between quoting the shown
-                // max and confirming here.
+                // Draining swap.
+                
+                let preview:OnchainDrainPreview
                 do {
-                    let preview = try BitcoinManager.shared.maximumSendableOnchainDrain(
+                    preview = try BitcoinManager.shared.maximumSendableOnchainDrain(
                         toAddress: ongoingSwap.boltzOnchainAddress!,
                         satPerVb: swapVC.highestFeePerVbyte!.wholeSatPerVb
                     )
-                    guard Int(preview.sendableSats) >= ongoingSwap.boltzExpectedAmount! else {
-                        DispatchQueue.main.async {
-                            let balance = BitcoinManager.shared.bittrWallet.satoshisOnchain
-                            let message = Language.getWord(withID: "onchaininsufficientfunds")
-                                .replacingOccurrences(of: "<amount>", with: "\(balance)")
-                            swapVC.cancelSwap(alertTitle: Language.getWord(withID: "insufficientfunds"), alertMessage: message)
-                        }
-                        return
-                    }
-                    feesForOnchainPayment = Int(preview.feeSats)
-                    // The drain sends the whole drainable balance to Boltz, so the
-                    // swap fee is everything above the lightning amount received.
-                    feesForLightningPayment = max(Int(preview.sendableSats) - ongoingSwap.satoshisAmount, 0)
                 } catch {
                     Log.info("Drain fee preview failed: \(error.localizedDescription)")
                     DispatchQueue.main.async {
@@ -404,8 +359,23 @@ class SwapManager: NSObject {
                     }
                     return
                 }
+                guard Int(preview.sendableSats) >= ongoingSwap.boltzExpectedAmount! else {
+                    DispatchQueue.main.async {
+                        Log.info("Insufficient onchain funds.")
+                        let balance = BitcoinManager.shared.bittrWallet.satoshisOnchain
+                        let message = Language.getWord(withID: "onchaininsufficientfunds")
+                            .replacingOccurrences(of: "<amount>", with: "\(balance)")
+                        swapVC.cancelSwap(alertTitle: Language.getWord(withID: "insufficientfunds"), alertMessage: message)
+                    }
+                    return
+                }
+                feesForOnchainPayment = Int(preview.feeSats)
+                feesForLightningPayment = max(Int(preview.sendableSats) - ongoingSwap.satoshisAmount, 0)
+                
             } else {
-                var size:UInt64
+                // Non-draining swap.
+                
+                let size:UInt64
                 do {
                     // Calculate transaction size.
                     size = try BitcoinManager.shared.getSize(address: ongoingSwap.boltzOnchainAddress!, amountSats: ongoingSwap.boltzExpectedAmount!, selectedVbyte: swapVC.highestFeePerVbyte)
@@ -451,9 +421,9 @@ class SwapManager: NSObject {
                 feesForOnchainPayment = swapVC.highestFeePerVbyte!.feeSats(forVsize: Double(size))
                 feesForLightningPayment = ongoingSwap.boltzExpectedAmount! - ongoingSwap.satoshisAmount
             }
-
+            
             Log.debug("Fees lightning: \(feesForLightningPayment). Fees onchain: \(feesForOnchainPayment).")
-
+            
             // Confirm fees with user.
             DispatchQueue.main.async {
                 swapVC.thisSwap!.feeHigh = swapVC.highestFeePerVbyte!
@@ -466,33 +436,21 @@ class SwapManager: NSObject {
     
     static func sendOnchainPayment(swapVC:SwapViewController) {
         guard let ongoingSwap = swapVC.thisSwap else { return }
-
+        
         let address = ongoingSwap.boltzOnchainAddress!
         let amountSats = ongoingSwap.boltzExpectedAmount!
         let feeHigh = ongoingSwap.feeHigh!
         let isDraining = swapVC.isDrainingOnchainMax
-
+        
         Task {
             let txId:String
             let rawData:String
             do {
+                // Broadcast transaction.
                 if isDraining {
-                    // Max swap: drain the whole onchain balance to Boltz (LDK Node
-                    // retains the anchor-channel reserve). sendAllToAddress returns
-                    // only a txid, so fetch the raw tx hex from esplora afterwards —
-                    // the refund flow needs it if Boltz ever fails to pay.
                     txId = try BitcoinManager.shared.sendAllOnchainPayment(address: address, feeRateSatVb: feeHigh.wholeSatPerVb)
-                    rawData = await fetchRawTransactionHex(txid: txId) ?? ""
-                    if rawData.isEmpty {
-                        Log.info("Drained swap \(txId) but could not fetch its raw tx hex; a refund could not reconstruct the lockup.")
-                        SentryManager.countMetric("swap.onchaintolightning.rawhexmissing")
-                    }
                 } else {
-                    let txIdAndRawData = try BitcoinManager.shared.sendOnchainTransaction(address: address, amountSats: amountSats, selectedVbyte: feeHigh)
-                    txId = txIdAndRawData[0]
-                    rawData = txIdAndRawData[1]
-                    // Small settle window before we start watching the swap.
-                    try? await Task.sleep(nanoseconds: 2_000_000_000)
+                    txId = try BitcoinManager.shared.sendOnchainPayment(address: address, amountSats: UInt64(amountSats), feeRateSatVb: feeHigh.wholeSatPerVb)
                 }
             } catch {
                 Log.info("Transaction error: \(error.localizedDescription)")
@@ -503,38 +461,48 @@ class SwapManager: NSObject {
                 }
                 return
             }
-
+            Log.info("Onchain transaction did succeed.")
             Log.debug("Transaction ID: \(txId)")
+            
+            // Get raw tx hex.
+            rawData = await fetchRawTransactionHex(txid: txId) ?? ""
+            if rawData.isEmpty {
+                Log.info("Could not fetch raw tx hex; a refund could not reconstruct the lockup.")
+                SentryManager.countMetric("swap.onchaintolightning.rawhexmissing")
+            }
+            
+            // Small settle window before we start watching the swap.
+            try? await Task.sleep(nanoseconds: 2_000_000_000)
             await MainActor.run { self.finalizeOnchainSend(swapVC: swapVC, txId: txId, rawData: rawData) }
         }
     }
 
     private static func finalizeOnchainSend(swapVC:SwapViewController, txId:String, rawData:String) {
         Log.info("Successful transaction.")
-
+        
         // Update swap object.
         swapVC.thisSwap!.sentOnchainTransactionID = txId
         swapVC.thisSwap!.lockupTx = rawData
         self.updateSwapFileWithLockupTx(swapID: swapVC.thisSwap!.boltzID!, lockupTx: rawData)
-
+        
         // Create transaction object.
         CacheManager.storeInvoiceDescription(preimage: txId, desc: swapVC.thisSwap!.dateID)
         CacheManager.storeSwapID(dateID: swapVC.thisSwap!.dateID, swapID: swapVC.thisSwap!.boltzID!)
         if swapVC.thisSwap!.isSuggested {
             CacheManager.storeSuggestedSwap(dateID: swapVC.thisSwap!.dateID)
         }
-
+        
         // Update Home table.
         BitcoinManager.shared.lightSync() { _ in }
-
+        
         // Set up WebSocket monitoring.
         swapVC.swapStatusVC?.didCompleteOnchainTransaction()
     }
-
-    // Fetch a broadcast transaction's raw hex from esplora, retrying while it
-    // propagates. Used to recover the lockup hex after a send-all drain (which
-    // only returns a txid) so the refund path still works.
+    
     static func fetchRawTransactionHex(txid:String, retries:Int = 6) async -> String? {
+        // Fetch a broadcast transaction's raw hex from esplora, retrying while it propagates.
+        // Used to recover the lockup hex, so the refund path still works.
+        
         guard let url = URL(string: "\(EnvironmentConfig.esploraURL)/tx/\(txid)/hex") else { return nil }
         for _ in 0..<retries {
             if let (data, response) = try? await URLSession.shared.data(from: url),

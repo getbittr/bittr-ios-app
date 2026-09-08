@@ -15,9 +15,6 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
 
 
     func scene(_ scene: UIScene, willConnectTo session: UISceneSession, options connectionOptions: UIScene.ConnectionOptions) {
-        // Use this method to optionally configure and attach the UIWindow `window` to the provided UIWindowScene `scene`.
-        // If using a storyboard, the `window` property will automatically be initialized and attached to the scene.
-        // This delegate does not imply the connecting scene or session are new (see `application:configurationForConnectingSceneSession` instead).
         guard let _ = (scene as? UIWindowScene) else { return }
         
         // Handle URIs when app is launched from a completely killed state
@@ -32,14 +29,14 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
                 self.handleLightningURI(lightningContext.url)
                 return
             }
-
+            
             // Tapped a swap Live Activity from a fully-killed app (cold launch).
             if let bittrContext = connectionOptions.urlContexts.first(where: { $0.url.scheme == "bittr" }) {
                 self.handleBittrDeepLink(bittrContext.url)
                 return
             }
         }
-
+        
         self.launchBittrValue(urlContexts: connectionOptions.urlContexts, delay: 1.8)
     }
 
@@ -76,11 +73,10 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         // Use this method to undo the changes made on entering the background.
         
         NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "setupblur"), object: nil, userInfo: nil) as Notification)
-
-        // Clean up any swap Live Activity that finished or went stale while we were
-        // backgrounded (a push may have completed it without the app running).
+        
+        // Clean up any swap Live Activity that finished or went stale while we were backgrounded.
         SwapLiveActivityController.endStaleActivities()
-
+        
         DispatchQueue.global(qos: .background).async {
             if BitcoinManager.shared.status()?.isRunning == true {
                 Log.info("Check peer connection upon entering foreground.")
@@ -128,9 +124,7 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
     private func handleBittrDeepLink(_ url: URL) {
         switch url.host {
         case "resumeswap":
-            // The swap's final leg needs the wallet online to receive the incoming
-            // lightning payment. Flag it (survives a cold launch, checked once the
-            // wallet loads) and nudge the running app to resume immediately.
+            // Set flag and check when the wallet has loaded.
             UserDefaults.standard.set(true, forKey: "pendingSwapResume")
             NotificationCenter.default.post(name: NSNotification.Name(rawValue: "resumeSwapPayment"), object: nil)
         case "swapstatus":
