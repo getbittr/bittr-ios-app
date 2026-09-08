@@ -7,12 +7,13 @@
 #   • the helper node servers (push_server.js, clipboard_server.js, and
 #     screenshot_server.js when needed) — started if missing, left alone if
 #     already running, and only the ones WE started are stopped afterwards
-#   • running the stateful flows in a valid order (fresh install → channel →
-#     swaps …) with a pass/fail summary
+#   • running every flow in shared/flows/suite.yaml, in its hand-ordered
+#     dependency sequence, with a pass/fail summary
 #
 # Usage:
-#   shared/flows/test_suite.sh                 # core suite (see CORE_FLOWS)
-#   shared/flows/test_suite.sh --evil          # core suite + EvilBoltz flows
+#   shared/flows/test_suite.sh                 # full suite (every flow in suite.yaml)
+#   shared/flows/test_suite.sh --keep-going    # full suite, don't stop on first failure
+#   shared/flows/test_suite.sh --evil          # full suite + EvilBoltz flows
 #   shared/flows/test_suite.sh --evil-only     # just the EvilBoltz flows
 #   shared/flows/test_suite.sh features/swap.yaml features/receive.yaml
 #   shared/flows/test_suite.sh --keep-going ...# don't stop on first failure
@@ -46,14 +47,20 @@ PUSH_PORT=8888
 CLIPBOARD_PORT=8889
 SCREENSHOT_PORT=8890
 
-# The core suite: a stateful chain (each flow depends on the state the
-# previous ones leave behind — do not reorder lightly).
-CORE_FLOWS=(
-    "onboarding/fresh_install.yaml"   # wipe → create wallet → bittr signup
-    "features/buy_incoming.yaml"      # first deposit → opens lightning channel
-    "features/buy_more.yaml"          # second deposit on the existing channel
-    "features/swap.yaml"              # both swap legs (needs the channel)
-)
+# The full suite comes from suite.yaml — the single, hand-ordered source of
+# truth for flow order and the deliberate state hand-offs between flows. We
+# parse its `- runFlow:` lines rather than duplicating the list here, so adding
+# a flow to suite.yaml is all it takes to include it in a run.
+SUITE_FILE="${FLOWS_DIR}/suite.yaml"
+CORE_FLOWS=()
+while IFS= read -r _flow; do
+    [[ -n "${_flow}" ]] && CORE_FLOWS+=("${_flow}")
+done < <(grep -E '^[[:space:]]*-[[:space:]]*runFlow:' "${SUITE_FILE}" 2>/dev/null \
+         | sed -E 's/^[[:space:]]*-[[:space:]]*runFlow:[[:space:]]*//; s/[[:space:]]*#.*$//; s/[[:space:]]*$//')
+
+# forgot_pin.yaml needs the fixed test mnemonic (the one restore_wallet.yaml
+# re-establishes). Harmless to pass to every flow — only forgot_pin reads it.
+MNEMONIC="attack urge across cupboard year armor list vital outer leader anxiety endorse"
 
 EVIL_FLOWS=(
     "features/evil_boltz_wrong_invoice.yaml"   # SEC-01 reverse-swap tamper
@@ -233,6 +240,11 @@ fi
 
 # ── Run the flows ────────────────────────────────────────────────────────────
 
+if [[ ${RUN_CORE} -eq 1 && ${#CORE_FLOWS[@]} -eq 0 ]]; then
+    fail "no flows parsed from ${SUITE_FILE} — is it present and non-empty?"
+    exit 2
+fi
+
 FLOWS_TO_RUN=()
 [[ ${RUN_CORE} -eq 1 ]]   && FLOWS_TO_RUN+=("${CORE_FLOWS[@]}")
 [[ ${RUN_UNHAPPY} -eq 1 ]] && FLOWS_TO_RUN+=("${UNHAPPY_FLOWS[@]}")
@@ -259,7 +271,7 @@ for flow in "${FLOWS_TO_RUN[@]}"; do
     echo
     info "${BOLD}maestro test ${FLOW_PATH}${RESET}"
     START_TS=$(date +%s)
-    if maestro test "${FLOW_PATH}"; then
+    if maestro test --env MNEMONIC="${MNEMONIC}" "${FLOW_PATH}"; then
         RESULTS+=("${GREEN}✔${RESET} ${flow} ($(($(date +%s) - START_TS))s)")
     else
         EXPECTED=0
