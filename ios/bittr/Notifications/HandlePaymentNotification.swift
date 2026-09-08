@@ -236,6 +236,22 @@ extension CoreViewController {
                                 // Handle channel full with swap suggestion
                                 sendToSentry = false
                                 self.handleChannelFullWithSwapSuggestion(message: message, suggestedAmount: suggestedAmount, notificationId: notificationId)
+                            case .paymentProcessing(let message):
+                                // The attempt is committed and its outcome is ambiguous, so
+                                // never offer a retry: resending would mint a new invoice that
+                                // could be paid on top of an in-flight one. Close-only. This is
+                                // an expected transient state, not a fault, so it's kept out of
+                                // Sentry. lightningNotification is deliberately left set — if the
+                                // payment does settle, the .paymentReceived handler reconciles it
+                                // as the Bittr payout rather than as a stray incoming payment.
+                                sendToSentry = false
+                                self.showAlert(title: Language.getWord(withID: "bittrpayout"), message: message, buttons: [.dismiss(Language.getWord(withID: "close"))])
+                            case .paymentTooLarge(let message):
+                                // Permanent: resending the same amount will fail again, so no
+                                // retry. Expected business rule, not a fault — keep it out of Sentry.
+                                sendToSentry = false
+                                self.showAlert(title: Language.getWord(withID: "bittrpayout"), message: message, buttons: [.dismiss(Language.getWord(withID: "close"))])
+                                self.lightningNotification = nil
                             case .serverError(let message):
                                 if message.contains("try again"), self.lightningNotification != nil {
                                     self.showAlert(title: Language.getWord(withID: "bittrpayout"), message: message, buttons: [.dismiss(Language.getWord(withID: "close")), .action(Language.getWord(withID: "tryagain")) { self.facilitateNotificationPayout() }])

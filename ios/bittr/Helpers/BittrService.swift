@@ -46,20 +46,36 @@ class BittrService {
                 throw BittrServiceError.noData
             }
         } else {
-            // Check for specific error codes that require special handling
-            if let errorCode = decodedResponse.errorCode, 
-               errorCode == "CHANNEL_FULL",
-               let suggestedAmount = decodedResponse.suggestedSwapAmount {
-                throw BittrServiceError.channelFullWithSwapSuggestion(
-                    decodedResponse.error ?? "Lightning channel capacity insufficient",
-                    suggestedAmount
+            // Map the server's error_code to a typed error. Doing this by code
+            // (not by matching the human-readable `error` text) is deliberate:
+            // the caller's retry decision keys off the error type, so a backend
+            // copy edit can never turn an unretryable state into a retryable one.
+            switch decodedResponse.errorCode {
+            case "CHANNEL_FULL":
+                if let suggestedAmount = decodedResponse.suggestedSwapAmount {
+                    throw BittrServiceError.channelFullWithSwapSuggestion(
+                        decodedResponse.error ?? "Lightning channel capacity insufficient",
+                        suggestedAmount
+                    )
+                }
+                throw BittrServiceError.serverError(decodedResponse.error ?? "Unknown error")
+            case "PAYMENT_PROCESSING":
+                // The payment attempt is committed and its outcome is ambiguous
+                // (LND timeout / transport error / still in flight). The app MUST
+                // NOT resend — a fresh invoice could be paid on top of this one.
+                throw BittrServiceError.paymentProcessing(
+                    decodedResponse.error ?? "Your payment is being processed and should complete shortly."
                 )
-            } else {
+            case "PAYMENT_TOO_LARGE":
+                throw BittrServiceError.paymentTooLarge(
+                    decodedResponse.error ?? "This payment is too large to process."
+                )
+            default:
                 throw BittrServiceError.serverError(decodedResponse.error ?? "Unknown error")
             }
         }
     }
-    
+
     func fetchBittrTransactions(txIds: [String], depositCodes: [String]) async throws -> [BittrTransaction] {
         
         let txIdsString = txIds.joined(separator: ",")
@@ -253,6 +269,8 @@ enum BittrServiceError: Error {
     case other(Error)
     case noData
     case channelFullWithSwapSuggestion(String, String) // error message, suggested amount
+    case paymentProcessing(String) // committed but ambiguous — never resend (double-pay risk)
+    case paymentTooLarge(String)   // permanent — resending the same amount will fail again
 }
 
 extension BittrServiceError: LocalizedError {
@@ -274,6 +292,10 @@ extension BittrServiceError: LocalizedError {
             return error.localizedDescription
         case .channelFullWithSwapSuggestion(let message, let suggestedAmount):
             return "\(message) Suggested swap amount: \(suggestedAmount) sats"
+        case .paymentProcessing(let message):
+            return message
+        case .paymentTooLarge(let message):
+            return message
         }
     }
 }
