@@ -2,9 +2,16 @@
 
 Native Android app — Kotlin + Jetpack Compose + Material 3.
 
-**Status: scaffold.** The project builds, the DI graph resolves, navigation renders
-one screen, and the Maestro harness has a flow to assert against. There is no
-feature code and no wallet. See `../ANDROID_PORT_PLAN.md` for where this is going.
+**Status: scaffold, Gradle half verified, emulator half unverified.** The project
+builds and the unit tests pass — that has been run. The DI graph resolves and
+navigation renders one screen. There is no feature code and no wallet. See
+`../ANDROID_PORT_PLAN.md` for where this is going.
+
+**The Maestro flow has never been executed**, here or in CI. It is written and the
+workflow that would run it is written, but no emulator has booted against this app:
+the environment the scaffold was built in has no `/dev/kvm`. BIT-5's definition of
+done — three consecutive green CI runs plus a wall-clock number — is therefore still
+open, and the emulator job should be read as untested code until a run exists.
 
 ## Build
 
@@ -14,9 +21,12 @@ cd android
 ./gradlew testDebugUnitTest         # JVM unit tests
 ```
 
-Requires JDK 17+ and an Android SDK with platform 36. Point Gradle at the SDK with
-`ANDROID_HOME`, or a `local.properties` containing `sdk.dir=/path/to/sdk`
-(gitignored — never commit it).
+Requires JDK 17+ and an Android SDK with `platforms;android-37.0` (`compileSdk = 37`
+— note the `.0`, the API level carries a minor component now and `android-37` is not
+a package that exists). Point Gradle at the SDK with `ANDROID_HOME`, or a
+`local.properties` containing `sdk.dir=/path/to/sdk` (gitignored — never commit it).
+
+Step-by-step for a Mac, including the emulator and Maestro: `docs/local-setup-macos.md`.
 
 ## Maestro
 
