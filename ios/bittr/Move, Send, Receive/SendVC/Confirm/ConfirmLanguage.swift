@@ -30,6 +30,7 @@ extension ConfirmSendViewController {
         self.amountLabel.accessibilityIdentifier = TestID.Send.Confirm.amountLabel
         self.amountFiatLabel.accessibilityIdentifier = TestID.Send.Confirm.amountFiatLabel
         self.buttonFast.accessibilityIdentifier = TestID.Send.Confirm.feeFastButton
+        self.buttonMedium.accessibilityIdentifier = TestID.Send.Confirm.feeMediumButton
         self.buttonSlow.accessibilityIdentifier = TestID.Send.Confirm.feeSlowButton
         self.confirmButton.accessibilityIdentifier = TestID.Send.Confirm.confirmButton
         
