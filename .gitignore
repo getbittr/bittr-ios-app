@@ -109,3 +109,6 @@ android/captures/
 android/.idea/
 android/*.iml
 android/.cxx/
+
+# Claude Code local settings
+.claude/*
