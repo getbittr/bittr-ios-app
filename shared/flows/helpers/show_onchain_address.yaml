@@ -1,0 +1,43 @@
+# Reusable subflow: from a freshly-opened ReceiveViewController, make sure the
+# onchain address is the one being shown.
+#
+# The receive screen opens on a default type that depends on lightning
+# availability:
+#   - no active channel  → it opens straight on the onchain address, and the
+#     More button is hidden (there are no other types to switch to).
+#   - active channel     → it opens on bitcoin-QR / LNURL and exposes a More
+#     button to switch the transaction type.
+#
+# So: first wait for the QR spinner to stop (the address pool finishes
+# verifying and the QR renders), then — only if a More button is present —
+# open the type picker and choose "Address".
+
+appId: com.bittr.bittr-regtest
+---
+# Wait for the address pool to finish verifying and the QR to render.
+- extendedWaitUntil:
+    notVisible:
+      id: "receive.qrSpinner"
+    timeout: 30000
+
+# If a More button is present the onchain address isn't the current type yet.
+- runFlow:
+    when:
+      visible:
+        id: "receive.moreButton"
+    commands:
+      - tapOn:
+          id: "receive.moreButton"
+      # Type-picker alert buttons: [Cancel, Address, Bitcoin QR, Create
+      # invoice, Show LNURL]. "Address" is index 1.
+      - tapOn:
+          id: "alert.button.1"
+      # Switching type re-renders the QR; wait for the spinner again.
+      - extendedWaitUntil:
+          notVisible:
+            id: "receive.qrSpinner"
+          timeout: 30000
+
+# Onchain address is now displayed.
+- assertVisible:
+    id: "receive.addressLabel"

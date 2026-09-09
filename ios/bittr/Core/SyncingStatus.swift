@@ -1,0 +1,97 @@
+//
+//  SyncingStatus.swift
+//  bittr
+//
+//  Created by Tom Melters on 08/04/2024.
+//
+
+import UIKit
+
+extension CoreViewController {
+
+    func showSyncView() {
+        
+        self.syncViewBottom.constant = self.statusView.frame.height + self.view.safeAreaInsets.bottom
+        self.view.layoutIfNeeded()
+        
+        self.syncStack.alpha = 1
+        UIView.animate(withDuration: 0.3, delay: 0, options: .curveEaseInOut, animations: {
+            
+            self.syncViewBottom.constant = -self.view.safeAreaInsets.bottom - 15
+            self.syncStack.backgroundColor = UIColor(displayP3Red: 0, green: 0, blue: 0, alpha: 0.2)
+            self.view.layoutIfNeeded()
+        }) { _ in
+            UIView.animate(withDuration: 0.1, delay: 0, options: .curveEaseInOut) {
+                self.syncViewBottom.constant = -self.view.safeAreaInsets.bottom
+                self.view.layoutIfNeeded()
+            }
+        }
+    }
+    
+    func hideSyncView() {
+        
+        UIView.animate(withDuration: 0.3, delay: 0, options: .curveEaseInOut, animations: {
+            
+            self.syncViewBottom.constant = self.statusView.frame.height + self.view.safeAreaInsets.bottom
+            self.syncStack.backgroundColor = UIColor.clear
+            self.view.layoutIfNeeded()
+        }) { _ in
+            self.syncStack.alpha = 0
+        }
+    }
+    
+    func updateSync(action:SyncAction, type:SyncType) {
+        
+        switch action {
+        case .complete: self.completeSync(type)
+        case .start: self.startSync(type)
+        }
+    }
+    
+    func startSync(_ type:SyncType) {
+        DispatchQueue.main.async {
+            switch type {
+            case .conversion:
+                self.spinnerConversion.startAnimating()
+                self.checkmarkConversion.alpha = 0
+            case .ldk:
+                self.spinnerLDK.startAnimating()
+                self.checkmarkLDK.alpha = 0
+            case .final:
+                self.spinnerFinal.startAnimating()
+                self.checkmarkFinal.alpha = 0
+            }
+        }
+    }
+    
+    func completeSync(_ type:SyncType) {
+        DispatchQueue.main.async {
+            switch type {
+            case .conversion:
+                self.spinnerConversion.stopAnimating()
+                self.checkmarkConversion.alpha = 1
+            case .ldk:
+                self.spinnerLDK.stopAnimating()
+                self.checkmarkLDK.alpha = 1
+            case .final:
+                self.spinnerFinal.stopAnimating()
+                self.checkmarkFinal.alpha = 1
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                    self.hideSyncView()
+                }
+            }
+        }
+    }
+    
+}
+
+enum SyncType {
+    case conversion
+    case ldk
+    case final
+}
+
+enum SyncAction {
+    case complete
+    case start
+}

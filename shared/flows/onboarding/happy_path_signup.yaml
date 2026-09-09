@@ -1,0 +1,80 @@
+# Reusable subflow: completes the bittr signup, starting from the
+# "wallet ready" screen (Signup7) and ending on Home. Picks up where
+# onboarding/happy_path_wallet.yaml leaves off (at the 12_wallet_ready
+# screenshot, before Continue is tapped).
+#
+# Assumes the app is already launched and on the wallet-ready screen
+# (signup.create.ready.topLabelOne visible).
+# Called by:
+#   - onboarding/fresh_install.yaml (runs after happy_path_wallet.yaml)
+#   - features/*.yaml (auto-recovery, after happy_path_wallet.yaml)
+#
+# Maestro 2.x requires every flow file to have a config section, so appId
+# is declared. There's no launchApp at the top — that's the caller's
+# responsibility, so this subflow doesn't disturb existing app state when
+# called conditionally.
+
+appId: com.bittr.bittr-regtest
+---
+- assertVisible:
+    id: "signup.create.ready.topLabelOne"
+- tapOn:
+    id: "signup.create.ready.continueButton"
+
+# Transfer1: IBAN + email entry. IBAN field auto-focuses.
+- assertVisible:
+    id: "signup.bittr.start.ibanTextField"
+- takeScreenshot: shared/docs/screenshots/onboarding/13_bittr_start
+- inputText: "NL27ABNA0451135725"
+- tapOn:
+    id: "signup.bittr.start.emailButton"
+- inputText: "e2ebittr@getbittr.com"
+- takeScreenshot: shared/docs/screenshots/onboarding/14_bittr_start_filled
+# Press Return — Transfer1's textFieldShouldReturn auto-triggers nextButtonTapped
+# when the email field is focused and both fields are valid.
+- pressKey: Enter
+
+# Transfer2: OTP entry. Test-mode fixed code 123456. Auto-submits at 6 digits.
+- assertVisible:
+    id: "signup.bittr.otp.codeTextField"
+- takeScreenshot: shared/docs/screenshots/onboarding/15_bittr_otp_initial
+- inputText: "123456"
+- takeScreenshot: shared/docs/screenshots/onboarding/16_bittr_otp_entered
+
+# Push notification permission alerts (in-app, then iOS system).
+# Both are optional so reruns where permission is already granted skip.
+- tapOn:
+    id: "alert.button.0"
+    optional: true
+- tapOn:
+    text: "Allow"
+    optional: true
+
+# Transfer3: bittr signup success. Long async chain after OTP, allow generous timeout.
+- extendedWaitUntil:
+    visible:
+      id: "signup.bittr.success.topLabelOne"
+    timeout: 90000
+- takeScreenshot: shared/docs/screenshots/onboarding/17_bittr_success
+- tapOn:
+    id: "signup.bittr.success.nextButton"
+
+# Transfer4: 4 explanation cards + "Let's go" at the bottom.
+- assertVisible:
+    id: "signup.bittr.transferInfo.amountTitle"
+- takeScreenshot: shared/docs/screenshots/onboarding/18_transfer_info_top
+- scrollUntilVisible:
+    element:
+      id: "signup.bittr.transferInfo.nextButton"
+- takeScreenshot: shared/docs/screenshots/onboarding/19_transfer_info_bottom
+- tapOn:
+    id: "signup.bittr.transferInfo.nextButton"
+
+# "Open your banking app" modal — Done.
+- tapOn:
+    id: "alert.button.0"
+
+# Home: assert "your wallet" header visible.
+- assertVisible:
+    id: "home.headerLabel"
+- takeScreenshot: shared/docs/screenshots/onboarding/20_home

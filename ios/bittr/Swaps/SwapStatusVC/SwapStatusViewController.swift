@@ -1,0 +1,535 @@
+//
+//  SwapStatusViewController.swift
+//  bittr
+//
+//  Created by Tom Melters on 3/6/26.
+//
+
+import UIKit
+
+class SwapStatusViewController: UIViewController {
+    
+    // Card
+    @IBOutlet weak var confirmCard: UIView!
+    @IBOutlet weak var confirmTopLabel: UILabel!
+    @IBOutlet weak var confirmTopIcon: UIImageView!
+    
+    // Direction
+    @IBOutlet weak var confirmDirection: UIView!
+    @IBOutlet weak var titleDirection: UILabel!
+    @IBOutlet weak var confirmDirectionLabel: UILabel!
+    
+    // Amount
+    @IBOutlet weak var confirmAmount: UIView!
+    @IBOutlet weak var titleAmount: UILabel!
+    @IBOutlet weak var confirmAmountLabel: UILabel!
+    
+    // Fees
+    @IBOutlet weak var confirmFees: UIView!
+    @IBOutlet weak var titleFees: UILabel!
+    @IBOutlet weak var confirmFeesLabel: UILabel!
+    
+    // Status
+    @IBOutlet weak var confirmStatus: UIView!
+    @IBOutlet weak var titleStatus: UILabel!
+    @IBOutlet weak var confirmStatusLabel: UILabel!
+    @IBOutlet weak var resetIcon: UIImageView!
+    @IBOutlet weak var confirmStatusSpinner: UIActivityIndicatorView!
+    @IBOutlet weak var confirmStatusButton: UIButton!
+    @IBOutlet weak var statusQuestionIcon: UIImageView!
+    @IBOutlet weak var statusQuestionButton: UIButton!
+    
+    // Download swap details
+    @IBOutlet weak var downloadView: UIView!
+    @IBOutlet weak var downloadButton: UIButton!
+    @IBOutlet weak var downloadIcon: UIImageView!
+    @IBOutlet weak var downloadLabel: UILabel!
+    
+    // Variables
+    var thisSwap:Swap?
+    var hasCompleted = false
+    var didRefreshHomeAfterSwap = false
+    var coreVC:CoreViewController?
+    var swapVC:SwapViewController?
+    var webSocketManager:WebSocketManager?
+    
+    override func viewDidLoad() {
+        super.viewDidLoad()
+
+        self.confirmCard.accessibilityIdentifier = TestID.SwapStatus.confirmCard
+        self.confirmStatusLabel.accessibilityIdentifier = TestID.SwapStatus.confirmStatusLabel
+        self.confirmStatusButton.accessibilityIdentifier = TestID.SwapStatus.refreshButton
+
+        // Button titles
+        self.confirmStatusButton.setTitle("", for: .normal)
+        self.downloadButton.setTitle("", for: .normal)
+        self.statusQuestionButton.setTitle("", for: .normal)
+        
+        // Corner radii
+        self.confirmCard.layer.cornerRadius = 13
+        self.confirmDirection.layer.cornerRadius = 8
+        self.confirmAmount.layer.cornerRadius = 8
+        self.confirmFees.layer.cornerRadius = 8
+        self.confirmStatus.layer.cornerRadius = 8
+        self.downloadView.layer.cornerRadius = 8
+        
+        // Shadows
+        self.confirmCard.setShadow()
+        
+        // Set colors and language
+        self.changeColors()
+        self.setLanguage()
+        self.setSwap()
+        
+        // Header
+        if self.swapVC == nil {
+            self.addHeader(iconLight: "iconswapwhite", iconDark: "iconswap", title: Language.getWord(withID: "swapfunds"))
+        }
+    }
+    
+    func setSwap() {
+        guard self.thisSwap != nil else { return }
+        
+        if self.swapVC == nil, let swapDictionary = SwapManager.loadSwapDetailsFromFile(swapID: self.thisSwap!.boltzID!) {
+            // Load swap from TransactionVC.
+            let fileSwap = swapDictionary.toSwap()
+            fileSwap.onchainFees = self.thisSwap!.onchainFees
+            fileSwap.lightningFees = self.thisSwap!.lightningFees
+            if (self.thisSwap!.onchainFees ?? 0) > fileSwap.satoshisAmount {
+                fileSwap.onchainFees = (self.thisSwap!.onchainFees ?? 0) - fileSwap.satoshisAmount
+            }
+            self.thisSwap = fileSwap
+        }
+        
+        // Direction
+        self.confirmDirectionLabel.text = self.thisSwap!.swapDirection == .lightningToOnchain ? Language.getWord(withID: "lightningtoonchain") : Language.getWord(withID: "onchaintolightning")
+        
+        // Amount
+        self.confirmAmountLabel.text = "\(self.thisSwap!.satoshisAmount)".addSpaces() + " sats"
+        
+        // Fees.
+        // Lightning-to-onchain fees contain a variable range for the invoice payment.
+        self.confirmFeesLabel.text = self.thisSwap!.formattedTotalFees() + " sats"
+        
+        // Status
+        self.confirmStatusSpinner.startAnimating()
+        self.confirmStatusLabel.text = "Checking"
+        
+        // Get status
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+            SwapManager.checkSwapStatus(self.thisSwap!.boltzID!) { dictionary in
+                DispatchQueue.main.async {
+                    self.confirmStatusLabel.alpha = 1
+                    self.confirmStatusSpinner.stopAnimating()
+                    if dictionary != nil, let receivedStatus = dictionary!["status"] as? String {
+                        self.receivedStatusUpdate(status: receivedStatus, fullMessage: dictionary! as! [String : Any])
+                    } else {
+                        Log.info("No status received.")
+                    }
+                }
+            }
+        }
+    }
+    
+    // Keep the suggested-swap marker in sync with Boltz's status so Home and
+    // the TransactionVC only show the payment as succeeded once the recipient
+    // has actually been paid. (The lightning→onchain success case is handled
+    // at claim broadcast in SwapManager.addOnchainTransactionToUI instead —
+    // there the recipient is paid by our own claim transaction.)
+    func syncSuggestedSwapMarker(status:String) {
+        guard let ongoingSwap = self.thisSwap, ongoingSwap.isSuggested, ongoingSwap.dateID != "" else { return }
+
+        switch status {
+        case "invoice.paid", "transaction.claim.pending", "transaction.claimed", "invoice.settled":
+            CacheManager.storeSuggestedSwap(dateID: ongoingSwap.dateID, status: .succeeded)
+        case "invoice.failedToPay", "transaction.lockupFailed", "swap.expired", "invoice.expired", "transaction.failed", "transaction.refunded":
+            CacheManager.storeSuggestedSwap(dateID: ongoingSwap.dateID, status: .failed)
+        default:
+            break
+        }
+    }
+    
+    var isShowingSwapComplete:Bool {
+        return self.hasCompleted
+    }
+
+    func markSwapComplete() {
+        DispatchQueue.main.async {
+            self.hasCompleted = true
+            self.confirmStatusSpinner.stopAnimating()
+            self.confirmStatusLabel.alpha = 1
+            self.confirmStatusLabel.text = Language.getWord(withID: "swapstatusswapcomplete")
+        }
+    }
+
+    func showStatus(_ status:String) {
+        guard let ongoingSwap = self.thisSwap else { return }
+
+        let completeText = Language.getWord(withID: "swapstatusswapcomplete")
+        let statusText = status.userFriendlyStatus(direction: ongoingSwap.swapDirection)
+
+        // Once completed, a late non-complete status must not overwrite it.
+        guard !self.hasCompleted || statusText == completeText else { return }
+
+        if statusText == completeText { self.hasCompleted = true }
+        self.confirmStatusLabel.text = statusText
+
+        // Mirror the status into the Dynamic Island for onchain→lightning swaps.
+        if ongoingSwap.swapDirection == .onchainToLightning, let boltzID = ongoingSwap.boltzID {
+            SwapLiveActivityController.update(boltzID: boltzID, boltzStatus: status)
+        }
+    }
+    
+    func receivedStatusUpdate(status:String, fullMessage: [String: Any]) {
+        guard self.thisSwap != nil else { return }
+
+        self.syncSuggestedSwapMarker(status: status)
+        self.statusQuestionButton.boundString = status
+        self.showStatus(status)
+        
+        if status == "invoice.failedToPay" || status == "transaction.lockupFailed" {
+            self.confirmStatusSpinner.stopAnimating()
+            // Boltz's payment has failed and we want to get a refund our onchain transaction. Get a partial signature through /swap/submarine/swapID/refund. Or a scriptpath refund can be done after the locktime of the swap expires.
+            
+            Task {
+                do {
+                    let result = try await BoltzRefund.tryBoltzRefund(swapVC: self)
+                    Log.debug("Result: \(result)")
+                } catch {
+                    Log.info("Error: \(error)")
+                    SentryManager.capture(error, context: "SwapViewController row 584")
+                }
+            }
+        } else if status == "transaction.mempool", self.thisSwap!.swapDirection == .lightningToOnchain {
+            // Handle transaction.mempool for reverse swaps
+            if let transaction = fullMessage["transaction"] as? [String: Any],
+               let transactionHex = transaction["hex"] as? String {
+                self.handleTransactionMempool(transactionHex: transactionHex)
+            }
+        } else if status == "transaction.claimed" {
+            // Once the transaction.claimed status appears, it's the final status so we can stop spinning
+            self.confirmStatusSpinner.stopAnimating()
+            // We should also close the websocket connection and stop the background task
+            self.webSocketManager?.disconnect()
+        }
+        
+        // When an onchain→lightning swap completes, rebuild Home to merge the swap transactions.
+        if self.thisSwap?.swapDirection == .onchainToLightning, SwapPhase.from(boltzStatus: status) == .complete {
+            self.refreshHomeAfterSwapCompletion()
+        }
+    }
+    
+    private func refreshHomeAfterSwapCompletion() {
+        guard !self.didRefreshHomeAfterSwap else { return }
+        self.didRefreshHomeAfterSwap = true
+        DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
+            self.coreVC?.homeVC?.loadWalletData()
+        }
+    }
+    
+    private func handleTransactionMempool(transactionHex: String) {
+        Log.debug("handleTransactionMempool called with transaction hex length: \(transactionHex.count)")
+        
+        // Update the swap file with the lockup transaction
+        guard self.thisSwap != nil else {
+            Log.info("No ongoing swap found.")
+            return
+        }
+        
+        Log.debug("Found ongoing swap with ID: \(self.thisSwap!.boltzID ?? "nil")")
+        
+        self.thisSwap!.lockupTx = transactionHex
+        CacheManager.saveLatestSwap(self.thisSwap!)
+        SwapManager.updateSwapFileWithLockupTx(swapID: self.thisSwap!.boltzID!, lockupTx: self.thisSwap!.lockupTx!)
+        
+        Log.info("Updated swap file with lockup transaction")
+        
+        // Claim onchain transaction using async function
+        Task {
+            do {
+                Log.info("Starting Boltz claim process")
+                let claimResult = try await BoltzRefund.tryBoltzClaimInternalTransactionGeneration(swapVC: self)
+                Log.debug("Claim result: \(claimResult)")
+                
+                // Handle the result on main thread
+                DispatchQueue.main.async {
+                    if claimResult.success {
+                        self.hasCompleted = true
+                        self.confirmStatusLabel.text = Language.getWord(withID: "swapstatusswapcomplete")
+                        self.confirmStatusSpinner.stopAnimating()
+                        self.webSocketManager?.disconnect()
+                        SentryManager.countMetric("swap.lightningtoonchain.success")
+                        
+                        // Add the onchain transaction to the UI
+                        if let transactionId = claimResult.transactionId {
+                            SwapManager.addOnchainTransactionToUI(transactionId: transactionId, swapVC: self)
+                        }
+                        
+                        // Merge the two transactions on Home.
+                        self.refreshHomeAfterSwapCompletion()
+                    } else {
+                        self.confirmStatusLabel.text = Language.getWord(withID: "swapstatusfailed")
+                    }
+                }
+            } catch {
+                Log.info("Error claiming transaction: \(error)")
+                DispatchQueue.main.async {
+                    self.confirmStatusLabel.text = Language.getWord(withID: "swapstatusfailed")
+                    SentryManager.countMetric("swap.lightningtoonchain.failed")
+                    SentryManager.capture(error, context: "SwapViewController row 839")
+                }
+            }
+        }
+    }
+    
+    @IBAction func confirmStatusButtonTapped(_ sender: UIButton) {
+        
+        DispatchQueue.main.async {
+            self.confirmStatusLabel.alpha = 0
+            self.resetIcon.alpha = 0
+            
+            guard let swapID = self.thisSwap?.boltzID else {
+                Log.info("No swap ID found in ongoing swap")
+                return
+            }
+            Log.debug("Checking swap status for ID: \(swapID)")
+            
+            SwapManager.checkSwapStatus(swapID) { dictionary in
+                DispatchQueue.main.async {
+                    self.confirmStatusLabel.alpha = 1
+                    self.resetIcon.alpha = 1
+                    
+                    Log.debug("Received swap status response: \(dictionary ?? [:])")
+                    
+                    guard dictionary != nil, let receivedStatus = dictionary!["status"] as? String else {
+                        Log.info("No status received or invalid response format")
+                        Log.debug("Full response: \(dictionary ?? [:])")
+                        return
+                    }
+                    Log.info("Status received: \(receivedStatus)")
+
+                    self.syncSuggestedSwapMarker(status: receivedStatus)
+                    self.statusQuestionButton.boundString = receivedStatus
+                    self.showStatus(receivedStatus)
+                    
+                    if receivedStatus == "invoice.failedToPay" || receivedStatus == "swap.expired" || receivedStatus == "transaction.lockupFailed" {
+                        Log.info("Swap failed with status: \(receivedStatus)")
+                        // TODO: Add refund logic here
+                    } else if receivedStatus == "transaction.confirmed" || receivedStatus == "invoice.settled" {
+                        Log.info("Transaction confirmed")
+                        
+                        if self.thisSwap!.swapDirection == .lightningToOnchain {
+                            Log.info("Processing lightning to onchain swap.")
+                            if let transaction = dictionary!["transaction"] as? [String: Any] {
+                                Log.debug("Transaction data: \(transaction)")
+                                if let transactionHex = transaction["hex"] as? String {
+                                    Log.debug("Transaction hex found, length: \(transactionHex.count)")
+                                    self.handleTransactionMempool(transactionHex: transactionHex)
+                                } else {
+                                    Log.info("No transaction hex found in response")
+                                }
+                            } else {
+                                Log.info("No transaction data found in response")
+                                
+                                // Fallback: Try to load lockup transaction from JSON file
+                                Log.info("Attempting to load lockup transaction from JSON file.")
+                                if let jsonLockupTx = self.loadLockupTxFromFile(swapID: swapID) {
+                                    Log.info("Found lockup transaction in JSON file.")
+                                    self.handleTransactionMempool(transactionHex: jsonLockupTx)
+                                } else {
+                                    Log.info("No lockup transaction found in JSON file either")
+                                }
+                            }
+                        } else {
+                            Log.info("Not a lightning to onchain swap.")
+                        }
+                    } else {
+                        Log.info("Other status received: \(receivedStatus)")
+                    }
+                }
+            }
+        }
+    }
+    
+    func didCompleteOnchainTransaction() {
+        // It may take significant time (e.g. 30 minutes) for the onchain transaction to be confirmed. We need to wait for this confirmation.
+        guard swapVC?.thisSwap != nil else { return }
+        self.thisSwap = self.swapVC!.thisSwap!
+        
+        // Update label.
+        self.confirmStatusLabel.text = Language.getWord(withID: "swapstatusawaitingconfirmation")
+        CacheManager.saveLatestSwap(self.thisSwap!)
+        
+        // Start websocket.
+        self.webSocketManager = WebSocketManager()
+        self.webSocketManager!.delegate = self
+        self.webSocketManager!.swapID = self.thisSwap!.boltzID!
+        self.webSocketManager!.connect()
+    }
+    
+    private func loadLockupTxFromFile(swapID: String) -> String? {
+        // The swap file is stored under sha256(boltzID); SwapManager resolves
+        // that (with a legacy plaintext fallback) so callers still pass boltzID.
+        return SwapManager.loadSwapDetailsFromFile(swapID: swapID)?["lockupTx"] as? String
+    }
+    
+    @IBAction func downloadSwapFileTapped(_ sender: UIButton) {
+        self.view.endEditing(true)
+        guard let ongoingSwap = self.thisSwap else { return }
+        
+        do {
+            // Stored under sha256(boltzID) (legacy plaintext fallback handled by
+            // SwapManager); the exported copy keeps a readable name below.
+            let fileURL = SwapManager.swapFileURL(for: ongoingSwap.boltzID!)
+
+            // Read the JSON data from file
+            let jsonData = try Data(contentsOf: fileURL)
+            
+            let temporaryFolder = FileManager.default.temporaryDirectory
+            let fileName = "Swap \(ongoingSwap.boltzID!).json"
+            let temporaryFileURL = temporaryFolder.appendingPathComponent(fileName)
+            
+            // Same at-rest protection as the swap file itself; the exported
+            // copy the user shares stays plain-text JSON either way.
+            try jsonData.write(to: temporaryFileURL, options: [.atomic, .completeFileProtectionUntilFirstUserAuthentication])
+            let vc = UIActivityViewController(activityItems: [temporaryFileURL], applicationActivities: [])
+            self.present(vc, animated: true, completion: nil)
+        } catch {
+            Log.info("Error loading swap details from file: \(error)")
+            SentryManager.capture(error, context: "SwapViewController row 870")
+        }
+    }
+    
+    @IBAction func statusQuestionTapped(_ sender: UIButton) {
+        self.view.endEditing(true)
+        
+        guard let swapStatus = sender.boundString else {
+            self.showAlert(title: Language.getWord(withID: "swapquestion"), message: Language.getWord(withID: "swapquestiongeneric"), buttons: [.dismiss(Language.getWord(withID: "okay"))])
+            return
+        }
+        
+        let answer:String = {
+            switch swapStatus {
+            case "swap.created":
+                if self.thisSwap!.swapDirection == .onchainToLightning {
+                    return Language.getWord(withID: "swapquestionswapcreated0")
+                } else {
+                    return Language.getWord(withID: "swapquestionswapcreated1")
+                }
+            case "invoice.set":
+                return Language.getWord(withID: "swapquestionswapcreated0")
+            case "transaction.mempool":
+                if self.thisSwap!.swapDirection == .onchainToLightning {
+                    return Language.getWord(withID: "swapquestiontransactionmempool0")
+                } else {
+                    return Language.getWord(withID: "swapquestioncomplete1")
+                }
+            case "transaction.confirmed":
+                if self.thisSwap!.swapDirection == .onchainToLightning {
+                    return Language.getWord(withID: "swapquestiontransactionconfirmed0")
+                } else {
+                    return Language.getWord(withID: "swapquestioncomplete1")
+                }
+            case "invoice.pending":
+                return Language.getWord(withID: "swapquestioninvoicepending0")
+            case "invoice.paid":
+                return Language.getWord(withID: "swapquestioncomplete0")
+            case "invoice.failedToPay":
+                return Language.getWord(withID: "swapquestioninvoicefailedtopay0")
+            case "transaction.claim.pending":
+                return Language.getWord(withID: "swapquestioncomplete0")
+            case "transaction.claimed":
+                return Language.getWord(withID: "swapquestioncomplete0")
+            case "swap.expired":
+                if self.thisSwap!.swapDirection == .onchainToLightning {
+                    return Language.getWord(withID: "swapquestionexpired0")
+                } else {
+                    return Language.getWord(withID: "swapquestionexpired1")
+                }
+            case "transaction.lockupFailed":
+                if self.thisSwap!.swapDirection == .onchainToLightning {
+                    return Language.getWord(withID: "swapquestionexpired0")
+                } else {
+                    return Language.getWord(withID: "swapquestionexpired1")
+                }
+            case "invoice.settled":
+                return Language.getWord(withID: "swapquestioncomplete1")
+            case "invoice.expired":
+                return Language.getWord(withID: "swapquestionexpired1")
+            case "transaction.failed":
+                return Language.getWord(withID: "swapquestionexpired1")
+            case "transaction.refunded":
+                return Language.getWord(withID: "swapquestionexpired1")
+            default:
+                return Language.getWord(withID: "swapquestiongeneric")
+            }
+        }()
+        
+        self.showAlert(title: Language.getWord(withID: "swapquestion"), message: answer, buttons: [.dismiss(Language.getWord(withID: "okay"))])
+    }
+    
+    @objc func changeColors() {
+        
+        self.view.backgroundColor = Colors.getColor("yelloworblue1")
+        self.confirmCard.backgroundColor = Colors.getColor("yelloworblue2")
+        self.confirmTopLabel.textColor = Colors.getColor("whiteoryellow")
+        self.confirmDirection.backgroundColor = Colors.getColor("whiteorblue3")
+        self.confirmAmount.backgroundColor = Colors.getColor("whiteorblue3")
+        self.confirmFees.backgroundColor = Colors.getColor("whiteorblue3")
+        self.confirmStatus.backgroundColor = Colors.getColor("whiteorblue3")
+        self.confirmDirectionLabel.textColor = Colors.getColor("blackorwhite")
+        self.confirmAmountLabel.textColor = Colors.getColor("blackorwhite")
+        self.confirmFeesLabel.textColor = Colors.getColor("blackorwhite")
+        self.confirmStatusLabel.textColor = Colors.getColor("blackorwhite")
+        self.statusQuestionIcon.tintColor = Colors.getColor("blackorwhite")
+        self.downloadLabel.textColor = Colors.getColor("blackorwhite")
+        
+        if CacheManager.darkModeIsOn() {
+            self.confirmTopIcon.image = UIImage(named: "iconswap")
+            self.resetIcon.image = UIImage(named: "iconresetwhite")
+            self.downloadIcon.image = UIImage(named: "icondownload")
+        } else {
+            self.confirmTopIcon.image = UIImage(named: "iconswapwhite")
+            self.resetIcon.image = UIImage(named: "iconreset")
+            self.downloadIcon.image = UIImage(named: "icondownloadblack")
+        }
+    }
+    
+    func setLanguage() {
+        self.titleDirection.text = Language.getWord(withID: "direction")
+        self.titleAmount.text = Language.getWord(withID: "amount")
+        self.titleFees.text = Language.getWord(withID: "fees")
+        self.titleStatus.text = Language.getWord(withID: "status")
+        self.downloadLabel.text = Language.getWord(withID: "downloadswapfile")
+    }
+}
+
+extension String {
+    
+    func userFriendlyStatus(direction:SwapDirection) -> String {
+        
+        switch self {
+        case "swap.created": return Language.getWord(withID: "swapstatuspreparing")
+        case "invoice.set": return Language.getWord(withID: "swapstatuspreparing")
+        case "transaction.mempool": return Language.getWord(withID: "swapstatusawaitingconfirmation")
+        case "transaction.confirmed": if direction == .onchainToLightning {
+            return Language.getWord(withID: "swapstatusawaitingpayment")
+        } else {
+            // Lockup confirmed. Will claim satoshis.
+            return Language.getWord(withID: "swapstatusclaiming")
+        }
+        case "invoice.pending": return Language.getWord(withID: "swapstatusinvoicepending")
+        case "invoice.paid": return Language.getWord(withID: "swapstatusswapcomplete")
+        case "invoice.failedToPay": return Language.getWord(withID: "swapstatusfailedtopay")
+        case "transaction.claim.pending": return Language.getWord(withID: "swapstatusswapcomplete")
+        case "transaction.claimed": return Language.getWord(withID: "swapstatusswapcomplete")
+        case "swap.expired": return Language.getWord(withID: "swapstatusexpired")
+        case "transaction.lockupFailed": return Language.getWord(withID: "swapstatusincorrectamount")
+        case "invoice.settled": return Language.getWord(withID: "swapstatusswapcomplete")
+        case "invoice.expired": return Language.getWord(withID: "swapstatusinvoicexpired")
+        case "transaction.failed": return Language.getWord(withID: "swapstatusfailed")
+        case "transaction.refunded": return Language.getWord(withID: "swapstatusfailed")
+        default: return self
+        }
+    }
+}
