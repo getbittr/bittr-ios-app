@@ -90,6 +90,76 @@ clean rebuild with a warm dependency cache measured **1m09s** (Linux x86_64, JDK
 host, `--no-daemon`, 195 tasks, 19 tests). Your first run will not look like that
 number and that is expected.
 
+This has been run from a **pristine clone** of the branch — a fresh `git clone`,
+no `local.properties`, nothing but `ANDROID_HOME` exported — specifically to prove
+the checkout contains everything the build needs and nothing is quietly coming from
+an untracked file on the author's disk. That is the failure this section would
+otherwise hide from you.
+
+## Seeing the screen
+
+You want to look at the scaffold, not just watch a build succeed. Three routes,
+cheapest first.
+
+### 1. Android Studio's Compose preview — no emulator, no install
+
+`SignupStartScreen.kt` carries a `@Preview`, so Studio renders the screen in the
+right-hand pane without booting anything. Open `android/` as the project root (not
+the repo root — the repo root has no Gradle build), let it sync, open
+`feature/signup/src/main/kotlin/com/bittr/android/feature/signup/SignupStartScreen.kt`
+and click **Split**.
+
+This is by far the fastest way to answer "is the scaffold what I expected", and it
+sidesteps every emulator problem below. It renders the real `BittrTheme`, so the
+tokens are what you'll see. It does *not* prove the app launches — the preview
+renders one composable, it doesn't run `MainActivity` or Hilt.
+
+### 2. An emulator
+
+On Apple Silicon you need the **arm64** system image. CI uses
+`system-images;android-34;aosp_atd;x86_64`; the x86_64 image on an M-series Mac runs
+under full CPU emulation and is unusably slow.
+
+```sh
+sdkmanager "system-images;android-34;aosp_atd;arm64-v8a" "emulator"
+avdmanager create avd -n bittr-test -k "system-images;android-34;aosp_atd;arm64-v8a" -d pixel_6
+"$ANDROID_HOME/emulator/emulator" -avd bittr-test -no-snapshot-save -noaudio -no-boot-anim &
+
+cd android && ./gradlew :app:installDebug
+```
+
+Those three package/device names are **verified to exist** in Google's live
+repository as of this commit — `aosp_atd` ships arm64-v8a for API 30 through 36, and
+`pixel_6` is device id 44 in `avdmanager list device`. What is *not* verified is that
+the emulator boots and the app runs on it: see the banner in the next section.
+
+`aosp_atd` is an Automated Test Device image — stripped AOSP, no Play Services, no
+Google apps. Faster to boot and far less likely to have a background service wake up
+mid-flow. The app has no Play Services dependency yet.
+
+**Launch the emulator by absolute path**, as above. `emulator` resolves on `PATH`
+from the Homebrew cask, but launched from the wrong working directory it locates its
+system images relative to the binary and dies with `PANIC: Broken AVD system path`
+or `Cannot find AVD system path` — an error that reads like the AVD is corrupt when
+the AVD is fine.
+
+### 3. A physical phone
+
+`./gradlew :app:installDebug` with USB debugging on works and skips the emulator
+entirely. `adb devices` should list it before you install. Any phone on Android 8.0
+or newer — `minSdk` is 26.
+
+### What you should see
+
+A centred column on a plain background: the word **bittr** in `headlineLarge`, a
+filled **Create wallet** button, an outlined **Restore wallet** button, both full
+width. The buttons do nothing — there is no wallet behind them. If you see that,
+deliverables 1 and 2 are real and you have seen them with your own eyes.
+
+The colours come from `core/designsystem`, transcribed from `ios/bittr/Colors.swift`.
+BIT-4 replaces them with the Designer's tokens, so don't read the current palette as
+a design decision.
+
 ## Studio
 
 You do not need Android Studio to build this, and the command-line path above is the
@@ -107,35 +177,29 @@ Hilt's Gradle plugin dropped AGP 8 at 2.59, and Hilt is the DI container.
 
 ## Running the Maestro flow locally
 
-**Nothing below this line has been executed yet — not locally, not in CI.** The
-agent environment this scaffold was built in has no `/dev/kvm`, so no emulator has
-ever booted against this app. Treat this section as instructions to try, not as a
-verified procedure.
+**No emulator has ever booted against this app, and Maestro has never run against
+it** — not locally, not in CI. The agent environment this scaffold was built in has
+no `/dev/kvm`. Package names and flow syntax are verified; *behaviour* is not. Treat
+this section as instructions to try, not as a verified procedure.
 
-On Apple Silicon you need the **arm64** system image. CI uses
-`system-images;android-34;aosp_atd;x86_64`; the same image exists for arm64 and that
-is the one to use on an M-series Mac — the x86_64 image runs under full CPU
-emulation and is unusably slow:
-
-```sh
-sdkmanager "system-images;android-34;aosp_atd;arm64-v8a" "emulator"
-avdmanager create avd -n bittr-test -k "system-images;android-34;aosp_atd;arm64-v8a" -d pixel_6
-emulator -avd bittr-test -no-snapshot-save -noaudio -no-boot-anim &
-```
-
-`aosp_atd` is an Automated Test Device image — stripped AOSP, no Play Services, no
-Google apps. Faster to boot and far less likely to have a background service wake up
-mid-flow. The app has no Play Services dependency yet.
-
-Then:
+With an emulator up and the app installed (section 2 above):
 
 ```sh
 curl -fsSL "https://get.maestro.mobile.dev" | MAESTRO_VERSION=2.10.0 bash
 export PATH="$HOME/.maestro/bin:$PATH"
 
-cd android && ./gradlew :app:installDebug && cd ..
-maestro test shared/flows/android/scaffold_smoke.yaml
+maestro test shared/flows/android/scaffold_smoke.yaml   # from the repo root
 ```
+
+If you get this far, **that is the first real execution of the harness** and it is
+the thing BIT-5 has been missing. Send me the output either way — a failure is more
+useful to me than a pass, because the whole risk sitting in this task is the set of
+assumptions no one has tested yet.
+
+The most likely first failure is `element not found` on the test IDs: Compose
+`testTag`s are only visible to Maestro's view hierarchy because `MainActivity` sets
+`testTagsAsResourceId = true`. That wiring has a JVM test behind it, but a JVM test
+proves the flag is set, not that Maestro reads it.
 
 Pin `MAESTRO_VERSION` to match `.github/workflows/android-maestro.yml`. Unpinned, the
 installer takes `releases/latest`, and Maestro moves under this — recent versions
@@ -151,5 +215,9 @@ signup test IDs are visible. It asserts the same IDs the iOS flow does, delibera
 |---|---|
 | `failed to find package platforms;android-37` | You dropped the `.0`. It's `platforms;android-37.0`. |
 | `SDK location not found` | `ANDROID_HOME` unset and no `local.properties`. |
+| Gradle can't find a project / "no build file" | You opened the repo root. The Gradle build root is `android/`. |
 | Studio wants to downgrade AGP | Studio is older than AGP 9.4. Update Studio; do not downgrade AGP. |
+| `PANIC: Broken AVD system path` | Launch the emulator as `"$ANDROID_HOME/emulator/emulator"`, not bare `emulator`. |
+| Emulator boots but is glacial | x86_64 image on Apple Silicon. You want `arm64-v8a`. |
+| `INSTALL_FAILED_NO_MATCHING_ABIS` | Same thing from the other direction — arm64 device, x86_64-only APK, or vice versa. |
 | `element not found` in a Maestro flow | Usually `testTagsAsResourceId` removed from `MainActivity.kt` — see `../README.md`. |

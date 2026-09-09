@@ -18,15 +18,25 @@ open, and the emulator job should be read as untested code until a run exists.
 ```sh
 cd android
 ./gradlew :app:assembleDebug        # debug == regtest variant
-./gradlew testDebugUnitTest         # JVM unit tests
+./gradlew test                      # JVM unit tests, all modules
 ```
+
+Use `test`, **not** `testDebugUnitTest`. `:core:common`, `:core:wallet` and
+`:core:wallet-stub` are pure-Kotlin modules with no Android variants, so
+`testDebugUnitTest` reports `NO-SOURCE` for them and goes green having run a
+fraction of the suite.
 
 Requires JDK 17+ and an Android SDK with `platforms;android-37.0` (`compileSdk = 37`
 — note the `.0`, the API level carries a minor component now and `android-37` is not
 a package that exists). Point Gradle at the SDK with `ANDROID_HOME`, or a
 `local.properties` containing `sdk.dir=/path/to/sdk` (gitignored — never commit it).
 
-Step-by-step for a Mac, including the emulator and Maestro: `docs/local-setup-macos.md`.
+Verified from a pristine `git clone` of this branch with no `local.properties` —
+2m01s, 195 tasks, APK produced — so the checkout is self-contained.
+
+Step-by-step for a Mac: `docs/local-setup-macos.md`. If you only want to *look* at
+the scaffold screen, that doc's "Seeing the screen" section gets you there through
+Android Studio's Compose preview without booting an emulator at all.
 
 ## Maestro
 
