@@ -50,11 +50,26 @@ sdkmanager --licenses                       # accept them all
 sdkmanager "platforms;android-37.0" "build-tools;36.0.0" "platform-tools"
 ```
 
-Put `ANDROID_HOME` in your shell profile, or create `android/local.properties`:
+That `export` lasts only as long as the terminal you typed it in. Make it stick one
+of two ways — either is enough, you don't need both.
 
+**Either** put the export in your shell profile:
+
+```sh
+echo 'export ANDROID_HOME=/opt/homebrew/share/android-commandlinetools' >> ~/.zshrc
 ```
-sdk.dir=/opt/homebrew/share/android-commandlinetools
+
+**Or** write an `android/local.properties` file, which points Gradle at the SDK
+without touching your environment. From the repo root:
+
+```sh
+printf 'sdk.dir=/opt/homebrew/share/android-commandlinetools\n' > android/local.properties
 ```
+
+> **`sdk.dir=…` is the *contents* of that file, not a command.** Typing it at a shell
+> prompt gets you `zsh: no such file or directory: sdk.dir=…`, because zsh reads
+> `sdk.dir=/opt/...` as a program to run. Use the `printf` line above, then check it
+> with `cat android/local.properties` — one line, no quotes, no `export`.
 
 `local.properties` is gitignored (`.gitignore:105`) and must stay that way — it is a
 machine-specific absolute path, and committing it breaks the build for everyone whose
@@ -105,7 +120,7 @@ cheapest first.
 
 `./gradlew test` already wrote one:
 
-```
+```text
 app/build/screenshots/debug/scaffold-launch.png     # the regtest build Maestro runs
 app/build/screenshots/release/scaffold-launch.png   # the shipped build
 ```
@@ -243,6 +258,7 @@ signup test IDs are visible. It asserts the same IDs the iOS flow does, delibera
 |---|---|
 | `failed to find package platforms;android-37` | You dropped the `.0`. It's `platforms;android-37.0`. |
 | `SDK location not found` | `ANDROID_HOME` unset and no `local.properties`. |
+| `zsh: no such file or directory: sdk.dir=/opt/...` | You pasted a *file's contents* at the shell prompt. `sdk.dir=…` goes inside `android/local.properties` — see the `printf` line in "Install". |
 | Gradle can't find a project / "no build file" | You opened the repo root. The Gradle build root is `android/`. |
 | Studio wants to downgrade AGP | Studio is older than AGP 9.4. Update Studio; do not downgrade AGP. |
 | `PANIC: Broken AVD system path` | Launch the emulator as `"$ANDROID_HOME/emulator/emulator"`, not bare `emulator`. |
