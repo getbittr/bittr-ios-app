@@ -149,6 +149,17 @@ Order matters — each layer unblocks the next:
 
 For each feature: build screen(s), wire managers, extend Maestro flow, mark green in `parity.md`.
 
+#### Suite ordering — do not copy `shared/flows/suite.yaml` as-is
+
+When the Android suite grows past `shared/flows/android/scaffold_smoke.yaml`, the ordering is a decision to re-make, not an artefact to inherit. `suite.yaml` runs `features/remove_wallet.yaml` last, directly after `onboarding/restore_wallet.yaml` re-creates the wallet. A freshly restored wallet has no channel, so `output.hasChannel` (line 73) is always false and the flow's entire active-channel arc — lines 100–267, including seven `takeScreenshot` steps — has never executed on iOS.
+
+Two things follow for the port:
+
+- **Green-on-iOS is not evidence for that arc.** Port it against the source (`DeviceViewController` / the channel-close path), not against a passing flow run.
+- **`transaction.descriptionLabel` has zero executed coverage anywhere.** It is the only ID in the corpus whose sole selector sits inside that never-taken branch — every other ID in the arc is also asserted by some flow that does run. It is also the ID that already drifted once: added straight to `TestIDs.swift`, never to `test-ids.json` (see `shared/test-ids/README.md`). Treat its Compose `testTag` as unverified until a flow exercises it.
+
+The channel-close *behaviour* is not uncovered suite-wide: `features/forgot_pin_remove_wallet.yaml` self-provisions a wallet with a channel via `helpers/create_wallet_with_channel.yaml`, and its close arc does run. What is uncovered is `remove_wallet`'s own post-close verification — home refreshed, Lightning balance back to zero, closure description. Fixing that is a shared-flow change owned by QA: either order `remove_wallet` before something that leaves a channel open, or have it self-provision one the way `forgot_pin_remove_wallet` does.
+
 ### Phase 5 — Parity-going-forward (Maestro as the gate)
 
 - One `shared/flows/` directory drives both iOS and Android with matching test IDs.
