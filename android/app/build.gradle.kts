@@ -91,6 +91,27 @@ android {
             // @style/Theme.Bittr at attach time. Without this it fails before
             // reaching the composition.
             isIncludeAndroidResources = true
+
+            // Where ScaffoldScreenshotTest writes its PNG. Passed in rather than
+            // derived inside the test, because a unit test's working directory is
+            // an AGP implementation detail and the whole value of that file is
+            // being able to tell someone exactly where to find it.
+            //
+            // Per variant, and that matters: the androidComponents block below
+            // enables the release unit tests too, so `./gradlew test` runs two Test
+            // tasks — in parallel, by default. Pointed at one path they would race
+            // to write the same PNG and could leave a torn file. They also render
+            // different builds (the debug one is regtest), so one shared file would
+            // be whichever won.
+            all {
+                val variant = it.name.removePrefix("test").removeSuffix("UnitTest")
+                    .lowercase()
+                    .ifEmpty { "debug" }
+                it.systemProperty(
+                    "bittr.screenshot.dir",
+                    layout.buildDirectory.dir("screenshots/$variant").get().asFile.absolutePath,
+                )
+            }
         }
     }
 }

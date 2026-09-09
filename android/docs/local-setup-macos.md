@@ -98,8 +98,36 @@ otherwise hide from you.
 
 ## Seeing the screen
 
-You want to look at the scaffold, not just watch a build succeed. Three routes,
+You want to look at the scaffold, not just watch a build succeed. Four routes,
 cheapest first.
+
+### 0. A PNG from the build — no emulator, no device, no IDE
+
+`./gradlew test` already wrote one:
+
+```
+app/build/screenshots/debug/scaffold-launch.png     # the regtest build Maestro runs
+app/build/screenshots/release/scaffold-launch.png   # the shipped build
+```
+
+`ScaffoldScreenshotTest` renders the app on the JVM under Robolectric and encodes
+the result. It is not a `@Preview` of one composable — it comes off `MainActivity`
+through the same rule `AppLaunchTest` uses, so what you are looking at went through
+the real Hilt graph, `@style/Theme.Bittr`, the nav start destination and the real
+`BittrTheme` tokens. If the file is there, the app launched to produce it.
+
+Two things it is not. It is **not a golden-image test** — nothing asserts pixels,
+because cross-renderer image diffing is a classic flaky-suite generator and BIT-5's
+"a flaky pass is a failure" cuts both ways. And font rasterisation under Robolectric
+is not what a device draws, so read it for layout, colour and content, not for
+kerning. Appearance on a device is what the emulator run and Maestro's own
+`takeScreenshot` cover.
+
+If the file is missing after a test run, capture was skipped rather than failed —
+it depends on Robolectric's native graphics, and on a host where that library is
+unavailable the test reports *skipped*. That is deliberate: a convenience that
+turns `./gradlew test` red on someone's laptop would be a bad trade for a picture.
+`./gradlew :app:testDebugUnitTest --tests '*ScaffoldScreenshotTest*' -i` shows why.
 
 ### 1. Android Studio's Compose preview — no emulator, no install
 
