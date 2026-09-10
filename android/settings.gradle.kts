@@ -43,6 +43,9 @@ include(":core:designsystem")
 // the same API; nothing above this line changes when it lands.
 include(":core:wallet")
 include(":core:wallet-stub")
+// The real binding: ldk-node + BDK, plus the seed storage and LDK-state
+// quarantine model decided in BIT-8 and BIT-20. See core/wallet-ldk/README.md.
+include(":core:wallet-ldk")
 
 // Features — one module per area of the iOS app, added as the port reaches them.
 include(":feature:signup")
