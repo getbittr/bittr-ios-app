@@ -32,8 +32,14 @@ class WebsiteViewController: UIViewController, WKUIDelegate, WKNavigationDelegat
     /// wallet an LNURL-auth request and get it signed with the user's stable identity.
     private static let lnurlBridgeHost = "getbittr.com"
 
+    /// Requires https as well as the host: `Info.plist` sets `NSAllowsArbitraryLoads`, with an
+    /// exception dict that only covers `localhost`, so plain http loads are permitted app-wide
+    /// and there is no in-app HSTS to lean on. Without the scheme check, anyone able to answer
+    /// for `http://getbittr.com` — hostile Wi-Fi, a spoofed DNS reply — gets the whole bridge.
+    /// All five call sites already pass https URLs, so this costs nothing.
     private static func isFirstParty(_ url:URL?) -> Bool {
-        guard let host = url?.host?.lowercased() else { return false }
+        guard let url, url.scheme?.lowercased() == "https",
+              let host = url.host?.lowercased() else { return false }
         return host == lnurlBridgeHost || host.hasSuffix(".\(lnurlBridgeHost)")
     }
 
@@ -180,10 +186,23 @@ class WebsiteViewController: UIViewController, WKUIDelegate, WKNavigationDelegat
             || (scheme == "https" && hasLoginTag)
 
         if isLnurlNavigation {
+            // This delegate method fires for *every* frame, but `isShowingFirstPartyPage`
+            // reads `webView.url`, which is the *main frame's* URL. Without the frame check
+            // a cross-origin iframe on a first-party page could navigate itself to
+            // `lightning:…` and be treated as first-party.
+            //
+            // `targetFrame` is nil for a new-window navigation (`target="_blank"`), which
+            // says nothing about who asked for it, so fall back to the frame that did. That
+            // keeps a first-party `target="_blank"` LNURL link working — it reaches us here
+            // and is handled without ever opening a window — while still denying a subframe
+            // that tries to launder itself through one.
+            let isMainFrameNavigation = navigationAction.targetFrame?.isMainFrame
+                ?? navigationAction.sourceFrame.isMainFrame
+
             // Only a page bittr controls may drive the wallet. A third-party page reached
             // from the map or the block explorer gets the navigation cancelled, nothing more.
-            guard self.isShowingFirstPartyPage else {
-                Log.info("Ignoring an LNURL navigation from a third-party page.")
+            guard isMainFrameNavigation, self.isShowingFirstPartyPage else {
+                Log.info("Ignoring an LNURL navigation from a subframe or a third-party page.")
                 decisionHandler(.cancel)
                 return
             }
@@ -202,8 +221,15 @@ class WebsiteViewController: UIViewController, WKUIDelegate, WKNavigationDelegat
         // The script is installed only for first-party pages, but such a page can navigate
         // to a third-party one and the script goes with it — so re-check what is actually
         // on screen before acting on anything it posts.
-        guard self.isShowingFirstPartyPage else {
-            Log.info("Ignoring an LNURL message from a third-party page.")
+        //
+        // `forMainFrameOnly: true` constrains the *user script*, not the handler:
+        // `add(_:name:)` has no frame scope, so `messageHandlers.lnurl` exists in every
+        // frame, including cross-origin ones, whether or not the script ran there. And
+        // `isShowingFirstPartyPage` reads the *main frame's* URL, so an iframe embedded on
+        // a first-party page would otherwise pass this check by posting to the handler
+        // directly.
+        guard message.frameInfo.isMainFrame, self.isShowingFirstPartyPage else {
+            Log.info("Ignoring an LNURL message from a subframe or a third-party page.")
             return
         }
 
