@@ -119,3 +119,8 @@ android/.cxx/
 maestro-debug/
 maestro-report.xml
 .maestro/tests/
+
+# Python bytecode — the shared/ and android/scripts/ checks are run as scripts,
+# and importing one (test_ci_runs.py imports ci-runs.py) leaves this behind.
+__pycache__/
+*.pyc
