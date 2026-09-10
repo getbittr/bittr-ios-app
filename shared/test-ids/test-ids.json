@@ -216,6 +216,7 @@
       "amountLabel": null,
       "amountFiatLabel": null,
       "feeFastButton": null,
+      "feeMediumButton": null,
       "feeSlowButton": null,
       "confirmButton": null
     }

@@ -173,6 +173,7 @@ object TestID {
             const val amountLabel = "send.confirm.amountLabel"
             const val confirmButton = "send.confirm.confirmButton"
             const val feeFastButton = "send.confirm.feeFastButton"
+            const val feeMediumButton = "send.confirm.feeMediumButton"
             const val feeSlowButton = "send.confirm.feeSlowButton"
         }
         const val currencyButton = "send.currencyButton"

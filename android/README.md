@@ -2,16 +2,23 @@
 
 Native Android app — Kotlin + Jetpack Compose + Material 3.
 
-**Status: scaffold, Gradle half verified, emulator half unverified.** The project
-builds and the unit tests pass — that has been run. The DI graph resolves and
-navigation renders one screen. There is no feature code and no wallet. See
-`../ANDROID_PORT_PLAN.md` for where this is going.
+**Status: scaffold, verified on a device, unverified in CI.** The project builds, the
+unit tests pass, the DI graph resolves and navigation renders one screen. There is no
+feature code and no wallet. See `../ANDROID_PORT_PLAN.md` for where this is going.
 
-**The Maestro flow has never been executed**, here or in CI. It is written and the
-workflow that would run it is written, but no emulator has booted against this app:
-the environment the scaffold was built in has no `/dev/kvm`. BIT-5's definition of
-done — three consecutive green CI runs plus a wall-clock number — is therefore still
-open, and the emulator job should be read as untested code until a run exists.
+**The Maestro flow has run green on a real emulator** — 2026-09-10, on a MacBook
+following `docs/local-setup-macos.md`. That closes the assumption the scaffold rested
+on: Compose `testTag`s really are reachable by Maestro's `id:` selectors through
+`testTagsAsResourceId`, which no JVM test can prove (Robolectric reads the semantics
+tree directly and passes with the flag either way). Details in that doc under "What
+the first run proved".
+
+**It has still never run in CI.** The emulator job — AVD cache, boot on a runner,
+artefact upload — remains untested code; the environment the scaffold was built in
+has no `/dev/kvm`. BIT-5's definition of done is three consecutive green *CI* runs
+plus a wall-clock number, so it stays open. For the local half of that evidence use
+`scripts/smoke-consecutive.sh`, which runs the flow N times and reports the per-run
+wall clock without retries.
 
 ## Build
 
