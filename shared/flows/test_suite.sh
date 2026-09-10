@@ -26,6 +26,12 @@
 #                                              # (starts screenshot_server.js —
 #                                              # needs Accessibility permission)
 #
+# Environment:
+#   BITTR_SLOW_SYNC=20 ...                     # hold the sync overlay open for
+#                                              # 20s so receive_onchain can
+#                                              # screenshot it (S-27); needs a
+#                                              # regtest/debug build
+#
 # Exit code: 0 if everything passed, 1 if any flow failed (unless
 # --expect-vulnerable made those failures expected), 2 on preflight errors.
 
@@ -63,6 +69,14 @@ done < <(grep -E '^[[:space:]]*-[[:space:]]*runFlow:' "${SUITE_FILE}" 2>/dev/nul
 # forgot_pin.yaml needs the fixed test mnemonic (the one restore_wallet.yaml
 # re-establishes). Harmless to pass to every flow — only forgot_pin reads it.
 MNEMONIC="attack urge across cupboard year armor list vital outer leader anxiety endorse"
+
+# features/receive_onchain.yaml turns this into the app's `-slowSync` launch
+# argument, which holds the sync overlay open long enough to screenshot it
+# (design-system S-27 — see shared/docs/sync_overlay_capture.md). 0 = off, the
+# normal case. Exporting BITTR_SLOW_SYNC in the shell is not enough on its own:
+# Maestro launches the app on the simulator, so the value only reaches it as a
+# launch argument. Harmless to pass to every flow — only receive_onchain reads it.
+SLOW_SYNC="${BITTR_SLOW_SYNC:-0}"
 
 EVIL_FLOWS=(
     "features/evil_boltz_wrong_invoice.yaml"   # SEC-01 reverse-swap tamper
@@ -294,7 +308,7 @@ for flow in "${FLOWS_TO_RUN[@]}"; do
     echo
     info "${BOLD}maestro test ${FLOW_PATH}${RESET}"
     START_TS=$(date +%s)
-    if maestro test --env MNEMONIC="${MNEMONIC}" "${FLOW_PATH}"; then
+    if maestro test --env MNEMONIC="${MNEMONIC}" --env SLOW_SYNC="${SLOW_SYNC}" "${FLOW_PATH}"; then
         RESULTS+=("${GREEN}✔${RESET} ${flow} ($(($(date +%s) - START_TS))s)")
     else
         EXPECTED=0

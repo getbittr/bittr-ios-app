@@ -61,9 +61,11 @@ in the same frame.
 Follows the `EvilBoltz` precedent (`EvilBoltz.swift:203–223`): a `CommandLine`
 flag with an env-var fallback, hard-gated on `EnvironmentConfig.isDevelopment`.
 
-> **Not applied.** This repo has no Mac in the loop, so the change is unbuilt and
-> uncompiled — committing it would put an unverified Swift edit on the branch.
-> Apply it during the BIT-14 Mac pass, where it can actually be compiled.
+> **Not applied — this Swift patch is the one manual step.** This repo has no Mac
+> in the loop, so the change is unbuilt and uncompiled; committing it would put an
+> unverified Swift edit on the branch. Apply it during the BIT-14 Mac pass, where
+> it can actually be compiled. The Maestro/harness plumbing that feeds it
+> (`test_suite.sh`, `receive_onchain.yaml`) **is** committed — see *Running it*.
 
 ```diff
 --- a/ios/bittr/Home/LoadWalletData.swift
@@ -95,18 +97,25 @@ plus, on the same type:
 #if DEBUG
 /// Seconds to hold the sync overlay open before finalising, for capturing
 /// S-27. `-slowSync` (bare, = 20 s) or `-slowSync 30`, or `BITTR_SLOW_SYNC=30`.
-/// Regtest builds only.
+/// Regtest builds only. A delay of 0 — what every ordinary suite run passes —
+/// means "off".
 static var slowSyncDelay: TimeInterval? {
     guard EnvironmentConfig.isDevelopment else { return nil }
-    if let i = CommandLine.arguments.firstIndex(of: "-slowSync") {
+    // Accept -slowSync and --slowSync: Maestro renders an `arguments:` key as
+    // `-key`, and hand-runs tend to type the double dash.
+    if let i = CommandLine.arguments.firstIndex(where: {
+        $0 == "-slowSync" || $0 == "--slowSync"
+    }) {
         let next = i + 1
         if CommandLine.arguments.indices.contains(next),
            !CommandLine.arguments[next].hasPrefix("-"),
-           let parsed = TimeInterval(CommandLine.arguments[next]) { return parsed }
-        return 20
+           let parsed = TimeInterval(CommandLine.arguments[next]) {
+            return parsed > 0 ? parsed : nil
+        }
+        return 20   // bare flag, no value
     }
     if let raw = ProcessInfo.processInfo.environment["BITTR_SLOW_SYNC"],
-       let parsed = TimeInterval(raw) { return parsed }
+       let parsed = TimeInterval(raw) { return parsed > 0 ? parsed : nil }
     return nil
 }
 /// `loadWalletData` can re-enter while the deferred call is pending — without
@@ -120,22 +129,41 @@ static var slowSyncArmed = false
 
 ## Running it
 
-`receive_onchain.yaml` needs **no change**. It already waits for the overlay's own
-auto-dismiss, which still fires — just `delay` seconds later, well inside the
-existing 60 s `extendedWaitUntil`.
-
 ```sh
 BITTR_SLOW_SYNC=20 shared/flows/test_suite.sh features/receive_onchain.yaml
 ```
 
-If the harness does not forward the environment to the simulator, pass the flag on
-`launchApp` instead:
+**The plumbing for that command is already committed** — only the Swift patch
+above is outstanding.
 
-```yaml
-- launchApp:
-    arguments:
-      "-slowSync": "20"
-```
+An earlier draft of this doc claimed `receive_onchain.yaml` needed no change and
+that the env var alone would do it. That was wrong, and it would have failed
+silently — the flow would have run green and simply not produced the shot.
+`test_suite.sh` invokes `maestro test --env … <flow>`, and Maestro launches the
+app **on the simulator**, so a variable exported in the Mac's shell is never in
+`ProcessInfo.processInfo.environment` for the app. It has to travel as a launch
+argument. Two small commits now carry it:
+
+- `test_suite.sh` reads `$BITTR_SLOW_SYNC` (default `0`) and passes it to every
+  flow as `--env SLOW_SYNC=…`;
+- `receive_onchain.yaml` declares `env: SLOW_SYNC: "0"` as the default and
+  launches with `arguments: { slowSync: ${SLOW_SYNC} }`, which Maestro renders as
+  `-slowSync <n>`.
+
+So an ordinary suite run passes `-slowSync 0`, which the patch reads as *off*.
+That is why the Swift side must treat `0` as disabled rather than as a zero-second
+delay — otherwise every normal `receive_onchain` run would defer `finalizeSync`
+onto the next runloop turn for no reason.
+
+The flow needs no *other* change: it already waits for the overlay's own
+auto-dismiss, which still fires — just `delay` seconds later, well inside the
+existing 60 s `extendedWaitUntil`.
+
+If `slowSync` somehow arrives uninterpolated (a literal `${SLOW_SYNC}`, e.g. an
+older Maestro that does not substitute inside `arguments`), `TimeInterval(…)`
+returns nil and the flag reads as off — the flow still passes, it just captures
+`00_move_balance.png` as before. Verify from the run log that the app launched
+with `-slowSync 20` before concluding the patch is at fault.
 
 Expect `00_sync_status.png` **and** `00_move_balance.png` to both be absent-or-present
 per run: with the flag armed you get `00_sync_status.png` and the Move branch does

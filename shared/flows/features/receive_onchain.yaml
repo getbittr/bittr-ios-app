@@ -21,11 +21,27 @@
 # onboarding subflow first. Does NOT clearState — wallet state is preserved.
 #
 # Run: maestro test shared/flows/features/receive_onchain.yaml
+#
+# SLOW_SYNC (seconds, default 0 = off) forces the sync overlay to stay open so
+# step 0's header tap can capture it (design-system S-27, see
+# shared/docs/sync_overlay_capture.md). It is passed to the app as the
+# `-slowSync` launch argument and is honoured by regtest/debug builds only.
+# test_suite.sh forwards $BITTR_SLOW_SYNC into it:
+#
+#   BITTR_SLOW_SYNC=20 shared/flows/test_suite.sh features/receive_onchain.yaml
+#
+# A shell env var alone does NOT reach the app — Maestro launches it on the
+# simulator, so the value has to travel as a launch argument like this.
 
 appId: com.bittr.bittr-regtest
+env:
+  SLOW_SYNC: "0"
 ---
 # Launch without clearState so existing wallet state is preserved across runs.
-- launchApp
+# `-slowSync 0` is the normal case and means "off" (see the header note).
+- launchApp:
+    arguments:
+      slowSync: ${SLOW_SYNC}
 - runFlow: ../helpers/wait_for_launch.yaml
 
 # Auto-recover if no wallet exists yet (full onboarding lands on Home).
