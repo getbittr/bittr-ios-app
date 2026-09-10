@@ -592,7 +592,7 @@ class Language: NSObject {
             "channelclosuretransaction": "These are the funds from your closed lightning connection, returning to your regular wallet.",
             "mapvctoplabel": "Find spots in your area that accept bitcoin payments.",
             "mapvcpoweredby": "Powered by BTCMap.org",
-            "mapvcpoweredbyalert": "<b>BTCMap.org</b> uses OpenStreetMap to tag places that accept bitcoin, and display those merchants in their beautiful apps.<br><br>Their apps and the underlying data are free and open-source.<br><br>Bittr does not save your location or share your location with third parties."
+            "mapvcpoweredbyalert": "<b>BTCMap.org</b> uses OpenStreetMap to tag places that accept bitcoin, and display those merchants in their beautiful apps.<br><br>Their apps and the underlying data are free and open-source.<br><br>Neither bittr nor BTCMap.org receives your location. Your phone downloads the whole list of places and picks out the nearby ones itself.<br><br>The map itself is drawn by a map provider, which sees the area on your screen — and if you allow location, that starts with the area around you."
             
         ]
         
