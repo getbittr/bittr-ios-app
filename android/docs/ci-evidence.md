@@ -27,7 +27,8 @@ runs in a row is safe to do*) — so all three survive to be read.
 |---|---|---|---|---|---|
 | 0 | `a93f1fe` | push | **green** | not recorded | not recorded |
 | 1 | `d2f1ba9` | push | *pending* | | |
-| 2 | *this commit* | push | *pending* | | |
+| 2 | `6a9bc95` | push | *pending* | | |
+| 3 | *this commit* | push | *pending* | | |
 
 Run 0 is numbered zero deliberately: it is the first green run in this workflow's
 history and it is what established that the job works end to end, but it predates the
