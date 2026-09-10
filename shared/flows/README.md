@@ -24,6 +24,16 @@ shared/flows/
                           signup and exiting via "I don't have an IBAN" →
                           "Go to wallet" to Home. The error-branch counterpart
                           to happy_path_wallet. Top-level entry.
+    seed_gate_rejects_wrong_words.yaml
+                          Wipes state and proves the Signup4 seed-confirmation
+                          gate REJECTS wrong input: valid-but-wrong BIP39 words,
+                          a non-BIP39 string, and an empty field each raise
+                          their own alert (asserted by test id, not by copy) and
+                          leave the flow still on Signup4 — then the right words
+                          advance it. Parity-critical: recovery is mnemonic-only
+                          (BIT-8), so this gate is the whole recovery guarantee,
+                          and every other flow types the RIGHT words. Runs first
+                          in suite.yaml. Top-level entry.
     happy_path_wallet.yaml  Reusable subflow: wallet creation, Signup1 →
                           the wallet-ready screen (Signup7).
     happy_path_signup.yaml  Reusable subflow: bittr signup, Signup7 → Home.
@@ -217,6 +227,15 @@ shared/flows/
     show_invoice.yaml     From a freshly-opened Receive screen, switches the
                           type to a lightning invoice (via More → Create
                           invoice) and waits out the QR spinner. Needs a channel.
+    capture_mnemonic_words.yaml  Reads all 12 words off Signup3 into
+                          output.words[1..12] (1-based, matching the on-screen
+                          numbering and the index Signup4 asks for). Used by
+                          seed_gate_rejects_wrong_words.yaml. happy_path_wallet
+                          and fresh_install_unhappy still inline their own
+                          copies — deliberately, since both are proven against
+                          the simulator and sit on the critical path of nearly
+                          every flow; consolidate on a run where they can be
+                          re-run.
   scripts/         Maestro `runScript` helpers (GraalJS).
     mine_blocks.js              POST /e2e/mine-blocks on the regtest backend.
     trigger_bank_transaction.js POST /e2e/bank-transaction (incoming SEPA).

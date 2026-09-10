@@ -236,7 +236,7 @@ class Signup4ViewController: UIViewController, UITextFieldDelegate {
         
         // Check for empty fields
         if field1Text.isEmpty || field2Text.isEmpty || field3Text.isEmpty {
-            self.showAlert(
+            self.showAlert(id: TestID.Alert.missingWords,
                 title: Language.getWord(withID: "missingwords"),
                 message: Language.getWord(withID: "missingwords2"),
                 buttons: [.dismiss(Language.getWord(withID: "okay"))])

@@ -352,6 +352,7 @@
     "invalidWords": null,
     "lightningExplanation": null,
     "lowFee": null,
+    "missingWords": null,
     "noScreenshot": null,
     "notificationsRequired": null,
     "onlyIban": null,

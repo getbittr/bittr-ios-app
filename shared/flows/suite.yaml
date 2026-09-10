@@ -26,7 +26,13 @@
 
 appId: com.bittr.bittr-regtest
 ---
-# --- Setup: clean wallet → bittr account → funded channel ---------------------
+# --- Setup: seed gate first, then clean wallet → bittr account → funded channel
+# seed_gate_rejects_wrong_words runs ahead of everything because recovery is
+# mnemonic-only (BIT-8), which makes the onboarding seed gate the entire
+# recovery guarantee — a regression there is funds loss, not a UX bug. Failing
+# it after twenty minutes of channel setup wastes the run. The throwaway wallet
+# it leaves on Signup7 is wiped by the clearState in the flow after it.
+- runFlow: onboarding/seed_gate_rejects_wrong_words.yaml  # see note above
 - runFlow: onboarding/fresh_install_skip_signup.yaml  # clearState + create wallet, skip bittr signup, PIN 1234
 - runFlow: features/buy_signup.yaml            # create the bittr account
 - runFlow: features/buy_incoming.yaml          # first top-up: opens the channel + funds (needs push_server)

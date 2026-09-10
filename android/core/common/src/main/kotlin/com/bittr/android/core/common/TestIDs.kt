@@ -29,6 +29,7 @@ object TestID {
         const val invalidWords = "alert.invalidWords"
         const val lightningExplanation = "alert.lightningExplanation"
         const val lowFee = "alert.lowFee"
+        const val missingWords = "alert.missingWords"
         const val noScreenshot = "alert.noScreenshot"
         const val notificationsRequired = "alert.notificationsRequired"
         const val onlyIban = "alert.onlyIban"
@@ -228,6 +229,10 @@ object TestID {
     }
     object Signup {
         object Bittr {
+            object Initiative {
+                const val cancelButton = "signup.bittr.initiative.cancelButton"
+                const val confirmButton = "signup.bittr.initiative.confirmButton"
+            }
             object Otp {
                 const val codeButton = "signup.bittr.otp.codeButton"
                 const val codeTextField = "signup.bittr.otp.codeTextField"

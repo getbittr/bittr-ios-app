@@ -26,6 +26,7 @@ enum TestID {
         static let invalidWords = "alert.invalidWords"
         static let lightningExplanation = "alert.lightningExplanation"
         static let lowFee = "alert.lowFee"
+        static let missingWords = "alert.missingWords"
         static let noScreenshot = "alert.noScreenshot"
         static let notificationsRequired = "alert.notificationsRequired"
         static let onlyIban = "alert.onlyIban"
