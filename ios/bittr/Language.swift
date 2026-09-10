@@ -293,7 +293,7 @@ class Language: NSObject {
             "screenshot2": "We've added the screenshot to your Photo Library.",
             "screenshot3": "We couldn't save your screenshot. Try taking a screenshot manually.",
             "receivenotifications": "Receive notifications",
-            "receivenotifications2": "To receive instant bitcoin payments, you must allow notifications.\n\nWithout notifications, you cannot receive payments to your wallet.",
+            "receivenotifications2": "To receive instant bitcoin payments, you must allow notifications.\n\nWithout them, your purchases are paid into the regular (on-chain) part of your wallet instead.",
             "receivenotifications3": "To receive instant bitcoin payments, you must allow notifications.\n\nOn your device, go to Settings > Notifications > bittr to authorize our notifications.\n\nYou're free to continue without notifications, but then all your purchases will be paid into the regular (on-chain) part of your wallet.",
             "lightningneedsnotifications": "Lightning payouts are delivered via push notifications, so you must allow notifications to switch to lightning.\n\nOn your device, go to Settings > Notifications > bittr to authorize our notifications, then try again.",
             "verificationfail": "Please enter the correct verification code.",
