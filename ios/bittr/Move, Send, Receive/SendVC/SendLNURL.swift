@@ -239,8 +239,15 @@ extension UIViewController {
         }
         
         if minSendable == maxSendable {
-            // Min and max are the same.
-            self.sendPayRequest(callbackURL: receivedCallback.replacingOccurrences(of: "\0", with: "").trimmingCharacters(in: .controlCharacters), amount: minSendable, receivedDescription: receivedDescription)
+            // One amount on offer, so there is nothing to enter — but the user still has to
+            // agree to it. This branch used to go straight to `sendPayRequest`, which meant
+            // the only thing standing between a request the wallet did not initiate and a
+            // payment of someone else's chosen amount was the nil downcast in
+            // `sendPayRequest`. Mirrors the withdraw path below.
+            let callbackURL = receivedCallback.replacingOccurrences(of: "\0", with: "").trimmingCharacters(in: .controlCharacters)
+            sendVC?.stopLNURLSpinner()
+
+            self.showAlert(title: Language.getWord(withID: "payrequest"), message: Language.getWord(withID: "payrequest1").replacingOccurrences(of: "<payable>", with: "\(minSendable/1000)"), buttons: [.action(Language.getWord(withID: "cancel")) { self.cancelLnurlPay() }, .action(Language.getWord(withID: "confirm")) { self.sendPayRequest(callbackURL: callbackURL, amount: minSendable, receivedDescription: receivedDescription) }])
         } else {
             // Min and max are different.
             sendVC?.pendingLNURLCallback = receivedCallback.replacingOccurrences(of: "\0", with: "").trimmingCharacters(in: .controlCharacters)
@@ -331,6 +338,14 @@ extension UIViewController {
                         SentryManager.countMetric("lnurl.pay.success")
                         
                         // Pay invoice.
+                        //
+                        // NOTE: `sendVC` being nil here is load-bearing, not incidental.
+                        // `handleLNURL` is a `UIViewController` extension, so this same code
+                        // also runs on `WebsiteViewController` — where the downcast fails and
+                        // the payment silently stops at this line. That is currently the last
+                        // thing keeping a page in the in-app WebView from driving a payment.
+                        // If you move this onto a shared handler, or make `sendVC` non-nil
+                        // from other hosts, put an explicit consent step in front of it first.
                         sendVC?.pendingLnurlInvoice = receivedInvoice
                         sendVC?.pendingLnurlNote = receivedDescription
                         sendVC?.checkSendLightning()
@@ -438,6 +453,13 @@ extension UIViewController {
         sendVC?.pendingLnurlAuth = nil
         sendVC?.stopLNURLSpinner()
         websiteVC?.pendingLnurlAuth = nil
+        websiteVC?.isHandlingLnurlAuth = false
+    }
+
+    func cancelLnurlPay() {
+        let sendVC = self as? SendViewController
+        let websiteVC = self as? WebsiteViewController
+        sendVC?.stopLNURLSpinner()
         websiteVC?.isHandlingLnurlAuth = false
     }
     

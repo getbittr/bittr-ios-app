@@ -8,6 +8,15 @@ We started tracking the changelog at **0.1.184** (the TestFlight build current w
 
 ## [Unreleased]
 
+### Security
+
+- The in-app browser's LNURL bridge is now limited to pages on `getbittr.com`. It was previously installed on every page the browser opened — including a merchant's website reached from the Bitcoin map and the block explorer — which let a page bittr does not control hand the wallet an LNURL-auth request and have it signed with the user's identity for the attacker's domain. (BIT-34)
+- LNURL links are now recognised by their scheme and by a strict bech32 parse, rather than by testing whether the URL contains the text `lnurl` or `tag=login` anywhere in it.
+
+### Changed
+
+- An LNURL pay request that offers a single fixed amount now asks for confirmation before paying, matching the withdraw flow. Previously this was the one pay path that reached the payment step with no confirmation dialog.
+
 ## [0.1.185] - 2026-09-08
 
 ### Added
