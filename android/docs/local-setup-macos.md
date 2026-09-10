@@ -57,7 +57,12 @@ of two ways — either is enough, you don't need both.
 
 ```sh
 echo 'export ANDROID_HOME=/opt/homebrew/share/android-commandlinetools' >> ~/.zshrc
+echo 'export PATH="$ANDROID_HOME/platform-tools:$PATH"' >> ~/.zshrc
 ```
+
+`sdkmanager` is on `PATH` from the Homebrew cask; `adb` is not. `smoke-consecutive.sh`
+will find it via `ANDROID_HOME` if you skip the PATH line, but anything you type
+yourself (`adb devices`, `adb install`) needs it.
 
 **Or** write an `android/local.properties` file, which points Gradle at the SDK
 without touching your environment. From the repo root:
@@ -326,6 +331,7 @@ signup test IDs are visible. It asserts the same IDs the iOS flow does, delibera
 |---|---|
 | `failed to find package platforms;android-37` | You dropped the `.0`. It's `platforms;android-37.0`. |
 | `SDK location not found` | `ANDROID_HOME` unset and no `local.properties`. |
+| `adb is not on PATH` | `ANDROID_HOME` unset, or `platform-tools` not on `PATH`. `export PATH="$ANDROID_HOME/platform-tools:$PATH"` — Homebrew's cask puts `sdkmanager` on `PATH`, not `adb`. |
 | `zsh: no such file or directory: sdk.dir=/opt/...` | You pasted a *file's contents* at the shell prompt. `sdk.dir=…` goes inside `android/local.properties` — see the `printf` line in "Install". |
 | Gradle can't find a project / "no build file" | You opened the repo root. The Gradle build root is `android/`. |
 | Studio wants to downgrade AGP | Studio is older than AGP 9.4. Update Studio; do not downgrade AGP. |

@@ -86,8 +86,21 @@ fail() { echo "error: $*" >&2; exit 1; }
 
 command -v maestro >/dev/null 2>&1 \
   || fail "maestro is not on PATH. See android/docs/local-setup-macos.md."
-command -v adb >/dev/null 2>&1 \
-  || fail "adb is not on PATH. Add \$ANDROID_HOME/platform-tools."
+
+# Homebrew's android-commandlinetools cask puts sdkmanager on PATH, not adb.
+# The Mac setup doc exports ANDROID_HOME and stops there, so resolve through
+# that before complaining. Prepend so Maestro's own adb lookup sees it too.
+if ! command -v adb >/dev/null 2>&1; then
+  if [ -n "${ANDROID_HOME:-}" ] && [ -x "$ANDROID_HOME/platform-tools/adb" ]; then
+    PATH="$ANDROID_HOME/platform-tools:$PATH"
+    export PATH
+  elif [ -n "${ANDROID_SDK_ROOT:-}" ] && [ -x "$ANDROID_SDK_ROOT/platform-tools/adb" ]; then
+    PATH="$ANDROID_SDK_ROOT/platform-tools:$PATH"
+    export PATH
+  else
+    fail "adb is not on PATH. Export ANDROID_HOME and add \$ANDROID_HOME/platform-tools (see android/docs/local-setup-macos.md)."
+  fi
+fi
 
 # Exactly one device. With two attached, adb refuses every command with
 # "more than one device/emulator" — but Maestro picks one on its own, so the
