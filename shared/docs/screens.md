@@ -45,7 +45,7 @@ For the full feature-/interaction-level gap list (LNURL-withdraw, deep links, pu
 - **Purpose**: per-step wallet-sync progress (conversion / LDK / final). Dismisses itself when the sync finishes; also has a manual close button.
 - **States**: shown (syncing) / auto-dismissed on sync complete.
 - **Flow**: `shared/flows/features/receive_onchain.yaml` (opened right after unlock while syncing, then left to auto-dismiss when the sync finishes). If the tap lands after the sync finished, the same button opens the balance/Move screen instead, which the flow closes.
-- **Screenshots**: `receive_onchain/00_sync_status.png`
+- **Screenshots**: **race-dependent — only one of these two exists per run.** `receive_onchain/00_sync_status.png` (tap landed while still syncing) *or* `receive_onchain/00_move_balance.png` (sync already finished, so the same button opened the balance/Move screen). The 2026-09-09 capture produced `00_move_balance.png`; the sync overlay is **not** on disk. Re-running the suite is the same coin flip — see `sync_overlay_capture.md` for the deterministic recipe.
 
 ## Signup (create wallet)
 
@@ -215,7 +215,7 @@ For the full feature-/interaction-level gap list (LNURL-withdraw, deep links, pu
 - **Purpose**: enter/paste a destination (onchain address, invoice, or LNURL) and amount; routes to onchain or lightning.
 - **States**: empty / address pasted / invoice pasted / amount-missing alert / lnurl prompt / syncing alert / Regular-vs-Instant explanation alert / onchain max-sendable ("You can send…") info alert / "insufficient funds — Swap and pay" suggestion (lightning invoice with no channel, or onchain address with too little onchain balance). The lightning-side "You can send…" question opens the QuestionViewController (channel info).
 - **Flow**: `shared/flows/features/{send_onchain,send_onchain_all,send_lightning,send_swap_suggestion_lightning,send_swap_suggestion_onchain,receive_onchain,receive_invoice}.yaml`
-- **Screenshots**: `send_onchain/02_regular.png`, `send_onchain/01c_lightning_sendable_info.png`, `send_onchain/02a_regular_instant_info.png`, `send_onchain/02b_max_sendable_info.png`, `send_lightning/02_invoice_pasted.png`, `send_lightning/09_lnurl_prompt.png`, `receive_onchain/05_send_address_only.png`, `receive_invoice/05_send_invoice_only.png`
+- **Screenshots**: `send_onchain/02_regular.png`, `send_onchain/01c_lightning_sendable_info.png`, `send_onchain/02a_regular_instant_info.png`, `send_onchain/02b_max_sendable_info.png`, `send_lightning/02_invoice_pasted.png`, `send_lightning/09_lnurl_amount.png`, `receive_onchain/05_send_address_only.png`, `receive_invoice/05_send_invoice_only.png`
 - **Not covered**: LNURL-withdraw. See `parity.md`.
 
 ### Confirm send
