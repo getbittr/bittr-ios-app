@@ -104,6 +104,20 @@ Previously listed here and now covered: Restore wallet (`onboarding/restore_wall
 | Receive "LNURL" type | `ReceiveViewController.swift` (`tappedLnurl`, More-picker option 4) | The user's own Lightning-address receive screen is never opened (onchain / invoice / Bitcoin QR are covered). |
 | External deep links | `SceneDelegate.swift`, `Core/URIs.swift`, `Info.plist` (`bitcoin:` / `lightning:` schemes) | Opening the app / Send screen from an external URI. Send flows only use the in-app Paste button. |
 | Swap-file export / share | `SwapStatusViewController.swift:350` (`downloadSwapFileTapped`) | No flow taps the swap-file download/share. |
+| Pending payout — **claim** branch | `DeviceViewController.checkPendingPayout()` :265 → `handlePendingPayout()` :319 | **Load-bearing recovery path (BIT-28).** `settings.yaml:222-230` taps `device.row.pendingpayouts` but only waits for `alert.button.0` and screenshots — and *both* outcomes carry an `alert.button.0` ("Okay" on `bittrpendingpayout2` / "Cancel" on `bittrpendingpayout3`). The flow is therefore green whether or not the claim path works, and today it only ever exercises the empty branch. Needs an assertion on *which* alert, plus a seeded pending payout. Blocked on the env fix below. |
+| Pending payout — **sync-triggered** check | `LoadWalletData.swift:567-570` → same `checkPendingPayout()` | Not previously tracked. The same call runs automatically on every wallet sync when the user has a bittr account (and no PIN-reset/wipe in progress), hosted by `CoreViewController` rather than `DeviceViewController`. It is *silent* when nothing is pending — the `deviceVC != nil` guards at :298 and :310 suppress the alert — so it is the first line of defence for a missed push, with the Settings row as the manual retry. No flow covers it. Port both hosts, not just the Settings row. |
+
+**Env precondition for both pending-payout rows.** `DeviceViewController.swift:283` hardcodes
+`https://getbittr.com/api/notifications` instead of going through
+`EnvironmentConfig` (`Helpers/EnvironmentConfig.swift:82`, which already resolves
+staging vs production). A regtest build therefore reads *production* notification
+state, so the claim branch is not merely untested but structurally untestable — no
+regtest payout can ever appear there. Routing it through `EnvironmentConfig` is the
+precondition for asserting that branch on either platform. The iOS-side change is
+already flagged in **BIT-9** ("Also worth fixing while in here") and stays owned
+there; Android must not transliterate the hardcoded host. Same class of issue at
+`LoadWalletData.swift:326`/`:510`, `BittrWallet.swift:45`, `BitcoinValue.swift:14`,
+`ValueViewController.swift:239` and `BittrWidget.swift:58` (price endpoints).
 
 ### Push notifications — in scope for parity, flows to come later
 
@@ -136,7 +150,7 @@ Mostly defensive alerts on the onboarding/auth screens, with no flow:
 
 - **Signup**: article cards.
 - **Restore**: empty-field & invalid-mnemonic alerts; forgot-PIN wrong-mnemonic / no-cached-mnemonic alerts; Restore3 PIN-mismatch; back buttons.
-- **Settings/Device**: dark-mode **device/auto** option (sun/moon tested); **Copy** for public key & device token; **pending-payout confirm** branch (only the no-payout path is tested).
+- **Settings/Device**: dark-mode **device/auto** option (sun/moon tested); **Copy** for public key & device token. *(The pending-payout confirm branch was listed here as low priority; promoted to the production-scope table above — it is the documented support remedy, and on Android it carries more load than on iOS because the push path is weaker.)*
 - **Buy**: payment-mode server-error/retry and `lightningnotready` guard paths.
 
 ### Not parity-tracked
@@ -148,6 +162,85 @@ Mostly defensive alerts on the onboarding/auth screens, with no flow:
 ### Confirmed absent in iOS (not parity gaps — do not build for parity)
 
 No biometric / Face ID unlock (PIN only), no clipboard auto-detection on foreground, no Universal Links / associated domains, no Siri / Intents / Spotlight, no App Clip, no Share/Action extension.
+
+## Deliberate platform divergences
+
+Places where Android is *intentionally* not going to match iOS. Each one costs
+the suite something, so each needs a decided handling before the Android flows
+run — otherwise they surface as red flows that look like port bugs.
+
+| Divergence | iOS behaviour | Android behaviour | Flows affected | Handling |
+|---|---|---|---|---|
+| Seed-phrase screenshot warning | `userDidTakeScreenshotNotification` → in-app "we recommend against screenshotting" alert on the mnemonic screen | `FLAG_SECURE` **prevents** the capture; the OS shows its own toast. No app-level alert exists to assert on | `onboarding/fresh_install_unhappy.yaml` (`05_mnemonic_screenshot` + the alert assertion that follows) | **Undecided — DEV-18.** The captured state is deleted, not renamed: there is no Android screen to screenshot. Either branch the flow on platform or mark the assertion iOS-only. Do **not** let it stand as a parity gap. |
+| Unlock authentication | PIN only (no Face ID / Touch ID) | `BiometricPrompt` with PIN fallback — DEV-17, an Android-convention **addition**, not a port of an iOS screen | 29 of 39 flows (see below) | Biometrics must be **enrolled-off in the test build**, so every flow lands on the PIN pad. A default-on emulator with a fingerprint enrolled breaks the suite at its single most-traversed screen. |
+
+### Why the biometrics default matters more than it looks
+
+PIN entry is the deepest shared dependency in the suite:
+
+- **28** flows call `helpers/unlock.yaml`; **7** tap the PIN pad directly; **32** do one or the other.
+- **29 of the 39** screenshot-taking flows sit behind a PIN entry.
+- **296 of the 336** `takeScreenshot` steps — **88%** — are unreachable if the unlock screen changes shape.
+
+Recount with:
+`grep -rl 'unlock.yaml' shared/flows --include=*.yaml | grep -v 'helpers/unlock.yaml'`
+
+So this is not "9 flows" of exposure; a biometric prompt appearing ahead of the
+PIN pad fails almost the whole suite at once, and it fails it *early*, which
+makes every downstream flow look broken too. The Android scaffold must ship
+with biometrics off under test before the first parity run, not after.
+
+## Assertion fragility — the alert surface is matched by copy
+
+`alert.button._index`, `alert.textField` and — since BIT-19 — a per-alert
+`testID:` on the title row are the accessibility ids on the alert surface. The
+per-alert id is opt-in and only three alerts pass one so far, so for almost
+every alert the answer to *which* alert it is, what it says, and whether it's
+the right one is still asserted by matching its **text**.
+
+- **195** `alert.button` / `alert.textField` selectors across **32** flows
+  (`grep -rh 'id: "alert\.' shared/flows --include=*.yaml | wc -l`).
+- **143** `text:` matchers in the suite, the bulk of them alert copy
+  (`grep -rh 'text:' shared/flows --include=*.yaml | wc -l`).
+
+**The risk.** The Phase 0 `*Language.swift` → `shared/strings/` consolidation
+moves every string in the app. A reworded string in transit breaks these
+assertions on **iOS and Android simultaneously and silently** — silently
+because a copy change is not a behaviour change, so nobody expects a test
+result from it, and simultaneously because both platforms will read from the
+same consolidated source.
+
+**Before that migration starts:**
+
+1. Treat the string consolidation as **verbatim**. Moving copy is in scope;
+   rewording it in the same change is not. If a string must change, change it
+   in a separate commit so the suite failure has an obvious cause.
+2. Re-run the full 39 flows on iOS immediately after the move, before any
+   Android work depends on it. iOS is the control: if a flow goes red there,
+   the migration changed copy it said it wasn't changing.
+3. Longer term the fix is ids, not discipline — give the alert surface real
+   per-alert identifiers so assertions stop depending on wording. Not required
+   before the migration, but the migration is the moment that proves why.
+
+**The mechanism now exists** (BIT-19). `showAlert(…, testID:)` tags the alert's
+title row with an id from `shared/test-ids/test-ids.json`; it defaults to nil,
+so adopting it is per-call-site and no existing alert changed. Three alerts use
+it — the Signup4 seed-gate branches `missingWordsAlert`, `invalidWordsAlert`
+and `incorrectPhraseAlert` — because those guard a mnemonic-only recovery and
+must not be assertable only by copy that BIT-12 is about to move. Migrating the
+remaining alerts is now mechanical: register a leaf, pass `testID:`, swap the
+flow's `text:` matcher for an `id:`. Do it per alert as flows are re-run — a
+blind bulk swap trades a copy-drift failure for an id-typo failure.
+
+## Scoreboard denominator
+
+The Android parity score is **flows passing out of 39**, and the 39 is fixed here so the number can't quietly improve by shrinking the denominator.
+
+- **39** = every flow under `shared/flows/**` that takes a screenshot, i.e. that drives real screens (336 `takeScreenshot` steps). `shared/flows/android/scaffold_smoke.yaml` is excluded — it targets `com.bittr.android.regtest` and is Android-only scaffolding, not an iOS behaviour to reach parity with. Was 38 / 329 before BIT-19 added `onboarding/seed_gate_rejects_wrong_words.yaml` (7 steps); the denominator grows when coverage is added, it just never shrinks.
+- **Not 26.** `suite.yaml` runs 26 of the 39 and reaches 277 of the 336 steps. The notification, evil and unhappy flows plus `buy_signup_no_notifications` need their own invocations — see BIT-3's reference set for the exact command per flow. A scoreboard built on `suite.yaml` alone reports 26/26 while 13 flows have never run.
+- Recount rather than trusting this paragraph: `grep -rl takeScreenshot shared/flows --include=*.yaml | grep -v '^shared/flows/android/'`.
+
+Three flows in the 39 are helper subflows (`helpers/evil_bootstrap`, `helpers/evil_fund_onchain`, `helpers/swap_leg1`) — they take screenshots and so must render correctly on Android, but they pass or fail as part of the flow that runs them rather than being invoked directly.
 
 ## Legend
 

@@ -165,8 +165,16 @@ appId: com.bittr.bittr-regtest
 - takeScreenshot: shared/docs/screenshots/bitcoin_map/07_map_moved
 
 # Tap the user-location button to navigate back to the user's location.
+#
+# `assertVisible: map.mapView` is not a wait: the map view is on screen for the
+# whole flow, so it passes instantly and the screenshot lands before MKMapView's
+# animated camera move has run. That made 08_back_to_user byte-identical to
+# 07_map_moved — the re-center read as captured but never appeared. The swipe
+# above already waits for exactly this reason; the tap needs the same.
 - tapOn:
     id: "map.userLocationButton"
 - assertVisible:
     id: "map.mapView"
+- waitForAnimationToEnd:
+    timeout: 5000
 - takeScreenshot: shared/docs/screenshots/bitcoin_map/08_back_to_user

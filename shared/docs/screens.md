@@ -347,7 +347,13 @@ For the full feature-/interaction-level gap list (LNURL-withdraw, deep links, pu
 
 - **VC**: `ios/bittr/Settings/DeviceViewController.swift`
 - **Purpose**: device/wallet diagnostics — dark mode, language, currency, device token, public key, bittr peer, pending payouts, lightning channels, restore.
-- **States**: visible / dark / light / peer disconnected / pending payout.
+- **States**: visible / dark / light / peer disconnected / pending-payout result alert.
+- **Note**: the pending-payout row has three outcomes but only two appearances —
+  "no payouts available" (`bittrpendingpayout2`) and the network-`.failure` case
+  render the *same* title and body (`DeviceViewController.swift:299` and `:311`), so
+  a flow cannot tell an empty result from a failed call. Only the third,
+  `bittrpendingpayout3` ("would you like to handle it now?"), differs, and no flow
+  reaches it. See `parity.md` → "Production-scope features needing a flow".
 - **Flow**: `shared/flows/features/settings.yaml`, `features/remove_wallet.yaml`
 - **Screenshots**: `settings/07_device.png`, `settings/08_darkmode_dark.png`, `settings/09_darkmode_light.png`, `settings/11_publickey.png`, `settings/12_peer_disconnected.png`, `settings/13_pendingpayout.png`, `remove_wallet/03b_device_details.png`
 

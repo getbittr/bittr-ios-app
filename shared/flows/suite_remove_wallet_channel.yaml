@@ -1,0 +1,58 @@
+# Capture pass — the remove-wallet channel-close arc.
+#
+# Why this file exists (it is NOT a second full suite):
+#
+# features/remove_wallet.yaml branches on `output.hasChannel`, read up front
+# from the Move screen's Lightning balance. Both branches are real product
+# behaviour, but only one of them can fire per run, and in suite.yaml the
+# channel branch can never be the one that fires:
+#
+#   suite.yaml:70  onboarding/restore_wallet.yaml   → wallet with NO channel
+#   suite.yaml:75  features/forgot_pin.yaml         → non-destructive PIN reset
+#   suite.yaml:76  features/remove_wallet.yaml      → hasChannel is false, always
+#
+# So the seven-shot arc below — the "close your Lightning connection before
+# removing the wallet" sequence, including the on-chain close and its
+# confirmation popup — is unreachable in suite order no matter how many times
+# the suite is run:
+#
+#   remove_wallet/04_close_channel_warning   05_funds_warning
+#   remove_wallet/06_channel_closed_popup    07_closure_initiated
+#   remove_wallet/08_home_refreshed          09_move_lightning_zero
+#   remove_wallet/09b_closure_description
+#
+# Reordering suite.yaml is not the fix: remove_wallet is destructive (it wipes
+# the wallet and lands on Signup1), so moving it earlier would strand every
+# flow after it. The arc needs its own pass that builds a *funded, channelled*
+# wallet first — which is what this file does.
+#
+# Run (test_suite.sh starts push_server.js, which buy_incoming needs):
+#   shared/flows/test_suite.sh suite_remove_wallet_channel.yaml
+#
+# This is destructive and self-contained: it wipes app data at the start
+# (fresh_install_skip_signup) and leaves the simulator on Signup1 with no
+# wallet at the end. Run it on its own, not interleaved with suite.yaml.
+#
+# Expected result: 7 previously-missing shots appear under
+# shared/docs/screenshots/remove_wallet/. The no-channel tail (10, 11, 12)
+# is re-captured too — it is the same tail the suite already covers, from the
+# same build, so the re-capture is equivalent.
+
+appId: com.bittr.bittr-regtest
+---
+# Clean wallet, PIN 1234, bittr signup deliberately skipped so buy_signup
+# below has its empty-state Buy screen to work with.
+- runFlow: onboarding/fresh_install_skip_signup.yaml
+
+# Create the bittr account — buy_incoming needs a deposit code.
+- runFlow: features/buy_signup.yaml
+
+# First top-up: opens the Lightning channel and funds it. This is the step
+# that makes remove_wallet's `hasChannel` true. Needs push_server.js.
+# The channel opens exactly once per install, which is why the pass starts
+# from a wiped install above rather than reusing suite state.
+- runFlow: features/buy_incoming.yaml
+
+# Now the guard is true: the close-channel arc runs, then falls through into
+# the same no-channel tail the suite already exercises.
+- runFlow: features/remove_wallet.yaml

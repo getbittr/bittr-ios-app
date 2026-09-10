@@ -88,6 +88,13 @@ appId: com.bittr.bittr-regtest
 # effort: with scripts/screenshot_server.js running (+ Accessibility permission)
 # the alert appears and is captured + dismissed; without it this is skipped and
 # the flow still passes.
+#
+# ANDROID: this state has no counterpart and must not be ported as-is. The
+# platform answer for a seed phrase is FLAG_SECURE, which *prevents* the capture
+# and shows the system's own toast — there is no in-app alert to assert on, so
+# the screenshot below has nothing to photograph. Needs a platform branch or an
+# iOS-only marker before the Android suite runs. Tracked as DEV-18; recorded
+# under "Deliberate platform divergences" in shared/docs/parity.md.
 - takeScreenshot: shared/docs/screenshots/fresh_install_unhappy/05_mnemonic_screenshot
 - runScript: ../scripts/trigger_screenshot.js
 - runFlow:
