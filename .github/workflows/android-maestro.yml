@@ -210,6 +210,20 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Mark job start
+        # BIT-5 asks for the wall-clock number, and until this step the workflow
+        # produced no number at all — you had to read the durations off the run
+        # page and add them up by eye, once per run, three times. Worse, the
+        # emulator-runner step is a single timed unit covering AVD boot, install
+        # and the flow together, so the figure it shows answers "how long does
+        # CI take" and not "how long does the flow take", which are different
+        # questions with answers minutes apart.
+        #
+        # Recording the start here lets the run step below decompose it into a
+        # table in the job summary, so each run states its own number and three
+        # consecutive runs can be compared without anyone doing arithmetic.
+        run: echo "JOB_START_EPOCH=$(date +%s)" >> "$GITHUB_ENV"
+
       - name: Download APK
         uses: actions/download-artifact@v4
         with:
@@ -322,7 +336,13 @@ jobs:
           disable-animations: true
           script: |
             set -euo pipefail
+
+            # The emulator is booted by the time this script starts, so this is
+            # the first moment the job can observe how long booting took.
+            emulator_ready=$(date +%s)
+
             adb install -r apk/*.apk
+            installed=$(date +%s)
 
             # Video of the run, kept when the flow fails.
             #
@@ -357,12 +377,14 @@ jobs:
             # The flow's exit status is the job's result, but the recorder has to be
             # stopped on the failing path too — that is the path the video exists for.
             set +e
+            flow_start=$(date +%s)
             maestro test \
               --debug-output maestro-debug \
               --format junit \
               --output maestro-report.xml \
               shared/flows/android/scaffold_smoke.yaml
             status=$?
+            flow_end=$(date +%s)
             set -e
 
             if [ "$recording" = yes ]; then
@@ -378,6 +400,45 @@ jobs:
             elif [ ! -s "$video" ]; then
               echo "::warning::Flow failed and no video was captured (${video##*/} missing or empty). Use maestro-debug/ for the screenshot and view hierarchy."
             fi
+
+            # The wall-clock number BIT-5 asks to be told, written where it is read
+            # without opening a log. Emitted on the failing path too: "it went red
+            # after 28 minutes" and "it went red after 40 seconds" are different
+            # failures, and the timeout case is only legible with the number.
+            #
+            # Boot dominates and that is the point of splitting it out — the flow
+            # itself is a launch and three assertions, so if anyone ever finds this
+            # job too slow to wait for, the answer is in the boot row, not the flow
+            # row, and no amount of flow tuning will touch it.
+            # Every expansion here is defaulted and the whole block is non-fatal,
+            # for the same reason the recorder above is: this runs AFTER the flow
+            # has already produced its verdict, so a fault in the reporting must
+            # not be able to change it. Under `set -euo pipefail` an unset
+            # JOB_START_EPOCH — one skipped step, one typo'd variable — would
+            # abort here and turn a green flow into a red job, which is the most
+            # confusing failure this workflow could possibly emit.
+            if [ "$status" -eq 0 ]; then result="green"; else result="RED (exit $status)"; fi
+            job_start="${JOB_START_EPOCH:-0}"
+            if [ "$job_start" = 0 ]; then
+              boot="unknown"; total="unknown"
+            else
+              boot=$((emulator_ready - job_start)); total=$(($(date +%s) - job_start))
+            fi
+            {
+              echo "### Maestro smoke — wall clock"
+              echo
+              echo "| stage | seconds |"
+              echo "|---|---:|"
+              echo "| emulator boot + SDK setup | $boot |"
+              echo "| APK install | $((installed - emulator_ready)) |"
+              echo "| **flow** (\`scaffold_smoke.yaml\`) | **$((flow_end - flow_start))** |"
+              echo "| emulator job, total | $total |"
+              echo
+              echo "Result: **$result** · Maestro \`${MAESTRO_VERSION:-unpinned}\` · runner \`${RUNNER_ENVIRONMENT:-unknown}\`"
+              echo
+              echo "The \`build\` job runs before this one; its duration is on the run page."
+              echo "BIT-5 closes on three consecutive green dispatches — compare the flow row across all three."
+            } >> "${GITHUB_STEP_SUMMARY:-/dev/null}" || echo "::warning::Could not write the wall-clock summary. The flow's own result is unaffected."
 
             exit "$status"
 

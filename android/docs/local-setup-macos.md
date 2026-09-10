@@ -220,10 +220,11 @@ Hilt's Gradle plugin dropped AGP 8 at 2.59, and Hilt is the DI container.
 
 ## Running the Maestro flow locally
 
-**No emulator has ever booted against this app, and Maestro has never run against
-it** — not locally, not in CI. The agent environment this scaffold was built in has
-no `/dev/kvm`. Package names and flow syntax are verified; *behaviour* is not. Treat
-this section as instructions to try, not as a verified procedure.
+**Verified on 2026-09-10**, on an Apple Silicon MacBook following this document:
+`./gradlew :app:assembleDebug` succeeded, an emulator booted, and
+`scaffold_smoke.yaml` passed. That was the first execution of this harness against a
+real device in BIT-5's history, and it settles the question the whole scaffold was
+resting on — see "What the first run proved" below.
 
 With an emulator up and the app installed (section 2 above):
 
@@ -234,20 +235,50 @@ export PATH="$HOME/.maestro/bin:$PATH"
 maestro test shared/flows/android/scaffold_smoke.yaml   # from the repo root
 ```
 
-If you get this far, **that is the first real execution of the harness** and it is
-the thing BIT-5 has been missing. Send me the output either way — a failure is more
-useful to me than a pass, because the whole risk sitting in this task is the set of
-assumptions no one has tested yet.
-
-The most likely first failure is `element not found` on the test IDs: Compose
-`testTag`s are only visible to Maestro's view hierarchy because `MainActivity` sets
-`testTagsAsResourceId = true`. That wiring has a JVM test behind it, but a JVM test
-proves the flag is set, not that Maestro reads it.
-
 Pin `MAESTRO_VERSION` to match `.github/workflows/android-maestro.yml`. Unpinned, the
 installer takes `releases/latest`, and Maestro moves under this — recent versions
 route `takeScreenshot` output into the `--debug-output` bundle rather than writing it
 relative to the working directory.
+
+### What the first run proved
+
+`testTagsAsResourceId`. Compose `testTag`s are invisible to Maestro's view hierarchy
+unless `MainActivity` sets that flag, and it is the highest blast-radius line in the
+Android tree: without it *every* `assertVisible: id:` on both suites fails while the
+app looks perfectly normal on screen. Nothing on the JVM could ever close it —
+Robolectric reads the Compose semantics tree directly, so `AppLaunchTest` passes
+identically with the flag on or off (mutation-tested, and it does). The guard on it
+is a source check precisely because no test could be written that fails when it goes.
+
+A green Maestro run is the only instrument that can observe the bridging, because
+Maestro resolves `id:` against the accessibility tree the flag writes into. So the
+pass is not just "the scaffold works" — it is the one piece of evidence that the
+1,000-odd `id:` selectors across `shared/flows/**` will resolve on Android at all.
+
+Still open after it: everything about *CI*. A local pass says the app and the flow
+agree; it says nothing about AVD caching, emulator boot on a runner, or artefact
+upload. And one pass is not three.
+
+### Three consecutive runs, with the wall-clock number
+
+BIT-5 closes on green runs *in a row*, plus a number — and a single manual
+`maestro test` gives neither, because nobody times a manual run and one pass cannot
+tell a working harness from a lucky one.
+
+```sh
+android/scripts/smoke-consecutive.sh          # 3 runs, per-run wall clock, no retries
+android/scripts/smoke-consecutive.sh -n 10    # if you suspect a flake
+```
+
+It runs the flow N times against the booted device, times each, and prints a table.
+It does not stop at the first red — finishing tells you "1 red in 3", which is the
+answer to a flakiness question, where stopping only tells you "it broke". There are
+deliberately no retries: a flow that needs one to pass is a failing flow. If the
+slowest run is more than twice the fastest it says so, because an unstable number is
+not a number worth quoting even when every run is green.
+
+This measures the flow on your hardware, not CI — CI's own figure is decomposed into
+boot/install/flow in each run's job summary.
 
 The flow launches the app, waits for `core.launchComplete`, and asserts the three
 signup test IDs are visible. It asserts the same IDs the iOS flow does, deliberately.
