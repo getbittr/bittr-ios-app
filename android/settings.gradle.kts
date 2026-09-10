@@ -43,6 +43,7 @@ include(":core:designsystem")
 // the same API; nothing above this line changes when it lands.
 include(":core:wallet")
 include(":core:wallet-stub")
+include(":core:wallet-ldk")
 
 // Features — one module per area of the iOS app, added as the port reaches them.
 include(":feature:signup")
