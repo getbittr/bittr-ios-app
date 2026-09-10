@@ -2,7 +2,7 @@
 
 Native Android app — Kotlin + Jetpack Compose + Material 3.
 
-**Status: scaffold, verified on a device and green in CI once.** The project builds, the
+**Status: scaffold, green in CI across three consecutive runs.** The project builds, the
 unit tests pass, the DI graph resolves and navigation renders one screen. There is no
 feature code and no wallet. See `../ANDROID_PORT_PLAN.md` for where this is going.
 
@@ -46,9 +46,31 @@ as `bash <file>` so the interpreter is chosen by this repo rather than by whiche
 image the runner happens to be, and `scripts/check-action-scripts.sh` fails the build
 job in seconds if any `script:` input stops being POSIX.
 
-BIT-5's definition of done is three consecutive green *CI* runs plus a wall-clock
-number. One green run is not three, so this stays open — but what remains is
-accumulating evidence, not fixing anything known to be broken.
+## The wall-clock number
+
+**Three consecutive green CI runs, 2026-09-10**, pushes to
+`feature/bit-5-android-scaffold`. Read from the GitHub API, not copied off a page:
+
+| run | commit | end-to-end | build job | emulator job | flow |
+|-----|--------|-----------:|----------:|-------------:|-----:|
+| 8 | `d2f1ba9` | 6m36s | 4m33s | 1m55s | 18s |
+| 9 | `6a9bc95` | 6m37s | 4m13s | 2m17s | 20s |
+| 10 | `4855ed2` | 6m42s | 4m34s | 2m00s | 19s |
+
+**Median end-to-end 6m37s, spread 6s.** That is the number to quote: commit pushed to
+run finished. Reproduce it any time with `scripts/ci-runs.py --require-green 3`.
+
+The shape of that number is the surprising part, and it inverts the assumption this
+whole task was built on. **The emulator is not the slow half.** It is about two
+minutes, and it is stable to within 22 seconds across three runs. The long pole is the
+`build` job at ~4m30s, of which **unit tests alone are 3m-3m26s** — roughly half of
+total CI time, on a scaffold with eleven tests. That is where the time goes today, and
+Gradle configuration/daemon warm-up rather than the tests themselves is the first thing
+to look at if anyone decides 6m37s is too long to wait.
+
+For the same reason, treat the `::notice` on a run page as the *emulator job's*
+decomposition and not as the run's duration — it reports ~2 minutes while the run took
+6m37s. `ci-runs.py` prints both, with the end-to-end figure first.
 
 Two things had to change before three runs could even be attempted, both of which would
 otherwise have quietly produced the wrong answer:
@@ -63,6 +85,13 @@ otherwise have quietly produced the wrong answer:
   needed it — a step summary sits at the bottom of the run page behind a scroll. The same
   figures are now also emitted as a `::notice`, which renders at the top of the run page
   and is the first thing on screen when a run is opened.
+
+  That still put a person in the loop, and the loop still leaked: three rounds of this
+  issue ended with someone being asked to open the Actions tab and copy a line back.
+  **`scripts/ci-runs.py` removes the person entirely** — this repo is public, and the
+  Actions REST API on a public repo needs no authentication, so run results, per-step
+  durations and annotations are all readable with one command and no token. The
+  premise that they were unreadable was never checked.
 
 ## Build
 

@@ -23,12 +23,43 @@ Each row is one push to `feature/bit-5-android-scaffold`. Runs cannot cancel eac
 — non-dispatch runs are keyed on `github.sha` (see `self-hosted-runner.md`, *Why three
 runs in a row is safe to do*) — so all three survive to be read.
 
-| # | commit | trigger | result | flow | emulator job total |
-|---|---|---|---|---|---|
-| 0 | `a93f1fe` | push | **green** | not recorded | not recorded |
-| 1 | `d2f1ba9` | push | *pending* | | |
-| 2 | `6a9bc95` | push | *pending* | | |
-| 3 | *this commit* | push | *pending* | | |
+| # | commit | run | result | end-to-end | build job | emulator job | flow |
+|---|---|---|---|---|---|---|---|
+| 0 | `a93f1fe` | 5 | **green** | 6m48s | not recorded | not recorded | not recorded |
+| 1 | `d2f1ba9` | 8 | **green** | 6m36s | 4m33s | 1m55s | 18s |
+| 2 | `6a9bc95` | 9 | **green** | 6m37s | 4m13s | 2m17s | 20s |
+| 3 | `4855ed2` | 10 | **green** | 6m42s | 4m34s | 2m00s | 19s |
+
+**3/3 green. Median end-to-end 6m37s, spread 6s.** BIT-5's definition of done is met.
+
+Runs 6 and 7 were green in between, on other commits, so the streak at the time of
+writing is longer than three. Three is what was asked for.
+
+### Reproducing this table
+
+```sh
+android/scripts/ci-runs.py --require-green 3
+```
+
+No token, no `gh`, no clicking. The repository is public and the Actions REST API on a
+public repo is readable anonymously — worth stating plainly, because this issue spent
+three rounds asking a human to read these numbers off the Actions tab on the assumption
+that the agent could not. Nobody checked the assumption. `--require-green N` exits
+non-zero unless the most recent N runs all succeeded, so the claim in this file is
+re-verifiable rather than merely recorded.
+
+**End-to-end is the number BIT-5 asks for** — commit pushed to run finished. It is not
+the figure in a run's own `::notice`, which covers the emulator job only (~2 minutes)
+and understates the wait by more than four. Both are printed, total first.
+
+### Where the time actually goes
+
+The emulator was expected to be the expensive, unreliable half. It is neither: ~2
+minutes, stable to within 22s across the three runs. The `build` job is the long pole at
+~4m30s, and **unit tests are 3m-3m26s of it** — about half of all CI time, for eleven
+tests on a scaffold. If 6m37s ever becomes too long to wait for, that is the row to
+attack, and Gradle configuration and daemon warm-up are the first suspects rather than
+the tests themselves.
 
 Run 0 is numbered zero deliberately: it is the first green run in this workflow's
 history and it is what established that the job works end to end, but it predates the
@@ -37,15 +68,35 @@ that CI *can* be green. It is not one of the three.
 
 **Reading a result takes one click and no scrolling.** Open the run from
 <https://github.com/getbittr/bittr-ios-app/actions/workflows/android-maestro.yml>; the
-annotation box at the top of the page carries the whole line:
+annotation box at the top of the page carries the whole line. This is what run 10
+emitted:
 
 ```
-Maestro smoke — green in 512s
-flow 14s · emulator boot 402s · APK install 9s · emulator job total 512s
+Maestro smoke — green in 109s
+flow 19s · emulator boot 89s · APK install 1s · emulator job total 109s
 ```
+
+Runs from this commit onward carry the corrected labels described below, which split
+that 89s into `emulator boot ~65s · setup ~24s`. Those two figures are derived here from
+run 10's per-step durations rather than quoted from any run — no run has printed them
+yet; the first to do so is the one triggered by this commit.
 
 The same figures are in the step summary at the bottom of the run page, as a table, with
 the Maestro version and runner type alongside.
+
+Two corrections are baked into that line, both found by checking the annotation against
+the API's per-step durations rather than by reading it:
+
+- **It is the emulator job, not the run.** 109s against a 6m42s run. The `build` job
+  runs first and is longer. Anyone quoting the annotation as "how long CI takes" is off
+  by a factor of four, which is why the line now says so and why `ci-runs.py` leads with
+  end-to-end.
+- **"emulator boot" used to include things that were not the boot.** It was measured
+  from the top of the job, so it also contained the JDK setup, Maestro's installer and
+  the AVD cache restore — 20-34s of the 88-107s originally reported. Boot and setup are
+  measured separately now, and boot means boot. The number that got that wrong was one
+  I had promoted to the top of the page the round before, having dropped the qualifier
+  the step-summary table still carried.
 
 ## What counts as green
 

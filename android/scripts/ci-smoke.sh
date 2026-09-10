@@ -104,6 +104,18 @@ fi
 # itself is a launch and three assertions, so if anyone ever finds this
 # job too slow to wait for, the answer is in the boot row, not the flow
 # row, and no amount of flow tuning will touch it.
+#
+# SETUP IS SPLIT OUT FROM BOOT, and that split is a correction. This
+# block used to report `emulator_ready - job_start` under the single
+# label "emulator boot". It is not: JOB_START_EPOCH is marked at the top
+# of the job, so that span also contains the JDK setup, Maestro's
+# installer and the AVD cache restore. Checked against the step
+# durations of the three BIT-5 evidence runs, 20-34s of an 88-107s
+# figure was not the emulator booting — enough to send someone tuning
+# emulator flags when the actual repeat cost is re-downloading Maestro
+# on every run. A number with the wrong name on it is worse than no
+# number, because it gets acted on.
+#
 # Every expansion here is defaulted and the whole block is non-fatal,
 # for the same reason the recorder above is: this runs AFTER the flow
 # has already produced its verdict, so a fault in the reporting must
@@ -113,29 +125,49 @@ fi
 # confusing failure this workflow could possibly emit.
 if [ "$status" -eq 0 ]; then result="green"; else result="RED (exit $status)"; fi
 job_start="${JOB_START_EPOCH:-0}"
+# Marked by the workflow step immediately before the emulator action. Absent when
+# the script is run by hand, and absent if that step is ever removed — in which
+# case setup and boot collapse back into one honestly-labelled figure rather than
+# being split on a guess.
+emu_start="${EMULATOR_START_EPOCH:-0}"
+install=$((installed - emulator_ready))
+flow=$((flow_end - flow_start))
+# The `_h` variants are what goes into the one-line annotation, where a bare
+# "unknown" needs to read as a missing measurement rather than as a typo — and,
+# specifically, must not have a unit stuck to it. `setup ${setup}s` renders as
+# "setup not measureds" the moment setup is a word instead of a number, so the
+# annotation takes setup_h (which is empty when there is nothing to say) rather
+# than interpolating the table's value with an `s` appended.
 if [ "$job_start" = 0 ]; then
-  boot="unknown"; total="unknown"
-  # Rendered into prose in the annotation below, where "unknowns" would look like a
-  # typo rather than a missing measurement.
-  boot_h="unknown"; total_h="unknown"
+  setup="unknown"; boot="unknown"; total="unknown"
+  boot_label="emulator boot + setup"; boot_h="unknown"; total_h="unknown"; setup_h=""
+elif [ "$emu_start" = 0 ] || [ "$emu_start" -lt "$job_start" ]; then
+  # No usable emulator mark: report the combined span under the combined label
+  # instead of splitting it on a guess, and say nothing about setup at all.
+  setup="not measured"; boot=$((emulator_ready - job_start))
+  boot_label="emulator boot + setup"; boot_h="${boot}s"; setup_h=""
+  total=$(($(date +%s) - job_start)); total_h="${total}s"
 else
-  boot=$((emulator_ready - job_start)); total=$(($(date +%s) - job_start))
-  boot_h="${boot}s"; total_h="${total}s"
+  setup=$((emu_start - job_start)); boot=$((emulator_ready - emu_start))
+  boot_label="emulator boot"; boot_h="${boot}s"; setup_h="setup ${setup}s · "
+  total=$(($(date +%s) - job_start)); total_h="${total}s"
 fi
 {
   echo "### Maestro smoke — wall clock"
   echo
   echo "| stage | seconds |"
   echo "|---|---:|"
-  echo "| emulator boot + SDK setup | $boot |"
-  echo "| APK install | $((installed - emulator_ready)) |"
-  echo "| **flow** (\`scaffold_smoke.yaml\`) | **$((flow_end - flow_start))** |"
+  echo "| setup (JDK, Maestro install, AVD cache) | $setup |"
+  echo "| $boot_label | $boot |"
+  echo "| APK install | $install |"
+  echo "| **flow** (\`scaffold_smoke.yaml\`) | **$flow** |"
   echo "| emulator job, total | $total |"
   echo
   echo "Result: **$result** · Maestro \`${MAESTRO_VERSION:-unpinned}\` · runner \`${RUNNER_ENVIRONMENT:-unknown}\`"
   echo
-  echo "The \`build\` job runs before this one; its duration is on the run page."
-  echo "BIT-5 closes on three consecutive green runs — compare the flow row across all three."
+  echo "This is the emulator job only. The \`build\` job runs before it, and on the"
+  echo "BIT-5 evidence runs it was the LONGER half — end-to-end run time is both."
+  echo "\`android/scripts/ci-runs.py\` prints the end-to-end number for real runs."
 } >> "${GITHUB_STEP_SUMMARY:-/dev/null}" || echo "::warning::Could not write the wall-clock summary. The flow's own result is unaffected."
 
 # The same numbers again, as a workflow annotation. This is not redundancy for its
@@ -149,6 +181,6 @@ fi
 # as a newline, and a multi-line annotation is harder to copy than the table it is
 # summarising. Somebody reading a run should be able to answer "how long?" without
 # scrolling and without being told where to look.
-echo "::notice title=Maestro smoke — $result in $total_h::flow $((flow_end - flow_start))s · emulator boot $boot_h · APK install $((installed - emulator_ready))s · emulator job total $total_h"
+echo "::notice title=Maestro smoke — $result in $total_h::flow ${flow}s · $boot_label $boot_h · ${setup_h}APK install ${install}s · emulator job total $total_h (build job is separate and longer)"
 
 exit "$status"

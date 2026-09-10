@@ -364,6 +364,21 @@ jobs:
           disable-animations: false
           script: echo "AVD created and snapshotted"
 
+      - name: Mark emulator step start
+        # Splits the figure the annotation used to call "emulator boot" into the
+        # two different things it was silently adding together. JOB_START_EPOCH is
+        # marked at the top of the job, so everything between it and the script
+        # starting — SDK setup, Maestro's installer, restoring the AVD cache — was
+        # being counted as boot. On the three BIT-5 evidence runs that was 20-34s
+        # of an 88-107s number: up to a third of "emulator boot" was not the
+        # emulator booting.
+        #
+        # A mislabel here points optimisation work at the wrong step. The honest
+        # decomposition is ~68s of actual boot plus 10-21s of downloading Maestro
+        # on every single run, and only the second of those is worth caching.
+        # Marking immediately before the action makes boot mean boot.
+        run: echo "EMULATOR_START_EPOCH=$(date +%s)" >> "$GITHUB_ENV"
+
       - name: Run Maestro smoke flow
         uses: reactivecircus/android-emulator-runner@v2
         with:
