@@ -5,6 +5,9 @@
     android/scripts/ci-runs.py --last 3        # just the last 3
     android/scripts/ci-runs.py --require-green 3   # exit 1 unless the last 3 are green
 
+Exit codes: 0 green · 1 looked and it is not green · 2 could not find out.
+A run still in flight is skipped, not counted as a failure — see main().
+
 WHY THIS EXISTS
 
 BIT-5's definition of done is "three consecutive green CI runs, and report the
@@ -57,6 +60,18 @@ REPO = "getbittr/bittr-ios-app"
 WORKFLOW = "android-maestro.yml"
 API = "https://api.github.com"
 
+# Exit codes. A gate has to distinguish "I looked, and it is not green" from "I
+# could not find out" — rate limit, network, too few runs. Both are non-zero, so
+# `set -e` still stops either way, but only 1 means CI is actually red. Anything
+# that treats them the same reports an outage as a regression.
+NOT_GREEN = 1
+UNDETERMINED = 2
+
+
+def undetermined(message):
+    print(message, file=sys.stderr)
+    sys.exit(UNDETERMINED)
+
 
 def get(path):
     """GET a JSON path, with the rate limit reported as itself rather than as a crash."""
@@ -75,17 +90,19 @@ def get(path):
             return json.load(resp)
     except urllib.error.HTTPError as exc:
         if exc.code == 403 and "rate limit" in exc.read().decode("utf-8", "replace").lower():
-            sys.exit(
+            undetermined(
                 "GitHub API rate limit reached (60/hour per IP without a token).\n"
                 "Set GITHUB_TOKEN or GH_TOKEN to raise it to 5000/hour, or wait."
             )
         if exc.code == 404:
-            sys.exit(
+            undetermined(
                 f"404 for {path}.\n"
                 f"If {REPO} has been made private since this was written, this script "
                 "needs GITHUB_TOKEN set to a token with `actions:read`."
             )
         raise
+    except urllib.error.URLError as exc:
+        undetermined(f"Could not reach {API}: {exc.reason}")
 
 
 def parse(stamp):
@@ -107,32 +124,38 @@ def human(seconds):
 
 def main():
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
-    ap.add_argument("--last", type=int, default=5, help="how many recent runs to report")
+    ap.add_argument("--last", type=int, help="how many recent runs to report (default 5)")
     ap.add_argument("--branch", help="only runs for this branch")
     ap.add_argument(
         "--require-green",
         type=int,
         metavar="N",
-        help="exit non-zero unless the most recent N runs all succeeded",
+        help="exit non-zero unless the most recent N COMPLETED runs all succeeded",
     )
     ap.add_argument("--steps", action="store_true", help="also print per-step durations")
     args = ap.parse_args()
 
-    # --require-green must look at exactly N, independently of --last, or asking for
-    # "the last 3 green" while printing 5 would check the wrong set.
-    want = max(args.last, args.require_green or 0)
+    # Every run costs 2 more API calls (jobs, annotations) against an anonymous
+    # budget of 60/hour, so `--require-green 3` should not also print 5 runs'
+    # worth of detail. An explicit --last still wins.
+    last = args.last if args.last is not None else (args.require_green or 5)
+
+    # Fetch a margin beyond N: the runs immediately in front may still be in
+    # flight, and those get skipped rather than counted (see below), so N alone
+    # can come up short of N completed.
+    want = max(last, (args.require_green or 0) + 3)
     query = f"?per_page={want}"
     if args.branch:
         query += f"&branch={args.branch}"
     runs = get(f"/repos/{REPO}/actions/workflows/{WORKFLOW}/runs{query}").get("workflow_runs", [])
 
     if not runs:
-        sys.exit("No runs found. If this workflow has never run on this branch, that is the answer.")
+        undetermined("No runs found. If this workflow has never run on this branch, that is the answer.")
 
     print(f"{'run':>4}  {'commit':<8} {'result':<9} {'end-to-end':>10}  {'build':>7} {'emulator':>9}  branch")
     print("-" * 78)
 
-    for run in runs[: args.last]:
+    for run in runs[:last]:
         total = secs(run["created_at"], run["updated_at"])
         jobs = get(f"/repos/{REPO}/actions/runs/{run['id']}/jobs").get("jobs", [])
         durations = {}
@@ -169,20 +192,38 @@ def main():
                         print(f"          {human(d):>7}  {step['name']}")
 
     if args.require_green:
-        checked = runs[: args.require_green]
+        # A run that is still going is not evidence in either direction, so it is
+        # skipped rather than counted as a failure. Counting it would make this
+        # gate report RED for the ~7 minutes after every push regardless of any
+        # result — and the definition of done it guards is *about* pushing
+        # repeatedly, so the false red would fire on exactly the runs that matter.
+        # `cancelled` is skipped for the same reason: it is a fact about a
+        # supersede or a human, not about the app.
+        pending = [r for r in runs if r["status"] != "completed"]
+        finished = [r for r in runs if r["status"] == "completed" and r["conclusion"] != "cancelled"]
+        for run in pending:
+            print(f"\n(run #{run['run_number']} is {run['status']} — not counted either way)")
+
+        checked = finished[: args.require_green]
         if len(checked) < args.require_green:
-            sys.exit(
+            undetermined(
                 f"\nAsked for {args.require_green} consecutive green runs; only "
-                f"{len(checked)} runs exist."
+                f"{len(checked)} completed run(s) available."
             )
         bad = [r for r in checked if r["conclusion"] != "success"]
         if bad:
-            sys.exit(
+            print(
                 f"\nNOT {args.require_green} consecutive green: "
-                + ", ".join(f"#{r['run_number']} {r['conclusion']}" for r in bad)
+                + ", ".join(f"#{r['run_number']} {r['conclusion']}" for r in bad),
+                file=sys.stderr,
             )
+            sys.exit(NOT_GREEN)
         median = sorted(secs(r["created_at"], r["updated_at"]) for r in checked)[len(checked) // 2]
-        print(f"\n{args.require_green}/{args.require_green} green · median end-to-end {human(median)}")
+        runs_listed = ", ".join(f"#{r['run_number']}" for r in checked)
+        print(
+            f"\n{args.require_green}/{args.require_green} green ({runs_listed}) · "
+            f"median end-to-end {human(median)}"
+        )
 
 
 if __name__ == "__main__":

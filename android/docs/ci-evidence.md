@@ -48,6 +48,20 @@ that the agent could not. Nobody checked the assumption. `--require-green N` exi
 non-zero unless the most recent N runs all succeeded, so the claim in this file is
 re-verifiable rather than merely recorded.
 
+Exit codes are **0 green · 1 looked and it is not green · 2 could not find out**. The
+split matters: without it a rate limit and a broken build are the same exit code, and an
+outage reads as a regression. Unauthenticated is 60 requests/hour per IP and each run
+costs two, so about eight invocations an hour before it starts answering 2. Set
+`GITHUB_TOKEN` to raise that to 5000.
+
+**A run still in flight is skipped, not counted as a failure.** This was a real bug, not
+a hypothetical one — `conclusion` is `null` until a run completes, `null != "success"`,
+so the first invocation of this tool against a repo with a run in progress reported *NOT
+GREEN* over three genuinely green runs. It would have fired for the ~7 minutes after
+every push, which is to say on exactly the pushes this file exists to measure.
+`android/scripts/test_ci_runs.py` covers that case and runs in the `build` job; a gate
+that misreports is worse than no gate.
+
 **End-to-end is the number BIT-5 asks for** — commit pushed to run finished. It is not
 the figure in a run's own `::notice`, which covers the emulator job only (~2 minutes)
 and understates the wait by more than four. Both are printed, total first.

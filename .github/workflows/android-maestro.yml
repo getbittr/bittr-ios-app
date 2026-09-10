@@ -170,6 +170,15 @@ jobs:
         with:
           build-scan-publish: false
 
+      - name: Test the CI-results reader
+        # ci-runs.py is the gate that answers "are the last N runs green", which
+        # is how this issue's definition of done is checked. It shipped untested
+        # and its first contact with a repo that had a run in flight reported NOT
+        # GREEN — `conclusion` is null until a run finishes, and null != success.
+        # A gate that misreports is worse than no gate, so it gets tests, and
+        # they run here. No network: the tests stub the transport.
+        run: python3 android/scripts/test_ci_runs.py
+
       - name: Check every flow ID is registered
         # A flow selecting an ID that is in no registry entry fails at run time
         # with "element not found" — indistinguishable from a missing testTag in
