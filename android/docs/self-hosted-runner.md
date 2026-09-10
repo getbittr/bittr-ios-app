@@ -164,38 +164,52 @@ acceptable — revisit if that ever changes.
 > branch-visibility rule. Merging it to `master` is the fix; the `paths:` filter means
 > it stays dormant there until something under `android/` or `shared/flows/` changes.
 >
-> **Do not substitute three pushes for three dispatches.** Push and `pull_request` runs
-> share the concurrency group `android-maestro-<ref>-auto` with `cancel-in-progress:
-> true`, so three pushes to the same branch cancel runs 1 and 2 — the exact
-> evidence-eating failure that keying dispatches on `github.run_id` exists to prevent,
-> just arriving through a different door. That grouping is *correct* for pushes and
-> should not be weakened; if dispatch is genuinely unavailable, space the pushes so each
-> run finishes before the next one starts, and say so when reporting the result.
+> **Three pushes are now a valid substitute for three dispatches — this reverses what
+> this document said earlier.** Push and `pull_request` runs used to share the
+> concurrency group `android-maestro-<ref>-auto` with `cancel-in-progress: true`, so
+> three pushes to the same branch cancelled runs 1 and 2 — the exact evidence-eating
+> failure that keying dispatches on `github.run_id` exists to prevent, arriving through
+> a different door. The advice here was to space the pushes out instead, which assumed
+> someone is watching the run list and able to wait; nobody driving this from a headless
+> environment can do either. The group is keyed on `github.sha` for non-dispatch events
+> now, so every commit gets its own run and none of them cancel each other.
+>
+> What that costs: push twice while iterating and you pay for two emulator runs instead
+> of one. That is the whole of the loss, and it is the same overlap case the DoD needs
+> preserved, which is why the rule went rather than being special-cased.
 
 Run the workflow via `workflow_dispatch` and check, in order:
 
 1. The `Preflight` step prints `KVM OK` and names your host.
 2. The emulator boots in roughly a minute, not five.
 3. `shared/flows/android/scaffold_smoke.yaml` passes.
-4. **Three consecutive dispatches all pass.** This is the actual definition of done
+4. **Three consecutive runs all pass.** This is the actual definition of done
    for BIT-5, and one green run does not establish it — a flaky pass is a failure.
 
 Then report the per-run wall-clock number.
 
-### Why three dispatches in a row is safe to do
+### Why three runs in a row is safe to do
 
 It was not, until recently. The workflow's `concurrency` group used to be keyed on the
-ref alone with `cancel-in-progress: true`, which is right for pushes — an older commit's
-emulator run is dead weight — and actively destructive here: dispatch 2 would cancel
-dispatch 1, dispatch 3 would cancel dispatch 2, and the evidence for the definition of
-done would be one result and two cancellations. On this host it would have been quieter
-still, because a single runner serialises jobs: runs 1 and 2 would have been cancelled
-while **queued**, having never booted an emulator, showing up as greys in the run list
-rather than reds.
+ref alone with `cancel-in-progress: true`, which looks right — an older commit's emulator
+run is dead weight — and is actively destructive here: run 2 would cancel run 1, run 3
+would cancel run 2, and the evidence for the definition of done would be one result and
+two cancellations. On this host it would have been quieter still, because a single runner
+serialises jobs: runs 1 and 2 would have been cancelled while **queued**, having never
+booted an emulator, showing up as greys in the run list rather than reds.
 
-Manual runs are now keyed on `github.run_id`, so each dispatch gets its own group and
-they queue behind each other instead of replacing each other. Push and `pull_request`
-runs still supersede as before.
+This was fixed for `workflow_dispatch` first, by keying manual runs on `github.run_id`,
+and that fix was incomplete for a reason worth remembering: `workflow_dispatch` only
+exists once the workflow is on the default branch, so at the time the fix landed it
+protected the one route that could not yet be used, and left the only usable route —
+pushing — exposed. Non-dispatch runs are keyed on `github.sha` now, so every commit gets
+its own group too.
+
+The general lesson is that supersede-cancellation and "prove it three times" are the same
+mechanism read two ways, and this repo cares about the second. Guarded by the *Check no
+run of this workflow can cancel another* step in the `build` job, which asserts the group
+varies by both contexts — a property check, not a string match, so the group can still be
+rewritten. It runs seconds in, before any emulator boots.
 
 ### The three runs must use the same Maestro
 
@@ -205,4 +219,4 @@ defaults to `releases/latest`, so an unpinned harness lets the tool change betwe
 and run 3 — and "it went red and nothing changed" is the most expensive kind of CI
 failure to chase. Maestro does move under this; recent versions route `takeScreenshot`
 output into the `--debug-output` bundle rather than writing it relative to the working
-directory. Bump the pin deliberately, in its own commit, and re-run the three dispatches.
+directory. Bump the pin deliberately, in its own commit, and re-run the three runs.

@@ -28,21 +28,36 @@ on:
   workflow_dispatch:
 
 concurrency:
-  # Pushes and pull_request updates supersede each other: once a newer commit exists
-  # on a ref, the older commit's emulator run is dead weight and should be cancelled.
+  # Every run gets its own group, so no run of this workflow can ever cancel another.
+  # That is a deliberate trade against the usual advice, and it is worth stating why.
   #
   # A workflow_dispatch must NEVER be cancelled by the next one, and this is not a
-  # nicety — it is the definition of done. BIT-5 closes on three CONSECUTIVE dispatches
-  # of the same ref. Under a single shared group every dispatch would cancel the one
-  # before it, so dispatching three times would leave two cancellations and one result.
-  # On a self-hosted runner it is worse and quieter: one runner serialises jobs, so runs
-  # 1 and 2 get cancelled while still QUEUED, having never booted an emulator. The run
+  # nicety — it is the definition of done. BIT-5 closes on three CONSECUTIVE runs of
+  # the same ref. Under a single shared group every run would cancel the one before it,
+  # so running three times would leave two cancellations and one result. On a
+  # self-hosted runner it is worse and quieter: one runner serialises jobs, so runs 1
+  # and 2 get cancelled while still QUEUED, having never booted an emulator. The run
   # list shows greys rather than reds, which reads as "I cancelled something" rather
   # than "the harness ate my evidence".
   #
-  # Keying manual runs on github.run_id gives each dispatch its own group, so dispatches
-  # queue behind each other instead of replacing each other.
-  group: android-maestro-${{ github.ref }}-${{ github.event_name == 'workflow_dispatch' && github.run_id || 'auto' }}
+  # The obvious rule — key on the ref and let a newer commit supersede an older one —
+  # covers dispatches by keying manual runs on github.run_id. That was the original
+  # shape here, and it is not enough, because THREE PUSHES IN A ROW TO ONE BRANCH IS
+  # THE SAME SCENARIO. Until this workflow is on the default branch there is no
+  # workflow_dispatch button, so pushing is the only way to produce the three runs;
+  # a ref-keyed group turns the first two into cancellations.
+  #
+  # Note what supersede-cancellation was actually buying. It only ever fires when two
+  # runs of the same ref overlap — i.e. exactly and only in the case above. There is no
+  # third scenario where it saves minutes without also being able to eat evidence, so
+  # keying on github.sha does not so much weaken the rule as retire it. The cost is real
+  # and bounded: push twice in quick succession while iterating and you now pay for two
+  # emulator runs (~15 runner-minutes) instead of one. Evidence beats minutes here.
+  #
+  # cancel-in-progress stays true and is now near-inert by construction: it can only
+  # cancel a second run of an identical SHA on an identical ref, which is a re-run
+  # racing itself and is the one case where cancelling is unambiguously right.
+  group: android-maestro-${{ github.ref }}-${{ github.event_name == 'workflow_dispatch' && github.run_id || github.sha }}
   cancel-in-progress: true
 
 env:
@@ -54,7 +69,7 @@ env:
   # chase. Maestro does move under this: recent versions route `takeScreenshot` output
   # into the --debug-output bundle rather than writing it CWD-relative.
   #
-  # Bump this on purpose, in its own commit, and re-run the three dispatches.
+  # Bump this on purpose, in its own commit, and re-run the three runs.
   MAESTRO_VERSION: '2.10.0'
   # Must match android/app/build.gradle.kts: applicationId + debug applicationIdSuffix.
   APP_ID: com.bittr.android.regtest
@@ -93,13 +108,17 @@ jobs:
         # emulator job rather than running inside it.
         run: bash android/scripts/check-action-scripts.sh
 
-      - name: Check a dispatch cannot cancel the previous dispatch
+      - name: Check no run of this workflow can cancel another
         # This one is invisible to actionlint — the bad version is perfectly valid YAML
         # and a perfectly sensible concurrency rule; it is only wrong because of what
-        # BIT-5 measures. Keying manual runs on the ref alone means dispatch N cancels
-        # dispatch N-1, so "three consecutive green runs" silently becomes one result and
-        # two cancellations. On a single self-hosted runner the cancelled runs never even
-        # boot an emulator, so they show as greys rather than reds and are easy to miss.
+        # BIT-5 measures. Keying on the ref alone means run N cancels run N-1, so "three
+        # consecutive green runs" silently becomes one result and two cancellations. On a
+        # single self-hosted runner the cancelled runs never even boot an emulator, so
+        # they show as greys rather than reds and are easy to miss.
+        #
+        # This originally checked github.run_id only, which covers workflow_dispatch and
+        # left the push path — the only path available before the workflow reaches the
+        # default branch — wide open. Both event kinds are checked now.
         #
         # Guards the property, not the exact string, so the group can still be rewritten.
         # No PyYAML: shared/test-ids/*.py deliberately parse with `re` so the checks run
@@ -121,16 +140,23 @@ jobs:
           group = re.search(r"^\s+group:\s*(.+?)\s*$", block, re.MULTILINE)
           if not group:
               sys.exit("`concurrency.group` not found inside the concurrency block.")
+          expr = group.group(1)
 
-          if cancels and "github.run_id" not in group.group(1):
+          # Each entry: the run-distinguishing context, and the route it protects.
+          required = [
+              ("github.run_id", "workflow_dispatch — dispatch N would cancel dispatch N-1"),
+              ("github.sha", "push — three pushes to one branch would leave two cancellations"),
+          ]
+          missing = [(ctx, why) for ctx, why in required if ctx not in expr]
+          if cancels and missing:
               sys.exit(
-                  "concurrency.group must vary by github.run_id while cancel-in-progress is "
-                  "true, or each manual dispatch cancels the one before it and the "
-                  "three-consecutive-runs definition of done cannot be measured.\n"
-                  f"  group = {group.group(1)}\n"
-                  "See android/docs/self-hosted-runner.md, 'Why three dispatches in a row is safe'."
+                  "concurrency.group must vary per run while cancel-in-progress is true, or "
+                  "BIT-5's three-consecutive-green-runs definition of done cannot be measured.\n"
+                  f"  group = {expr}\n"
+                  + "".join(f"  missing {ctx}: {why}\n" for ctx, why in missing)
+                  + "See android/docs/self-hosted-runner.md, 'Why three runs in a row is safe'."
               )
-          print(f"concurrency group is dispatch-safe: {group.group(1)}")
+          print(f"concurrency group cannot cancel a sibling run: {expr}")
           EOF
 
       - name: Set up JDK

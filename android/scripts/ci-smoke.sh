@@ -88,7 +88,7 @@ fi
 
 if [ "$status" -eq 0 ]; then
   # Green runs keep the junit report and the flow's own screenshot. The
-  # definition of done is three consecutive green dispatches, and paying
+  # definition of done is three consecutive green runs, and paying
   # an upload for a video nobody opens on all three is pure overhead.
   rm -f "$video"
 elif [ ! -s "$video" ]; then
@@ -115,8 +115,12 @@ if [ "$status" -eq 0 ]; then result="green"; else result="RED (exit $status)"; f
 job_start="${JOB_START_EPOCH:-0}"
 if [ "$job_start" = 0 ]; then
   boot="unknown"; total="unknown"
+  # Rendered into prose in the annotation below, where "unknowns" would look like a
+  # typo rather than a missing measurement.
+  boot_h="unknown"; total_h="unknown"
 else
   boot=$((emulator_ready - job_start)); total=$(($(date +%s) - job_start))
+  boot_h="${boot}s"; total_h="${total}s"
 fi
 {
   echo "### Maestro smoke — wall clock"
@@ -131,7 +135,20 @@ fi
   echo "Result: **$result** · Maestro \`${MAESTRO_VERSION:-unpinned}\` · runner \`${RUNNER_ENVIRONMENT:-unknown}\`"
   echo
   echo "The \`build\` job runs before this one; its duration is on the run page."
-  echo "BIT-5 closes on three consecutive green dispatches — compare the flow row across all three."
+  echo "BIT-5 closes on three consecutive green runs — compare the flow row across all three."
 } >> "${GITHUB_STEP_SUMMARY:-/dev/null}" || echo "::warning::Could not write the wall-clock summary. The flow's own result is unaffected."
+
+# The same numbers again, as a workflow annotation. This is not redundancy for its
+# own sake: the first green run of this workflow produced the table above and the
+# number still did not reach the person who needed it, because a step summary lives
+# at the BOTTOM of the run page behind a scroll, and reading it means knowing it is
+# there. An annotation renders in the box at the TOP of the run page, above the job
+# list, and is the first thing on screen when the run is opened.
+#
+# One line, because annotations are single-line — %0A is the escape GitHub decodes
+# as a newline, and a multi-line annotation is harder to copy than the table it is
+# summarising. Somebody reading a run should be able to answer "how long?" without
+# scrolling and without being told where to look.
+echo "::notice title=Maestro smoke — $result in $total_h::flow $((flow_end - flow_start))s · emulator boot $boot_h · APK install $((installed - emulator_ready))s · emulator job total $total_h"
 
 exit "$status"

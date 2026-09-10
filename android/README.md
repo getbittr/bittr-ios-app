@@ -2,7 +2,7 @@
 
 Native Android app — Kotlin + Jetpack Compose + Material 3.
 
-**Status: scaffold, verified on a device, unverified in CI.** The project builds, the
+**Status: scaffold, verified on a device and green in CI once.** The project builds, the
 unit tests pass, the DI graph resolves and navigation renders one screen. There is no
 feature code and no wallet. See `../ANDROID_PORT_PLAN.md` for where this is going.
 
@@ -28,9 +28,13 @@ which is a different question with an answer minutes away. Local Maestro was 2.5
 against CI's pinned 2.10.0, so treat the numbers as comparable to each other and not
 to a CI run; the script says so itself when it detects the skew.
 
-**CI has now run, and was red.** The first execution of the emulator job in this
-workflow's history failed on the first line of its own script, after a full emulator
-boot:
+**CI has now run green, end to end, on a GitHub-hosted runner** — the run for `a93f1fe`
+built the APK, booted an emulator, installed the app and passed
+`shared/flows/android/scaffold_smoke.yaml`. Every step of this workflow has now executed
+successfully at least once; none of it is unexercised code any more.
+
+The run before it was red, and is worth keeping on the record because the fix shaped the
+workflow. It failed on the first line of its own script, after a full emulator boot:
 
 ```
 /usr/bin/sh: 1: set: Illegal option -o pipefail
@@ -40,12 +44,25 @@ boot:
 — dash on the Ubuntu images — not bash. The body is now `scripts/ci-smoke.sh`, called
 as `bash <file>` so the interpreter is chosen by this repo rather than by whichever
 image the runner happens to be, and `scripts/check-action-scripts.sh` fails the build
-job in seconds if any `script:` input stops being POSIX. The good news underneath the
-red: the AVD was created and the emulator booted on a GitHub-hosted runner before that
-line ran, so the expensive part of the job is not in question.
+job in seconds if any `script:` input stops being POSIX.
 
 BIT-5's definition of done is three consecutive green *CI* runs plus a wall-clock
-number, so it stays open until CI is observed green three times.
+number. One green run is not three, so this stays open — but what remains is
+accumulating evidence, not fixing anything known to be broken.
+
+Two things had to change before three runs could even be attempted, both of which would
+otherwise have quietly produced the wrong answer:
+
+- **The three runs have to survive.** `workflow_dispatch` needs the workflow on the
+  default branch, which it is not, so pushing is the only available trigger — and the
+  concurrency group keyed pushes on the ref with `cancel-in-progress: true`, which would
+  have cancelled runs 1 and 2. Non-dispatch runs are keyed on `github.sha` now. See
+  `docs/self-hosted-runner.md`, *Why three runs in a row is safe to do*.
+- **The number has to be readable.** The job writes a wall-clock table to the step
+  summary, and after the first green run that number still did not reach the person who
+  needed it — a step summary sits at the bottom of the run page behind a scroll. The same
+  figures are now also emitted as a `::notice`, which renders at the top of the run page
+  and is the first thing on screen when a run is opened.
 
 ## Build
 
