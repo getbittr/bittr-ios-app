@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Policies for K1DeviceAdminReceiver. `reset-password` is the only one mutation 5 needs;
+  nothing else is requested, so a stray device owner left on a CI emulator has the smallest
+  surface we can give it.
+-->
+<device-admin xmlns:android="http://schemas.android.com/apk/res/android">
+    <uses-policies>
+        <reset-password />
+    </uses-policies>
+</device-admin>
