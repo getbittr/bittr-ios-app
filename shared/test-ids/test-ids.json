@@ -251,7 +251,10 @@
         "field2": null,
         "field3": null,
         "nextButton": null,
-        "backButton": null
+        "backButton": null,
+        "missingWordsAlert": null,
+        "invalidWordsAlert": null,
+        "incorrectPhraseAlert": null
       },
       "pinSet": {
         "topLabel": null

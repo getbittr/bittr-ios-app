@@ -239,7 +239,8 @@ class Signup4ViewController: UIViewController, UITextFieldDelegate {
             self.showAlert(
                 title: Language.getWord(withID: "missingwords"),
                 message: Language.getWord(withID: "missingwords2"),
-                buttons: [.dismiss(Language.getWord(withID: "okay"))])
+                buttons: [.dismiss(Language.getWord(withID: "okay"))],
+                testID: TestID.Signup.Create.Verify.missingWordsAlert)
             return
         }
         
@@ -260,7 +261,8 @@ class Signup4ViewController: UIViewController, UITextFieldDelegate {
             self.showAlert(
                 title: Language.getWord(withID: "invalidwords"),
                 message: Language.getWord(withID: "invalidwords2"),
-                buttons: [.dismiss(Language.getWord(withID: "okay"))])
+                buttons: [.dismiss(Language.getWord(withID: "okay"))],
+                testID: TestID.Signup.Create.Verify.invalidWordsAlert)
             return
         }
         
@@ -276,7 +278,8 @@ class Signup4ViewController: UIViewController, UITextFieldDelegate {
             self.showAlert(
                 title: Language.getWord(withID: "incorrectphrase"),
                 message: Language.getWord(withID: "incorrectphrase2"),
-                buttons: [.dismiss(Language.getWord(withID: "okay"))])
+                buttons: [.dismiss(Language.getWord(withID: "okay"))],
+                testID: TestID.Signup.Create.Verify.incorrectPhraseAlert)
         }
     }
     

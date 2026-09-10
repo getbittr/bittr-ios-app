@@ -134,9 +134,15 @@ private extension UIViewController {
     }
     
     // The bell icon + lowercased title row.
+    //
+    // `testID` tags the title row so a Maestro flow can tell one alert from
+    // another. Every alert is built from the same chrome, so without it the
+    // only thing distinguishing "wrong recovery phrase" from "invalid words"
+    // is the localized message text — which shared/strings/ consolidation
+    // (BIT-12) is about to move out from under those assertions.
     @discardableResult
-    func addAlertHeader(to card: UIView, title: String, trailingLimit: UIView?) -> UIImageView {
-        
+    func addAlertHeader(to card: UIView, title: String, trailingLimit: UIView?, testID: String? = nil) -> UIImageView {
+
         let alertIcon = UIImageView()
         alertIcon.translatesAutoresizingMaskIntoConstraints = false
         alertIcon.contentMode = .scaleAspectFit
@@ -149,6 +155,7 @@ private extension UIViewController {
         headerLabel.font = UIFont(name: "Gilroy-Bold", size: 18)
         headerLabel.text = title.lowercased()
         headerLabel.textColor = Colors.getColor("whiteoryellow")
+        headerLabel.accessibilityIdentifier = testID
         card.addSubview(headerLabel)
         
         NSLayoutConstraint.activate([
@@ -251,8 +258,11 @@ struct AlertButton {
 
 extension UIViewController {
     
-    func showAlert(presentingController:UIViewController? = nil, title:String, message:String, buttons:[AlertButton]) {
-        
+    // `testID` is optional and defaults to untagged, so existing call sites are
+    // unaffected. Pass it where a flow has to distinguish *which* alert came up
+    // (see addAlertHeader).
+    func showAlert(presentingController:UIViewController? = nil, title:String, message:String, buttons:[AlertButton], testID:String? = nil) {
+
         let host = presentingController ?? self.alertHost
         
         self.alertPresenter = host
@@ -269,8 +279,8 @@ extension UIViewController {
             let chrome = self.makeAlertChrome(live ?? AlertOverlayView(), on: host, cardColor: Colors.getColor("yelloworblue2"))
             let card = chrome.card
             
-            let alertIcon = self.addAlertHeader(to: card, title: title, trailingLimit: nil)
-            
+            let alertIcon = self.addAlertHeader(to: card, title: title, trailingLimit: nil, testID: testID)
+
             // Close image
             let closeIcon = UIImageView()
             closeIcon.translatesAutoresizingMaskIntoConstraints = false

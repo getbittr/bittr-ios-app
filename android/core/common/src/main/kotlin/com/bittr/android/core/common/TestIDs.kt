@@ -279,9 +279,12 @@ object TestID {
                 const val field1 = "signup.create.verify.field1"
                 const val field2 = "signup.create.verify.field2"
                 const val field3 = "signup.create.verify.field3"
+                const val incorrectPhraseAlert = "signup.create.verify.incorrectPhraseAlert"
+                const val invalidWordsAlert = "signup.create.verify.invalidWordsAlert"
                 const val label1 = "signup.create.verify.label1"
                 const val label2 = "signup.create.verify.label2"
                 const val label3 = "signup.create.verify.label3"
+                const val missingWordsAlert = "signup.create.verify.missingWordsAlert"
                 const val nextButton = "signup.create.verify.nextButton"
                 const val topLabel = "signup.create.verify.topLabel"
             }

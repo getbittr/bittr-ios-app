@@ -135,8 +135,12 @@ appId: com.bittr.bittr-regtest
     id: "signup.create.verify.topLabel"
 - tapOn:
     id: "signup.create.verify.nextButton"
+# Asserted by id, not by copy: BIT-19 tagged the three Signup4 alerts so the
+# *Language.swift → shared/strings/ consolidation (BIT-12) can't silently
+# reword this assertion out from under us. The deeper negative coverage of this
+# gate lives in seed_gate_rejects_wrong_words.yaml.
 - assertVisible:
-    text: ".*not valid recovery phrase words.*"
+    id: "signup.create.verify.invalidWordsAlert"
 - waitForAnimationToEnd:
     timeout: 3000
 - takeScreenshot: shared/docs/screenshots/fresh_install_unhappy/07_invalid_word_alert
@@ -157,7 +161,7 @@ appId: com.bittr.bittr-regtest
 - tapOn:
     id: "signup.create.verify.nextButton"
 - assertVisible:
-    text: ".*entered are incorrect.*"
+    id: "signup.create.verify.incorrectPhraseAlert"
 - waitForAnimationToEnd:
     timeout: 3000
 - takeScreenshot: shared/docs/screenshots/fresh_install_unhappy/08_wrong_phrase_alert

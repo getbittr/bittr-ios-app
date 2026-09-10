@@ -276,9 +276,12 @@ enum TestID {
                 static let field1 = "signup.create.verify.field1"
                 static let field2 = "signup.create.verify.field2"
                 static let field3 = "signup.create.verify.field3"
+                static let incorrectPhraseAlert = "signup.create.verify.incorrectPhraseAlert"
+                static let invalidWordsAlert = "signup.create.verify.invalidWordsAlert"
                 static let label1 = "signup.create.verify.label1"
                 static let label2 = "signup.create.verify.label2"
                 static let label3 = "signup.create.verify.label3"
+                static let missingWordsAlert = "signup.create.verify.missingWordsAlert"
                 static let nextButton = "signup.create.verify.nextButton"
                 static let topLabel = "signup.create.verify.topLabel"
             }
