@@ -163,22 +163,58 @@ On Apple Silicon you need the **arm64** system image. CI uses
 `system-images;android-34;aosp_atd;x86_64`; the x86_64 image on an M-series Mac runs
 under full CPU emulation and is unusably slow.
 
+Use **two** images, not one. ATD is what Maestro/CI run against; it has no SystemUI,
+so the window is black even when the app is running. To *look at* the scaffold you
+want a normal AOSP image.
+
+**To see the screen** (real SystemUI, no Play Services):
+
 ```sh
-sdkmanager "system-images;android-34;aosp_atd;arm64-v8a" "emulator"
-avdmanager create avd -n bittr-test -k "system-images;android-34;aosp_atd;arm64-v8a" -d pixel_6
-"$ANDROID_HOME/emulator/emulator" -avd bittr-test -no-snapshot-save -noaudio -no-boot-anim &
+sdkmanager "system-images;android-34;default;arm64-v8a" "emulator"
+avdmanager create avd -n bittr-preview -k "system-images;android-34;default;arm64-v8a" -d pixel_6
+"$ANDROID_HOME/emulator/emulator" -avd bittr-preview -no-snapshot-save -noaudio -no-boot-anim -gpu host &
 
 cd android && ./gradlew :app:installDebug
 ```
 
-Those three package/device names are **verified to exist** in Google's live
-repository as of this commit — `aosp_atd` ships arm64-v8a for API 30 through 36, and
-`pixel_6` is device id 44 in `avdmanager list device`. What is *not* verified is that
-the emulator boots and the app runs on it: see the banner in the next section.
+Pass **`-gpu host`**. `avdmanager create` writes `hw.gpu.enabled=no`; without host
+GPU the framebuffer stays black on Apple Silicon even on a full AOSP image.
+
+**For Maestro**, matching CI, keep the ATD AVD:
+
+```sh
+sdkmanager "system-images;android-34;aosp_atd;arm64-v8a" "emulator"
+avdmanager create avd -n bittr-test -k "system-images;android-34;aosp_atd;arm64-v8a" -d pixel_6
+"$ANDROID_HOME/emulator/emulator" -avd bittr-test -no-snapshot-save -noaudio -no-boot-anim -gpu host &
+
+cd android && ./gradlew :app:installDebug
+adb shell am start -n com.bittr.android.regtest/com.bittr.android.MainActivity
+```
+
+Those package/device names exist in Google's repository — `aosp_atd` and `default`
+both ship arm64-v8a for API 34, and `pixel_6` is device id 44 in
+`avdmanager list device`. Boot, install, and a visible scaffold on `default` have
+been run on an M-series Mac. Maestro against ATD has still never been run; see the
+banner in the next section.
 
 `aosp_atd` is an Automated Test Device image — stripped AOSP, no Play Services, no
-Google apps. Faster to boot and far less likely to have a background service wake up
-mid-flow. The app has no Play Services dependency yet.
+Google apps, **no SystemUI**. Home is `EmptyHomeActivity`. Faster to boot and far
+less likely to have a background service wake up mid-flow, which is why CI uses it.
+The app has no Play Services dependency yet.
+
+Expect this WARNING on ATD with `-d pixel_6` and ignore it:
+
+```text
+WARNING | adb command '... cmd overlay enable-exclusive ... com.android.systemui' failed:
+'/system/bin/sh: com.android.systemui: inaccessible or not found
+/system/bin/sh: ---: inaccessible or not found'
+```
+
+The emulator is applying Pixel SystemUI skins onto an image that has no SystemUI.
+The `---` lines are `cmd overlay list` output (STATE_MISSING_TARGET) getting pasted
+into a shell command. Boot still completes (`adb devices` shows `device`); the
+window stays black because there is nothing to composite. UIAutomator — and
+therefore Maestro — can still see the Compose test IDs after `am start`.
 
 **Launch the emulator by absolute path**, as above. `emulator` resolves on `PATH`
 from the Homebrew cask, but launched from the wrong working directory it locates its
@@ -220,10 +256,10 @@ Hilt's Gradle plugin dropped AGP 8 at 2.59, and Hilt is the DI container.
 
 ## Running the Maestro flow locally
 
-**No emulator has ever booted against this app, and Maestro has never run against
-it** — not locally, not in CI. The agent environment this scaffold was built in has
-no `/dev/kvm`. Package names and flow syntax are verified; *behaviour* is not. Treat
-this section as instructions to try, not as a verified procedure.
+**Maestro has never run against this app** — not locally, not in CI. An M-series Mac
+has now booted both the ATD AVD (black window, test IDs present in UIAutomator) and
+the `default` AOSP AVD (visible scaffold). Package names and flow syntax are
+verified; Maestro *behaviour* is not. Treat this section as instructions to try.
 
 With an emulator up and the app installed (section 2 above):
 
@@ -264,4 +300,6 @@ signup test IDs are visible. It asserts the same IDs the iOS flow does, delibera
 | `PANIC: Broken AVD system path` | Launch the emulator as `"$ANDROID_HOME/emulator/emulator"`, not bare `emulator`. |
 | Emulator boots but is glacial | x86_64 image on Apple Silicon. You want `arm64-v8a`. |
 | `INSTALL_FAILED_NO_MATCHING_ABIS` | Same thing from the other direction — arm64 device, x86_64-only APK, or vice versa. |
+| `cmd overlay enable-exclusive` / `com.android.systemui: inaccessible or not found` | ATD + `-d pixel_6`. Harmless. The window is black because ATD has no SystemUI — use the `default` image in section 2 to see pixels. |
+| Emulator window is black, `adb devices` shows `device` | Same ATD trap, or GPU off. Launch with `-gpu host`, or switch to `bittr-preview`. On ATD, `adb shell am start -n com.bittr.android.regtest/com.bittr.android.MainActivity` still brings the activity up for Maestro. |
 | `element not found` in a Maestro flow | Usually `testTagsAsResourceId` removed from `MainActivity.kt` — see `../README.md`. |
