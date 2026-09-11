@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  TEST APK ONLY. This file lives in `src/androidTest/res`, so it is merged into
+  the instrumentation APK and never into the app the user installs. The shipped
+  app declares no network security config at all and therefore keeps the
+  platform default, which since API 28 is "no cleartext, anywhere".
+
+  WHY IT IS NEEDED
+
+  ThirdPartyIsolationTest and CrossOriginIframeIsolationTest are the evidence for
+  BIT-33 §Acceptance 3 and 4. Both work by standing up a real HTTP server on
+  loopback (LocalTestServer binds 127.0.0.1:0) and pointing a real HardenedWebView
+  at it, because the thing under test is a genuine third-party *origin* — and an
+  origin is a scheme, host and port, which `loadData` does not give you and which
+  a second port on 127.0.0.1 does.
+
+  targetSdk is 36, so without this the WebView refuses the fixture with
+  ERR_CLEARTEXT_NOT_PERMITTED and the page never loads. That failure mode is worse
+  than it sounds: a page that never loaded also never finds a bridge, so a probe
+  test can go green having exercised nothing. The load assertions in both tests
+  are written to catch that (see `assertFixtureRan`), and this config is what stops
+  it happening in the first place.
+
+  WHY IT IS SCOPED TO 127.0.0.1
+
+  `cleartextTrafficPermitted="true"` on a bare `base-config` would let the test APK
+  talk http to anything, which is a strictly larger hole than the one being opened
+  and would also mask a genuine regression — an https-only assertion in a future
+  test would stop failing. The permission is therefore attached to the single
+  domain the test servers bind to, with `includeSubdomains` off because an IP
+  literal has no subdomains.
+
+  `localhost` is listed alongside it because the two are not interchangeable to
+  the platform: the config matches on the host string as written in the URL, and
+  a future fixture that spells its origin `http://localhost:PORT` would otherwise
+  be refused for reasons no one would enjoy tracking down.
+-->
+<network-security-config>
+    <domain-config cleartextTrafficPermitted="true">
+        <domain includeSubdomains="false">127.0.0.1</domain>
+        <domain includeSubdomains="false">localhost</domain>
+    </domain-config>
+</network-security-config>

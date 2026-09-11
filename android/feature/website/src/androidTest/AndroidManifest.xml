@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Instrumentation-only manifest. AGP merges this into the androidTest APK for
+  :feature:website and into nothing else — in particular not into :app, so none
+  of it reaches a build a user can install.
+
+  It exists for one line: the isolation tests serve their fixtures over http on
+  127.0.0.1, and the platform blocks cleartext by default at this targetSdk. See
+  res/xml/network_security_config_test.xml for why that is opened here and why it
+  is opened for loopback only.
+
+  Deliberately NOT here: android:usesCleartextTraffic="true". It is the shorter
+  way to the same green tests and it applies to every host, which is a blanket
+  the network security config makes unnecessary.
+-->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <application
+        android:networkSecurityConfig="@xml/network_security_config_test" />
+
+</manifest>

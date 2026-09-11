@@ -263,9 +263,10 @@ jobs:
         # real WebView and asserts the wallet does not react. A requirement whose
         # only evidence is a file that no longer compiles is a comment.
         #
-        # Compiling is genuinely less than running, and saying so is the point of
-        # this note rather than something to discover later. Running it needs a
-        # device; the issue's own Remaining section names that as the open item.
+        # Compiling is genuinely less than running. The `instrumented` job below
+        # now runs them on an emulator, which is what BIT-33 §Acceptance 3 and 4
+        # actually ask for; this step is kept anyway because it fails in about a
+        # minute where that job fails after a boot.
         run: ./gradlew :feature:website:assembleDebugAndroidTest --no-daemon
 
       - name: Assemble debug APK
@@ -279,6 +280,99 @@ jobs:
           path: android/app/build/outputs/apk/debug/*.apk
           retention-days: 7
           if-no-files-found: error
+
+  instrumented:
+    name: WebView isolation tests (emulator)
+    # BIT-33 §Acceptance 3 and 4 are instrumented tests: a page on a
+    # non-allowlisted origin, and a cross-origin iframe on a first-party page,
+    # must reach no bridge, drive no navigation and trigger no network call
+    # against a real WebView. Until this job existed the build job compiled them
+    # and nothing ran them, so the acceptance items had no evidence behind them.
+    #
+    # A SEPARATE JOB, not a step inside `maestro`, for two reasons. The smoke job
+    # publishes the wall-clock table BIT-5 is measured by, and folding a
+    # multi-minute Gradle run into the middle of it would corrupt every number in
+    # that table. And the two failures mean different things — "the port's UI
+    # regressed" against "the wallet is reachable from a hostile page" — which is
+    # worth the second emulator boot to keep legible on the run page.
+    #
+    # Same runner selector as `maestro`: KVM is the requirement, and if the
+    # emulator work has been moved to a self-hosted host this moves with it.
+    runs-on: ${{ fromJSON(vars.ANDROID_EMULATOR_RUNNER || '["ubuntu-latest"]') }}
+    needs: build
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: ${{ env.JAVA_VERSION }}
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Enable KVM
+        # See the identical step in `maestro`. Without KVM the emulator does not
+        # fail, it crawls past the timeout.
+        if: runner.environment == 'github-hosted'
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' \
+            | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      - name: Preflight — hardware acceleration is actually available
+        run: |
+          set -euo pipefail
+          if [ ! -e /dev/kvm ]; then
+            echo "::error::No /dev/kvm on runner '${{ runner.name }}'. The emulator needs hardware acceleration; without it this job times out rather than failing. See android/docs/self-hosted-runner.md."
+            exit 1
+          fi
+          if [ ! -r /dev/kvm ] || [ ! -w /dev/kvm ]; then
+            echo "::error::/dev/kvm exists but is not read/write for user '$(id -un)'. Add the runner user to the 'kvm' group. See android/docs/self-hosted-runner.md."
+            ls -l /dev/kvm
+            exit 1
+          fi
+          echo "KVM OK on ${{ runner.environment }} runner '${{ runner.name }}' as $(id -un)."
+
+      - name: Cache AVD
+        uses: actions/cache@v4
+        id: avd-cache
+        with:
+          path: |
+            ~/.android/avd/*
+            ~/.android/adb*
+          # Shares the key with the `maestro` job deliberately: same API level,
+          # same image, same profile, so the two jobs restore one snapshot rather
+          # than creating and storing two identical ones.
+          key: avd-api34-aosp-atd-x86_64
+
+      - name: Run the WebView isolation tests
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 34
+          target: aosp_atd
+          arch: x86_64
+          profile: pixel_6
+          force-avd-creation: false
+          emulator-options: -no-snapshot-save -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
+          disable-animations: true
+          # `bash <file>`, not an inline block — the action runs this under
+          # /usr/bin/sh. See ci-smoke.sh's header.
+          script: bash android/scripts/ci-instrumented.sh
+
+      - name: Upload instrumented test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: website-instrumented-results
+          path: |
+            android/feature/website/build/outputs/androidTest-results/connected/**
+            android/feature/website/build/reports/androidTests/connected/**
+          retention-days: 14
+          if-no-files-found: warn
 
   maestro:
     name: Maestro smoke (emulator)
