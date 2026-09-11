@@ -17,12 +17,11 @@ statement about the driver's reasoning and nothing else. **It is not evidence
 about Keystore**, and no amount of it ever will be.
 
 The five emulator rows now have a way to be produced —
-`.github/workflows/k1-keystore-lockscreen.yml`, which run #1 showed boots an
-emulator on an ordinary GitHub-hosted runner. That run came back red and its cause
-was unreadable without repository admin; the channel that fixes is now in place.
-See [Runs so far](#runs-so-far) and [What is blocking the
-run](#what-is-blocking-the-run). The two physical-device rows still need handsets
-someone owns.
+`.github/workflows/k1-keystore-lockscreen.yml`, which boots an emulator on an
+ordinary GitHub-hosted runner. Two runs have been made and both came back red
+*before measuring anything*: the probe's seal phase fails on API 34's `aosp_atd`
+image, so no mutation has yet been attempted. See [Runs so
+far](#runs-so-far). The two physical-device rows still need handsets someone owns.
 
 ## What is being proved
 
@@ -284,24 +283,41 @@ mutation could not be driven on this device, with the reason recorded
 
 | run | ref | commit | images | outcome |
 |---|---|---|---|---|
-| [#1](https://github.com/getbittr/bittr-ios-app/actions/runs/34586609943) | `k1-run/pilot` | `393d229` | API 34, `aosp_atd`, `x86_64` | red — **cause not readable** |
+| [#1](https://github.com/getbittr/bittr-ios-app/actions/runs/34586609943) | `k1-run/pilot` | `393d229` | API 34, `aosp_atd`, `x86_64` | red — cause not readable |
+| [#2](https://github.com/getbittr/bittr-ios-app/actions/runs/34588466744) | `k1-run/pilot` | `22cc4da` | API 34, `aosp_atd`, `x86_64` | red — **all five rows `ERROR` at `seal`** |
 
-Run #1 is **not** a row and must not be read as one. What is known about it is
-only what the anonymous API exposes: the emulator booted, `Build the probe APK`
-passed, and `Run the K1 matrix` ran for 100 seconds and exited non-zero, having
-written *some* table (an artefact was produced, so the driver reached the point of
-writing one). Whether the rows were `FAIL` or `ERROR` — a rule-2 contradiction
-versus a harness that could not establish what happened — is the entire question,
-and it is in a log and an artefact that need repository admin.
+Neither is a row, and neither may be read as one.
 
-100 seconds is the detail worth carrying forward: that is long enough to boot an
-ATD image and far too short to drive six mutations. So the matrix most likely
-failed early on every case rather than measuring anything. One candidate is named
-in the workflow already — `aosp_atd` is a stripped image, and the matrix drives
-the lock screen through `LockSettingsService`; an image with no keyguard has
-nothing to mutate, and every row would come back `ERROR` at the credential
-witness, quickly. **That is a hypothesis, not a finding.** It is written down so
-the next run can confirm or kill it, not so it can be quoted.
+**Run #1** established one thing and hid the rest. The emulator booted on an
+ordinary GitHub-hosted `ubuntu-latest` runner, the probe built, and the matrix ran
+for 100 seconds and exited non-zero having written *some* table. Which rows, and
+whether they were `FAIL` (a rule-2 contradiction) or `ERROR` (the harness could
+not establish anything), was in a log and an artefact that need repository admin.
+The only readable detail was `The process '/usr/bin/sh' failed with exit code 1`.
+That is what the annotation channel above exists to fix.
+
+**Run #2** is the same code plus that channel, and the table came back:
+
+```
+### unknown/Android SDK built for x86_64 (API 34)
+Android/sdk_slim_x86_64/emulator64_x86_64:14/UE1A.230829.036.A1/11228894:userdebug/test-keys
+
+| M1 | ERROR | seal | - |   ... and M2, M3, M4, M5 identically
+**M1** — seal phase failed — see the run log; no verdict on rule 2
+```
+
+Every case failed in **phase 1, the seal**, before any lock-screen mutation was
+attempted. That **kills the hypothesis recorded here after run #1** — `aosp_atd`
+having no keyguard would have failed the *credential witness*, which the run never
+reached. The stripped image may still be a problem later; it is not this problem.
+Note `sdk_slim_x86_64` in the fingerprint, which does confirm the image is the ATD
+one.
+
+What failed in the seal is not yet known, and the note says why not: *"see the run
+log"* — pointing at the one place an unauthenticated reader cannot go. The same
+defect as run #1, one level down. `failure_excerpt` in the driver now carries the
+decisive `am instrument` lines into the table itself, so the next run names the
+cause instead of referring to it.
 
 **`not reachable` is a finding, not a gap.** BIT-18 says "where reachable" of
 mutation 5, and M6 is expected to be unreachable on physical devices: a device

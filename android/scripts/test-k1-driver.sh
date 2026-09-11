@@ -734,6 +734,42 @@ run_ci() {
   set -e
 }
 
+# The annotation is the only copy of the table a reader without repository admin
+# can get (k1-ci.sh, "Publishing the table somewhere it can actually be read").
+# test-k1-annotation.sh pins the escaping; these checks pin that the wrapper still
+# EMITS one, and that the table is inside it rather than beside it. Deleting the
+# annotate call would otherwise break nothing any test could see.
+annotation_line() {
+  printf '%s\n' "$OUT" | grep -E '^::(notice|error) title=K1 API' | tail -n 1
+}
+
+expect_annotation() {
+  # expect_annotation <level> <substring that must be in the message>
+  local line
+  line=$(annotation_line)
+  if [ -z "$line" ]; then
+    fail_check "annotation emitted ($1)" "no ::$1 line in the wrapper output"
+    return
+  fi
+  case "$line" in
+    "::$1 "*) pass_check "annotation emitted at level $1" ;;
+    *) fail_check "annotation emitted at level $1" "got: ${line%%::*}::" ;;
+  esac
+  if printf '%s' "$line" | grep -qF -- "$2"; then
+    pass_check "annotation carries: $2"
+  else
+    fail_check "annotation carries: $2" "annotation follows:
+        | $line"
+  fi
+  # One physical line, or GitHub keeps only the first row of the table.
+  if [ "$(printf '%s\n' "$OUT" | grep -cE '^::(notice|error) title=K1 API')" = "1" ]; then
+    pass_check "exactly one annotation (GitHub caps 10 per level)"
+  else
+    fail_check "exactly one annotation (GitHub caps 10 per level)" \
+      "$(printf '%s\n' "$OUT" | grep -cE '^::(notice|error) title=K1 API') emitted"
+  fi
+}
+
 expect_summary() {
   if [ -f "$SANDBOX/summary.md" ] && grep -qF -- "$1" "$SANDBOX/summary.md"; then
     pass_check "job summary contains: $1"
@@ -757,6 +793,8 @@ expect_summary "| M2 | PASS |"
 expect_summary "Every row PASS"
 # The fingerprint is the difference between evidence and an anecdote.
 expect_out "google/sdk_gphone64_x86_64"
+# A green run annotates at `notice`, with the table escaped onto one line.
+expect_annotation notice "%0A| M2 | PASS |"
 
 scenario "a failing row fails the CI job"
 # The row the whole test exists to catch: the key did NOT survive. A wrapper
@@ -769,6 +807,9 @@ else
   fail_check "nonzero exit" "the wrapper swallowed a FAIL row"
 fi
 expect_summary "Not every row is PASS"
+# A red run annotates at `error`, so it shows on the run page as the failure
+# reason instead of "The process '/usr/bin/sh' failed with exit code 1".
+expect_annotation error "| M2 | **FAIL** |"
 
 scenario "a mutation that silently did not happen fails the CI job"
 knob mutation_noop 1
@@ -791,6 +832,9 @@ else
   fail_check "nonzero exit" "a refused run reported success"
 fi
 expect_summary "The matrix produced no table"
+# Especially here: with no table at all, the annotation is the ONLY thing a
+# reader without admin gets, so it must say what happened rather than be absent.
+expect_annotation error "The matrix produced no table"
 
 scenario "M6 is off unless the workflow asks for it"
 run_ci

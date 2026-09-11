@@ -309,6 +309,48 @@ instrument() {
 
 k1_line() { a logcat -d -s K1:I 2>/dev/null | grep -oE 'phase=.*' | tail -n 1; }
 
+# The decisive lines of a failed `am instrument` run, on ONE line, for the table.
+#
+# WHY THIS IS NOT JUST "SEE THE RUN LOG"
+#
+# It was, and that was a dead end. On this repository the step log needs
+# repository admin to read (403), the artefact needs a token (401), and the job
+# summary is not in the REST API at all — so "see the run log" pointed at the one
+# place the reader could not go. Run #2 of the CI workflow came back with five
+# rows of `ERROR | seal | - | seal phase failed — see the run log`, which says
+# that the probe did not seal and nothing whatsoever about why.
+#
+# The table is the artefact that survives, and k1-ci.sh sends it out as an
+# annotation, which is readable without credentials. So the cause has to travel
+# in the table or it does not travel.
+#
+# Bounded deliberately: the first exception line plus the first few frames is
+# what identifies a failure, and the annotation carrying it has a size limit that
+# a full stack trace per row would blow. The untruncated output stays in the step
+# log for anyone who does have admin.
+failure_excerpt() {
+  local f="$1" text
+  # `stack=` is what AndroidJUnitRunner reports a throwable as; the bare
+  # `Exception`/`Error` grep catches a runner that died before it could report one
+  # (no instrumentation target, missing runner class, APK not installed), which is
+  # precisely the shape that produces an identical ERROR row for every case.
+  text=$(
+    grep -hE 'stack=|^(java|android|kotlin|com\.bittr)[^ ]*(Exception|Error)|Exception:|Error:|INSTRUMENTATION_RESULT: shortMsg|Unable to find instrumentation|does not exist|Process crashed' "$f" 2>/dev/null |
+      head -n 6 |
+      sed 's/^[[:space:]]*//; s/[[:space:]]*$//' |
+      tr '\n' '\a' |
+      sed 's/\a/ · /g; s/ · $//'
+  )
+  if [ -z "$text" ]; then
+    # No recognisable failure text is itself the finding — it means the runner
+    # produced output this does not know how to read, and guessing would be worse
+    # than saying so.
+    text="no recognisable failure text in the instrumentation output (first line: $(head -n 1 "$f" | cut -c1-120))"
+  fi
+  # A `|` would split the markdown table cell this lands next to.
+  printf '%s' "$text" | tr '|' '/' | cut -c1-600
+}
+
 # ---------------------------------------------------------------------------
 # Build and install
 # ---------------------------------------------------------------------------
@@ -383,7 +425,7 @@ for case_id in "${cases[@]}"; do
   if [ "$(instrument "${TEST_CLASS_ROOT}.K1SealTest" "$seal_out" "$case_id")" != "pass" ]; then
     echo "k1: seal phase failed for $case_id"
     sed -n '1,40p' "$seal_out"
-    record "$case_id" "ERROR" "seal" "-" "seal phase failed — see the run log; no verdict on rule 2"
+    record "$case_id" "ERROR" "seal" "-" "seal phase failed; no verdict on rule 2 — $(failure_excerpt "$seal_out")"
     overall=1
     continue
   fi
@@ -443,7 +485,7 @@ for case_id in "${cases[@]}"; do
           continue
           ;;
         *)
-          record "$case_id" "ERROR" "mutate" "-" "K1AdminResetTest failed outright — see the run log"
+          record "$case_id" "ERROR" "mutate" "-" "K1AdminResetTest failed outright — $(failure_excerpt "$mutate_out")"
           overall=1
           continue
           ;;
@@ -518,7 +560,7 @@ for case_id in "${cases[@]}"; do
     echo "k1: open phase FAILED for $case_id"
     sed -n '1,60p' "$open_out"
     record "$case_id" "**FAIL**" "$witness" "-" \
-      "the non-auth-bound key did not survive, or a witness assertion failed. Do NOT switch designs — report on BIT-18 and BIT-8 (see the issue)."
+      "the non-auth-bound key did not survive, or a witness assertion failed. Do NOT switch designs — report on BIT-18 and BIT-8 (see the issue). $(failure_excerpt "$open_out")"
     overall=1
     continue
   fi
