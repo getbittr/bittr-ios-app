@@ -146,12 +146,18 @@ the default branch, which would otherwise move the block on this issue from "no
 device" to "no button".
 
 ```sh
-# before merge
-git push origin HEAD:k1-run/api-sweep
+# before merge — the branch name says which images to boot
+git push origin HEAD:k1-run/pilot              # API 34 only (no digits = one image)
+git push origin HEAD:k1-run/26-30-33-34-35     # the full BIT-18 sweep
 
 # after merge, from the Actions tab or:
 gh workflow run k1-keystore-lockscreen.yml -f api_levels='[26, 30, 33, 34, 35]'
 ```
+
+A branch name with no digits in it gets **one** image, API 34 — the one this
+project's runner is known to boot. That default is deliberate: the first run of
+any change to the harness should not boot five emulators to watch the same
+mistake five times. Ask for the sweep by name once the pilot is green.
 
 It needs the **same host as the Maestro emulator job** — KVM, and the
 `ANDROID_EMULATOR_RUNNER` repository variable pointing at it. See
