@@ -102,10 +102,25 @@ shared/docs/screenshots/**/*.png
 
 # Android
 android/.gradle/
-android/build/
-android/app/build/
 android/local.properties
 android/captures/
 android/.idea/
 android/*.iml
 android/.cxx/
+# Module build output is already covered by the `build/` rule further up, which
+# matches at any depth — that is why the old android/build/ and android/app/build/
+# entries are gone rather than extended. The project is multi-module (app, core/*,
+# feature/*) and naming each one would miss every module added after it.
+#
+# Note: android/gradle/wrapper/gradle-wrapper.jar IS committed on purpose. It is
+# what makes ./gradlew work on a clean checkout.
+
+# Maestro run output
+maestro-debug/
+maestro-report.xml
+.maestro/tests/
+
+# Python bytecode — the shared/ and android/scripts/ checks are run as scripts,
+# and importing one (test_ci_runs.py imports ci-runs.py) leaves this behind.
+__pycache__/
+*.pyc

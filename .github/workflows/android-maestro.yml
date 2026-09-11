@@ -1,0 +1,435 @@
+name: Android — build + Maestro smoke
+
+# The Android definition of done is "the Maestro suite passes on Android", so this
+# workflow is the gate that claim is measured by. It runs on every push that can
+# affect the Android app or the shared flows/test IDs.
+#
+# Shape, and why:
+#   - Build and emulator are separate jobs. The emulator is the slow, flaky-prone
+#     part; there is no reason to hold it open while Gradle compiles, and a
+#     compile error should fail in ~1 minute rather than after an emulator boot.
+#   - No retries anywhere. A flow that needs a retry to pass is a failing flow —
+#     see shared/flows/README.md. If the emulator itself is unreliable, that gets
+#     reported as a blocker, not papered over with `continue-on-error`.
+
+on:
+  push:
+    paths:
+      - 'android/**'
+      - 'shared/flows/**'
+      - 'shared/test-ids/**'
+      - '.github/workflows/android-maestro.yml'
+  pull_request:
+    paths:
+      - 'android/**'
+      - 'shared/flows/**'
+      - 'shared/test-ids/**'
+      - '.github/workflows/android-maestro.yml'
+  workflow_dispatch:
+
+concurrency:
+  # Every run gets its own group, so no run of this workflow can ever cancel another.
+  # That is a deliberate trade against the usual advice, and it is worth stating why.
+  #
+  # A workflow_dispatch must NEVER be cancelled by the next one, and this is not a
+  # nicety — it is the definition of done. BIT-5 closes on three CONSECUTIVE runs of
+  # the same ref. Under a single shared group every run would cancel the one before it,
+  # so running three times would leave two cancellations and one result. On a
+  # self-hosted runner it is worse and quieter: one runner serialises jobs, so runs 1
+  # and 2 get cancelled while still QUEUED, having never booted an emulator. The run
+  # list shows greys rather than reds, which reads as "I cancelled something" rather
+  # than "the harness ate my evidence".
+  #
+  # The obvious rule — key on the ref and let a newer commit supersede an older one —
+  # covers dispatches by keying manual runs on github.run_id. That was the original
+  # shape here, and it is not enough, because THREE PUSHES IN A ROW TO ONE BRANCH IS
+  # THE SAME SCENARIO. Until this workflow is on the default branch there is no
+  # workflow_dispatch button, so pushing is the only way to produce the three runs;
+  # a ref-keyed group turns the first two into cancellations.
+  #
+  # Note what supersede-cancellation was actually buying. It only ever fires when two
+  # runs of the same ref overlap — i.e. exactly and only in the case above. There is no
+  # third scenario where it saves minutes without also being able to eat evidence, so
+  # keying on github.sha does not so much weaken the rule as retire it. The cost is real
+  # and bounded: push twice in quick succession while iterating and you now pay for two
+  # emulator runs (~15 runner-minutes) instead of one. Evidence beats minutes here.
+  #
+  # cancel-in-progress stays true and is now near-inert by construction: it can only
+  # cancel a second run of an identical SHA on an identical ref, which is a re-run
+  # racing itself and is the one case where cancelling is unambiguously right.
+  group: android-maestro-${{ github.ref }}-${{ github.event_name == 'workflow_dispatch' && github.run_id || github.sha }}
+  cancel-in-progress: true
+
+env:
+  JAVA_VERSION: '17'
+  # Pinned deliberately. The definition of done is three consecutive green runs, which
+  # only means something if the three runs used the same tooling — an unpinned installer
+  # makes the Maestro version a variable that can change between run 1 and run 3, and
+  # "it went red and nothing changed" is the single most expensive kind of CI failure to
+  # chase. Maestro does move under this: recent versions route `takeScreenshot` output
+  # into the --debug-output bundle rather than writing it CWD-relative.
+  #
+  # Bump this on purpose, in its own commit, and re-run the three runs.
+  MAESTRO_VERSION: '2.10.0'
+  # Must match android/app/build.gradle.kts: applicationId + debug applicationIdSuffix.
+  APP_ID: com.bittr.android.regtest
+
+jobs:
+  build:
+    name: Build debug APK
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Lint this workflow
+        # A workflow is the one file in the repo that nothing else type-checks, and its
+        # mistakes are only discovered by running it — which here costs an emulator boot.
+        # actionlint validates ${{ }} expressions against the real context types and runs
+        # shellcheck over every `run:` block. Pinned so the check itself cannot change
+        # under a run; runs first because it costs about two seconds.
+        run: |
+          set -euo pipefail
+          curl -fsSL -o /tmp/actionlint.tar.gz \
+            "https://github.com/rhysd/actionlint/releases/download/v${ACTIONLINT_VERSION}/actionlint_${ACTIONLINT_VERSION}_linux_amd64.tar.gz"
+          tar -xzf /tmp/actionlint.tar.gz -C /tmp actionlint
+          /tmp/actionlint -color
+        env:
+          ACTIONLINT_VERSION: '1.7.12'
+
+      - name: Check the emulator script is POSIX sh
+        # The one blind spot in the step above. actionlint shellchecks every `run:`
+        # block, but the emulator's commands are a `script:` INPUT to a third-party
+        # action, so they are an opaque string to it — and that is exactly where the
+        # first real CI run of this workflow died, on its own first line, after a full
+        # emulator boot: "/usr/bin/sh: 1: set: Illegal option -o pipefail".
+        #
+        # Cheap here, ~20 minutes there. Deliberately in the build job so it gates the
+        # emulator job rather than running inside it.
+        run: bash android/scripts/check-action-scripts.sh
+
+      - name: Check no run of this workflow can cancel another
+        # This one is invisible to actionlint — the bad version is perfectly valid YAML
+        # and a perfectly sensible concurrency rule; it is only wrong because of what
+        # BIT-5 measures. Keying on the ref alone means run N cancels run N-1, so "three
+        # consecutive green runs" silently becomes one result and two cancellations. On a
+        # single self-hosted runner the cancelled runs never even boot an emulator, so
+        # they show as greys rather than reds and are easy to miss.
+        #
+        # This originally checked github.run_id only, which covers workflow_dispatch and
+        # left the push path — the only path available before the workflow reaches the
+        # default branch — wide open. Both event kinds are checked now.
+        #
+        # Guards the property, not the exact string, so the group can still be rewritten.
+        # No PyYAML: shared/test-ids/*.py deliberately parse with `re` so the checks run
+        # on any python3 without a pip step, and this stays consistent with that.
+        run: |
+          set -euo pipefail
+          python3 - <<'EOF'
+          import re, sys
+          from pathlib import Path
+
+          text = Path(".github/workflows/android-maestro.yml").read_text()
+          # The concurrency block: from the top-level key to the next top-level key.
+          match = re.search(r"^concurrency:\n(.*?)(?=^\S)", text, re.MULTILINE | re.DOTALL)
+          if not match:
+              sys.exit("No top-level `concurrency:` block found — this guard is now checking nothing.")
+          block = match.group(1)
+
+          cancels = re.search(r"^\s+cancel-in-progress:\s*true\s*$", block, re.MULTILINE)
+          group = re.search(r"^\s+group:\s*(.+?)\s*$", block, re.MULTILINE)
+          if not group:
+              sys.exit("`concurrency.group` not found inside the concurrency block.")
+          expr = group.group(1)
+
+          # Each entry: the run-distinguishing context, and the route it protects.
+          required = [
+              ("github.run_id", "workflow_dispatch — dispatch N would cancel dispatch N-1"),
+              ("github.sha", "push — three pushes to one branch would leave two cancellations"),
+          ]
+          missing = [(ctx, why) for ctx, why in required if ctx not in expr]
+          if cancels and missing:
+              sys.exit(
+                  "concurrency.group must vary per run while cancel-in-progress is true, or "
+                  "BIT-5's three-consecutive-green-runs definition of done cannot be measured.\n"
+                  f"  group = {expr}\n"
+                  + "".join(f"  missing {ctx}: {why}\n" for ctx, why in missing)
+                  + "See android/docs/self-hosted-runner.md, 'Why three runs in a row is safe'."
+              )
+          print(f"concurrency group cannot cancel a sibling run: {expr}")
+          EOF
+
+      - name: Set up JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: ${{ env.JAVA_VERSION }}
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          build-scan-publish: false
+
+      - name: Test the CI-results reader
+        # ci-runs.py is the gate that answers "are the last N runs green", which
+        # is how this issue's definition of done is checked. It shipped untested
+        # and its first contact with a repo that had a run in flight reported NOT
+        # GREEN — `conclusion` is null until a run finishes, and null != success.
+        # A gate that misreports is worse than no gate, so it gets tests, and
+        # they run here. No network: the tests stub the transport.
+        run: python3 android/scripts/test_ci_runs.py
+
+      - name: Check every flow ID is registered
+        # A flow selecting an ID that is in no registry entry fails at run time
+        # with "element not found" — indistinguishable from a missing testTag in
+        # the app, and it costs an emulator boot to find out. Fail here instead.
+        run: python3 shared/test-ids/check_flow_ids.py
+
+      - name: Check generated test IDs are in sync
+        # The generated TestIDs.swift/.kt are committed for diff visibility. If
+        # someone edits test-ids.json without regenerating, iOS and Android drift
+        # apart silently and the shared flows start failing on one platform only.
+        # Cheapest possible place to catch it.
+        #
+        # Android is a hard failure. iOS is advisory only: the Android port may
+        # not change iOS sources without sign-off (BIT-7 deliverable 2), so the
+        # Swift file is allowed to lag test-ids.json until that lands. The notice
+        # keeps the pending diff visible rather than silent.
+        run: |
+          python3 shared/test-ids/build.py --platform android
+          git diff --exit-code -- android/core/common/src/main/kotlin/com/bittr/android/core/common/TestIDs.kt \
+            || { echo "::error::Generated Android test IDs are stale. Run ./shared/test-ids/build.py --platform android and commit the result."; exit 1; }
+          python3 shared/test-ids/build.py --platform ios
+          git diff --quiet -- ios/bittr/Helpers/TestIDs.swift \
+            || echo "::notice::TestIDs.swift is behind test-ids.json. Regenerating it is an iOS change and needs sign-off."
+          git checkout -- ios/bittr/Helpers/TestIDs.swift
+
+      - name: Unit tests
+        working-directory: android
+        # `test`, not `testDebugUnitTest`. The pure-Kotlin modules (:core:common,
+        # :core:wallet, :core:wallet-stub) have no Android variants, so their test
+        # task is plain `test` — `testDebugUnitTest` reports NO-SOURCE for them and
+        # goes green having run nothing. That includes the test-tag checks below.
+        #
+        # This step is also where the emulator's biggest failure mode is caught,
+        # before an emulator is ever booted. BiometricUnlockFlagTest and
+        # BiometricApiGuardTest enforce that the regtest APK cannot show a
+        # BiometricPrompt at unlock: 296 of the 329 takeScreenshot steps sit behind
+        # a PIN entry, so a prompt in front of the PIN pad fails ~90% of the suite
+        # at once and early enough to bury its own cause. ScreenshotBlockingGuardTest
+        # covers the quieter twin — an app-wide FLAG_SECURE makes every screenshot a
+        # black frame without failing a single flow.
+        #
+        # None of this depends on the emulator image's fingerprint enrolment. It is
+        # a property of the APK, so it holds on any runner.
+        run: ./gradlew test --no-daemon
+
+      - name: Assemble debug APK
+        working-directory: android
+        run: ./gradlew :app:assembleDebug --no-daemon
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-debug-apk
+          path: android/app/build/outputs/apk/debug/*.apk
+          retention-days: 7
+          if-no-files-found: error
+
+  maestro:
+    name: Maestro smoke (emulator)
+    # The emulator job is the one with a hardware requirement (KVM), so it is the
+    # one that gets to move hosts. Set the repository variable
+    # ANDROID_EMULATOR_RUNNER to a self-hosted label to move it; unset, it stays on
+    # GitHub-hosted runners, which have KVM and need no provisioning.
+    #
+    # The variable holds a JSON array, and fromJSON is load-bearing: runs-on matches
+    # a *list* of labels, so a bare "self-hosted,linux,x64" string becomes one label
+    # that matches no runner — and the symptom is a job queued forever, not an error.
+    #
+    # Prerequisites for a self-hosted host are in android/docs/self-hosted-runner.md.
+    # The preflight step below fails fast and points there rather than letting a
+    # misprovisioned host burn the 30-minute timeout.
+    runs-on: ${{ fromJSON(vars.ANDROID_EMULATOR_RUNNER || '["ubuntu-latest"]') }}
+    needs: build
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Mark job start
+        # BIT-5 asks for the wall-clock number, and until this step the workflow
+        # produced no number at all — you had to read the durations off the run
+        # page and add them up by eye, once per run, three times. Worse, the
+        # emulator-runner step is a single timed unit covering AVD boot, install
+        # and the flow together, so the figure it shows answers "how long does
+        # CI take" and not "how long does the flow take", which are different
+        # questions with answers minutes apart.
+        #
+        # Recording the start here lets the run step below decompose it into a
+        # table in the job summary, so each run states its own number and three
+        # consecutive runs can be compared without anyone doing arithmetic.
+        run: echo "JOB_START_EPOCH=$(date +%s)" >> "$GITHUB_ENV"
+
+      - name: Download APK
+        uses: actions/download-artifact@v4
+        with:
+          name: app-debug-apk
+          path: apk
+
+      - name: Set up JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: ${{ env.JAVA_VERSION }}
+
+      - name: Enable KVM
+        # GitHub-hosted Linux runners expose /dev/kvm but not to non-root users by
+        # default. Without this the emulator falls back to software rendering and
+        # goes from "about a minute to boot" to "does not finish".
+        #
+        # Deliberately NOT run on self-hosted hosts. There it is provisioning, not a
+        # build step: the rule belongs in the host's image (it needs passwordless
+        # sudo to apply, and re-applying it on every job is a persistent change made
+        # by untrusted-ish job code). See android/docs/self-hosted-runner.md.
+        if: runner.environment == 'github-hosted'
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' \
+            | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      - name: Preflight — hardware acceleration is actually available
+        # Without KVM the emulator does not fail, it crawls: boot goes from ~1
+        # minute to past any sane timeout, and the job dies 30 minutes later with
+        # "Timeout waiting for emulator to boot" — which reads like a flaky
+        # emulator rather than a misconfigured host. Six seconds here saves that.
+        run: |
+          set -euo pipefail
+          if [ ! -e /dev/kvm ]; then
+            echo "::error::No /dev/kvm on runner '${{ runner.name }}'. The emulator needs hardware acceleration; without it this job times out rather than failing. If this is a VM, nested virtualisation must be enabled on the hypervisor. See android/docs/self-hosted-runner.md."
+            exit 1
+          fi
+          if [ ! -r /dev/kvm ] || [ ! -w /dev/kvm ]; then
+            echo "::error::/dev/kvm exists but is not read/write for user '$(id -un)'. Add the runner user to the 'kvm' group. See android/docs/self-hosted-runner.md."
+            ls -l /dev/kvm
+            exit 1
+          fi
+          echo "KVM OK on ${{ runner.environment }} runner '${{ runner.name }}' as $(id -un)."
+
+      - name: Preflight — ANDROID_HOME is set
+        # android-emulator-runner installs the SDK components itself, but it resolves
+        # them against $ANDROID_HOME. GitHub-hosted images set it; a freshly registered
+        # self-hosted runner does not. Unset, the action expands the path to the literal
+        # string "undefined/cmdline-tools" and the failure surfaces much later as a
+        # confusing sdkmanager error rather than a missing variable.
+        if: runner.environment != 'github-hosted'
+        run: |
+          set -euo pipefail
+          if [ -z "${ANDROID_HOME:-}" ]; then
+            echo "::error::ANDROID_HOME is not set on runner '${{ runner.name }}'. android-emulator-runner installs the SDK itself but needs somewhere to put it. Export ANDROID_HOME (e.g. /opt/android-sdk, writable by the runner user) in the runner service environment. See android/docs/self-hosted-runner.md."
+            exit 1
+          fi
+          mkdir -p "$ANDROID_HOME"
+          echo "ANDROID_HOME=$ANDROID_HOME"
+          # The emulator step runs `bash android/scripts/ci-smoke.sh`. Present on every
+          # normal Linux host, but a minimal container image can ship only dash — and
+          # there the failure lands after the emulator has booted, which is precisely
+          # the twenty-minute feedback loop this whole preflight exists to avoid.
+          if ! command -v bash >/dev/null 2>&1; then
+            echo "::error::bash is not installed on runner '${{ runner.name }}'. The emulator step runs a bash script; install bash on the host. See android/docs/self-hosted-runner.md."
+            exit 1
+          fi
+
+      - name: Install Maestro
+        # MAESTRO_VERSION is read by the installer (unset would fetch releases/latest).
+        # The version is echoed so each run's log records which Maestro produced its
+        # result — without that, comparing three "consecutive" runs assumes something
+        # nobody actually checked.
+        run: |
+          set -euo pipefail
+          curl -fsSL "https://get.maestro.mobile.dev" | MAESTRO_VERSION="${MAESTRO_VERSION}" bash
+          echo "$HOME/.maestro/bin" >> "$GITHUB_PATH"
+          "$HOME/.maestro/bin/maestro" --version
+
+      - name: Cache AVD
+        uses: actions/cache@v4
+        id: avd-cache
+        with:
+          path: |
+            ~/.android/avd/*
+            ~/.android/adb*
+          key: avd-api34-aosp-atd-x86_64
+
+      - name: Create AVD snapshot
+        if: steps.avd-cache.outputs.cache-hit != 'true'
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 34
+          target: aosp_atd
+          arch: x86_64
+          profile: pixel_6
+          force-avd-creation: false
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
+          disable-animations: false
+          script: echo "AVD created and snapshotted"
+
+      - name: Mark emulator step start
+        # Splits the figure the annotation used to call "emulator boot" into the
+        # two different things it was silently adding together. JOB_START_EPOCH is
+        # marked at the top of the job, so everything between it and the script
+        # starting — SDK setup, Maestro's installer, restoring the AVD cache — was
+        # being counted as boot. On the three BIT-5 evidence runs that was 20-34s
+        # of an 88-107s number: up to a third of "emulator boot" was not the
+        # emulator booting.
+        #
+        # A mislabel here points optimisation work at the wrong step. The honest
+        # decomposition is ~68s of actual boot plus 10-21s of downloading Maestro
+        # on every single run, and only the second of those is worth caching.
+        # Marking immediately before the action makes boot mean boot.
+        run: echo "EMULATOR_START_EPOCH=$(date +%s)" >> "$GITHUB_ENV"
+
+      - name: Run Maestro smoke flow
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 34
+          # aosp_atd = Automated Test Device: a stripped AOSP image built for CI.
+          # No Play Services, no Google apps, materially faster to boot and less
+          # prone to a background service waking up mid-flow. The app has no Play
+          # Services dependency yet; when FCM lands, this must move to a
+          # google_apis image and the boot-time number below gets re-measured.
+          target: aosp_atd
+          arch: x86_64
+          profile: pixel_6
+          force-avd-creation: false
+          emulator-options: -no-snapshot-save -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
+          disable-animations: true
+          # `bash <file>`, not an inline block, and this is load-bearing rather than
+          # tidiness. The action runs this input under /usr/bin/sh — dash on the Ubuntu
+          # images — not bash, and the first run of this job died on its own first line
+          # with "set: Illegal option -o pipefail", after a full emulator boot. Naming
+          # the interpreter here makes the script's shell a property of the repo instead
+          # of a property of whichever image the runner happens to be.
+          #
+          # What stays inline must be POSIX; android/scripts/check-action-scripts.sh
+          # enforces that in the build job, seconds in rather than an emulator boot in.
+          script: bash android/scripts/ci-smoke.sh
+
+      - name: Upload Maestro artefacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: maestro-debug-output
+          # --debug-output carries the screenshot-on-failure, the view hierarchy
+          # dump at the point of failure, and the maestro log. The hierarchy dump
+          # is the one that actually explains "element not found".
+          #
+          # maestro-video/ is present only when the flow failed — the run step
+          # deletes it on green. It covers what a final-frame screenshot cannot:
+          # anything that was transient by the time the capture happened.
+          path: |
+            maestro-debug/**
+            maestro-video/**
+            maestro-report.xml
+            shared/docs/screenshots/android_scaffold_smoke/**
+          retention-days: 14
+          if-no-files-found: warn

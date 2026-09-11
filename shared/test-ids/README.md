@@ -3,7 +3,14 @@
 Canonical accessibility/test ID constants used by Maestro flows. Defined here once, generated to platform-native code.
 
 - **iOS**: `ios/bittr/Helpers/TestIDs.swift` — `enum TestID { ... }`, set on `view.accessibilityIdentifier`.
-- **Android** (when scaffolded): `android/app/src/main/.../TestIDs.kt` — `object TestID { ... }`, set with `Modifier.testTag()`.
+- **Android**: `android/core/common/src/main/kotlin/com/bittr/android/core/common/TestIDs.kt` — `object TestID { ... }`, set with `Modifier.testTag()`.
+
+> **Android gotcha, worth knowing before you debug a flow for an hour:** Compose
+> `Modifier.testTag` is *not* exposed to the accessibility tree Maestro reads. It
+> works only because `testTagsAsResourceId = true` is set on the root node in
+> `android/app/src/main/kotlin/com/bittr/android/MainActivity.kt`. Remove that and
+> every `assertVisible: id:` fails with "element not found" while the app looks
+> completely correct on screen.
 
 ## Source format
 
@@ -26,6 +33,40 @@ Canonical accessibility/test ID constants used by Maestro flows. Defined here on
 
 JSON keys are camelCase. Branches get PascalCased in code (`Signup`, `Create`); leaves stay camelCase (`createWalletButton`). The string ID — what Maestro matches — is the lowercased dot path.
 
+### Runtime-indexed IDs
+
+Some IDs get a row/position number appended when the view is built: the mnemonic word labels, the history table cells, the alert buttons. The flows assert on the numbered form (`history.transactionButton0`, `alert.button.1`, `signup.create.mnemonic.word12`), so the number has to be produced by the *same rule* on both platforms — hand-interpolating it at each call site is how one platform ends up 1-based and the other 0-based.
+
+Such a leaf carries an `_index` spec instead of `null`:
+
+```json
+"history": { "transactionButton": { "_index": { "offset": 0 } } },
+"alert":   { "button":            { "_index": { "offset": 0, "separator": "." } } },
+"signup":  { "create": { "mnemonic": { "word": { "_index": { "offset": 1 } } } } }
+```
+
+- `offset` — what position 0 is numbered as. `0` for table rows, `1` for the mnemonic words (`word1` … `word12`).
+- `separator` — inserted before the number. Empty by default; `"."` for `alert.button.0`.
+
+It generates the base constant *and* an `…At()` helper:
+
+```kotlin
+const val transactionButton = "history.transactionButton"
+fun transactionButtonAt(position: Int) = "history.transactionButton$position"   // 0 → …Button0
+fun wordAt(position: Int) = "signup.create.mnemonic.word${position + 1}"        // 0 → …word1
+```
+
+Always pass the **0-based position** — the loop index, the `indexPath.row` — and let the helper apply the offset. This mirrors iOS, where `Signup3ViewController` writes `"\(TestID.Signup.Create.Mnemonic.word)\(index + 1)"` for a 0-based `index`.
+
+## Checking flows against the registry
+
+```sh
+./shared/test-ids/check_flow_ids.py            # fails on any unregistered ID
+./shared/test-ids/check_flow_ids.py --unused   # also lists registered-but-unselected IDs
+```
+
+Every `id:` selector in `shared/flows/**` must resolve to a plain leaf or to an indexed leaf plus a number. An unregistered ID fails at run time as "element not found", which looks exactly like a missing `testTag` in the app and costs an emulator boot to diagnose. CI runs this before the build.
+
 ## Naming convention
 
 ```
@@ -42,7 +83,11 @@ JSON keys are camelCase. Branches get PascalCased in code (`Signup`, `Create`); 
 ./shared/test-ids/build.py
 ```
 
-Regenerates `ios/bittr/Helpers/TestIDs.swift`. Run after editing `test-ids.json`. The generated file is committed for diff visibility.
+Regenerates both `ios/bittr/Helpers/TestIDs.swift` and the Android `TestIDs.kt`. Run after editing `test-ids.json`. The generated files are committed for diff visibility, and CI (`.github/workflows/android-maestro.yml`) fails the build if they are stale — editing the JSON without regenerating is how the two platforms drift apart silently.
+
+`--platform ios|android|both` limits which file is written (default `both`). The Android port may not change iOS sources without sign-off, so registry additions made for the port are generated with `--platform android` and `TestIDs.swift` is left to lag until the iOS regeneration is signed off. CI treats a stale Kotlin file as an error and a stale Swift file as a notice, for the same reason.
+
+Never edit a generated file directly. That drift has already happened once: `transaction.descriptionLabel` was added straight to `TestIDs.swift` and used by `TransactionViewController` and `features/remove_wallet.yaml`, but never added to `test-ids.json` — so the next regeneration would have deleted it and broken the iOS build. It is in the JSON now, and the CI staleness check exists so it cannot recur.
 
 ## Workflow when adding an ID
 

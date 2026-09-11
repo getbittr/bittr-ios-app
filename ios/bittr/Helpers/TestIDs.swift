@@ -11,6 +11,12 @@ enum TestID {
         static let nextLessonButton = "academy.nextLessonButton"
         static let nextPageButton = "academy.nextPageButton"
     }
+    enum Alert {
+        // Runtime-indexed: position 0 → "alert.button.0", position 1 → "alert.button.1", …
+        static let button = "alert.button"
+        static func buttonAt(_ position: Int) -> String { "alert.button.\(position)" }
+        static let textField = "alert.textField"
+    }
     enum Article {
         static let downButton = "article.downButton"
         static let tableView = "article.tableView"
@@ -51,10 +57,18 @@ enum TestID {
         static let titleLabel = "header.titleLabel"
     }
     enum History {
+        // Runtime-indexed: position 0 → "history.swapComplete0", position 1 → "history.swapComplete1", …
         static let swapComplete = "history.swapComplete"
+        static func swapCompleteAt(_ position: Int) -> String { "history.swapComplete\(position)" }
+        // Runtime-indexed: position 0 → "history.swapPending0", position 1 → "history.swapPending1", …
         static let swapPending = "history.swapPending"
+        static func swapPendingAt(_ position: Int) -> String { "history.swapPending\(position)" }
+        // Runtime-indexed: position 0 → "history.transactionAmount0", position 1 → "history.transactionAmount1", …
         static let transactionAmount = "history.transactionAmount"
+        static func transactionAmountAt(_ position: Int) -> String { "history.transactionAmount\(position)" }
+        // Runtime-indexed: position 0 → "history.transactionButton0", position 1 → "history.transactionButton1", …
         static let transactionButton = "history.transactionButton"
+        static func transactionButtonAt(_ position: Int) -> String { "history.transactionButton\(position)" }
     }
     enum Home {
         static let balanceCardButton = "home.balanceCardButton"
@@ -156,6 +170,7 @@ enum TestID {
             static let amountLabel = "send.confirm.amountLabel"
             static let confirmButton = "send.confirm.confirmButton"
             static let feeFastButton = "send.confirm.feeFastButton"
+            static let feeMediumButton = "send.confirm.feeMediumButton"
             static let feeSlowButton = "send.confirm.feeSlowButton"
         }
         static let currencyButton = "send.currencyButton"
@@ -235,7 +250,9 @@ enum TestID {
                 static let mnemonicStack = "signup.create.mnemonic.mnemonicStack"
                 static let nextButton = "signup.create.mnemonic.nextButton"
                 static let topLabelOne = "signup.create.mnemonic.topLabelOne"
+                // Runtime-indexed: position 0 → "signup.create.mnemonic.word1", position 1 → "signup.create.mnemonic.word2", …
                 static let word = "signup.create.mnemonic.word"
+                static func wordAt(_ position: Int) -> String { "signup.create.mnemonic.word\(position + 1)" }
             }
             enum PinConfirm {
                 static let topLabel = "signup.create.pinConfirm.topLabel"

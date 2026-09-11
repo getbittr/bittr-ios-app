@@ -78,10 +78,10 @@
     "downButton": null
   },
   "history": {
-    "swapPending": null,
-    "swapComplete": null,
-    "transactionButton": null,
-    "transactionAmount": null
+    "swapPending": { "_index": { "offset": 0 } },
+    "swapComplete": { "_index": { "offset": 0 } },
+    "transactionButton": { "_index": { "offset": 0 } },
+    "transactionAmount": { "_index": { "offset": 0 } }
   },
   "move": {
     "subtitleLabel": null,
@@ -172,6 +172,7 @@
     "labelAmount": null,
     "swapStatusButton": null,
     "descriptionButton": null,
+    "descriptionLabel": null,
     "copyIdButton": null,
     "urlIdButton": null,
     "copyBottomIdButton": null,
@@ -215,6 +216,7 @@
       "amountLabel": null,
       "amountFiatLabel": null,
       "feeFastButton": null,
+      "feeMediumButton": null,
       "feeSlowButton": null,
       "confirmButton": null
     }
@@ -238,7 +240,7 @@
         "topLabelOne": null,
         "mnemonicStack": null,
         "nextButton": null,
-        "word": null
+        "word": { "_index": { "offset": 1 } }
       },
       "verify": {
         "topLabel": null,
@@ -332,5 +334,9 @@
   },
   "core": {
     "launchComplete": null
+  },
+  "alert": {
+    "button": { "_index": { "offset": 0, "separator": "." } },
+    "textField": null
   }
 }
