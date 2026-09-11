@@ -22,6 +22,16 @@ Some strings are not marketing copy — they are statements about what the app d
 |---|---|---|
 | `mapvcpoweredbyalert` | BIT-56 (from BIT-45) | That the places lookup sends the user's location nowhere, and that whoever serves the map tiles sees the on-screen area |
 
+**Review trail for `mapvcpoweredbyalert`** — both reads are complete against the wording at `d610cac`, which is the wording that ships:
+
+- **Factual check against the code** — BIT-70, Application Security Engineer, 2026-09-11. Cleared.
+- **Compliance read** — BIT-69, Compliance & Regulatory Officer, 2026-09-11. **ADVISORY (approved to ship as written)** under §7 of the `perimeter` document on BIT-27.
+
+Two standing conditions came out of the compliance read. They constrain future edits to this string, not the current text:
+
+- **Do not add a "see our privacy policy" pointer to this alert until BIT-71 lands.** The policy names no map processor and mentions location, maps and tiles nowhere, so a cross-reference would point at a disclosure that does not exist. The alert is accurate standing alone, which is why it is approved standing alone.
+- **Do not strengthen the BTCMap clause.** `getBitcoinMapURL` carries no coordinate, but it is a direct device→`api.btcmap.org` call, so BTCMap receives the device IP on every sync like any HTTPS host. "Your location is never sent" is true because *your location* here means the permission-derived fix, which the next sentence makes explicit. Anything of the form "BTCMap learns nothing about you" would be false.
+
 The `mapvcpoweredbyalert` claim depends on a specific engineering property: the client downloads the **whole** BTCMap dataset and filters by proximity on-device (`getBitcoinMapURL` sends no lat/lon or bbox). If the Android port ever fetches places by bounding box — cheaper, and the obvious thing to reach for — the claim becomes false on Android. Treat the whole-dataset sync as load-bearing, not as an implementation detail.
 
 The string deliberately says **"whoever serves them"** rather than naming a tile host, and it deliberately scopes the strong claim to the *places lookup* rather than to the app as a whole. Both are load-bearing:
