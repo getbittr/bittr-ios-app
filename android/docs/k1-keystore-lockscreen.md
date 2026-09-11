@@ -17,9 +17,12 @@ statement about the driver's reasoning and nothing else. **It is not evidence
 about Keystore**, and no amount of it ever will be.
 
 The five emulator rows now have a way to be produced —
-`.github/workflows/k1-keystore-lockscreen.yml`, on the KVM host the Maestro job
-already runs on. The two physical-device rows still need handsets someone owns.
-See [What is blocking the run](#what-is-blocking-the-run).
+`.github/workflows/k1-keystore-lockscreen.yml`, which run #1 showed boots an
+emulator on an ordinary GitHub-hosted runner. That run came back red and its cause
+was unreadable without repository admin; the channel that fixes is now in place.
+See [Runs so far](#runs-so-far) and [What is blocking the
+run](#what-is-blocking-the-run). The two physical-device rows still need handsets
+someone owns.
 
 ## What is being proved
 
@@ -180,14 +183,55 @@ Three details in that workflow are load-bearing rather than taste:
 The job goes red when any row is not `PASS`, `ERROR` included. An `ERROR` row means
 the harness could not establish what happened, which is not a pass.
 
-### Checking the harness without a device
-
-Two suites run anywhere — no device, no Android SDK:
+### Reading a run's result back
 
 ```sh
-bash android/scripts/test-k1-verdict.sh   # classifying `am instrument` output — ~1s
-bash android/scripts/test-k1-driver.sh    # the driver, against a fake device — ~70s
+android/scripts/k1-result.py                      # the latest run, table and all
+android/scripts/k1-result.py --branch k1-run/pilot
+android/scripts/k1-result.py --wait 900           # poll until the run finishes
 ```
+
+Exit codes: `0` every row PASS · `1` looked, and it is not green · `2` could not
+find out.
+
+**This is not a convenience.** On `getbittr/bittr-ios-app` every other channel the
+workflow writes to needs credentials:
+
+| channel | unauthenticated |
+|---|---|
+| `GET /actions/jobs/:id/logs` | `403 Must have admin rights to Repository.` |
+| `GET /actions/artifacts/:id/zip` | `401 Requires authentication` |
+| the job summary | not exposed by the REST API at all |
+
+Annotations are the exception — `/repos/:owner/:repo/check-runs/:id/annotations`
+is readable anonymously on a public repo, the same fact `ci-runs.py` is built on.
+So `k1-ci.sh` emits the whole table as one annotation (`notice` when every row is
+PASS, `error` when not) and `k1-result.py` reads it back.
+
+Run #1 is why. It failed, and the only thing any unauthenticated reader could
+learn from it was `The process '/usr/bin/sh' failed with exit code 1` — which is
+true of every possible cause, including a clean red result the harness reported
+correctly. The table existed in an artefact nobody could open. BIT-5 lost three
+rounds to exactly this (`ci-runs.py`, *WHY THIS EXISTS*); a K1 row that cannot be
+read is not evidence.
+
+### Checking the harness without a device
+
+Three suites run anywhere — no device, no Android SDK:
+
+```sh
+bash android/scripts/test-k1-verdict.sh      # classifying `am instrument` output — ~1s
+bash android/scripts/test-k1-annotation.sh   # the table's escaping on the way out — ~1s
+bash android/scripts/test-k1-driver.sh       # the driver, against a fake device — ~70s
+```
+
+`test-k1-annotation.sh` covers the channel above. A workflow command is one line,
+so an unescaped newline does not error — it silently truncates the table to its
+first row, and the annotation still arrives looking like a result. That is the
+same shape of defect as a green row from a run that measured nothing, which is why
+it is tested rather than eyeballed. It also pins the substitution *order*: `%`
+must be escaped before `%0A` and `%0D` are introduced, or the reader gets the
+literal text `%0A` where a line break belonged.
 
 `test-k1-driver.sh` puts a stub `adb` on `PATH` and runs the real driver end to
 end inside a throwaway git repo. It models one handset — a lock-screen
@@ -236,6 +280,29 @@ Table format, one block per device —
 `—` = not run · `PASS` / `FAIL` = a real observation · `not reachable` = the
 mutation could not be driven on this device, with the reason recorded
 
+### Runs so far
+
+| run | ref | commit | images | outcome |
+|---|---|---|---|---|
+| [#1](https://github.com/getbittr/bittr-ios-app/actions/runs/34586609943) | `k1-run/pilot` | `393d229` | API 34, `aosp_atd`, `x86_64` | red — **cause not readable** |
+
+Run #1 is **not** a row and must not be read as one. What is known about it is
+only what the anonymous API exposes: the emulator booted, `Build the probe APK`
+passed, and `Run the K1 matrix` ran for 100 seconds and exited non-zero, having
+written *some* table (an artefact was produced, so the driver reached the point of
+writing one). Whether the rows were `FAIL` or `ERROR` — a rule-2 contradiction
+versus a harness that could not establish what happened — is the entire question,
+and it is in a log and an artefact that need repository admin.
+
+100 seconds is the detail worth carrying forward: that is long enough to boot an
+ATD image and far too short to drive six mutations. So the matrix most likely
+failed early on every case rather than measuring anything. One candidate is named
+in the workflow already — `aosp_atd` is a stripped image, and the matrix drives
+the lock screen through `LockSettingsService`; an image with no keyguard has
+nothing to mutate, and every row would come back `ERROR` at the credential
+witness, quickly. **That is a hypothesis, not a finding.** It is written down so
+the next run can confirm or kill it, not so it can be quoted.
+
 **`not reachable` is a finding, not a gap.** BIT-18 says "where reachable" of
 mutation 5, and M6 is expected to be unreachable on physical devices: a device
 owner cannot be removed without a factory reset, so the script refuses to set one
@@ -262,9 +329,11 @@ blocker. It is now the blocker on two of the seven rows.
 
 - **The five emulator rows are no longer blocked on hardware.** They run in CI on
   the KVM host the Maestro job already uses — see *Running the emulator rows in
-  CI* above. What they are blocked on is somebody triggering the workflow on a
-  host with `ANDROID_EMULATOR_RUNNER` set, and reading the result back into the
-  table below. No new machine, no purchase, no new access.
+  CI* above. Run #1 proved the mechanism: a GitHub-hosted `ubuntu-latest` runner
+  has `/dev/kvm`, passed the preflight, built the probe and booted an emulator
+  without `ANDROID_EMULATOR_RUNNER` being set at all. What the rows are blocked on
+  now is the matrix producing `PASS` against that image, and run #1 says it did
+  not. No new machine, no purchase, no new access.
 - **The Samsung and Xiaomi rows cannot be automated into CI at all.** They need
   physical handsets someone owns, and they are the rows that actually matter:
   emulators run AOSP, and K1 exists precisely because *OEM builds diverge*. Five

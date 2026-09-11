@@ -193,10 +193,18 @@ jobs:
         # real driver against a stub adb and asserts it comes out ERROR for each
         # shape of that: a mutation command that exits 0 and changes nothing, a
         # mutation that lands on the wrong credential, an open phase with no
-        # verdict line. Neither suite needs a device or the SDK.
+        # verdict line. None of these suites needs a device or the SDK.
+        #
+        # test-k1-annotation.sh covers how the table gets OUT. On this repository
+        # job logs (403), artefact zips (401) and the job summary (not in the API)
+        # are all unreadable without admin, so the annotation k1-ci.sh emits is
+        # the only copy most readers can get — and an unescaped newline truncates
+        # it to one line without erroring. Same shape of silent defect as a row
+        # that measured nothing.
         run: |
           set -euo pipefail
           bash android/scripts/test-k1-verdict.sh
+          bash android/scripts/test-k1-annotation.sh
           bash android/scripts/test-k1-driver.sh
 
       - name: Check every flow ID is registered
