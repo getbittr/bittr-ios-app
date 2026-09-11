@@ -18,10 +18,12 @@ about Keystore**, and no amount of it ever will be.
 
 The five emulator rows now have a way to be produced —
 `.github/workflows/k1-keystore-lockscreen.yml`, which boots an emulator on an
-ordinary GitHub-hosted runner. Two runs have been made and both came back red
-*before measuring anything*: the probe's seal phase fails on API 34's `aosp_atd`
-image, so no mutation has yet been attempted. See [Runs so
-far](#runs-so-far). The two physical-device rows still need handsets someone owns.
+ordinary GitHub-hosted runner. Three runs have been made and all came back red
+*before measuring anything*: the probe's seal phase fails, so no mutation has yet
+been attempted. Run #3 named the two causes — a version guard that was wrong by
+eight API levels, and a `locksettings set-pin` that exits 0 without setting a PIN
+— and both are now fixed. See [Runs so far](#runs-so-far). The two physical-device
+rows still need handsets someone owns.
 
 ## What is being proved
 
@@ -285,8 +287,9 @@ mutation could not be driven on this device, with the reason recorded
 |---|---|---|---|---|
 | [#1](https://github.com/getbittr/bittr-ios-app/actions/runs/34586609943) | `k1-run/pilot` | `393d229` | API 34, `aosp_atd`, `x86_64` | red — cause not readable |
 | [#2](https://github.com/getbittr/bittr-ios-app/actions/runs/34588466744) | `k1-run/pilot` | `22cc4da` | API 34, `aosp_atd`, `x86_64` | red — **all five rows `ERROR` at `seal`** |
+| [#3](https://github.com/getbittr/bittr-ios-app/actions/runs/34589128911) | `k1-run/pilot` | `81ba801` | API 34, `aosp_atd`, `x86_64` | red — `ERROR` at `seal`, **two causes named** |
 
-Neither is a row, and neither may be read as one.
+None of the three is a row, and none may be read as one.
 
 **Run #1** established one thing and hid the rest. The emulator booted on an
 ordinary GitHub-hosted `ubuntu-latest` runner, the probe built, and the matrix ran
@@ -318,6 +321,67 @@ log"* — pointing at the one place an unauthenticated reader cannot go. The sam
 defect as run #1, one level down. `failure_excerpt` in the driver now carries the
 decisive `am instrument` lines into the table itself, so the next run names the
 cause instead of referring to it.
+
+**Run #3** is that run, and the table carried two *different* causes where runs #1
+and #2 had shown one indistinguishable blur. Both were invisible to every channel
+except the annotation.
+
+*Cause 1 — M1: `NoSuchMethodError` on `KeyInfo.isUnlockedDeviceRequired()`.*
+`K1Probe.describe` read that flag back behind `if (SDK_INT >= P)` — API 28. The
+guard is wrong by eight API levels: `setUnlockedDeviceRequired` is on
+`KeyGenParameterSpec.Builder` from 28, but the **readback on `KeyInfo` arrived
+only in 36.1**. Confirmed against the SDK's own `data/api-versions.xml`, not
+against javadoc:
+
+```
+$ANDROID_HOME/platforms/android-37.2/data/api-versions.xml
+  android/security/keystore/KeyInfo
+    since=31    getSecurityLevel()I
+    since=36.1  isUnlockedDeviceRequired()Z
+```
+
+It compiled because `compileSdk` is 37, and it would have thrown on **every
+device in the matrix** — 26, 30, 33, 34, 35, and both handsets. Writing
+`SDK_INT >= 36` instead would be wrong the same way: 36.1 is a *minor* release,
+`SDK_INT` is 36 on both 36.0 and 36.1, and `Build.VERSION.SDK_INT_FULL` — the only
+field that separates them — does not itself exist below 36. So the flag is now
+read **reflectively**, and an absent method returns `unknown`, never `false`. A
+rule-2 check that could not run must not be able to report itself as a rule-2
+check that passed. Rule 2's second half is asserted against the
+`KeyGenParameterSpec` as well, which is readable from API 28 on every device, and
+each row records which of the two checks was actually available.
+
+This is the issue's own premise turned on the harness: *documentation is not a
+device*. The guard was written from the javadoc for a neighbouring class.
+
+*Cause 2 — M2–M5: `locksettings set-pin` exits 0, device still reports
+`isDeviceSecure=false`.* Each of those cases needs a PIN before sealing. The
+driver set one, `set-pin` reported success, and the probe found the device
+insecure — so it sealed against a start state that was never reached, and the
+table blamed the seal phase for a setup failure three steps upstream. M1, which
+requires *no* credential, passed its start-state assertion, so `KeyguardManager`
+itself works on this image.
+
+That is the third time this harness has trusted an `exit 0` (after `adb install`
+and `am instrument`), and it is fixed the same way: the credential is verified
+host-side through `locksettings verify` immediately after it is set, and the
+matrix now runs a **lock-screen preflight** before installing anything — set a
+PIN, verify it, clear it, plus `pm list features` for
+`android.software.secure_lock_screen` on API 29+. An image that cannot hold a
+lock screen is refused with that named as the reason, instead of producing six
+rows about a mutation that never happened.
+
+**The image has changed as a result.** K1 no longer runs on `aosp_atd`. ATD
+images are stripped by removing what an automated test is assumed not to need,
+and K1's entire subject is the lock screen — so it is the one image family whose
+removals could silently invalidate every row. The workflow now selects `default`
+at all API levels. Whether ATD was the cause of cause 2 is not yet settled; the
+preflight is what will say so, and either way a lock-screen measurement should
+not be taken on a stripped image.
+
+Both causes were readable only because the table travels as an annotation. Run #3
+cost one emulator boot and returned two named defects; runs #1 and #2 cost the
+same and returned `failed with exit code 1`.
 
 **`not reachable` is a finding, not a gap.** BIT-18 says "where reachable" of
 mutation 5, and M6 is expected to be unreachable on physical devices: a device
