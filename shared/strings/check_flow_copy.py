@@ -145,12 +145,19 @@ def collect_matchers() -> dict[str, list[str]]:
 def matches(matcher: str, text: str) -> bool:
     """Would Maestro's `text: <matcher>` select an element reading `text`?
 
-    Maestro treats the value as a case-insensitive regex and looks for it inside
-    the element's text, which is why the flows can write `.*between 4 and 8
-    digits.*` against a long alert body and `oops!` against "Oops!".
+    Maestro matches the value as a case-insensitive regex against the element's
+    *entire* text, which is why the suite wraps every partial matcher in `.*`:
+    `.*between 4 and 8 digits.*` for a long alert body, but a bare `oops!` where
+    the label reads exactly "Oops!".
+
+    Full match, not a substring search, and the difference matters in the
+    direction that counts. Rewording `cancel` from "Cancel" to "Cancel payment"
+    leaves a substring search green while Maestro's `text: "Cancel"` stops
+    selecting the button — a guard that was more permissive than the tool it
+    guards would go quiet on exactly the failure it exists to catch.
     """
     try:
-        return re.search(matcher, text, re.I | re.S) is not None
+        return re.fullmatch(matcher, text, re.I | re.S) is not None
     except re.error:
         return False
 
@@ -172,7 +179,7 @@ def matches_rendered(matcher: str, template: str) -> bool:
     """
     if PLACEHOLDER.search(template):
         widened = ".{0,60}".join(re.escape(part) for part in PLACEHOLDER.split(template))
-        return re.search(widened, matcher, re.I | re.S) is not None
+        return re.fullmatch(widened, matcher, re.I | re.S) is not None
     return len(template.strip()) >= 3 and template.strip().lower() in matcher.lower()
 
 
@@ -279,7 +286,13 @@ def check(lock: dict, copy: dict[str, str], used: dict[str, list[str]], source: 
                 )
 
     for matcher in sorted(set(declared) - set(used)):
-        print(f"stale: {matcher!r} is locked but no flow matches on it (harmless; --update prunes it)")
+        # Harmless, and sometimes deliberate: an entry can be pre-locked ahead of a
+        # flow that is still in review, so the merge does not land as a red build.
+        note = declared[matcher].get("why", "")
+        print(
+            f"stale: {matcher!r} is locked but no flow matches on it "
+            f"(harmless; --update prunes it)" + (f"\n  {note}" if note else "")
+        )
 
     enforced = [e for e in declared.values() if e["class"] == "copy"]
     keys = sum(len(e["keys"]) for e in enforced)

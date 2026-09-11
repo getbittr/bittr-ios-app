@@ -18,7 +18,9 @@ This is not a style preference. The Maestro suite identifies alerts by their **c
 
 - **220** `alert.button` / `alert.textField` interactions across **33** flow files
 - **147** `text:` matchers, **71** of them distinct, across **24** flow files
-- **39** of those 71 are app copy: they depend on **37** keys in `allWords` and **7** hardcoded literals
+- **39** of those 71 are app copy: they depend on **37** keys in `allWords` and **7** hardcoded literals (a 40th entry, `Unavailable` / 38th key, is pre-locked for a flow still in review)
+
+Maestro matches `text:` as a case-insensitive regex against an element's **entire** text, which is why the suite wraps partial matchers in `.*` and writes the rest bare. The guard matches the same way. That is not a detail: under a substring rule, rewording `cancel` from "Cancel" to "Cancel payment" looks unchanged, while Maestro's `text: "Cancel"` stops selecting the button. A guard more permissive than the tool it guards goes quiet on exactly the rewording it exists to catch.
 
 A word changed in transit breaks those assertions **silently** — a copy change isn't a behaviour change, so nobody expects a test result from it — and, once both apps read this directory, **on both platforms at once**. The failure then looks like an Android port bug, weeks later.
 

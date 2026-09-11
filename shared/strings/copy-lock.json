@@ -756,6 +756,20 @@
       ]
     },
     {
+      "matcher": "Unavailable",
+      "class": "copy",
+      "keys": [
+        "unavailable"
+      ],
+      "texts": {
+        "unavailable": "Unavailable"
+      },
+      "why": "Pre-locked ahead of the flow: BIT-10's receive_lnurl.yaml matches on it and is still in review, so this reads as `stale` until that branch lands. receive.addressLabel renders Language.getWord(withID: \"unavailable\") via ReceiveViewController's `userLightningURL ?? unavailable` fallback. Note TransactionViewController hardcodes the same word three times for a different label — not this dependency, but the same consolidation hazard.",
+      "flows": [
+        "shared/flows/features/receive_lnurl.yaml"
+      ]
+    },
+    {
       "matcher": "Waiting to be mined",
       "class": "copy",
       "keys": [

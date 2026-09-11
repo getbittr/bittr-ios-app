@@ -92,6 +92,31 @@ def _(tmp):
     assert "receive_invoice.yaml" in result.stdout, result.stdout
 
 
+@case("copy that grew a suffix is reported — Maestro full-matches, so it would break")
+def _(tmp):
+    # The case a substring search would miss. `text: "Cancel"` stops selecting a
+    # button reading "Cancel payment", because Maestro matches the regex against
+    # the element's entire text. A guard more permissive than the tool it guards
+    # goes quiet on precisely the rewording it exists to catch.
+    path = tmp / SWIFT
+    path.write_text(path.read_text().replace('"cancel": "Cancel"', '"cancel": "Cancel payment"'))
+    result = run(tmp)
+    assert result.returncode == 1, "a suffix-extended string passed as unchanged:\n" + result.stdout
+    assert "drift: cancel" in result.stdout, result.stdout
+    assert "settings.yaml" in result.stdout, result.stdout
+
+
+@case("an entry pre-locked ahead of its flow is stale, not a failure")
+def _(tmp):
+    # BIT-10's receive_lnurl.yaml is locked before it has merged, so the merge is
+    # not a red build. Stale entries must stay advisory or that trick stops working.
+    lock = json.loads((tmp / LOCK).read_text())
+    assert any(e["matcher"] == "Unavailable" for e in lock["matchers"]), "pre-lock entry gone"
+    result = run(tmp)
+    assert result.returncode == 0, result.stdout
+    assert "stale: 'Unavailable'" in result.stdout, result.stdout
+
+
 @case("a deleted key is reported as missing, with the text it used to have")
 def _(tmp):
     matcher, key, text = SIMPLE
