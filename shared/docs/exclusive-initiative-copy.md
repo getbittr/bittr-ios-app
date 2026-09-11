@@ -8,6 +8,11 @@ without re-reading the live site, and so a later edit knows what it is allowed t
 **Do not reword any of these strings without the Compliance & Regulatory Officer.** It is a
 Tier 1 trigger on BIT-27. This file is the thing to bring to that conversation.
 
+**All three strings are signed off** by the Compliance & Regulatory Officer on
+**2026-09-11** (BIT-65, summarised on BIT-50). The review changed one of them —
+`initiativeconfirm` — and confirmed the other two as they stood. The sections below record
+what was decided, not what is still open.
+
 ## Sources
 
 Both fetched from production on **2026-09-11**. Both are subject to change without anyone
@@ -30,8 +35,10 @@ for non-Swiss users"* presumes a geo-IP result the app does not have and must no
 rather than the thing being asked of the customer. The phrase used is lifted from §2.5's own
 words but the heading itself is ours.
 
-If a reviewer would rather ship only quoted text, **"Regulatory Information"** is the
-drop-in that needs no judgement. Flagged for decision, not assumed.
+**Decided: the authored heading stays.** This was put to the Compliance & Regulatory Officer
+with **"Regulatory Information"** offered as the drop-in that needs no judgement, and the
+authored heading was kept deliberately — it names the thing being asked of the customer,
+which the INT heading does not. Do not swap in "Regulatory Information".
 
 ### `initiativemessage` — sheet body, three paragraphs
 
@@ -66,19 +73,27 @@ reason the sheet exists.
 
 ### `initiativeconfirm` — the affirmative button
 
-> I confirm I am **requesting this service** on my own exclusive initiative
+> I confirm my request is made solely on my own exclusive initiative, without any
+> encouragement or solicitation from Bittr
 
-INT's button reads *"I confirm I am **accessing this website** on my own exclusive
-initiative"*. **This is the most substantive departure in the change and the one most worth a
-reviewer's attention.**
+**From §2.5, verbatim apart from two substitutions forced by the first person:** `your` → `my`,
+`from us` → `from Bittr`. The source clause is the one quoted as paragraph 3 of the sheet body
+— *"your request is made solely on your own exclusive initiative, without any encouragement or
+solicitation from us"*.
 
-The rewrite is deliberate and, we think, in the right direction. §2.5 asks the customer to
-confirm that *"your **request** is made solely on your own exclusive initiative"* — a request
-for a service, not a visit to a page. The website's button says the weaker of the two things
-because on the website that is all that is happening. At this point in the app the customer is
-submitting an IBAN and an email to have Bittr register them; "accessing this website" would be
-plainly untrue, and a confirmation the customer can see is untrue is worth less than no
-confirmation at all.
+This is not INT's button. INT reads *"I confirm I am **accessing this website** on my own
+exclusive initiative"*, and an earlier draft of this change shipped the halfway rewrite
+*"I confirm I am **requesting this service** on my own exclusive initiative"*. Both were
+superseded by the Compliance & Regulatory Officer's review, for two reasons:
+
+- **"accessing this website" would be false in the app.** There is no website here; the
+  customer is submitting an IBAN and an email to have Bittr register them. A confirmation the
+  customer can see is untrue is worth less than no confirmation at all.
+- **Both earlier strings confirmed only half of what the body asks.** The sheet quotes §2.5
+  asking the customer to confirm a two-part statement — own exclusive initiative **and** no
+  encouragement or solicitation from Bittr. The button affirmed the first part and left the
+  second unconfirmed. Quoting the operative clause whole closes that gap, which is why no
+  fourth string was needed.
 
 ## What was deliberately not carried over
 
@@ -90,13 +105,15 @@ confirmation at all.
   are accessing this site by your own volition without any active promotion or solicitation
   on the part of Bittr AG."*
 
-  **Raised, not decided.** The first half is self-evident from tapping the button. The second
-  half is not: it is a distinct affirmation — *no active promotion or solicitation on Bittr's
-  part* — and §2.3 of the Terms carries its own version (*"You also confirm that Bittr did and
-  does not solicit you as a Customer and that you initiated any contact with Bittr
-  unassisted."*). The button title as written covers the customer's own initiative but not the
-  affirmation that Bittr did not solicit them. Whether that gap matters is a question for the
-  Compliance & Regulatory Officer; the implementation is one string away either way.
+  **Raised, and now answered — by the button, not by a fourth string.** The first half is
+  self-evident from tapping the button. The second half is a distinct affirmation — *no active
+  promotion or solicitation on Bittr's part* — which §2.3 of the Terms carries its own version
+  of (*"You also confirm that Bittr did and does not solicit you as a Customer and that you
+  initiated any contact with Bittr unassisted."*). The earlier button title covered the
+  customer's own initiative but not that. The signed-off `initiativeconfirm` quotes §2.5's
+  operative clause whole — *"without any encouragement or solicitation from Bittr"* — so the
+  affirmation is made in the customer's own words, on the control they tap. Nothing further is
+  carried over from INT's acknowledgement sentence.
 
 ## Where the copy is shown
 
@@ -110,9 +127,43 @@ and emails them a code. §2.5 conditions *providing any Services*, so the confir
 collected before that call rather than at app launch — opening a non-custodial wallet is not
 Bittr providing the purchase service (BIT-27 `perimeter` § 2).
 
-The sheet has **no close cross** (`AlertManager.swift:381+`). The only ways out are the
-confirm button and Cancel, so nothing the customer does by accident can be recorded as a
-confirmation they did not give.
+## How the sheet can be dismissed
+
+A confirmation is only worth something if it cannot be skipped. `showConfirmationSheet`
+(`AlertManager.swift:394`) has **no close cross**, and the three other ways an iOS card
+normally goes away were each checked against this code rather than assumed:
+
+- **Tapping outside the card does nothing.** The overlay is a full-screen `UIView` pinned to
+  the host's edges (`makeAlertChrome:98`). It has no gesture recognizer, no `hitTest` or
+  `point(inside:)` override, and user interaction left at the UIView default. Touches outside
+  the card land on the overlay and stop there — they neither dismiss it nor reach the screen
+  underneath.
+- **There is no back gesture to make.** The app has no `UINavigationController` at all —
+  none in `Main.storyboard`, none constructed in code — so no interactive pop exists on any
+  screen, this one included.
+- **The buttons and nav of the screen underneath are covered.** `alertHost:56` walks up to
+  the topmost parent before adding the overlay, so in Bittr signup it covers
+  `CoreViewController` — the whole app — and in the Buy flow it covers the presented
+  registration controller entirely.
+
+**One way out that is neither button, and it is safe.** In the Buy flow,
+`RegisterIbanViewController` arrives through a `show` segue with no navigation controller
+(`Main.storyboard:2381`), so UIKit presents it as a `pageSheet`, and `isModalInPresentation`
+is never set. The customer can pull the whole registration flow down while the card is up.
+That abandons registration: `gatherIbanDetails()` is not called, no timestamp is written, no
+customer is registered. It is Cancel by another gesture, not a way past the gate. Left as is
+deliberately — making the flow undismissable would trap the customer, and the property that
+matters is that nothing but the confirm button records a confirmation.
+
+**The confirm button renders unclipped at any length.** `makeWrappingAlertButton:201` gives
+its label `numberOfLines = 0` and pins it to all four button edges with the button height
+only `greaterThanOrEqualTo` 40, so the plate grows to the text instead of cutting it, and
+`clipsToBounds` is false on both button and card.
+
+**The Maestro flows do not depend on the wording.** All three flows
+(`shared/flows/onboarding/happy_path_signup.yaml`, `features/buy_signup.yaml`,
+`features/buy_signup_no_notifications.yaml`) tap `signup.bittr.initiative.confirmButton` and
+`…cancelButton` by `id`, never by text, so the copy can be revised without touching a test.
 
 Asked **once per registration**, not once per tap: `recordedInitiativeConfirmation:157` reads
 back a confirmation already stored against the IBAN entity, so a customer correcting a typo in
@@ -131,6 +182,10 @@ Sent **only when present**. A registration made before the app collected this ha
 send, and an absent field is the honest representation of that — an empty string or a
 back-filled timestamp would be a record of a confirmation that never happened.
 
-**The backend field is not yet agreed.** Whether `exclusive_initiative_confirmed_at` is stored
-or silently dropped is BIT-28's question. Until that lands, the app's own cache is the only
-record.
+**The backend field is not yet agreed.** The backend today drops
+`exclusive_initiative_confirmed_at` — that is **BIT-84**, blocked on BIT-31. Until it lands,
+the app's own cache is the only record. (An earlier version of this file, and BIT-50 item 3,
+pointed at BIT-28 for this; that pointer was wrong — BIT-28 is Android support readiness.)
+
+**Android needs the same sheet and the same strings** — **BIT-85**. Neither follow-up gates
+this change.

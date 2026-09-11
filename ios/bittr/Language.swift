@@ -174,7 +174,7 @@ class Language: NSObject {
             // without the Compliance & Regulatory Officer (BIT-27 Tier 1 trigger).
             "initiativetitle": "Your own exclusive initiative",
             "initiativemessage": "Bittr AG operates in compliance with Swiss regulations. The products and services offered by Bittr AG are authorized for promotion and sale within Switzerland. Without express authorization from the regulatory authority of a given country, Bittr AG is not permitted to actively promote its products and services in that territory.\n\nIf you are located in the European Union, Bittr AG will not be authorized to provide services to you unless you request the service on your exclusive initiative.\n\nBefore we can provide any Services to you, we'll need you to confirm that your request is made solely on your own exclusive initiative, without any encouragement or solicitation from us.",
-            "initiativeconfirm": "I confirm I am requesting this service on my own exclusive initiative",
+            "initiativeconfirm": "I confirm my request is made solely on my own exclusive initiative, without any encouragement or solicitation from Bittr",
             "walletisready": "Your wallet is ready!",
             "firstbitcoin": "Get your first bitcoin, hassle-free, here with one of our partners.",
             "skip": "Skip",
