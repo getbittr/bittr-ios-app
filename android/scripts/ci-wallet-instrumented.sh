@@ -69,13 +69,30 @@ adb shell bmgr enable true || true
 # backup sets to local storage instead of to a Google account, which is what
 # makes the question askable on CI at all. On google_apis images the GMS
 # transport is selected by default and would try to talk to a real account.
-local_transport="com.android.localtransport/.LocalTransport"
+#
+# TWO NAMES, because AOSP has shipped it under both and which one you get is a
+# property of the image rather than of the API level:
+#
+#   com.android.localtransport/.LocalTransport              (standalone package)
+#   android/com.android.internal.backup.LocalTransport      (in the framework)
+#
+# Matching only the first would mean silently not selecting a transport that is
+# right there, and then failing the '*' check below with a message blaming the
+# image. Whatever is actually present is selected; if neither is, that is a real
+# finding about the image and the check below reports it as one.
 transports=$(adb shell bmgr list transports 2>/dev/null || true)
 
-if printf '%s' "$transports" | grep -q "$local_transport"; then
-  adb shell bmgr transport "$local_transport" || true
-  transports=$(adb shell bmgr list transports 2>/dev/null || true)
-fi
+for local_transport in \
+  "com.android.localtransport/.LocalTransport" \
+  "android/com.android.internal.backup.LocalTransport"
+do
+  if printf '%s' "$transports" | grep -qF "$local_transport"; then
+    echo "Selecting local backup transport: $local_transport"
+    adb shell bmgr transport "$local_transport" || true
+    transports=$(adb shell bmgr list transports 2>/dev/null || true)
+    break
+  fi
+done
 
 printf '%s\n' "$transports"
 
@@ -93,7 +110,10 @@ fi
 if ! printf '%s' "$transports" | grep -q '\*'; then
   echo "::error::No backup transport is selected ('*' marks it), so bmgr backupnow"\
     " produces nothing for any package and BackupExclusionTest would be vacuously"\
-    " green. Expected $local_transport on a non-Play image. Reported:"
+    " green. Expected a local transport — com.android.localtransport/.LocalTransport"\
+    " or android/com.android.internal.backup.LocalTransport — on a non-Play image."\
+    " If neither is listed below, this image ships no backup transport at all and"\
+    " the job needs a fuller system image than the one it booted. Reported:"
   printf '%s\n' "$transports"
   exit 1
 fi
