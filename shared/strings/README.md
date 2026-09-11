@@ -74,17 +74,29 @@ That makes it good practice, not disclosure. Do not cite this string — in a da
 
 The alert card has no scroll view. The message is one `UILabel` with `numberOfLines = 0` (`ios/bittr/AlertManager.swift:291–294`) inside a card capped at `heightAnchor ≤ host.view.bounds.height` (`:129`). The cap is a required constraint and the label's content height is not, so on a screen too short for the text the label compresses and the **last** paragraph is what disappears. On this string the last paragraph is the tile disclosure — the concession. Truncation here does not degrade the copy, it reverts it: what survives on screen is an unqualified "your location is never sent", which is the BIT-45 defect the rewrite exists to remove.
 
-The rewrite roughly doubled the string (269 → 558 plain characters), so the check is real. It is being run on an iPhone SE 2/3 — 375×667pt, in scope at deployment target 17.4 — under **BIT-82**, and that render gates the merge.
+The rewrite roughly doubled the string (269 → 558 plain characters), so the check was real. It was run on an iPhone SE 2/3 — 375×667pt, the smallest device in scope — under **BIT-82**, and it gated the merge.
 
-Two independent calculations disagree on whether it fits, which is why one screenshot is worth more than a third calculation:
+**Resolved: it fits, with about five lines of slack. The hold is released.** Three calculations were made; the third one measured the part the first two had guessed.
 
 | | Result |
 |---|---|
 | Compliance (BIT-69) | a few percent over on SE, stated as inside their error bars |
-| Growth & Content (BIT-56) | ~430pt of text against a ~526pt budget — fits, with about four lines of slack |
+| Growth & Content (BIT-56) | ~430pt of text against a ~526pt budget — fits, about four lines of slack |
+| Application Security (BIT-82) | **message 421.8pt, card 562.8pt against a 667pt cap — fits, ~104pt spare** |
 
-The budget: label width 275pt (card inset 10 each side, label inset 40 each side, `:328–329`); 16px at `line-height: 1.28` → 20.5pt per line (`ios/bittr/Extensions/String.swift:187–189`); chrome above and below the label 141pt (19 + 17 icon + 25 + 25 + 40 button + 15, `:157–160`, `:192`, `:327–334`); cap 667pt. Greedy wrap puts the message at 21 lines. It only overflows if the average glyph advance at 16px Gilroy-Regular is ≥ ~9.8pt, which would be wide for mixed English text. Both figures are arithmetic — neither was rendered.
+The budget the first two worked from: label width 275pt (card inset 10 each side, label inset 40 each side, `:328–329`); 16px at `line-height: 1.28` → 20.5pt per line (`ios/bittr/Extensions/String.swift:187–189`); chrome above and below the label 141pt (19 + 17 icon + 25 + 25 + 40 button + 15, `:157–160`, `:192`, `:327–334`); cap 667pt.
 
-**If it does not fit, the fix is the container, not the copy.** Wrap the message in a `UIScrollView`, or lower the priority of the height cap. Shortening the message is not available as a remedy: every paragraph is load-bearing (see the two standing conditions above), the shortest thing to cut is the tile disclosure, and any reword re-triggers both reads. A container fix needs neither.
+What made the third figure different is that it did not guess glyph widths. It parsed the real `Gilroy-Regular.ttf` / `Gilroy-Bold.ttf` advances and GPOS kerning and calibrated the line-breaker against the one real iOS render of this alert we have (`03a_powered_by.png`, decoded pixel by pixel), which surfaced a genuine correction: **iOS renders the bold run ~5% wider than Gilroy-Bold's own metrics.** That matters here because the label is built by the HTML importer (`String.swift:184–189`), so a browser engine fed the same markup is a faithful oracle for everything *except* that discrepancy. With it applied the model reproduces the reference capture to within 0.6pt per line. The two models agree on geometry exactly — 421.8pt of message plus the 141pt of chrome above is 562.8pt of card — so the only thing that was ever in dispute was the advances, and that is now measured rather than assumed.
+
+It is still not a simulator capture; nobody on this board has a Mac. Two facts close the two ways the cap could nonetheless bind, and both are checkable from the project rather than from a render:
+
+- **No supported device is narrower or shorter than 375×667.** The sensitivity analysis flips at a device narrower than ~320pt. There is none: the app target `com.bittr.bittr` sets `IPHONEOS_DEPLOYMENT_TARGET = 17.4` (`ios/bittr.xcodeproj/project.pbxproj`), and iOS 17 drops every 320pt device — the iPhone SE 1st gen stops at iOS 15. The SE 2/3 measured here *is* the floor.
+- **The text cannot grow under the user's control.** Overflow would also follow from Dynamic Type inflating the label, but this alert does not participate in it: the message is rendered from HTML with a hard-coded `font-size: 16px` (`String.swift:187–189`), and `adjustsFontForContentSizeCategory` and `UIFontMetrics` appear nowhere in `ios/`. Accessibility text settings do not change this label's height.
+
+Even subtracting both a 34pt home-indicator inset and the 20pt status bar, the card still clears by ~50pt. Releasing the hold on that basis.
+
+**This re-opens if any of three things change**, and the check is cheap enough to redo: a paragraph is added to the string, the deployment target drops below iOS 17, or the app adopts Dynamic Type for alert text.
+
+**If it ever does not fit, the fix is the container, not the copy.** Wrap the message in a `UIScrollView`, or lower the priority of the height cap. Shortening the message is not available as a remedy: every paragraph is load-bearing (see the two standing conditions above), the shortest thing to cut is the tile disclosure, and any reword re-triggers both reads. A container fix needs neither.
 
 The Maestro flow does not cover this. `alert.button.0` is pinned to the card and stays visible while the label is what compresses, so the flow passes on a truncated alert.
