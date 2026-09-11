@@ -609,6 +609,22 @@ refute_trace "install"
 refute_trace "instrument K1SealTest M2"
 refute_trace "instrument K1OpenTest M2"
 
+scenario "a credential refusal prints the raw answers, not a conclusion"
+# The refusal message is the entire content of such a run — no table, no
+# artefact, and the step log behind a 403. Two device behaviours produce the
+# same "the PIN did not take", and which one it is decides whether the fix is an
+# image change or a redesign of the witness that carries M2/M3/M4. So the three
+# verify forms and what they returned have to be IN the refusal.
+knob setup_noop 1
+run_driver M2
+expect_rc 2
+expect_out "What the device answered, raw"
+expect_out "locksettings verify --old '1234'"
+expect_out "deliberately wrong"
+# This fake stores nothing, so the wrong credential verifies — case (a). The
+# message must say so rather than leaving the reader to infer it.
+expect_out "ACCEPTED"
+
 scenario "an image that stops storing credentials mid-run is a per-case ERROR"
 # The preflight's set-pin works, so the matrix starts; the one for M2's start
 # state exits 0 and stores nothing. This has to be caught before the seal phase
