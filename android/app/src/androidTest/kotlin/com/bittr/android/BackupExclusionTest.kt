@@ -1,6 +1,7 @@
 package com.bittr.android
 
 import android.content.pm.ApplicationInfo
+import android.content.res.XmlResourceParser
 import android.os.Build
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
@@ -56,9 +57,13 @@ import org.xmlpull.v1.XmlPullParser
  *
  * Hard assertions, in the order a failure would matter:
  *
- * 1. The merged manifest of the **installed** package really has backup off
- *    (`FLAG_ALLOW_BACKUP` clear) and a `dataExtractionRules` resource attached.
- *    The JVM test reads the source XML; this reads what the platform installed.
+ * 1. The **installed** package really has backup off (`FLAG_ALLOW_BACKUP`
+ *    clear), its merged binary manifest really points `dataExtractionRules` at
+ *    our resource, and the rules **as compiled into the APK** exclude the wallet
+ *    directory from both sections with no `<include>` re-admitting it. The JVM
+ *    tests read the source tree; these read what the platform installed, which
+ *    is the artefact a manifest merge or an aapt change could have altered
+ *    without the source moving.
  * 2. Wallet material really lands under `no_backup`, written through the real
  *    `WalletPaths` + `AndroidKeystoreBlobCodec`, not a fixture.
  * 3. The backup transport is present and drivable — the vacuity canary. Without
@@ -401,20 +406,48 @@ class BackupExclusionTest {
      * test that reaches for a hidden field is one non-SDK-interface policy change
      * away from failing for a reason unrelated to the wallet.
      */
-    private fun applicationTagAttributes(): Map<Int, Int> =
-        context.assets.openXmlResourceParser(MANIFEST).use { parser ->
-            var event = parser.eventType
-            while (event != XmlPullParser.END_DOCUMENT) {
-                if (event == XmlPullParser.START_TAG && parser.name == "application") {
-                    return (0 until parser.attributeCount).associate { index ->
-                        parser.getAttributeNameResource(index) to
-                            parser.getAttributeResourceValue(index, 0)
-                    }
+    private fun applicationTagAttributes(): Map<Int, Int> {
+        // The no-argument overload is `openXmlResourceParser(0, fileName)`, and
+        // cookie 0 is not guaranteed to be the base APK once split APKs are in
+        // play. Trying the low cookies in turn costs nothing and keeps a
+        // packaging detail from producing a red that reads as a backup failure.
+        // If none of them yield a manifest, that is still a hard failure below —
+        // this method never returns a silent empty map.
+        val attempts = mutableListOf<String>()
+        for (cookie in 0..MAX_ASSET_COOKIE) {
+            val found = try {
+                context.assets.openXmlResourceParser(cookie, MANIFEST).use { parser ->
+                    applicationTagAttributes(parser)
                 }
-                event = parser.next()
+            } catch (throwable: Throwable) {
+                attempts += "cookie $cookie: ${throwable.javaClass.simpleName}"
+                null
             }
-            emptyMap()
+            if (!found.isNullOrEmpty()) return found
+            if (found != null) attempts += "cookie $cookie: no <application> tag"
         }
+        throw AssertionError(
+            "Could not read the installed APK's merged AndroidManifest.xml through " +
+                "the app's AssetManager, so this test cannot say what the platform " +
+                "installed. This is a packaging/tooling failure, NOT evidence about " +
+                "backup exclusion — do not read it as either a pass or the BIT-20 " +
+                "halt. Attempts: ${attempts.joinToString("; ")}",
+        )
+    }
+
+    private fun applicationTagAttributes(parser: XmlResourceParser): Map<Int, Int> {
+        var event = parser.eventType
+        while (event != XmlPullParser.END_DOCUMENT) {
+            if (event == XmlPullParser.START_TAG && parser.name == "application") {
+                return (0 until parser.attributeCount).associate { index ->
+                    parser.getAttributeNameResource(index) to
+                        parser.getAttributeResourceValue(index, 0)
+                }
+            }
+            event = parser.next()
+        }
+        return emptyMap()
+    }
 
     /**
      * Runs a command as the `shell` user via `UiAutomation`, which is how an
@@ -428,6 +461,7 @@ class BackupExclusionTest {
 
     private companion object {
         const val MANIFEST = "AndroidManifest.xml"
+        const val MAX_ASSET_COOKIE = 4
         const val ANDROID_NS = "http://schemas.android.com/apk/res/android"
     }
 }
