@@ -238,10 +238,11 @@ For the full feature-/interaction-level gap list (LNURL-withdraw, deep links, pu
 
 - **VC**: `ios/bittr/Move, Send, Receive/ReceiveVC/ReceiveViewController.swift`
 - **Purpose**: address/invoice generation + QR, with copy, refresh, edit-amount, and onchain/lightning toggle.
-- **States**: loaded (address + QR) / invoice / Bitcoin QR / address-info alert / copied alert / no-new-address alert / QR long-press context menu (Copy/Share) / share sheet.
-- **Flow**: `shared/flows/features/{receive,receive_onchain,receive_invoice,send_swap_suggestion_onchain}.yaml`
-- **Screenshots**: `receive/02_receive_screen.png`, `receive_onchain/02_onchain_address.png`, `receive_onchain/03a_qr_context_menu.png`, `receive_onchain/03b_share_sheet.png`, `receive_invoice/02_invoice.png`, `receive_invoice/06_invoice_with_amount.png`, `send_swap_suggestion_onchain/01b_address_copied.png`
-- **Not covered**: the **LNURL** type (user's own Lightning address, More → Show LNURL) is never opened; the description/memo field and the Bitcoin/Sats currency options are untested. See `parity.md`.
+- **States**: loaded (address + QR) / invoice / Bitcoin QR / LNURL (own Lightning address, populated or "Unavailable") / address-info alert / LNURL-info alert / copied alert / no-new-address alert / QR long-press context menu (Copy/Share) / share sheet.
+- **Flow**: `shared/flows/features/{receive,receive_onchain,receive_invoice,receive_lnurl,send_swap_suggestion_onchain}.yaml`
+- **Screenshots**: `receive/02_receive_screen.png`, `receive_onchain/02_onchain_address.png`, `receive_onchain/03a_qr_context_menu.png`, `receive_onchain/03b_share_sheet.png`, `receive_invoice/02_invoice.png`, `receive_invoice/06_invoice_with_amount.png`, `receive_lnurl/03_lnurl.png`, `receive_lnurl/04_lnurl_info.png`, `send_swap_suggestion_onchain/01b_address_copied.png`
+- **Port note**: the four types are *not* symmetric. LNURL is the only one with no add-amount card (so no amount/description state), and the title is the same string — "Address" — for both the onchain and LNURL types, because the `url` and `address` words share a value. The default type on open is channel-dependent: no channel → onchain, channel + lightning address → LNURL, channel without one → Bitcoin QR.
+- **Not covered**: the description/memo field and the Bitcoin/Sats currency options are untested. See `parity.md`.
 
 ## Swap
 

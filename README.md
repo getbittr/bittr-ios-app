@@ -132,6 +132,11 @@ maestro test shared/flows/features/notification_htlcincoming.yaml
 maestro test shared/flows/features/receive.yaml
 maestro test shared/flows/features/receive_onchain.yaml
 maestro test shared/flows/features/receive_invoice.yaml
+
+# The Receive screen's LNURL / Lightning-Address type (the user's OWN address).
+# Read-only, but needs an active channel for the More type picker to exist:
+maestro test shared/flows/features/receive_lnurl.yaml
+
 maestro test shared/flows/features/send_onchain.yaml
 maestro test shared/flows/features/send_onchain_all.yaml
 maestro test shared/flows/features/swap.yaml

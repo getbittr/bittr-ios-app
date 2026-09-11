@@ -73,6 +73,16 @@ shared/flows/
                           it, paste into Send and assert it lands as lightning
                           (no amount, then with a 2000 sat amount). Needs an
                           active channel. Uses helpers/show_invoice.yaml.
+    receive_lnurl.yaml    The Receive screen's LNURL / Lightning-Address mode —
+                          the user's OWN lightning address (not the inbound push
+                          in notification_lnurl.yaml, nor the outbound pay in
+                          send_lightning.yaml). Parks on the onchain address
+                          first so More → "Show LNURL" is a real type change,
+                          then reads the info alert and copies the address.
+                          Captures either the populated state (label + QR) or
+                          the "Unavailable" state (QR hidden). Read-only; needs
+                          an active channel for the More button. Uses
+                          helpers/show_onchain_address.yaml + show_lnurl.yaml.
     send_onchain.yaml     Onchain send end-to-end: open Send, switch to
                           Regular, wait out the BDK sync spinner, enter an
                           address and a 5 EUR amount, confirm on the Confirm
@@ -217,6 +227,12 @@ shared/flows/
     show_invoice.yaml     From a freshly-opened Receive screen, switches the
                           type to a lightning invoice (via More → Create
                           invoice) and waits out the QR spinner. Needs a channel.
+    show_lnurl.yaml       From a freshly-opened Receive screen, switches the
+                          type to the user's own lightning address (via More →
+                          Show LNURL) and asserts the LNURL card row — Copy +
+                          More, no renew, no add-amount. The title is unusable
+                          for this (it reads "Address" for both onchain and
+                          LNURL), hence the structural check. Needs a channel.
   scripts/         Maestro `runScript` helpers (GraalJS).
     mine_blocks.js              POST /e2e/mine-blocks on the regtest backend.
     trigger_bank_transaction.js POST /e2e/bank-transaction (incoming SEPA).
