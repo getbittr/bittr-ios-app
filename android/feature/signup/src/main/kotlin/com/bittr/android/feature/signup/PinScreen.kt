@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
@@ -135,7 +136,13 @@ fun PinScreen(
         }
 
         if (onBack != null) {
-            TextButton(onClick = onBack, modifier = Modifier.fillMaxWidth()) {
+            TextButton(
+                onClick = onBack,
+                colors = ButtonDefaults.textButtonColors(
+                    contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                ),
+                modifier = Modifier.fillMaxWidth(),
+            ) {
                 Text(backLabel)
             }
         }

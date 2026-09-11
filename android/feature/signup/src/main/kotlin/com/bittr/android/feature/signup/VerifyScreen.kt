@@ -2,27 +2,31 @@ package com.bittr.android.feature.signup
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.dp
 import com.bittr.android.core.common.TestID
 import com.bittr.android.core.designsystem.BittrTheme
 import com.bittr.android.core.designsystem.BittrTokens
@@ -78,34 +82,46 @@ fun VerifyScreen(
         )
 
         challenge.labels.forEachIndexed { index, wordNumber ->
-            OutlinedTextField(
-                value = answers[index],
-                onValueChange = { answers[index] = it },
-                singleLine = true,
-                label = {
-                    Text(
-                        text = "$wordNumber",
-                        modifier = Modifier.testTag(labelTags[index]),
-                    )
-                },
-                placeholder = { Text(SignupStrings.ENTER_WORD) },
-                keyboardOptions = KeyboardOptions(
+            // The word number is a label *beside* the field, as on iOS, not Material's
+            // floating label inside it. As a floating label it reads as the field's
+            // own placeholder — a lone "5" sitting where the answer goes, with no hint
+            // that it means "the fifth word".
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(BittrTokens.Spacing.sm),
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Text(
+                    text = "$wordNumber",
+                    style = MaterialTheme.typography.titleLarge,
+                    textAlign = TextAlign.End,
+                    modifier = Modifier
+                        .width(36.dp)
+                        .testTag(labelTags[index]),
+                )
+                OutlinedTextField(
+                    value = answers[index],
+                    onValueChange = { answers[index] = it },
+                    singleLine = true,
+                    placeholder = { Text(SignupStrings.ENTER_WORD) },
                     // No autocorrect and no capitalisation: the keyboard "helpfully"
                     // turning `abandon` into `Abandon` or into a different word is the
                     // single most common way this screen fails for a user who did
                     // write the phrase down correctly.
-                    capitalization = KeyboardCapitalization.None,
-                    autoCorrectEnabled = false,
-                    imeAction = if (index == SeedChallenge.ASK_COUNT - 1) {
-                        ImeAction.Done
-                    } else {
-                        ImeAction.Next
-                    },
-                ),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .testTag(fieldTags[index]),
-            )
+                    keyboardOptions = KeyboardOptions(
+                        capitalization = KeyboardCapitalization.None,
+                        autoCorrectEnabled = false,
+                        imeAction = if (index == SeedChallenge.ASK_COUNT - 1) {
+                            ImeAction.Done
+                        } else {
+                            ImeAction.Next
+                        },
+                    ),
+                    modifier = Modifier
+                        .weight(1f)
+                        .testTag(fieldTags[index]),
+                )
+            }
         }
 
         Button(
@@ -119,6 +135,9 @@ fun VerifyScreen(
 
         TextButton(
             onClick = onBack,
+            colors = ButtonDefaults.textButtonColors(
+                contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+            ),
             modifier = Modifier
                 .fillMaxWidth()
                 .testTag(TestID.Signup.Create.Verify.backButton),
