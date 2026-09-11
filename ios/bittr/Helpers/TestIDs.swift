@@ -181,6 +181,10 @@ enum TestID {
     }
     enum Signup {
         enum Bittr {
+            enum Initiative {
+                static let cancelButton = "signup.bittr.initiative.cancelButton"
+                static let confirmButton = "signup.bittr.initiative.confirmButton"
+            }
             enum Otp {
                 static let codeButton = "signup.bittr.otp.codeButton"
                 static let codeTextField = "signup.bittr.otp.codeTextField"

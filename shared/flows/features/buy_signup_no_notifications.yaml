@@ -151,6 +151,45 @@ appId: com.bittr.bittr-regtest
 - tapOn:
     id: "signup.bittr.start.nextButton"
 
+# The T&C §2.5 exclusive-initiative confirmation. Both fields are non-empty and
+# the email is valid, so this is the first Verify that would reach Bittr, and it
+# is where the confirmation is asked for. It is asked once per registration: the
+# later Verify taps in this flow — including the one after the resend detour,
+# where moveToPage re-instantiates Transfer1 — read it back off the IBAN entity
+# and go straight through.
+- assertVisible:
+    id: "signup.bittr.initiative.confirmButton"
+
+# Decline first. §2.5 makes the confirmation a precondition of Bittr providing
+# any Service, so declining has to leave the customer where they were with
+# nothing sent and nothing recorded — the property that matters more than the
+# confirm path, and the only one that fails silently if it regresses.
+- tapOn:
+    id: "signup.bittr.initiative.cancelButton"
+
+# Still on Transfer1, sheet gone, fields as they were.
+- assertNotVisible:
+    id: "signup.bittr.initiative.confirmButton"
+- assertVisible:
+    id: "signup.bittr.start.ibanTextField"
+
+# The IBAN here is deliberately malformed, so had the declined tap reached
+# Bittr the "Oops" alert would be on its way. Absence right after the tap is
+# suggestive rather than conclusive — the re-prompt below is the real proof.
+- assertNotVisible:
+    id: "alert.button.0"
+
+# Verify again. The sheet comes back, which only happens when the decline
+# recorded nothing: a stored initiativeConfirmedAt would send this straight
+# through to the IBAN check.
+- tapOn:
+    id: "signup.bittr.start.nextButton"
+- assertVisible:
+    id: "signup.bittr.initiative.confirmButton"
+- takeScreenshot: shared/docs/screenshots/buy_signup_no_notifications/02a_initiative_confirmation
+- tapOn:
+    id: "signup.bittr.initiative.confirmButton"
+
 # Async IBAN check → "Oops" invalid-IBAN alert.
 - extendedWaitUntil:
     visible:
