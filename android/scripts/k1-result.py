@@ -9,6 +9,11 @@
 
 Exit codes: 0 every row PASS · 1 looked and it is not green · 2 could not find out.
 
+Unauthenticated, GitHub allows 60 requests/hour per IP, and reading one run costs
+about six of them. `--wait` polls every 90s and stops polling rather than spend
+below what reading the result needs — see the loop in main(). Set GITHUB_TOKEN to
+make all of that irrelevant (5000/hour).
+
 WHY THIS EXISTS
 
 K1's output is a table — device x mutation x pass/fail — and BIT-18's definition
@@ -101,6 +106,29 @@ def get(path):
         undetermined(f"Could not reach the GitHub API: {exc.reason}")
 
 
+# Reading one run costs about this many requests: the run, its jobs, and the
+# annotations of each job. Kept as a floor the poll loop will not spend, because
+# the one thing worse than waiting is waiting successfully and then having no
+# budget left to read what you waited for.
+READ_COST = 6
+
+
+def budget():
+    """Requests left this hour, and when the window resets.
+
+    /rate_limit does not itself count against the limit, so this is free to call.
+    Returns (remaining, reset_epoch), or (None, None) if it cannot be read —
+    callers treat that as "assume there is budget" rather than refusing to work.
+    """
+    try:
+        data = get("/rate_limit")["resources"]["core"]
+        return data["remaining"], data["reset"]
+    except SystemExit:
+        # get() exits on error. A missing rate-limit reading must not be fatal to
+        # a command whose whole job is to tolerate a flaky network.
+        return None, None
+
+
 def annotations_for(run):
     """Every annotation on every job of a run, most useful level first.
 
@@ -182,17 +210,45 @@ def main():
         metavar="SECONDS",
         help="poll until the newest matching run completes, then report it",
     )
+    ap.add_argument(
+        "--interval",
+        type=int,
+        default=90,
+        metavar="SECONDS",
+        help="seconds between polls while --wait is set (default 90)",
+    )
     args = ap.parse_args()
 
     if args.run:
         runs = [get(f"/repos/{REPO}/actions/runs/{args.run}")]
     elif args.wait:
-        # One request per poll against an anonymous budget of 60/hour, so the
-        # interval is 30s rather than a few seconds. An emulator boot plus six
-        # mutations is minutes, not seconds; polling faster buys nothing and can
-        # spend the budget this script needs to read the result it is waiting for.
+        # An emulator boot plus six mutations is minutes, not seconds, so a long
+        # interval costs nothing in latency. What it buys is the budget.
+        #
+        # The first version of this polled every 30s, which over a 13-minute wait
+        # is 26 of the 60 requests an unauthenticated IP gets per hour — and it
+        # then hit the limit and could not read the result it had waited for. The
+        # failure mode of a tool built to stop results going unread was to make
+        # one unreadable. So the loop now refuses to spend below READ_COST and
+        # waits out the window instead, saying so rather than failing quietly.
         deadline = time.monotonic() + args.wait
         while True:
+            remaining, reset = budget()
+            if remaining is not None and remaining <= READ_COST:
+                pause = max(0, reset - int(time.time())) + 5
+                print(
+                    f"  {remaining} API requests left this hour; holding {pause}s for the "
+                    f"window to reset rather than spending what reading the result needs.",
+                    file=sys.stderr,
+                )
+                if time.monotonic() + pause > deadline:
+                    undetermined(
+                        f"Rate limit resets in {pause}s, past the --wait deadline. Re-run "
+                        "then, or set GITHUB_TOKEN for 5000 requests/hour."
+                    )
+                time.sleep(pause)
+                continue
+
             runs = latest(args.branch)[:1]
             if runs[0]["status"] == "completed":
                 break
@@ -203,8 +259,13 @@ def main():
                     file=sys.stderr,
                 )
                 break
-            print(f"  run #{runs[0]['run_number']} is {runs[0]['status']}...", file=sys.stderr)
-            time.sleep(30)
+            print(
+                f"  run #{runs[0]['run_number']} is {runs[0]['status']}"
+                + (f" ({remaining} API requests left)" if remaining is not None else "")
+                + "...",
+                file=sys.stderr,
+            )
+            time.sleep(args.interval)
     else:
         runs = latest(args.branch)[: args.last]
 
