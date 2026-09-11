@@ -110,9 +110,28 @@ annotate() {
 
 echo "k1: driving the matrix against $(adb shell getprop ro.build.fingerprint | tr -d '\r')"
 
+# The matrix's own output is captured as well as shown. Not for the rows — those
+# are in "$out" — but for the refusals that happen BEFORE any row exists: a
+# failed install, an APK with no registered instrumentation, an image that
+# cannot hold a lock screen. Each of those exits with its reason on stderr, and
+# stderr on this repository is the step log, which is the 403. Without this the
+# annotation for every one of them reads "The matrix produced no table", which
+# is the same dead end as run #1's "failed with exit code 1" wearing a longer
+# sentence.
+matrix_log=$(mktemp)
+trap 'rm -f "$matrix_log"' EXIT
+
+# `set +e` around the pipeline rather than `|| true` after it: `|| true` runs a
+# command of its own, and running any command resets PIPESTATUS — so the status
+# read back would be `true`'s, and every failed matrix would publish itself as
+# "every row PASS". That is the exact false green this script's fourth job is to
+# prevent, and test-k1-driver.sh pins it.
 status=0
+set +e
 # shellcheck disable=SC2086
-bash android/scripts/k1-lockscreen-matrix.sh $args --out "$out" || status=$?
+bash android/scripts/k1-lockscreen-matrix.sh $args --out "$out" 2>&1 | tee "$matrix_log"
+status=${PIPESTATUS[0]}
+set -e
 
 # The annotation goes out before the summary, so that a failure in the summary
 # block cannot cost the one copy of the table that is readable without a token.
@@ -120,17 +139,20 @@ bash android/scripts/k1-lockscreen-matrix.sh $args --out "$out" || status=$?
 # workflow uploads, and a near-duplicate of the table sitting next to it invites
 # someone to quote the wrong file.
 annotation_body=$(mktemp)
-trap 'rm -f "$annotation_body"' EXIT
+trap 'rm -f "$annotation_body" "$matrix_log"' EXIT
 {
   echo "K1 — API ${K1_API_LEVEL:-unknown} — matrix exit $status"
   echo
   if [ -s "$out" ]; then
     cat "$out"
   else
-    echo "The matrix produced no table: the run failed before any row could be"
-    echo "written. The reason is in the step log, which needs repository admin"
-    echo "to read — so if you are reading this annotation, it is the most detail"
-    echo "you have, and the next run should narrow it rather than repeat it."
+    echo "The matrix produced no table: it stopped before any row could be written."
+    echo "That is a refusal, not a verdict on BIT-8 rule 2 — the last lines of its"
+    echo "output are below and they name the reason."
+    echo
+    echo '```'
+    tail -n 40 "$matrix_log"
+    echo '```'
   fi
 } >"$annotation_body"
 
@@ -147,8 +169,11 @@ if [ -n "${GITHUB_STEP_SUMMARY:-}" ]; then
     if [ -s "$out" ]; then
       cat "$out"
     else
-      echo "The matrix produced no table. The run failed before any row could be"
-      echo "written — read the step log above, not this summary."
+      echo "The matrix produced no table: it stopped before any row could be written."
+      echo
+      echo '```'
+      tail -n 40 "$matrix_log"
+      echo '```'
     fi
     echo
     if [ "$status" -eq 0 ]; then

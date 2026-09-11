@@ -248,6 +248,76 @@ reset_to_none() {
 }
 
 # ---------------------------------------------------------------------------
+# Refusal — can this image hold a lock screen at all?
+# ---------------------------------------------------------------------------
+#
+# K1 mutates the lock screen. An image that cannot hold one does not produce a
+# red row, it produces six rows describing a mutation that never happened, and
+# the cause lands three steps downstream of where it started. Run #3 spent a
+# whole emulator boot to report five `ERROR | seal` rows whose real content was
+# "the PIN never took".
+#
+# So the capability is established once, up front, against the device — not
+# inferred from the API level, and not assumed because `locksettings` exited 0.
+# It costs four adb round-trips and it runs before the APK is installed, because
+# a device that fails this cannot produce a K1 result by any route.
+#
+# Deliberately a functional probe and not only a feature query. Both are checked
+# and they answer different questions: `android.software.secure_lock_screen`
+# (API 29+) is what the image *claims*, and set/verify/clear is what it *does*.
+# The second has to exist because the first is absent on API 26-28 by definition
+# and because a feature flag is another piece of documentation.
+lockscreen_preflight() {
+  wake
+
+  # What the image claims. API 29+ only: the feature constant does not exist
+  # below it, so its absence there is meaningless rather than damning.
+  if [ "$API" -ge 29 ]; then
+    if ! sh_ pm list features 2>/dev/null | tr -d '\r' | grep -qx 'feature:android.software.secure_lock_screen'; then
+      echo "k1: $DEVICE_LABEL does not declare android.software.secure_lock_screen." >&2
+      echo "    This image has no secure lock screen, so there is nothing for K1 to" >&2
+      echo "    mutate and every row it could produce would describe a mutation that" >&2
+      echo "    did not happen. Stripped images (aosp_atd) are the usual cause; pick" >&2
+      echo "    'default' or 'google_apis' in the image step of" >&2
+      echo "    .github/workflows/k1-keystore-lockscreen.yml." >&2
+      return 1
+    fi
+  fi
+
+  # What the image does.
+  reset_to_none || return 1
+
+  if ! sh_status "locksettings set-pin '$PIN_A'" >/dev/null; then
+    echo "k1: locksettings set-pin failed on $DEVICE_LABEL before any case ran." >&2
+    return 1
+  fi
+  if ! credential_is "$PIN_A"; then
+    echo "k1: on $DEVICE_LABEL, 'locksettings set-pin' exits 0 and the credential" >&2
+    echo "    does not verify afterwards. LockSettingsService is accepting the call" >&2
+    echo "    and storing nothing, so no case can reach a start state and no row" >&2
+    echo "    would mean anything. Suspect the system image before the driver — see" >&2
+    echo "    the image step in .github/workflows/k1-keystore-lockscreen.yml." >&2
+    sh_ locksettings clear --old "$PIN_A" >/dev/null 2>&1 || true
+    return 1
+  fi
+
+  # Leave nothing behind: M1 requires a device with no credential, and it is the
+  # first case to run.
+  if ! reset_to_none; then
+    echo "k1: the preflight PIN could not be cleared again on $DEVICE_LABEL." >&2
+    return 1
+  fi
+
+  echo "k1: lock screen is settable and clearable on $DEVICE_LABEL"
+  return 0
+}
+
+if ! lockscreen_preflight; then
+  echo "k1: refusing to run the matrix — see above." >&2
+  exit 2
+fi
+
+# ---------------------------------------------------------------------------
 # Instrumentation
 # ---------------------------------------------------------------------------
 
@@ -446,6 +516,17 @@ for case_id in "${cases[@]}"; do
       overall=1
       continue
     fi
+    # `set-pin` exiting 0 is not evidence that a credential exists — the same
+    # lesson `adb install` taught above. Until run #3 this went unchecked until
+    # the pre-mutation witness, which is two `am instrument` invocations later,
+    # so the run spent the seal phase on a device it was wrong about and the
+    # table blamed the seal phase. Verified here, the row names the setup.
+    if ! credential_is "$PIN_A"; then
+      record "$case_id" "ERROR" "-" "-" \
+        "locksettings set-pin reported success but '$PIN_A' does not verify afterwards; the start state was never reached"
+      overall=1
+      continue
+    fi
   fi
 
   # --- phase 1: seal -----------------------------------------------------
@@ -454,7 +535,22 @@ for case_id in "${cases[@]}"; do
   if [ "$(instrument "${TEST_CLASS_ROOT}.K1SealTest" "$seal_out" "$case_id")" != "pass" ]; then
     echo "k1: seal phase failed for $case_id"
     sed -n '1,40p' "$seal_out"
-    record "$case_id" "ERROR" "seal" "-" "seal phase failed; no verdict on rule 2 — $(failure_excerpt "$seal_out")"
+    note=""
+    # The one seal failure that is a finding about the image rather than a bug in
+    # the harness: the host set a credential and verified it through
+    # LockSettingsService, and KeyguardManager in the app process disagrees that
+    # the device is secure. Those two read the same credential, so a divergence
+    # means this image cannot hold a lock screen the platform will admit to —
+    # which no amount of driver work fixes, and which makes every row it could
+    # produce meaningless. Named here so the table says so instead of implying
+    # the seal phase is broken.
+    if [ "$case_id" != "M1" ] && grep -q 'requires isDeviceSecure=true' "$seal_out"; then
+      note=" — NOTE: the host verified '$PIN_A' through locksettings immediately before this,"
+      note="$note so LockSettingsService and KeyguardManager disagree about whether this device"
+      note="$note is secure. Suspect the emulator system image (see the image step in"
+      note="$note .github/workflows/k1-keystore-lockscreen.yml), not the driver."
+    fi
+    record "$case_id" "ERROR" "seal" "-" "seal phase failed; no verdict on rule 2 — $(failure_excerpt "$seal_out")$note"
     overall=1
     continue
   fi

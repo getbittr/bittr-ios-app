@@ -246,6 +246,16 @@ case "${1:-}" in
       fi
       echo "instrumentation:com.example.other/androidx.test.runner.AndroidJUnitRunner (target=com.example.other)"
     fi
+    # `pm list features` is the driver's preflight question "does this image
+    # admit to having a secure lock screen". The no_secure_lock_screen knob is a
+    # stripped image (aosp_atd is the one K1 met) that answers no.
+    if [ "${2:-}" = "list" ] && [ "${3:-}" = "features" ]; then
+      echo "feature:android.hardware.touchscreen"
+      if [ "$(knob no_secure_lock_screen 0)" != "1" ]; then
+        echo "feature:android.software.secure_lock_screen"
+      fi
+      echo "feature:android.software.app_widgets"
+    fi
     ;;
 
   dumpsys)
@@ -296,9 +306,23 @@ case "${1:-}" in
         else
           old=""; new="${1:-}"; is_mutation=0
         fi
+        if [ "$is_mutation" = "0" ]; then
+          # Count the bare `set-pin` calls. The driver now makes one in its
+          # preflight and one per case, and the two failure modes are different
+          # findings: an image that never stores a credential is refused before
+          # the matrix starts, while one that stops storing partway through is a
+          # per-case ERROR. A single knob cannot tell them apart, so
+          # setup_noop_after N no-ops every bare set-pin after the first N.
+          n=$(cat "$D/setpins" 2>/dev/null || echo 0)
+          n=$((n + 1))
+          printf '%s' "$n" >"$D/setpins"
+        fi
         if [ "$old" != "$(cred)" ]; then
           rc=1
         elif [ "$is_mutation" = "0" ] && [ "$(knob setup_noop 0)" = "1" ]; then
+          rc=0
+        elif [ "$is_mutation" = "0" ] && [ -n "$(knob setup_noop_after "")" ] &&
+          [ "$n" -gt "$(knob setup_noop_after 0)" ]; then
           rc=0
         elif [ "$is_mutation" = "0" ]; then
           set_cred "$new"
@@ -320,11 +344,23 @@ case "${1:-}" in
       clear)
         old=""
         [ "${1:-}" = "--old" ] && old="${2:-}"
+        # Counted for the same reason bare set-pin is: the driver's preflight
+        # clears the credential it just set, so a device-wide clear fault is a
+        # refusal before the matrix starts, while one that begins after the
+        # preflight is M5's mutation failing and belongs in M5's row. The
+        # *_after knobs aim at the second without disturbing the first.
+        c=$(cat "$D/clears" 2>/dev/null || echo 0)
+        c=$((c + 1))
+        printf '%s' "$c" >"$D/clears"
         if [ "$(knob clear_fails 0)" = "1" ]; then
+          rc=1
+        elif [ -n "$(knob clear_fails_after "")" ] && [ "$c" -gt "$(knob clear_fails_after 0)" ]; then
           rc=1
         elif [ "$old" != "$(cred)" ]; then
           rc=1
         elif [ "$(knob clear_noop 0)" = "1" ]; then
+          rc=0
+        elif [ -n "$(knob clear_noop_after "")" ] && [ "$c" -gt "$(knob clear_noop_after 0)" ]; then
           rc=0
         else
           set_cred ""
@@ -526,24 +562,63 @@ expect_out "the OLD credential still verifies after the mutation"
 # quoted later.
 refute_trace "instrument K1OpenTest M2"
 
-scenario "a start state that was never reached is an ERROR"
-# `locksettings set-pin` exits 0 without setting anything, so the case would run
-# its mutation from a state it does not know it is in. The driver has to notice
-# before it mutates, not after.
+scenario "an image that never stores a credential is refused before any case runs"
+# `locksettings set-pin` exits 0 and stores nothing — the shape run #3 hit on
+# aosp_atd API 34, where the device then reported isDeviceSecure=false and five
+# rows blamed the seal phase for it. No case can reach a start state on such an
+# image, so the matrix must refuse it up front rather than produce rows about a
+# mutation that never happened.
 knob setup_noop 1
+run_driver M2
+expect_rc 2
+refute_out "| M2 | PASS |"
+expect_out "does not verify afterwards"
+refute_trace "install"
+refute_trace "instrument K1SealTest M2"
+refute_trace "instrument K1OpenTest M2"
+
+scenario "an image that stops storing credentials mid-run is a per-case ERROR"
+# The preflight's set-pin works, so the matrix starts; the one for M2's start
+# state exits 0 and stores nothing. This has to be caught before the seal phase
+# is spent on it, or the row names the seal phase for a setup failure.
+knob setup_noop_after 1
 run_driver M2
 expect_rc 1
 refute_out "| M2 | PASS |"
-expect_out "the start credential did not verify before mutating"
+expect_out "| M2 | ERROR |"
+expect_out "does not verify afterwards; the start state was never reached"
+refute_trace "instrument K1SealTest M2"
 refute_trace "instrument K1OpenTest M2"
 
+scenario "an image with no secure_lock_screen feature is refused"
+# What the image claims, as opposed to what it does. Checked on API 29+ only —
+# the feature constant does not exist below that, so its absence there means
+# nothing and must not refuse a device that works.
+knob no_secure_lock_screen 1
+run_driver M2
+expect_rc 2
+expect_out "does not declare android.software.secure_lock_screen"
+refute_trace "install"
+refute_trace "instrument K1SealTest M2"
+
 scenario "a clear that exits 0 and removes nothing is not a PASS"
-knob clear_noop 1
+# M5's mutation IS a clear, so this is the false green the case is most exposed
+# to: the credential is still there and the key 'survived' a removal that never
+# happened. Aimed past the preflight's own clear so it lands on the mutation.
+knob clear_noop_after 1
 run_driver M5
 expect_rc 1
 refute_out "| M5 | PASS |"
 expect_out "| M5 | ERROR |"
 refute_trace "instrument K1OpenTest M5"
+
+scenario "a device that cannot clear its lock screen at all is refused up front"
+knob clear_noop 1
+run_driver M5
+expect_rc 2
+refute_out "| M5 | PASS |"
+expect_out "could not clear the lock screen"
+refute_trace "install"
 
 scenario "a mutation that lands on the wrong credential is not a PASS"
 # set-password reports success, the old PIN stops verifying — so the existing
@@ -603,13 +678,28 @@ expect_rc 1
 expect_out "| M2 | ERROR |"
 refute_out "| M2 | PASS |"
 
-scenario "a device whose lock screen cannot be cleared is an ERROR"
+scenario "a device whose lock screen cannot be cleared is refused"
+# It starts with a credential the driver cannot remove, so it can never reach
+# M1's start state and nothing downstream would describe the device it ran on.
+# Refused before the APK is installed rather than reported per case.
 start_cred 0000
 knob clear_fails 1
 run_driver M2
-expect_rc 1
+expect_rc 2
 expect_out "could not clear the lock screen"
 refute_out "| M2 | PASS |"
+refute_trace "install"
+
+scenario "a lock screen that stops clearing after the matrix starts is an ERROR"
+# Same fault, arriving later: the preflight passes, so there is a table, and M5
+# — whose mutation *is* a clear — reports the failed command instead of the run
+# vanishing with no rows at all.
+knob clear_fails_after 1
+run_driver M5
+expect_rc 1
+refute_out "| M5 | PASS |"
+expect_out "| M5 | ERROR |"
+expect_out "the locksettings mutation command failed"
 
 scenario "one bad case does not suppress the others, and the run still fails"
 knob verdict_open fail
