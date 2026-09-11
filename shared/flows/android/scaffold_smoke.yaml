@@ -1,0 +1,39 @@
+# Android scaffold smoke — the trivial flow the CI harness is proven against.
+#
+# Mirrors onboarding/smoke.yaml on iOS: launch, wait for the launch gate, assert
+# the create-or-restore entry point is on screen. It asserts the SAME test IDs as
+# the iOS flow, which is the point — the harness is proven against real shared
+# identifiers, not against a throwaway "Hello World" that would never catch drift.
+#
+# Two deliberate differences from the iOS flow:
+#
+#   - appId. iOS debug builds are com.bittr.bittr-regtest; Android applicationIds
+#     cannot contain hyphens, so the Android debug build is com.bittr.android.regtest.
+#     Unifying the two flows behind ${APP_ID} is BIT-7 work, once there is more than
+#     one Android flow to unify.
+#   - No clearKeychain. iOS-only directive; on Android clearState is the whole story.
+#
+# This flow does NOT belong in suite.yaml. suite.yaml is the stateful iOS
+# dependency chain; this is a standalone harness check with no wallet state.
+
+appId: com.bittr.android.regtest
+---
+- launchApp:
+    clearState: true
+
+# Same gate as helpers/wait_for_launch.yaml on iOS. The scaffold has no launch
+# animation yet, so this returns immediately — it is here so the flow does not
+# need rewriting when the animation is ported.
+- extendedWaitUntil:
+    visible:
+      id: "core.launchComplete"
+    timeout: 15000
+
+- assertVisible:
+    id: "signup.create.start.headerLabel"
+- assertVisible:
+    id: "signup.create.start.createWalletButton"
+- assertVisible:
+    id: "signup.create.start.restoreButton"
+
+- takeScreenshot: shared/docs/screenshots/android_scaffold_smoke/01_signup_start

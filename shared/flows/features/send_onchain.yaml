@@ -187,6 +187,13 @@ appId: com.bittr.bittr-regtest
 - assertVisible:
     id: "send.confirm.amountFiatLabel"
     text: "[45][.,][0-9][0-9] €"
+# All three fee tiles are on screen. The middle one (≈1 hour) is the tier every
+# send starts on, so it has to exist and be tagged on both platforms — which
+# tile is *highlighted* is carried only by a background colour, with no
+# accessibility state behind it, so the screenshot below is what proves the
+# default selection matches. See BIT-17.
+- assertVisible:
+    id: "send.confirm.feeMediumButton"
 - takeScreenshot: shared/docs/screenshots/send_onchain/03_confirm
 
 # Pick the fast (≈10 minute) fee. For such a small amount the fee can exceed

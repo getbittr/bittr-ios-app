@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Placeholder. Real strings are generated from shared/strings/ per
+  ANDROID_PORT_PLAN.md ("Translation source format") — JSON is canonical, this file
+  becomes generated output. Do not accumulate hand-written strings here.
+-->
+<resources>
+    <string name="app_name">bittr</string>
+</resources>
