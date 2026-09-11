@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Layer 2 of the three that keep wallet material on this device
+  (BIT-8 rule 4, widened to the LDK state directory by BIT-20 rule 5).
+
+    1. android:allowBackup="false" in AndroidManifest.xml.
+    2. this file, which configures the API 31+ paths.
+    3. siting every wallet file under Context.getNoBackupFilesDir() — see
+       core/wallet-ldk .../state/WalletPaths.kt.
+
+  Why all three when the first looks sufficient: on API 31+ cloud backup and
+  device-to-device transfer are configured separately, and whether
+  allowBackup="false" alone also suppresses the transfer path is a
+  documented-behaviour claim we are not willing to assert from memory — it is
+  precisely the question the rule turns on. Belt and braces, and it costs
+  nothing.
+
+  Why the LDK state directory and not just the seed blob: the BIT-20
+  discriminator proves a state directory is *yours*. It does not prove it is
+  *current*. Those come apart exactly when state reaches a second device under
+  the same seed, which is what these two paths do. Foreign state cannot sign;
+  same-seed stale state signs fine, and publishing a revoked commitment hands
+  the channel balance to the counterparty. So `match -> keep` is only sound if
+  this file works — see seed-storage-security §5.1.
+
+  iOS does the same thing and says why: LightningStorage.swift:19-23 ("never
+  sync it to other devices"), with excludeFromBackup() at :38-43 covering the
+  directory *and* each state file individually.
+
+  The static half of this is asserted by BackupExclusionRulesTest, which reads
+  this file and the merged manifest. The empirical half — that a real backup
+  set produced by bmgr contains none of it — is BackupExclusionTest, and it
+  needs a device.
+-->
+<data-extraction-rules>
+    <cloud-backup>
+        <!-- Everything the wallet layer writes lives under no_backup/wallet. -->
+        <exclude domain="file" path="wallet" />
+        <exclude domain="device_encrypted_file" path="wallet" />
+        <!-- Belt and braces: the whole no_backup tree, whatever else lands there. -->
+        <exclude domain="file" path="no_backup" />
+        <exclude domain="device_encrypted_file" path="no_backup" />
+        <!-- BDK/ldk-node open SQLite databases; -wal and -shm siblings are
+             covered by the directory entries above, but a database opened
+             through the platform helper would land here instead. -->
+        <exclude domain="database" path="." />
+        <exclude domain="sharedpref" path="." />
+    </cloud-backup>
+    <device-transfer>
+        <exclude domain="file" path="wallet" />
+        <exclude domain="device_encrypted_file" path="wallet" />
+        <exclude domain="file" path="no_backup" />
+        <exclude domain="device_encrypted_file" path="no_backup" />
+        <exclude domain="database" path="." />
+        <exclude domain="sharedpref" path="." />
+    </device-transfer>
+</data-extraction-rules>
