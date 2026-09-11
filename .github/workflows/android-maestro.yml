@@ -179,6 +179,26 @@ jobs:
         # they run here. No network: the tests stub the transport.
         run: python3 android/scripts/test_ci_runs.py
 
+      - name: Test the K1 harness
+        # K1 (BIT-18) is the measurement BIT-8 rule 2 rests on: does a
+        # non-auth-bound Keystore key survive a lock-screen change. Its result
+        # table can only be produced by android/scripts/k1-lockscreen-matrix.sh
+        # against real devices, which this workflow cannot do — but the driver
+        # that decides whether a row reads PASS is plain bash, and it can be
+        # tested here.
+        #
+        # That is the part worth gating. K1's failure mode is not a red row, it
+        # is a green row from a run where the mutation silently did not happen,
+        # quoted afterwards in a security statement. test-k1-driver.sh runs the
+        # real driver against a stub adb and asserts it comes out ERROR for each
+        # shape of that: a mutation command that exits 0 and changes nothing, a
+        # mutation that lands on the wrong credential, an open phase with no
+        # verdict line. Neither suite needs a device or the SDK.
+        run: |
+          set -euo pipefail
+          bash android/scripts/test-k1-verdict.sh
+          bash android/scripts/test-k1-driver.sh
+
       - name: Check every flow ID is registered
         # A flow selecting an ID that is in no registry entry fails at run time
         # with "element not found" — indistinguishable from a missing testTag in

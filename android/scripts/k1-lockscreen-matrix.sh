@@ -45,12 +45,18 @@
 #   - the device-side witnesses in K1OpenTest passed: the KeyguardManager
 #     transition, and for the credential-destroying cases the auth-bound control
 #     key being gone
-#   - `mutation_witness` below observed the credential actually change, host side
+#   - the host-side witness observed the credential actually change, and change
+#     into the thing the case says it changed into
 #
 # The last one is what carries M2/M3/M4, where the device is secure on both
 # sides of the mutation and KeyguardManager cannot tell that anything happened.
 # `locksettings verify` against the OLD credential must succeed before and fail
-# after. Without it those three rows would rest on the driver's say-so.
+# after, and against the NEW one must fail before and succeed after. Without it
+# those three rows would rest on the driver's say-so.
+#
+# The driver is exercised against a fake device — including each of those
+# failure shapes — by android/scripts/test-k1-driver.sh, which needs no device
+# and no Android SDK. Run it after touching anything in here.
 #
 # SAFETY — READ BEFORE POINTING THIS AT YOUR PHONE
 #
@@ -387,9 +393,14 @@ for case_id in "${cases[@]}"; do
   # --- phase 2: mutate ---------------------------------------------------
   # The old credential must verify *before* the mutation, so that its failure
   # afterwards means the mutation landed rather than that it never worked.
+  # What must verify before the mutation, and what must verify after it. Both
+  # halves are needed: see the witness section below.
   case "$case_id" in
-    M1) pre_cred="" ;;
-    *)  pre_cred="$PIN_A" ;;
+    M1)     pre_cred="";        post_cred="$PIN_A" ;;
+    M2)     pre_cred="$PIN_A";  post_cred="$PIN_B" ;;
+    M3)     pre_cred="$PIN_A";  post_cred="$PASSWORD" ;;
+    M4)     pre_cred="$PIN_A";  post_cred="$PATTERN" ;;
+    M5|M6)  pre_cred="$PIN_A";  post_cred="" ;;
   esac
   if [ -n "$pre_cred" ] && ! credential_is "$pre_cred"; then
     record "$case_id" "ERROR" "-" "-" "the start credential did not verify before mutating; witness unusable"
@@ -448,7 +459,26 @@ for case_id in "${cases[@]}"; do
 
   # --- the host-side witness --------------------------------------------
   # For M2/M3/M4 this is the only evidence the credential changed at all:
-  # KeyguardManager reports secure on both sides.
+  # KeyguardManager reports secure on both sides, so K1OpenTest's device-side
+  # witness cannot see these mutations happen.
+  #
+  # Two halves, and both are load-bearing:
+  #
+  #   negative — the OLD credential must stop verifying. Catches a mutation
+  #              command that exits 0 and changes nothing.
+  #   positive — the intended NEW credential must verify (or, for the cases
+  #              that destroy it, no credential must). Catches a mutation that
+  #              reported success and landed somewhere else: `set-password`
+  #              that in fact cleared the lock screen satisfies the negative
+  #              half perfectly, and the row would then say M3 while the device
+  #              did M5. The key survives both, so the verdict would even be
+  #              right — about the wrong mutation.
+  #
+  # The positive half fails closed. Where `locksettings verify` cannot check a
+  # credential type on some image — a pattern passed as digits is the one to
+  # watch — the row comes out ERROR ("no verdict") rather than PASS. That is the
+  # correct direction for this test, but it does mean an ERROR here is a reason
+  # to check the device by hand, not automatically a broken device.
   if [ -n "$pre_cred" ]; then
     if credential_is "$pre_cred"; then
       record "$case_id" "ERROR" "mutate" "-" \
@@ -459,6 +489,24 @@ for case_id in "${cases[@]}"; do
     witness="old-credential-rejected"
   else
     witness="keyguard-transition"
+  fi
+
+  if [ -n "$post_cred" ]; then
+    if ! credential_is "$post_cred"; then
+      record "$case_id" "ERROR" "mutate" "-" \
+        "the mutation reported success and the old credential is gone, but the credential $case_id aimed for does not verify either — the device is in an unknown state and this row would not describe the mutation it names"
+      overall=1
+      continue
+    fi
+    witness="${witness}+new-credential-set"
+  else
+    if ! has_no_credential; then
+      record "$case_id" "ERROR" "mutate" "-" \
+        "$case_id was supposed to destroy the credential, but the device still has one — the row would not describe the mutation it names"
+      overall=1
+      continue
+    fi
+    witness="${witness}+credential-gone"
   fi
 
   # --- phase 3: open, in a process that did not exist at seal time -------

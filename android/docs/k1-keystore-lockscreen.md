@@ -11,6 +11,11 @@ run on a device. Nothing in this file may be quoted as evidence for rule 2 yet.
 That is a hardware gap, not an unfinished harness — see [What is blocking the
 run](#what-is-blocking-the-run).
 
+The harness itself is now tested, device-free, and gated in CI: see [Checking the
+harness without a device](#checking-the-harness-without-a-device). That is a
+statement about the driver's reasoning and nothing else. **It is not evidence
+about Keystore**, and no amount of it ever will be.
+
 ## What is being proved
 
 BIT-8 rule 2 requires the Android seed blob to be wrapped by a **non-auth-bound**
@@ -62,14 +67,29 @@ have to line up before a row reads PASS:
 3. **The device-side witness passed.** `K1OpenTest` asserts the post-mutation
    `KeyguardManager` state *before* it decrypts, so a run that mutated nothing
    fails its start-state assertion instead of reporting survival.
-4. **The host-side witness passed.** `locksettings verify` against the **old**
-   credential must succeed before the mutation and fail after it.
+4. **The host-side witness passed**, in both directions. `locksettings verify`
+   against the **old** credential must succeed before the mutation and fail
+   after it, *and* the **new** credential the case aimed for must verify after
+   it (for M5 and M6, which destroy the credential: no credential must verify).
 
 Item 4 is what carries M2, M3 and M4. Those three are secure on both sides of the
 mutation, so `KeyguardManager` cannot tell that anything happened and item 3
 degrades to "the driver did not do literally nothing". The asymmetry is real and
 is recorded here rather than hidden behind an assertion that would look stronger
 than it is.
+
+Both directions of item 4 are needed, and the second was added after the driver
+was caught scoring a mutation green that had landed somewhere other than where it
+was aimed. A `set-password` that in fact *cleared* the lock screen satisfies the
+old-credential half perfectly — the old PIN stops verifying, exactly as M3
+predicts. The key survives that too, so the verdict would even have been correct;
+it would just have been a correct verdict about **M5, printed on the M3 row**.
+Since only the row survives into a security statement, that is a false green.
+
+The positive half fails closed: where `locksettings verify` cannot check a
+credential type on some image — a pattern passed as digits is the one to watch —
+the row comes out `ERROR` rather than `PASS`. An `ERROR` there means *check this
+device by hand*, not *this device failed*.
 
 ### The auth-bound control, and why it is not on every row
 
@@ -105,6 +125,37 @@ phases back to back with no mutation in between; phase 2 then fails its
 start-state assertion. That is the designed behaviour — no false pass — but it is
 not a row.
 
+### Checking the harness without a device
+
+Two suites run anywhere — no device, no Android SDK:
+
+```sh
+bash android/scripts/test-k1-verdict.sh   # classifying `am instrument` output — ~1s
+bash android/scripts/test-k1-driver.sh    # the driver, against a fake device — ~70s
+```
+
+`test-k1-driver.sh` puts a stub `adb` on `PATH` and runs the real driver end to
+end inside a throwaway git repo. It models one handset — a lock-screen
+credential, a property table, an instrumentation runner — and can make it
+misbehave in the specific ways that would otherwise produce a green row from a
+run that measured nothing: a mutation command that exits 0 and changes nothing,
+a mutation that lands on the wrong credential, a start state that was never
+reached, an open phase that exits clean but emits no verdict, an open phase that
+reports "skipped" rather than "passed". Each of those must come out `ERROR`, and
+the driver must not run the open phase at all once it knows the mutation did not
+land.
+
+It also pins the refusals — accounts on a physical device, `--with-device-owner`
+off an emulator, API below `minSdk`, more than one device attached — and checks
+that the device is left with **no lock screen** after a run.
+
+**What it does not do is test Android.** Every fact about Keystore and
+`locksettings` on the far side of `adb` is assumed by the stub, and those
+assumptions are the entire thing BIT-18 exists to check. It tests the driver's
+reasoning, not the platform's behaviour: given what a device says, the driver
+draws the right conclusion and refuses to draw one when it cannot. A device is
+still the only thing that can fill in the table below.
+
 **This script changes a real lock screen.** It refuses a physical device holding
 user accounts unless `--i-know` is passed, refuses `--with-device-owner` on
 anything it does not recognise as an emulator, and restores the device to "no lock
@@ -114,7 +165,8 @@ screen" on exit. Never point it at a device holding a real wallet.
 
 **Empty. Nothing here has been run.**
 
-Table format, one block per device — `M2 | PASS | old-credential-rejected | TRUSTED_ENVIRONMENT`:
+Table format, one block per device —
+`M2 | PASS | old-credential-rejected+new-credential-set | TRUSTED_ENVIRONMENT`:
 
 | device | API | M1 | M2 | M3 | M4 | M5 | M6 |
 |---|---|---|---|---|---|---|---|
