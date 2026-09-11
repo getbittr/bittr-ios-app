@@ -289,8 +289,9 @@ mutation could not be driven on this device, with the reason recorded
 | [#2](https://github.com/getbittr/bittr-ios-app/actions/runs/34588466744) | `k1-run/pilot` | `22cc4da` | API 34, `aosp_atd`, `x86_64` | red — **all five rows `ERROR` at `seal`** |
 | [#3](https://github.com/getbittr/bittr-ios-app/actions/runs/34589128911) | `k1-run/pilot` | `81ba801` | API 34, `aosp_atd`, `x86_64` | red — `ERROR` at `seal`, **two causes named** |
 | [#4](https://github.com/getbittr/bittr-ios-app/actions/runs/34592863770) | `k1-run/pilot` | `2e3adf6` | API 34, `default`, `x86_64` | red — **first successful seals**; `ERROR` at `mutate` |
+| [#5](https://github.com/getbittr/bittr-ios-app/actions/runs/34596169712) | `k1-run/pilot` | `060b71a` | API 34, `default`, `x86_64` | **refused** — the credential witness does not work on this image |
 
-None of the four is a row, and none may be read as one.
+None of the five is a row, and none may be read as one.
 
 **Run #1** established one thing and hid the rest. The emulator booted on an
 ordinary GitHub-hosted `ubuntu-latest` runner, the probe built, and the matrix ran
@@ -429,6 +430,48 @@ The fake device in `test-k1-driver.sh` was modelling the convenient semantics
 rather than the real ones, which is why 159 device-free checks stayed green
 through this. It now models the real behaviour, and a driver that cannot separate
 those two states no longer passes the suite.
+
+**Run #5** stopped at the preflight and wrote no table, which is the intended
+behaviour and not a regression:
+
+```
+k1: on unknown/Android SDK built for x86_64 (API 34), 'locksettings set-pin'
+    exits 0 and the credential does not verify afterwards.
+k1: refusing to run the matrix — see above.
+```
+
+That reason reached a reader with no repository access, from a run that produced
+no artefact and no table — the channel work from runs #1–#3 doing its job.
+
+**What this costs, stated plainly.** K1 has now spent five emulator runs and has
+zero rows. Each one found a real defect, and four of the five were in the
+harness rather than in Android. The honest summary is that the measurement is
+harder to instrument correctly than it looks, and that every shortcut taken to
+observe it has been wrong in the direction of *looking* like it worked.
+
+**The open question, and why run #4 matters more than run #5.** The refusal says
+the PIN "does not verify", which has two very different explanations:
+
+- **(a)** `set-pin` stores nothing — the image cannot hold a lock screen.
+- **(b)** `locksettings verify` exits 0 on this image regardless of what is
+  stored. Then the credential may be set correctly and the **witness** is what is
+  broken.
+
+(b) is the more serious possibility, and run #4 is consistent with it end to end:
+if every `verify` answered yes, that alone explains M1 finding the device secure
+after a clear *and* M2–M5 reporting the old credential surviving a change. It
+would also mean the host-side witness that carries M2/M3/M4 — `locksettings
+verify` against the old and new credential, per *How a row avoids being a false
+green* above — **cannot be used on this image**, and a witness that always says
+yes is precisely how a false green is made.
+
+The driver now prints the raw answers to all three `verify` forms when it
+refuses, instead of asserting (a). One run separates them. If it is (b), the
+host-side witness needs replacing with a device-side one — `KeyguardManager`
+read through the probe, which is the same API the cases already assert on — and
+that is a design change to this document's witness section, not a bug fix.
+
+Until then, **no verdict on rule 2, and no row.**
 
 **`not reachable` is a finding, not a gap.** BIT-18 says "where reachable" of
 mutation 5, and M6 is expected to be unreachable on physical devices: a device

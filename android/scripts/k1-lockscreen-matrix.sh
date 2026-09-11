@@ -308,6 +308,52 @@ reset_to_none() {
 # (API 29+) is what the image *claims*, and set/verify/clear is what it *does*.
 # The second has to exist because the first is absent on API 26-28 by definition
 # and because a feature flag is another piece of documentation.
+# The raw observations behind a credential refusal, not a conclusion drawn from
+# them.
+#
+# Two different device behaviours produce an identical "the PIN did not take",
+# and K1 has now been wrong about which one it was looking at:
+#
+#   (a) `set-pin` stores nothing. Then no `verify` has anything to check and they
+#       all succeed, including the deliberately wrong one.
+#   (b) `locksettings verify` always exits 0 on this image whatever is stored.
+#       Then the credential may be perfectly well set and the WITNESS is what is
+#       broken — and every host-side witness in this script is built on it,
+#       including the one that carries M2/M3/M4.
+#
+# (b) is the more serious finding, because a witness that always says yes is how
+# a false green gets made. Run #4 is consistent with it end to end: every
+# `credential_is` answering yes explains M1 finding the device secure after a
+# clear AND M2-M5 reporting the old credential surviving a change.
+#
+# So this prints what each form actually returned and lets the reader conclude.
+# Three verifies, run once, on a device the run is abandoning anyway.
+credential_probe_report() {
+  echo "    What the device answered, raw — the same question three ways:"
+  echo "      locksettings verify --old '$PIN_A'   (the credential just set)"
+  if sh_status "locksettings verify --old '$PIN_A'" >/dev/null 2>&1; then
+    echo "        -> exit 0 (accepted)"
+  else
+    echo "        -> non-zero (rejected)"
+  fi
+  echo "      locksettings verify --old '$JUNK_CRED'   (deliberately wrong)"
+  if sh_status "locksettings verify --old '$JUNK_CRED'" >/dev/null 2>&1; then
+    echo "        -> exit 0 (ACCEPTED — a wrong credential cannot verify on a device"
+    echo "           that has one, so either nothing is stored or verify is not"
+    echo "           checking. Every host-side witness in this script rests on this"
+    echo "           call, so K1 has no usable witness on this image either way.)"
+  else
+    echo "        -> non-zero (rejected, which is correct: something IS stored, and"
+    echo "           the failure above is then about '$PIN_A' specifically)"
+  fi
+  echo "      locksettings verify   (no --old)"
+  if sh_status "locksettings verify" >/dev/null 2>&1; then
+    echo "        -> exit 0"
+  else
+    echo "        -> non-zero"
+  fi
+}
+
 lockscreen_preflight() {
   wake
 
@@ -333,11 +379,11 @@ lockscreen_preflight() {
     return 1
   fi
   if ! credential_is "$PIN_A"; then
-    echo "k1: on $DEVICE_LABEL, 'locksettings set-pin' exits 0 and the credential" >&2
-    echo "    does not verify afterwards. LockSettingsService is accepting the call" >&2
-    echo "    and storing nothing, so no case can reach a start state and no row" >&2
-    echo "    would mean anything. Suspect the system image before the driver — see" >&2
-    echo "    the image step in .github/workflows/k1-keystore-lockscreen.yml." >&2
+    echo "k1: on $DEVICE_LABEL, 'locksettings set-pin $PIN_A' exited 0 and the" >&2
+    echo "    credential does not verify afterwards. K1 cannot witness a lock-screen" >&2
+    echo "    mutation on this image, so it will not report rows about one." >&2
+    echo >&2
+    credential_probe_report >&2
     sh_ locksettings clear --old "$PIN_A" >/dev/null 2>&1 || true
     return 1
   fi
