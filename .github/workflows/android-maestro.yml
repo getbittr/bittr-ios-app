@@ -18,12 +18,16 @@ on:
       - 'android/**'
       - 'shared/flows/**'
       - 'shared/test-ids/**'
+      - 'shared/strings/**'
+      - 'ios/bittr/Language.swift'
       - '.github/workflows/android-maestro.yml'
   pull_request:
     paths:
       - 'android/**'
       - 'shared/flows/**'
       - 'shared/test-ids/**'
+      - 'shared/strings/**'
+      - 'ios/bittr/Language.swift'
       - '.github/workflows/android-maestro.yml'
   workflow_dispatch:
 
@@ -138,6 +142,23 @@ jobs:
         # with "element not found" — indistinguishable from a missing testTag in
         # the app, and it costs an emulator boot to find out. Fail here instead.
         run: python3 shared/test-ids/check_flow_ids.py
+
+      - name: Check the suite's copy dependencies still hold
+        # The flows assert *which* alert is on screen by matching its wording —
+        # alert.button._index and alert.textField are the only ids on that surface.
+        # 39 matchers across 24 flows depend on 37 keys in Language.swift plus 7
+        # strings hardcoded outside it. The *Language.swift -> shared/strings/ move
+        # touches every one of them, and a rewording in transit fails silently (a
+        # copy change is not a behaviour change, so nobody looks for a test result)
+        # and on both platforms at once (both apps will read the same source).
+        #
+        # The self-test runs first: this guard is the only thing standing between
+        # that migration and those 24 flows, so "it passed" has to mean something.
+        # Two of its cases are the migration itself — the same lock re-checked
+        # against a generated en.json, verbatim and reworded.
+        run: |
+          python3 shared/strings/test_check_flow_copy.py
+          python3 shared/strings/check_flow_copy.py
 
       - name: Check generated test IDs are in sync
         # The generated TestIDs.swift/.kt are committed for diff visibility. If
