@@ -144,6 +144,11 @@ dependencies {
     // The only place the wallet implementation is named. BIT-6 swaps this line
     // (and the binding in di/WalletModule.kt) for :core:wallet-ldk.
     implementation(project(":core:wallet-stub"))
+    // BIT-93: the seed half of the wallet — real BIP-39 key material behind a PIN,
+    // no funds. :core:wallet-seed is the pure-Kotlin logic, :core:wallet-keystore
+    // the Android Keystore storage it is bound to in di/WalletModule.kt.
+    implementation(project(":core:wallet-seed"))
+    implementation(project(":core:wallet-keystore"))
     implementation(project(":feature:signup"))
 
     implementation(libs.androidx.core.ktx)

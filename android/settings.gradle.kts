@@ -44,5 +44,12 @@ include(":core:designsystem")
 include(":core:wallet")
 include(":core:wallet-stub")
 
+// The seed, split along the line that makes it testable: :core:wallet-seed is pure
+// Kotlin (BIP-39, the PIN verifier, the state machine) and runs on the JVM;
+// :core:wallet-keystore is the Android-only half that seals the blobs with a
+// Keystore key. BIT-93 — a real seed, no funds. Funds are BIT-6.
+include(":core:wallet-seed")
+include(":core:wallet-keystore")
+
 // Features — one module per area of the iOS app, added as the port reaches them.
 include(":feature:signup")
