@@ -18,6 +18,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.bittr.android.core.designsystem.BittrTheme
 import com.bittr.android.core.wallet.Mnemonic
 import com.bittr.android.core.wallet.seed.SeedChallenge
+import com.bittr.android.feature.signup.ConfirmScreen
 import com.bittr.android.feature.signup.MnemonicScreen
 import com.bittr.android.feature.signup.PinScreen
 import com.bittr.android.feature.signup.ReadyScreen
@@ -78,19 +79,27 @@ class CreateWalletArcScreenshotTest {
 
         val SCREENS: List<Pair<String, @Composable () -> Unit>> = listOf(
             "1-start" to { SignupStartScreen() },
-            "2-phrase" to { MnemonicScreen(mnemonic = PHRASE, onNext = {}) },
-            "3-verify" to {
+            "2-confirm" to { ConfirmScreen(onUnderstood = {}, onBack = {}) },
+            "3-phrase" to { MnemonicScreen(mnemonic = PHRASE, onNext = {}) },
+            "4-verify" to {
                 VerifyScreen(
                     challenge = SeedChallenge(PHRASE, listOf(1, 4, 11)),
                     onSubmit = {},
                     onBack = {},
                 )
             },
-            "4-pin-set" to {
+            "5-pin-set" to {
                 PinScreen(title = "Set a PIN for secure access to your wallet", onSubmit = {})
             },
-            "5-ready" to { ReadyScreen(onContinue = {}, onSkip = {}) },
-            "6-home" to { HomePlaceholderScreen() },
+            "6-pin-confirm" to {
+                PinScreen(
+                    title = "Confirm your PIN",
+                    onSubmit = {},
+                    onBack = {},
+                )
+            },
+            "7-ready" to { ReadyScreen(onContinue = {}, onSkip = {}) },
+            "8-home" to { HomePlaceholderScreen() },
         )
     }
 

@@ -65,6 +65,25 @@ private val Red3 = Color(0xFFD18B8D)
  */
 private val BarTrack = Color(0xFFC5A03A)
 
+/**
+ * The two primitives the Android design canvas adds, and the only two.
+ *
+ * They come from `workspaces/…/design/screens.jsx` — the Material 3 adaptation of the
+ * arc, which is a design in its own right rather than a transcription of the
+ * storyboard, so its values cannot be derived from `Colors.swift`.
+ *
+ * [Ink] is the canvas's near-black: the fill of every primary pill button, and the
+ * content colour on the brand yellow. It is 5 % off `Color.Black` and that is the
+ * point — a pure black pill on a saturated yellow reads as a hole.
+ *
+ * [Cream] is the tonal container: PIN cells, secondary buttons, editorial chips. It is
+ * yellow desaturated far enough to sit *on* yellow and still be seen (1.27 : 1 is not
+ * a contrast claim — these are fills that carry their own content, never a border that
+ * has to be perceived against the canvas).
+ */
+private val Ink = Color(0xFF0D0D0D)
+private val Cream = Color(0xFFF8EEC6)
+
 // ---------------------------------------------------------------------------
 // Material 3 schemes — §1.3
 // ---------------------------------------------------------------------------
@@ -190,6 +209,60 @@ data class BittrColors(
     val primaryHigh: Color,
     /** The Question screen's channel bar track. §1.1, A11Y-14, DEV-42. */
     val barTrack: Color,
+
+    // -----------------------------------------------------------------------
+    // The Android design canvas — `design/screens.jsx`, the onboarding artboards.
+    //
+    // Material has no slot for "the screen is the brand colour and the button is
+    // the ink". Yellow is already `primary` *and* `primaryContainer` because it is
+    // a surface (see [BittrLightColors]); if the pill button also took `primary`
+    // it would be invisible. So the canvas's four roles are named here instead.
+    // -----------------------------------------------------------------------
+
+    /** The full-bleed screen background the onboarding arc is drawn on. */
+    val canvas: Color,
+    /** Primary content on [canvas] — headings, body copy, icons. */
+    val onCanvas: Color,
+    /**
+     * Secondary content on [canvas] and on [cardWash] — the text-button labels.
+     *
+     * **70 %, where the mock says 42 % and `onSurfaceVariant` says 60 %.** 42 % is
+     * 2.4 : 1 and fails outright. 60 % is the value A11Y-01 measured *against the
+     * yellow itself* (4.95 : 1) — but these labels sit inside the card, where the
+     * white wash lifts the background and drops the same ink to 3.51 : 1. 70 % is
+     * what clears AA on both: 4.88 : 1 on the card, 6.83 : 1 on the bare canvas.
+     */
+    val mutedOnCanvas: Color,
+    /**
+     * The card fill over [canvas] — white at 9 %, straight from the mock.
+     *
+     * Translucent on purpose: it is the canvas, lifted, not a second surface. Do not
+     * substitute `surfaceContainer` here; white-on-yellow is a different design.
+     */
+    val cardWash: Color,
+    /** The primary pill button's fill. */
+    val actionFill: Color,
+    /** The primary pill button's label. */
+    val onActionFill: Color,
+    /**
+     * The primary pill when its precondition is not met — the mock's `dim` state.
+     *
+     * A dimmed fill rather than Material's disabled treatment, because on this canvas
+     * Material's `onSurface @ 12 %` is a pale yellow smear. Translucent, so it
+     * composites over whatever canvas it lands on. [onActionFill] on it is 4.64 : 1
+     * light, 5.44 : 1 dark.
+     */
+    val actionFillDisabled: Color,
+    /** The tonal container — PIN cells, secondary buttons. The mock's cream. */
+    val tonalFill: Color,
+    /** Content on [tonalFill]. */
+    val onTonalFill: Color,
+    /**
+     * The open arc of the bittr mark, which is the one part of the logo that is not
+     * ink. The shipped SVG draws it `#FDBE10` for a white page; on the brand canvas
+     * the mock draws it white, because brand-on-brand would disappear. See [BittrLogo].
+     */
+    val canvasArc: Color,
 )
 
 /**
@@ -223,6 +296,20 @@ val BittrLightColorsExtended = BittrColors(
     scrimBrand = Yellow.copy(alpha = 0.85f),
     primaryHigh = Yellow,
     barTrack = BarTrack,
+    // The canvas *is* the brand yellow — the mock's `#FFC107` is Material amber and
+    // sits in a tweak panel beside three alternates, so it reads as a placeholder for
+    // the real one. `Yellow` here is the sRGB conversion of the iOS asset-catalogue
+    // Display P3 value, signed off as DEV-01.
+    canvas = Yellow,
+    onCanvas = Ink,
+    mutedOnCanvas = Ink.copy(alpha = 0.70f),
+    cardWash = Color.White.copy(alpha = 0.09f),
+    actionFill = Ink,
+    onActionFill = Color.White,
+    actionFillDisabled = Ink.copy(alpha = 0.45f),
+    tonalFill = Cream,
+    onTonalFill = Ink,
+    canvasArc = Color.White,
 )
 
 /**
@@ -249,6 +336,26 @@ val BittrDarkColorsExtended = BittrColors(
     scrimBrand = Blue3.copy(alpha = 0.85f),
     primaryHigh = Blue3,
     barTrack = BarTrack,
+    // The mock has no dark artboards. Dark mode on this app is not a tint of light
+    // mode — it swaps the yellow family for the blue one — so the canvas tokens
+    // follow the same swap the schemes already make, rather than being invented.
+    //
+    // [actionFill] is the one that cannot be mechanical: ink-on-blue1 is 2.98 : 1,
+    // under the 3 : 1 floor a button's own edge has to clear (WCAG 1.4.11), so the
+    // pill inverts instead — grey1 on blue1 is 6.12 : 1 and its ink label 16.3 : 1.
+    canvas = Blue1,
+    onCanvas = Color.White,
+    mutedOnCanvas = Color.White.copy(alpha = 0.85f),
+    cardWash = Color.White.copy(alpha = 0.09f),
+    actionFill = Grey1,
+    onActionFill = Ink,
+    actionFillDisabled = Color.White.copy(alpha = 0.30f),
+    tonalFill = Blue3,
+    onTonalFill = Color.White,
+    // White would vanish into the ink strokes beside it on a blue canvas; the brand
+    // yellow is the one colour that reads on both, and dark mode keeps exactly seven
+    // brand-yellow sites already (see `brandFixed`). This is the eighth.
+    canvasArc = Yellow,
 )
 
 /**

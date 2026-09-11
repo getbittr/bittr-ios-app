@@ -59,6 +59,34 @@ class CreateWalletViewModelTest {
         return challenge.positions.map { mnemonic.words[it] }
     }
 
+    /**
+     * The consent step is a gate, not a screen that happens to be in the way: nothing
+     * exists on the device until the user has passed it. If a future change starts
+     * generating the seed on Start "to save a second", this is the test that fails.
+     */
+    @Test
+    fun `Create wallet stops at the consent step and generates nothing`() = runTest {
+        val (vm, _) = viewModel()
+
+        vm.startCreate()
+        advanceUntilIdle()
+
+        assertEquals(CreateWalletStep.Confirm, vm.uiState.value.step)
+        assertNull(vm.uiState.value.mnemonic)
+    }
+
+    @Test
+    fun `backing out of consent returns to Start with nothing left behind`() = runTest {
+        val (vm, _) = viewModel()
+
+        vm.startCreate()
+        vm.backToStart()
+        advanceUntilIdle()
+
+        assertEquals(CreateWalletStep.Start, vm.uiState.value.step)
+        assertNull(vm.uiState.value.mnemonic)
+    }
+
     @Test
     fun `the whole arc reaches Ready and leaves a locked wallet behind`() = runTest {
         val store = FakeStore()

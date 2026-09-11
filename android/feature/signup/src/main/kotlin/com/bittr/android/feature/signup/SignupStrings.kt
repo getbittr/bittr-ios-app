@@ -23,6 +23,15 @@ internal object SignupStrings {
     const val CREATE_WALLET = "Create wallet"
     const val RESTORE_WALLET = "Restore wallet"
 
+    // Signup2 — the two things the user confirms before a seed exists.
+    const val CHECK_AND_CONFIRM =
+        "Check and confirm that you understand the following details."
+    const val CHECK_AND_CONFIRM_1 =
+        "With bitcoin, you are your own bank. No one else has access to your private keys."
+    const val CHECK_AND_CONFIRM_2 =
+        "If you lose access to this app and your backup, your bitcoin cannot be recovered."
+    const val I_UNDERSTAND = "I understand"
+
     // Signup3 — the phrase.
     const val RECOVERY_PHRASE =
         "This is your 12-word recovery phrase. It's crucial that you store it safely " +

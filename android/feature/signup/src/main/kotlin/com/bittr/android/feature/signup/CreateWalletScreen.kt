@@ -1,16 +1,13 @@
 package com.bittr.android.feature.signup
 
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.testTag
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.bittr.android.core.common.TestID
+import com.bittr.android.core.designsystem.BittrAlertDialog
 
 /**
  * The whole create-wallet arc, as one destination.
@@ -37,25 +34,25 @@ fun CreateWalletScreen(
     val state by viewModel.uiState.collectAsState()
 
     state.alert?.let { alert ->
-        AlertDialog(
-            onDismissRequest = viewModel::dismissAlert,
-            title = { Text(alert.title) },
-            text = { Text(alert.message) },
-            confirmButton = {
-                TextButton(
-                    onClick = viewModel::dismissAlert,
-                    modifier = Modifier.testTag(TestID.Alert.buttonAt(0)),
-                ) {
-                    Text(SignupStrings.OKAY)
-                }
-            },
+        BittrAlertDialog(
+            title = alert.title,
+            message = alert.message,
+            confirmLabel = SignupStrings.OKAY,
+            onConfirm = viewModel::dismissAlert,
+            confirmTestTag = TestID.Alert.buttonAt(0),
         )
     }
 
     when (state.step) {
         CreateWalletStep.Start -> SignupStartScreen(
-            onCreateWallet = viewModel::createWallet,
+            onCreateWallet = viewModel::startCreate,
             onRestoreWallet = onRestoreWallet,
+            modifier = modifier,
+        )
+
+        CreateWalletStep.Confirm -> ConfirmScreen(
+            onUnderstood = viewModel::createWallet,
+            onBack = viewModel::backToStart,
             busy = state.busy,
             modifier = modifier,
         )

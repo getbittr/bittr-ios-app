@@ -20,6 +20,15 @@ enum class CreateWalletStep {
     /** `Signup1ViewController` — create or restore. */
     Start,
 
+    /**
+     * `Signup2ViewController` — the two statements the user confirms.
+     *
+     * Before this step nothing irreversible has happened; after it a seed exists. It
+     * is the last point at which "if you lose your backup your bitcoin is gone" can
+     * be told to someone who has not yet been given anything to lose.
+     */
+    Confirm,
+
     /** `Signup3ViewController` — the twelve words. */
     Phrase,
 
@@ -70,6 +79,24 @@ class CreateWalletViewModel @Inject constructor(
     val uiState: StateFlow<CreateWalletUiState> = _uiState.asStateFlow()
 
     private var firstPin: String? = null
+
+    /**
+     * Leave Start for the consent step. Nothing is generated yet.
+     *
+     * The generation deliberately does *not* happen here and run in the background
+     * while the user reads: a seed that exists before consent is a seed that has to be
+     * thrown away if they back out, and "we made you a wallet while you were reading"
+     * is not what the screen says.
+     */
+    fun startCreate() {
+        if (_uiState.value.busy) return
+        _uiState.value = _uiState.value.copy(step = CreateWalletStep.Confirm)
+    }
+
+    /** Back out of the consent step. Nothing to clear — nothing has been made yet. */
+    fun backToStart() {
+        _uiState.value = _uiState.value.copy(step = CreateWalletStep.Start)
+    }
 
     /**
      * Generate and persist the phrase, then show it.

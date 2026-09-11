@@ -328,6 +328,83 @@ class TokenContrastTest {
     }
 
     // -----------------------------------------------------------------------
+    // The Android design canvas — `design/screens.jsx`, artboards 01–20
+    // -----------------------------------------------------------------------
+
+    private val schemes = listOf(
+        "light" to BittrLightColorsExtended,
+        "dark" to BittrDarkColorsExtended,
+    )
+
+    /** The card is translucent, so its effective background is the canvas beneath it. */
+    private fun card(colors: BittrColors): Color = composite(colors.cardWash, colors.canvas)
+
+    @Test
+    fun `canvas text clears AA on the canvas and on the card over it`() {
+        for ((name, c) in schemes) {
+            assertAtLeast(aa, c.onCanvas, c.canvas, "$name body copy on the canvas")
+            assertAtLeast(aa, c.onCanvas, card(c), "$name body copy on the card")
+            assertAtLeast(aa, c.mutedOnCanvas, c.canvas, "$name muted label on the canvas")
+            assertAtLeast(aa, c.mutedOnCanvas, card(c), "$name muted label on the card")
+        }
+    }
+
+    /**
+     * The two values the mock uses that this theme does not, kept as failing
+     * assertions so that "just use the mock's number" fails the build rather than
+     * shipping.
+     */
+    @Test
+    fun `the mock's muted label and its white headings are the values this theme rejects`() {
+        val mockCard = card(BittrLightColorsExtended)
+
+        // `MUTED` in screens.jsx — ink at 42 %.
+        assertTrue(
+            "ink at 42 % on the card is readable now? re-check before adopting it",
+            contrast(Color.Black.copy(alpha = 0.42f), mockCard) < aa,
+        )
+        // "welcome" and "your wallet", drawn white in the mock. This is DEV-47's
+        // `whiteoryellow` under another name — 16 call sites, founder sign-off, gone.
+        assertTrue(
+            "white on the brand card is still below the large-text floor",
+            contrast(Color.White, mockCard) < aaLarge,
+        )
+    }
+
+    @Test
+    fun `the primary pill is visible on the canvas and carries its own label`() {
+        for ((name, c) in schemes) {
+            assertAtLeast(aaLarge, c.actionFill, c.canvas, "$name pill against the canvas")
+            assertAtLeast(
+                aa,
+                c.onActionFill,
+                composite(c.actionFill, c.canvas),
+                "$name pill label",
+            )
+            // A disabled control is exempt from 1.4.3, but a label nobody can read is
+            // not a design — 3 : 1 is the floor this one is held to rather than 4.5.
+            assertAtLeast(
+                aaLarge,
+                c.onActionFill,
+                composite(c.actionFillDisabled, c.canvas),
+                "$name dimmed pill label",
+            )
+        }
+    }
+
+    /**
+     * The cream cell holds a dot and, on the tonal button, a bold-16 label — both
+     * large-text or non-text. Dark's white-on-blue3 is 4.44 : 1 and would miss AA for
+     * body copy, which is why nothing on this fill is body copy.
+     */
+    @Test
+    fun `the tonal fill shows what is on it at the large-text floor`() {
+        for ((name, c) in schemes) {
+            assertAtLeast(aaLarge, c.onTonalFill, c.tonalFill, "$name content on the tonal fill")
+        }
+    }
+
+    // -----------------------------------------------------------------------
     // Structural
     // -----------------------------------------------------------------------
 
