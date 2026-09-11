@@ -1,12 +1,14 @@
 # Map SDK decision (BIT-53)
 
 **Decision:** the Android map is built on **MapLibre Native**
-(`org.maplibre.gl:android-sdk:11.11.0`), rendering tiles served by **MapTiler**, with
+(`org.maplibre.gl:android-sdk:11.11.0`), rendering **tiles bittr serves itself**, with
 `ACCESS_COARSE_LOCATION` as the only location permission and the places sync kept on
 iOS's whole-dataset-download design.
 
-**Status:** decided and enforced in the build. The one part still open is commercial,
-not technical — see [What is not decided here](#what-is-not-decided-here).
+**Status:** both axes decided. The renderer is enforced in the build; the tile host was
+signed off by Ruben on 2026-09-11 and is the stronger of the two options that were on the
+table — see [Who serves the tiles](#who-serves-the-tiles). What remains is implementation,
+not choice.
 
 ---
 
@@ -136,7 +138,10 @@ That design is the reason bittr's surviving claim is stronger than "we don't sha
 device.** A bounding-box query is cheaper, renders identically and passes every flow, and
 would end that property silently — the first request after the map centres on the user
 *is* their approximate position. Do not switch to one. `MapSdkGuardTest` fails the build
-if a BTCMap request in this repo ever carries viewport keys.
+if a BTCMap request in this repo ever carries viewport keys — **but no Kotlin file matches
+its places-source markers yet, so that check passes vacuously until the map screen lands.**
+It is in place ahead of time so the commit that writes the first BTCMap request is already
+covered; it is not evidence that anything is being checked today.
 
 ## What the build enforces
 
@@ -145,32 +150,71 @@ if a BTCMap request in this repo ever carries viewport keys.
 | No precise-location permission in the merged manifest | `LocationPrecisionGuardTest` (source scan, manifest scan, removal directive, and the merged result read back through `PackageManager`) |
 | Coarse location **is** in the merged manifest | `MapSdkGuardTest` — an app requesting no location at all would pass the test above |
 | Google Maps / Mapbox / osmdroid / `play-services-location` off the dependency graph | `MapSdkGuardTest` |
-| MapLibre still *is* the renderer | `MapSdkGuardTest` — so replacing it is a deliberate act, since the shipped copy names the provider |
+| MapLibre still *is* the renderer | `MapSdkGuardTest` — so replacing it is a deliberate act, since a renderer with vendor telemetry would falsify the shipped copy |
 | No bounding-box BTCMap request | `MapSdkGuardTest` |
 
 All of these run on the JVM in `./gradlew test`, which is the `Unit tests` step of
 `.github/workflows/android-maestro.yml` — it runs on every push and pull request touching
 `android/**`. No emulator needed.
 
-## What is not decided here
+## Who serves the tiles
 
-**The tile host is a commercial decision and needs Ruben's sign-off**, so this section is
-a recommendation with the technical facts attached rather than a decision already taken.
+**bittr serves them.** Ruben's call on 2026-09-11, choosing the stronger option over the
+cheaper one that was recommended here.
 
-*Recommended for launch: MapTiler.* MapTiler AG is registered at Zugerstrasse 22, 6314
-Unterägeri, Zug, Switzerland (CHE-345.466.193). For a Swiss company, that keeps the one
-third party left in the path inside the same jurisdiction, with no adequacy-decision
-question about where viewport requests land — which is a materially easier sentence to
-write in the corrected copy than a US vendor would be.
+Three options were put up: MapTiler (recommended at the time, as the cheapest path that
+keeps the remaining third party Swiss), bittr hosting the tiles, or deferring until the
+map screen is built. The choice was the second.
 
-*Upgrade path, if the claim is ever worth more than the hosting bill:* MapLibre Native
-ships an `MBTilesFileSource` (confirmed present in the 11.11.0 native library), so a
-basemap can be served from a file on the device or from a host bittr controls, with **no
-third party in the path at all**. That is the only configuration in which the original
-sentence becomes literally true again. It is a real cost — basemap extract, storage,
-update cadence — and it is not needed to ship.
+### Why it matters more than a vendor line-item
 
-Nothing in the code names the tile vendor yet; the style URL will be a single
-configuration point when the map screen lands, so this choice is reversible in one place.
-The copy is not reversible in one place, which is why the Growth & Content Lead is told
-the provider name before the screen ships rather than after.
+Every renderer that fetches tiles tells the tile host which area the user is looking at,
+plus the client IP. That is unavoidable for an online map, so the only question was ever
+*who* learns it. With a vendor in the path, the corrected copy has to concede that a map
+provider sees the area you are looking at. With tiles bittr serves, **there is no third
+party in the path at all**, and the sentence the app already ships —
+
+> we don't share your location with third parties
+
+— is literally true on Android, the same way it is true on iOS. Both platforms end up in
+the same posture, which was the outcome worth paying for.
+
+**This lands on BIT-56, whose rewrite is already written.** That branch
+(`feature/bit-56-btcmap-location-copy`, `206dcd2`) replaces the paragraph with, in part:
+
+> The map itself is drawn by a map provider, which sees the area on your screen — and if
+> you allow location, that starts with the area around you.
+
+It names no vendor, which was the right call while the host was undecided. But it concedes
+a third party that this decision removes, so as written it now describes an architecture
+bittr is not shipping. Understating our privacy is the safe direction to be wrong in, and
+it is still wrong — and it gives away for free the exact property the hosting bill buys.
+The wording is the Growth & Content Lead's call, not mine; what BIT-53 owes them is the
+fact that the premise changed, which is why this is raised there rather than edited here.
+
+### What it costs, and what is now implementation rather than choice
+
+MapLibre Native ships an `MBTilesFileSource` (confirmed present in the 11.11.0 native
+library), so a basemap can come from a file on the device or from a host bittr controls.
+The renderer already supports this; nothing about the SDK decision changes. The real work
+is the hosting pipeline, and it is not free:
+
+| Piece | Why it is not trivial |
+|---|---|
+| Basemap extract | An OSM-derived vector basemap for the regions bittr serves, not the whole planet, or the artefact is hundreds of GB |
+| Storage and serving | PMTiles on a CDN, or MBTiles shipped in-app for a fixed region — different tradeoffs in size and freshness |
+| Update cadence | A stale basemap is a visibly wrong map; this needs an owner and a schedule, not a one-off build |
+| Attribution | OSM's licence requires credit regardless of who serves the tiles |
+
+None of this blocks the SDK work, and none of it is needed before the map screen is laid
+out. It does need to land before the map ships, which is why it is tracked as its own
+issue rather than left in this document as a footnote.
+
+### Still reversible, but the default has moved
+
+No source file names a tile vendor — verified across `android/` at the time of this
+decision, and the style URL stays a single configuration point when the map screen lands.
+So this remains reversible in one place *in the code*. The copy is the part that is not
+cheaply reversible: if tile hosting is ever abandoned for a vendor, the shipped sentence
+stops being true and has to change on **both** platforms, which is a Growth & Content Lead
+decision and not an infrastructure one.
