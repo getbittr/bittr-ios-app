@@ -219,9 +219,18 @@ def main():
     )
     args = ap.parse_args()
 
-    if args.run:
-        runs = [get(f"/repos/{REPO}/actions/runs/{args.run}")]
-    elif args.wait:
+    # --run names the run to fetch; --wait says whether to wait for it. They
+    # compose, and the first version of this silently ignored --wait whenever
+    # --run was given, which looked exactly like a run that had already finished.
+    fetch = (
+        (lambda: get(f"/repos/{REPO}/actions/runs/{args.run}"))
+        if args.run
+        else (lambda: latest(args.branch)[0])
+    )
+
+    if not args.wait:
+        runs = [fetch()] if args.run else latest(args.branch)[: args.last]
+    else:
         # An emulator boot plus six mutations is minutes, not seconds, so a long
         # interval costs nothing in latency. What it buys is the budget.
         #
@@ -249,7 +258,7 @@ def main():
                 time.sleep(pause)
                 continue
 
-            runs = latest(args.branch)[:1]
+            runs = [fetch()]
             if runs[0]["status"] == "completed":
                 break
             if time.monotonic() >= deadline:
@@ -266,8 +275,6 @@ def main():
                 file=sys.stderr,
             )
             time.sleep(args.interval)
-    else:
-        runs = latest(args.branch)[: args.last]
 
     for i, run in enumerate(runs):
         if i:
