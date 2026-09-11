@@ -236,7 +236,7 @@ class ValueViewController: UIViewController {
                 if let cached = self.homeVC?.currentValue, let fetchedAt = self.homeVC?.currentValueFetched, fetchedAt > freshCutoff {
                     data = cached
                 } else {
-                    let envUrl = URL(string: "https://getbittr.com/api/price/btc")!
+                    let envUrl = URL(string: "\(EnvironmentConfig.bittrAPIBaseURL)/price/btc")!
                     (data, _) = try await URLSession.shared.data(from: envUrl)
 
                     self.homeVC?.currentValue = data

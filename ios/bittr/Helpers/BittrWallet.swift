@@ -42,7 +42,7 @@ class BittrWallet: NSObject {
         if CacheStore.value(for: CacheKeys.currency) == "CHF" {
             bitcoinValue.currentValue = self.valueInCHF ?? 0.0
             bitcoinValue.chosenCurrency = "CHF"
-            bitcoinValue.apiUrl = "https://getbittr.com/api/price/btc/historical/chf"
+            bitcoinValue.apiUrl = "\(EnvironmentConfig.bittrAPIBaseURL)/price/btc/historical/chf"
         }
         
         return bitcoinValue
