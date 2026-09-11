@@ -226,10 +226,17 @@ fi
 cat <<EOF
 
 ${BOLD}Expected floor${RESET}
-  11 missing — everything captured (7 EvilBoltz/smoke exclusions +
-               4 benign conditional-branch misses)
-  12 missing — same, but S-27 did not land
+  12 missing — everything captured (7 EvilBoltz/smoke exclusions +
+               5 benign conditional-branch misses)
+  13 missing — same, but S-27 did not land
   Anything higher means a pass above did not capture what it should have.
+
+  The 7 excluded: evil_boltz_wrong_address x2, evil_fund_onchain x2,
+  evil_boltz_wrong_invoice, evil_bootstrap, smoke/01_initial.
+  The 5 benign: buy_signup_no_notifications/05_notifications_prompt,
+  send_onchain/05_success, send_onchain_all/05_success,
+  settings/12_peer_disconnected, fresh_install_unhappy/06_screenshot_warning
+  (+ receive_onchain/00_sync_status when S-27 does not land).
 
 Regenerate the BIT-3 reference set on top once this reads clean:
   python3 ${MAP} --repo . --out-dir shared/docs
