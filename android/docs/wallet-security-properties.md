@@ -37,10 +37,10 @@ written.
 |---|---|---|---|---|
 | 1 | The mnemonic is the single root of recovery | Nothing persisted that is not BIP32-derivable from the seed. Swap refund keys stay at `m/503'/0'/0'/0/<i>` | `SwapRefundKeyDerivationTest` | green |
 | 2 | The Keystore key is non-auth-bound | `KeyGenParameterSpec` with neither `setUserAuthenticationRequired(true)` nor `setUnlockedDeviceRequired(true)`; AES-256/GCM; `setRandomizedEncryptionRequired(true)` | `KeystoreKeySpecTest` (asked for) · `WalletKeystorePolicyGuardTest` (stays that way) | green |
-| 2 | …and what the device actually produced | `KeyInfo` read back off a generated key | `KeystoreKeyInfoTest` | written — no device in CI |
+| 2 | …and what the device actually produced | `KeyInfo` read back off a generated key | `KeystoreKeyInfoTest` | runs in CI — BIT-59, `wallet-instrumented` job, API 34 emulator |
 | 2 | …and it survives a lock-screen change | — | **BIT-18 / K1**, device matrix | separate issue |
 | 3 | The wrapped blob is a cache, never the only copy | Blob loss routes to the restore screen; terminal failures classify as "no usable mnemonic" | `BlobDestroyedRecoversTest` | green |
-| 4 | The blob is excluded from Auto Backup | `allowBackup="false"` + `dataExtractionRules` + siting under `getNoBackupFilesDir()` | `BackupExclusionRulesTest` + `StateDirLocationTest` (configuration) · `BackupExclusionTest` (behaviour) | configuration green; **behaviour pending — see §4** |
+| 4 | The blob is excluded from Auto Backup | `allowBackup="false"` + `dataExtractionRules` + siting under `getNoBackupFilesDir()` | `BackupExclusionRulesTest` + `StateDirLocationTest` (configuration, JVM) · `BackupExclusionTest` (installed app + `bmgr`, emulator) | configuration green; **cloud-backup path runs in CI (BIT-59); device-transfer path still not provable — see §4** |
 | 5 | No PIN-derived wrapping | PIN stays a salted-SHA-256 verifier; the unwrap path takes no PIN argument | `WalletKeystorePolicyGuardTest` (bans `PBEKeySpec`/PBKDF2) · `BlobWriteVerifiedTest` (unwrap signature takes no PIN) | green |
 
 ### BIT-20 — the LDK state quarantine guard
@@ -120,8 +120,32 @@ configuration: `allowBackup="false"`, `dataExtractionRules` wired up, both
 path resolves under `no_backup`.
 
 None of that proves a backup set produced by a real device contains none of it.
-That is `BackupExclusionTest`, it drives `bmgr` and a device-transfer, and CI
-has no `connectedAndroidTest` step yet.
+That is `BackupExclusionTest`.
+
+**BIT-59 changed what this section says, but not all of it.** There is now a
+`wallet-instrumented` job (API 34 emulator, `android/scripts/ci-wallet-instrumented.sh`)
+that runs `BackupExclusionTest` and `KeystoreKeyInfoTest` on every push. What it
+closed and what it did not:
+
+| Path | Status after BIT-59 |
+|---|---|
+| Cloud backup | **Driven.** `bmgr` is enabled, the local transport selected, and `bmgr backupnow` run against the installed package; the test asserts no backup set is produced for it. |
+| The installed artefact, as opposed to the source tree | **Driven.** The test reads `FLAG_ALLOW_BACKUP` off the installed package, and the `dataExtractionRules` attribute and the compiled rules out of the installed APK — so a manifest merge that re-added backup, or an `<include>` that survived into the APK, now fails on the device rather than passing on the JVM. |
+| Device-to-device transfer (API 31+) | **Still not proven, and not provable this way.** `bmgr` has no D2D mode: that path runs through `BackupTransport.FLAG_DEVICE_TO_DEVICE_TRANSFER`, which the shell tool does not expose and an instrumented test cannot set. No test on an emulator can produce a real D2D transfer set and read it back. |
+
+That last row is why this section still exists. It is also the row that matters
+most, because `allowBackup="false"` is **not** documented to suppress D2D on API
+31+ — which is exactly why `data_extraction_rules.xml` configures
+`<device-transfer>` separately, and exactly the claim this document said it would
+not assert from memory. `BackupExclusionTest.theDeviceTransferPathIsRecordedBecauseItCannotBeDriven`
+prints a `BACKUP_EXCLUSION_D2D … verdict=NOT_EMPIRICALLY_PROVEN` line on every
+run so a green job cannot be read as having closed it, and
+`check-wallet-instrumented-results.py` repeats the gap in its own output for the
+same reason.
+
+Closing that row needs something an emulator cannot give: a real two-device
+transfer, or a host-side harness that can drive a transport with the D2D flag
+set. That is hardware/infrastructure work, not workflow work.
 
 This matters more than a normal missing test, because BIT-20 rule 5 makes it a
 **precondition** of the `match → keep` guard rather than a follow-up. A
@@ -139,9 +163,15 @@ the empirical result attached, and the guard reverts to iOS behaviour
 (quarantine on anything but a live mnemonic) until it is re-decided.
 
 Until `BackupExclusionTest` is green on both paths, `match → keep` is shipping
-on a proven *configuration* and an unproven *behaviour*. That is the honest
+on a proven *configuration* and a *half-proven* behaviour. That is the honest
 status, and it is why the test is tracked as a blocker on this issue rather
 than as a nice-to-have.
+
+BIT-59 moved the cloud-backup half from unproven to measured and left the
+device-transfer half where it was. Whether a half-proven behaviour is enough to
+release the `match → keep` guard is BIT-20's call, not this document's — the
+stop condition above is written so that call does not have to be made from
+memory either.
 
 ---
 
