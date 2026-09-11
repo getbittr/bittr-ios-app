@@ -42,6 +42,19 @@ class BiometricApiGuardTest {
             "AuthModule.kt",
             "BiometricApiGuardTest.kt",
             "BiometricUnlockFlagTest.kt",
+            // A third guard test that quotes the API name in prose, exactly as
+            // the two above do: WalletKeystorePolicyGuardTest bans
+            // setUserAuthenticationRequired(true) on the seed key, and its
+            // failure message explains that an auth-bound key "conflicts with
+            // BiometricPrompt unlock (BIT-13)". It contains no call — the whole
+            // file is a source scanner.
+            //
+            // Added by BIT-59, which is the first run of this repo's JVM tests
+            // with :core:wallet-ldk present. Two guards that each work by naming
+            // a banned symbol will always collide this way; the routing rule in
+            // this class's header is what says the resolution is the allowlist
+            // and not a reworded assertion.
+            "WalletKeystorePolicyGuardTest.kt",
         )
     }
 
