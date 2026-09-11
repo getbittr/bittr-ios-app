@@ -280,9 +280,23 @@ reset_to_none() {
   wake
   has_no_credential && return 0
   for old in "$PIN_A" "$PIN_B" "$PASSWORD" "$PATTERN"; do
-    sh_ locksettings clear --old "$old" >/dev/null 2>&1 || true
-    has_no_credential && return 0
+    # Re-probe only after a clear that claimed success.
+    #
+    # Both a wrong `clear --old` and a `device_has_credential` probe against a
+    # device that still has one are failed credential attempts, and Android locks
+    # the credential out for 30s after five in a row. Probing on every iteration
+    # made this loop cost up to nine, which is past that line — and a lockout
+    # here would surface as "could not clear the lock screen" on a device that
+    # was merely being asked too fast. Cheap on an emulator that gets deleted
+    # afterwards; not cheap on the Samsung and Xiaomi handsets, which are the
+    # rows K1 actually exists for.
+    if sh_status "locksettings clear --old '$old'" >/dev/null 2>&1; then
+      has_no_credential && return 0
+    fi
   done
+  # One last look before giving up, in case a clear removed the credential while
+  # reporting failure. Costs a probe only on the path that is already failing.
+  has_no_credential && return 0
   echo "k1: could not clear the lock screen on $DEVICE_LABEL." >&2
   echo "    Credentials tried: $PIN_A $PIN_B $PASSWORD $PATTERN (pattern as digits)." >&2
   return 1
