@@ -116,10 +116,14 @@ fun PinScreen(
                 arrow = false,
                 modifier = Modifier.testTag(TestID.Pin.confirmButton),
             )
+            // Without a back button the confirm pill would otherwise sit on the
+            // screen's bottom edge — `navigationBarsPadding` is zero on a
+            // three-button device and on the render harness, so the gap has to be
+            // real rather than borrowed from the inset.
             if (onBack != null) {
                 BittrTextButton(text = backLabel, onClick = onBack)
             } else {
-                CanvasSpacer(12.dp)
+                CanvasSpacer(20.dp)
             }
         }
     }
