@@ -26,7 +26,12 @@ The `mapvcpoweredbyalert` claim depends on a specific engineering property: the 
 
 The string deliberately says **"whoever serves them"** rather than naming a tile host, and it deliberately scopes the strong claim to the *places lookup* rather than to the app as a whole. Both are load-bearing:
 
-- iOS renders with MapKit (`MKMapView`, `ios/bittr/Map/MapViewController.swift:18`), so Apple's tile servers see the viewport today. Android is decided for MapLibre on tiles bittr serves (BIT-53, `android/docs/map-sdk-decision.md`), which has no third party at all. One sentence has to be true in both worlds, so it names neither.
-- Self-hosting does not remove the viewport disclosure; it moves it inside bittr. An unscoped "bittr does not receive your location" would therefore become *harder* to defend once bittr serves the tiles, not easier — which is why the claim is attached to the places lookup, where it is unconditionally true.
+- iOS renders with MapKit (`MKMapView`, `ios/bittr/Map/MapViewController.swift:18`, with no `MKTileOverlay` or other tile override anywhere in `ios/`), so Apple's tile servers see the viewport today. Android is decided for MapLibre on tiles bittr serves (BIT-53, `android/docs/map-sdk-decision.md` at [`57d418a`](https://github.com/getbittr/bittr-ios-app/commit/57d418a) — that path is on the BIT-53 branch and only resolves here once both merge), which has no third party at all. One sentence has to be true in both worlds, so it names neither.
+- The strong claim is attached to the places lookup because that is where it is unconditionally true, on every platform and in every tile configuration: `getBitcoinMapURL` carries no coordinate, it is the only BTCMap URL in the repo, and CoreLocation is confined to `ios/bittr/Map/` — no code path sends a fix to bittr's backend at all.
 
-Tightening this to name bittr as the tile host is only available once the pipeline on BIT-73 actually ships, and must not land before it.
+**What pins the tile paragraph is iOS being MapKit, not an argument that self-hosting always discloses.** That distinction matters, because the second claim is false for half of BIT-73's option space and would wrongly read as "no upgrade is ever possible":
+
+- Tiles from a host bittr controls (PMTiles on a CDN) — viewport plus IP on every pan, so the disclosure moves inside bittr rather than disappearing.
+- A basemap shipped in-app (`MBTilesFileSource` over a fixed-region MBTiles) — no tile request leaves the device, so bittr genuinely does not learn the area.
+
+BIT-53 names both as live options for BIT-73 and has not chosen between them. So the upgrade trigger is **both platforms off third-party tile servers with an on-device basemap**, at which point the tile paragraph can be deleted rather than softened. Until then it stays, because for as long as iOS renders with MapKit the shared string has to concede a recipient whatever Android does. Naming bittr as the tile host is separately gated on the BIT-73 pipeline actually shipping, and must not land before it.
