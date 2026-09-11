@@ -1,0 +1,63 @@
+{
+  "_comment": [
+    "Every capability the listing claims, bound to the parity rows that have to",
+    "read `done` in the Android column of shared/docs/parity.md before that claim",
+    "may be published. Read by check_fidelity.py.",
+    "",
+    "This file exists because of the first of the two reasons Compliance blocked",
+    "the original listing copy, and it is the reason that needed no legal reading",
+    "at all: a first-release listing whose headline feature is absent from the APK",
+    "is a misrepresentation in the store. That was true of `Buy bitcoin` in the",
+    "first draft. It is equally true of on-chain send, Lightning, the recovery",
+    "phrase walkthrough and the Academy in the replacement draft — none of which",
+    "exist in the Android build today either. The rule is the same rule; it just",
+    "has to be applied to every claim rather than to the one that was noticed.",
+    "",
+    "`feature` matches column 1 of a parity.md row exactly."
+  ],
+
+  "claims": [
+    {
+      "id": "non-custodial",
+      "quote": "The wallet is non-custodial ... bittr never takes custody of it",
+      "requires": [],
+      "note": "True by construction, not by feature: the seed is generated on device and held in the platform keystore, and Bittr is not a counterparty to the wallet (perimeter P9). Nothing to gate — recorded here so the set of claims is complete rather than only the gated ones."
+    },
+    {
+      "id": "recovery-phrase-walkthrough",
+      "quote": "the app walks you through writing down your recovery phrase before you put anything into it",
+      "requires": ["Create wallet (onboarding subflow)"],
+      "note": "Phase 4 stage 2. Today the Android build reaches SignupStartScreen and its two buttons are backed by StubWalletService — there is no mnemonic screen to walk anyone through."
+    },
+    {
+      "id": "onchain-send-receive",
+      "quote": "Send and receive on the Bitcoin network",
+      "requires": ["Send onchain", "Receive onchain → Send round-trip"],
+      "note": "Phase 4 stage 3 and 6."
+    },
+    {
+      "id": "lightning-send-receive",
+      "quote": "or over Lightning for payments that settle in seconds",
+      "requires": ["Send lightning", "Receive invoice → Send round-trip"],
+      "note": "Phase 4 stage 4 and 6."
+    },
+    {
+      "id": "lightning-auto-connection",
+      "quote": "Smaller amounts can open a Lightning connection for you automatically, so you can send and receive instantly without setting one up yourself",
+      "requires": ["Buy — first incoming bank transaction"],
+      "note": "READ THIS ONE BEFORE EDITING IT. The dependency is not a mistake. In the shipped app the only route to a Lightning connection is a bittr purchase: BitcoinManager.connectOpenChannel has exactly one call site and it is commented out (DeviceViewController.swift:197), so the app never opens a channel itself — bittr's node opens one against a purchase, and the app's own copy says so three times (Language.swift lightningexplanation1, questionvc13, closedlightningchannel2), sizing it at ten times the first purchase (theresalimit). Swaps move funds into an existing connection; they do not create one. So this claim is delivered by the service, not by the wallet, and it cannot be true of a build that has no buy flow. Raised with Compliance on BIT-51 — if they replace the sentence, delete this entry with it."
+    },
+    {
+      "id": "academy",
+      "quote": "The built-in Academy explains custody, recovery phrases, addresses, Lightning ...",
+      "requires": ["Academy"],
+      "note": "Phase 4 stage 10 — later in the plan than Buy at stage 8."
+    },
+    {
+      "id": "swiss-company",
+      "quote": "bittr is made by Bittr AG, a company registered in Ibach, Schwyz, Switzerland",
+      "requires": [],
+      "note": "A fact about the company, not a feature of the binary. Verified against the site footer (perimeter E1)."
+    }
+  ]
+}
