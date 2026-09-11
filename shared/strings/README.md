@@ -20,6 +20,13 @@ Some strings are not marketing copy — they are statements about what the app d
 
 | Key | Reviewed under | Represents |
 |---|---|---|
-| `mapvcpoweredbyalert` | BIT-56 (from BIT-45) | That neither bittr nor BTCMap.org receives the user's location, and that the map provider sees the on-screen area |
+| `mapvcpoweredbyalert` | BIT-56 (from BIT-45) | That the places lookup sends the user's location nowhere, and that whoever serves the map tiles sees the on-screen area |
 
 The `mapvcpoweredbyalert` claim depends on a specific engineering property: the client downloads the **whole** BTCMap dataset and filters by proximity on-device (`getBitcoinMapURL` sends no lat/lon or bbox). If the Android port ever fetches places by bounding box — cheaper, and the obvious thing to reach for — the claim becomes false on Android. Treat the whole-dataset sync as load-bearing, not as an implementation detail.
+
+The string deliberately says **"whoever serves them"** rather than naming a tile host, and it deliberately scopes the strong claim to the *places lookup* rather than to the app as a whole. Both are load-bearing:
+
+- iOS renders with MapKit (`MKMapView`, `ios/bittr/Map/MapViewController.swift:18`), so Apple's tile servers see the viewport today. Android is decided for MapLibre on tiles bittr serves (BIT-53, `android/docs/map-sdk-decision.md`), which has no third party at all. One sentence has to be true in both worlds, so it names neither.
+- Self-hosting does not remove the viewport disclosure; it moves it inside bittr. An unscoped "bittr does not receive your location" would therefore become *harder* to defend once bittr serves the tiles, not easier — which is why the claim is attached to the places lookup, where it is unconditionally true.
+
+Tightening this to name bittr as the tile host is only available once the pipeline on BIT-73 actually ships, and must not land before it.
