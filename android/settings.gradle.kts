@@ -37,6 +37,13 @@ include(":app")
 include(":core:common")
 include(":core:designsystem")
 
+// The LNURL decision layer (BIT-33). Pure Kotlin and deliberately so: everything
+// in it decides whether a Lightning flow may proceed, and with no Android SDK on
+// its classpath it cannot reach a WebView, an HTTP client or a dialog. It is
+// shared by Send and by the in-app browser, which is exactly the sharing that
+// makes LnurlSource necessary — see the class comment there.
+include(":core:lnurl")
+
 // The wallet seam. :core:wallet is API-only (pure Kotlin interfaces + models).
 // :core:wallet-stub is the deterministic implementation the scaffold and CI run
 // against. BIT-6 adds :core:wallet-ldk (ldk-node + BDK) as a second binding of
@@ -46,3 +53,9 @@ include(":core:wallet-stub")
 
 // Features — one module per area of the iOS app, added as the port reaches them.
 include(":feature:signup")
+
+// S-36 · Website — the in-app browser (BIT-33 / DEV-56). One chrome for all five
+// iOS call sites, including the one handed an arbitrary URL from BTCMap place
+// data. No LNURL bridge is attached on any origin; androidx.webkit is not a
+// dependency of it, so the bridge API is not on the classpath at all.
+include(":feature:website")

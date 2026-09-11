@@ -144,7 +144,9 @@ dependencies {
     // The only place the wallet implementation is named. BIT-6 swaps this line
     // (and the binding in di/WalletModule.kt) for :core:wallet-ldk.
     implementation(project(":core:wallet-stub"))
+    implementation(project(":core:lnurl"))
     implementation(project(":feature:signup"))
+    implementation(project(":feature:website"))
 
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)

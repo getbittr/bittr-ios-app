@@ -1,0 +1,14 @@
+<resources>
+    <!--
+      Content descriptions for S-36's two icon buttons. Both icons are glyph-only,
+      so without these the screen has two unlabelled controls to a screen reader —
+      and one of them is the only way off the screen.
+
+      String resources rather than literals in the composable (which is what
+      :feature:signup does for its visible copy) because these are accessibility
+      text: they need to be translatable, and shared/strings/ is where the port's
+      copy lands. Reviewed against that set when S-36's visible copy is ported.
+    -->
+    <string name="website_close">Close</string>
+    <string name="website_open_externally">Open in browser</string>
+</resources>
