@@ -288,8 +288,9 @@ mutation could not be driven on this device, with the reason recorded
 | [#1](https://github.com/getbittr/bittr-ios-app/actions/runs/34586609943) | `k1-run/pilot` | `393d229` | API 34, `aosp_atd`, `x86_64` | red — cause not readable |
 | [#2](https://github.com/getbittr/bittr-ios-app/actions/runs/34588466744) | `k1-run/pilot` | `22cc4da` | API 34, `aosp_atd`, `x86_64` | red — **all five rows `ERROR` at `seal`** |
 | [#3](https://github.com/getbittr/bittr-ios-app/actions/runs/34589128911) | `k1-run/pilot` | `81ba801` | API 34, `aosp_atd`, `x86_64` | red — `ERROR` at `seal`, **two causes named** |
+| [#4](https://github.com/getbittr/bittr-ios-app/actions/runs/34592863770) | `k1-run/pilot` | `2e3adf6` | API 34, `default`, `x86_64` | red — **first successful seals**; `ERROR` at `mutate` |
 
-None of the three is a row, and none may be read as one.
+None of the four is a row, and none may be read as one.
 
 **Run #1** established one thing and hid the rest. The emulator booted on an
 ordinary GitHub-hosted `ubuntu-latest` runner, the probe built, and the matrix ran
@@ -382,6 +383,52 @@ not be taken on a stripped image.
 Both causes were readable only because the table travels as an annotation. Run #3
 cost one emulator boot and returned two named defects; runs #1 and #2 cost the
 same and returned `failed with exit code 1`.
+
+**Run #4** is the first run where the probe did real work. Both of run #3's causes
+are gone: M2–M5 **sealed successfully** — a non-auth-bound key generated, rule 2
+checked, the known blob encrypted and round-tripped — and reached the mutation
+phase. The `default` image also cleared the lock-screen preflight, so it sets,
+verifies and clears a credential where `aosp_atd` did not.
+
+```
+### unknown/Android SDK built for x86_64 (API 34)
+Android/sdk_phone64_x86_64/emu64x:14/UE1A.230829.036.A1/11228894:userdebug/test-keys
+
+| M1 | ERROR | seal   | - |   requires isDeviceSecure=false, device reports true
+| M2 | ERROR | mutate | - |   the OLD credential still verifies after the mutation
+| M3 | ERROR | mutate | - |   (same)
+| M4 | ERROR | mutate | - |   (same)
+| M5 | ERROR | mutate | - |   (same)
+```
+
+Still no row, and still no verdict on rule 2 — the mutations are where the
+evidence is, and none of them was witnessed.
+
+The two symptoms look opposite (M1: secure when it should not be; M2–M5: the old
+credential outliving a change) and have **one root**, in the driver's own
+witness:
+
+> `locksettings verify --old X` succeeds for **every** X when no credential is
+> set. With nothing to check against, the shell command has nothing to reject.
+
+So `credential_is "$PIN_A"` was two claims at once — *"the credential is 1234"*
+and *"there is no credential at all"* — and K1 could not tell which it had
+observed. "The OLD credential still verifies" is exactly what a device with **no**
+credential reports. Two opposite device states, one observation, and it sits on
+the witness that carries M2/M3/M4, where a false *green* would have been the
+serious version of this: *"the key survived a PIN change"*, reported from a
+device that never had a PIN.
+
+Fixed with a credential no case ever sets. A deliberately wrong value can only
+verify on a device that has none, which makes `device_has_credential` a single
+unambiguous probe; `credential_is` now requires it before the positive check.
+It costs one failed credential attempt when a credential is set and Android
+throttles after five, so it is called at decision points rather than in loops.
+
+The fake device in `test-k1-driver.sh` was modelling the convenient semantics
+rather than the real ones, which is why 159 device-free checks stayed green
+through this. It now models the real behaviour, and a driver that cannot separate
+those two states no longer passes the suite.
 
 **`not reachable` is a finding, not a gap.** BIT-18 says "where reachable" of
 mutation 5, and M6 is expected to be unreachable on physical devices: a device

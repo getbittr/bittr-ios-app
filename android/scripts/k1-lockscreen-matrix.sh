@@ -145,11 +145,20 @@ sh_() { a shell "$@"; }
 # `adb shell` reports the *shell's* exit status only when asked, and on some
 # images swallows it entirely. Everything that needs a real status goes through
 # here: echo a sentinel and read it back, which works on every API in the matrix.
+# Substring tests here are bash's own rather than `printf | grep -q`. Under the
+# `set -o pipefail` at the top of this file, that pipeline reports the pipe's
+# status too, and `grep -q` exits on first match — so a long enough $out leaves
+# printf writing into a closed pipe and a SIGPIPE turns a match into a reported
+# non-match. In sh_status that would mean an adb command that succeeded being
+# reported as failed, which is the sentinel's whole job. `case` cannot do that,
+# and costs no processes.
+contains() { case "$1" in *"$2"*) return 0 ;; *) return 1 ;; esac; }
+
 sh_status() {
   local out
   out=$(a shell "$* ; echo __k1_rc=\$?" 2>&1 | tr -d '\r')
   printf '%s\n' "$out" | sed '/__k1_rc=/d'
-  printf '%s' "$out" | grep -q '__k1_rc=0'
+  contains "$out" '__k1_rc=0'
 }
 
 device_count=$(adb devices | grep -cE '[[:space:]]device$' || true)
@@ -214,22 +223,54 @@ wake() {
   sh_ wm dismiss-keyguard >/dev/null 2>&1 || true
 }
 
+# A credential no case ever sets, used to ask one unambiguous question.
+#
+# `locksettings verify --old X` succeeds for EVERY X when no credential is set —
+# there is nothing to check against, so the shell command has nothing to reject.
+# That makes a bare `verify --old "$PIN_A"` two claims at once, "the credential
+# is $PIN_A" and "there is no credential", and K1 spent run #4 unable to tell
+# them apart: M2-M5 reported "the OLD credential still verifies after the
+# mutation" (which is also what a device with NO credential looks like) while M1
+# reported the device secure when the driver believed it had cleared it. Two
+# opposite device states, one observation.
+#
+# A deliberately wrong credential separates them, because it can only verify on a
+# device that has none.
+JUNK_CRED="90197"
+
+# True when the device has SOME lock-screen credential. The one primitive the
+# other two are built on.
+#
+# Fails closed: an unreadable or unrecognised answer leaves this true ("still
+# secure"), so reset_to_none keeps trying rather than reporting a clear that
+# never happened.
+#
+# Costs one failed credential attempt when a credential IS set, and Android
+# throttles after five in a row (30s lockout), so this is called at decision
+# points rather than in loops. A successful verify resets that counter, which is
+# why credential_is asks this one first and the positive check second.
+device_has_credential() {
+  ! sh_status "locksettings verify --old '$JUNK_CRED'" >/dev/null 2>&1
+}
+
 # True when $1 is the device's current credential. This is the witness that
 # carries M2/M3/M4 — see WHAT COUNTS AS A RESULT above.
+#
+# Both halves are required. Without the first, this returns true on a device
+# with no lock screen at all, which is the false green K1 is least able to
+# afford: "the key survived a PIN change" reported from a device that never had
+# a PIN.
 credential_is() {
+  device_has_credential || return 1
   sh_status "locksettings verify --old '$1'" >/dev/null 2>&1
 }
 
 # True when the device has no lock-screen credential at all.
 #
-# `locksettings verify` with no --old verifies the *empty* credential, which
-# succeeds exactly when nothing is set. Deliberately the same tool the mutations
-# use, rather than grepping `dumpsys trust` for a field name that is not stable
-# across API 26-35 — and the failure direction matters here: an unreadable or
-# unrecognised answer comes back false ("still secure"), so reset_to_none keeps
-# trying instead of reporting a clear that never happened.
+# Deliberately the same tool the mutations use, rather than grepping `dumpsys
+# trust` for a field name that is not stable across API 26-35.
 has_no_credential() {
-  sh_status "locksettings verify" >/dev/null 2>&1
+  ! device_has_credential
 }
 
 # Put the device in the state a case says it must start from, from whatever
@@ -451,7 +492,7 @@ a uninstall "$TEST_PKG" >/dev/null 2>&1 || true
 # instrumentation and six identical ERROR rows saying "seal phase failed", which
 # describes the symptom three steps downstream of the cause.
 install_out=$(a install -t "$apk" 2>&1) || true
-if ! printf '%s' "$install_out" | grep -q 'Success'; then
+if ! contains "$install_out" 'Success'; then
   echo "k1: installing $apk failed." >&2
   printf '%s\n' "$install_out" | sed 's/^/    /' >&2
   exit 1
@@ -536,19 +577,28 @@ for case_id in "${cases[@]}"; do
     echo "k1: seal phase failed for $case_id"
     sed -n '1,40p' "$seal_out"
     note=""
-    # The one seal failure that is a finding about the image rather than a bug in
-    # the harness: the host set a credential and verified it through
-    # LockSettingsService, and KeyguardManager in the app process disagrees that
-    # the device is secure. Those two read the same credential, so a divergence
-    # means this image cannot hold a lock screen the platform will admit to —
-    # which no amount of driver work fixes, and which makes every row it could
-    # produce meaningless. Named here so the table says so instead of implying
-    # the seal phase is broken.
-    if [ "$case_id" != "M1" ] && grep -q 'requires isDeviceSecure=true' "$seal_out"; then
-      note=" — NOTE: the host verified '$PIN_A' through locksettings immediately before this,"
-      note="$note so LockSettingsService and KeyguardManager disagree about whether this device"
-      note="$note is secure. Suspect the emulator system image (see the image step in"
-      note="$note .github/workflows/k1-keystore-lockscreen.yml), not the driver."
+    # The one seal failure that is a finding about the device rather than a bug
+    # in the harness: the driver established the start state and verified it
+    # through LockSettingsService, and KeyguardManager in the app process
+    # disagrees. Those two read the same credential, so a divergence is the
+    # platform contradicting itself — and it matters in BOTH directions. Run #4
+    # hit the M1 one (host cleared the credential, device still reported secure)
+    # having been built expecting only the M2-M5 one.
+    #
+    # Recorded with what the host actually observed, because "the driver did not
+    # reach the start state" is the probe's reading and the row needs the other
+    # side of the disagreement to be worth anything.
+    if grep -q 'did not reach the start state' "$seal_out"; then
+      if [ "$case_id" = "M1" ]; then
+        note=" — NOTE: the host observed NO credential here (a deliberately wrong one verified,"
+        note="$note which only happens on a device with none), yet the device reports itself secure."
+      else
+        note=" — NOTE: the host verified '$PIN_A' here and confirmed a wrong credential is"
+        note="$note rejected, yet the device reports itself insecure."
+      fi
+      note="$note LockSettingsService and KeyguardManager disagree on this image; suspect it"
+      note="$note (see the image step in .github/workflows/k1-keystore-lockscreen.yml)"
+      note="$note before the driver."
     fi
     record "$case_id" "ERROR" "seal" "-" "seal phase failed; no verdict on rule 2 — $(failure_excerpt "$seal_out")$note"
     overall=1
@@ -694,7 +744,7 @@ for case_id in "${cases[@]}"; do
   echo "k1:   open  $open_line"
 
   # A green exit with no verdict line is a harness failure, not a pass.
-  if ! printf '%s' "$open_line" | grep -q 'verdict=PASS'; then
+  if ! contains "$open_line" 'verdict=PASS'; then
     record "$case_id" "ERROR" "$witness" "-" \
       "the open phase exited clean but emitted no verdict line; the run has no result"
     overall=1

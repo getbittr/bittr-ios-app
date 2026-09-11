@@ -289,10 +289,22 @@ case "${1:-}" in
     shift 2 || true
     case "$sub" in
       verify)
-        if [ "${1:-}" = "--old" ]; then
+        # The real semantics, which are not the obvious ones and which cost K1 a
+        # whole run: with NO credential set there is nothing to check against, so
+        # `locksettings verify --old <anything>` succeeds. `verify --old X` is
+        # therefore not the question "is the credential X" — on a bare device it
+        # answers yes for every X.
+        #
+        # Modelling this faithfully is what makes the driver's junk-credential
+        # probe testable. The earlier version answered the convenient question
+        # instead, so a driver that could not distinguish "the PIN is 1234" from
+        # "there is no PIN" passed this suite.
+        if [ -z "$(cred)" ]; then
+          rc=0
+        elif [ "${1:-}" = "--old" ]; then
           [ "${2:-}" = "$(cred)" ] && rc=0 || rc=1
         else
-          [ -z "$(cred)" ] && rc=0 || rc=1
+          rc=1
         fi
         ;;
       set-pin | set-password | set-pattern)
@@ -331,6 +343,12 @@ case "${1:-}" in
           rc=1
         elif [ "$(knob mutation_noop 0)" = "1" ]; then
           # Exits 0, changes nothing. The false green this whole test exists for.
+          rc=0
+        elif [ "$(knob mutation_wipes 0)" = "1" ]; then
+          # Reported success and left the device with NO credential at all. The
+          # state every `verify --old` answers yes to, so a driver without the
+          # junk-credential probe cannot see it for what it is.
+          set_cred ""
           rc=0
         elif [ -n "$(knob mutation_lands_on "")" ]; then
           # Landed, but not where it was aimed.
@@ -461,8 +479,22 @@ $(printf '%s\n' "$OUT" | sed 's/^/        | /')"
   fi
 }
 
+# Substring tests are bash's own, not `printf | grep -qF`.
+#
+# Under `set -o pipefail` that pipeline reports the pipe's status as well as
+# grep's, and `grep -q` exits the moment it matches — so a large enough $OUT
+# leaves printf writing into a closed pipe, and a SIGPIPE turns a match into a
+# reported non-match. The dangerous direction is refute_out, where it turns into
+# a silent PASS: "the output does not contain this" is exactly what a test
+# harness must never say by accident. This suite exists to keep false greens out
+# of K1's table and it should not have that shape in itself.
+#
+# `case` also removes two processes per assertion, which is most of this suite's
+# runtime.
+contains() { case "$1" in *"$2"*) return 0 ;; *) return 1 ;; esac; }
+
 expect_out() {
-  if printf '%s' "$OUT" | grep -qF -- "$1"; then
+  if contains "$OUT" "$1"; then
     pass_check "output contains: $1"
   else
     fail_check "output contains: $1" "output follows:
@@ -471,7 +503,7 @@ $(printf '%s\n' "$OUT" | sed 's/^/        | /')"
 }
 
 refute_out() {
-  if printf '%s' "$OUT" | grep -qF -- "$1"; then
+  if contains "$OUT" "$1"; then
     fail_check "output must NOT contain: $1" "output follows:
 $(printf '%s\n' "$OUT" | sed 's/^/        | /')"
   else
@@ -619,6 +651,19 @@ expect_rc 2
 refute_out "| M5 | PASS |"
 expect_out "could not clear the lock screen"
 refute_trace "install"
+
+scenario "a PIN change that wipes the credential entirely is not a PASS"
+# M2 aims 1234 -> 5678. The device ends with no credential at all, which is the
+# one state `locksettings verify --old X` answers yes to for every X — so the
+# row must come from the junk-credential probe, and it must name what it found
+# rather than reporting the change it aimed for.
+knob mutation_wipes 1
+run_driver M2
+expect_rc 1
+refute_out "| M2 | PASS |"
+expect_out "| M2 | ERROR |"
+expect_out "does not verify either"
+refute_trace "instrument K1OpenTest M2"
 
 scenario "a mutation that lands on the wrong credential is not a PASS"
 # set-password reports success, the old PIN stops verifying — so the existing
@@ -915,7 +960,7 @@ expect_annotation() {
     "::$1 "*) pass_check "annotation emitted at level $1" ;;
     *) fail_check "annotation emitted at level $1" "got: ${line%%::*}::" ;;
   esac
-  if printf '%s' "$line" | grep -qF -- "$2"; then
+  if contains "$line" "$2"; then
     pass_check "annotation carries: $2"
   else
     fail_check "annotation carries: $2" "annotation follows:
