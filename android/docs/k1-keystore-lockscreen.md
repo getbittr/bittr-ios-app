@@ -256,6 +256,15 @@ reasoning, not the platform's behaviour: given what a device says, the driver
 draws the right conclusion and refuses to draw one when it cannot. A device is
 still the only thing that can fill in the table below.
 
+That caveat is not theoretical, and run #4 is the proof. The stub modelled
+`locksettings verify --old X` as "true when X is the credential", which is the
+convenient reading rather than the real one — on a device with no credential,
+every X verifies. A driver that could not distinguish "the PIN is 1234" from
+"there is no PIN" therefore passed the whole suite. **When this suite is green
+and a device disagrees, the stub is the first thing to suspect, not the last.**
+Its assumptions are the least-tested part of K1 precisely because they are the
+part no test here can reach.
+
 **This script changes a real lock screen.** It refuses a physical device holding
 user accounts unless `--i-know` is passed, refuses `--with-device-owner` on
 anything it does not recognise as an emulator, and restores the device to "no lock
