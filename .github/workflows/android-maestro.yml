@@ -202,6 +202,15 @@ jobs:
         # claim unchecked behind a job that stayed green.
         run: python3 android/scripts/test_check_wallet_instrumented_results.py
 
+      - name: Test the unit-test failure reporter
+        # report-test-failures.py is the only thing that says WHICH unit test
+        # broke in a form anyone outside this runner can read — see its header,
+        # and the step that invokes it below. A diagnosis channel that is quietly
+        # broken does not look broken: it looks like a failure with nothing to
+        # say, which is the exact state it exists to end. It only ever runs on an
+        # already-red job, so nothing else would ever catch a bug in it.
+        run: python3 android/scripts/test_report_test_failures.py
+
       - name: Check every flow ID is registered
         # A flow selecting an ID that is in no registry entry fails at run time
         # with "element not found" — indistinguishable from a missing testTag in
@@ -274,6 +283,70 @@ jobs:
         # None of this depends on the emulator image's fingerprint enrolment. It is
         # a property of the APK, so it holds on any runner.
         run: ./gradlew test --no-daemon
+
+      - name: Say which unit test failed
+        # A red `Unit tests` step takes all three emulator jobs with it — they
+        # `needs: build` and go SKIPPED — so BIT-59's own job never executes.
+        # That happened on run 42 and again on run 47, and run 47 cost a full
+        # round of work to the fact that nothing about the failure was readable
+        # from outside this runner:
+        #
+        #   - /actions/jobs/{id}/logs answers 403 "Must have admin rights to
+        #     Repository", to every token available here and to none, even though
+        #     the repo is public and the rest of the Actions API reads fine
+        #     anonymously.
+        #   - The run page is JS-rendered, so scraping it gives job names without
+        #     step conclusions.
+        #   - The artifact below is NOT a way out, which is why this step exists
+        #     as well as that one. /actions/artifacts/{id}/zip answers 401
+        #     "Requires authentication" anonymously and the web download URL 404s
+        #     after its redirect: the report is readable by a signed-in human and
+        #     by nothing else.
+        #
+        # What IS readable with no credentials is the check-run annotation list,
+        # /repos/{owner}/{repo}/check-runs/{job_id}/annotations. On run 47 it held
+        # three entries and they were the whole of what could be recovered: two
+        # Node deprecation warnings and "Process completed with exit code 1."
+        #
+        # So the diagnosis is put where the annotations are. This step re-states
+        # each failing testcase from Gradle's JUnit XML as a `::error::` command,
+        # which lands in that list. Always exits 0 — the step above has already
+        # failed the job, and failing twice would just replace one uninformative
+        # failure with another.
+        if: failure()
+        run: python3 android/scripts/report-test-failures.py
+
+      - name: Upload unit test report
+        # if: failure(), not always(). On green this report says nothing that the
+        # step's own exit code did not, and `test` across every module is a lot of
+        # HTML to keep for seven days per push.
+        #
+        # The companion to the step above, for the reader it can serve: a human
+        # who is signed in. It carries the full HTML report and the untruncated
+        # stack traces, where the annotations carry the first 1200 characters of
+        # at most ten failures. It costs nothing to keep; it is simply not the
+        # channel the agents working this repo can read.
+        #
+        # Both paths, for the reason the module list in the step above gives: the
+        # pure-Kotlin modules write plain `test` results and the Android ones write
+        # `testDebugUnitTest`, and the glob has to cover whichever module broke.
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: unit-test-report
+          # XML first: it is the machine-readable half, and for a crash-before-
+          # assertion failure (Robolectric's targetSdk abort in run 42 was one) the
+          # stack trace lands in the XML's system-err where the HTML summary shows
+          # only a count.
+          path: |
+            android/**/build/test-results/**/*.xml
+            android/**/build/reports/tests/**
+          retention-days: 7
+          # Not `error`. This step only runs when the job already failed, and a
+          # failure early enough to produce no reports at all — a Kotlin compile
+          # error in a test source set — is a real outcome that must not be
+          # overwritten by an upload error pointing at the wrong cause.
+          if-no-files-found: warn
 
       - name: Compile the instrumented tests
         working-directory: android
