@@ -39,17 +39,19 @@ class TokenContrastTest {
         0.2126 * linearize(color.red) + 0.7152 * linearize(color.green) + 0.0722 * linearize(color.blue)
 
     /**
-     * Contrast of [fg] over [bg]. A translucent [fg] is composited onto [bg] first —
-     * in sRGB, which is what Compose does and, per §1.1a, what iOS turns out to match
-     * to within 1/255.
+     * [fg] flattened onto [bg] — in sRGB, which is what Compose does and, per §1.1a,
+     * what iOS turns out to match to within 1/255. An opaque [fg] is returned as-is.
      */
-    private fun contrast(fg: Color, bg: Color): Double {
-        val composited = if (fg.alpha >= 1f) fg else Color(
+    private fun composite(fg: Color, bg: Color): Color =
+        if (fg.alpha >= 1f) fg else Color(
             red = fg.red * fg.alpha + bg.red * (1f - fg.alpha),
             green = fg.green * fg.alpha + bg.green * (1f - fg.alpha),
             blue = fg.blue * fg.alpha + bg.blue * (1f - fg.alpha),
         )
-        val a = luminance(composited)
+
+    /** Contrast of [fg] over [bg]. A translucent [fg] is composited onto [bg] first. */
+    private fun contrast(fg: Color, bg: Color): Double {
+        val a = luminance(composite(fg, bg))
         val b = luminance(bg)
         return (max(a, b) + 0.05) / (min(a, b) + 0.05)
     }
@@ -229,6 +231,72 @@ class TokenContrastTest {
         assertAtLeast(
             aa, BittrLightColors.onSurfaceVariant, BittrLightColors.primary,
             "the replacement for outline on yellow",
+        )
+    }
+
+    // -----------------------------------------------------------------------
+    // A11Y-21 / DEV-58 — the placeholder, which is text and not a border
+    // -----------------------------------------------------------------------
+
+    /**
+     * The fill the Send and Swap placeholders actually sit on, light mode.
+     *
+     * Neither field is on the raw brand yellow. iOS fills them with `white0.7orblue1`
+     * (Send address, Send amount) and `white0.7orblue3` (Swap amount) — [BittrColors.scrim1]
+     * and [BittrColors.scrim3], both white @70 % in light mode — over the yellow screen
+     * behind them. That composites to **#FFEEB3**, and that, not `primary`, is the surface
+     * the placeholder has to be measured against.
+     */
+    private val lightFieldFill: Color
+        get() = composite(BittrLightColorsExtended.scrim1, BittrLightColors.primary)
+
+    @Test
+    fun `A11Y-21 the Send and Swap placeholders clear AA as text on the field fill`() {
+        // All three placeholders are Gilroy-Regular at pointSize 16 in Main.storyboard, so
+        // this is body text: the floor is 4.5, not the 3.0 that applies to the border.
+        // iOS uses `grey2` here and lands at 2.23 : 1. DEV-58 moves them to onSurfaceVariant.
+        assertAtLeast(aa, BittrLightColors.onSurfaceVariant, lightFieldFill, "placeholder on the light field fill")
+        // Dark: the two Send fields fill with scrim1 = blue1.
+        assertAtLeast(
+            aa, BittrDarkColors.onSurfaceVariant, BittrDarkColorsExtended.scrim1,
+            "Send placeholder on the dark field fill",
+        )
+    }
+
+    @Test
+    fun `A11Y-21 outline is not a placeholder colour even where it clears the border floor`() {
+        // This is the trap, and it is why the guard above is not enough on its own. On the
+        // raw yellow `outline` fails the 3 : 1 border floor (2.27) and is caught. On the
+        // *field fill* it reaches 3.11 — it passes the border floor, so nothing else in this
+        // file stops someone reaching for it for the placeholder, which is text and needs 4.5.
+        assertTrue(
+            "outline clears the border floor on the field fill but is still not AA text there",
+            contrast(BittrLightColors.outline, lightFieldFill) in aaLarge..aa,
+        )
+        // And what iOS ships on that fill today, for the record: grey2, 2.23 : 1.
+        assertTrue(
+            "grey2 is the placeholder colour this fix moves off — it is not AA text either",
+            contrast(BittrLightColors.outlineVariant, lightFieldFill) < aa,
+        )
+    }
+
+    @Test
+    fun `the Swap field's dark fill cannot carry AA placeholder text — open on BIT-15`() {
+        // scrim3 is blue3, and A11Y-02 demoted blue3 as a surface for precisely this reason:
+        // even **pure white** on blue3 is 4.44 : 1. So no white-based token clears AA body
+        // text on this fill — onSurfaceVariant reaches 3.47 and stops. The fix is to move
+        // scrim3's dark value the way A11Y-02 moved `surface` (blue2 gives exactly 4.50),
+        // but that is a visible dark-mode change that arrived after the BIT-15 sign-off, so
+        // it is raised there rather than taken here. Asserting the shortfall is what keeps
+        // it from reading as covered.
+        val fill = BittrDarkColorsExtended.scrim3
+        assertTrue(
+            "pure white now clears AA on blue3 — the ceiling moved, re-check this whole test",
+            contrast(Color.White, fill) < aa,
+        )
+        assertTrue(
+            "the Swap dark placeholder is a known AA shortfall pending the scrim3 decision",
+            contrast(BittrDarkColors.onSurfaceVariant, fill) < aa,
         )
     }
 
