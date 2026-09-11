@@ -33,10 +33,10 @@ extension CoreViewController {
         if !self.userHasSignedIn {
             Log.info("User hasn't signed in yet, store notification for later.")
             self.wasNotified = true
-            self.showAlert(title: Language.getWord(withID: "paymentrequest"), message: Language.getWord(withID: "paymentrequest2").replacingOccurrences(of: "<amount>", with: String(notification.amountMsat!/1000).addSpaces()), buttons: [.dismiss(Language.getWord(withID: "okay"))])
+            self.showAlert(id: TestID.Alert.paymentRequest, title: Language.getWord(withID: "paymentrequest"), message: Language.getWord(withID: "paymentrequest2").replacingOccurrences(of: "<amount>", with: String(notification.amountMsat!/1000).addSpaces()), buttons: [.dismiss(Language.getWord(withID: "okay"))])
         } else if !self.walletHasSynced {
             Log.info("Wallet hasn't synced yet.")
-            self.showLoading(message: Language.getWord(withID: "syncingwallet3"))
+            self.showLoading(id: TestID.Loading.syncingWallet, message: Language.getWord(withID: "syncingwallet3"))
         } else {
             self.hideLoading()
             if !self.wasNotified {
@@ -63,7 +63,7 @@ extension CoreViewController {
             self.hideLoading()
             self.lightningNotification = nil
             SentryManager.capture("Required data unavailable while trying to handle LNURL payout.", context: "HandlePaymentNotification row 108")
-            self.showAlert(title: Language.getWord(withID: "paymentrequest"), message: Language.getWord(withID: "paymentrequestfailed2"), buttons: [.dismiss(Language.getWord(withID: "close"))])
+            self.showAlert(id: TestID.Alert.paymentRequestFailed, title: Language.getWord(withID: "paymentrequest"), message: Language.getWord(withID: "paymentrequestfailed2"), buttons: [.dismiss(Language.getWord(withID: "close"))])
             return
         }
         
@@ -93,7 +93,7 @@ extension CoreViewController {
                     SentryManager.capture(error, context: "HandleLightningAddressNotification row 98")
                     
                     // Show error message with support contact
-                    self.showAlert(title: Language.getWord(withID: "paymentrequestfailed"), message: Language.getWord(withID: "paymentrequestfailed2"), buttons: [.dismiss(Language.getWord(withID: "okay"))])
+                    self.showAlert(id: TestID.Alert.paymentRequestFailed, title: Language.getWord(withID: "paymentrequestfailed"), message: Language.getWord(withID: "paymentrequestfailed2"), buttons: [.dismiss(Language.getWord(withID: "okay"))])
                 }
                 return
             }
@@ -122,7 +122,7 @@ extension CoreViewController {
                     case .failure(let error):
                         Log.info("Failed to post invoice to endpoint: \(error)")
                         // Show error message with support contact
-                        self.showAlert(title: Language.getWord(withID: "paymentrequestfailed"), message: Language.getWord(withID: "paymentrequestfailed2"), buttons: [.dismiss(Language.getWord(withID: "okay"))])
+                        self.showAlert(id: TestID.Alert.paymentRequestFailed, title: Language.getWord(withID: "paymentrequestfailed"), message: Language.getWord(withID: "paymentrequestfailed2"), buttons: [.dismiss(Language.getWord(withID: "okay"))])
                     }
                 }
             }

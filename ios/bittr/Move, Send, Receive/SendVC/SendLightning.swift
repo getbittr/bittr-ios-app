@@ -86,7 +86,7 @@ extension SendViewController {
                 // Zero invoice, needs amount.
                 guard let enteredAmount = self.amountTextField.text?.trimmingCharacters(in: .whitespacesAndNewlines), !enteredAmount.isEmpty, let parsedSatoshis = self.getSatoshisFrom(enteredAmount: enteredAmount), parsedSatoshis > 0 else {
                     // No amount has been entered.
-                    self.showAlert(title: Language.getWord(withID: "invoice"), message: Language.getWord(withID: "amountmissing"), buttons: [.dismiss(Language.getWord(withID: "okay"))])
+                    self.showAlert(id: TestID.Alert.amountMissing, title: Language.getWord(withID: "invoice"), message: Language.getWord(withID: "amountmissing"), buttons: [.dismiss(Language.getWord(withID: "okay"))])
                     return
                 }
                 satoshisAmount = parsedSatoshis

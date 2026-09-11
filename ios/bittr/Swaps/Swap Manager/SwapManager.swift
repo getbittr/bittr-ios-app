@@ -212,7 +212,7 @@ class SwapManager: NSObject {
         // swap-status pushes and payout retry). Mint the signed URL — cached
         // after the first swap and reused for every swap.
         guard CacheManager.getRegistrationToken()?.isEmpty == false else {
-            swapVC.cancelSwap(alertTitle: Language.getWord(withID: "notificationsrequired"), alertMessage: Language.getWord(withID: "notificationsrequiredmessage"), alertButtons: [.action(Language.getWord(withID: "okay")) { swapVC.askForPushNotifications() }])
+            swapVC.cancelSwap(alertID: TestID.Alert.notificationsRequired, alertTitle: Language.getWord(withID: "notificationsrequired"), alertMessage: Language.getWord(withID: "notificationsrequiredmessage"), alertButtons: [.action(Language.getWord(withID: "okay")) { swapVC.askForPushNotifications() }])
             return
         }
 
@@ -293,7 +293,7 @@ class SwapManager: NSObject {
                             )
                         } catch {
                             Log.info("Refused the submarine swap response: \(error.localizedDescription)")
-                            swapVC.cancelSwap(alertMessage: Language.getWord(withID: "swapvalidationfailed"))
+                            swapVC.cancelSwap(alertID: TestID.Alert.swapValidationFailed, alertMessage: Language.getWord(withID: "swapvalidationfailed"))
                             SentryManager.countMetric("swap.onchaintolightning.responserejected")
                             SentryManager.capture(error, context: "SwapManager submarine response validation")
                             return
@@ -596,7 +596,7 @@ class SwapManager: NSObject {
         // swap-status pushes and payout retry). Mint the signed URL — cached
         // after the first swap and reused for every swap.
         guard CacheManager.getRegistrationToken()?.isEmpty == false else {
-            swapVC.cancelSwap(alertTitle: Language.getWord(withID: "notificationsrequired"), alertMessage: Language.getWord(withID: "notificationsrequiredmessage"), alertButtons: [.action(Language.getWord(withID: "okay")) { swapVC.askForPushNotifications() }])
+            swapVC.cancelSwap(alertID: TestID.Alert.notificationsRequired, alertTitle: Language.getWord(withID: "notificationsrequired"), alertMessage: Language.getWord(withID: "notificationsrequiredmessage"), alertButtons: [.action(Language.getWord(withID: "okay")) { swapVC.askForPushNotifications() }])
             return
         }
 
@@ -683,7 +683,7 @@ class SwapManager: NSObject {
                             )
                         } catch {
                             Log.info("Refused the reverse swap response: \(error.localizedDescription)")
-                            swapVC.cancelSwap(alertMessage: Language.getWord(withID: "swapvalidationfailed"))
+                            swapVC.cancelSwap(alertID: TestID.Alert.swapValidationFailed, alertMessage: Language.getWord(withID: "swapvalidationfailed"))
                             SentryManager.countMetric("swap.lightningtoonchain.responserejected")
                             SentryManager.capture(error, context: "SwapManager reverse response validation")
                             return

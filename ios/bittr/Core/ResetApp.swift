@@ -55,7 +55,7 @@ extension CoreViewController {
                 self.startWalletInBackground()
             } else {
                 Log.info("Wallet is syncing.")
-                self.showAlert(title: Language.getWord(withID: "syncingwallet"), message: Language.getWord(withID: "syncingwallet2"), buttons: [.dismiss(Language.getWord(withID: "okay"))])
+                self.showAlert(id: TestID.Alert.syncingWallet, title: Language.getWord(withID: "syncingwallet"), message: Language.getWord(withID: "syncingwallet2"), buttons: [.dismiss(Language.getWord(withID: "okay"))])
             }
         } else {
             Log.info("Wallet is ready.")

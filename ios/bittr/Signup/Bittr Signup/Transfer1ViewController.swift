@@ -205,7 +205,7 @@ class Transfer1ViewController: UIViewController, UITextFieldDelegate {
         
         // User indicates they don't have an IBAN.
         self.view.endEditing(true)
-        self.showAlert(title: Language.getWord(withID: "weresorry"), message: Language.getWord(withID: "onlyiban"), buttons: [.action(Language.getWord(withID: "gotowallet")) { self.alertGoToWallet() }, .dismiss(Language.getWord(withID: "cancel"))])
+        self.showAlert(id: TestID.Alert.onlyIban, title: Language.getWord(withID: "weresorry"), message: Language.getWord(withID: "onlyiban"), buttons: [.action(Language.getWord(withID: "gotowallet")) { self.alertGoToWallet() }, .dismiss(Language.getWord(withID: "cancel"))])
     }
     
     func alertGoToWallet() {

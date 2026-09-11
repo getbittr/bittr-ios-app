@@ -72,71 +72,6 @@
       ]
     },
     {
-      "matcher": ".*Handling lightning request.*",
-      "class": "copy",
-      "keys": [
-        "handlinglnurl"
-      ],
-      "texts": {
-        "handlinglnurl": "Handling lightning request"
-      },
-      "flows": [
-        "shared/flows/features/send_lightning.yaml"
-      ]
-    },
-    {
-      "matcher": ".*Incoming payment.*",
-      "class": "copy",
-      "keys": [
-        "incomingpayment"
-      ],
-      "texts": {
-        "incomingpayment": "Incoming payment"
-      },
-      "flows": [
-        "shared/flows/features/notification_htlcincoming.yaml"
-      ]
-    },
-    {
-      "matcher": ".*Please sign in to accept the payment.*",
-      "class": "copy",
-      "keys": [
-        "paymentrequest2"
-      ],
-      "texts": {
-        "paymentrequest2": "Someone wants to pay you <b><amount> satoshis</b>! Please sign in to accept the payment."
-      },
-      "flows": [
-        "shared/flows/features/notification_lnurl.yaml"
-      ]
-    },
-    {
-      "matcher": ".*Repeat the same number.*",
-      "class": "copy",
-      "keys": [
-        "repeatnumber"
-      ],
-      "texts": {
-        "repeatnumber": "Repeat the same number."
-      },
-      "flows": [
-        "shared/flows/onboarding/fresh_install_unhappy.yaml"
-      ]
-    },
-    {
-      "matcher": ".*To process swaps.*",
-      "class": "copy",
-      "keys": [
-        "notificationsrequiredmessage"
-      ],
-      "texts": {
-        "notificationsrequiredmessage": "To process swaps, you need to be online. We'd like to notify you once your transaction is confirmed so that you can finalize the swap in the app. Please allow notification permissions."
-      },
-      "flows": [
-        "shared/flows/features/swap.yaml"
-      ]
-    },
-    {
       "matcher": ".*[0-9].*",
       "class": "data",
       "keys": [],
@@ -148,42 +83,6 @@
         "shared/flows/features/send_lightning.yaml",
         "shared/flows/features/send_onchain.yaml",
         "shared/flows/features/send_onchain_all.yaml"
-      ]
-    },
-    {
-      "matcher": ".*[Cc]opied.*",
-      "class": "copy",
-      "keys": [
-        "copied"
-      ],
-      "texts": {
-        "copied": "Copied"
-      },
-      "flows": [
-        "shared/flows/features/buy_signup_no_notifications.yaml"
-      ]
-    },
-    {
-      "matcher": ".*[Ss]yncing wallet.*",
-      "class": "copy",
-      "keys": [
-        "syncingwallet",
-        "syncingwallet3"
-      ],
-      "texts": {
-        "syncingwallet": "Syncing wallet",
-        "syncingwallet3": "syncing wallet"
-      },
-      "literals": [
-        {
-          "text": "Syncing wallet to get updated channel count",
-          "file": "ios/bittr/Core/ResetApp.swift"
-        }
-      ],
-      "why": "Two keys differ only in case and a third copy is hardcoded in ResetApp.swift. The matcher is case-insensitive on purpose. Collapsing the three during the consolidation is the right end state, but it must be a deliberate commit: all three are locked so a silent dedup goes red.",
-      "flows": [
-        "shared/flows/features/notification_htlcincoming.yaml",
-        "shared/flows/features/notification_lnurl.yaml"
       ]
     },
     {
@@ -210,19 +109,6 @@
       ]
     },
     {
-      "matcher": ".*between 4 and 8 digits.*",
-      "class": "copy",
-      "keys": [
-        "pinshouldbe4to8"
-      ],
-      "texts": {
-        "pinshouldbe4to8": "PIN should be between 4 and 8 digits"
-      },
-      "flows": [
-        "shared/flows/onboarding/fresh_install_unhappy.yaml"
-      ]
-    },
-    {
       "matcher": ".*closed lightning connection.*",
       "class": "copy",
       "keys": [
@@ -237,46 +123,6 @@
       ]
     },
     {
-      "matcher": ".*confirm the above statements.*",
-      "class": "copy",
-      "keys": [
-        "signupvc2"
-      ],
-      "texts": {
-        "signupvc2": "Please confirm the above statements in order to proceed."
-      },
-      "flows": [
-        "shared/flows/onboarding/fresh_install_unhappy.yaml"
-      ]
-    },
-    {
-      "matcher": ".*could not verify the swap details.*",
-      "class": "copy",
-      "keys": [
-        "swapvalidationfailed"
-      ],
-      "texts": {
-        "swapvalidationfailed": "We could not verify the swap details we received. No funds have been sent. Please try again."
-      },
-      "flows": [
-        "shared/flows/features/evil_boltz_wrong_address.yaml",
-        "shared/flows/features/evil_boltz_wrong_invoice.yaml"
-      ]
-    },
-    {
-      "matcher": ".*couldn't process this payment request.*",
-      "class": "copy",
-      "keys": [
-        "paymentrequestfailed2"
-      ],
-      "texts": {
-        "paymentrequestfailed2": "We couldn't process this payment request. If this keeps happening, please contact support@getbittr.com."
-      },
-      "flows": [
-        "shared/flows/features/notification_lnurl.yaml"
-      ]
-    },
-    {
       "matcher": ".*e2ebittr@staging.getbittr.com.*",
       "class": "data",
       "keys": [],
@@ -284,32 +130,6 @@
       "why": "The test lightning address.",
       "flows": [
         "shared/flows/features/send_lightning.yaml"
-      ]
-    },
-    {
-      "matcher": ".*enter the amount of satoshis.*",
-      "class": "copy",
-      "keys": [
-        "amountmissing"
-      ],
-      "texts": {
-        "amountmissing": "Please enter the amount of satoshis you'd like to send."
-      },
-      "flows": [
-        "shared/flows/features/send_lightning.yaml"
-      ]
-    },
-    {
-      "matcher": ".*entered are incorrect.*",
-      "class": "copy",
-      "keys": [
-        "incorrectphrase2"
-      ],
-      "texts": {
-        "incorrectphrase2": "Some of the words you've entered are incorrect. Please double-check your recovery phrase backup and try again.\n\nFor your security, we recommend taking a fresh backup of your recovery phrase to ensure you have the correct words."
-      },
-      "flows": [
-        "shared/flows/onboarding/fresh_install_unhappy.yaml"
       ]
     },
     {
@@ -324,97 +144,6 @@
         "shared/flows/features/send_lightning.yaml",
         "shared/flows/features/send_swap_suggestion_lightning.yaml",
         "shared/flows/helpers/show_invoice.yaml"
-      ]
-    },
-    {
-      "matcher": ".*not valid recovery phrase words.*",
-      "class": "copy",
-      "keys": [
-        "invalidwords2"
-      ],
-      "texts": {
-        "invalidwords2": "Some of the words you entered are not valid recovery phrase words. Please check your backup and try again."
-      },
-      "flows": [
-        "shared/flows/onboarding/fresh_install_unhappy.yaml"
-      ]
-    },
-    {
-      "matcher": ".*only available to IBAN holders.*",
-      "class": "copy",
-      "keys": [
-        "onlyiban"
-      ],
-      "texts": {
-        "onlyiban": "Buying bitcoin with bittr is only available to IBAN holders.\n\nYou can still use your wallet to send and receive bitcoin."
-      },
-      "flows": [
-        "shared/flows/onboarding/fresh_install_unhappy.yaml"
-      ]
-    },
-    {
-      "matcher": ".*receiving payment.*",
-      "class": "copy",
-      "keys": [
-        "receivingpayment"
-      ],
-      "texts": {
-        "receivingpayment": "receiving payment"
-      },
-      "flows": [
-        "shared/flows/features/notification_htlcincoming.yaml"
-      ]
-    },
-    {
-      "matcher": ".*recommend against screenshotting.*",
-      "class": "copy",
-      "keys": [
-        "noscreenshot"
-      ],
-      "texts": {
-        "noscreenshot": "We'd highly recommend against screenshotting your recovery phrase.\n\nScreenshots can easily be accessed by others, who will have full access to your wallet."
-      },
-      "flows": [
-        "shared/flows/onboarding/fresh_install_unhappy.yaml"
-      ]
-    },
-    {
-      "matcher": ".*up to 8 digits.*",
-      "class": "copy",
-      "keys": [
-        "pincanbeupto8"
-      ],
-      "texts": {
-        "pincanbeupto8": "PIN can be up to 8 digits"
-      },
-      "flows": [
-        "shared/flows/onboarding/fresh_install_unhappy.yaml"
-      ]
-    },
-    {
-      "matcher": ".*very low fees.*",
-      "class": "copy",
-      "keys": [
-        "buyvclightningexplanation"
-      ],
-      "texts": {
-        "buyvclightningexplanation": "Purchases up to 100 EUR/CHF go into your Lightning connection. Spend and receive instantly, with very low fees.\n\nTurn this off to receive your bittr purchases on-chain instead, in the regular part of your wallet."
-      },
-      "flows": [
-        "shared/flows/features/payment_mode.yaml"
-      ]
-    },
-    {
-      "matcher": ".*wait 30 seconds.*",
-      "class": "copy",
-      "keys": [
-        "resendcode2"
-      ],
-      "texts": {
-        "resendcode2": "Please wait 30 seconds before requesting another verification code."
-      },
-      "flows": [
-        "shared/flows/features/buy_signup_no_notifications.yaml"
       ]
     },
     {
@@ -553,19 +282,6 @@
       ]
     },
     {
-      "matcher": "Continue",
-      "class": "copy",
-      "keys": [
-        "continue"
-      ],
-      "texts": {
-        "continue": "Continue"
-      },
-      "flows": [
-        "shared/flows/features/buy_signup_no_notifications.yaml"
-      ]
-    },
-    {
       "matcher": "Copy",
       "class": "copy",
       "keys": [],
@@ -666,19 +382,6 @@
       ]
     },
     {
-      "matcher": "Okay",
-      "class": "copy",
-      "keys": [
-        "okay"
-      ],
-      "texts": {
-        "okay": "Okay"
-      },
-      "flows": [
-        "shared/flows/features/swap.yaml"
-      ]
-    },
-    {
       "matcher": "Payment expired",
       "class": "payload",
       "keys": [],
@@ -686,21 +389,6 @@
       "why": "header_text of the flow's own htlcExpired payload. HandlePaymentNotification reads `notification.headerText ?? Language.getWord(withID: \"htlc_expired_title\")`, and the flow always supplies it — the key is only the fallback.",
       "flows": [
         "shared/flows/features/notification_information.yaml"
-      ]
-    },
-    {
-      "matcher": "Save",
-      "class": "copy",
-      "keys": [
-        "save"
-      ],
-      "texts": {
-        "save": "Save"
-      },
-      "flows": [
-        "shared/flows/features/buy_incoming.yaml",
-        "shared/flows/features/buy_more.yaml",
-        "shared/flows/features/swap.yaml"
       ]
     },
     {
@@ -814,20 +502,6 @@
       ]
     },
     {
-      "matcher": "balance",
-      "class": "copy",
-      "keys": [
-        "balance2"
-      ],
-      "texts": {
-        "balance2": "Balance"
-      },
-      "why": "The [Update amount, Close] alert raised when the fee exceeds the balance — ConfirmSendViewController.swift raises it with title `balance2` (\"Balance\"). The matcher is a bare substring, so it also happens to hit a dozen other keys; only this one is the dependency.",
-      "flows": [
-        "shared/flows/features/send_onchain_all.yaml"
-      ]
-    },
-    {
       "matcher": "bcrt1qz2d3feqzlr3ggslt3ugs768utz8kmweah95qgv",
       "class": "data",
       "keys": [],
@@ -856,34 +530,6 @@
       "why": "Note text the flow types, then asserts.",
       "flows": [
         "shared/flows/features/buy_more.yaml"
-      ]
-    },
-    {
-      "matcher": "error",
-      "class": "copy",
-      "keys": [
-        "error"
-      ],
-      "texts": {
-        "error": "Error"
-      },
-      "why": "The generic error alert title on the confirm-send path. Bare-substring matcher, as with `balance`.",
-      "flows": [
-        "shared/flows/features/send_onchain_all.yaml"
-      ]
-    },
-    {
-      "matcher": "low fee",
-      "class": "copy",
-      "keys": [
-        "lowfee"
-      ],
-      "texts": {
-        "lowfee": "Low fee"
-      },
-      "why": "ConfirmSendViewController.swift raises the fee warning with title `lowfee` (\"Low fee\").",
-      "flows": [
-        "shared/flows/features/send_onchain_all.yaml"
       ]
     },
     {

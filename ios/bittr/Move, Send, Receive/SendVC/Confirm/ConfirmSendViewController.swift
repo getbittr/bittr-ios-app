@@ -234,7 +234,7 @@ class ConfirmSendViewController: UIViewController {
         guard let satoshisAmount = self.satoshisAmount else { return true }
         let spendable = BitcoinManager.shared.bittrWallet.satoshisOnchainSpendable ?? 0
         if (self.selectedFeeInSats + satoshisAmount) > spendable {
-            self.showAlert(title: Language.getWord(withID: "balance2"), message: Language.getWord(withID: "insufficientonchainbalance").replacingOccurrences(of: "<fee>", with: "\(spendable) sats"), buttons: [.action(Language.getWord(withID: "updateamount")) { self.handleAmountChange() }, .dismiss(Language.getWord(withID: "close"))])
+            self.showAlert(id: TestID.Alert.insufficientOnchainBalance, title: Language.getWord(withID: "balance2"), message: Language.getWord(withID: "insufficientonchainbalance").replacingOccurrences(of: "<fee>", with: "\(spendable) sats"), buttons: [.action(Language.getWord(withID: "updateamount")) { self.handleAmountChange() }, .dismiss(Language.getWord(withID: "close"))])
             return false
         } else {
             return true
@@ -288,7 +288,7 @@ class ConfirmSendViewController: UIViewController {
         
         if self.maxAvailableFeePerVb != nil && self.selectedFee == .low {
             // Selected fee is very low.
-            self.showAlert(title: Language.getWord(withID: "lowfee"), message: Language.getWord(withID: "lowfee2"), buttons: [.dismiss(Language.getWord(withID: "changefee")), .action(Language.getWord(withID: "continue")) { self.proceedWithOnchainConfirmation() }])
+            self.showAlert(id: TestID.Alert.lowFee, title: Language.getWord(withID: "lowfee"), message: Language.getWord(withID: "lowfee2"), buttons: [.dismiss(Language.getWord(withID: "changefee")), .action(Language.getWord(withID: "continue")) { self.proceedWithOnchainConfirmation() }])
         } else {
             self.proceedWithOnchainConfirmation()
         }

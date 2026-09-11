@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 """Check that every text the Maestro suite matches on still exists in the app's copy.
 
-The suite has no per-alert accessibility ids: `alert.button._index` and
-`alert.textField` are the only ids on the alert surface, so *which* alert is on
-screen is asserted by matching its wording. 143 text matchers across the flows
-depend on the exact words in the app.
+Some of what the suite selects on is still text. Alerts are not — BIT-78 gave
+each one its own accessibility id, so *which* alert is on screen no longer
+depends on its wording. What is left is screen labels, the keyboard accessory's
+Done and OS-owned UI: 78 text matchers across the flows, 14 of them on app copy.
 
 The `*Language.swift` -> `shared/strings/` consolidation moves every one of those
 words. A rewording in transit breaks the suite in the worst possible way:

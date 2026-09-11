@@ -14,11 +14,12 @@ What *is* scattered is the copy that never made it into `allWords` — see "Copy
 
 **Moving copy is in scope. Rewording it in the same change is not.** If a string has to change, change it in a separate commit, so that when a flow goes red the cause is obvious.
 
-This is not a style preference. The Maestro suite identifies alerts by their **copy**, because copy is the only thing available to identify them by: `alert.button._index` and `alert.textField` are the only accessibility ids on the alert surface. Measured on the current suite:
+This is not a style preference, though it is now a much smaller exposure than it was. The suite used to identify alerts by their **copy**, because copy was the only thing available to identify them by: `alert.button._index` and `alert.textField` were the only accessibility ids on the alert surface. BIT-78 gave each alert an id of its own (`alert.lowFee`, `loading.syncingWallet`, …), so 26 of those matchers became id selectors and their lock entries went away. What is left:
 
-- **220** `alert.button` / `alert.textField` interactions across **33** flow files
-- **147** `text:` matchers, **71** of them distinct, across **24** flow files
-- **39** of those 71 are app copy: they depend on **37** keys in `allWords` and **7** hardcoded literals (a 40th entry, `Unavailable` / 38th key, is pre-locked for a flow still in review)
+- **78** `text:` matchers, **45** of them distinct, across **19** flow files
+- **14** of those 45 are app copy: they depend on **11** keys in `allWords` and **6** hardcoded literals (one of the 14, `Unavailable`, is pre-locked for a flow still in review)
+
+None of the remaining 14 is on the alert surface. They are screen labels (`send.toLabel`, `send.availableLabel`, `swapStatus`), the keyboard accessory's **Done**, and OS-owned UI — text is the right selector for those, or the only one.
 
 Maestro matches `text:` as a case-insensitive regex against an element's **entire** text, which is why the suite wraps partial matchers in `.*` and writes the rest bare. The guard matches the same way. That is not a detail: under a substring rule, rewording `cancel` from "Cancel" to "Cancel payment" looks unchanged, while Maestro's `text: "Cancel"` stops selecting the button. A guard more permissive than the tool it guards goes quiet on exactly the rewording it exists to catch.
 
@@ -55,7 +56,7 @@ The guard does not replace re-running the flows. It removes the *silent* failure
 
 ### Copy outside the table
 
-Seven strings the suite asserts on are **not** in `allWords`, so a search-and-move of that table will not find them. They are locked as `literals` — text that must still appear, quoted, in a named file:
+Six strings the suite asserts on are **not** in `allWords`, so a search-and-move of that table will not find them. They are locked as `literals` — text that must still appear, quoted, in a named file:
 
 | copy | where it lives | the flow that depends on it |
 | --- | --- | --- |
@@ -63,14 +64,15 @@ Seven strings the suite asserts on are **not** in `allWords`, so a search-and-mo
 | `Share` | `ReceiveViewController.swift` — the other `UIAction` on that menu | `receive_onchain.yaml` |
 | ` sats` | `MoveViewController.swift` — `"\(instantSatoshis)".addSpaces() + " sats"` | `remove_wallet.yaml` |
 | `Swap complete` | `SwapLiveActivity.swift` **and** `SwapLiveActivityController.swift` — a third copy of the `swapstatusswapcomplete` key | `swap.yaml`, `send_swap_suggestion_onchain.yaml` |
-| `Syncing wallet to get updated channel count` | `ResetApp.swift` — a third copy of `syncingwallet` / `syncingwallet3` | `notification_htlcincoming.yaml`, `notification_lnurl.yaml` |
 | `You can send 0 satoshis.` | `Main.storyboard` — the label's design-time text, which is what a flow sees before the first render | `send_onchain.yaml` |
 
-Two of those are the same sentence stored three times (`Swap complete`, `Syncing wallet`). Collapsing each into one key is the right end state and the consolidation is the moment to do it — but as a deliberate commit: all three copies of each are locked, so a silent dedup goes red rather than quiet.
+`Swap complete` is the same sentence stored three times (the `swapstatusswapcomplete` key plus both live-activity files). Collapsing it into one key is the right end state and the consolidation is the moment to do it — but as a deliberate commit: all three copies are locked, so a silent dedup goes red rather than quiet.
+
+`Syncing wallet` had the same three-way split (`syncingwallet`, `syncingwallet3`, and a hardcoded copy in `ResetApp.swift`) and used to be locked for the same reason. It no longer is: the two flows that depended on the wording now select `loading.syncingWallet`, so the guard has nothing left to protect there. The duplication is still worth collapsing — it is just no longer a way to break the suite.
 
 ### Longer term
 
-Give the alert surface real per-alert accessibility ids, so assertions stop depending on wording at all. Not required before the migration; the migration is what proves why it is needed.
+~~Give the alert surface real per-alert accessibility ids, so assertions stop depending on wording at all.~~ Done in BIT-78 — see `shared/test-ids/README.md`, "Alerts". The remaining `copy`-class entries are the ones that genuinely assert wording on a non-alert surface.
 
 ## Generator
 

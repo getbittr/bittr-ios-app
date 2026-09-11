@@ -175,7 +175,7 @@ private extension UIViewController {
         button.setShadow()
         button.clipsToBounds = false
         button.accessibilityLabel = title
-        button.accessibilityIdentifier = "alert.button.\(index)"
+        button.accessibilityIdentifier = TestID.Alert.buttonAt(index)
         button.addAction(UIAction { _ in handler() }, for: .touchUpInside)
         
         let buttonLabel = UILabel()
@@ -251,8 +251,13 @@ struct AlertButton {
 
 extension UIViewController {
     
-    func showAlert(presentingController:UIViewController? = nil, title:String, message:String, buttons:[AlertButton]) {
-        
+    // `id` names *which* alert this is (TestID.Alert.…), set on the card so a
+    // flow can assert `id: "alert.lowFee"` instead of matching its wording. It
+    // goes on the card rather than the overlay because replacing a live alert
+    // reuses the overlay and rebuilds only the card — the id has to travel with
+    // the content, or a replaced alert keeps answering to its predecessor's id.
+    func showAlert(presentingController:UIViewController? = nil, id:String? = nil, title:String, message:String, buttons:[AlertButton]) {
+
         let host = presentingController ?? self.alertHost
         
         self.alertPresenter = host
@@ -268,7 +273,8 @@ extension UIViewController {
             
             let chrome = self.makeAlertChrome(live ?? AlertOverlayView(), on: host, cardColor: Colors.getColor("yelloworblue2"))
             let card = chrome.card
-            
+            card.accessibilityIdentifier = id
+
             let alertIcon = self.addAlertHeader(to: card, title: title, trailingLimit: nil)
             
             // Close image
@@ -347,7 +353,7 @@ extension UIViewController {
         }
     }
     
-    func showTextFieldAlert(presentingController: UIViewController? = nil, title: String, message: String = "", initialText: String, placeholder: String, keyboardType: UIKeyboardType = .default, cancelTitle: String, saveTitle: String, onSave: @escaping (String) -> Void) {
+    func showTextFieldAlert(presentingController: UIViewController? = nil, id: String? = nil, title: String, message: String = "", initialText: String, placeholder: String, keyboardType: UIKeyboardType = .default, cancelTitle: String, saveTitle: String, onSave: @escaping (String) -> Void) {
         
         let host = presentingController ?? self.alertHost
         
@@ -359,7 +365,8 @@ extension UIViewController {
             overlay.discardCard()
             let chrome = self.makeAlertChrome(overlay, on: host, cardColor: Colors.getColor("yelloworblue2"))
             let card = chrome.card
-            
+            card.accessibilityIdentifier = id
+
             let alertIcon = self.addAlertHeader(to: card, title: title, trailingLimit: card)
             
             // Add message, if present.
@@ -394,7 +401,7 @@ extension UIViewController {
             textField.keyboardType = keyboardType
             textField.autocapitalizationType = (keyboardType == .default) ? .sentences : .none
             textField.returnKeyType = .done
-            textField.accessibilityIdentifier = "alert.textField"
+            textField.accessibilityIdentifier = TestID.Alert.textField
             fieldView.addSubview(textField)
             
             // Dismissal helper.
@@ -481,21 +488,26 @@ extension UIViewController {
     // MARK: - Loading overlay
 
     // Shows a non-dismissable loading overlay over this view controller.
-    func showLoading(message: String) {
+    // `id` names which loading card this is (TestID.Loading.…) — see showAlert.
+    func showLoading(id: String? = nil, message: String) {
         DispatchQueue.main.async {
-            
+
             // Already showing → just swap the message, don't stack a second overlay.
             if let existing = self.view.subviews.compactMap({ $0 as? LoadingOverlayView }).first(where: { !$0.isDismissing }) {
                 existing.messageLabel?.text = message
+                // The message swap makes this a different card to the suite, so
+                // the id has to move with it.
+                existing.card?.accessibilityIdentifier = id
                 return
             }
-            
+
             // A plain view over everything absorbs all touches, so nothing
             // behind it is tappable and there's no gesture to dismiss it.
             let overlay = LoadingOverlayView()
             let chrome = self.makeAlertChrome(overlay, on: self, cardColor: Colors.getColor("whiteorblue3"))
             let card = chrome.card
-            
+            card.accessibilityIdentifier = id
+
             // Spinner
             let spinner = UIActivityIndicatorView(style: .medium)
             spinner.color = Colors.getColor("blackorwhite")

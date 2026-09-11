@@ -239,7 +239,7 @@ extension ConfirmSendViewController {
                 DispatchQueue.main.async {
                     self.confirmLabel.alpha = 1
                     self.confirmSpinner.stopAnimating()
-                    self.showAlert(title: Language.getWord(withID: "error"), message: Language.getWord(withID: "transactionerror") + ": " + errorMessage, buttons: [.dismiss(Language.getWord(withID: "okay"))])
+                    self.showAlert(id: TestID.Alert.transactionError, title: Language.getWord(withID: "error"), message: Language.getWord(withID: "transactionerror") + ": " + errorMessage, buttons: [.dismiss(Language.getWord(withID: "okay"))])
                     SentryManager.capture(error, context: "SendOnchain row 349")
                     SentryManager.countMetric("onchain.transaction.failure.2")
                 }

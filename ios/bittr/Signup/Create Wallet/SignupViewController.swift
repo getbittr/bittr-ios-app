@@ -164,7 +164,7 @@ class SignupViewController: UIViewController {
     @objc func screenshotTaken() {
         // User shouldn't screenshot their mnemonic.
         if self.currentPage == 5 {
-            self.showAlert(title: Language.getWord(withID: "becareful"), message: Language.getWord(withID: "noscreenshot"), buttons: [.dismiss(Language.getWord(withID: "okay"))])
+            self.showAlert(id: TestID.Alert.noScreenshot, title: Language.getWord(withID: "becareful"), message: Language.getWord(withID: "noscreenshot"), buttons: [.dismiss(Language.getWord(withID: "okay"))])
         }
     }
     
