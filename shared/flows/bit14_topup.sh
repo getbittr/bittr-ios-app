@@ -37,6 +37,12 @@ fi
 cd "${REPO_ROOT}" || { echo "cannot cd to ${REPO_ROOT}" >&2; exit 2; }
 
 SUITE="shared/flows/test_suite.sh"
+
+# Where this run's Maestro logs go — one file per flow, under a per-pass dir.
+# test_suite.sh defaults to a throwaway /tmp dir, which is the wrong default for
+# a 60–90 minute unattended pass: the 2026-09-10 attempt stopped part-way
+# through two of these passes and left nothing behind to say why. Gitignored.
+LOG_ROOT="${BITTR_LOG_DIR:-shared/flows/logs/$(date +%Y%m%d-%H%M%S)}"
 SHOTS="shared/docs/screenshots"
 MAP="shared/docs/screenshot_map.py"
 
@@ -101,16 +107,19 @@ run_pass() {
     local n="$1" label="$2" shots="$3"; shift 4
     banner "Pass ${n}/5 — ${label}  (${shots} shots)"
     echo "${DIM}\$ $*${RESET}"
+    local pass_logs="${LOG_ROOT}/pass${n}"
+    echo "${DIM}  logs: ${pass_logs}${RESET}"
     local start; start=$(date +%s)
-    if "$@"; then
+    if BITTR_LOG_DIR="${pass_logs}" "$@"; then
         local secs=$(($(date +%s) - start))
         ok "pass ${n} (${label}) — ${secs}s"
         RESULTS+=("${GREEN}✔${RESET} ${n}. ${label} (${shots} shots, ${secs}s)")
     else
         local secs=$(($(date +%s) - start))
         fail "pass ${n} (${label}) failed after ${secs}s"
-        RESULTS+=("${RED}✖${RESET} ${n}. ${label} — FAILED")
+        RESULTS+=("${RED}✖${RESET} ${n}. ${label} — FAILED (logs: ${pass_logs})")
         FAILED=1
+        warn "logs for this pass: ${pass_logs}"
         warn "resume with: ${BASH_SOURCE[0]} --from ${n}"
     fi
 }
