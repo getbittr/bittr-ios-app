@@ -91,7 +91,20 @@ shift || true
 case "$cmd" in
   devices) cat "$D/devices"; exit 0 ;;
   wait-for-device) exit 0 ;;
-  install|uninstall) trace "$cmd ${*}"; exit 0 ;;
+  install)
+    trace "install ${*}"
+    # A real `adb install` prints Success or Failure, and across platform-tools
+    # versions has exited 0 for both — which is why the driver reads the text.
+    if [ "$(knob install_fails 0)" = "1" ]; then
+      echo "Performing Streamed Install"
+      echo "adb: failed to install $*: Failure [INSTALL_FAILED_INVALID_APK: Failed to extract native libraries]"
+      exit "$(knob install_rc 0)"
+    fi
+    echo "Performing Streamed Install"
+    echo "Success"
+    exit 0
+    ;;
+  uninstall) trace "$cmd ${*}"; exit 0 ;;
   logcat)
     if [ "${1:-}" = "-c" ]; then : >"$D/logcat"; exit 0; fi
     cat "$D/logcat" 2>/dev/null
@@ -220,7 +233,20 @@ do_instrument() {
 case "${1:-}" in
   getprop) prop "${2:-}" ;;
 
-  input | wm | pm) : ;;
+  input | wm) : ;;
+
+  pm)
+    # `pm list instrumentation` is what the driver checks before any case runs:
+    # `am instrument` resolves an instrumentation entry, not a package, and an
+    # APK that installs without one is instrumentable by nothing. The
+    # no_instrumentation knob models exactly that.
+    if [ "${2:-}" = "list" ] && [ "${3:-}" = "instrumentation" ]; then
+      if [ "$(knob no_instrumentation 0)" != "1" ]; then
+        echo "instrumentation:com.bittr.android.core.keystore.probe.test/androidx.test.runner.AndroidJUnitRunner (target=com.bittr.android.core.keystore.probe.test)"
+      fi
+      echo "instrumentation:com.example.other/androidx.test.runner.AndroidJUnitRunner (target=com.example.other)"
+    fi
+    ;;
 
   dumpsys)
     if [ "${2:-}" = "account" ]; then
@@ -664,6 +690,50 @@ run_driver M2
 expect_rc 2
 expect_out "below the project's minSdk 26"
 refute_trace "install"
+
+# ---------------------------------------------------------------------------
+# The install has to be verified, not assumed
+# ---------------------------------------------------------------------------
+#
+# Run #2 of the CI workflow produced five rows of `ERROR | seal`, each saying
+# "seal phase failed", for a reason three steps upstream of the row. Anything
+# that makes every case fail its first instrumentation looks identical in the
+# table, and the table is the only thing that gets out — so the driver has to
+# stop at the cause. Both shapes below are ones `adb` reports without failing.
+
+scenario "an install that prints Failure and exits 0 stops the run"
+# The classic: across platform-tools versions `adb install` has printed
+# `Failure [INSTALL_FAILED_...]` on stdout and still exited 0. Reading only the
+# exit status turns that into six cases that cannot possibly pass.
+knob install_fails 1
+knob install_rc 0
+run_driver M2
+expect_rc 1
+expect_out "installing"
+expect_out "INSTALL_FAILED_INVALID_APK"
+refute_trace "instrument"
+
+scenario "an install that fails and exits non-zero also stops the run"
+knob install_fails 1
+knob install_rc 1
+run_driver M2
+expect_rc 1
+refute_trace "instrument"
+
+scenario "an APK with no registered instrumentation stops the run"
+# Installs perfectly, and `am instrument` can resolve nothing. The driver must
+# say that rather than report it once per case as a failed seal.
+knob no_instrumentation 1
+run_driver M2
+expect_rc 1
+expect_out "is not registered as an instrumentation"
+expect_out "am instrument cannot resolve it"
+refute_trace "instrument"
+
+scenario "a good install reports what it verified"
+run_driver M2
+expect_rc 0
+expect_out "instrumentation androidx.test.runner.AndroidJUnitRunner registered"
 
 scenario "two attached devices and no -s is refused"
 printf 'List of devices attached\nemulator-5554\tdevice\nemulator-5556\tdevice\n\n' >"$FAKE/devices"

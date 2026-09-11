@@ -373,8 +373,37 @@ fi
 # previous run's no_backup state, and K1State.read would then find a sealed
 # envelope belonging to a key that no longer exists.
 a uninstall "$TEST_PKG" >/dev/null 2>&1 || true
-a install -t "$apk" >/dev/null
-echo "k1: installed $TEST_PKG"
+
+# `adb install` is one of the commands this harness must not take at its word.
+# Across platform-tools versions it has printed `Failure [INSTALL_FAILED_...]` on
+# stdout and still exited 0, so `a install ... >/dev/null` can swallow a failed
+# install whole. What follows is then six cases that each fail their first
+# instrumentation and six identical ERROR rows saying "seal phase failed", which
+# describes the symptom three steps downstream of the cause.
+install_out=$(a install -t "$apk" 2>&1) || true
+if ! printf '%s' "$install_out" | grep -q 'Success'; then
+  echo "k1: installing $apk failed." >&2
+  printf '%s\n' "$install_out" | sed 's/^/    /' >&2
+  exit 1
+fi
+
+# And then the thing `am instrument` actually resolves, which is not the package:
+# it is the instrumentation entry the APK registers. A self-instrumenting
+# androidTest APK whose <instrumentation> tag did not survive manifest merging
+# installs perfectly and cannot be instrumented, and the failure text for that
+# ("Unable to find instrumentation info") arrives per case rather than once.
+#
+# Checked here, once, so the run stops at the cause with the device's own answer
+# quoted, instead of reporting a platform verdict it never measured.
+if ! sh_ pm list instrumentation 2>/dev/null | tr -d '\r' | grep -qF "$TEST_PKG/$RUNNER"; then
+  echo "k1: $TEST_PKG installed, but $RUNNER is not registered as an instrumentation." >&2
+  echo "    am instrument cannot resolve it, so no case could produce a result." >&2
+  echo "    The device reports:" >&2
+  sh_ pm list instrumentation 2>/dev/null | tr -d '\r' | sed 's/^/      /' >&2
+  exit 1
+fi
+
+echo "k1: installed $TEST_PKG, instrumentation $RUNNER registered"
 echo
 
 # ---------------------------------------------------------------------------
