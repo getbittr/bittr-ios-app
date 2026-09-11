@@ -75,10 +75,32 @@ REQUIRED = {
     f"{PACKAGE}.ThirdPartyIsolationTest#theHardeningBaselineIsAppliedToTheRealWebView",
 }
 
-DEFAULT_RESULTS_DIR = (
-    pathlib.Path(__file__).resolve().parents[1]
-    / "feature/website/build/outputs/androidTest-results/connected"
+MODULE_BUILD_DIR = (
+    pathlib.Path(__file__).resolve().parents[1] / "feature/website/build"
 )
+
+# AGP has moved this directory between major versions — `androidTest-results/`
+# gained a `connected/` level, then a variant level under it — and the failure
+# mode of hard-coding the wrong one is a FALSE RED after a twenty-minute emulator
+# boot, which is the most expensive kind of wrong this file could be. So the
+# default is the first of these that exists, and `--results-dir` overrides.
+#
+# Only `outputs/` is searched, never `build/` wholesale: unit-test XML lands in
+# `build/test-results/` and is written by a task that needs no device. Reading it
+# here would let `./gradlew test` satisfy a gate whose entire claim is "these ran
+# on a real Android image".
+DEFAULT_RESULTS_CANDIDATES = (
+    MODULE_BUILD_DIR / "outputs/androidTest-results/connected",
+    MODULE_BUILD_DIR / "outputs/androidTest-results",
+    MODULE_BUILD_DIR / "outputs/connected_android_test_additional_output",
+)
+
+
+def default_results_dir():
+    for candidate in DEFAULT_RESULTS_CANDIDATES:
+        if candidate.is_dir():
+            return candidate
+    return DEFAULT_RESULTS_CANDIDATES[0]
 
 
 class Case:
@@ -133,11 +155,12 @@ def main(argv=None):
     parser.add_argument(
         "--results-dir",
         type=pathlib.Path,
-        default=DEFAULT_RESULTS_DIR,
-        help="Gradle's androidTest-results/connected directory.",
+        default=None,
+        help="Gradle's androidTest-results directory. Defaults to the first of "
+             "the known AGP layouts that exists under :feature:website.",
     )
     args = parser.parse_args(argv)
-    results_dir = args.results_dir
+    results_dir = args.results_dir or default_results_dir()
 
     if not results_dir.is_dir():
         print(f"::error::No instrumented-test results at {results_dir}. Gradle "
