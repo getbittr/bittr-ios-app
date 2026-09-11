@@ -151,7 +151,7 @@ covered; it is not evidence that anything is being checked today.
 | Coarse location **is** in the merged manifest | `MapSdkGuardTest` — an app requesting no location at all would pass the test above |
 | Google Maps / Mapbox / osmdroid / `play-services-location` off the dependency graph | `MapSdkGuardTest` |
 | MapLibre still *is* the renderer | `MapSdkGuardTest` — so replacing it is a deliberate act, since a renderer with vendor telemetry would falsify the shipped copy |
-| No bounding-box BTCMap request | `MapSdkGuardTest` |
+| No bounding-box BTCMap request | `MapSdkGuardTest` — **latent**: nothing matches its places-source markers until the map screen lands, so a green run is not yet evidence here |
 
 All of these run on the JVM in `./gradlew test`, which is the `Unit tests` step of
 `.github/workflows/android-maestro.yml` — it runs on every push and pull request touching

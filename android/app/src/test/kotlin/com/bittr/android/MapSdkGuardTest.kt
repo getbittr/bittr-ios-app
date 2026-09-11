@@ -28,7 +28,8 @@ import org.robolectric.annotation.Config
  *    vendor telemetry in the SDK — the specific thing MapLibre forked to remove.
  * 2. **The places sync downloads the whole dataset and filters on-device.** This is
  *    the reason bittr can say a user's location never leaves their device at all.
- *    A bounding-box query is cheaper and would silently end that.
+ *    A bounding-box query is cheaper and would silently end that. Latent until the
+ *    map screen lands — see the test's own note; it has nothing to scan yet.
  * 3. **Coarse location only.** Asserted from the merged manifest here and from four
  *    angles in [LocationPrecisionGuardTest].
  *
@@ -36,8 +37,16 @@ import org.robolectric.annotation.Config
  *
  * Swapping the renderer is one line in `libs.versions.toml`, and switching the sync
  * to a bbox query is a faster app that passes every flow. Neither shows up as a bug
- * report. The only thing that changes is which third party learns where a user is,
- * and whether `Language.swift`'s map paragraph is still true.
+ * report. The only thing that changes is which third party learns where a user is.
+ *
+ * The approved copy will not catch either one. The final BIT-56 wording deliberately
+ * says "a map provider" and names nobody (`shared/strings/en.json`,
+ * `mapvcpoweredbyalert`; `ios/bittr/Language.swift:595`), so that one shared string
+ * survives the tile host changing on one platform and not the other. That is the
+ * right call for the copy and it removes the second place a renderer swap could have
+ * been noticed: the paragraph still reads as true whoever serves the tiles, even when
+ * the vendor behind it has started sending pan/zoom and a persistent identifier home.
+ * So the build is the only tripwire left, which is why these are tests.
  */
 @RunWith(AndroidJUnit4::class)
 @Config(sdk = [34])
@@ -68,6 +77,17 @@ class MapSdkGuardTest {
 
         /** The chosen renderer, by Gradle coordinate. */
         const val CHOSEN_SDK = "org.maplibre.gl"
+
+        /**
+         * How a Kotlin file is recognised as the places sync.
+         *
+         * The viewport scan is gated on one of these so that `bbox` in an unrelated
+         * file — a tile URL template, a test fixture — is not a failure. `btcmap`
+         * alone would have missed a repository class named after the model rather
+         * than the host, so the iOS type name is here too
+         * (`BitcoinPlace.swift`).
+         */
+        val PLACES_SOURCE_MARKERS = listOf("btcmap", "bitcoinplace", "bitcoin_place")
 
         /**
          * Query keys that turn the places sync into a request that describes where
@@ -123,7 +143,8 @@ class MapSdkGuardTest {
                 "(BIT-15), where the responsibility is bittr's and not the SDK's.\n" +
                 "Offending files:\n  " + offenders.joinToString("\n  ") + "\n" +
                 "Read android/docs/map-sdk-decision.md before changing this, and raise it on " +
-                "BIT-53 — the user-facing copy names the provider, so a swap is a copy change.",
+                "BIT-53. Do not expect the copy to stop you: it says \"a map provider\" and " +
+                "names nobody, so it still reads as true with either of these in the build.",
             offenders.isEmpty(),
         )
     }
@@ -134,19 +155,35 @@ class MapSdkGuardTest {
 
         assertTrue(
             "No build file declares $CHOSEN_SDK. This test exists so that removing MapLibre " +
-                "is a deliberate act rather than a side effect: the approved map copy names " +
-                "the provider that serves bittr's tiles, so the renderer and the copy have to " +
-                "move together. If the map is being rebuilt on something else, update " +
-                "android/docs/map-sdk-decision.md and tell the Growth & Content Lead before " +
-                "this test is edited.",
+                "is a deliberate act rather than a side effect. Nothing else will flag it: the " +
+                "approved map copy says \"a map provider\" and names nobody, so a renderer swap " +
+                "is not automatically a copy change and will not come back through a copy " +
+                "review — which is exactly why the check has to live here. MapLibre was chosen " +
+                "because it sends nothing to its own vendor; a replacement that does is a " +
+                "privacy regression the wording would not reveal. If the map is being rebuilt " +
+                "on something else, update android/docs/map-sdk-decision.md and raise it on " +
+                "BIT-53 before this test is edited.",
             declared,
         )
     }
 
+    /**
+     * **This one passes vacuously today, and that is not a bug — but do not read a
+     * green run as "the sync property is enforced".** No Kotlin file in the repo
+     * matches [PLACES_SOURCE_MARKERS] yet, because the Android map screen has not
+     * landed, so there is nothing for it to scan. It is here now so that it is
+     * already in place on the commit that writes the first BTCMap request, rather
+     * than being remembered afterwards. The property it defends is real from the
+     * moment that request exists; until then, only the other three guards in this
+     * class are actually holding anything.
+     */
     @Test
     fun `the places sync does not ask for a viewport`() {
         val offenders = SourceTree.kotlinSources(*ALLOWED_FILES.toTypedArray())
-            .filter { "btcmap" in it.readText().lowercase() }
+            .filter { file ->
+                val text = file.readText().lowercase()
+                PLACES_SOURCE_MARKERS.any { it in text }
+            }
             .mapNotNull { file ->
                 val text = file.readText()
                 val hit = VIEWPORT_QUERY_KEYS.firstOrNull { it in text } ?: return@mapNotNull null
