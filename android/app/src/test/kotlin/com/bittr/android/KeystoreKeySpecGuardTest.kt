@@ -44,7 +44,16 @@ class KeystoreKeySpecGuardTest {
         )
     }
 
-    private val source: String by lazy {
+    /**
+     * The file with comments stripped.
+     *
+     * Necessary, not tidiness: the class documentation in `KeystoreSecureStore.kt`
+     * explains *why* `setUserAuthenticationRequired(true)` is absent, and a guard
+     * that grepped the raw text would fire on that sentence. Stripping comments is
+     * also the honest reading of the rule — what matters is what the key spec does,
+     * not what the file says about it.
+     */
+    private val code: String by lazy {
         val file = File(SourceTree.root, STORE)
         assertTrue(
             "Expected the Keystore store at ${file.repoPath()}. If it moved, update " +
@@ -52,6 +61,9 @@ class KeystoreKeySpecGuardTest {
             file.isFile,
         )
         file.readText()
+            .replace(Regex("/\\*.*?\\*/", RegexOption.DOT_MATCHES_ALL), "")
+            .lines()
+            .joinToString("\n") { it.substringBefore("//") }
     }
 
     @Test
@@ -63,7 +75,7 @@ class KeystoreKeySpecGuardTest {
                     "A key bound this way cannot be used while the screen is off, and " +
                     "cannot be created at all on a device with no lockscreen " +
                     "credential. Change BIT-8 first, then this test.",
-                !source.contains(call),
+                !code.contains(call),
             )
         }
     }
@@ -74,17 +86,17 @@ class KeystoreKeySpecGuardTest {
             assertTrue(
                 "$STORE no longer configures $call. The seed blob's confidentiality " +
                     "rests entirely on this key spec.",
-                source.contains(call),
+                code.contains(call),
             )
         }
         assertTrue(
             "$STORE must seal with AES/GCM/NoPadding.",
-            source.contains("\"AES/GCM/NoPadding\""),
+            code.contains("\"AES/GCM/NoPadding\""),
         )
         assertEquals(
             "Key size must stay at 256 bits.",
             256,
-            Regex("KEY_BITS = (\\d+)").find(source)?.groupValues?.get(1)?.toInt(),
+            Regex("KEY_BITS = (\\d+)").find(code)?.groupValues?.get(1)?.toInt(),
         )
     }
 
@@ -97,7 +109,7 @@ class KeystoreKeySpecGuardTest {
     fun `an unreadable seed is an error, never an empty result`() {
         assertTrue(
             "$STORE must not return null from read() on a decryption failure.",
-            source.contains("throw WalletStorageException(\"Could not decrypt"),
+            code.contains("throw WalletStorageException(\"Could not decrypt"),
         )
     }
 }
