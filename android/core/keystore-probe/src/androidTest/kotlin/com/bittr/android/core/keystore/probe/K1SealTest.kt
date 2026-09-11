@@ -1,5 +1,6 @@
 package com.bittr.android.core.keystore.probe
 
+import android.os.Build
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertEquals
@@ -41,19 +42,45 @@ class K1SealTest {
             secureAtSeal,
         )
 
-        K1Probe.generate(K1KeySpecs.nonAuthBound(case.nonAuthAlias))
+        // Rule 2 is checked twice, against two different things, because neither check alone
+        // covers the whole matrix.
+        //
+        //   the spec   — what K1 asked Keystore for. Readable on every API in the matrix, so
+        //                this is what catches the failure mode the checks exist for: someone
+        //                edits K1KeySpecs.nonAuthBound to bind the key, and K1 keeps passing
+        //                for a key the BIT-8 decision is not about.
+        //   the readback — what Keystore says it actually created. Strictly better evidence,
+        //                and strictly less available: KeyInfo.isUnlockedDeviceRequired only
+        //                exists from 36.1 (see K1Probe.unlockedDeviceRequiredOf).
+        //
+        // Which ones were available goes into the row. A rule-2 check that could not run must
+        // not be reported as a rule-2 check that passed.
+        val spec = K1KeySpecs.nonAuthBound(case.nonAuthAlias)
+        assertFalse(
+            "BIT-8 rule 2 violated in the spec: ${case.nonAuthAlias} is built with " +
+                "setUserAuthenticationRequired(true)",
+            spec.isUserAuthenticationRequired,
+        )
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+            assertFalse(
+                "BIT-8 rule 2 violated in the spec: ${case.nonAuthAlias} is built with " +
+                    "setUnlockedDeviceRequired(true)",
+                spec.isUnlockedDeviceRequired,
+            )
+        }
 
-        // Rule 2, read back from Keystore rather than assumed from the builder. Without this,
-        // an edit to K1KeySpecs.nonAuthBound that bound the key to authentication would leave
-        // K1 green while testing a key the decision is not about.
+        K1Probe.generate(spec)
+
         val facts = K1Probe.describe(case.nonAuthAlias)
         assertFalse(
             "BIT-8 rule 2 violated: ${case.nonAuthAlias} reports isUserAuthenticationRequired=true",
             facts.userAuthenticationRequired,
         )
+        // `null` is "this device cannot be asked", not "the device said no", so it is neither a
+        // pass nor a failure — it is recorded as unknown and the spec check above stands in.
         assertFalse(
             "BIT-8 rule 2 violated: ${case.nonAuthAlias} reports isUnlockedDeviceRequired=true",
-            facts.unlockedDeviceRequired,
+            facts.unlockedDeviceRequired == true,
         )
 
         val envelope = K1Probe.seal(case.nonAuthAlias, K1Probe.KNOWN_PLAINTEXT)
@@ -98,6 +125,9 @@ class K1SealTest {
                 "authControl" to controlCreated.toString(),
                 "securityLevel" to facts.securityLevel,
                 "envelopeBytes" to envelope.size.toString(),
+                // "unknown" means KeyInfo has no isUnlockedDeviceRequired on this device, so
+                // rule 2's second half rests on the spec check alone for this row.
+                "unlockedDeviceRequired" to (facts.unlockedDeviceRequired?.toString() ?: "unknown"),
             ),
         )
     }

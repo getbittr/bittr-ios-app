@@ -80,11 +80,47 @@ object K1Probe {
             .getKeySpec(key, KeyInfo::class.java) as KeyInfo
         return KeyFacts(
             userAuthenticationRequired = info.isUserAuthenticationRequired,
-            unlockedDeviceRequired =
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) info.isUnlockedDeviceRequired else false,
+            unlockedDeviceRequired = unlockedDeviceRequiredOf(info),
             securityLevel = securityLevelOf(info),
         )
     }
+
+    /**
+     * Whether Keystore says this key is unlocked-device-bound, or `null` where the device
+     * cannot be asked.
+     *
+     * WHY REFLECTION AND NOT A VERSION GUARD
+     *
+     * This read used to be `if (SDK_INT >= P) info.isUnlockedDeviceRequired else false`, and it
+     * threw `NoSuchMethodError` on every device in K1's matrix — API 26, 30, 33, 34 and 35 —
+     * because the guard names the wrong API level by eight. `setUnlockedDeviceRequired` is on
+     * `KeyGenParameterSpec.Builder` from API 28; the *readback* on [KeyInfo] arrived only in
+     * **36.1**. It compiled because compileSdk is 37, and the whole matrix came back as five
+     * ERROR rows with no verdict on rule 2.
+     *
+     * Writing `SDK_INT >= 36` instead would be wrong again in the same direction: 36.1 is a
+     * minor release, `SDK_INT` is 36 on both 36.0 and 36.1, and the field that can tell them
+     * apart — `Build.VERSION.SDK_INT_FULL` — does not itself exist below 36. A correct version
+     * guard here is a two-level check whose failure mode is this exact `NoSuchMethodError`,
+     * discoverable only by booting a device.
+     *
+     * So K1 asks the device instead of asking the documentation, which is the premise the whole
+     * issue is built on: "documentation is not a device and OEM builds diverge." An absent
+     * method is a fact about that device, and it comes back as `null` — *unknown*, never as
+     * `false`. A missing readback must not be able to report itself as a satisfied rule 2.
+     *
+     * [K1KeySpecs.nonAuthBound] never calls the setter, so the honest reading below 36.1 is
+     * "the spec did not ask for it and the device cannot be asked what it did" — which is what
+     * K1SealTest asserts and what the result table records per row.
+     */
+    private fun unlockedDeviceRequiredOf(info: KeyInfo): Boolean? =
+        try {
+            KeyInfo::class.java.getMethod("isUnlockedDeviceRequired").invoke(info) as? Boolean
+        } catch (_: NoSuchMethodException) {
+            null
+        } catch (_: ReflectiveOperationException) {
+            null
+        }
 
     private fun securityLevelOf(info: KeyInfo): String =
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
@@ -111,7 +147,8 @@ object K1Probe {
 
     data class KeyFacts(
         val userAuthenticationRequired: Boolean,
-        val unlockedDeviceRequired: Boolean,
+        /** `null` where [KeyInfo] has no `isUnlockedDeviceRequired` — see [unlockedDeviceRequiredOf]. */
+        val unlockedDeviceRequired: Boolean?,
         val securityLevel: String,
     )
 
