@@ -94,6 +94,15 @@ private val Cream = Color(0xFFF8EEC6)
  * `yellow` is a **surface** in this app, not an accent: 56 storyboard fills against
  * 61 text uses. That is why it is `primary` *and* `primaryContainer` and why
  * `onPrimary` is black.
+ *
+ * **So a filled Material `Button` is wrong in light mode and always was.** It would
+ * paint itself `primary`, which here is 1.42 : 1 against `surface` — the brand colour
+ * against the brand page. That is not a bug to fix by moving `primary`; moving it
+ * would unpick the 56 fills and every test that measures against it. It is a rule:
+ * the primary call to action on this canvas is [BittrColors.actionFill], which
+ * [BittrPrimaryButton] paints, at 17.35 : 1. Dark mode had the same collision at
+ * 1.00 : 1 and could be fixed in the slot, so it was — see [BittrDarkColors].
+ * `TokenContrastTest` holds both halves of that. BIT-94.
  */
 val BittrLightColors: ColorScheme = lightColorScheme(
     primary = Yellow,
@@ -129,10 +138,25 @@ val BittrLightColors: ColorScheme = lightColorScheme(
  * is 4.44 : 1, which misses AA for body text. `blue1` (7.15) and `blue2` (5.97) are
  * promoted and `blue3` demoted to `surfaceContainerHigh`, where it still clears
  * AA-large for accents. **This changes the dark-mode look — founder sign-off, BIT-15.**
+ *
+ * **A11Y-22 moved `primary` off `surface`.** A11Y-02 promoted `blue1` into `surface`
+ * while `primary` was already `blue1`, so the two slots collided at **1.00 : 1** and
+ * every Material control that paints itself `primary` — a filled `Button`, a `Switch`
+ * track, a `Slider`, a focused `TextField`'s indicator — became the page it sits on.
+ * The label still rendered, so a button read as floating text rather than as a control,
+ * which is exactly the failure WCAG 1.4.11 is about. The two schemes are asymmetric
+ * here and that is the point: see [BittrLightColors] for why `primary` is a *surface*
+ * in light mode and cannot be moved there. BIT-94.
  */
 val BittrDarkColors: ColorScheme = darkColorScheme(
-    primary = Blue1,
-    onPrimary = Color.White,
+    // A11Y-22. Not a new colour and not a new decision: this is the value
+    // [BittrDarkColorsExtended]'s `actionFill` already carries, for the same reason and
+    // with the same numbers (6.38 : 1 on `surface`, and a 17.35 : 1 ink label). The
+    // dark primary action had already inverted to `grey1` on the canvas; this is the
+    // Material slot catching up, so the two cannot drift apart. `TokenContrastTest`
+    // asserts they stay equal. BIT-94.
+    primary = Grey1,
+    onPrimary = Ink,
     primaryContainer = Blue2,
     onPrimaryContainer = Color.White,
     surface = Blue1,
