@@ -63,3 +63,28 @@ None of these unblock anything: while iOS renders with MapKit, Apple is a recipi
 The BIT-53 doc and BIT-73 both record a constraint that no map screen may point at a vendor's tile host, and both attribute it to the copy — true while the *shipping* string is the old unqualified "we don't share your location with third parties". Once this rewrite ships, that attribution lapses: "whoever serves them sees the area you are looking at" is equally true of MapTiler, so the copy stops forbidding a vendor host.
 
 The constraint should survive on its own footing — Ruben chose self-hosted tiles on 2026-09-11 (BIT-53) — and not on this sentence. Do not read the merge of this rewrite as authorisation to point the map at a vendor.
+
+### This alert is not a notice, and must never be recorded as one
+
+The alert is opt-in behind a small attribution credit — it appears only when the user taps "Powered by BTCMap.org" (`poweredByTapped`, `ios/bittr/Map/MapViewController.swift:103`). Most users who open the map will never see it.
+
+That makes it good practice, not disclosure. Do not cite this string — in a data-safety form, a DPIA, a privacy-policy review, or a regulator answer — as evidence that the tile recipient has been disclosed to users. That burden sits entirely on the privacy policy and the two store data-safety declarations, which is BIT-71 and is not done. Flagged by the Compliance & Regulatory Officer on BIT-69, recorded here because the merge of this rewrite is exactly the moment someone would be tempted to tick that box.
+
+### The string has a length budget, and the copy is not what gives way
+
+The alert card has no scroll view. The message is one `UILabel` with `numberOfLines = 0` (`ios/bittr/AlertManager.swift:291–294`) inside a card capped at `heightAnchor ≤ host.view.bounds.height` (`:129`). The cap is a required constraint and the label's content height is not, so on a screen too short for the text the label compresses and the **last** paragraph is what disappears. On this string the last paragraph is the tile disclosure — the concession. Truncation here does not degrade the copy, it reverts it: what survives on screen is an unqualified "your location is never sent", which is the BIT-45 defect the rewrite exists to remove.
+
+The rewrite roughly doubled the string (269 → 558 plain characters), so the check is real. It is being run on an iPhone SE 2/3 — 375×667pt, in scope at deployment target 17.4 — under **BIT-82**, and that render gates the merge.
+
+Two independent calculations disagree on whether it fits, which is why one screenshot is worth more than a third calculation:
+
+| | Result |
+|---|---|
+| Compliance (BIT-69) | a few percent over on SE, stated as inside their error bars |
+| Growth & Content (BIT-56) | ~430pt of text against a ~526pt budget — fits, with about four lines of slack |
+
+The budget: label width 275pt (card inset 10 each side, label inset 40 each side, `:328–329`); 16px at `line-height: 1.28` → 20.5pt per line (`ios/bittr/Extensions/String.swift:187–189`); chrome above and below the label 141pt (19 + 17 icon + 25 + 25 + 40 button + 15, `:157–160`, `:192`, `:327–334`); cap 667pt. Greedy wrap puts the message at 21 lines. It only overflows if the average glyph advance at 16px Gilroy-Regular is ≥ ~9.8pt, which would be wide for mixed English text. Both figures are arithmetic — neither was rendered.
+
+**If it does not fit, the fix is the container, not the copy.** Wrap the message in a `UIScrollView`, or lower the priority of the height cap. Shortening the message is not available as a remedy: every paragraph is load-bearing (see the two standing conditions above), the shortest thing to cut is the tile disclosure, and any reword re-triggers both reads. A container fix needs neither.
+
+The Maestro flow does not cover this. `alert.button.0` is pinned to the card and stays visible while the label is what compresses, so the flow passes on a truncated alert.
