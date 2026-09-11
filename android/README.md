@@ -133,6 +133,7 @@ CI runs this on every push: `.github/workflows/android-maestro.yml`.
 app                  single Activity, navigation graph, DI wiring
 core/common          generated TestIDs.kt (pure Kotlin, no Android)
 core/designsystem    BittrTheme + tokens
+core/permissions     the permissions the app may request, and settings deep links
 core/wallet          wallet API — interfaces and models only, no implementation
 core/wallet-stub     deterministic no-op wallet, used by the scaffold and CI
 feature/signup       create-or-restore entry point
@@ -162,6 +163,45 @@ implementation instead of the interface, and that is the seam leaking.**
 The interface in `:core:wallet` is sized to what the scaffold needs today and is
 explicitly *not* a design for the wallet layer — the Bitcoin Wallet Engineer owns
 that shape and should widen it in BIT-6.
+
+## Permissions are copy, and the copy has been approved
+
+Read `core/permissions/.../BittrPermissions.kt` before you write a permission
+request. Two of the approved permission strings make **factual claims about what
+this build does**, and compliance signed them off as binding on the implementation
+rather than as preferences (BIT-36, BIT-57):
+
+- *"The camera is used only to read the code in front of it. Nothing is recorded."*
+  → the scanner binds CameraX `ImageAnalysis` and **no capture use case**.
+- *"To centre the map on where you are, bittr needs your approximate location."*
+  → `ACCESS_COARSE_LOCATION` only. Never fine.
+
+Both are enforced on the JVM, by `CameraCaptureGuardTest` and
+`LocationPrecisionGuardTest`. Each checks three places, because there are three
+ways to break the claim and only one of them is visible in a diff:
+
+1. **The Kotlin sources** — someone types the API.
+2. **The build files** — a banned artefact arrives as a dependency.
+3. **The merged manifest**, read back through Robolectric's `PackageManager` — a
+   dependency declares the permission in *its* manifest and the merger unions it
+   into the APK. No source scan can see this one, which is why
+   `app/src/main/AndroidManifest.xml` carries `tools:node="remove"` entries for
+   `ACCESS_FINE_LOCATION` and `RECORD_AUDIO`. Those lines are load-bearing; do not
+   delete them to make a build pass.
+
+**These tests are not style rules, and passing them is not optional.** The failure
+they catch is the one nothing else can: the app keeps working perfectly, every flow
+stays green, and the only thing that changed is that a sentence bittr has shipped to
+users stopped being true. If a screen genuinely needs a capture use case or precise
+location, say so on BIT-57 *before* it ships — the copy changes first, and changed
+copy goes back through compliance.
+
+The permanently-denied states have a requirement of their own: the approved copy no
+longer names an OS settings path, so the button has to do the navigating. Use
+`AppSettings` + `firstResolvable` rather than building the intent inline —
+the fallback chain and the `<queries>` visibility declaration both live there, and
+the second is invisible to every JVM test (`AppSettingsDeepLinkTest` guards it by
+source).
 
 ## Test IDs
 

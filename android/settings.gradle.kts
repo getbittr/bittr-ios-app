@@ -37,6 +37,13 @@ include(":app")
 include(":core:common")
 include(":core:designsystem")
 
+// The runtime-permission seam. Holds the permission set the app is allowed to ask
+// for and the settings deep links the permanently-denied states navigate to — both
+// of which approved copy makes factual claims about (BIT-57). Feature modules ask
+// through here rather than naming permission strings directly, so the guard tests
+// in :app have one allowed call site to check against.
+include(":core:permissions")
+
 // The wallet seam. :core:wallet is API-only (pure Kotlin interfaces + models).
 // :core:wallet-stub is the deterministic implementation the scaffold and CI run
 // against. BIT-6 adds :core:wallet-ldk (ldk-node + BDK) as a second binding of

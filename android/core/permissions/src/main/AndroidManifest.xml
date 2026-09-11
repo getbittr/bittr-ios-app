@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!--
+      Makes the settings app visible to `Intent.resolveActivity`.
+
+      From targetSdk 30 onward, package visibility filtering hides most other
+      packages from this one, and a hidden target makes `resolveActivity` return
+      null. Without this block `firstResolvable` would answer "the device cannot
+      open its own settings" on every modern Android — silently, and identically to
+      the OEM case the fallback chain exists for, so the permanently-denied button
+      would disappear on every device rather than the rare one.
+
+      These declare visibility only. They do not let the app read anything, and they
+      do not add a permission to the manifest.
+    -->
+    <queries>
+        <intent>
+            <action android:name="android.settings.APP_NOTIFICATION_SETTINGS" />
+        </intent>
+        <intent>
+            <action android:name="android.settings.APPLICATION_DETAILS_SETTINGS" />
+            <data android:scheme="package" />
+        </intent>
+    </queries>
+
+</manifest>
