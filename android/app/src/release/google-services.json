@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "32504298165",
+    "project_id": "bittr-prod",
+    "storage_bucket": "bittr-prod.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:32504298165:android:b4effcbf15ff71fbf99cfc",
+        "android_client_info": {
+          "package_name": "com.bittr.android"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCzYqIuvp_vDEjpH8KYOx7V1gq2aOflstg"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
