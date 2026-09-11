@@ -40,9 +40,15 @@ set -euo pipefail
 
 cd "$(git rev-parse --show-toplevel)"
 DRIVER="$PWD/android/scripts/k1-lockscreen-matrix.sh"
+CI_WRAPPER="$PWD/android/scripts/k1-ci.sh"
 
 if [ ! -f "$DRIVER" ]; then
   echo "test-k1-driver: $DRIVER not found" >&2
+  exit 1
+fi
+
+if [ ! -f "$CI_WRAPPER" ]; then
+  echo "test-k1-driver: $CI_WRAPPER not found" >&2
   exit 1
 fi
 
@@ -702,6 +708,98 @@ scenario "case ids are accepted in lower case"
 run_driver m2
 expect_rc 0
 expect_out "| M2 | PASS |"
+
+# ---------------------------------------------------------------------------
+# The CI wrapper
+# ---------------------------------------------------------------------------
+#
+# android/scripts/k1-ci.sh is what .github/workflows/k1-keystore-lockscreen.yml
+# runs on the emulator, and it is the thing that decides whether the JOB goes
+# green. A wrapper that swallowed the driver's exit status would turn every
+# shape of failure the section above pins down into a green tick on the run
+# page — the driver would be right and nobody would ever read it.
+#
+# The step summary matters for the same reason. It is where a row gets read
+# from, so a run that produced no table must say so there rather than leaving
+# the previous run's heading standing alone above nothing.
+
+run_ci() {
+  cp "$CI_WRAPPER" "$SANDBOX/android/scripts/k1-ci.sh"
+  set +e
+  OUT=$(cd "$SANDBOX" && PATH="$BIN:$PATH" K1_FAKE_DIR="$FAKE" \
+    K1_OUT="k1-results/api-33.md" K1_API_LEVEL=33 \
+    GITHUB_STEP_SUMMARY="$SANDBOX/summary.md" "$@" \
+    bash android/scripts/k1-ci.sh 2>&1)
+  RC=$?
+  set -e
+}
+
+expect_summary() {
+  if [ -f "$SANDBOX/summary.md" ] && grep -qF -- "$1" "$SANDBOX/summary.md"; then
+    pass_check "job summary contains: $1"
+  else
+    fail_check "job summary contains: $1" \
+      "summary follows:
+$(sed 's/^/        | /' "$SANDBOX/summary.md" 2>&1)"
+  fi
+}
+
+scenario "the CI wrapper runs the matrix and publishes the table"
+run_ci
+expect_rc 0
+if grep -q '| M2 | PASS |' "$SANDBOX/k1-results/api-33.md" 2>/dev/null; then
+  pass_check "the table lands in K1_OUT"
+else
+  fail_check "the table lands in K1_OUT" "$(cat "$SANDBOX/k1-results/api-33.md" 2>&1)"
+fi
+expect_summary "## K1 — API 33"
+expect_summary "| M2 | PASS |"
+expect_summary "Every row PASS"
+# The fingerprint is the difference between evidence and an anecdote.
+expect_out "google/sdk_gphone64_x86_64"
+
+scenario "a failing row fails the CI job"
+# The row the whole test exists to catch: the key did NOT survive. A wrapper
+# that exits 0 here reports a rule-2 contradiction as a green tick.
+knob verdict_open fail
+run_ci
+if [ "$RC" -ne 0 ]; then
+  pass_check "nonzero exit"
+else
+  fail_check "nonzero exit" "the wrapper swallowed a FAIL row"
+fi
+expect_summary "Not every row is PASS"
+
+scenario "a mutation that silently did not happen fails the CI job"
+knob mutation_noop 1
+run_ci
+if [ "$RC" -ne 0 ]; then
+  pass_check "nonzero exit"
+else
+  fail_check "nonzero exit" "the wrapper reported an unwitnessed run as green"
+fi
+expect_summary "Not every row is PASS"
+
+scenario "a run that produced no table says so in the summary"
+# The driver refuses before writing anything; the summary must not be left
+# implying a table exists.
+prop ro.build.version.sdk 25
+run_ci
+if [ "$RC" -ne 0 ]; then
+  pass_check "nonzero exit"
+else
+  fail_check "nonzero exit" "a refused run reported success"
+fi
+expect_summary "The matrix produced no table"
+
+scenario "M6 is off unless the workflow asks for it"
+run_ci
+refute_trace "dpm set-device-owner"
+
+scenario "K1_WITH_DEVICE_OWNER=1 reaches the driver"
+run_ci env K1_WITH_DEVICE_OWNER=1
+expect_rc 0
+expect_out "| M6 |"
 
 # ---------------------------------------------------------------------------
 

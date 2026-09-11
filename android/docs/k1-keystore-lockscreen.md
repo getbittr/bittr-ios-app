@@ -16,6 +16,11 @@ harness without a device](#checking-the-harness-without-a-device). That is a
 statement about the driver's reasoning and nothing else. **It is not evidence
 about Keystore**, and no amount of it ever will be.
 
+The five emulator rows now have a way to be produced —
+`.github/workflows/k1-keystore-lockscreen.yml`, on the KVM host the Maestro job
+already runs on. The two physical-device rows still need handsets someone owns.
+See [What is blocking the run](#what-is-blocking-the-run).
+
 ## What is being proved
 
 BIT-8 rule 2 requires the Android seed blob to be wrapped by a **non-auth-bound**
@@ -125,6 +130,50 @@ phases back to back with no mutation in between; phase 2 then fails its
 start-state assertion. That is the designed behaviour — no false pass — but it is
 not a row.
 
+### Running the emulator rows in CI
+
+`.github/workflows/k1-keystore-lockscreen.yml` runs the matrix on a booted
+emulator, one job per API level, and uploads each table as an artefact and into
+the job summary. It is how the five emulator rows get produced without anyone
+owning five phones.
+
+It runs **only when asked** — `workflow_dispatch`, or a push to a `k1-run/**`
+branch. K1 is a measurement, not a gate: the answer changes only when the platform
+does, and folding it into `android-maestro.yml` would multiply the cost of every
+Android push by five to re-answer a question nobody asked again. The `k1-run/**`
+trigger exists because GitHub offers no dispatch button until a workflow reaches
+the default branch, which would otherwise move the block on this issue from "no
+device" to "no button".
+
+```sh
+# before merge
+git push origin HEAD:k1-run/api-sweep
+
+# after merge, from the Actions tab or:
+gh workflow run k1-keystore-lockscreen.yml -f api_levels='[26, 30, 33, 34, 35]'
+```
+
+It needs the **same host as the Maestro emulator job** — KVM, and the
+`ANDROID_EMULATOR_RUNNER` repository variable pointing at it. See
+`self-hosted-runner.md`. On a single self-hosted runner the five jobs serialise;
+budget roughly an emulator boot plus six mutations each.
+
+Three details in that workflow are load-bearing rather than taste:
+
+- **`force-avd-creation: true`, no snapshot save, no AVD cache.** This matrix sets,
+  changes and removes the lock screen, and under M6 makes the probe a device
+  owner — a state nothing short of deleting the AVD undoes. A cached AVD would
+  carry it into every later run on the host, and the symptom would be M6 failing
+  to set up on a machine nobody had touched. It also guarantees M1 starts from a
+  device with no credential, without which M1 means nothing.
+- **`fail-fast: false`.** A divergent API level is the result. If 30 comes back
+  red the table still needs 26, 33, 34 and 35 to say whether it is an outlier or
+  the rule.
+- **M6 is off by default**, behind the `with_device_owner` input.
+
+The job goes red when any row is not `PASS`, `ERROR` included. An `ERROR` row means
+the harness could not establish what happened, which is not a pass.
+
 ### Checking the harness without a device
 
 Two suites run anywhere — no device, no Android SDK:
@@ -201,20 +250,25 @@ it is deliberately not written in advance.
 
 ## What is blocking the run
 
-The CI container this harness was built in has **no emulator, no `/dev/kvm`, and
-no attached device**. `/opt/android-sdk` carries `platform-tools` and platforms
-but no `emulator` package, so not one of the seven rows can be produced here.
+The container this harness was built in has **no emulator, no `/dev/kvm`, and no
+attached device**, so no row can be produced from it directly. That was the whole
+blocker. It is now the blocker on two of the seven rows.
 
-Two things are needed, and they are different asks:
-
-- **The five emulator rows** need a host with KVM. The project already documents
-  one — `self-hosted-runner.md`, written for the Maestro job — and the emulator
-  rows could run there under the same label switch.
+- **The five emulator rows are no longer blocked on hardware.** They run in CI on
+  the KVM host the Maestro job already uses — see *Running the emulator rows in
+  CI* above. What they are blocked on is somebody triggering the workflow on a
+  host with `ANDROID_EMULATOR_RUNNER` set, and reading the result back into the
+  table below. No new machine, no purchase, no new access.
 - **The Samsung and Xiaomi rows cannot be automated into CI at all.** They need
   physical handsets someone owns, and they are the rows that actually matter:
   emulators run AOSP, and K1 exists precisely because *OEM builds diverge*. Five
   green emulator rows would confirm the AOSP javadoc that rule 2 already rests
   on — which is not the same as confirming rule 2.
+
+The honest reading of that split: CI can retire the *documentation* half of the
+doubt, cheaply and repeatably, and it cannot touch the *OEM* half. A physical
+Samsung and a physical Xiaomi, run once by hand with `k1-lockscreen-matrix.sh`,
+remain the only way to close this issue as specified.
 
 ## If a row comes back red
 
