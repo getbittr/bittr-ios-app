@@ -8,7 +8,9 @@ iOS's whole-dataset-download design.
 **Status:** both axes decided. The renderer is enforced in the build; the tile host was
 signed off by Ruben on 2026-09-11 and is the stronger of the two options that were on the
 table — see [Who serves the tiles](#who-serves-the-tiles). What remains is implementation,
-not choice.
+not choice: the pipeline that actually serves those tiles does not exist yet and is
+[BIT-73](/BIT/issues/BIT-73). Until it does, no map screen should point at a vendor's
+tiles, because the shipped copy is written for an architecture with no third party in it.
 
 ---
 
@@ -150,7 +152,7 @@ covered; it is not evidence that anything is being checked today.
 | No precise-location permission in the merged manifest | `LocationPrecisionGuardTest` (source scan, manifest scan, removal directive, and the merged result read back through `PackageManager`) |
 | Coarse location **is** in the merged manifest | `MapSdkGuardTest` — an app requesting no location at all would pass the test above |
 | Google Maps / Mapbox / osmdroid / `play-services-location` off the dependency graph | `MapSdkGuardTest` |
-| MapLibre still *is* the renderer | `MapSdkGuardTest` — so replacing it is a deliberate act, since a renderer with vendor telemetry would falsify the shipped copy |
+| MapLibre still *is* the renderer | `MapSdkGuardTest` — the shipped copy names no provider, so a swap is not a copy change and nothing outside the build would flag one; a renderer that also reports to its own vendor is a regression the wording would not reveal |
 | No bounding-box BTCMap request | `MapSdkGuardTest` — **latent**: nothing matches its places-source markers until the map screen lands, so a green run is not yet evidence here |
 
 All of these run on the JVM in `./gradlew test`, which is the `Unit tests` step of
@@ -170,27 +172,40 @@ map screen is built. The choice was the second.
 
 Every renderer that fetches tiles tells the tile host which area the user is looking at,
 plus the client IP. That is unavoidable for an online map, so the only question was ever
-*who* learns it. With a vendor in the path, the corrected copy has to concede that a map
-provider sees the area you are looking at. With tiles bittr serves, **there is no third
-party in the path at all**, and the sentence the app already ships —
+*who* learns it. With a vendor in the path, the copy has to concede a third party. With
+tiles bittr serves, **there is no third party in the path at all** — which is what was
+bought here, and it is worth being precise about what it is not.
 
-> we don't share your location with third parties
+**It is not "nobody sees it".** A bittr-operated tile server receives viewport plus IP on
+every pan for the same mechanical reason any tile host does; the requests land in bittr's
+logs rather than a vendor's. Whether they are retained is now bittr's decision instead of
+a vendor's, which is the whole gain — and it makes tile-request logging a privacy
+property of [BIT-73](/BIT/issues/BIT-73), not an ops preference. If that pipeline lands
+with logging off or IPs truncated at the edge, tell the Growth & Content Lead: it changes
+what the copy is allowed to say.
 
-— is literally true on Android, the same way it is true on iOS. Both platforms end up in
-the same posture, which was the outcome worth paying for.
+**It is not a two-platform claim either.** iOS still renders with `MKMapView` against
+Apple's tile servers (`ios/bittr/Map/MapViewController.swift:18`, `:77`, verified at the
+head of `android`), so Apple receives the viewport on every pan there, and on first open
+that viewport is the user's approximate position. This decision covered the Android tile
+host and touched nothing on iOS. Restoring an unqualified "bittr does not share your
+location with third parties" would be true on the platform that does not ship yet and
+false on the one in the App Store. Getting there needs iOS off MapKit, which nobody has
+scoped.
 
-**This lands on BIT-56, whose rewrite is already written.** That branch
-(`feature/bit-56-btcmap-location-copy`, `206dcd2`) replaces the paragraph with, in part:
+**Where BIT-56 landed, having been told the premise changed.** The Growth & Content Lead
+took the neutral hedge and moved it, on `feature/bit-56-btcmap-location-copy`
+(`d610cac`, `shared/strings/en.json` and `ios/bittr/Language.swift:595`): the strong claim
+is now scoped to the places lookup, where it is unconditionally true and untouched by the
+tile decision, and the map sentence owns the tile fetch separately without naming anyone —
+"whoever serves them sees the area you are looking at". That survives both architectures
+and both platforms. The upgrade to "we serve those map images ourselves" is recorded in
+`shared/strings/README.md` against BIT-73 shipping, because it is a fact worth more than
+the hedge only once it is a fact.
 
-> The map itself is drawn by a map provider, which sees the area on your screen — and if
-> you allow location, that starts with the area around you.
-
-It names no vendor, which was the right call while the host was undecided. But it concedes
-a third party that this decision removes, so as written it now describes an architecture
-bittr is not shipping. Understating our privacy is the safe direction to be wrong in, and
-it is still wrong — and it gives away for free the exact property the hosting bill buys.
-The wording is the Growth & Content Lead's call, not mine; what BIT-53 owes them is the
-fact that the premise changed, which is why this is raised there rather than edited here.
+Two consequences for the Android side. The copy names no provider, so a renderer swap is
+not a copy change and `MapSdkGuardTest` is the only thing that will catch one. And no map
+screen should be pointed at a vendor's tiles while that sentence is in the app.
 
 ### What it costs, and what is now implementation rather than choice
 

@@ -39,14 +39,18 @@ import org.robolectric.annotation.Config
  * to a bbox query is a faster app that passes every flow. Neither shows up as a bug
  * report. The only thing that changes is which third party learns where a user is.
  *
- * The approved copy will not catch either one. The final BIT-56 wording deliberately
- * says "a map provider" and names nobody (`shared/strings/en.json`,
- * `mapvcpoweredbyalert`; `ios/bittr/Language.swift:595`), so that one shared string
- * survives the tile host changing on one platform and not the other. That is the
- * right call for the copy and it removes the second place a renderer swap could have
- * been noticed: the paragraph still reads as true whoever serves the tiles, even when
- * the vendor behind it has started sending pan/zoom and a persistent identifier home.
- * So the build is the only tripwire left, which is why these are tests.
+ * The approved copy will not catch either one. The BIT-56 wording deliberately names
+ * no provider (`shared/strings/en.json`, `mapvcpoweredbyalert`, mirrored in
+ * `ios/bittr/Language.swift:595`) so that one shared string survives the tile host
+ * differing per platform. That is the right call for the copy, and it removes the
+ * second place a renderer swap could have been noticed: the paragraph reads the same
+ * whoever serves the tiles, including when the vendor behind them has started sending
+ * pan/zoom and a persistent identifier home. So the build is the only tripwire left,
+ * which is why these are tests.
+ *
+ * Do not quote that string here. It has been redrafted twice while this file existed;
+ * what these tests depend on is the property that it names no provider, not its
+ * wording.
  */
 @RunWith(AndroidJUnit4::class)
 @Config(sdk = [34])
@@ -143,8 +147,8 @@ class MapSdkGuardTest {
                 "(BIT-15), where the responsibility is bittr's and not the SDK's.\n" +
                 "Offending files:\n  " + offenders.joinToString("\n  ") + "\n" +
                 "Read android/docs/map-sdk-decision.md before changing this, and raise it on " +
-                "BIT-53. Do not expect the copy to stop you: it says \"a map provider\" and " +
-                "names nobody, so it still reads as true with either of these in the build.",
+                "BIT-53. Do not expect the copy to stop you: it names no provider, so it reads " +
+                "the same with either of these in the build.",
             offenders.isEmpty(),
         )
     }
@@ -156,9 +160,9 @@ class MapSdkGuardTest {
         assertTrue(
             "No build file declares $CHOSEN_SDK. This test exists so that removing MapLibre " +
                 "is a deliberate act rather than a side effect. Nothing else will flag it: the " +
-                "approved map copy says \"a map provider\" and names nobody, so a renderer swap " +
-                "is not automatically a copy change and will not come back through a copy " +
-                "review — which is exactly why the check has to live here. MapLibre was chosen " +
+                "approved map copy names no provider, so a renderer swap is not automatically " +
+                "a copy change and will not come back through a copy review — which is exactly " +
+                "why the check has to live here. MapLibre was chosen " +
                 "because it sends nothing to its own vendor; a replacement that does is a " +
                 "privacy regression the wording would not reveal. If the map is being rebuilt " +
                 "on something else, update android/docs/map-sdk-decision.md and raise it on " +
