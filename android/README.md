@@ -137,6 +137,7 @@ core/permissions     the permissions the app may request, and settings deep link
 core/wallet          wallet API — interfaces and models only, no implementation
 core/wallet-stub     deterministic no-op wallet, used by the scaffold and CI
 feature/signup       create-or-restore entry point
+feature/scanner      the QR scanner — the only module that may touch the camera
 ```
 
 Dependencies point downward only: `feature/*` and `app` depend on `core/*`;
@@ -201,11 +202,12 @@ visible in a diff:
    `ACCESS_FINE_LOCATION`, `ACCESS_BACKGROUND_LOCATION` and `RECORD_AUDIO`. Those
    lines are load-bearing; do not delete them to make a build pass.
 
-Because none of the three screens exists yet, every one of those scans currently
-passes without examining a real offender. `LocationEgressGuardTest` therefore also
-runs its detector against a synthetic violation, so that a regression in the
-*detector* fails the build instead of quietly disarming the guard while it keeps
-reporting green.
+The scanner exists now (`feature/scanner`, BIT-72), so `CameraCaptureGuardTest` is
+scanning a real camera call site rather than an empty tree. The two location guards
+are still waiting on the map, and pass without examining a real offender.
+`LocationEgressGuardTest` therefore also runs its detector against a synthetic
+violation, so that a regression in the *detector* fails the build instead of quietly
+disarming the guard while it keeps reporting green.
 
 **These tests are not style rules, and passing them is not optional.** The failure
 they catch is the one nothing else can: the app keeps working perfectly, every flow
@@ -213,6 +215,13 @@ stays green, and the only thing that changed is that a sentence bittr has shippe
 users stopped being true. If a screen genuinely needs a capture use case, precise
 location, or the coordinate server-side, say so on BIT-57 *before* it ships — the
 copy changes first, and changed copy goes back through compliance.
+
+For the camera specifically, the sentence lives in one function:
+`ScannerViewfinder` in `feature/scanner`, which is the only `bindToLifecycle` call
+in the repo. It binds a viewfinder and an analyser. CameraX publishes two more use
+cases — one for stills, one for video — and neither artefact is on the graph, so
+adding one means editing a build file as well as a line of Kotlin. That is
+deliberate: it makes the change visible in a diff twice.
 
 The permanently-denied states have a requirement of their own: the approved copy no
 longer names an OS settings path, so the button has to do the navigating. Use

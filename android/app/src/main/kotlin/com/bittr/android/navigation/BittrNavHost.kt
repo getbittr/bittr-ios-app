@@ -5,6 +5,7 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import com.bittr.android.feature.scanner.ScannerScreen
 import com.bittr.android.feature.signup.SignupStartScreen
 
 /**
@@ -14,6 +15,14 @@ import com.bittr.android.feature.signup.SignupStartScreen
  */
 object Routes {
     const val SIGNUP_START = "signup/start"
+
+    /**
+     * The QR scanner (iOS S-16). Reached from Send, and it returns there — on iOS
+     * it is a modal the Send screen presents and dismisses, which is why the flow
+     * expects `send.regularButton` to be back on screen after the scanner closes
+     * (`shared/flows/features/send_onchain.yaml:83-85`).
+     */
+    const val SCANNER = "scanner"
 }
 
 /**
@@ -38,6 +47,18 @@ fun BittrNavHost(
     ) {
         composable(Routes.SIGNUP_START) {
             SignupStartScreen()
+        }
+
+        composable(Routes.SCANNER) {
+            // The scanned string goes nowhere yet, because Send does not exist yet
+            // (BIT-7). When it does, this hands the code to the same entry point the
+            // paste control feeds — one route for both, as on iOS
+            // (`AddressParsing.swift:15`). The scanner itself is complete: routing
+            // the result is Send's half of the seam, not the scanner's.
+            ScannerScreen(
+                onScanned = { navController.popBackStack() },
+                onClose = { navController.popBackStack() },
+            )
         }
     }
 }

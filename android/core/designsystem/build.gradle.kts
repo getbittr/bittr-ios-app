@@ -28,6 +28,11 @@ kotlin {
 }
 
 dependencies {
+    // For TestID. BittrAlert applies the runtime-indexed `alert.button.N` tags
+    // itself, the way iOS's AlertManager does, so no call site hand-interpolates
+    // the number — see shared/test-ids/README.md.
+    implementation(project(":core:common"))
+
     implementation(platform(libs.androidx.compose.bom))
     api(libs.androidx.compose.ui)
     api(libs.androidx.compose.ui.graphics)

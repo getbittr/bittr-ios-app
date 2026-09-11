@@ -53,3 +53,10 @@ include(":core:wallet-stub")
 
 // Features — one module per area of the iOS app, added as the port reaches them.
 include(":feature:signup")
+
+// The QR scanner (iOS S-16, ScannerViewController). Its own module so the CameraX
+// dependency has exactly one place it can be reached from: the shipped claim that
+// nothing is recorded is a property of the use cases this module binds, and a module
+// boundary is what keeps "which code can touch the camera" answerable by reading one
+// build file. See CameraCaptureGuardTest in :app.
+include(":feature:scanner")

@@ -146,6 +146,7 @@ dependencies {
     // (and the binding in di/WalletModule.kt) for :core:wallet-ldk.
     implementation(project(":core:wallet-stub"))
     implementation(project(":feature:signup"))
+    implementation(project(":feature:scanner"))
 
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
