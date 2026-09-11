@@ -147,6 +147,15 @@ dependencies {
     implementation(project(":core:wallet-stub"))
     implementation(project(":feature:signup"))
 
+    // The map renderer (BIT-53). Here rather than in a :feature:map module because
+    // the module does not exist yet and this dependency is doing a job before the
+    // map screen does: MapLibre's own AAR manifest declares ACCESS_FINE_LOCATION,
+    // so having it on :app's graph is what makes MapSdkGuardTest and
+    // LocationPrecisionGuardTest assert something real about the shipped manifest
+    // instead of about an empty merge. Move it with the map screen when that lands;
+    // both guards read every build file, so they follow it.
+    implementation(libs.maplibre.android)
+
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.activity.compose)

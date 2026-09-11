@@ -20,15 +20,35 @@
       RECORD_AUDIO, so pulling it in for any reason would advertise a recording
       capability on the store listing even before a line of code used it.
 
-      `tools:node="remove"` is a no-op while nothing declares these, which is the
-      point: it is already in place for the merge that would otherwise introduce
-      them. If one of them ever becomes genuinely necessary, the copy changes first
-      and changed copy goes back through compliance — do not delete these lines to
-      make a build pass. Asserted by LocationPrecisionGuardTest and
+      RECORD_AUDIO's directive is still a no-op, which is the point: it is already in
+      place for the merge that would otherwise introduce it. The location one stopped
+      being a no-op at BIT-53 — `org.maplibre.gl:android-sdk` declares
+      ACCESS_FINE_LOCATION in its own AAR manifest (verified against the published
+      artefact, not its docs), so this line is now the only reason the shipped APK
+      does not ask for precise location. That is not a MapLibre wart; every map SDK
+      considered did it or recommended it, and it is why the choice was made against
+      a test rather than against a comparison table.
+
+      If one of these ever becomes genuinely necessary, the copy changes first and
+      changed copy goes back through compliance — do not delete these lines to make a
+      build pass. Asserted by LocationPrecisionGuardTest, MapSdkGuardTest and
       CameraCaptureGuardTest.
     -->
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" tools:node="remove" />
     <uses-permission android:name="android.permission.RECORD_AUDIO" tools:node="remove" />
+
+    <!--
+      The one location permission this app ships (BIT-53, DEV-54). Coarse alone can
+      only ever grant approximate location, whatever the user taps in the dialog,
+      which is what keeps the shipped map copy true: "To centre the map on where you
+      are, bittr needs your approximate location." It is the faithful port of iOS's
+      kCLLocationAccuracyHundredMeters (Map/MapViewController.swift:80).
+
+      Declared here rather than left to MapLibre's manifest so that the permission
+      bittr does ask for is a decision in this repo, visible in this diff, next to
+      the one it refuses.
+    -->
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
 
     <application
         android:name=".BittrApplication"
