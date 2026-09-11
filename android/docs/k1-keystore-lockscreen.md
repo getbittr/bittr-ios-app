@@ -299,8 +299,9 @@ mutation could not be driven on this device, with the reason recorded
 | [#3](https://github.com/getbittr/bittr-ios-app/actions/runs/34589128911) | `k1-run/pilot` | `81ba801` | API 34, `aosp_atd`, `x86_64` | red — `ERROR` at `seal`, **two causes named** |
 | [#4](https://github.com/getbittr/bittr-ios-app/actions/runs/34592863770) | `k1-run/pilot` | `2e3adf6` | API 34, `default`, `x86_64` | red — **first successful seals**; `ERROR` at `mutate` |
 | [#5](https://github.com/getbittr/bittr-ios-app/actions/runs/34596169712) | `k1-run/pilot` | `060b71a` | API 34, `default`, `x86_64` | **refused** — the credential witness does not work on this image |
+| [#6](https://github.com/getbittr/bittr-ios-app/actions/runs/34596943875) | `k1-run/pilot` | `0ab54f3` | API 34, `default`, `x86_64` | **refused** — and named why: `locksettings verify` always exits 0 |
 
-None of the five is a row, and none may be read as one.
+None of the six is a row, and none may be read as one.
 
 **Run #1** established one thing and hid the rest. The emulator booted on an
 ordinary GitHub-hosted `ubuntu-latest` runner, the probe built, and the matrix ran
@@ -475,12 +476,66 @@ green* above — **cannot be used on this image**, and a witness that always say
 yes is precisely how a false green is made.
 
 The driver now prints the raw answers to all three `verify` forms when it
-refuses, instead of asserting (a). One run separates them. If it is (b), the
-host-side witness needs replacing with a device-side one — `KeyguardManager`
-read through the probe, which is the same API the cases already assert on — and
-that is a design change to this document's witness section, not a bug fix.
+refuses, instead of asserting (a). One run separates them.
 
-Until then, **no verdict on rule 2, and no row.**
+**Run #6** ran it, and the answer is (b):
+
+```
+locksettings verify --old '1234'    (the credential just set)  -> exit 0
+locksettings verify --old '90197'   (deliberately wrong)       -> exit 0
+locksettings verify                 (no --old)                 -> exit 0
+```
+
+All three. A wrong credential cannot verify on a device that has one, and a bare
+`verify` cannot succeed on a device that does — so **`locksettings verify` is not
+checking anything on this image**. That is conclusive from run #6 alone, and it
+condemns the witness rather than the device: every host-side witness in this
+script is built on that one call.
+
+Whether the PIN is nonetheless being stored is answered independently, and
+device-side, by run #4: `set-pin` was followed by `isDeviceSecure=true` in the
+probe's own process, which is how M2–M5 got far enough to seal. Taken together
+the reading is that **`set-pin` works and `verify` lies**.
+
+That also retires the theory that ATD was the culprit. The `default` image is not
+noticeably better at this, and the earlier `aosp_atd` rows are equally explained
+by the same broken witness. Moving off ATD was still right for K1 — a stripped
+image is the wrong host for a lock-screen measurement — but it was not the fix,
+and this document should not be read as claiming it was.
+
+### What this costs, and what it does not
+
+`locksettings verify` is the witness for M2/M3/M4 (see *How a row avoids being a
+false green*). Losing it is not fatal to all of them, but it is not free either:
+
+| case | mutation | witness after run #6 |
+|---|---|---|
+| M1 | none → PIN | `isDeviceSecure` false → true, device-side. **Intact.** |
+| M2 | PIN → PIN | same type, same complexity, secure on both sides. **None.** |
+| M3 | PIN → password | credential *type* changes; `DevicePolicyManager.getPasswordComplexity()` (API 29+) can see it, device-side. **Replaceable.** |
+| M4 | PIN → pattern | as M3. **Replaceable.** |
+| M5 | PIN → none | `isDeviceSecure` true → false, plus the auth-bound control key. **Intact.** |
+| M6 | admin reset | as M5. **Intact.** |
+
+So five of the six can be witnessed without `locksettings verify`, by reading the
+device through the probe instead of through `adb`. **M2 cannot.** A PIN→PIN change
+is invisible to every device-side signal K1 has: the device is secure before and
+after, the credential type does not change, and an auth-bound key legitimately
+survives it.
+
+The honest disposition for M2 on any device where `verify` does not discriminate
+is **`not reachable`, recorded as such** — the same treatment M6 gets on a
+physical handset. A PASS on M2 without a witness would be precisely the false
+green this harness exists to prevent: *"the key survived a PIN change"*, on a run
+that never established a PIN change happened.
+
+Whether that is acceptable for BIT-18's definition of done is **Ruben's call, not
+this document's** — mutation 2 is one of the five the issue asks for. It may be
+that a physical Samsung and Xiaomi, where `locksettings verify` may well behave,
+are the only places M2 is ever witnessed, which would fit the issue's own view
+that the OEM rows are the ones that matter.
+
+Until the witness is rebuilt: **no verdict on rule 2, and no row.**
 
 **`not reachable` is a finding, not a gap.** BIT-18 says "where reachable" of
 mutation 5, and M6 is expected to be unreachable on physical devices: a device
