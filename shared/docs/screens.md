@@ -23,7 +23,7 @@ This inventory lists user-facing screens only. Non-visual container/transient VC
 Every user-facing screen (view controller) is now reached by at least one Maestro flow. The remaining gaps are **screen modes and features within those screens**, not whole screens:
 
 - **Receive "LNURL" type** — the user's own Lightning-address receive mode (More picker → Show LNURL) is never opened; the onchain / invoice / Bitcoin QR types are covered. **In production scope.**
-- **Widget** — `BittrWidget/*` is a WidgetKit extension, not a screen, and can't be driven by Maestro (home-screen widget). Listed for completeness only.
+- **Widget** — `BittrWidget/*` is a WidgetKit extension, not a screen, and can't be driven by Maestro (home-screen widget). It will therefore never appear in the screenshot catalog; it's specified from source in `widget-spec.md` instead. The same extension also ships the swap Live Activity, equally undriveable and not yet scoped for Android.
 
 The QR scanner can't use the camera in the simulator, so its flow exercises `ScannerViewController` via the "scanning not supported" path rather than a live scan.
 
