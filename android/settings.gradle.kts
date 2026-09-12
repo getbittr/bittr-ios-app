@@ -67,6 +67,11 @@ include(":core:wallet-ldk")
 include(":core:wallet-seed")
 include(":core:wallet-keystore")
 
+// BIT-18/K1. An instrumented probe, not a shipped module — nothing depends on it. It proves on
+// real devices what BIT-8 rule 2 currently asserts from AOSP javadoc: that a non-auth-bound
+// Keystore key survives a lock-screen change. See android/docs/k1-keystore-lockscreen.md.
+include(":core:keystore-probe")
+
 // Features — one module per area of the iOS app, added as the port reaches them.
 include(":feature:signup")
 
