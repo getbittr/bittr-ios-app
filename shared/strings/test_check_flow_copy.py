@@ -108,13 +108,21 @@ def _(tmp):
 
 @case("an entry pre-locked ahead of its flow is stale, not a failure")
 def _(tmp):
-    # BIT-10's receive_lnurl.yaml is locked before it has merged, so the merge is
-    # not a red build. Stale entries must stay advisory or that trick stops working.
+    # Locking a matcher before its flow merges is how a flow branch lands without
+    # turning the merge red. Stale entries must stay advisory or that trick stops
+    # working. This case builds that condition instead of borrowing whichever
+    # branch happens to be in flight: it takes a locked entry and removes the flow
+    # it names. (It used to lean on BIT-10's receive_lnurl.yaml being unmerged, and
+    # went red the moment that landed in 362ad09 — the guard's own self-test
+    # failing for a reason that had nothing to do with the guard.)
     lock = json.loads((tmp / LOCK).read_text())
-    assert any(e["matcher"] == "Unavailable" for e in lock["matchers"]), "pre-lock entry gone"
+    entry = next((e for e in lock["matchers"] if e.get("flows")), None)
+    assert entry, "no locked entry names a flow"
+    for flow in entry["flows"]:
+        (tmp / flow).unlink()
     result = run(tmp)
     assert result.returncode == 0, result.stdout
-    assert "stale: 'Unavailable'" in result.stdout, result.stdout
+    assert f"stale: {entry['matcher']!r}" in result.stdout, result.stdout
 
 
 @case("a deleted key is reported as missing, with the text it used to have")
