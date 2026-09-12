@@ -122,8 +122,18 @@ class MapSdkGuardTest {
          *
          * Only the Kotlin scan needs this — the artefact scan reads build files,
          * and this one is not a build file.
+         *
+         * [LocationEgressGuardTest] is here because it guards the same property from
+         * the other side: it bans `boundingBox` as a coordinate symbol and names
+         * BTCMap while doing so, which is both of this scan's triggers. It was
+         * written on BIT-100 while this file was written on BIT-53, so neither
+         * allow-list knew about the other until both landed on `android-parity`.
+         * Excluding it keeps the scan pointed at code that builds requests. If a
+         * third guard ever states these rules, add it here rather than widening
+         * [PLACES_SOURCE_MARKERS] or [VIEWPORT_QUERY_KEYS] — narrowing either one
+         * is how the check stops catching the thing it exists for.
          */
-        val ALLOWED_FILES = setOf("MapSdkGuardTest.kt")
+        val ALLOWED_FILES = setOf("MapSdkGuardTest.kt", "LocationEgressGuardTest.kt")
 
         const val COARSE = "android.permission.ACCESS_COARSE_LOCATION"
     }
