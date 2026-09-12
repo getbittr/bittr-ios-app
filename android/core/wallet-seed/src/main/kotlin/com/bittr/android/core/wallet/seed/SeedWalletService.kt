@@ -59,6 +59,17 @@ class SeedWalletService(
         return mnemonic
     }
 
+    override suspend fun restoreWallet(mnemonic: Mnemonic) {
+        // Identical to createWallet from the seed's point of view — the only
+        // difference is where the entropy came from, and the store does not care.
+        // Clearing the PIN keeps the invariant that a restored wallet is
+        // Uninitialized until setPin runs, so an abandoned restore does not leave
+        // the user facing a PIN screen for a phrase they gave up on.
+        store.write(KEY_SEED, mnemonic.phrase.toByteArray(Charsets.UTF_8))
+        store.removeIfPresent(KEY_PIN)
+        _state.value = storedState()
+    }
+
     override suspend fun setPin(pin: String) {
         require(isValidPin(pin)) { "PIN must be $MIN_PIN_LENGTH–$MAX_PIN_LENGTH digits" }
         if (!store.contains(KEY_SEED)) {

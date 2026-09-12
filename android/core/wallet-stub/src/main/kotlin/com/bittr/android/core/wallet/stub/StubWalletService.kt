@@ -35,10 +35,28 @@ class StubWalletService : WalletService {
 
     private var pin: String? = null
 
+    /** The phrase the last [restoreWallet] was given, or null on the create path. */
+    var restored: Mnemonic? = null
+        private set
+
     override suspend fun createWallet(): Mnemonic {
         pin = null
         _state.value = WalletState.Uninitialized
         return PHRASE
+    }
+
+    /**
+     * Accept whatever phrase the flow typed in, and remember it.
+     *
+     * [restored] is what makes the restore flow assertable: a stub that dropped the
+     * phrase on the floor would let a build that restores the *wrong* wallet pass, so
+     * the one thing this has to prove — that the words the user typed are the words
+     * that got stored — would go untested.
+     */
+    override suspend fun restoreWallet(mnemonic: Mnemonic) {
+        restored = mnemonic
+        pin = null
+        _state.value = WalletState.Uninitialized
     }
 
     override suspend fun setPin(pin: String) {

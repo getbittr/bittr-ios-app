@@ -43,6 +43,26 @@ interface WalletService {
     suspend fun createWallet(): Mnemonic
 
     /**
+     * Adopt an existing phrase the user typed in, persisting it before returning.
+     *
+     * The same contract as [createWallet] on every point that matters — persist or
+     * throw, and setup is not complete until [setPin] has also succeeded — and one
+     * that differs: **this does not generate anything, and it must not validate
+     * anything either.** By the time a caller reaches here the phrase has already
+     * been through `SeedPhraseEntry.check`, which is where a mistyped word is caught
+     * and told to the user in words they can act on. An implementation that silently
+     * re-checked and threw would turn that into a storage error.
+     *
+     * Restoring replaces whatever unfinished seed is on the device, matching
+     * [createWallet]. It does not replace a *finished* wallet: the arc is only
+     * reachable from signup, so there is nothing to overwrite. Wiping a funded wallet
+     * is `removeWalletButton`'s job and it asks first — see BIT-7.
+     *
+     * @throws WalletStorageException if the seed cannot be written to secure storage.
+     */
+    suspend fun restoreWallet(mnemonic: Mnemonic)
+
+    /**
      * Set the PIN that gates this wallet, completing setup.
      *
      * The PIN is an app-level gate, not the thing that protects the seed at rest —

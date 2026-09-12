@@ -55,6 +55,19 @@ internal object SignupStrings {
             "phrase backup and try again.\n\nFor your security, we recommend taking a fresh " +
             "backup of your recovery phrase to ensure you have the correct words."
 
+    // Restore — the twelve fields. Restore2 / Restore3 reuse the PIN copy below,
+    // exactly as iOS does: one `PinViewController`, three embeddings.
+    const val ENTER_RECOVERY_PHRASE = "Enter your 12-word recovery phrase."
+    const val INCOMPLETE_PHRASE = "Incomplete Recovery Phrase"
+    const val INCOMPLETE_PHRASE_2 =
+        "Please enter all 12 words of your recovery phrase to restore your wallet."
+    const val INVALID_PHRASE = "Invalid Recovery Phrase"
+    const val INVALID_PHRASE_2 =
+        "The recovery phrase you entered is not valid. Please double-check your backup " +
+            "and try again.\n\nFor your security, we recommend taking a fresh backup of " +
+            "your recovery phrase to ensure you have the correct words."
+    const val CANCEL = "Cancel"
+
     // Signup5 / Signup6 — the PIN.
     const val SET_A_PIN = "Set a PIN for secure access to your wallet"
     const val CONFIRM_YOUR_PIN = "Confirm your PIN"

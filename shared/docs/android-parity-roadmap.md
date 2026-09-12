@@ -71,7 +71,7 @@ the seed/PIN layer that BIT-93 already landed.
 |---|---|---|
 | `onboarding/smoke` | Signup1 | test-ID pipeline end to end |
 | `onboarding/happy_path_wallet` | Signup1–7 | **screens built** (BIT-93); needs the flow driven |
-| `onboarding/restore_wallet` | RestoreVC | BIP-39 restore — seed only |
+| `onboarding/restore_wallet` | RestoreVC | **screens built** (BIT-96); needs the flow driven |
 | `onboarding/fresh_install_unhappy` | Signup1–7 | the validation gates; BIT-19's wrong-word rejection |
 | `features/pin_warning` | PinVC | 3 wrong entries → warning alert |
 | `features/wrong_pin` | PinVC | 10 wrong → wipe (no-channel branch) |

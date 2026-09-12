@@ -10,6 +10,7 @@ import androidx.navigation.compose.rememberNavController
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.bittr.android.core.wallet.WalletState
 import com.bittr.android.feature.signup.CreateWalletScreen
+import com.bittr.android.feature.signup.RestoreWalletScreen
 
 /**
  * Route constants. Kept as plain strings rather than type-safe routes so that the
@@ -18,6 +19,7 @@ import com.bittr.android.feature.signup.CreateWalletScreen
  */
 object Routes {
     const val SIGNUP_START = "signup/start"
+    const val SIGNUP_RESTORE = "signup/restore"
     const val PIN_UNLOCK = "pin/unlock"
     const val HOME = "home"
 }
@@ -60,6 +62,23 @@ fun BittrNavHost(
                         popUpTo(Routes.SIGNUP_START) { inclusive = true }
                     }
                 },
+                onRestoreWallet = { navController.navigate(Routes.SIGNUP_RESTORE) },
+            )
+        }
+
+        // Restore *is* a separate destination, where the create arc's seven steps are
+        // one — the two are not inconsistent. What must not cross a destination
+        // boundary is the phrase, and here it never leaves RestoreWalletViewModel.
+        // Signup1 → Restore is a real back-stack edge on iOS too (`moveToPage(3)`
+        // returns), so making it one here is what gives the user a working Back.
+        composable(Routes.SIGNUP_RESTORE) {
+            RestoreWalletScreen(
+                onFinished = {
+                    navController.navigate(Routes.HOME) {
+                        popUpTo(Routes.SIGNUP_START) { inclusive = true }
+                    }
+                },
+                onCancelled = { navController.popBackStack() },
             )
         }
 
