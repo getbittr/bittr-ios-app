@@ -416,24 +416,34 @@ private fun HomeScreenPreview() {
 /**
  * Home exactly as this build renders it: no funds, no alert, nothing wired.
  *
- * Shared by the preview and the screenshot test so the two cannot drift into
- * disagreeing about what "the no-funds state" is.
+ * Shared by the preview, the screenshot test and `Wave1ReachabilityTest` so the three
+ * cannot drift into disagreeing about what "the no-funds state" is.
+ *
+ * The three Wave 1 entry points are parameters because a test that taps them has to
+ * see *which* one it hit — wiring two identifiers to one callback compiles, looks
+ * right, and sends a flow to the wrong screen. The rest stay stubbed: they either
+ * raise the sync alert or report as not-yet-ported, and neither leaves this screen.
  */
 @Composable
-fun HomeNoFunds(modifier: Modifier = Modifier) {
+fun HomeNoFunds(
+    modifier: Modifier = Modifier,
+    onMap: () -> Unit = {},
+    onCurrency: () -> Unit = {},
+    onAcademy: () -> Unit = {},
+) {
     HomeScreen(
         state = HomeUiState(),
         alert = null,
         onDismissAlert = {},
         onSyncingWallet = {},
         onSettings = {},
-        onMap = {},
-        onCurrency = {},
+        onMap = onMap,
+        onCurrency = onCurrency,
         onSend = {},
         onReceive = {},
         onBuy = {},
         onBalanceDetails = {},
-        onAcademy = {},
+        onAcademy = onAcademy,
         modifier = modifier,
     )
 }

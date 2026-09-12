@@ -35,6 +35,7 @@ import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.graphics.vector.PathParser
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -119,7 +120,7 @@ fun BittrAppBar(onBack: (() -> Unit)? = null, modifier: Modifier = Modifier) {
                     contentDescription = "Back",
                     modifier = Modifier
                         .size(AppBarIconBox)
-                        .clickable(onClick = onBack)
+                        .clickable(role = Role.Button, onClick = onBack)
                         .padding(12.dp),
                 )
             }
@@ -198,7 +199,7 @@ fun BittrPrimaryButton(
                 if (enabled) colors.actionFill else colors.actionFillDisabled,
                 BittrCanvasShapes.pill,
             )
-            .clickable(enabled = enabled, onClick = onClick),
+            .clickable(enabled = enabled, role = Role.Button, onClick = onClick),
     ) {
         if (content != null) {
             content()
@@ -237,7 +238,7 @@ fun BittrTonalButton(
             .fillMaxWidth()
             .height(if (compact) ButtonHeightCompact else ButtonHeight)
             .background(colors.tonalFill, BittrCanvasShapes.pill)
-            .clickable(onClick = onClick),
+            .clickable(role = Role.Button, onClick = onClick),
     ) {
         Text(text, style = MaterialTheme.typography.labelLarge, color = colors.onTonalFill)
     }
@@ -260,7 +261,7 @@ fun BittrTextButton(
         modifier = modifier
             .fillMaxWidth()
             .heightIn(min = BittrTokens.Size.minTouchTarget)
-            .clickable(enabled = enabled, onClick = onClick),
+            .clickable(enabled = enabled, role = Role.Button, onClick = onClick),
     ) {
         Text(
             text = text,
@@ -327,24 +328,29 @@ fun BittrCheckBadge(modifier: Modifier = Modifier, size: Dp = 76.dp) {
  * Material's `Switch` with the canvas's colours rather than a hand-drawn one — the
  * thumb animation, the ripple and the accessibility role are all behaviour worth
  * keeping, and only the palette differs from the mock.
+ *
+ * **The border is the same in both states, and that is the fix for BIT-95.** The checked
+ * track used to take the green for its border as well as its fill, which left the
+ * control with no edge it did not supply itself: 1.65 : 1 against the dark canvas,
+ * 1.32 : 1 against the card it is actually drawn on. The thumb was still visible, so
+ * what the user lost was not the switch but the *travel* — you could see a white dot and
+ * not the slot it had moved along, which is the state. See [BittrColors.switchOn] for
+ * why darkening or swapping the green cannot fix that and a border can.
+ *
+ * The unchecked state was always fine and is unchanged; it is the one this borrows from.
  */
 @Composable
-fun bittrSwitchColors(): androidx.compose.material3.SwitchColors =
-    androidx.compose.material3.SwitchDefaults.colors(
-        checkedThumbColor = Color.White,
-        checkedTrackColor = SwitchOn,
-        checkedBorderColor = SwitchOn,
-        uncheckedThumbColor = BittrTheme.colors.mutedOnCanvas,
+fun bittrSwitchColors(): androidx.compose.material3.SwitchColors {
+    val colors = BittrTheme.colors
+    return androidx.compose.material3.SwitchDefaults.colors(
+        checkedThumbColor = colors.onSwitchOn,
+        checkedTrackColor = colors.switchOn,
+        checkedBorderColor = colors.mutedOnCanvas,
+        uncheckedThumbColor = colors.mutedOnCanvas,
         uncheckedTrackColor = Color.Transparent,
-        uncheckedBorderColor = BittrTheme.colors.mutedOnCanvas,
+        uncheckedBorderColor = colors.mutedOnCanvas,
     )
-
-/**
- * The mock's `switchAccent` default, `#1F8A5B` — a green that is neither the profit
- * green nor the brand. It is the "on" state of a consent toggle and nothing else, so
- * it is scoped here rather than promoted into [BittrColors]. 4.51 : 1 against white.
- */
-private val SwitchOn = Color(0xFF1F8A5B)
+}
 
 /**
  * The arc's alert — the mock's dialog, which is a warm near-white card with a 28 dp
@@ -436,7 +442,7 @@ private fun AlertButton(
         modifier = Modifier
             .heightIn(min = BittrTokens.Size.minTouchTarget)
             .background(background, BittrCanvasShapes.pill)
-            .clickable(onClick = onClick)
+            .clickable(role = Role.Button, onClick = onClick)
             .padding(horizontal = 22.dp)
             .then(testTag?.let { Modifier.testTag(it) } ?: Modifier),
     ) {

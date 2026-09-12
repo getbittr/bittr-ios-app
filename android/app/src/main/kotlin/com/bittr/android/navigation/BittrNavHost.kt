@@ -14,16 +14,22 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import com.bittr.android.BuildConfig
 import com.bittr.android.core.common.TestID
+import com.bittr.android.core.common.destination.BitcoinNetwork
 import com.bittr.android.core.designsystem.BittrAlertDialog
 import com.bittr.android.core.wallet.WalletState
+import com.bittr.android.feature.academy.AcademyScreen
 import com.bittr.android.feature.home.HomeScreen
+import com.bittr.android.feature.map.MapScreen
+import com.bittr.android.feature.scanner.ScannerScreen
 import com.bittr.android.feature.settings.DeviceScreen
 import com.bittr.android.feature.settings.DeviceViewModel
 import com.bittr.android.feature.settings.LightningQuestionScreen
 import com.bittr.android.feature.settings.SettingsScreen
 import com.bittr.android.feature.settings.WebsitePage
 import com.bittr.android.feature.settings.WebsiteScreen
+import com.bittr.android.feature.value.ValueScreen
 import com.bittr.android.feature.signup.CreateWalletScreen
 import com.bittr.android.feature.signup.RestoreWalletScreen
 
@@ -46,6 +52,25 @@ object Routes {
     const val WEBSITE = "settings/website/{$WEBSITE_ARG}"
 
     fun website(page: WebsitePage) = "settings/website/${page.name}"
+
+    /**
+     * The QR scanner (iOS S-16). Reached from Send, and it returns there — on iOS
+     * it is a modal the Send screen presents and dismisses, which is why the flow
+     * expects `send.regularButton` to be back on screen after the scanner closes
+     * (`shared/flows/features/send_onchain.yaml:83-85`).
+     */
+    const val SCANNER = "scanner"
+
+    /**
+     * The three Wave 1 read-only screens (BIT-99). Each needs an unlocked wallet and
+     * nothing else — no funds, no node — which is why they are reachable before the
+     * wallet engine lands, and each is one destination rather than several: the
+     * Academy holds its open lesson as state and the map holds its open place the
+     * same way, matching the modals iOS presents over them.
+     */
+    const val VALUE = "value"
+    const val MAP = "map"
+    const val ACADEMY = "academy"
 }
 
 /**
@@ -59,7 +84,8 @@ object Routes {
  *
  * The whole create-wallet arc is one destination — see
  * `CreateWalletScreen`'s documentation for why the twelve words must not travel as
- * navigation arguments.
+ * navigation arguments. Destinations for the rest of the port (buy, receive, send)
+ * are added here as BIT-7 reaches them.
  *
  * ### Settings is a destination, iOS's is a pop-up
  *
@@ -74,6 +100,11 @@ object Routes {
 fun BittrNavHost(
     navController: NavHostController = rememberNavController(),
     viewModel: WalletGateViewModel = hiltViewModel(),
+    // Which chain a scanned address has to be on. Debug is regtest, release is
+    // mainnet, mirroring iOS's `EnvironmentConfig.bitcoinDevKitNetwork`. Injected
+    // rather than read inside the parser because `:core:common` cannot see `:app`'s
+    // BuildConfig — the same reason AuthCapabilities is injected.
+    network: BitcoinNetwork = BitcoinNetwork.fromBuildConfig(BuildConfig.BITCOIN_NETWORK),
 ) {
     val walletState by viewModel.walletState.collectAsState()
 
@@ -141,11 +172,13 @@ fun BittrNavHost(
         composable(Routes.HOME) {
             HomeScreen(
                 onSettings = { navController.navigate(Routes.SETTINGS) },
-                // Wave 1, other issues: the BTCMap screen (`features/bitcoin_map`)
-                // and the price screen (`features/bitcoin_value`). The entry points
-                // are here so that porting either is a one-line change to this file.
-                onMap = { notPorted = "The bitcoin map" },
-                onCurrency = { notPorted = "The bitcoin price" },
+                // Wave 1, landed by BIT-99. These three are the entry points
+                // `bitcoin_map.yaml`, `bitcoin_value.yaml` and `academy.yaml` tap
+                // from Home, and every screen behind them needs an unlocked wallet
+                // and nothing else — no funds, no node — so they are live today.
+                onMap = { navController.navigate(Routes.MAP) },
+                onCurrency = { navController.navigate(Routes.VALUE) },
+                onAcademy = { navController.navigate(Routes.ACADEMY) },
                 // Wave 2, behind BIT-6. Reached only once `walletHasSynced` is true,
                 // so today Home's own guard answers first and these are unreachable —
                 // they are wired anyway so that flipping that flag does not leave a
@@ -155,7 +188,33 @@ fun BittrNavHost(
                 onBalanceDetails = { notPorted = "Your balance" },
                 // Wave 3. Not guarded by the sync on iOS either — see HomeScreen.
                 onBuy = { notPorted = "Buying bitcoin" },
-                onAcademy = { notPorted = "The academy" },
+            )
+        }
+
+        composable(Routes.VALUE) {
+            ValueScreen(onBack = { navController.popBackStack() })
+        }
+
+        composable(Routes.MAP) {
+            MapScreen(onBack = { navController.popBackStack() })
+        }
+
+        composable(Routes.ACADEMY) {
+            AcademyScreen(onBack = { navController.popBackStack() })
+        }
+
+        composable(Routes.SCANNER) {
+            // What the camera read is parsed here, by the same entry point the paste
+            // control will feed — one parser for both, as on iOS
+            // (`AddressParsing.swift:15`) — and handed back to whoever opened the
+            // scanner via `ScannerResult`.
+            //
+            // Nothing opens the scanner yet: Send arrives with the engine (BIT-6).
+            // But the result no longer evaporates on the way out, which is the half
+            // of the seam BIT-72 deliberately left for BIT-100.
+            ScannerScreen(
+                onScanned = { scanned -> ScannerResult.handleScan(navController, scanned, network) },
+                onClose = { navController.popBackStack() },
             )
         }
 

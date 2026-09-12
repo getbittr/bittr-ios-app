@@ -84,6 +84,21 @@ private val BarTrack = Color(0xFFC5A03A)
 private val Ink = Color(0xFF0D0D0D)
 private val Cream = Color(0xFFF8EEC6)
 
+/**
+ * The mock's `switchAccent`, `#1F8A5B` — a green that is neither the profit green nor
+ * the brand. The "on" state of the consent toggle, and nothing else.
+ *
+ * **It used to be a `private val` in `Canvas.kt`, and BIT-95 is what that cost.** The
+ * reasoning was that a colour used by one control belongs beside that control — but the
+ * rule at the top of this file is the one that applies: *a colour that only exists
+ * inside a composable is a colour the designer cannot change*, and it is also a colour
+ * `TokenContrastTest` cannot measure. It shipped at **1.65 : 1 against the dark canvas
+ * and 1.32 : 1 against the card the switch is actually on** for exactly as long as it
+ * was invisible to the guard. Both schemes hold the same value today, which is a fact
+ * worth being able to see rather than a field worth saving.
+ */
+private val SwitchAccent = Color(0xFF1F8A5B)
+
 // ---------------------------------------------------------------------------
 // Material 3 schemes — §1.3
 // ---------------------------------------------------------------------------
@@ -94,6 +109,15 @@ private val Cream = Color(0xFFF8EEC6)
  * `yellow` is a **surface** in this app, not an accent: 56 storyboard fills against
  * 61 text uses. That is why it is `primary` *and* `primaryContainer` and why
  * `onPrimary` is black.
+ *
+ * **So a filled Material `Button` is wrong in light mode and always was.** It would
+ * paint itself `primary`, which here is 1.42 : 1 against `surface` — the brand colour
+ * against the brand page. That is not a bug to fix by moving `primary`; moving it
+ * would unpick the 56 fills and every test that measures against it. It is a rule:
+ * the primary call to action on this canvas is [BittrColors.actionFill], which
+ * [BittrPrimaryButton] paints, at 17.35 : 1. Dark mode had the same collision at
+ * 1.00 : 1 and could be fixed in the slot, so it was — see [BittrDarkColors].
+ * `TokenContrastTest` holds both halves of that. BIT-94.
  */
 val BittrLightColors: ColorScheme = lightColorScheme(
     primary = Yellow,
@@ -129,10 +153,25 @@ val BittrLightColors: ColorScheme = lightColorScheme(
  * is 4.44 : 1, which misses AA for body text. `blue1` (7.15) and `blue2` (5.97) are
  * promoted and `blue3` demoted to `surfaceContainerHigh`, where it still clears
  * AA-large for accents. **This changes the dark-mode look — founder sign-off, BIT-15.**
+ *
+ * **A11Y-22 moved `primary` off `surface`.** A11Y-02 promoted `blue1` into `surface`
+ * while `primary` was already `blue1`, so the two slots collided at **1.00 : 1** and
+ * every Material control that paints itself `primary` — a filled `Button`, a `Switch`
+ * track, a `Slider`, a focused `TextField`'s indicator — became the page it sits on.
+ * The label still rendered, so a button read as floating text rather than as a control,
+ * which is exactly the failure WCAG 1.4.11 is about. The two schemes are asymmetric
+ * here and that is the point: see [BittrLightColors] for why `primary` is a *surface*
+ * in light mode and cannot be moved there. BIT-94.
  */
 val BittrDarkColors: ColorScheme = darkColorScheme(
-    primary = Blue1,
-    onPrimary = Color.White,
+    // A11Y-22. Not a new colour and not a new decision: this is the value
+    // [BittrDarkColorsExtended]'s `actionFill` already carries, for the same reason and
+    // with the same numbers (6.38 : 1 on `surface`, and a 17.35 : 1 ink label). The
+    // dark primary action had already inverted to `grey1` on the canvas; this is the
+    // Material slot catching up, so the two cannot drift apart. `TokenContrastTest`
+    // asserts they stay equal. BIT-94.
+    primary = Grey1,
+    onPrimary = Ink,
     primaryContainer = Blue2,
     onPrimaryContainer = Color.White,
     surface = Blue1,
@@ -189,6 +228,20 @@ data class BittrColors(
      * titles, Academy level headers. See the note on [BittrLightColorsExtended].
      */
     val emphasis: Color,
+    /**
+     * The `DetailRow` label — the key half of every key/value row.
+     *
+     * iOS draws it in the brand yellow, which is **1.59 : 1 on white**: the app's worst
+     * contrast failure, on its most-repeated component (~33 call sites across Swap
+     * status, Transaction detail, Confirm send, Buy and Transfer4). Every screen where
+     * a user reads back an address, an amount or a deposit code before acting on it.
+     *
+     * Not [brandFixed] and not [emphasis]: this is body text that owes AA, so it takes
+     * its own token rather than borrowing one whose floor is 3 : 1. Both values stay
+     * recognisably in the brand hue — the light one is the yellow itself darkened at
+     * constant hue (46.2° → 46.1°). **DEV-40 — founder sign-off, BIT-15 §A3.**
+     */
+    val rowLabel: Color,
     /** `yellow`. The seven sites that stay brand-yellow in both modes. */
     val brandFixed: Color,
     /** `unconfirmed`. Pending transactions. Never the only signal — A11Y-03. */
@@ -258,6 +311,35 @@ data class BittrColors(
     /** Content on [tonalFill]. */
     val onTonalFill: Color,
     /**
+     * The checked consent switch's track — the mock's `switchAccent`.
+     *
+     * **This fill does not carry the control's boundary, and in dark mode it cannot.**
+     * It is 1.65 : 1 on the dark canvas and 1.32 : 1 on the card the switch is really
+     * drawn on. The reason that is not fixed by darkening or swapping the green is
+     * arithmetic rather than taste: a track clearing 3 : 1 against the dark card needs a
+     * relative luminance of at least 0.501, and a track keeping a **white** thumb at
+     * 3 : 1 cannot exceed 0.300. The band is empty — no green, and no colour of any hue,
+     * satisfies both. A fill-only fix therefore means an ink thumb on a pale track,
+     * which is a different control from the one the mock draws.
+     *
+     * So the boundary is carried by the border instead — [mutedOnCanvas], which is what
+     * the *unchecked* state already used and which clears 3 : 1 in both schemes on both
+     * backgrounds. The outline then stays put across the state change and the fill and
+     * the thumb position are what move, which is what a switch is supposed to look like.
+     *
+     * [mutedOnCanvas] is translucent and Material strokes the border inside the track, so
+     * the rendered border is it composited over this green. Sampled off the card in
+     * `arc-2-confirm-on*.png`: `#133225` on `#FFCA19` — **9.08 : 1** light, `#DEEEE7` on
+     * `#4C688E` — **4.76 : 1** dark, against 1.32 : 1 for the bare fill it replaces.
+     * `TokenContrastTest` holds all of it, including the empty band. BIT-95.
+     */
+    val switchOn: Color,
+    /**
+     * The checked switch's thumb. White, from the mock — 4.33 : 1 on [switchOn], which is
+     * the pair that says where the thumb is within its travel.
+     */
+    val onSwitchOn: Color,
+    /**
      * The open arc of the bittr mark, which is the one part of the logo that is not
      * ink. The shipped SVG draws it `#FDBE10` for a white page; on the brand canvas
      * the mock draws it white, because brand-on-brand would disappear. See [BittrLogo].
@@ -286,6 +368,7 @@ val BittrLightColorsExtended = BittrColors(
     lossBg = Red1,
     lossBgMuted = Red1.copy(alpha = 0.70f),
     emphasis = Color.Black,
+    rowLabel = Color(0xFF8A6A00), // 5.07 : 1 on white. DEV-40 — founder sign-off, BIT-15.
     brandFixed = Yellow,
     unconfirmed = Color(0xFFB1B1B1),
     footnote = Color.Black.copy(alpha = 0.25f),
@@ -309,6 +392,8 @@ val BittrLightColorsExtended = BittrColors(
     actionFillDisabled = Ink.copy(alpha = 0.45f),
     tonalFill = Cream,
     onTonalFill = Ink,
+    switchOn = SwitchAccent,
+    onSwitchOn = Color.White,
     canvasArc = Color.White,
 )
 
@@ -326,6 +411,7 @@ val BittrDarkColorsExtended = BittrColors(
     lossBg = Red2.copy(alpha = 0.30f),
     lossBgMuted = Red2.copy(alpha = 0.30f),
     emphasis = Yellow,
+    rowLabel = Color(0xFFFFE28A), // 4.69 : 1 on blue2. DEV-40 — founder sign-off, BIT-15.
     brandFixed = Yellow,
     unconfirmed = Color.White.copy(alpha = 0.50f),
     footnote = Color.White.copy(alpha = 0.50f),
@@ -352,6 +438,11 @@ val BittrDarkColorsExtended = BittrColors(
     actionFillDisabled = Color.White.copy(alpha = 0.30f),
     tonalFill = Blue3,
     onTonalFill = Color.White,
+    // Not swapped for the blue family, unlike `actionFill`. Green means "yes, I
+    // understand" on a consent control; there is no blue that says that. It is allowed
+    // to stay because it is not what makes the control perceivable — see [switchOn].
+    switchOn = SwitchAccent,
+    onSwitchOn = Color.White,
     // White would vanish into the ink strokes beside it on a blue canvas; the brand
     // yellow is the one colour that reads on both, and dark mode keeps exactly seven
     // brand-yellow sites already (see `brandFixed`). This is the eighth.

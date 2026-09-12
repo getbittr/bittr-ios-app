@@ -1,5 +1,79 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <!--
+      Three permissions this app must never ship, held out of the merged manifest by
+      name (BIT-57). All three are enforced rather than trusted because all three can
+      arrive without anyone in this repo typing them.
+
+      ACCESS_FINE_LOCATION — the approved map rationale (DEV-54) says bittr needs
+      your *approximate* location, matching iOS's kCLLocationAccuracyHundredMeters.
+      Map and places SDKs routinely declare FINE in their own manifests, and the
+      merger unions permissions: adding one dependency is enough to put "precise
+      location" in the merged manifest, on the Play listing's permission list, and
+      in the system dialog as a Precise/Approximate toggle — with no Kotlin change
+      to review. A source scan cannot see that happen. This line can.
+
+      ACCESS_BACKGROUND_LOCATION — the approved reassurance (DEV-54, approved
+      2026-09-11) says the location is used "on your device to position the map".
+      Collecting it while the map is not on screen is not that. It is also the one
+      location permission Play reviews by hand (BIT-51), and geofencing and
+      place-awareness SDKs declare it for their own reasons.
+
+      RECORD_AUDIO — the approved scanner rationale (DEV-37) says nothing is
+      recorded. CameraX's video artefact (androidx.camera:camera-video) declares
+      RECORD_AUDIO, so pulling it in for any reason would advertise a recording
+      capability on the store listing even before a line of code used it.
+
+      `tools:node="remove"` is a no-op while nothing declares these, which is the
+      point: it is already in place for the merge that would otherwise introduce
+      them. If one of them ever becomes genuinely necessary, the copy changes first
+      and changed copy goes back through compliance — do not delete these lines to
+      make a build pass. Asserted by LocationPrecisionGuardTest,
+      LocationEgressGuardTest and CameraCaptureGuardTest.
+      RECORD_AUDIO's directive is still a no-op, which is the point: it is already in
+      place for the merge that would otherwise introduce it. The location one stopped
+      being a no-op at BIT-53 — `org.maplibre.gl:android-sdk` declares
+      ACCESS_FINE_LOCATION in its own AAR manifest (verified against the published
+      artefact, not its docs), so this line is now the only reason the shipped APK
+      does not ask for precise location. That is not a MapLibre wart; every map SDK
+      considered did it or recommended it, and it is why the choice was made against
+      a test rather than against a comparison table.
+
+      If one of these ever becomes genuinely necessary, the copy changes first and
+      changed copy goes back through compliance — do not delete these lines to make a
+      build pass. Asserted by LocationPrecisionGuardTest, MapSdkGuardTest and
+      CameraCaptureGuardTest.
+    -->
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" tools:node="remove" />
+    <uses-permission android:name="android.permission.ACCESS_BACKGROUND_LOCATION" tools:node="remove" />
+    <uses-permission android:name="android.permission.RECORD_AUDIO" tools:node="remove" />
+
+    <!--
+      The one location permission this app ships (BIT-53, DEV-54). Coarse alone can
+      only ever grant approximate location, whatever the user taps in the dialog,
+      which is what keeps the shipped map copy true: "To centre the map on where you
+      are, bittr needs your approximate location." It is the faithful port of iOS's
+      kCLLocationAccuracyHundredMeters (Map/MapViewController.swift:80).
+
+      Declared here rather than left to MapLibre's manifest so that the permission
+      bittr does ask for is a decision in this repo, visible in this diff, next to
+      the one it refuses.
+    -->
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+
+    <!--
+      The network. Declared here rather than inherited (BIT-99).
+
+      Until the Wave 1 screens landed, INTERNET reached the merged manifest only
+      through MapLibre's own AAR manifest — so the app's ability to make any request
+      at all was a side effect of which map SDK was on the graph. Three screens now
+      fetch over the network for reasons of their own: the price chart calls the
+      bittr price API, the map syncs BTCMap, and the Academy downloads lesson
+      images. A permission three features depend on should be a line in this file.
+    -->
+    <uses-permission android:name="android.permission.INTERNET" />
 
     <!--
         The three getbittr.com pages Settings opens in a WebView (Get support, the

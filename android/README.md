@@ -133,9 +133,11 @@ CI runs this on every push: `.github/workflows/android-maestro.yml`.
 app                  single Activity, navigation graph, DI wiring
 core/common          generated TestIDs.kt (pure Kotlin, no Android)
 core/designsystem    BittrTheme + tokens
+core/permissions     the permissions the app may request, and settings deep links
 core/wallet          wallet API — interfaces and models only, no implementation
 core/wallet-stub     deterministic no-op wallet, used by the scaffold and CI
 feature/signup       create-or-restore entry point
+feature/scanner      the QR scanner — the only module that may touch the camera
 ```
 
 Dependencies point downward only: `feature/*` and `app` depend on `core/*`;
@@ -162,6 +164,71 @@ implementation instead of the interface, and that is the seam leaking.**
 The interface in `:core:wallet` is sized to what the scaffold needs today and is
 explicitly *not* a design for the wallet layer — the Bitcoin Wallet Engineer owns
 that shape and should widen it in BIT-6.
+
+## Permissions are copy, and the copy has been approved
+
+Read `core/permissions/.../BittrPermissions.kt` before you write a permission
+request. Three of the approved permission strings make **factual claims about what
+this build does**, and compliance signed them off as binding on the implementation
+rather than as preferences (BIT-36, BIT-57). All three are founder-approved copy as
+of 2026-09-11 (BIT-15):
+
+- *"The camera is used only to read the code in front of it. Nothing is recorded."*
+  → the scanner binds CameraX `ImageAnalysis` and **no capture use case**.
+- *"To centre the map on where you are, bittr needs your approximate location."*
+  → `ACCESS_COARSE_LOCATION` only. Never fine.
+- *"Your location is used on your device to position the map. It isn't sent to
+  bittr."* → the fix may set the map region; it may not enter a request body or an
+  analytics event.
+
+Note what the third one does **not** say. It is not a claim that your location never
+leaves the device — centring the map makes the renderer fetch tiles for the area
+around you, and the Android renderer is still unchosen (BIT-52, BIT-53). Tile
+fetching is allowed. Do not implement against *"stays on your device"* or *"never
+shared with third parties"*; those are overclaims, and the broader version bittr
+already ships on iOS is under separate review (BIT-45, BIT-56).
+
+All three are enforced on the JVM, by `CameraCaptureGuardTest`,
+`LocationPrecisionGuardTest` and `LocationEgressGuardTest`. Each checks three
+places, because there are three ways to break a claim and only one of them is
+visible in a diff:
+
+1. **The Kotlin sources** — someone types the API.
+2. **The build files** — a banned artefact arrives as a dependency.
+3. **The merged manifest**, read back through Robolectric's `PackageManager` — a
+   dependency declares the permission in *its* manifest and the merger unions it
+   into the APK. No source scan can see this one, which is why
+   `app/src/main/AndroidManifest.xml` carries `tools:node="remove"` entries for
+   `ACCESS_FINE_LOCATION`, `ACCESS_BACKGROUND_LOCATION` and `RECORD_AUDIO`. Those
+   lines are load-bearing; do not delete them to make a build pass.
+
+The scanner exists now (`feature/scanner`, BIT-72), so `CameraCaptureGuardTest` is
+scanning a real camera call site rather than an empty tree. The two location guards
+are still waiting on the map, and pass without examining a real offender.
+`LocationEgressGuardTest` therefore also runs its detector against a synthetic
+violation, so that a regression in the *detector* fails the build instead of quietly
+disarming the guard while it keeps reporting green.
+
+**These tests are not style rules, and passing them is not optional.** The failure
+they catch is the one nothing else can: the app keeps working perfectly, every flow
+stays green, and the only thing that changed is that a sentence bittr has shipped to
+users stopped being true. If a screen genuinely needs a capture use case, precise
+location, or the coordinate server-side, say so on BIT-57 *before* it ships — the
+copy changes first, and changed copy goes back through compliance.
+
+For the camera specifically, the sentence lives in one function:
+`ScannerViewfinder` in `feature/scanner`, which is the only `bindToLifecycle` call
+in the repo. It binds a viewfinder and an analyser. CameraX publishes two more use
+cases — one for stills, one for video — and neither artefact is on the graph, so
+adding one means editing a build file as well as a line of Kotlin. That is
+deliberate: it makes the change visible in a diff twice.
+
+The permanently-denied states have a requirement of their own: the approved copy no
+longer names an OS settings path, so the button has to do the navigating. Use
+`AppSettings` + `firstResolvable` rather than building the intent inline —
+the fallback chain and the `<queries>` visibility declaration both live there, and
+the second is invisible to every JVM test (`AppSettingsDeepLinkTest` guards it by
+source).
 
 ## Test IDs
 

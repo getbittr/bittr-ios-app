@@ -8,6 +8,23 @@ Parity is defined by `shared/flows/`: **36 top-level Maestro flows** (29 under
 `features/`, 7 under `onboarding/`) plus 6 helper subflows. iOS passes them.
 `shared/docs/parity.md` is the per-flow tracker; this file is the ordering.
 
+## Trunk: `android-parity` — decided, not a convention
+
+**Ruben blessed `android-parity` as the landing branch on 2026-09-12** (BIT-93,
+card `ddd39df5`, option *"android-parity is the trunk — land everything there"*).
+Stack all port work here. He merges `android-parity` into `android` when he
+wants a checkpoint — **per wave, not per branch**.
+
+Practically, for anyone porting:
+
+- Branch off `origin/android-parity`, merge back into it, push. No founder in
+  the loop, no protected-branch wall.
+- The instance-wide `pre-push` hook still refuses `master`/`develop`/`android`,
+  and that stays. Do not try to route around it.
+- `origin/android` is still at `c297ed1` and does **not** contain the BIT-93
+  arc. That is expected now, not a defect to chase. `android-parity` is a
+  strict descendant, so the eventual merge stays a fast-forward.
+
 ## Where the app actually is
 
 | | iOS | Android |
@@ -76,9 +93,9 @@ the seed/PIN layer that BIT-93 already landed.
 | `features/pin_warning` | PinVC | **screens built** (BIT-97); needs the flow driven |
 | `features/wrong_pin` | PinVC | **screens built** (BIT-97); no-channel branch only — the channel close is Wave 2 |
 | `features/forgot_pin` | PinVC → RestoreVC | **screens built** (BIT-97); needs the flow driven |
-| `features/bitcoin_value` | ValueVC | price API, no wallet state |
-| `features/bitcoin_map` | MapVC | BTCMap public API; SDK settled in BIT-53 (coarse-location constraint is binding) |
-| `features/academy` | Academy | content API |
+| `features/bitcoin_value` | ValueVC | **screens built** (BIT-99); needs the flow driven |
+| `features/bitcoin_map` | MapVC | **screens built** (BIT-99); needs the flow driven. Basemap tiles wait on BIT-73 — see below |
+| `features/academy` | Academy | **screens built** (BIT-99); needs the flow driven |
 
 Also in this wave, not flow-bearing on their own: the Home shell in its
 no-funds state, Settings and Device details as screens (**built** — BIT-98),
@@ -92,6 +109,51 @@ places — the header spinner stopping, a `CHF` conversion on Home, and the
 two-button Copy/Close alert on the Public-key row — so it goes green in Wave 2
 behind BIT-6. `SettingsFlowTest` walks everything either side of those three
 steps on the JVM, and names them.
+
+**The three read-only screens landed on 2026-09-12 (BIT-99)** as `:feature:value`,
+`:feature:map` and `:feature:academy`, all three reachable from Home through the
+identifiers their flows tap (`home.currencyButton`, `home.mapButton`,
+`nav.academyButton`). BIT-98 replaced the Home placeholder those first hung off
+with the real no-funds Home, which carries the same three identifiers;
+`Wave1ReachabilityTest` is what holds that swap honest. Three things about them
+are worth knowing
+before the flows are driven on an emulator:
+
+- **The map draws no basemap yet, deliberately.** `MapBasemap.STYLE_URI` is null
+  and the renderer paints a background-only style, because
+  `android/docs/map-sdk-decision.md` says no map screen may point at a vendor's
+  tiles while the current copy ships, and the pipeline that would serve bittr's own
+  is BIT-73. Everything `bitcoin_map.yaml` drives is the app's own code over its
+  own data and works today; only the drawn streets are missing. One constant
+  changes when BIT-73 lands.
+- **The Academy content is transcribed, not retyped.** `tools/academy_content.py`
+  generates `AcademyContent.kt` from the iOS demo data — four levels, 22 lessons,
+  360 components. Lesson ids are the completion keys on both platforms, so they
+  have to match exactly. Re-run the script rather than editing the output.
+- **The price and BTCMap requests go to the live APIs.** Neither needs a wallet, a
+  node or a credential, which is why these were Wave 1 — but the value flow's
+  90-second wait is real, and it is two sequential round trips.
+
+~~wiring BIT-72's scanner result into a destination parser~~ — **done (BIT-100,
+2026-09-12).** `core/common/…/destination/` holds a pure-Kotlin port of
+`AddressParsing.swift:15`: bare address, BIP-21 with an amount, BOLT-11, LNURL,
+across bech32/bech32m and base58check, with the network taken from
+`BuildConfig.BITCOIN_NETWORK` (debug = regtest, as on iOS). 30 unit tests, no
+node and no emulator.
+
+Two things landed with it that are worth knowing about:
+
+- **BIT-72's scanner was merged at the same time.** It had been `done` since it
+  was built but sat on `feature/bit-72-scanner-screen` with no branch
+  containing it, so `:feature:scanner` was not in the trunk build at all.
+- **The iOS LNURL-auth case bug (BIT-84/BIT-85) is not ported.** Detection
+  lower-cases; routing then matches `tag=login&k1` case-sensitively, so an
+  upper-cased query misroutes. The port matches case-insensitively throughout
+  and pins it with a test.
+
+Send consumes the parser when it is built on BIT-6's wave; until then the
+scanner route returns a parsed `Destination` on the caller's back stack entry,
+and `ScannerRouteWiringTest` fails the build if that regresses to a bare pop.
 
 ### Wave 2 — the engine (BIT-6), the critical path
 
@@ -129,28 +191,48 @@ none of it shortens the path to a feature-complete app.
 
 ## What's actually holding this up
 
-Ranked by how much each unblocks. Only the founder can clear items 1–5.
+Ranked by how much each unblocks. Updated 2026-09-12 after Ruben answered the
+two open calls on BIT-93 — four of the seven items below are now closed.
 
-1. **BIT-6 is marked `blocked` with an empty unblock descriptor, and the
-   Bitcoin Wallet Engineer is `idle`, not paused.** The long pole — 26 of 36
-   flows — has no recorded blocker and an available owner. This is the single
-   highest-leverage item on the board and it costs one status change.
-2. **The Backend & API Engineer is paused** (since 2026-09-11T14:45Z). Gates
-   Wave 3's two server changes. Unpausing now buys the lead time to land them
-   before the client needs them.
-3. **Backend repo credential** — a deploy key, org PAT or App install that can
+1. **BIT-6 is blocked behind two in-progress verification tasks** — BIT-59
+   (wallet-layer instrumented tests in CI) and BIT-18 (Test K1, proving a
+   non-auth-bound Keystore key survives lock-screen mutation). Both have active
+   owners and are `in_progress`, so the long pole is *sequenced*, not stalled,
+   and nobody outside those two issues can shorten it today.
+
+   **Corrected 2026-09-12:** an earlier revision of this file said BIT-6 was
+   "blocked with an empty unblock descriptor" and that clearing it "costs one
+   status change". That is no longer true — `diagnostics/blockers` now reports
+   two real first-class blockers. Do not act on the old reading.
+2. **Backend repo credential** — a deploy key, org PAT or App install that can
    reach the backend repo. The existing key is scoped to `bittr-ios-app` only.
-4. **Self-hosted Android CI runner.** Not on the build path, but it is the
-   *gate* — "parity" means these flows pass in CI. Must be x86_64 (see above).
-5. **Firebase project** — push flows only, Wave 3.
-6. **A trunk agents can push to.** `origin/android` is still at `c297ed1` and
-   does not contain the BIT-93 arc; `android-parity` is 37 commits ahead. The
-   instance-wide pre-push hook refuses `master`/`develop`/`android`, so every
-   wave queues behind a manual merge unless `android-parity` is blessed as the
-   landing branch. It already works that way in practice.
-7. **The Mobile Product Designer is paused**, leaving two design defects in
-   review (BIT-94's invisible dark-mode buttons; the consent Switch track at
-   1.65:1). Cheap to clear, and they compound as screens multiply.
+   Gates only the two *server-side* Wave 3 changes, not the client port.
+3. **Firebase project** — push flows only, Wave 3.
+
+With the four items closed below, **nothing on the founder's desk is on Wave 1's
+critical path.** Wave 1 is start-now work; Wave 2 is owner-driven.
+
+### Closed since this file was written
+
+- ~~**A trunk agents can push to.**~~ **Answered: `android-parity` is the
+  trunk** (2026-09-12). See the Trunk section at the top. Wave 1 no longer
+  queues behind a manual merge.
+- ~~**The Mobile Product Designer is paused.**~~ **Unpaused 2026-09-12.** The
+  two design defects have an owner again: BIT-94 (invisible dark-mode buttons,
+  fix ready on `feature/bit-94-dark-primary`) and BIT-95 (consent Switch track
+  at 1.65 : 1).
+- ~~**The Backend & API Engineer is paused.**~~ **Ruben's call, 2026-09-12: they
+  stay paused for now.** This is a decision, not an open ask — do not re-raise
+  it. Plan Wave 3's two server changes as blocked; the *client* half of Wave 3
+  is unaffected, because it needs the API to exist, not the repo.
+- ~~**Self-hosted Android CI runner.**~~ **Never was a blocker.**
+  `android-maestro.yml:253` is
+  `runs-on: ${{ fromJSON(vars.ANDROID_EMULATOR_RUNNER || '["ubuntu-latest"]') }}`
+  — the self-hosted runner is an *unset optional override*. The emulator job
+  runs green on GitHub-hosted `ubuntu-latest` today (run #71 on
+  `android-parity`: KVM enabled, hardware-acceleration preflight passed,
+  Maestro smoke green in 86 s). The x86_64 constraint above still holds; it is
+  satisfied by the hosted image. Do not ask the founder for a runner.
 
 ## What this file is not
 

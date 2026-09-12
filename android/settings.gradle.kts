@@ -43,6 +43,12 @@ include(":core:designsystem")
 // BIT-6 owning a preference the Device screen writes. iOS keeps them in
 // CacheManager alongside wallet data; that conflation is not worth porting.
 include(":core:preferences")
+// The runtime-permission seam. Holds the permission set the app is allowed to ask
+// for and the settings deep links the permanently-denied states navigate to — both
+// of which approved copy makes factual claims about (BIT-57). Feature modules ask
+// through here rather than naming permission strings directly, so the guard tests
+// in :app have one allowed call site to check against.
+include(":core:permissions")
 
 // The wallet seam. :core:wallet is API-only (pure Kotlin interfaces + models).
 // :core:wallet-stub is the deterministic implementation the scaffold and CI run
@@ -67,3 +73,24 @@ include(":feature:signup")
 // (ios/bittr/Settings, ios/bittr/Question).
 include(":feature:home")
 include(":feature:settings")
+// The QR scanner (iOS S-16, ScannerViewController). Its own module so the CameraX
+// dependency has exactly one place it can be reached from: the shipped claim that
+// nothing is recorded is a property of the use cases this module binds, and a module
+// boundary is what keeps "which code can touch the camera" answerable by reading one
+// build file. See CameraCaptureGuardTest in :app.
+include(":feature:scanner")
+
+// The Bitcoin value / price chart (iOS ValueViewController). BIT-99, Wave 1.
+include(":feature:value")
+
+// The Bitcoin map (iOS Map/). BIT-99, Wave 1. Owns the MapLibre dependency and the
+// BTCMap sync: both are constrained by approved copy rather than by taste — the
+// renderer choice is BIT-53's and the whole-dataset sync is what makes the shipped
+// "your location is never sent" true — so having one module boundary around them is
+// what keeps "which code can reach the map stack" answerable from one build file.
+// See MapSdkGuardTest and LocationEgressGuardTest in :app.
+include(":feature:map")
+
+// The Academy (iOS Academy/). BIT-99, Wave 1. Read-only content plus the lesson
+// unlock rule; no wallet, no network beyond the six lesson images.
+include(":feature:academy")

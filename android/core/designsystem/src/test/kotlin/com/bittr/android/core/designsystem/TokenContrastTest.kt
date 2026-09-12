@@ -3,6 +3,7 @@ package com.bittr.android.core.designsystem
 import androidx.compose.material3.ColorScheme
 import androidx.compose.ui.graphics.Color
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import kotlin.math.max
@@ -142,9 +143,13 @@ class TokenContrastTest {
             aaLarge, BittrLightColorsExtended.emphasis, BittrLightColors.primary,
             "screen title on brand yellow, light",
         )
+        // `surface`, not `primary`. Until BIT-94 the two were the same colour in dark
+        // mode and this line read `primary` — which measured the right pixels for the
+        // wrong reason. A screen title is drawn on the page, and in dark the page is
+        // `surface`; `primary` is now the accent a control fills itself with. 4.51 : 1.
         assertAtLeast(
-            aaLarge, BittrDarkColorsExtended.emphasis, BittrDarkColors.primary,
-            "screen title on primary, dark",
+            aaLarge, BittrDarkColorsExtended.emphasis, BittrDarkColors.surface,
+            "screen title on the dark page",
         )
     }
 
@@ -153,6 +158,38 @@ class TokenContrastTest {
         // The merge only moves the light value. If this ever fails, the fix has grown
         // into a dark-mode redesign and needs to go back to the founder.
         assertEquals(0xFFFFC502.toInt(), BittrDarkColorsExtended.emphasis.toArgbInt())
+    }
+
+    // -----------------------------------------------------------------------
+    // DEV-40 — the `DetailRow` label
+    // -----------------------------------------------------------------------
+
+    @Test
+    fun `DEV-40 the DetailRow label clears AA as body text in both modes`() {
+        // ~33 call sites, every read-back of an address, an amount or a deposit code.
+        // Body text at Gilroy-Regular, so the floor is 4.5 and not the 3.0 that
+        // `emphasis` gets to use. Founder sign-off — BIT-15 §A3.
+        assertAtLeast(
+            aa, BittrLightColorsExtended.rowLabel, BittrLightColors.surfaceContainer,
+            "the row label on white",
+        )
+        assertAtLeast(
+            aa, BittrDarkColorsExtended.rowLabel, BittrDarkColors.surfaceContainer,
+            "the row label on blue2",
+        )
+    }
+
+    @Test
+    fun `DEV-40 the row label is not the brand yellow in either mode`() {
+        // This is the regression the token exists to prevent: the yellow is 1.59 : 1 on
+        // white, the app's worst failure. A porter reaching for `brandFixed` here — or
+        // anyone "restoring" the iOS look — trips this rather than shipping it.
+        assertNotEquals(0xFFFFC502.toInt(), BittrLightColorsExtended.rowLabel.toArgbInt())
+        assertNotEquals(0xFFFFC502.toInt(), BittrDarkColorsExtended.rowLabel.toArgbInt())
+        // And it stays in the brand family rather than becoming a generic grey: the
+        // light value is the yellow darkened at constant hue, 46.2° → 46.1°.
+        assertEquals(0xFF8A6A00.toInt(), BittrLightColorsExtended.rowLabel.toArgbInt())
+        assertEquals(0xFFFFE28A.toInt(), BittrDarkColorsExtended.rowLabel.toArgbInt())
     }
 
     // -----------------------------------------------------------------------
@@ -402,6 +439,374 @@ class TokenContrastTest {
         for ((name, c) in schemes) {
             assertAtLeast(aaLarge, c.onTonalFill, c.tonalFill, "$name content on the tonal fill")
         }
+    }
+
+    // -----------------------------------------------------------------------
+    // A11Y-22 / BIT-94 — 1.4.11 for a control's container, not its label
+    // -----------------------------------------------------------------------
+
+    /**
+     * The half of 1.4.11 that sixteen green tests did not cover.
+     *
+     * Everything above this line measures something drawn *on* a fill. Nothing
+     * measured a fill against the page behind it — which is how `primary` and
+     * `surface` both came to be `blue1` and stayed that way through a founder
+     * sign-off. A Material filled `Button` paints its container `primary`, so in dark
+     * mode the container was exactly the page: **1.00 : 1**. Its label still cleared
+     * AA, so the control rendered as text floating in space and every test passed.
+     *
+     * This is the part that has to hold for a control to be a control.
+     */
+    @Test
+    fun `A11Y-22 a dark filled control is visible against the page it sits on`() {
+        // The fix. grey1 on blue1, where blue1 on blue1 used to be.
+        assertAtLeast(
+            aaLarge, BittrDarkColors.primary, BittrDarkColors.surface,
+            "dark filled button against the page",
+        )
+        assertAtLeast(
+            aa, BittrDarkColors.onPrimary, BittrDarkColors.primary,
+            "dark filled button label",
+        )
+        // Not only `Button`: a Switch track, a Slider, a focused TextField indicator and
+        // a FAB are all `primary`, and all of them were the page colour too.
+        assertTrue(
+            "primary is the page colour again — every filled control just went invisible",
+            BittrDarkColors.primary.toArgbInt() != BittrDarkColors.surface.toArgbInt(),
+        )
+    }
+
+    /**
+     * The page is not the only thing a button lands on.
+     *
+     * Re-rendering the BIT-93 arc on the merged parity tree to close this issue's third
+     * DoD line showed that of the four dark screens with a filled button, only the
+     * phrase screen's sits directly on `surface`. The start and ready screens put it on
+     * the `cardWash` card, measured `#4C688E` in the PNG — an adjacency the test above
+     * does not look at, because it only knows about the page. `primary` could be moved
+     * to a value that clears `blue1` and fails the card, and the suite would stay green
+     * while the button on two of the three screens went back to being hard to see.
+     *
+     * So: every dark surface a filled control can be drawn on, measured against the
+     * fill. `surfaceContainerHigh` is the tightest at 3.96 : 1 and is the one to watch.
+     */
+    @Test
+    fun `A11Y-22 the dark filled control clears every surface it can land on`() {
+        for ((where, bg) in listOf(
+            "the page" to BittrDarkColors.surface,
+            // White @ 9 % over the page — what the arc's start and ready screens
+            // actually put the button on.
+            "the card" to composite(BittrDarkColorsExtended.cardWash, BittrDarkColors.surface),
+            "surfaceContainer" to BittrDarkColors.surfaceContainer,
+            "surfaceContainerHigh" to BittrDarkColors.surfaceContainerHigh,
+            "surfaceBright" to BittrDarkColors.surfaceBright,
+        )) {
+            assertAtLeast(aaLarge, BittrDarkColors.primary, bg, "dark filled button on $where")
+        }
+    }
+
+    /**
+     * The same collision one slot over, in the scheme nobody thought to check: a
+     * `TextButton` paints its **text** `primary`, and in light mode `primary` is a page.
+     *
+     * Everything above measures `primary` as a fill, against the 3 : 1 floor of 1.4.11.
+     * But the app has two raw Material `TextButton`s — the alert's way-out button
+     * (`BittrAlert`, position 0) and the scanner's Close — and for those `primary` is
+     * 14 sp label text, which is not large text and therefore owes **4.5**, not 3.
+     *
+     * In dark that was already fine at 6.38 : 1. In light it was **1.42 : 1** — brand
+     * yellow on the `grey1` page, the exact failure this issue is named for, in the
+     * other scheme and on the other kind of control. `BittrLightColors` already says
+     * *"a filled Material `Button` is wrong in light mode and always was"*; a Material
+     * `TextButton` is wrong there for the identical reason, and neither was written
+     * down as a number until now.
+     *
+     * Both call sites now name `onSurfaceVariant`, which is what "drawn quieter on a
+     * surface" is supposed to mean — 5.57 : 1 light, 5.28 : 1 dark.
+     */
+    @Test
+    fun `A11Y-22 a TextButton label owes AA, so it cannot be primary in light mode`() {
+        for ((scheme, colors) in listOf(
+            "light" to BittrLightColors,
+            "dark" to BittrDarkColors,
+        )) {
+            assertAtLeast(
+                aa, colors.onSurfaceVariant, colors.surface,
+                "the $scheme TextButton label — the alert's way out, and the scanner's Close",
+            )
+        }
+        // The trap this replaced. Leaving the label to Material's default puts `primary`
+        // on the page: fine in dark, invisible in light. Asserted as a measurement so
+        // that dropping the `colors =` argument at either call site has a number on it.
+        assertTrue(
+            "light primary now clears AA as label text — re-read the note on BittrLightColors " +
+                "before letting a TextButton fall back to it",
+            contrast(BittrLightColors.primary, BittrLightColors.surface) < aa,
+        )
+    }
+
+    /**
+     * The alert's action button, which is on a `surface` rather than on the canvas.
+     *
+     * `actionFill` was specified for the onboarding canvas — ink on yellow in light,
+     * grey1 on blue1 in dark. `BittrAlert` is the first thing to put it on `surface`
+     * instead, so that adjacency needs its own number: it is not covered by the canvas
+     * tests above, and it is the pair that decides whether the alert's Continue button
+     * is visible. Both schemes clear the container floor with room to spare, which is
+     * what makes `actionFill` the right answer on both backgrounds rather than a
+     * canvas-only token that happens to be reachable.
+     */
+    @Test
+    fun `A11Y-22 the alert's action button is visible on the surface it sits on`() {
+        for ((scheme, colors, base) in listOf(
+            Triple("light", BittrLightColorsExtended, BittrLightColors),
+            Triple("dark", BittrDarkColorsExtended, BittrDarkColors),
+        )) {
+            assertAtLeast(
+                aaLarge, colors.actionFill, base.surface,
+                "the $scheme alert's action button against the alert",
+            )
+            assertAtLeast(
+                aa, colors.onActionFill, colors.actionFill,
+                "the $scheme alert's action button label",
+            )
+        }
+    }
+
+    /**
+     * Why `BittrAlert` spells out `containerColor = surface`.
+     *
+     * Material's `AlertDialog` reaches for `surfaceContainerHigh`, and the dark filled
+     * button that BIT-94 fixed measures **3.96 : 1** there — over the 3 : 1 container
+     * floor, so the confirm button stays legal, but with no margin left. It is the
+     * tightest pair in the dark scheme and the one that decides how far `primary` can
+     * move. Recorded as a number rather than a comment so that taking the
+     * `containerColor` line back out is a test failure away from being noticed.
+     */
+    @Test
+    fun `A11Y-22 the dialog container is the tightest surface the fix has to clear`() {
+        assertAtLeast(
+            aaLarge, BittrDarkColors.primary, BittrDarkColors.surfaceContainerHigh,
+            "the dark filled button on Material's default dialog container",
+        )
+        assertTrue(
+            "the dialog container now has AA-text headroom — BittrAlert's containerColor " +
+                "override can be reconsidered",
+            contrast(BittrDarkColors.primary, BittrDarkColors.surfaceContainerHigh) < aa,
+        )
+    }
+
+    @Test
+    fun `A11Y-22 the dark Material slot and the dark canvas pill are one decision`() {
+        // `actionFill` had already inverted to grey1 for the onboarding pill, with the
+        // reasoning written down; BIT-94 is the Material slot catching up to it rather
+        // than a second answer to the same question. Drift between these two is a dark
+        // mode where the arc's button and every other screen's button are different
+        // colours, which no screenshot of either one on its own would show.
+        assertEquals(
+            BittrDarkColorsExtended.actionFill.toArgbInt(),
+            BittrDarkColors.primary.toArgbInt(),
+        )
+        assertEquals(
+            BittrDarkColorsExtended.onActionFill.toArgbInt(),
+            BittrDarkColors.onPrimary.toArgbInt(),
+        )
+    }
+
+    @Test
+    fun `A11Y-22 light primary is a surface, so a filled Material Button is wrong there`() {
+        // The asymmetry, asserted so it reads as decided rather than as the same bug
+        // half-fixed. Light `primary` is the brand yellow and the brand yellow is a
+        // *page* in this app — 56 storyboard fills. Against `surface` it is 1.42 : 1,
+        // and moving it would unpick those fills and six tests above. So the light CTA
+        // is not a Material `Button` at all; it is BittrPrimaryButton on `actionFill`.
+        assertTrue(
+            "light primary now clears the container floor — re-read the note on BittrLightColors",
+            contrast(BittrLightColors.primary, BittrLightColors.surface) < aaLarge,
+        )
+        assertAtLeast(
+            aaLarge, BittrLightColorsExtended.actionFill, BittrLightColors.surface,
+            "the light CTA that is usable — the ink pill",
+        )
+    }
+
+    @Test
+    fun `A11Y-22 the tonal fills are exempt from the container floor, and that is deliberate`() {
+        // Every remaining fill that loses to the page, in one place, so that "it is not
+        // in the test" can never again be the reason something shipped invisible.
+        //
+        // These are tonal containers — the cream PIN cell, the secondary pill,
+        // `primaryContainer`. §1.1 states the rule for them: a fill that carries its own
+        // content is identified by that content, not by its edge, and is never a border
+        // that has to be perceived against the canvas. The content side is asserted by
+        // `the tonal fill shows what is on it at the large-text floor`, and this test is
+        // void without it.
+        //
+        // A filled *button* is not in this category and does not get this exemption:
+        // its edge is the only thing that says it can be pressed.
+        for ((name, fill, bg) in listOf(
+            Triple(
+                "light tonal fill on the canvas",
+                BittrLightColorsExtended.tonalFill, BittrLightColorsExtended.canvas,
+            ),
+            Triple(
+                "dark tonal fill on the canvas",
+                BittrDarkColorsExtended.tonalFill, BittrDarkColorsExtended.canvas,
+            ),
+            Triple(
+                "dark primaryContainer on the page",
+                BittrDarkColors.primaryContainer, BittrDarkColors.surface,
+            ),
+        )) {
+            assertTrue(
+                "$name now clears 3 : 1 — good, but it changed; re-read §1.1 before keeping it",
+                contrast(fill, bg) < aaLarge,
+            )
+        }
+    }
+
+    // -----------------------------------------------------------------------
+    // BIT-95 — the consent switch, which is a control whose *state* has to be seen
+    // -----------------------------------------------------------------------
+
+    /**
+     * Every background the consent switch is drawn on, per scheme.
+     *
+     * **The card, not just the canvas.** `ToggleRow` is inside a `BittrCard`, so the
+     * fill behind the switch is `cardWash` over the canvas — and that is the *worse*
+     * background of the two: the green track measures 1.32 : 1 there against 1.65 : 1 on
+     * the bare page. BIT-94 learned this one screen over, with the filled button on the
+     * start and ready screens; the issue that filed this measured the canvas only.
+     */
+    private fun switchBackgrounds(c: BittrColors) = listOf(
+        "the canvas" to c.canvas,
+        "the card it is actually on" to card(c),
+    )
+
+    /**
+     * The border of a checked switch, as rendered.
+     *
+     * `mutedOnCanvas` is translucent and Material strokes the track border *inside* the
+     * track's bounds, so the checked border composites over [BittrColors.switchOn] and
+     * not over the page. That is why this is a two-step composite and not a token read,
+     * and why promoting `switchOn` out of `Canvas.kt` was a precondition for asserting
+     * anything here at all.
+     */
+    private fun checkedBorder(c: BittrColors): Color = composite(c.mutedOnCanvas, c.switchOn)
+
+    @Test
+    fun `BIT-95 a checked consent switch has a boundary on every background it lands on`() {
+        for ((name, c) in schemes) {
+            for ((where, bg) in switchBackgrounds(c)) {
+                assertAtLeast(aaLarge, checkedBorder(c), bg, "$name checked switch border on $where")
+            }
+        }
+    }
+
+    @Test
+    fun `BIT-95 the unchecked switch keeps the boundary the checked one borrowed`() {
+        // The unchecked track is transparent, so its border composites over the
+        // background directly. This state was never broken — it is asserted because the
+        // fix is "both states use the same border", and that claim is only worth
+        // anything while this half still holds.
+        for ((name, c) in schemes) {
+            for ((where, bg) in switchBackgrounds(c)) {
+                assertAtLeast(aaLarge, c.mutedOnCanvas, bg, "$name unchecked switch border on $where")
+            }
+        }
+    }
+
+    /**
+     * The thumb and the border are both measured against the **track**, not against each
+     * other — and in dark mode that distinction is the whole of it.
+     *
+     * The dark border composites to `#DDEDE6` and the thumb is white: against each other
+     * they are 1.10 : 1. They are not adjacent, which is why that number is not a defect.
+     * Material's checked thumb is 24 dp in a 32 dp track, so it sits inside the track's
+     * edge and the 2 dp border takes only part of that gap. Scanned across the thumb's
+     * centre line in `arc-2-confirm-on-dark.png` at 420 dpi: `#DEEEE7` ×5 (the border),
+     * `#1F8A5B` ×56, `#FFFFFF` ×61 (the thumb), `#1F8A5B` ×4, `#DEEEE7` ×5. Four pixels
+     * of green on the tight side, and a blend pixel either way.
+     *
+     * So the green is doing real work after all. It is not the boundary — it loses to the
+     * card at 1.32 : 1 — but it *is* the separator between two light elements, and both
+     * sides of it clear 3 : 1 against it. A "fix" that darkened the green toward the card
+     * would have to keep this margin too.
+     */
+    @Test
+    fun `BIT-95 the thumb and the border are each visible against the track between them`() {
+        for ((name, c) in schemes) {
+            // White on the green. 4.33 : 1 — held to the 3 : 1 non-text floor.
+            assertAtLeast(aaLarge, c.onSwitchOn, c.switchOn, "$name checked thumb on its track")
+            assertAtLeast(
+                aaLarge, checkedBorder(c), c.switchOn,
+                "$name checked border against the track it strokes",
+            )
+            // Unchecked: the thumb is `mutedOnCanvas` over a transparent track, so the
+            // background is what it has to clear.
+            for ((where, bg) in switchBackgrounds(c)) {
+                assertAtLeast(aaLarge, c.mutedOnCanvas, bg, "$name unchecked thumb on $where")
+            }
+        }
+    }
+
+    /**
+     * Why the fix is a border and not a better green — as arithmetic, not as a preference.
+     *
+     * The issue that filed this offered three options, two of which move the fill:
+     * darken `switchAccent` until it clears 3 : 1, or swap it per scheme the way the rest
+     * of the system swaps yellow for blue. Both are impossible in dark mode while the
+     * thumb stays white, and this is the test that says so.
+     *
+     * A track clearing 3 : 1 against the dark card needs a relative luminance of at least
+     * **0.501**. A track a **white** thumb still clears 3 : 1 against cannot exceed
+     * **0.300**. The band is empty, and it is empty for every hue — luminance does not
+     * care whether the colour is green. So a fill-only fix necessarily also darkens the
+     * thumb, which is a pale track with an ink dot on it: a different control from the
+     * one the mock draws, and a founder call rather than a designer one.
+     *
+     * If this assertion ever fails, the dark canvas or the card wash has moved and the
+     * option genuinely reopened — which is worth knowing.
+     */
+    @Test
+    fun `BIT-95 no track colour can both clear the dark card and keep a white thumb`() {
+        val darkCard = card(BittrDarkColorsExtended)
+        val floorToClearTheCard = aaLarge * (luminance(darkCard) + 0.05) - 0.05
+        val ceilingToKeepAWhiteThumb = (luminance(Color.White) + 0.05) / aaLarge - 0.05
+
+        assertTrue(
+            "a track can now clear the dark card and keep a white thumb (L in " +
+                "%.3f..%.3f) — the fill-only fix this test rules out has reopened"
+                    .format(floorToClearTheCard, ceilingToKeepAWhiteThumb),
+            floorToClearTheCard > ceilingToKeepAWhiteThumb,
+        )
+        // The mock's green is nowhere near either end of that, for the record: it is
+        // *below* the floor, which is why it loses to the card rather than to the thumb.
+        assertTrue(
+            "switchAccent now clears the dark card on its own — re-read BittrColors.switchOn",
+            luminance(BittrDarkColorsExtended.switchOn) < floorToClearTheCard,
+        )
+    }
+
+    @Test
+    fun `BIT-95 the checked track is the mock's switchAccent and is not the boundary`() {
+        // The value, pinned: this is a mock-specified colour and the fix deliberately did
+        // not touch it. Someone "fixing the contrast" by moving the green instead of the
+        // border trips this and reads the note.
+        for ((name, c) in schemes) {
+            assertEquals("$name switchAccent", 0xFF1F8A5B.toInt(), c.switchOn.toArgbInt())
+            // The failure this issue is about, kept as a measurement so that the track
+            // can never be mistaken for the thing that makes the control perceivable.
+            assertTrue(
+                "$name: the checked track now clears 3 : 1 on the card by itself — good, " +
+                    "but the border is still what the design relies on; re-read switchOn",
+                contrast(c.switchOn, card(c)) < aaLarge,
+            )
+        }
+        // The regression that filed BIT-95 was the *wiring* — `checkedBorderColor =
+        // SwitchOn`, a control whose border is its own fill — and nothing in this file can
+        // see a call site. That half is `CanvasComponentColorsTest`, which needs a
+        // composition and is therefore the only test in this module that does.
     }
 
     // -----------------------------------------------------------------------
