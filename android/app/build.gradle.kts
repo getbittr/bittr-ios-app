@@ -140,6 +140,7 @@ kotlin {
 dependencies {
     implementation(project(":core:common"))
     implementation(project(":core:designsystem"))
+    implementation(project(":core:permissions"))
     implementation(project(":core:wallet"))
     // The only place the wallet implementation is named. BIT-6 swaps this line
     // (and the binding in di/WalletModule.kt) for :core:wallet-ldk.
@@ -150,6 +151,7 @@ dependencies {
     implementation(project(":core:wallet-seed"))
     implementation(project(":core:wallet-keystore"))
     implementation(project(":feature:signup"))
+    implementation(project(":feature:scanner"))
 
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
