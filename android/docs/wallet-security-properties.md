@@ -40,7 +40,7 @@ written.
 | 2 | …and what the device actually produced | `KeyInfo` read back off a generated key | `KeystoreKeyInfoTest` | written — no device in CI |
 | 2 | …and it survives a lock-screen change | — | **BIT-18 / K1**, device matrix | separate issue |
 | 3 | The wrapped blob is a cache, never the only copy | Blob loss routes to the restore screen; terminal failures classify as "no usable mnemonic" | `BlobDestroyedRecoversTest` | green |
-| 4 | The blob is excluded from Auto Backup | `allowBackup="false"` + `dataExtractionRules` + siting under `getNoBackupFilesDir()` | `BackupExclusionRulesTest` + `StateDirLocationTest` (configuration) · `BackupExclusionTest` (behaviour) | configuration green; **behaviour pending — see §4** |
+| 4 | The blob is excluded from Auto Backup | `allowBackup="false"` + `dataExtractionRules` + siting under `getNoBackupFilesDir()` | `BackupExclusionRulesTest` + `StateDirLocationTest` (configuration) · `BackupExclusionTest` (behaviour) | configuration green; behaviour **written — no device in CI, see §4** |
 | 5 | No PIN-derived wrapping | PIN stays a salted-SHA-256 verifier; the unwrap path takes no PIN argument | `WalletKeystorePolicyGuardTest` (bans `PBEKeySpec`/PBKDF2) · `BlobWriteVerifiedTest` (unwrap signature takes no PIN) | green |
 
 ### BIT-20 — the LDK state quarantine guard
@@ -51,7 +51,7 @@ written.
 | 7 | match → keep · mismatch → quarantine · absent → quarantine | `SeedImportGuard` | `BlobDestroyedRecoversTest` (match, mismatch) · `ForeignStateQuarantinedTest` (absent) | green |
 | 8 | Three-way blob classification; transient ≠ absence | Classification on exception type, no fallback branch meaning "absent" | `TransientKeystoreFailureAbortsTest` | green |
 | 9 | Quarantine never overwrites a prior quarantine | Uniquely-named subdirectory under `no_backup/foreign_ldk_state/` | `QuarantineDoesNotClobberTest` | green |
-| 10 | Exclusion widens to the LDK state directory, both backup paths | The three layers in rule 4, scoped to the whole wallet directory | as rule 4 | configuration green; **behaviour pending** |
+| 10 | Exclusion widens to the LDK state directory, both backup paths | The three layers in rule 4, scoped to the whole wallet directory | as rule 4 | configuration green; behaviour **written, never run** |
 
 ### Port-faithfulness fixes carried without a separate ruling
 
@@ -120,8 +120,44 @@ configuration: `allowBackup="false"`, `dataExtractionRules` wired up, both
 path resolves under `no_backup`.
 
 None of that proves a backup set produced by a real device contains none of it.
-That is `BackupExclusionTest`, it drives `bmgr` and a device-transfer, and CI
-has no `connectedAndroidTest` step yet.
+That is `BackupExclusionTest` (`app/src/androidTest`, BIT-101). It now exists,
+and it has never run: CI has no `connectedAndroidTest` step yet (BIT-59), and
+there is no device in the agent container.
+
+**What it does.** Plants a wallet-bearing install — wrapped blob, ldk-node
+state, discriminator, BDK database, and a quarantine subdirectory under the
+uniquely-generated name BIT-20 rule 4 gives it — then drives `bmgr` to produce
+a real set, deletes everything it planted, restores, and asserts none of it came
+back. Once on the cloud-backup path and once with the local transport in
+device-transfer mode, because API 31+ configures the two separately.
+
+**Why it is in `:app` rather than `:core:wallet-ldk`, where BIT-101 asked for
+it.** A library module's instrumented tests are self-instrumenting: the package
+under test would be `…core.wallet.ldk.test`, whose manifest carries neither
+`allowBackup="false"` nor `dataExtractionRules`. That set would be produced for
+a default-configured package and would say nothing about the install we ship.
+`com.bittr.android` is the only package whose backup configuration is the
+product's. The cost is duplicated path literals, since `:app` does not depend on
+`:core:wallet-ldk` yet; `BackupExclusionInstrumentationGuardTest` (JVM, runs on
+every `check`) fails the build if those literals stop matching `WalletPaths`, and
+fails it again if the instrumented class is `@Ignore`d or drops below three
+cases. A test that needs hardware is a test nobody watches rot.
+
+**Two things that could make the first run red without the product being
+wrong**, recorded now so they are not diagnosed under pressure later: the
+instrumentation runs inside the process whose data is being restored, and
+whether `bmgr restore` kills that process is not documented either way; and
+`is_device_transfer` is a local-transport test hook rather than API, so the test
+asserts the setting was taken rather than assuming it. Both are results to
+record on BIT-101 and BIT-20, not to design around.
+
+Also unresolved, and deliberately left to the device: the root of
+`domain="file"` is `getFilesDir()`, while the wallet directory is under
+`getNoBackupFilesDir()` — a sibling of it, not a child. If that is so, the
+`<exclude>` entries name paths the product never writes to and the `no_backup`
+siting is carrying rule 5 alone. `BackupExclusionTest` plants a decoy at each of
+the two paths those entries name. Whichever way it comes out, the answer is to
+fix the rules, never to relax the rule.
 
 This matters more than a normal missing test, because BIT-20 rule 5 makes it a
 **precondition** of the `match → keep` guard rather than a follow-up. A
@@ -139,9 +175,9 @@ the empirical result attached, and the guard reverts to iOS behaviour
 (quarantine on anything but a live mnemonic) until it is re-decided.
 
 Until `BackupExclusionTest` is green on both paths, `match → keep` is shipping
-on a proven *configuration* and an unproven *behaviour*. That is the honest
-status, and it is why the test is tracked as a blocker on this issue rather
-than as a nice-to-have.
+on a proven *configuration* and an unproven *behaviour*. Writing it did not
+change that: an unrun test is not evidence, and the row above says **written**,
+not green. What changed is that BIT-59 now has something to run.
 
 ---
 
