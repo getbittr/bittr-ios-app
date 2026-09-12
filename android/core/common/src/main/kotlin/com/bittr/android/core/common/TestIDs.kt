@@ -15,10 +15,37 @@ object TestID {
         const val nextPageButton = "academy.nextPageButton"
     }
     object Alert {
+        const val addNote = "alert.addNote"
+        const val amountMissing = "alert.amountMissing"
         // Runtime-indexed: position 0 → "alert.button.0", position 1 → "alert.button.1", …
         const val button = "alert.button"
         fun buttonAt(position: Int) = "alert.button.$position"
+        const val confirmStatements = "alert.confirmStatements"
+        const val copied = "alert.copied"
+        const val exclusiveInitiative = "alert.exclusiveInitiative"
+        const val incomingPayment = "alert.incomingPayment"
+        const val incorrectPhrase = "alert.incorrectPhrase"
+        const val incorrectPin = "alert.incorrectPin"
+        const val insufficientOnchainBalance = "alert.insufficientOnchainBalance"
+        const val invalidWords = "alert.invalidWords"
+        const val lightningExplanation = "alert.lightningExplanation"
+        const val lowFee = "alert.lowFee"
+        const val missingWords = "alert.missingWords"
+        const val noScreenshot = "alert.noScreenshot"
+        const val notificationsRequired = "alert.notificationsRequired"
+        const val onlyIban = "alert.onlyIban"
+        const val paymentRequest = "alert.paymentRequest"
+        const val paymentRequestFailed = "alert.paymentRequestFailed"
+        const val pinLength = "alert.pinLength"
+        const val pinRequired = "alert.pinRequired"
+        const val receiveNotificationsDenied = "alert.receiveNotificationsDenied"
+        const val receiveNotificationsPrompt = "alert.receiveNotificationsPrompt"
+        const val resendCode = "alert.resendCode"
+        const val swapValidationFailed = "alert.swapValidationFailed"
+        const val syncingWallet = "alert.syncingWallet"
         const val textField = "alert.textField"
+        const val transactionError = "alert.transactionError"
+        const val withdrawRequest = "alert.withdrawRequest"
     }
     object Article {
         const val downButton = "article.downButton"
@@ -86,6 +113,11 @@ object TestID {
         const val receiveButton = "home.receiveButton"
         const val sendButton = "home.sendButton"
         const val syncStatusButton = "home.syncStatusButton"
+    }
+    object Loading {
+        const val handlingLnurl = "loading.handlingLnurl"
+        const val receivingPayment = "loading.receivingPayment"
+        const val syncingWallet = "loading.syncingWallet"
     }
     object Map {
         const val mapSpinner = "map.mapSpinner"
@@ -199,6 +231,10 @@ object TestID {
     }
     object Signup {
         object Bittr {
+            object Initiative {
+                const val cancelButton = "signup.bittr.initiative.cancelButton"
+                const val confirmButton = "signup.bittr.initiative.confirmButton"
+            }
             object Otp {
                 const val codeButton = "signup.bittr.otp.codeButton"
                 const val codeTextField = "signup.bittr.otp.codeTextField"

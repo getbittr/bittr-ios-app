@@ -130,13 +130,13 @@ class Transfer2ViewController: UIViewController, UITextFieldDelegate, UNUserNoti
             if settings.authorizationStatus == .notDetermined {
                 // Notifications preference hasn't been set yet.
                 DispatchQueue.main.async {
-                    self.showAlert(title: Language.getWord(withID: "receivenotifications"), message: Language.getWord(withID: "receivenotifications2"), buttons: [.action(Language.getWord(withID: "okay")) { self.askForPushNotifications() }])
+                    self.showAlert(id: TestID.Alert.receiveNotificationsPrompt, title: Language.getWord(withID: "receivenotifications"), message: Language.getWord(withID: "receivenotifications2"), buttons: [.action(Language.getWord(withID: "okay")) { self.askForPushNotifications() }])
                 }
             } else if settings.authorizationStatus != .authorized {
                 // Notifications have been rejected. The user can still continue —
                 // their purchases just get paid out on-chain instead of via lightning.
                 DispatchQueue.main.async {
-                    self.showAlert(title: Language.getWord(withID: "receivenotifications"), message: Language.getWord(withID: "receivenotifications3"), buttons: [.action(Language.getWord(withID: "cancel")) { self.cancelLoading() }, .action(Language.getWord(withID: "continue")) { self.proceedWithoutNotifications() }])
+                    self.showAlert(id: TestID.Alert.receiveNotificationsDenied, title: Language.getWord(withID: "receivenotifications"), message: Language.getWord(withID: "receivenotifications3"), buttons: [.action(Language.getWord(withID: "cancel")) { self.cancelLoading() }, .action(Language.getWord(withID: "continue")) { self.proceedWithoutNotifications() }])
                 }
             } else if CacheManager.getRegistrationToken() == nil {
                 Log.info("Notifications preference has been set but token hasn't been cached.")
@@ -368,6 +368,15 @@ class Transfer2ViewController: UIViewController, UITextFieldDelegate, UNUserNoti
                 parameters["payment_mode"] = "onchain"
             }
 
+            // The exclusive-initiative confirmation the customer gave on the IBAN screen
+            // (published T&C §2.5), so it is held against the customer record and not
+            // only in this device's cache. ISO-8601, UTC. Sent only when there is one:
+            // an entity registered before the app collected it has nothing to send, and
+            // an empty or invented value would be worse than an absent one.
+            if let confirmedInitiativeAt = ibanEntity.initiativeConfirmedAt, confirmedInitiativeAt != "" {
+                parameters["exclusive_initiative_confirmed_at"] = confirmedInitiativeAt
+            }
+
             // Recovery: reuse the existing deposit code so the backend updates the
             // existing customer instead of creating a new order. lightning_pubkey
             // (above) must match the one sent in check2fa and stored on the customer.
@@ -484,7 +493,7 @@ class Transfer2ViewController: UIViewController, UITextFieldDelegate, UNUserNoti
             }
         } else {
             // Timer is still counting down.
-            self.showAlert(title: "", message: Language.getWord(withID: "resendcode2"), buttons: [.dismiss(Language.getWord(withID: "okay")), .action(Language.getWord(withID: "changeemail")) { self.backToChangeEmail() }])
+            self.showAlert(id: TestID.Alert.resendCode, title: "", message: Language.getWord(withID: "resendcode2"), buttons: [.dismiss(Language.getWord(withID: "okay")), .action(Language.getWord(withID: "changeemail")) { self.backToChangeEmail() }])
         }
     }
     

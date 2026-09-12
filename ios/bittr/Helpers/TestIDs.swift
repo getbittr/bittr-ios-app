@@ -12,10 +12,37 @@ enum TestID {
         static let nextPageButton = "academy.nextPageButton"
     }
     enum Alert {
+        static let addNote = "alert.addNote"
+        static let amountMissing = "alert.amountMissing"
         // Runtime-indexed: position 0 → "alert.button.0", position 1 → "alert.button.1", …
         static let button = "alert.button"
         static func buttonAt(_ position: Int) -> String { "alert.button.\(position)" }
+        static let confirmStatements = "alert.confirmStatements"
+        static let copied = "alert.copied"
+        static let exclusiveInitiative = "alert.exclusiveInitiative"
+        static let incomingPayment = "alert.incomingPayment"
+        static let incorrectPhrase = "alert.incorrectPhrase"
+        static let incorrectPin = "alert.incorrectPin"
+        static let insufficientOnchainBalance = "alert.insufficientOnchainBalance"
+        static let invalidWords = "alert.invalidWords"
+        static let lightningExplanation = "alert.lightningExplanation"
+        static let lowFee = "alert.lowFee"
+        static let missingWords = "alert.missingWords"
+        static let noScreenshot = "alert.noScreenshot"
+        static let notificationsRequired = "alert.notificationsRequired"
+        static let onlyIban = "alert.onlyIban"
+        static let paymentRequest = "alert.paymentRequest"
+        static let paymentRequestFailed = "alert.paymentRequestFailed"
+        static let pinLength = "alert.pinLength"
+        static let pinRequired = "alert.pinRequired"
+        static let receiveNotificationsDenied = "alert.receiveNotificationsDenied"
+        static let receiveNotificationsPrompt = "alert.receiveNotificationsPrompt"
+        static let resendCode = "alert.resendCode"
+        static let swapValidationFailed = "alert.swapValidationFailed"
+        static let syncingWallet = "alert.syncingWallet"
         static let textField = "alert.textField"
+        static let transactionError = "alert.transactionError"
+        static let withdrawRequest = "alert.withdrawRequest"
     }
     enum Article {
         static let downButton = "article.downButton"
@@ -83,6 +110,11 @@ enum TestID {
         static let receiveButton = "home.receiveButton"
         static let sendButton = "home.sendButton"
         static let syncStatusButton = "home.syncStatusButton"
+    }
+    enum Loading {
+        static let handlingLnurl = "loading.handlingLnurl"
+        static let receivingPayment = "loading.receivingPayment"
+        static let syncingWallet = "loading.syncingWallet"
     }
     enum Map {
         static let mapSpinner = "map.mapSpinner"
@@ -196,6 +228,10 @@ enum TestID {
     }
     enum Signup {
         enum Bittr {
+            enum Initiative {
+                static let cancelButton = "signup.bittr.initiative.cancelButton"
+                static let confirmButton = "signup.bittr.initiative.confirmButton"
+            }
             enum Otp {
                 static let codeButton = "signup.bittr.otp.codeButton"
                 static let codeTextField = "signup.bittr.otp.codeTextField"

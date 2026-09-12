@@ -96,7 +96,7 @@ class PinViewController: UIViewController, UITextFieldDelegate, UICollectionView
         
         // Check if PIN is already at max length (8 digits)
         if (pinTextField.text?.count ?? 0) >= 8 {
-            self.showAlert(title: Language.getWord(withID: "pinlength"), message: Language.getWord(withID: "pincanbeupto8"), buttons: [.dismiss(Language.getWord(withID: "okay"))])
+            self.showAlert(id: TestID.Alert.pinLength, title: Language.getWord(withID: "pinlength"), message: Language.getWord(withID: "pincanbeupto8"), buttons: [.dismiss(Language.getWord(withID: "okay"))])
             return
         }
         
@@ -120,7 +120,7 @@ class PinViewController: UIViewController, UITextFieldDelegate, UICollectionView
         
         // Check if PIN is empty or too short
         if (pinTextField.text?.count ?? 0) < 4 {
-            self.showAlert(title: Language.getWord(withID: "pinrequired"), message: Language.getWord(withID: "pinshouldbe4to8"), buttons: [.dismiss(Language.getWord(withID: "okay"))])
+            self.showAlert(id: TestID.Alert.pinRequired, title: Language.getWord(withID: "pinrequired"), message: Language.getWord(withID: "pinshouldbe4to8"), buttons: [.dismiss(Language.getWord(withID: "okay"))])
             return
         }
         

@@ -145,7 +145,7 @@ Order matters — each layer unblocks the next:
 8. Buy + IBAN.
 9. Notifications + payout flow.
 10. Map (Google Maps Compose), Academy, Profits, Settings, Transaction history.
-11. Glance widget (mirrors `BittrWidget`).
+11. Glance widget (mirrors `BittrWidget`) — spec in `shared/docs/widget-spec.md` (no screenshot exists; Maestro can't reach the widget surface). One `.systemSmall`-equivalent size, two data states, no signed-out state. Not part of the v1 Maestro gate. The swap Live Activity ships in the same iOS extension but is **not** in this item and isn't scoped yet.
 
 For each feature: build screen(s), wire managers, extend Maestro flow, mark green in `parity.md`.
 

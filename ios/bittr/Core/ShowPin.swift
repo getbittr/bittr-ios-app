@@ -23,7 +23,7 @@ extension CoreViewController {
             
             if self.lightningNotification != nil || self.needsToHandleURI() {
                 // A notification will be handled after syncing the wallet.
-                self.showLoading(message: Language.getWord(withID: "syncingwallet3"))
+                self.showLoading(id: TestID.Loading.syncingWallet, message: Language.getWord(withID: "syncingwallet3"))
             }
         }
     }

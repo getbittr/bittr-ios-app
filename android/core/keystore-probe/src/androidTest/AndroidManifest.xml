@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!--
+      What K1Credential.complexity() needs to answer at all. Protection level `normal`, so it is
+      granted at install with no prompt and no `pm grant` step in the driver — which matters,
+      because a runtime grant would be another thing reporting success without doing anything.
+
+      Declared only in the androidTest manifest: the library this module ships is nothing, and
+      the permission belongs to the experiment rather than to any product code.
+    -->
+    <uses-permission android:name="android.permission.REQUEST_PASSWORD_COMPLEXITY" />
+
+    <application>
+        <!--
+          Only mutation 5 (M6_ADMIN_RESET) uses this. It is inert until something outside the
+          APK promotes it — `adb shell dpm set-device-owner`, which the driver script only
+          issues under an explicit flag and only on an emulator.
+        -->
+        <!--
+          Fully qualified, deliberately. A leading-dot name resolves against the *manifest*
+          package, which for a library module's androidTest APK is `<namespace>.test` — while
+          the class itself is compiled into `<namespace>`. `K1DeviceAdminReceiver.component()`
+          builds the real FQCN from the class object, so a relative name here would declare one
+          component and have the code ask for a different one: `dpm set-device-owner` would
+          fail with "component not found" at the point where M6 is otherwise ready to run.
+        -->
+        <receiver
+            android:name="com.bittr.android.core.keystore.probe.K1DeviceAdminReceiver"
+            android:exported="true"
+            android:permission="android.permission.BIND_DEVICE_ADMIN">
+            <meta-data
+                android:name="android.app.device_admin"
+                android:resource="@xml/k1_device_admin" />
+            <intent-filter>
+                <action android:name="android.app.action.DEVICE_ADMIN_ENABLED" />
+            </intent-filter>
+        </receiver>
+    </application>
+
+</manifest>

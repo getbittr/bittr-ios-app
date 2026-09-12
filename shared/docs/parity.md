@@ -22,6 +22,8 @@ Android Maestro runner is not stood up yet:
 - **`done`** — the flow passes under Maestro in CI on Android. **Only this
   counts** for BIT-7's definition of done. Nothing reads `done` yet.
 
+**Assertion fragility — the alert surface is matched by copy.** `alert.button._index` and `alert.textField` are the only accessibility ids on the alert surface, so *which* alert is on screen is asserted by matching its wording: 220 alert interactions across 33 flow files, and 147 `text:` matchers of which 39 depend on app copy. Reword one of those strings and the flow fails silently, on both platforms at once once they share `shared/strings/`. The dependency is pinned in `shared/strings/copy-lock.json` and checked in CI — the measurement, the seven strings hardcoded outside the copy table, and the verbatim rule for the `*Language.swift` → `shared/strings/` move are in `shared/strings/README.md`.
+
 ## Onboarding & wallet setup
 
 | Feature | iOS | Android | Maestro flow | Notes |
@@ -32,6 +34,7 @@ Android Maestro runner is not stood up yet:
 | Fresh install (full onboarding) | done | not started | `onboarding/fresh_install.yaml` | Top-level orchestrator: clearState + clearKeychain, then runs `happy_path_wallet` + `happy_path_signup`. |
 | Fresh install, skip bittr signup | done | not started | `onboarding/fresh_install_skip_signup.yaml` | Creates a wallet from scratch then taps Skip on Signup7 → Home with no bittr account. |
 | Fresh install, unhappy path | done | not started | `onboarding/fresh_install_unhappy.yaml` | Wallet creation through every validation gate: Cancel back to Signup1, the confirm-statements alert, the seed-phrase screenshot warning (fires a real Simulator screenshot via `scripts/screenshot_server.js` since Maestro's own capture doesn't post the iOS notification; best-effort), an invalid non-BIP39 word (`invalidwords`) then a valid-but-wrong recovery phrase (`incorrectphrase`), and the PIN too-short / too-long / mismatch alerts, before creating the wallet, then continuing into the bittr signup (Transfer1) and exiting via "I don't have an IBAN" → "Go to wallet" to reach Home. |
+| Seed gate rejects wrong words | done | not started | `onboarding/seed_gate_rejects_wrong_words.yaml` | **Parity-critical (BIT-19).** Recovery is mnemonic-only (BIT-8), so Signup4 is the entire recovery guarantee: past it without the real 12 words and the wallet is unrecoverable. Asserts all three rejection branches of `Signup4ViewController.nextButtonTapped` — valid-but-wrong BIP39 words (`alert.incorrectPhrase`), a non-BIP39 string (`alert.invalidWords`), an empty field (`alert.missingWords`) — and that each leaves the flow **still on Signup4**, then that the right words do advance. Decoys are derived from the captured mnemonic so one can never coincidentally be the requested word. Android must pass this unchanged; an implementation that accepts any input, or auto-advances on blur, passes every other flow in the suite. |
 | Restore wallet | done | not started | `onboarding/restore_wallet.yaml` | clearState + clearKeychain, restores from a fixed test mnemonic, sets PIN 1234 → Home. |
 
 ## Buy & bittr account
@@ -54,6 +57,7 @@ Android Maestro runner is not stood up yet:
 | Receive | done | not started | `features/receive.yaml` | Auto-recovers via `happy_path_wallet` + `happy_path_signup` if launched on a clean install. |
 | Receive onchain → Send round-trip | done | not started | `features/receive_onchain.yaml` | Taps the header spinner right after unlock: while syncing this opens the sync status view (waits for it to auto-dismiss), or — if the sync already finished — the balance/Move screen, which it closes. Shows the onchain address, copies it via the QR long-press context menu (exercises Share + Copy), pastes into Send asserting Regular/onchain with and without a 5000 sat amount, then renews until the address pool is exhausted. Uses `helpers/show_onchain_address.yaml`. |
 | Receive invoice → Send round-trip | done | not started | `features/receive_invoice.yaml` | Switches the type to a lightning invoice, copies it, pastes into Send asserting lightning with and without a 2000 sat amount. Requires an active channel. Uses `helpers/show_invoice.yaml`. |
+| Receive LNURL / Lightning address | done | not started | `features/receive_lnurl.yaml` | The user's own lightning address — the fourth Receive type. Parks on the onchain address first so the More → "Show LNURL" switch is a real type change (with a channel *and* an address, Receive already opens on LNURL), then reads the info alert and copies the address. Branches on whether the bittr account carries an address: captures either the populated state (label + QR) or the "Unavailable" state (QR hidden). Identifies the mode structurally — the title renders as "Address" for both onchain and LNURL — via the card row: LNURL is the only type with no add-amount card, so there is no amount/description state to capture. Read-only; requires an active channel. Uses `helpers/show_onchain_address.yaml` + `helpers/show_lnurl.yaml`. |
 
 ## Send
 
@@ -102,6 +106,7 @@ Reusable building blocks (not standalone features) and the full-suite runner.
 | `helpers/unlock.yaml` | Enter PIN 1234 on the unlock screen (also listed above). |
 | `helpers/show_onchain_address.yaml` | From a freshly-opened Receive screen, make sure the onchain address is the one shown. |
 | `helpers/show_invoice.yaml` | From a freshly-opened Receive screen, switch the type to a lightning invoice. |
+| `helpers/show_lnurl.yaml` | From a freshly-opened Receive screen, switch the type to the user's own lightning address, asserting the LNURL card row. Needs a channel (no More button without one). |
 | `helpers/wrong_pin_until_lockout.yaml` | Enter the wrong PIN ten times to trigger the lockout/wipe; shared by `wrong_pin` and `wrong_pin_with_channel`. |
 | `helpers/create_wallet_with_channel.yaml` | Provision a fresh wallet *with* an open channel (onboarding + `buy_incoming`); used by `forgot_pin_remove_wallet`. |
 | `helpers/ensure_bittr_channel.yaml` | Ensure an open channel exists, building the bittr account/channel as needed; used by `wrong_pin_with_channel`. **Unverified** — not yet run against Maestro. |
@@ -111,14 +116,13 @@ Reusable building blocks (not standalone features) and the full-suite runner.
 
 The gaps below come from a full iOS-code audit (every view controller, app target and notification path cross-referenced against the flow suite). Each item exists in the iOS app but has no flow exercising it. Grouped by priority for the Android parity effort.
 
-Previously listed here and now covered: Restore wallet (`onboarding/restore_wallet.yaml`), Settings (`features/settings.yaml`), Profits (within the buy flows), the QR scanner (within `features/send_onchain.yaml`), and the article reader (within `onboarding/happy_path_wallet.yaml`). Send end-to-end is covered onchain (`features/send_onchain.yaml`) and lightning LNURL-**pay** (`features/send_lightning.yaml`).
+Previously listed here and now covered: Restore wallet (`onboarding/restore_wallet.yaml`), Settings (`features/settings.yaml`), Profits (within the buy flows), the QR scanner (within `features/send_onchain.yaml`), the article reader (within `onboarding/happy_path_wallet.yaml`), and the Receive "LNURL" type (`features/receive_lnurl.yaml`). Send end-to-end is covered onchain (`features/send_onchain.yaml`) and lightning LNURL-**pay** (`features/send_lightning.yaml`).
 
 ### Production-scope features needing a flow (high priority)
 
 | Feature | Where (iOS) | Notes |
 |---|---|---|
 | LNURL-withdraw | `SendVC/SendLNURL.swift` (`handleWithdrawAmountCompletion`, `sendWithdrawRequest`, k1) | In active production scope. Only LNURL-pay is covered today; the withdraw path has no flow. |
-| Receive "LNURL" type | `ReceiveViewController.swift` (`tappedLnurl`, More-picker option 4) | The user's own Lightning-address receive screen is never opened (onchain / invoice / Bitcoin QR are covered). |
 | External deep links | `SceneDelegate.swift`, `Core/URIs.swift`, `Info.plist` (`bitcoin:` / `lightning:` schemes) | Opening the app / Send screen from an external URI. Send flows only use the in-app Paste button. |
 | Swap-file export / share | `SwapStatusViewController.swift:350` (`downloadSwapFileTapped`) | No flow taps the swap-file download/share. |
 
@@ -159,7 +163,8 @@ Mostly defensive alerts on the onboarding/auth screens, with no flow:
 ### Not parity-tracked
 
 - **LNURL-auth (login)** — `SendLNURL.swift`, in-app-browser path in `WebsiteViewController.swift`. Not in product scope; intentionally untracked.
-- **Widget** — `BittrWidget/*` price widget + `widget-deeplink://` → "openvalue". Can't be driven by Maestro (home-screen widget); the deeplink→Value path could be tested if desired.
+- **Widget** — `BittrWidget/*` price widget + `widget-deeplink://` → "openvalue". Can't be driven by Maestro (home-screen widget); the deeplink→Value path could be tested if desired. **In scope for the port but not for the v1 Maestro gate** (it can't be in a gate it can't be tested by); specified from source in [`widget-spec.md`](widget-spec.md) instead of from a screenshot, and scheduled as Phase 4 item 11. Decision: BIT-11.
+- **Swap Live Activity** — `BittrWidget/SwapLiveActivity.swift` + `SwapActivityAttributes.swift`, rendered in the Dynamic Island / Lock Screen and driven by remote pushes. Maestro can't drive either surface, so it's absent from the screenshot catalog for the same reason the price widget is. Five `SwapPhase` states, each with its own copy/icon/tint. **Not yet scoped for Android** (the equivalent is an ongoing notification, not a widget) and has no spec — see `widget-spec.md` §8.
 - **QR scanner (live scan)** — camera not available in the simulator; `ScannerViewController` is exercised via the "scanning not supported" path only (`send_onchain.yaml`).
 
 ### Confirmed absent in iOS (not parity gaps — do not build for parity)

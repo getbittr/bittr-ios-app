@@ -1,12 +1,24 @@
 # Self-hosted runner for the Android emulator job
 
 What a host needs before `.github/workflows/android-maestro.yml` will run its
-`maestro` job on it. Written so the runner works the first time it is registered
+emulator jobs on it. Written so the runner works the first time it is registered
 rather than after a cycle of red jobs.
 
-Only the **emulator job** moves. `build` stays on GitHub-hosted runners: it needs no
+Only the **emulator jobs** move. `build` stays on GitHub-hosted runners: it needs no
 special hardware, and keeping it there means a compile error still fails in about a
 minute without waiting for the self-hosted host to be free.
+
+**There are three of them now, and they boot three separate emulators:**
+
+| Job | What it runs | Image, and why |
+|---|---|---|
+| `maestro` | the Maestro smoke flow | `aosp_atd` — stripped for boot speed; the flow drives the app's own Compose UI and needs nothing ATD removes |
+| `instrumented` | `:feature:website` S-36 isolation tests (BIT-62) | `default` — every test builds a real `WebView`, and ATD may ship no WebView provider |
+| `wallet-instrumented` | `:core:wallet-ldk` + `:app` wallet security tests (BIT-59) | needs a working **backup transport** for `bmgr`; see `android/scripts/ci-wallet-instrumented.sh`, which checks for one before running anything |
+
+They each keep their own AVD cache key, deliberately — sharing one would hand a
+suite a snapshot chosen for a different suite's needs, and at least one of those
+mistakes surfaces as a *vacuous green* rather than as a cache-key error.
 
 ## Switching the job over
 
@@ -108,10 +120,19 @@ already there. Worse, a stale local AVD and a restored cache can disagree. Once 
 host is stable, consider dropping the `Cache AVD` and `Create AVD snapshot` steps
 for self-hosted and letting the host keep the AVD.
 
-**Jobs serialise.** One runner runs one job at a time. `build` and `maestro` are
-separate jobs and `maestro` needs `build`, so this is fine today — but three
-consecutive runs for the definition of done will run one after another, not in
-parallel. Factor that into the wall-clock number: report per-run time, not total.
+**Jobs serialise.** One runner runs one job at a time, and this got materially
+more expensive when the second and third emulator jobs landed. `maestro`,
+`instrumented` and `wallet-instrumented` all depend only on `build`, so on
+GitHub-hosted runners they run **side by side** and cost runner-minutes rather
+than waiting. On one self-hosted host they run **one after another**, so the
+wall-clock for a single run is roughly the sum of three emulator boots plus three
+suites — not the ~7 minutes the GitHub-hosted numbers show.
+
+Two consequences worth deciding before switching the variable over: each job's
+`timeout-minutes` is per job and does not protect against the queue, and three
+consecutive runs for a definition of done will serialise on top of that. Report
+per-run time, not total, and consider a second runner before a third emulator job
+is added.
 
 **State leaks between runs.** Emulator processes, an `adb` server, and a booted AVD
 can survive a cancelled job and poison the next one. The single most useful thing to

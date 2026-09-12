@@ -55,7 +55,7 @@ struct Provider: AppIntentTimelineProvider {
         var newDataWasFetched = false
         
         do {
-            let envUrl = URL(string: "https://getbittr.com/api/price/btc")!
+            let envUrl = URL(string: "\(BittrAPIEnvironment.baseURL)/price/btc")!
             let (data, _) = try await URLSession.shared.data(from: envUrl)
             
             if let json = try JSONSerialization.jsonObject(with: data) as? [String: Any], let actualEurValue = json["btc_eur"] as? String, let actualChfValue = json["btc_chf"] as? String {

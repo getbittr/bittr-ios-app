@@ -64,7 +64,7 @@ appId: com.bittr.bittr-regtest
 - tapOn:
     id: "signup.create.confirm.nextButton"
 - assertVisible:
-    text: ".*confirm the above statements.*"
+    id: "alert.confirmStatements"
 - waitForAnimationToEnd:
     timeout: 3000
 - takeScreenshot: shared/docs/screenshots/fresh_install_unhappy/04_confirm_statements_alert
@@ -93,7 +93,7 @@ appId: com.bittr.bittr-regtest
 - runFlow:
     when:
       visible:
-        text: ".*recommend against screenshotting.*"
+        id: "alert.noScreenshot"
     commands:
       - waitForAnimationToEnd:
           timeout: 3000
@@ -136,7 +136,7 @@ appId: com.bittr.bittr-regtest
 - tapOn:
     id: "signup.create.verify.nextButton"
 - assertVisible:
-    text: ".*not valid recovery phrase words.*"
+    id: "alert.invalidWords"
 - waitForAnimationToEnd:
     timeout: 3000
 - takeScreenshot: shared/docs/screenshots/fresh_install_unhappy/07_invalid_word_alert
@@ -157,7 +157,7 @@ appId: com.bittr.bittr-regtest
 - tapOn:
     id: "signup.create.verify.nextButton"
 - assertVisible:
-    text: ".*entered are incorrect.*"
+    id: "alert.incorrectPhrase"
 - waitForAnimationToEnd:
     timeout: 3000
 - takeScreenshot: shared/docs/screenshots/fresh_install_unhappy/08_wrong_phrase_alert
@@ -252,7 +252,7 @@ appId: com.bittr.bittr-regtest
 - tapOn:
     id: "pin.confirmButton"
 - assertVisible:
-    text: ".*between 4 and 8 digits.*"
+    id: "alert.pinRequired"
 - waitForAnimationToEnd:
     timeout: 3000
 - takeScreenshot: shared/docs/screenshots/fresh_install_unhappy/10_pin_too_short_alert
@@ -274,7 +274,7 @@ appId: com.bittr.bittr-regtest
 - tapOn:
     id: "pin.button9"
 - assertVisible:
-    text: ".*up to 8 digits.*"
+    id: "alert.pinLength"
 - waitForAnimationToEnd:
     timeout: 3000
 - takeScreenshot: shared/docs/screenshots/fresh_install_unhappy/11_pin_too_long_alert
@@ -308,7 +308,7 @@ appId: com.bittr.bittr-regtest
 - tapOn:
     id: "pin.confirmButton"
 - assertVisible:
-    text: ".*Repeat the same number.*"
+    id: "alert.incorrectPin"
 - waitForAnimationToEnd:
     timeout: 3000
 - takeScreenshot: shared/docs/screenshots/fresh_install_unhappy/12_pin_mismatch_alert
@@ -368,7 +368,7 @@ appId: com.bittr.bittr-regtest
 # "We're sorry! / only available to IBAN holders" alert ([Go to wallet, Cancel]).
 # "Go to wallet" (index 0) → alertGoToWallet → hideSignup → Home.
 - assertVisible:
-    text: ".*only available to IBAN holders.*"
+    id: "alert.onlyIban"
 - waitForAnimationToEnd:
     timeout: 3000
 - takeScreenshot: shared/docs/screenshots/fresh_install_unhappy/15_no_iban_alert

@@ -26,6 +26,18 @@
 #                                              # (starts screenshot_server.js —
 #                                              # needs Accessibility permission)
 #
+# Environment:
+#   BITTR_SLOW_SYNC=20 ...                     # hold the sync overlay open for
+#                                              # 20s so receive_onchain can
+#                                              # screenshot it (S-27); needs a
+#                                              # regtest/debug build
+#   BITTR_LOG_DIR=shared/flows/logs/run1 ...   # keep this run's logs here
+#                                              # instead of a throwaway /tmp
+#                                              # dir — one .maestro.log per
+#                                              # flow, so a failure an hour
+#                                              # into a capture pass is still
+#                                              # diagnosable afterwards
+#
 # Exit code: 0 if everything passed, 1 if any flow failed (unless
 # --expect-vulnerable made those failures expected), 2 on preflight errors.
 
@@ -42,7 +54,11 @@ cd "${REPO_ROOT}" || { echo "cannot cd to ${REPO_ROOT}" >&2; exit 2; }
 
 FLOWS_DIR="shared/flows"
 SCRIPTS_DIR="${FLOWS_DIR}/scripts"
-LOG_DIR="$(mktemp -d /tmp/bittr-test-suite.XXXXXX)"
+# Server logs and one Maestro log per flow. Defaults to a throwaway temp dir;
+# set BITTR_LOG_DIR to keep a run's logs somewhere findable afterwards (a long
+# capture pass wants this — see bit14_topup.sh, which sets it).
+LOG_DIR="${BITTR_LOG_DIR:-$(mktemp -d /tmp/bittr-test-suite.XXXXXX)}"
+mkdir -p "${LOG_DIR}" || { echo "cannot create log dir ${LOG_DIR}" >&2; exit 2; }
 
 # Helper servers: name → port. Screenshot server is opt-in (--unhappy).
 PUSH_PORT=8888
@@ -63,6 +79,14 @@ done < <(grep -E '^[[:space:]]*-[[:space:]]*runFlow:' "${SUITE_FILE}" 2>/dev/nul
 # forgot_pin.yaml needs the fixed test mnemonic (the one restore_wallet.yaml
 # re-establishes). Harmless to pass to every flow — only forgot_pin reads it.
 MNEMONIC="attack urge across cupboard year armor list vital outer leader anxiety endorse"
+
+# features/receive_onchain.yaml turns this into the app's `-slowSync` launch
+# argument, which holds the sync overlay open long enough to screenshot it
+# (design-system S-27 — see shared/docs/sync_overlay_capture.md). 0 = off, the
+# normal case. Exporting BITTR_SLOW_SYNC in the shell is not enough on its own:
+# Maestro launches the app on the simulator, so the value only reaches it as a
+# launch argument. Harmless to pass to every flow — only receive_onchain reads it.
+SLOW_SYNC="${BITTR_SLOW_SYNC:-0}"
 
 EVIL_FLOWS=(
     "features/evil_boltz_wrong_invoice.yaml"   # SEC-01 reverse-swap tamper
@@ -291,10 +315,20 @@ for flow in "${FLOWS_TO_RUN[@]}"; do
     FLOW_PATH="${flow}"
     [[ -f "${FLOW_PATH}" ]] || FLOW_PATH="${FLOWS_DIR}/${flow}"
 
+    # One log per flow, named after the flow so a resumed run does not clobber
+    # the log of the flow that failed. Piping costs Maestro's live progress
+    # redraw (it stops detecting a TTY) and gives plain, pasteable lines back —
+    # the right trade for a capture pass, where the terminal is unattended for
+    # an hour and the scrollback is the only record of why a flow stopped.
+    FLOW_LOG="${LOG_DIR}/$(printf '%s' "${flow%.yaml}" | tr '/' '_').maestro.log"
+
     echo
     info "${BOLD}maestro test ${FLOW_PATH}${RESET}"
+    info "  log: ${FLOW_LOG}"
     START_TS=$(date +%s)
-    if maestro test --env MNEMONIC="${MNEMONIC}" "${FLOW_PATH}"; then
+    # `set -o pipefail` is on, so this tests maestro's status, not tee's.
+    if maestro test --env MNEMONIC="${MNEMONIC}" --env SLOW_SYNC="${SLOW_SYNC}" \
+            "${FLOW_PATH}" 2>&1 | tee "${FLOW_LOG}"; then
         RESULTS+=("${GREEN}✔${RESET} ${flow} ($(($(date +%s) - START_TS))s)")
     else
         EXPECTED=0
@@ -305,8 +339,18 @@ for flow in "${FLOWS_TO_RUN[@]}"; do
             RESULTS+=("${YELLOW}✖${RESET} ${flow} — failed as expected (vulnerable build)")
             warn "${flow} failed as expected — this build is VULNERABLE (see SECURITY_REVIEW.md)"
         else
-            RESULTS+=("${RED}✖${RESET} ${flow} ($(($(date +%s) - START_TS))s)")
+            RESULTS+=("${RED}✖${RESET} ${flow} ($(($(date +%s) - START_TS))s) — log: ${FLOW_LOG}")
             UNEXPECTED_FAILURES=$((UNEXPECTED_FAILURES + 1))
+            fail "${flow} failed — full output: ${FLOW_LOG}"
+            # Maestro prints the path to its own per-run debug bundle (the
+            # view hierarchy at the failing step, plus a video). That bundle is
+            # what actually explains a failure, and its path scrolls away.
+            MAESTRO_DEBUG_DIR="$(grep -Eo '[^[:space:]]*\.maestro/tests/[^[:space:]]+' "${FLOW_LOG}" | tail -1 || true)"
+            [[ -n "${MAESTRO_DEBUG_DIR}" ]] && info "  hierarchy + video: ${MAESTRO_DEBUG_DIR}"
+            # The failing step is the last one Maestro rendered as not-passed.
+            info "  last steps:"
+            grep -E '^\s*(COMPLETED|FAILED|\[Passed\]|\[Failed\]|✅|❌)' "${FLOW_LOG}" \
+                | tail -5 | sed 's/^/    /' || true
             if [[ ${KEEP_GOING} -eq 0 ]]; then
                 warn "stopping early (use --keep-going to run the rest)"
                 RESULTS+=("${DIM}… skipped remaining flows${RESET}")

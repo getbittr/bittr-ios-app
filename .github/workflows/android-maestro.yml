@@ -18,12 +18,16 @@ on:
       - 'android/**'
       - 'shared/flows/**'
       - 'shared/test-ids/**'
+      - 'shared/strings/**'
+      - 'ios/bittr/Language.swift'
       - '.github/workflows/android-maestro.yml'
   pull_request:
     paths:
       - 'android/**'
       - 'shared/flows/**'
       - 'shared/test-ids/**'
+      - 'shared/strings/**'
+      - 'ios/bittr/Language.swift'
       - '.github/workflows/android-maestro.yml'
   workflow_dispatch:
 
@@ -61,7 +65,37 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  JAVA_VERSION: '17'
+  # Two JDKs, and the order is load-bearing: `setup-java` points JAVA_HOME at the
+  # LAST one listed, so Gradle itself runs on 21 while 17 stays installed for the
+  # four pure-Kotlin modules that ask for `jvmToolchain(17)`.
+  #
+  # It was '17' alone until BIT-59 put this module's Robolectric tests in front of
+  # a CI runner. Robolectric 4.16.1 declares a minimum JDK per SDK level — read
+  # off org.robolectric.plugins.DefaultSdkProvider rather than from memory:
+  #
+  #   SDK 33 -> Java 9    SDK 34 -> Java 17
+  #   SDK 35 -> Java 17   SDK 36 -> Java 21
+  #
+  # and :core:wallet-ldk pins @Config(sdk = [26, 34, 36]) on the three classes
+  # that prove BIT-8 rule 3 and BIT-20 rules 3 and 5. On JDK 17 those three die at
+  # initialisation — "Failed to create a Robolectric sandbox: Android SDK 36
+  # requires Java 21 (have Java 17)" — before a single assertion runs, and every
+  # emulator job in this workflow `needs: build`, so the failure takes the whole
+  # run with it.
+  #
+  # The alternative was to move the pin down to 35. Rejected: RobolectricSdkPinGuardTest
+  # explains why that module states the API levels its claims hold at, and 36 is
+  # the level :app targets. Lowering a security claim's coverage to fit the CI
+  # JDK is the wrong end to fix this from — especially since every developer
+  # machine here already runs Gradle on 21, which is exactly why this was green
+  # locally and red in CI.
+  #
+  # Bytecode targets are untouched: sourceCompatibility/jvmTarget stay at 17
+  # everywhere. This changes the JVM the build and the tests RUN on, not what
+  # they compile to.
+  JAVA_VERSION: |
+    17
+    21
   # Pinned deliberately. The definition of done is three consecutive green runs, which
   # only means something if the three runs used the same tooling — an unpinned installer
   # makes the Maestro version a variable that can change between run 1 and run 3, and
@@ -179,11 +213,102 @@ jobs:
         # they run here. No network: the tests stub the transport.
         run: python3 android/scripts/test_ci_runs.py
 
+      - name: Test the K1 harness
+        # K1 (BIT-18) is the measurement BIT-8 rule 2 rests on: does a
+        # non-auth-bound Keystore key survive a lock-screen change. Its result
+        # table can only be produced by android/scripts/k1-lockscreen-matrix.sh
+        # against real devices, which this workflow cannot do — but the driver
+        # that decides whether a row reads PASS is plain bash, and it can be
+        # tested here.
+        #
+        # That is the part worth gating. K1's failure mode is not a red row, it
+        # is a green row from a run where the mutation silently did not happen,
+        # quoted afterwards in a security statement. test-k1-driver.sh runs the
+        # real driver against a stub adb and asserts it comes out ERROR for each
+        # shape of that: a mutation command that exits 0 and changes nothing, a
+        # mutation that lands on the wrong credential, an open phase with no
+        # verdict line. None of these suites needs a device or the SDK.
+        #
+        # test-k1-annotation.sh covers how the table gets OUT. On this repository
+        # job logs (403), artefact zips (401) and the job summary (not in the API)
+        # are all unreadable without admin, so the annotation k1-ci.sh emits is
+        # the only copy most readers can get — and an unescaped newline truncates
+        # it to one line without erroring. Same shape of silent defect as a row
+        # that measured nothing.
+        run: |
+          set -euo pipefail
+          bash android/scripts/test-k1-verdict.sh
+          bash android/scripts/test-k1-annotation.sh
+          python3 android/scripts/test_k1_result.py
+          bash android/scripts/test-k1-driver.sh
+      - name: Test the instrumented-results reader
+        # Same argument, one job over. check-instrumented-results.py is what decides
+        # whether the `instrumented` job's green means anything, and its whole
+        # purpose is to refuse a green run that proved nothing — so a bug in it does
+        # not look like a bug, it looks like a pass. No emulator needed: the seam is
+        # a results directory, so the fixtures are XML in a temp dir and this runs
+        # here in seconds rather than only after an AVD has booted.
+        run: python3 android/scripts/test_check_instrumented_results.py
+
+      - name: Test the wallet instrumented-results gate
+        # BIT-59, and the same argument again with more riding on it. This gate
+        # decides whether the `wallet-instrumented` job's green means anything,
+        # and what a false green there would close is the one wallet claim
+        # wallet-security-properties.md §4 records as unproven — a claim BIT-20
+        # rule 5 makes a PRECONDITION of `match -> keep`, not a follow-up. So a
+        # bug here does not leave that claim unproven-and-known; it converts it
+        # into proven-and-wrong.
+        #
+        # It also covers the failure specific to this suite spanning two modules:
+        # :core:wallet-ldk running while :app does not, which leaves the backup
+        # claim unchecked behind a job that stayed green.
+        run: python3 android/scripts/test_check_wallet_instrumented_results.py
+
+      - name: Test the unit-test failure reporter
+        # report-test-failures.py is the only thing that says WHICH unit test
+        # broke in a form anyone outside this runner can read — see its header,
+        # and the step that invokes it below. A diagnosis channel that is quietly
+        # broken does not look broken: it looks like a failure with nothing to
+        # say, which is the exact state it exists to end. It only ever runs on an
+        # already-red job, so nothing else would ever catch a bug in it.
+        run: python3 android/scripts/test_report_test_failures.py
+
+      - name: Test the backup-set inspector
+        # check-backup-set.sh is the only check in the repo that reads a real
+        # backup SET rather than `bmgr`'s report of one, and it is what would
+        # raise the BIT-20 §5.3 halt. Its failure mode is not a crash: it is
+        # saying "no wallet marker" when it never looked, which reads exactly
+        # like evidence. The first draft did precisely that — grepped three
+        # hard-coded paths and treated "none of them exist on this image" as
+        # clean — and `outcome_3_no_directories` in this suite pins it.
+        #
+        # Runs here rather than in the emulator job because the seam is `adb`:
+        # with a stub on PATH every branch is reachable in milliseconds, where in
+        # the emulator job only the branch that device happens to take ever runs.
+        run: bash android/scripts/test_check_backup_set.sh
+
       - name: Check every flow ID is registered
         # A flow selecting an ID that is in no registry entry fails at run time
         # with "element not found" — indistinguishable from a missing testTag in
         # the app, and it costs an emulator boot to find out. Fail here instead.
         run: python3 shared/test-ids/check_flow_ids.py
+
+      - name: Check the suite's copy dependencies still hold
+        # The flows assert *which* alert is on screen by matching its wording —
+        # alert.button._index and alert.textField are the only ids on that surface.
+        # 39 matchers across 24 flows depend on 37 keys in Language.swift plus 7
+        # strings hardcoded outside it. The *Language.swift -> shared/strings/ move
+        # touches every one of them, and a rewording in transit fails silently (a
+        # copy change is not a behaviour change, so nobody looks for a test result)
+        # and on both platforms at once (both apps will read the same source).
+        #
+        # The self-test runs first: this guard is the only thing standing between
+        # that migration and those 24 flows, so "it passed" has to mean something.
+        # Two of its cases are the migration itself — the same lock re-checked
+        # against a generated en.json, verbatim and reworded.
+        run: |
+          python3 shared/strings/test_check_flow_copy.py
+          python3 shared/strings/check_flow_copy.py
 
       - name: Check generated test IDs are in sync
         # The generated TestIDs.swift/.kt are committed for diff visibility. If
@@ -203,6 +328,34 @@ jobs:
           git diff --quiet -- ios/bittr/Helpers/TestIDs.swift \
             || echo "::notice::TestIDs.swift is behind test-ids.json. Regenerating it is an iOS change and needs sign-off."
           git checkout -- ios/bittr/Helpers/TestIDs.swift
+
+      - name: No WebView bridge in the non-Kotlin sources
+        # The Kotlin half of this ban is JavascriptInterfaceGuardTest, which runs
+        # in the step below and reads code with comments and string literals
+        # stripped — so a file may explain why the API is banned and may not call
+        # it. Nothing reads the Java, XML or manifest sources at all, and a bridge
+        # can be installed from a Java file or an object declared in XML, so they
+        # get a plain grep. There is no prose in them to trip over.
+        #
+        # `--exclude-dir=build` is load-bearing, not tidiness: Gradle writes JUnit
+        # results as XML, so a local run leaves TEST-JavascriptInterfaceGuardTest.xml
+        # on disk containing every banned name in its own failure message. Grepping
+        # it back is the same mistake the Kotlin guards used to make — reading
+        # something that talks about the ban and calling it a violation.
+        #
+        # `|| true` on grep -r: it exits 1 when it finds nothing, which is the
+        # case this step is hoping for.
+        run: |
+          set -euo pipefail
+          hits=$(grep -rn --include='*.java' --include='*.xml' \
+                   --exclude-dir=build --exclude-dir=.gradle \
+                   -e 'addJavascriptInterface' -e 'JavascriptInterface' \
+                   android/ || true)
+          if [ -n "$hits" ]; then
+            echo "$hits"
+            echo "::error::addJavascriptInterface is banned (BIT-33 R-1). It is the one WebView bridge API with no origin or frame scoping, and S-36 loads an arbitrary third-party URL from BTCMap place data. See JavascriptInterfaceGuardTest."
+            exit 1
+          fi
 
       - name: Unit tests
         working-directory: android
@@ -235,6 +388,113 @@ jobs:
         # debug too, so it is caught locally, but the release task is the backstop.
         run: ./gradlew test --no-daemon
 
+      - name: Say which unit test failed
+        # A red `Unit tests` step takes all three emulator jobs with it — they
+        # `needs: build` and go SKIPPED — so BIT-59's own job never executes.
+        # That happened on run 42 and again on run 47, and run 47 cost a full
+        # round of work to the fact that nothing about the failure was readable
+        # from outside this runner:
+        #
+        #   - /actions/jobs/{id}/logs answers 403 "Must have admin rights to
+        #     Repository", to every token available here and to none, even though
+        #     the repo is public and the rest of the Actions API reads fine
+        #     anonymously.
+        #   - The run page is JS-rendered, so scraping it gives job names without
+        #     step conclusions.
+        #   - The artifact below is NOT a way out, which is why this step exists
+        #     as well as that one. /actions/artifacts/{id}/zip answers 401
+        #     "Requires authentication" anonymously and the web download URL 404s
+        #     after its redirect: the report is readable by a signed-in human and
+        #     by nothing else.
+        #
+        # What IS readable with no credentials is the check-run annotation list,
+        # /repos/{owner}/{repo}/check-runs/{job_id}/annotations. On run 47 it held
+        # three entries and they were the whole of what could be recovered: two
+        # Node deprecation warnings and "Process completed with exit code 1."
+        #
+        # So the diagnosis is put where the annotations are. This step re-states
+        # each failing testcase from Gradle's JUnit XML as a `::error::` command,
+        # which lands in that list. Always exits 0 — the step above has already
+        # failed the job, and failing twice would just replace one uninformative
+        # failure with another.
+        if: failure()
+        run: python3 android/scripts/report-test-failures.py
+
+      - name: Upload unit test report
+        # if: failure(), not always(). On green this report says nothing that the
+        # step's own exit code did not, and `test` across every module is a lot of
+        # HTML to keep for seven days per push.
+        #
+        # The companion to the step above, for the reader it can serve: a human
+        # who is signed in. It carries the full HTML report and the untruncated
+        # stack traces, where the annotations carry the first 1200 characters of
+        # at most ten failures. It costs nothing to keep; it is simply not the
+        # channel the agents working this repo can read.
+        #
+        # Both paths, for the reason the module list in the step above gives: the
+        # pure-Kotlin modules write plain `test` results and the Android ones write
+        # `testDebugUnitTest`, and the glob has to cover whichever module broke.
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: unit-test-report
+          # XML first: it is the machine-readable half, and for a crash-before-
+          # assertion failure (Robolectric's targetSdk abort in run 42 was one) the
+          # stack trace lands in the XML's system-err where the HTML summary shows
+          # only a count.
+          path: |
+            android/**/build/test-results/**/*.xml
+            android/**/build/reports/tests/**
+          retention-days: 7
+          # Not `error`. This step only runs when the job already failed, and a
+          # failure early enough to produce no reports at all — a Kotlin compile
+          # error in a test source set — is a real outcome that must not be
+          # overwritten by an upload error pointing at the wrong cause.
+          if-no-files-found: warn
+
+      - name: Compile the instrumented tests
+        working-directory: android
+        # This step used to say "compiled, not run — running it needs a device;
+        # the issue's Remaining section names that as the open item". BIT-62 closed
+        # that item: the `instrumented` job below runs the same source set on a
+        # booted emulator. What this step is now is the FAST half of the pair.
+        #
+        # Keeping it is not redundancy. `instrumented` costs an emulator boot and
+        # runs on a different runner; a Kotlin compile error in androidTest should
+        # go red here, in the same minute as every other compile error, rather than
+        # after an AVD has come up. It also still guards the case where the
+        # emulator job is skipped or unavailable: the source set is never left with
+        # nothing looking at it.
+        # That matters most for CrossOriginIframeIsolationTest, which is BIT-58's
+        # definition of done: the test that drives a real cross-origin iframe at a
+        # real WebView and asserts the wallet does not react. A requirement whose
+        # only evidence is a file that no longer compiles is a comment.
+        #
+        # Compiling is genuinely less than running. The `instrumented` job below
+        # now runs them on an emulator, which is what BIT-33 §Acceptance 3 and 4
+        # actually ask for; this step is kept anyway because it fails in about a
+        # minute where that job fails after a boot.
+        run: ./gradlew :feature:website:assembleDebugAndroidTest --no-daemon
+        #
+        # ALL THREE MODULES, not just :feature:website. This step covered one of
+        # the three androidTest source sets the emulator jobs run, so a Kotlin
+        # error in BackupExclusionTest or KeystoreKeyInfoTest compiled nowhere in
+        # the fast half and surfaced only after the `wallet-instrumented` job had
+        # booted an AVD — a 45-minute timeout's worth of feedback loop for a
+        # missing import. The asymmetry was an accident of BIT-62 landing before
+        # BIT-59, not a decision.
+        #
+        # Listed with `:app` last because it is the slowest and depends on
+        # :core:wallet-ldk anyway (androidTestImplementation), so the library
+        # modules are built first regardless. Gradle picks the order from the
+        # task graph rather than from this list — the ordering here is for the
+        # reader, not a guarantee.
+        run: |
+          ./gradlew --no-daemon \
+            :feature:website:assembleDebugAndroidTest \
+            :core:wallet-ldk:assembleDebugAndroidTest \
+            :app:assembleDebugAndroidTest
+
       - name: Assemble debug APK
         working-directory: android
         run: ./gradlew :app:assembleDebug --no-daemon
@@ -246,6 +506,99 @@ jobs:
           path: android/app/build/outputs/apk/debug/*.apk
           retention-days: 7
           if-no-files-found: error
+
+  instrumented:
+    name: WebView isolation tests (emulator)
+    # BIT-33 §Acceptance 3 and 4 are instrumented tests: a page on a
+    # non-allowlisted origin, and a cross-origin iframe on a first-party page,
+    # must reach no bridge, drive no navigation and trigger no network call
+    # against a real WebView. Until this job existed the build job compiled them
+    # and nothing ran them, so the acceptance items had no evidence behind them.
+    #
+    # A SEPARATE JOB, not a step inside `maestro`, for two reasons. The smoke job
+    # publishes the wall-clock table BIT-5 is measured by, and folding a
+    # multi-minute Gradle run into the middle of it would corrupt every number in
+    # that table. And the two failures mean different things — "the port's UI
+    # regressed" against "the wallet is reachable from a hostile page" — which is
+    # worth the second emulator boot to keep legible on the run page.
+    #
+    # Same runner selector as `maestro`: KVM is the requirement, and if the
+    # emulator work has been moved to a self-hosted host this moves with it.
+    runs-on: ${{ fromJSON(vars.ANDROID_EMULATOR_RUNNER || '["ubuntu-latest"]') }}
+    needs: build
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: ${{ env.JAVA_VERSION }}
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Enable KVM
+        # See the identical step in `maestro`. Without KVM the emulator does not
+        # fail, it crawls past the timeout.
+        if: runner.environment == 'github-hosted'
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' \
+            | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      - name: Preflight — hardware acceleration is actually available
+        run: |
+          set -euo pipefail
+          if [ ! -e /dev/kvm ]; then
+            echo "::error::No /dev/kvm on runner '${{ runner.name }}'. The emulator needs hardware acceleration; without it this job times out rather than failing. See android/docs/self-hosted-runner.md."
+            exit 1
+          fi
+          if [ ! -r /dev/kvm ] || [ ! -w /dev/kvm ]; then
+            echo "::error::/dev/kvm exists but is not read/write for user '$(id -un)'. Add the runner user to the 'kvm' group. See android/docs/self-hosted-runner.md."
+            ls -l /dev/kvm
+            exit 1
+          fi
+          echo "KVM OK on ${{ runner.environment }} runner '${{ runner.name }}' as $(id -un)."
+
+      - name: Cache AVD
+        uses: actions/cache@v4
+        id: avd-cache
+        with:
+          path: |
+            ~/.android/avd/*
+            ~/.android/adb*
+          # Shares the key with the `maestro` job deliberately: same API level,
+          # same image, same profile, so the two jobs restore one snapshot rather
+          # than creating and storing two identical ones.
+          key: avd-api34-aosp-atd-x86_64
+
+      - name: Run the WebView isolation tests
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 34
+          target: aosp_atd
+          arch: x86_64
+          profile: pixel_6
+          force-avd-creation: false
+          emulator-options: -no-snapshot-save -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
+          disable-animations: true
+          # `bash <file>`, not an inline block — the action runs this under
+          # /usr/bin/sh. See ci-smoke.sh's header.
+          script: bash android/scripts/ci-instrumented.sh
+
+      - name: Upload instrumented test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: website-instrumented-results
+          path: |
+            android/feature/website/build/outputs/androidTest-results/connected/**
+            android/feature/website/build/reports/androidTests/connected/**
+          retention-days: 14
+          if-no-files-found: warn
 
   maestro:
     name: Maestro smoke (emulator)
@@ -442,5 +795,327 @@ jobs:
             maestro-video/**
             maestro-report.xml
             shared/docs/screenshots/android_scaffold_smoke/**
+          retention-days: 14
+          if-no-files-found: warn
+
+  instrumented:
+    name: S-36 isolation tests (emulator)
+    # BIT-62. The `build` job compiles :feature:website's androidTest source set;
+    # this job is the only thing in the repo that RUNS it. Until it existed,
+    # CrossOriginIframeIsolationTest — BIT-58's definition of done, "the test that
+    # would have caught the iOS gap" — had never been executed on anything, and a
+    # test that has never run is closer to a comment than to a check.
+    #
+    # WHY ITS OWN JOB RATHER THAN A STEP IN `maestro`
+    #
+    # That was the open question on BIT-62, and the answer is three things, in
+    # descending order of how much they cost to get wrong.
+    #
+    # 1. It needs a different system image. The Maestro job runs aosp_atd — an
+    #    Automated Test Device, stripped for boot speed — and its AVD snapshot is
+    #    cached under a key naming that image. What ATD strips varies by API level
+    #    and a WebView provider is a plausible casualty; the Maestro flow drives
+    #    Compose UI and would not notice, whereas every single test in this suite
+    #    constructs a real android.webkit.WebView and would fail at construction.
+    #    Sharing the AVD would mean this suite's correctness depended on a choice
+    #    made for a different test's speed. ci-instrumented.sh checks the provider
+    #    out loud on every run so the assumption cannot rot silently either way.
+    #
+    # 2. Red here must mean something different from red there. "The Maestro smoke
+    #    flow failed" and "the wallet reacted to a cross-origin iframe" are not the
+    #    same news, and one job cannot report them as different news.
+    #
+    # 3. It costs no wall-clock. Both jobs need only `build`, so on GitHub-hosted
+    #    runners they run side by side; the cost is runner-minutes, not waiting.
+    #    On a single self-hosted runner they serialise — see
+    #    android/docs/self-hosted-runner.md — which is a reason to keep this job's
+    #    own timeout honest, not a reason to merge them.
+    runs-on: ${{ fromJSON(vars.ANDROID_EMULATOR_RUNNER || '["ubuntu-latest"]') }}
+    needs: build
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Mark job start
+        run: echo "JOB_START_EPOCH=$(date +%s)" >> "$GITHUB_ENV"
+
+      - name: Set up JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: ${{ env.JAVA_VERSION }}
+
+      - name: Set up Gradle
+        # This job builds the test APK itself rather than downloading the build
+        # job's, because `connectedDebugAndroidTest` is the command an engineer
+        # runs locally to reproduce a failure, and CI doing something else is how
+        # "works on my machine" gets invented. The cache makes the second compile
+        # cheap; `am instrument` on a downloaded APK would be faster still and
+        # would give up the JUnit XML the vacuity check reads.
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          build-scan-publish: false
+
+      - name: Enable KVM
+        # Same rule and the same reasoning as the maestro job above: GitHub-hosted
+        # runners expose /dev/kvm but not to non-root users, and on a self-hosted
+        # host this belongs in the image rather than in job code.
+        if: runner.environment == 'github-hosted'
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' \
+            | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      - name: Preflight — hardware acceleration is actually available
+        run: |
+          set -euo pipefail
+          if [ ! -e /dev/kvm ]; then
+            echo "::error::No /dev/kvm on runner '${{ runner.name }}'. Without hardware acceleration the emulator does not fail, it crawls, and this job dies on its timeout looking like a flaky emulator. See android/docs/self-hosted-runner.md."
+            exit 1
+          fi
+          if [ ! -r /dev/kvm ] || [ ! -w /dev/kvm ]; then
+            echo "::error::/dev/kvm exists but is not read/write for user '$(id -un)'. Add the runner user to the 'kvm' group. See android/docs/self-hosted-runner.md."
+            ls -l /dev/kvm
+            exit 1
+          fi
+          echo "KVM OK on ${{ runner.environment }} runner '${{ runner.name }}' as $(id -un)."
+
+      - name: Cache AVD
+        uses: actions/cache@v4
+        id: avd-cache
+        with:
+          path: |
+            ~/.android/avd/*
+            ~/.android/adb*
+          # A different key from the maestro job's on purpose — a different image,
+          # for the reason in this job's header. Sharing the key would hand this
+          # suite an ATD snapshot and the failure would arrive as nine broken
+          # tests rather than as a cache-key mistake.
+          key: avd-api34-default-x86_64-webview
+
+      - name: Create AVD snapshot
+        if: steps.avd-cache.outputs.cache-hit != 'true'
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 34
+          target: default
+          arch: x86_64
+          profile: pixel_6
+          force-avd-creation: false
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
+          disable-animations: false
+          script: echo "AVD created and snapshotted"
+
+      - name: Run the S-36 isolation tests
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 34
+          # `default`, not `aosp_atd`: a full AOSP image, which ships a WebView
+          # provider. Slower to boot and that is the right trade — the suite is
+          # about the WebView, so the component ATD might have stripped is the
+          # only component under test.
+          target: default
+          arch: x86_64
+          profile: pixel_6
+          force-avd-creation: false
+          emulator-options: -no-snapshot-save -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
+          disable-animations: true
+          # `bash <file>`, not an inline block: the action runs this input under
+          # /usr/bin/sh (dash), and a bashism here fails AFTER the emulator has
+          # booted. android/scripts/check-action-scripts.sh enforces the shape.
+          script: bash android/scripts/ci-instrumented.sh
+
+      - name: Upload instrumented test report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: instrumented-test-report
+          # The XML is what the vacuity check reads and is worth keeping for the
+          # same reason the check exists — it is the artefact that distinguishes
+          # "nine tests passed" from "nothing ran". The HTML is what a person
+          # opens to read a failure's assertion message, which for these tests is
+          # several paragraphs long and carries the whole diagnosis.
+          path: |
+            android/feature/website/build/outputs/androidTest-results/**
+            android/feature/website/build/reports/androidTests/**
+          retention-days: 14
+          if-no-files-found: warn
+
+  wallet-instrumented:
+    name: Wallet security tests (emulator)
+    # BIT-59. Two of the wallet layer's security claims are written as
+    # instrumented tests, and until this job existed neither had ever been
+    # executed on anything. A test that has never run is closer to a comment
+    # than to a check — and one of these two is a precondition rather than a
+    # follow-up, which is what makes this worth its own job.
+    #
+    # WHAT IT PROVES, AND WHY THE SECOND ONE IS NOT OPTIONAL
+    #
+    #   KeystoreKeyInfoTest reads KeyInfo back off a key the platform really
+    #   generated. KeystoreKeySpecTest already proves what we ASKED for on the
+    #   JVM; only this shows what an OEM build actually GAVE us.
+    #
+    #   BackupExclusionTest is the claim wallet-security-properties.md §4 calls
+    #   the one not yet proven. BackupExclusionRulesTest and StateDirLocationTest
+    #   prove the CONFIGURATION on the JVM — allowBackup="false", both
+    #   <cloud-backup> and <device-transfer> excluding the wallet directory,
+    #   every wallet path under no_backup. None of that proves a backup set
+    #   produced by a real device contains none of it.
+    #
+    #   BIT-20 rule 5 makes that a precondition of the `match -> keep` guard.
+    #   The seed discriminator proves a state directory is YOURS; it does not
+    #   prove it is CURRENT. Same-seed stale state signs fine, and publishing a
+    #   revoked commitment hands the whole channel balance to the counterparty —
+    #   so the failure the discriminator does not cover is the worse one.
+    #
+    # A RED BackupExclusionTest IS A VALID OUTCOME
+    #
+    # Per BIT-20 §5.3 it is a HALT on `match -> keep`, and it goes back to BIT-20
+    # with the empirical result attached. Nothing here may be marked
+    # continue-on-error or retried to make it go away; see the no-retries rule at
+    # the top of this file.
+    #
+    # WHY ITS OWN JOB RATHER THAN A STEP IN `instrumented`
+    #
+    # Same three reasons that job gives for not being a step in `maestro`, and
+    # the first one applies with the images swapped. `instrumented` runs a
+    # `default` image chosen because its suite is entirely about the WebView, and
+    # its AVD snapshot is cached under a key naming that choice. This suite needs
+    # something that image is not selected for: a working backup transport, i.e.
+    # com.android.localtransport, which is an AOSP component and is absent from
+    # the Play-flavoured images. Sharing the AVD would make this suite's
+    # correctness depend on a choice made for a different test's needs, and the
+    # failure would arrive as a vacuous GREEN — no transport means no backup set
+    # for any package, which satisfies every "the backup set excludes our files"
+    # assertion without proving one. ci-wallet-instrumented.sh checks that out
+    # loud before running anything, and the suite's own canary asserts it again
+    # from the inside.
+    #
+    # Second: red here must mean something different from red there. "The wallet
+    # reacted to a cross-origin iframe" and "the seed blob reached a backup set"
+    # are not the same news, and one job cannot report them as different news.
+    #
+    # Third: it costs no wall-clock. All three emulator jobs need only `build`,
+    # so on GitHub-hosted runners they run side by side. On a single self-hosted
+    # runner they serialise — see android/docs/self-hosted-runner.md — which is a
+    # reason to keep this job's timeout honest, not a reason to merge them.
+    runs-on: ${{ fromJSON(vars.ANDROID_EMULATOR_RUNNER || '["ubuntu-latest"]') }}
+    needs: build
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Mark job start
+        run: echo "JOB_START_EPOCH=$(date +%s)" >> "$GITHUB_ENV"
+
+      - name: Set up JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: ${{ env.JAVA_VERSION }}
+
+      - name: Set up Gradle
+        # Builds the test APKs here rather than downloading the build job's, for
+        # the reason the `instrumented` job gives: `connectedDebugAndroidTest` is
+        # the command an engineer runs locally to reproduce a failure, and CI
+        # doing something else is how "works on my machine" gets invented. It is
+        # also what writes the JUnit XML the vacuity check reads.
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          build-scan-publish: false
+
+      - name: Enable KVM
+        # Same rule and the same reasoning as the two jobs above: GitHub-hosted
+        # runners expose /dev/kvm but not to non-root users, and on a self-hosted
+        # host this belongs in the image rather than in job code.
+        if: runner.environment == 'github-hosted'
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' \
+            | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      - name: Preflight — hardware acceleration is actually available
+        run: |
+          set -euo pipefail
+          if [ ! -e /dev/kvm ]; then
+            echo "::error::No /dev/kvm on runner '${{ runner.name }}'. Without hardware acceleration the emulator does not fail, it crawls, and this job dies on its timeout looking like a flaky emulator. See android/docs/self-hosted-runner.md."
+            exit 1
+          fi
+          if [ ! -r /dev/kvm ] || [ ! -w /dev/kvm ]; then
+            echo "::error::/dev/kvm exists but is not read/write for user '$(id -un)'. Add the runner user to the 'kvm' group. See android/docs/self-hosted-runner.md."
+            ls -l /dev/kvm
+            exit 1
+          fi
+          echo "KVM OK on ${{ runner.environment }} runner '${{ runner.name }}' as $(id -un)."
+
+      - name: Cache AVD
+        uses: actions/cache@v4
+        id: avd-cache
+        with:
+          path: |
+            ~/.android/avd/*
+            ~/.android/adb*
+          # Its own key, for the same reason the other two jobs have their own:
+          # a different image for a different reason. Sharing a key would hand
+          # this suite a snapshot chosen for the WebView and the failure would
+          # arrive as a vacuous green rather than as a cache-key mistake.
+          key: avd-api34-aosp-atd-x86_64-backup
+
+      - name: Create AVD snapshot
+        if: steps.avd-cache.outputs.cache-hit != 'true'
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 34
+          target: aosp_atd
+          arch: x86_64
+          profile: pixel_6
+          force-avd-creation: false
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
+          disable-animations: false
+          script: echo "AVD created and snapshotted"
+
+      - name: Run the wallet security tests
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 34
+          # `aosp_atd`, matching the Maestro job and NOT the `instrumented` job's
+          # `default`. The component this suite depends on is
+          # com.android.localtransport — the local backup transport — which is
+          # AOSP, present on ATD, and absent from Play-flavoured images where a
+          # GMS transport would try to talk to a real Google account instead.
+          # Neither test here constructs a WebView, so the reason `instrumented`
+          # needs a full image does not apply.
+          target: aosp_atd
+          arch: x86_64
+          profile: pixel_6
+          force-avd-creation: false
+          emulator-options: -no-snapshot-save -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
+          disable-animations: true
+          # `bash <file>`, not an inline block: the action runs this input under
+          # /usr/bin/sh (dash), and a bashism here fails AFTER the emulator has
+          # booted. android/scripts/check-action-scripts.sh enforces the shape in
+          # the build job, seconds in.
+          script: bash android/scripts/ci-wallet-instrumented.sh
+
+      - name: Upload wallet instrumented test report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: wallet-instrumented-test-report
+          # Both modules, because the suite deliberately spans two — see the
+          # header of ci-wallet-instrumented.sh for why BackupExclusionTest
+          # cannot live in the library module. Uploading only one would hide
+          # exactly the half whose absence this job exists to prevent.
+          #
+          # The XML is what the vacuity check reads. The HTML is what a person
+          # opens to read a failure's assertion message, which for these tests
+          # carries the whole diagnosis — including the BIT-20 halt condition.
+          path: |
+            android/core/wallet-ldk/build/outputs/androidTest-results/**
+            android/core/wallet-ldk/build/reports/androidTests/**
+            android/app/build/outputs/androidTest-results/**
+            android/app/build/reports/androidTests/**
           retention-days: 14
           if-no-files-found: warn

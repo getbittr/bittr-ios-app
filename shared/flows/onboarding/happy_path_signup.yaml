@@ -34,6 +34,14 @@ appId: com.bittr.bittr-regtest
 # when the email field is focused and both fields are valid.
 - pressKey: Enter
 
+# The T&C §2.5 exclusive-initiative confirmation. It is asked once per
+# registration and nothing reaches Bittr until it is given, so this sits
+# between Verify and the IBAN/email call.
+- assertVisible:
+    id: "signup.bittr.initiative.confirmButton"
+- tapOn:
+    id: "signup.bittr.initiative.confirmButton"
+
 # Transfer2: OTP entry. Test-mode fixed code 123456. Auto-submits at 6 digits.
 - assertVisible:
     id: "signup.bittr.otp.codeTextField"

@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "597951034849",
+    "project_id": "bittr-regtest",
+    "storage_bucket": "bittr-regtest.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:597951034849:android:b335d51348d290fd704ea0",
+        "android_client_info": {
+          "package_name": "com.bittr.android.regtest"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDHXtHV_hWJ8ZxFGNMf7hnaKWfXs9Fy1DE"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

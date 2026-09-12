@@ -22,6 +22,16 @@ class IbanEntity: NSObject, Codable {
     // Payout mode for this deposit code: "lightning" or "onchain".
     // Empty until the backend reports it (registration / deposit_code / payment-mode endpoints).
     var paymentMode = ""
+    // When the customer confirmed that this registration is made on their own
+    // exclusive initiative — the precondition published T&C §2.5 puts on Bittr
+    // providing any Service. ISO-8601, UTC, second precision.
+    //
+    // Optional on purpose: the synthesised Decodable initialiser ignores a
+    // property's default value and throws on a missing key, and a throw here
+    // loses every stored IBAN entity (CacheStore.decoded returns nil on a decode
+    // failure). Optional decodes a pre-existing cache to nil instead — which is
+    // also the truthful value for a registration made before this was collected.
+    var initiativeConfirmedAt:String?
 }
 
 extension IbanEntity {
@@ -39,6 +49,7 @@ extension IbanEntity {
         self.ourSwift = dictionary["ourswift"] as? String ?? ""
         self.lightningAddressUsername = dictionary["lightningaddressusername"] as? String ?? ""
         self.paymentMode = dictionary["paymentmode"] as? String ?? ""
+        self.initiativeConfirmedAt = dictionary["initiativeconfirmedat"] as? String
     }
     
     static func fromLegacyDeviceDictionary(_ device:NSDictionary) -> [IbanEntity] {

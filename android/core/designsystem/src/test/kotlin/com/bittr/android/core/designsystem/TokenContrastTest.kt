@@ -283,6 +283,10 @@ class TokenContrastTest {
      * and [BittrColors.scrim3], both white @70 % in light mode — over the yellow screen
      * behind them. That composites to **#FFEEB3**, and that, not `primary`, is the surface
      * the placeholder has to be measured against.
+     *
+     * Because those two tokens are byte-identical in light mode, A11Y-22 moving the Swap
+     * field from `scrim3` to `scrim1` changes nothing here: light mode renders the same
+     * pixels before and after, and the whole of that decision is visible only in dark.
      */
     private val lightFieldFill: Color
         get() = composite(BittrLightColorsExtended.scrim1, BittrLightColors.primary)
@@ -293,10 +297,11 @@ class TokenContrastTest {
         // this is body text: the floor is 4.5, not the 3.0 that applies to the border.
         // iOS uses `grey2` here and lands at 2.23 : 1. DEV-58 moves them to onSurfaceVariant.
         assertAtLeast(aa, BittrLightColors.onSurfaceVariant, lightFieldFill, "placeholder on the light field fill")
-        // Dark: the two Send fields fill with scrim1 = blue1.
+        // Dark: every field fills with scrim1 = blue1 — the two Send fields always did, and
+        // A11Y-22 moved the Swap field onto it too.
         assertAtLeast(
             aa, BittrDarkColors.onSurfaceVariant, BittrDarkColorsExtended.scrim1,
-            "Send placeholder on the dark field fill",
+            "placeholder on the dark field fill",
         )
     }
 
@@ -317,23 +322,72 @@ class TokenContrastTest {
         )
     }
 
+    // -----------------------------------------------------------------------
+    // A11Y-22 / DEV-61 — scrim3 is a card fill, and the Swap field is not a card
+    // -----------------------------------------------------------------------
+
+    /**
+     * The Swap amount field's dark fill.
+     *
+     * iOS fills it with `white0.7orblue3` — [BittrColors.scrim3], `blue3` in dark — which
+     * is the one field in the wallet not on [BittrColors.scrim1]. That is drift, not
+     * intent, and it is unfixable in place: `blue3`'s ceiling is pure white at 4.44, so
+     * *no* white-based token carries 16sp-regular text there. A11Y-22 moves the field to
+     * `scrim1`, which is what the other four fields already use.
+     */
+    private val swapDarkFieldFill: Color
+        get() = BittrDarkColorsExtended.scrim1
+
     @Test
-    fun `the Swap field's dark fill cannot carry AA placeholder text — open on BIT-15`() {
-        // scrim3 is blue3, and A11Y-02 demoted blue3 as a surface for precisely this reason:
-        // even **pure white** on blue3 is 4.44 : 1. So no white-based token clears AA body
-        // text on this fill — onSurfaceVariant reaches 3.47 and stops. The fix is to move
-        // scrim3's dark value the way A11Y-02 moved `surface` (blue2 gives exactly 4.50),
-        // but that is a visible dark-mode change that arrived after the BIT-15 sign-off, so
-        // it is raised there rather than taken here. Asserting the shortfall is what keeps
-        // it from reading as covered.
-        val fill = BittrDarkColorsExtended.scrim3
+    fun `A11Y-22 the Swap field's dark fill carries both its placeholder and its typed value`() {
+        // The typed amount matters as much as the placeholder and is the part the original
+        // A11Y-21 sweep missed: `blackorwhite` is pure white in dark, 4.44 on blue3 — a fail
+        // at the ceiling. On scrim1 the placeholder reaches 5.28 and the value 7.15, both
+        // with margin rather than the hairline 4.50 that moving scrim3 to blue2 would give.
+        assertAtLeast(
+            aa, BittrDarkColors.onSurfaceVariant, swapDarkFieldFill,
+            "the Swap placeholder on its dark fill",
+        )
+        assertAtLeast(
+            aa, BittrDarkColors.onSurface, swapDarkFieldFill,
+            "the typed Swap amount on its dark fill",
+        )
+    }
+
+    @Test
+    fun `A11Y-22 moving scrim3 to blue2 was the wrong fix — it erases the field`() {
+        // This is the option the decision rejected, kept as an assertion because the
+        // arithmetic that kills it is not in the contrast table anyone would consult.
+        // The Swap field sits *inside* `centerCard` = `yelloworblue2` = surfaceContainer =
+        // blue2. Filling it with blue2 to win 4.50 on the placeholder makes the fill
+        // identical to the card behind it: the field becomes invisible. A fill has to be
+        // distinguishable from its own container before its text contrast means anything.
+        val card = BittrDarkColors.surfaceContainer
         assertTrue(
-            "pure white now clears AA on blue3 — the ceiling moved, re-check this whole test",
-            contrast(Color.White, fill) < aa,
+            "scrim2 is blue2 — the Swap field must not be filled with the card it sits in",
+            contrast(BittrDarkColorsExtended.scrim2, card) < 1.05,
         )
         assertTrue(
-            "the Swap dark placeholder is a known AA shortfall pending the scrim3 decision",
-            contrast(BittrDarkColors.onSurfaceVariant, fill) < aa,
+            "the chosen fill is still distinguishable from the card it sits in",
+            contrast(swapDarkFieldFill, card) > 1.05,
+        )
+    }
+
+    @Test
+    fun `A11Y-22 scrim3 stays blue3, and is a large-text card fill only`() {
+        // scrim3 keeps blue3 for its five remaining call sites — the four Receive action
+        // cards and the map's `Go to maps` button. Every one of those labels is Gilroy-Bold
+        // 14 or 15 in Main.storyboard, so they are large text at a 3.0 floor, and
+        // `blackorwhite` = pure white clears it at 4.44.
+        val fill = BittrDarkColorsExtended.scrim3
+        assertAtLeast(aaLarge, BittrDarkColors.onSurface, fill, "a Receive card label on scrim3")
+        // And the tripwire that made this a decision in the first place. If blue3 ever
+        // changes so that pure white clears 4.5 on it, scrim3 stops being large-text-only
+        // and this whole question is worth reopening — so fail loudly rather than silently
+        // keeping a constraint that no longer binds.
+        assertTrue(
+            "pure white now clears AA on blue3 — the ceiling moved, re-check A11Y-02 and A11Y-22",
+            contrast(Color.White, fill) < aa,
         )
     }
 

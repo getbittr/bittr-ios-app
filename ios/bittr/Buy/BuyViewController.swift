@@ -177,7 +177,7 @@ class BuyViewController: UIViewController, UITextFieldDelegate, UICollectionView
 
         let value = sender.boundString ?? ""
         UIPasteboard.general.string = value
-        self.showAlert(title: Language.getWord(withID: "copied"), message: value, buttons: [.dismiss(Language.getWord(withID: "okay"))])
+        self.showAlert(id: TestID.Alert.copied, title: Language.getWord(withID: "copied"), message: value, buttons: [.dismiss(Language.getWord(withID: "okay"))])
     }
     
     func getDepositCodeData() {
@@ -431,7 +431,7 @@ class BuyViewController: UIViewController, UITextFieldDelegate, UICollectionView
     @IBAction func paymentModeQuestionTapped(_ sender: UIButton) {
         self.view.endEditing(true)
         
-        self.showAlert(title: Language.getWord(withID: "buyvclightning"), message: Language.getWord(withID: "buyvclightningexplanation"), buttons: [.dismiss(Language.getWord(withID: "okay"))])
+        self.showAlert(id: TestID.Alert.lightningExplanation, title: Language.getWord(withID: "buyvclightning"), message: Language.getWord(withID: "buyvclightningexplanation"), buttons: [.dismiss(Language.getWord(withID: "okay"))])
     }
     
     func changeColors() {

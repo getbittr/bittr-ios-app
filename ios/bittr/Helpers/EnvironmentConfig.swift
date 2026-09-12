@@ -33,6 +33,9 @@ struct EnvironmentConfig {
     /// files at build time off the git branch name (unreliable, and broke in
     /// CI's detached-HEAD checkout). Pick prod vs regtest by building
     /// Release vs Debug — no script, no branch sniffing.
+    ///
+    /// `BittrAPIEnvironment.isDevelopment` makes the same DEBUG check for the
+    /// widget extension, which cannot see this type. Keep the two in step.
     static var currentEnvironment: Environment {
         #if DEBUG
         return .development
@@ -77,9 +80,14 @@ struct EnvironmentConfig {
         isDevelopment ? "https://boltz-api.bittr.io/v2" : "https://api.boltz.exchange/v2"
     }
     
-    /// Bittr API base URL based on environment
+    /// Bittr API base URL based on environment.
+    ///
+    /// Forwards to `BittrAPIEnvironment`, which is shared with the widget
+    /// extension (that target cannot see this file — it does not link
+    /// LDKNode/BitcoinDevKit). Keeping the value there means the app and the
+    /// widget cannot drift onto different backends.
     static var bittrAPIBaseURL: String {
-        isDevelopment ? "https://staging.getbittr.com/api" : "https://getbittr.com/api"
+        BittrAPIEnvironment.baseURL
     }
     
     /// WebSocket URL based on environment

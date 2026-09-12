@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  INTERNET is declared here rather than in :app because this is the module that
+  needs it — S-36 is the app's only network-facing UI so far. Library manifests
+  merge into the app's, so the permission travels with the feature that requires
+  it, and `git log` on this file answers "why does the wallet need the network".
+-->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <uses-permission android:name="android.permission.INTERNET" />
+
+</manifest>

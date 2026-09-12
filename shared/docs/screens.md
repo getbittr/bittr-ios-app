@@ -22,8 +22,7 @@ This inventory lists user-facing screens only. Non-visual container/transient VC
 
 Every user-facing screen (view controller) is now reached by at least one Maestro flow. The remaining gaps are **screen modes and features within those screens**, not whole screens:
 
-- **Receive "LNURL" type** — the user's own Lightning-address receive mode (More picker → Show LNURL) is never opened; the onchain / invoice / Bitcoin QR types are covered. **In production scope.**
-- **Widget** — `BittrWidget/*` is a WidgetKit extension, not a screen, and can't be driven by Maestro (home-screen widget). Listed for completeness only.
+- **Widget** — `BittrWidget/*` is a WidgetKit extension, not a screen, and can't be driven by Maestro (home-screen widget). It will therefore never appear in the screenshot catalog; it's specified from source in `widget-spec.md` instead. The same extension also ships the swap Live Activity, equally undriveable and not yet scoped for Android.
 
 The QR scanner can't use the camera in the simulator, so its flow exercises `ScannerViewController` via the "scanning not supported" path rather than a live scan.
 
@@ -45,7 +44,7 @@ For the full feature-/interaction-level gap list (LNURL-withdraw, deep links, pu
 - **Purpose**: per-step wallet-sync progress (conversion / LDK / final). Dismisses itself when the sync finishes; also has a manual close button.
 - **States**: shown (syncing) / auto-dismissed on sync complete.
 - **Flow**: `shared/flows/features/receive_onchain.yaml` (opened right after unlock while syncing, then left to auto-dismiss when the sync finishes). If the tap lands after the sync finished, the same button opens the balance/Move screen instead, which the flow closes.
-- **Screenshots**: `receive_onchain/00_sync_status.png`
+- **Screenshots**: **race-dependent — only one of these two exists per run.** `receive_onchain/00_sync_status.png` (tap landed while still syncing) *or* `receive_onchain/00_move_balance.png` (sync already finished, so the same button opened the balance/Move screen). The 2026-09-09 capture produced `00_move_balance.png`; the sync overlay is **not** on disk. Re-running the suite is the same coin flip — see `sync_overlay_capture.md` for the deterministic recipe.
 
 ## Signup (create wallet)
 
@@ -215,7 +214,7 @@ For the full feature-/interaction-level gap list (LNURL-withdraw, deep links, pu
 - **Purpose**: enter/paste a destination (onchain address, invoice, or LNURL) and amount; routes to onchain or lightning.
 - **States**: empty / address pasted / invoice pasted / amount-missing alert / lnurl prompt / syncing alert / Regular-vs-Instant explanation alert / onchain max-sendable ("You can send…") info alert / "insufficient funds — Swap and pay" suggestion (lightning invoice with no channel, or onchain address with too little onchain balance). The lightning-side "You can send…" question opens the QuestionViewController (channel info).
 - **Flow**: `shared/flows/features/{send_onchain,send_onchain_all,send_lightning,send_swap_suggestion_lightning,send_swap_suggestion_onchain,receive_onchain,receive_invoice}.yaml`
-- **Screenshots**: `send_onchain/02_regular.png`, `send_onchain/01c_lightning_sendable_info.png`, `send_onchain/02a_regular_instant_info.png`, `send_onchain/02b_max_sendable_info.png`, `send_lightning/02_invoice_pasted.png`, `send_lightning/09_lnurl_prompt.png`, `receive_onchain/05_send_address_only.png`, `receive_invoice/05_send_invoice_only.png`
+- **Screenshots**: `send_onchain/02_regular.png`, `send_onchain/01c_lightning_sendable_info.png`, `send_onchain/02a_regular_instant_info.png`, `send_onchain/02b_max_sendable_info.png`, `send_lightning/02_invoice_pasted.png`, `send_lightning/09_lnurl_amount.png`, `receive_onchain/05_send_address_only.png`, `receive_invoice/05_send_invoice_only.png`
 - **Not covered**: LNURL-withdraw. See `parity.md`.
 
 ### Confirm send
@@ -238,10 +237,11 @@ For the full feature-/interaction-level gap list (LNURL-withdraw, deep links, pu
 
 - **VC**: `ios/bittr/Move, Send, Receive/ReceiveVC/ReceiveViewController.swift`
 - **Purpose**: address/invoice generation + QR, with copy, refresh, edit-amount, and onchain/lightning toggle.
-- **States**: loaded (address + QR) / invoice / Bitcoin QR / address-info alert / copied alert / no-new-address alert / QR long-press context menu (Copy/Share) / share sheet.
-- **Flow**: `shared/flows/features/{receive,receive_onchain,receive_invoice,send_swap_suggestion_onchain}.yaml`
-- **Screenshots**: `receive/02_receive_screen.png`, `receive_onchain/02_onchain_address.png`, `receive_onchain/03a_qr_context_menu.png`, `receive_onchain/03b_share_sheet.png`, `receive_invoice/02_invoice.png`, `receive_invoice/06_invoice_with_amount.png`, `send_swap_suggestion_onchain/01b_address_copied.png`
-- **Not covered**: the **LNURL** type (user's own Lightning address, More → Show LNURL) is never opened; the description/memo field and the Bitcoin/Sats currency options are untested. See `parity.md`.
+- **States**: loaded (address + QR) / invoice / Bitcoin QR / LNURL (own Lightning address, populated or "Unavailable") / address-info alert / LNURL-info alert / copied alert / no-new-address alert / QR long-press context menu (Copy/Share) / share sheet.
+- **Flow**: `shared/flows/features/{receive,receive_onchain,receive_invoice,receive_lnurl,send_swap_suggestion_onchain}.yaml`
+- **Screenshots**: `receive/02_receive_screen.png`, `receive_onchain/02_onchain_address.png`, `receive_onchain/03a_qr_context_menu.png`, `receive_onchain/03b_share_sheet.png`, `receive_invoice/02_invoice.png`, `receive_invoice/06_invoice_with_amount.png`, `receive_lnurl/03_lnurl.png`, `receive_lnurl/04_lnurl_info.png`, `send_swap_suggestion_onchain/01b_address_copied.png`
+- **Port note**: the four types are *not* symmetric. LNURL is the only one with no add-amount card (so no amount/description state), and the title is the same string — "Address" — for both the onchain and LNURL types, because the `url` and `address` words share a value. The default type on open is channel-dependent: no channel → onchain, channel + lightning address → LNURL, channel without one → Bitcoin QR.
+- **Not covered**: the description/memo field and the Bitcoin/Sats currency options are untested. See `parity.md`.
 
 ## Swap
 
@@ -347,7 +347,13 @@ For the full feature-/interaction-level gap list (LNURL-withdraw, deep links, pu
 
 - **VC**: `ios/bittr/Settings/DeviceViewController.swift`
 - **Purpose**: device/wallet diagnostics — dark mode, language, currency, device token, public key, bittr peer, pending payouts, lightning channels, restore.
-- **States**: visible / dark / light / peer disconnected / pending payout.
+- **States**: visible / dark / light / peer disconnected / pending-payout result alert.
+- **Note**: the pending-payout row has three outcomes but only two appearances —
+  "no payouts available" (`bittrpendingpayout2`) and the network-`.failure` case
+  render the *same* title and body (`DeviceViewController.swift:299` and `:311`), so
+  a flow cannot tell an empty result from a failed call. Only the third,
+  `bittrpendingpayout3` ("would you like to handle it now?"), differs, and no flow
+  reaches it. See `parity.md` → "Production-scope features needing a flow".
 - **Flow**: `shared/flows/features/settings.yaml`, `features/remove_wallet.yaml`
 - **Screenshots**: `settings/07_device.png`, `settings/08_darkmode_dark.png`, `settings/09_darkmode_light.png`, `settings/11_publickey.png`, `settings/12_peer_disconnected.png`, `settings/13_pendingpayout.png`, `remove_wallet/03b_device_details.png`
 

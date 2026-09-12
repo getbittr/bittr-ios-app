@@ -49,6 +49,12 @@ include(":core:preferences")
 // through here rather than naming permission strings directly, so the guard tests
 // in :app have one allowed call site to check against.
 include(":core:permissions")
+// The LNURL decision layer (BIT-33). Pure Kotlin and deliberately so: everything
+// in it decides whether a Lightning flow may proceed, and with no Android SDK on
+// its classpath it cannot reach a WebView, an HTTP client or a dialog. It is
+// shared by Send and by the in-app browser, which is exactly the sharing that
+// makes LnurlSource necessary — see the class comment there.
+include(":core:lnurl")
 
 // The wallet seam. :core:wallet is API-only (pure Kotlin interfaces + models).
 // :core:wallet-stub is the deterministic implementation the scaffold and CI run
@@ -56,6 +62,9 @@ include(":core:permissions")
 // the same API; nothing above this line changes when it lands.
 include(":core:wallet")
 include(":core:wallet-stub")
+// The real binding: ldk-node + BDK, plus the seed storage and LDK-state
+// quarantine model decided in BIT-8 and BIT-20. See core/wallet-ldk/README.md.
+include(":core:wallet-ldk")
 
 // The seed, split along the line that makes it testable: :core:wallet-seed is pure
 // Kotlin (BIP-39, the PIN verifier, the state machine) and runs on the JVM;
@@ -63,6 +72,11 @@ include(":core:wallet-stub")
 // Keystore key. BIT-93 — a real seed, no funds. Funds are BIT-6.
 include(":core:wallet-seed")
 include(":core:wallet-keystore")
+
+// BIT-18/K1. An instrumented probe, not a shipped module — nothing depends on it. It proves on
+// real devices what BIT-8 rule 2 currently asserts from AOSP javadoc: that a non-auth-bound
+// Keystore key survives a lock-screen change. See android/docs/k1-keystore-lockscreen.md.
+include(":core:keystore-probe")
 
 // Features — one module per area of the iOS app, added as the port reaches them.
 include(":feature:signup")
@@ -94,3 +108,8 @@ include(":feature:map")
 // The Academy (iOS Academy/). BIT-99, Wave 1. Read-only content plus the lesson
 // unlock rule; no wallet, no network beyond the six lesson images.
 include(":feature:academy")
+// S-36 · Website — the in-app browser (BIT-33 / DEV-56). One chrome for all five
+// iOS call sites, including the one handed an arbitrary URL from BTCMap place
+// data. No LNURL bridge is attached on any origin; androidx.webkit is not a
+// dependency of it, so the bridge API is not on the classpath at all.
+include(":feature:website")

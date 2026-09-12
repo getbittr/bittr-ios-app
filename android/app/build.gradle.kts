@@ -21,6 +21,11 @@ android {
         // shared/flows/android/scaffold_smoke.yaml, and BiometricUnlockFlagTest,
         // which keys the regtest assertion off the applicationId rather than the
         // build type.
+        //
+        // It also requires re-registering the app in Firebase (BIT-39). The two
+        // google-services.json files in src/debug/ and src/release/ are keyed by
+        // package name and cannot simply be edited — the mobilesdk_app_id is issued
+        // against the name. GoogleServicesConfigTest fails on the mismatch.
         applicationId = "com.bittr.android"
         minSdk = libs.versions.minSdk.get().toInt()
         targetSdk = libs.versions.targetSdk.get().toInt()
@@ -179,6 +184,9 @@ dependencies {
     // LocationPrecisionGuardTest asserting something real: MapLibre's own AAR
     // declares ACCESS_FINE_LOCATION, and the `tools:node="remove"` line below is the
     // only reason the shipped APK does not ask for it.
+    implementation(project(":core:lnurl"))
+    implementation(project(":feature:signup"))
+    implementation(project(":feature:website"))
 
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
@@ -226,8 +234,27 @@ dependencies {
     // instead; see ComposeRuleVariantGuardTest, which enforces that.
     // Line 193 stays: androidTest is debug-only and resolves through it correctly.
 
+    // BackupExclusionTest is plain JUnit4 over `bmgr` — no Compose, no Espresso.
+    // Declared explicitly rather than leant on transitively through ext-junit,
+    // the same way :core:wallet-ldk declares it.
+    androidTestImplementation(libs.junit)
     androidTestImplementation(libs.androidx.test.ext.junit)
     androidTestImplementation(libs.androidx.espresso.core)
     androidTestImplementation(platform(libs.androidx.compose.bom))
     androidTestImplementation(libs.androidx.compose.ui.test.junit4)
+
+    // BIT-59. Test-only, and deliberately NOT the `implementation` line above:
+    // the shipped app still binds :core:wallet-stub, and this must not be the
+    // thing that quietly swaps the wallet implementation — that swap is BIT-6's
+    // to make, in one reviewed line.
+    //
+    // BackupExclusionTest needs it because the property it proves is a property
+    // of the *installed application* — its merged manifest, its data directory,
+    // its package name under `bmgr`. A library module's own instrumented tests
+    // run in a test APK built from the library's manifest, and :core:wallet-ldk
+    // has none, so backup defaults to ENABLED there: the exact opposite of the
+    // configuration under test. The test has to run inside :app, and it needs
+    // WalletPaths and AndroidKeystoreBlobCodec to write the material it then
+    // looks for in a backup set.
+    androidTestImplementation(project(":core:wallet-ldk"))
 }
