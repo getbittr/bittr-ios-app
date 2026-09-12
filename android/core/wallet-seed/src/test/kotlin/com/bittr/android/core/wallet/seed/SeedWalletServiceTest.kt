@@ -1,9 +1,12 @@
 package com.bittr.android.core.wallet.seed
 
+import com.bittr.android.core.wallet.Mnemonic
 import com.bittr.android.core.wallet.SecureStore
 import com.bittr.android.core.wallet.WalletState
 import com.bittr.android.core.wallet.WalletStorageException
+import com.bittr.android.core.wallet.WrongSeedException
 import kotlinx.coroutines.test.runTest
+import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotEquals
@@ -210,4 +213,210 @@ class SeedWalletServiceTest {
         assertEquals(WalletState.Uninitialized, service.state.value)
         assertFalse(service.unlock("1234"))
     }
+
+    // ---------------------------------------------------------------------------
+    // The lockout counter — BIT-97. `PinLockout` owns what the numbers mean; these
+    // cover the half that has to survive the process dying.
+    // ---------------------------------------------------------------------------
+
+    @Test
+    fun `wrong PINs count up and a correct one clears the count`() = runTest {
+        val service = SeedWalletService(FakeStore())
+        service.createWallet()
+        service.setPin("1234")
+
+        assertEquals(0, service.failedUnlockAttempts())
+        service.unlock("1111")
+        service.unlock("1111")
+        assertEquals(2, service.failedUnlockAttempts())
+
+        assertTrue(service.unlock("1234"))
+        assertEquals(0, service.failedUnlockAttempts())
+    }
+
+    /**
+     * The counter is the whole defence against a 4-digit PIN, so force-quitting must
+     * not buy another ten guesses. A count held in the service object would.
+     */
+    @Test
+    fun `the failure count survives a force-quit`() = runTest {
+        val store = FakeStore()
+        SeedWalletService(store).let { service ->
+            service.createWallet()
+            service.setPin("1234")
+            repeat(9) { service.unlock("0000") }
+        }
+
+        assertEquals(9, SeedWalletService(store).failedUnlockAttempts())
+    }
+
+    @Test
+    fun `a fresh wallet does not inherit the previous one's failures`() = runTest {
+        // A device wiped for ten wrong PINs and then set up again must not come back
+        // already locked out.
+        val store = FakeStore()
+        val service = SeedWalletService(store)
+        service.createWallet()
+        service.setPin("1234")
+        repeat(4) { service.unlock("0000") }
+
+        service.createWallet()
+        service.setPin("5678")
+
+        assertEquals(0, service.failedUnlockAttempts())
+    }
+
+    @Test
+    fun `unlocking a device with no wallet does not accumulate a lockout`() = runTest {
+        val service = SeedWalletService(FakeStore())
+
+        assertFalse(service.unlock("1234"))
+
+        assertEquals(0, service.failedUnlockAttempts())
+    }
+
+    @Test
+    fun `an unreadable counter fails open rather than wiping the wallet`() = runTest {
+        // iOS reads the Keychain counter through `try?` for this reason: a transient
+        // storage error that read as "lots of failures" would erase a wallet that was
+        // never attacked.
+        val store = FakeStore()
+        val service = SeedWalletService(store)
+        service.createWallet()
+        service.setPin("1234")
+        store.values[SeedWalletService.KEY_PIN_ATTEMPTS] = "not a number".toByteArray()
+
+        assertEquals(0, service.failedUnlockAttempts())
+    }
+
+    // ---------------------------------------------------------------------------
+    // The wipe.
+    // ---------------------------------------------------------------------------
+
+    @Test
+    fun `removing the wallet erases the seed, the PIN and the counter`() = runTest {
+        val store = FakeStore()
+        val service = SeedWalletService(store)
+        service.createWallet()
+        service.setPin("1234")
+        repeat(10) { service.unlock("0000") }
+
+        service.removeWallet()
+
+        assertFalse(store.contains(SeedWalletService.KEY_SEED))
+        assertFalse(store.contains(SeedWalletService.KEY_PIN))
+        assertFalse(store.contains(SeedWalletService.KEY_PIN_ATTEMPTS))
+        assertEquals(WalletState.Uninitialized, service.state.value)
+    }
+
+    /** And it stays gone across a relaunch — the app comes back at signup. */
+    @Test
+    fun `a removed wallet does not come back`() = runTest {
+        val store = FakeStore()
+        SeedWalletService(store).removeWalletAfterSetup()
+
+        assertEquals(WalletState.Uninitialized, SeedWalletService(store).state.value)
+    }
+
+    // ---------------------------------------------------------------------------
+    // The non-destructive forgot-PIN path.
+    // ---------------------------------------------------------------------------
+
+    @Test
+    fun `holdsSeed recognises this wallet's phrase and no other`() = runTest {
+        val service = SeedWalletService(FakeStore())
+        val mnemonic = service.createWallet()
+        service.setPin("1234")
+
+        assertTrue(service.holdsSeed(mnemonic))
+        assertFalse(service.holdsSeed(SOME_OTHER_PHRASE))
+    }
+
+    @Test
+    fun `holdsSeed says no on a device with no wallet`() = runTest {
+        assertFalse(SeedWalletService(FakeStore()).holdsSeed(SOME_OTHER_PHRASE))
+    }
+
+    /**
+     * The point of the whole path: the user gets back in and the wallet — and
+     * anything in it — is still there.
+     */
+    @Test
+    fun `resetting the PIN keeps the same seed and unlocks`() = runTest {
+        val store = FakeStore()
+        val service = SeedWalletService(store)
+        val mnemonic = service.createWallet()
+        service.setPin("1234")
+        val seedBefore = store.values.getValue(SeedWalletService.KEY_SEED).copyOf()
+
+        service.resetPin(mnemonic, "5678")
+
+        assertEquals(WalletState.Ready, service.state.value)
+        assertArrayEquals(seedBefore, store.values.getValue(SeedWalletService.KEY_SEED))
+        assertTrue(SeedWalletService(store).unlock("5678"))
+        assertFalse(SeedWalletService(store).unlock("1234"))
+    }
+
+    @Test
+    fun `resetting the PIN clears the failures that led to it`() = runTest {
+        val store = FakeStore()
+        val service = SeedWalletService(store)
+        val mnemonic = service.createWallet()
+        service.setPin("1234")
+        repeat(9) { service.unlock("0000") }
+
+        service.resetPin(mnemonic, "5678")
+
+        // Nine failures and a user who has just proved they own the wallet: leaving
+        // the count would wipe them on their next typo.
+        assertEquals(0, service.failedUnlockAttempts())
+    }
+
+    @Test
+    fun `the wrong phrase cannot reset the PIN`() = runTest {
+        val store = FakeStore()
+        val service = SeedWalletService(store)
+        service.createWallet()
+        service.setPin("1234")
+
+        assertFails<WrongSeedException> { service.resetPin(SOME_OTHER_PHRASE, "5678") }
+
+        assertEquals(WalletState.Locked, service.state.value)
+        assertTrue(SeedWalletService(store).unlock("1234"))
+    }
+
+    @Test
+    fun `a PIN cannot be reset on a device with no wallet`() = runTest {
+        val service = SeedWalletService(FakeStore())
+
+        assertFails<WrongSeedException> { service.resetPin(SOME_OTHER_PHRASE, "5678") }
+    }
+
+    @Test
+    fun `a reset PIN still follows the four-to-eight rule`() = runTest {
+        val service = SeedWalletService(FakeStore())
+        val mnemonic = service.createWallet()
+        service.setPin("1234")
+
+        assertFails<IllegalArgumentException> { service.resetPin(mnemonic, "123") }
+        assertFails<IllegalArgumentException> { service.resetPin(mnemonic, "123456789") }
+    }
+
+    private suspend fun SeedWalletService.removeWalletAfterSetup() {
+        createWallet()
+        setPin("1234")
+        removeWallet()
+    }
 }
+
+/**
+ * A valid BIP-39 phrase that is not the one under test — the specification's
+ * all-zero-entropy vector. Worth nothing to anybody, which is why it is safe to write
+ * down here.
+ */
+private val SOME_OTHER_PHRASE = Mnemonic(
+    listOf(
+        "abandon", "abandon", "abandon", "abandon", "abandon", "abandon",
+        "abandon", "abandon", "abandon", "abandon", "abandon", "about",
+    ),
+)

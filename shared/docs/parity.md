@@ -7,7 +7,20 @@ wallet engine, which don't, and what is holding each wave up — see
 [`android-parity-roadmap.md`](android-parity-roadmap.md). This file stays the
 per-flow status tracker.
 
-Every flow under `shared/flows/` is listed below. iOS is the source of truth and is implemented; Android isn't scaffolded yet, so it reads `not started` across the board until the port begins.
+Every flow under `shared/flows/` is listed below. iOS is the source of truth and is
+implemented.
+
+The Android column takes three values, and the middle one exists because the
+Android Maestro runner is not stood up yet:
+
+- **`not started`** — nothing built.
+- **`screens built`** — every step of the flow is reachable in the app and is
+  covered by a JVM test that walks the flow's ids in the flow's order. That is
+  as far as a claim can honestly go without the runner: Robolectric reads the
+  Compose semantics tree directly, so it cannot prove `testTagsAsResourceId`
+  bridges those ids onto the accessibility tree Maestro queries.
+- **`done`** — the flow passes under Maestro in CI on Android. **Only this
+  counts** for BIT-7's definition of done. Nothing reads `done` yet.
 
 ## Onboarding & wallet setup
 
@@ -73,12 +86,12 @@ Every flow under `shared/flows/` is listed below. iOS is the source of truth and
 
 | Feature | iOS | Android | Maestro flow | Notes |
 |---|---|---|---|---|
-| Pin unlock (subflow) | done | not started | `helpers/unlock.yaml` | Called by feature tests when the app launches into the unlock screen. |
-| Forgot PIN (non-destructive) | done | not started | `features/forgot_pin.yaml` | Forgot PIN → confirm Reset → mnemonic in RestoreVC → new PIN back to 1234 → Home with the same wallet. Needs the `MNEMONIC` env var. |
-| Wrong-PIN warning → Forgot PIN | done | not started | `features/pin_warning.yaml` | 3 wrong entries surface the warning alert (Okay + Forgot PIN); Forgot PIN jumps straight to the mnemonic reset. Self-contained (runs `restore_wallet` first). Non-destructive. |
-| Forgot PIN → remove wallet | done | not started | `features/forgot_pin_remove_wallet.yaml` | Removes the wallet via the Forgot-PIN path → Signup1; both channel/no-channel branches. Self-provisions a channel via `helpers/create_wallet_with_channel.yaml`. Destructive. |
-| Wrong-PIN lockout (no channel) | done | not started | `features/wrong_pin.yaml` | 10 wrong PINs → immediate wipe → Signup1. Self-provisions via `restore_wallet`. Shares `helpers/wrong_pin_until_lockout.yaml`. Destructive. |
-| Wrong-PIN lockout (with channel) | done | not started | `features/wrong_pin_with_channel.yaml` | 10 wrong PINs → cooperative channel close + "Try again" retry loop → wipe → Signup1. Self-provisions via `helpers/ensure_bittr_channel.yaml`. Channel detection is best-effort (unverified). Destructive. |
+| Pin unlock (subflow) | done | screens built (BIT-97) | `helpers/unlock.yaml` | Called by feature tests when the app launches into the unlock screen. |
+| Forgot PIN (non-destructive) | done | screens built (BIT-97) | `features/forgot_pin.yaml` | Forgot PIN → confirm Reset → mnemonic in RestoreVC → new PIN back to 1234 → Home with the same wallet. Needs the `MNEMONIC` env var. |
+| Wrong-PIN warning → Forgot PIN | done | screens built (BIT-97) | `features/pin_warning.yaml` | 3 wrong entries surface the warning alert (Okay + Forgot PIN); Forgot PIN jumps straight to the mnemonic reset. Self-contained (runs `restore_wallet` first). Non-destructive. |
+| Forgot PIN → remove wallet | done | not started — needs BIT-6 | `features/forgot_pin_remove_wallet.yaml` | Removes the wallet via the Forgot-PIN path → Signup1; both channel/no-channel branches. Self-provisions a channel via `helpers/create_wallet_with_channel.yaml`. Destructive. |
+| Wrong-PIN lockout (no channel) | done | screens built (BIT-97) | `features/wrong_pin.yaml` | 10 wrong PINs → immediate wipe → Signup1. Self-provisions via `restore_wallet`. Shares `helpers/wrong_pin_until_lockout.yaml`. Destructive. |
+| Wrong-PIN lockout (with channel) | done | not started — needs BIT-6 | `features/wrong_pin_with_channel.yaml` | 10 wrong PINs → cooperative channel close + "Try again" retry loop → wipe → Signup1. Self-provisions via `helpers/ensure_bittr_channel.yaml`. Channel detection is best-effort (unverified). Destructive. |
 
 ## Helper subflows & orchestration
 

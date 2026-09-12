@@ -58,16 +58,27 @@ import com.bittr.android.core.wallet.seed.SeedWalletService
  * 56 dp, and past that they narrow rather than running off the screen or silently
  * dropping the digits the user can see they typed.
  *
- * **It lives in `:feature:signup` for now and should not stay there.** Unlock is not a
- * signup concern, and BIT-7 should lift this into `:feature:pin` when it ports the
+ * **It lives in `:feature:signup` and still should not stay there.** BIT-97 ported the
  * rest of the PIN behaviour — attempt counting, the wipe-after-ten warning
- * (`pinwarning2`), forgot-PIN. None of that is in BIT-93's scope: this pad sets a PIN
- * and checks a PIN, and nothing else. The mock's "Forgot PIN" affordance belongs with
- * that work, so it is not drawn here rather than drawn dead.
+ * (`pinwarning2`), forgot-PIN — into `:app`'s `UnlockScreen` rather than moving this
+ * file, because the reset arc reuses [RestoreScreen] as well as this pad and a
+ * `:feature:pin` that depended on `:feature:signup` would have the arrow pointing the
+ * wrong way. Lifting both screens out is the move, and it is a module change rather
+ * than a behaviour one. This pad still only sets a PIN and checks a PIN; everything
+ * that decides what a wrong one *means* is in `UnlockViewModel`.
  *
  * @param title the instruction above the pad — which of the three uses this is.
  * @param onSubmit called with the digits when the user confirms.
  * @param titleTestTag the screen-level id; the signup steps have their own.
+ * @param onBack the secondary button under Confirm. iOS's `restoreWalletButton`: Back
+ *   on the signup steps, "Forgot PIN" on unlock — one button and one id
+ *   ([TestID.Pin.restoreButton]) in both, with [backLabel] saying which it is.
+ * @param clearOnSubmit empty the cells after Confirm. True on unlock, which is where
+ *   the screen stays put after a rejection and iOS calls `clearPinField()` — without
+ *   it the next four taps append to the digits that were just refused, and at the
+ *   eight-digit cap the pad stops accepting input entirely. False on the signup steps,
+ *   matching `Signup6ViewController`, where a mismatch leaves what was typed so the
+ *   user can correct a single digit rather than retype all of it.
  */
 @Composable
 fun PinScreen(
@@ -78,6 +89,7 @@ fun PinScreen(
     onBack: (() -> Unit)? = null,
     backLabel: String = SignupStrings.BACK,
     confirmLabel: String = SignupStrings.CONFIRM,
+    clearOnSubmit: Boolean = false,
 ) {
     var pin by remember { mutableStateOf("") }
 
@@ -111,7 +123,10 @@ fun PinScreen(
             CanvasSpacer(22.dp)
             BittrPrimaryButton(
                 text = confirmLabel,
-                onClick = { onSubmit(pin) },
+                onClick = {
+                    onSubmit(pin)
+                    if (clearOnSubmit) pin = ""
+                },
                 enabled = SeedWalletService.isValidPin(pin),
                 arrow = false,
                 modifier = Modifier.testTag(TestID.Pin.confirmButton),
@@ -120,8 +135,16 @@ fun PinScreen(
             // screen's bottom edge — `navigationBarsPadding` is zero on a
             // three-button device and on the render harness, so the gap has to be
             // real rather than borrowed from the inset.
+            // One button, three labels — iOS's `restoreWalletButton`, which is "Back"
+            // under Signup6/Restore3 and "Forgot PIN" on unlock. It carries
+            // `pin.restoreButton` in every embedding there, so it does here: the
+            // flows select it by that id whichever of the three they are driving.
             if (onBack != null) {
-                BittrTextButton(text = backLabel, onClick = onBack)
+                BittrTextButton(
+                    text = backLabel,
+                    onClick = onBack,
+                    modifier = Modifier.testTag(TestID.Pin.restoreButton),
+                )
             } else {
                 CanvasSpacer(20.dp)
             }

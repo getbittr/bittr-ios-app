@@ -79,11 +79,92 @@ interface WalletService {
      * Check [pin] against the stored verifier and, on a match, move to
      * [WalletState.Ready].
      *
+     * **This counts.** A wrong PIN increments [failedUnlockAttempts] and a correct one
+     * resets it to zero, in the same call that does the check — the count is what
+     * [PinLockout] turns into the warning and the wipe, and a caller that had to
+     * remember to increment it separately would eventually forget on one branch and
+     * hand an attacker unlimited guesses.
+     *
+     * It does **not** enforce the lockout. iOS checks the count before verifying
+     * (`PinViewController`, the `>= 10` guard above the wrong-PIN branch) so that a
+     * correct tenth entry still unlocks, and so the wipe can be resumed at launch
+     * without a PIN being typed at all. Reproducing that ordering is the caller's job;
+     * see [failedUnlockAttempts] and [removeWallet].
+     *
      * @return true when the PIN was correct. A wrong PIN returns false and leaves the
      *   state untouched; it is not an exception, because the user getting it wrong is
      *   the expected case.
      */
     suspend fun unlock(pin: String): Boolean
+
+    /**
+     * Wrong PIN entries since the last successful [unlock].
+     *
+     * Durable, not in-memory. The whole point of the counter is that force-quitting
+     * the app must not buy another ten guesses, so it outlives the process exactly as
+     * the iOS Keychain counter does (`CacheManager.getFailedPinAttempts`).
+     *
+     * **Reads fail open at 0**, matching iOS: a transient secure-storage error that
+     * read as "lots of failures" would wipe a wallet that was never attacked, which is
+     * a far worse outcome than granting a few extra attempts.
+     */
+    suspend fun failedUnlockAttempts(): Int
+
+    /**
+     * True when [mnemonic] is the phrase this device's wallet was created from.
+     *
+     * The gate on the non-destructive forgot-PIN path — iOS's
+     * `currentMnemonic == enteredMnemonic` in `RestoreViewController`. It is phrased
+     * as a question rather than as a getter on purpose: nothing in the app needs to
+     * *read* the stored seed, and an interface that offered it would be an interface
+     * someone could log.
+     *
+     * @return false when there is no wallet, rather than throwing — a caller asking
+     *   this question on a device with no wallet has the same answer either way.
+     */
+    suspend fun holdsSeed(mnemonic: Mnemonic): Boolean
+
+    /**
+     * Set a new PIN on the existing wallet and unlock it. **Non-destructive.**
+     *
+     * This is the whole value of the forgot-PIN path: the user who still has their
+     * recovery phrase gets back in without the wallet — and any funds in it — being
+     * erased. The seed is not rewritten, only the PIN verifier is, and the failed
+     * attempt counter is cleared because the user has just proved ownership by a
+     * stronger means than the PIN.
+     *
+     * [mnemonic] is required rather than assumed-checked: the screen checks it with
+     * [holdsSeed] so it can tell the user, and this checks it again so that the one
+     * operation that hands out access to an existing wallet cannot be reached by a
+     * caller that forgot to.
+     *
+     * @throws IllegalArgumentException if [pin] is not 4–8 digits.
+     * @throws WrongSeedException if [mnemonic] is not this wallet's phrase, or there
+     *   is no wallet on the device.
+     * @throws WalletStorageException if the new verifier cannot be written.
+     */
+    suspend fun resetPin(mnemonic: Mnemonic, pin: String)
+
+    /**
+     * Erase the wallet from this device: seed, PIN verifier and attempt counter.
+     *
+     * The destructive half of iOS's `performWalletReset`, and the end of the lockout
+     * path — ten wrong PINs and the wallet is gone, along with anything it held. After
+     * this, [state] is [WalletState.Uninitialized] and the app is back at signup.
+     *
+     * **Order matters, and it is the implementation's contract.** The counter and the
+     * PIN go first and the seed goes last, so a failure part-way through leaves a
+     * wallet that can still be unlocked rather than a seed with no way in. iOS makes
+     * the same choice — `CacheManager.deleteClientInfo()` runs only after the node has
+     * stopped and the files are gone.
+     *
+     * Cooperatively closing Lightning channels before the wipe is BIT-6's; this
+     * removes key material and nothing else.
+     *
+     * @throws WalletStorageException if key material could not be removed. The caller
+     *   must not tell the user the wallet is gone when it is not.
+     */
+    suspend fun removeWallet()
 
     /**
      * Bring the wallet up: load key material, start the Lightning node, begin sync.
@@ -152,3 +233,14 @@ interface SecureStore {
  */
 class WalletStorageException(message: String, cause: Throwable? = null) :
     Exception(message, cause)
+
+/**
+ * The phrase offered on the forgot-PIN path is not this wallet's.
+ *
+ * Separate from [WalletStorageException] because the two mean opposite things to the
+ * user: storage failed is "try again", a wrong phrase is "check your backup". iOS
+ * shows `forgotpin3` for this one.
+ *
+ * The message must never quote either phrase — see [Mnemonic].
+ */
+class WrongSeedException(message: String) : Exception(message)

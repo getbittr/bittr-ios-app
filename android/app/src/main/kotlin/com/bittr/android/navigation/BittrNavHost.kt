@@ -89,6 +89,14 @@ fun BittrNavHost(
                         popUpTo(Routes.PIN_UNLOCK) { inclusive = true }
                     }
                 },
+                // Ten wrong PINs: the wallet is off the device, so the PIN screen must
+                // not be on the back stack. `inclusive` is what stops Back returning to
+                // a pad that would unlock nothing.
+                onWalletWiped = {
+                    navController.navigate(Routes.SIGNUP_START) {
+                        popUpTo(Routes.PIN_UNLOCK) { inclusive = true }
+                    }
+                },
             )
         }
 
