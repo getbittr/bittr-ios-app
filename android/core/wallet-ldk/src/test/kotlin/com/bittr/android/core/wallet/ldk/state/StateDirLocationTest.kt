@@ -8,6 +8,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
+import org.robolectric.annotation.Config
 
 /**
  * **BIT-20 rule 5, layer 3 — every wallet file resolves under `no_backup`.**
@@ -26,8 +27,18 @@ import org.robolectric.RobolectricTestRunner
  * Keystore key does not give us on its own — a non-auth-bound key is usable
  * during Direct Boot. Assert the CE data dir here, and
  * `WalletKeystorePolicyGuardTest` bans the one call that would move it.
+ *
+ * Pinned to 26 / 34 / 36 rather than left to default, for the reason in
+ * `AndroidKeystoreBlobCodec`'s neighbours: the security statement this test
+ * backs is written *per API level*, so the levels have to be in the source
+ * rather than inherited from whatever `compileSdk` happens to be. 26 is
+ * `minSdk` — the floor the claim has to hold at; 34 is what the CI emulator
+ * boots, so the JVM row and the instrumented row agree; 36 is the newest
+ * Robolectric 4.16.1 can instantiate. Leaving it unpinned silently followed
+ * `compileSdk` to 37 and the whole class stopped running.
  */
 @RunWith(RobolectricTestRunner::class)
+@Config(sdk = [26, 34, 36])
 class StateDirLocationTest {
 
     private val context: Context = ApplicationProvider.getApplicationContext()

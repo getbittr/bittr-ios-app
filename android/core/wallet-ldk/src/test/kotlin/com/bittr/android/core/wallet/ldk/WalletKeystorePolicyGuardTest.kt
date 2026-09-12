@@ -55,10 +55,17 @@ class WalletKeystorePolicyGuardTest {
             ),
             BannedSymbol(
                 "PBEKeySpec",
+                // The biometric unlock prompt is named obliquely on purpose: :app's
+                // BiometricApiGuardTest bans that class name outside the files that
+                // gate it, and it scans this module's sources too. A failure message
+                // is a string literal, so it is code as far as that scan is
+                // concerned — naming the class here would trip a second guard and
+                // teach whoever hits it that allowlisting a file with no call in it
+                // is normal.
                 "BIT-8 rule 5. No PIN-derived wrapping. A 4–6 digit PIN is a verifier, " +
                     "not key material, and wrapping under it breaks the no-PIN wallet-" +
-                    "removal path and conflicts with BiometricPrompt unlock (BIT-13), " +
-                    "which collects no PIN at all.",
+                    "removal path and conflicts with biometric unlock (BIT-13), which " +
+                    "collects no PIN at all.",
             ),
             BannedSymbol(
                 "SecretKeyFactory.getInstance(\"PBKDF2",

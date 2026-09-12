@@ -14,6 +14,7 @@ import org.junit.Test
 import org.junit.rules.TemporaryFolder
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
+import org.robolectric.annotation.Config
 
 /**
  * **BIT-8 rule 3 — the Keystore-wrapped blob is a cache, never the only copy.**
@@ -39,8 +40,14 @@ import org.robolectric.RobolectricTestRunner
  * guard would infer "no mnemonic ⇒ foreign" and quarantine the user's own
  * channels — leaving them in exactly the position `LightningStorage.swift:84`
  * warns about, needing the quarantined file to sweep a force-close.
+ *
+ * Pinned to 26 / 34 / 36: `minSdk`, the level the CI emulator boots, and the
+ * newest Robolectric 4.16.1 can instantiate. This is the test the definition
+ * of done names for rule 3, so the API levels it holds at belong in the source
+ * and not in whatever `compileSdk` is set to this month.
  */
 @RunWith(RobolectricTestRunner::class)
+@Config(sdk = [26, 34, 36])
 class BlobDestroyedRecoversTest {
 
     @get:Rule val temporaryFolder = TemporaryFolder()

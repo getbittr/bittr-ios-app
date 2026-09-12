@@ -45,6 +45,27 @@ internal object WalletSourceTree {
         return files
     }
 
+    /**
+     * The module's own test sources.
+     *
+     * Separate from [mainSources] because the two guards want opposite things.
+     * The banned-symbol guard must *not* see this tree — the tests have to name
+     * the banned symbols to assert about them. `RobolectricSdkPinGuardTest`
+     * must see only this tree, because what it checks is a property of test
+     * declarations.
+     */
+    fun testSources(): List<File> {
+        val files = File(root, "src/test").walkTopDown()
+            .filter { it.isFile && it.extension == "kt" }
+            .toList()
+        assertTrue(
+            "Found no Kotlin sources under ${File(root, "src/test")} — the scan is " +
+                "not looking where it thinks.",
+            files.isNotEmpty(),
+        )
+        return files
+    }
+
     fun File.modulePath(): String = relativeTo(root).path
 
     /**
