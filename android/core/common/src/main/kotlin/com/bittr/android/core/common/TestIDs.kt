@@ -22,6 +22,7 @@ object TestID {
         fun buttonAt(position: Int) = "alert.button.$position"
         const val confirmStatements = "alert.confirmStatements"
         const val copied = "alert.copied"
+        const val exclusiveInitiative = "alert.exclusiveInitiative"
         const val incomingPayment = "alert.incomingPayment"
         const val incorrectPhrase = "alert.incorrectPhrase"
         const val incorrectPin = "alert.incorrectPin"
