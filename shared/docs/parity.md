@@ -2,6 +2,11 @@
 
 Per-feature status of iOS vs Android implementation. Updated as Maestro flows go green on each platform.
 
+For the *order* the Android side should be built in — which flows need the
+wallet engine, which don't, and what is holding each wave up — see
+[`android-parity-roadmap.md`](android-parity-roadmap.md). This file stays the
+per-flow status tracker.
+
 Every flow under `shared/flows/` is listed below. iOS is the source of truth and is implemented; Android isn't scaffolded yet, so it reads `not started` across the board until the port begins.
 
 ## Onboarding & wallet setup
