@@ -37,6 +37,13 @@ include(":app")
 include(":core:common")
 include(":core:designsystem")
 
+// The two user settings that outlive a process and are read from more than one
+// screen: the dark-mode choice and the display currency. Deliberately not part of
+// the wallet seam — neither is wallet state, and putting them there would mean
+// BIT-6 owning a preference the Device screen writes. iOS keeps them in
+// CacheManager alongside wallet data; that conflation is not worth porting.
+include(":core:preferences")
+
 // The wallet seam. :core:wallet is API-only (pure Kotlin interfaces + models).
 // :core:wallet-stub is the deterministic implementation the scaffold and CI run
 // against. BIT-6 adds :core:wallet-ldk (ldk-node + BDK) as a second binding of
@@ -53,3 +60,10 @@ include(":core:wallet-keystore")
 
 // Features — one module per area of the iOS app, added as the port reaches them.
 include(":feature:signup")
+
+// BIT-98 — the navigational skeleton. :feature:home is the Home shell in its
+// no-funds state (ios/bittr/Home); :feature:settings is the Settings pop-up, the
+// Device-details rows, the website pages and the Lightning question card
+// (ios/bittr/Settings, ios/bittr/Question).
+include(":feature:home")
+include(":feature:settings")

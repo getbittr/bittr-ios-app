@@ -467,6 +467,66 @@ object BittrIconPaths {
     const val BACKSPACE_CROSS = "M13 10l5 4m0-4l-5 4"
 
     /**
+     * The down chevron that closes a sheet — iOS's `downarrow32` asset, and the
+     * glyph behind `header.downButton` and `website.downButton`.
+     */
+    const val ARROW_DOWN = "M12 5v13m0 0l-6-6m6 6l6-6"
+
+    // Home, from `design/screens.jsx` artboard 18 — the three header entry points
+    // and the three actions. Lifted from the mock rather than redrawn.
+    const val MAP = "M3 6l6-2.5L15 6l6-2.5v15L15 21l-6-2.5L3 21z"
+    const val CURRENCY =
+        "M20 12a8 8 0 11-16 0 8 8 0 0116 0z M9.5 8.5h4a2 2 0 010 4h-4m0 0h4.5a2 2 0 010 4H9.5" +
+            "m0-8v8M11 6v2m0 8v2"
+    const val SEND = "M12 19V5m0 0l-6 6m6-6l6 6"
+    const val RECEIVE = "M12 5v14m0 0l-6-6m6 6l6-6"
+    const val BUY = "M3 10h18M5 6h14a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2z"
+
+    /** The balance-details bars. Filled in the mock, unlike its neighbours. */
+    const val DETAILS = "M3 12h4v8H3z M10 6h4v14h-4z M17 9h4v11h-4z"
+
+    // The bottom bar, also artboard 18.
+    const val WALLET = "M3 7.5A2.5 2.5 0 015.5 5H18a2 2 0 012 2v10a2 2 0 01-2 2H5.5A2.5 2.5 0 013 16.5z M16 12h2"
+    const val ACADEMY = "M3 9l9-4.5L21 9l-9 4.5z M6.5 11v4.5c0 1 2.5 2.5 5.5 2.5s5.5-1.5 5.5-2.5V11"
+    const val SETTINGS =
+        "M12 8.5a3.5 3.5 0 100 7 3.5 3.5 0 000-7z M12 2l1.6 2.3 2.7-.6.5 2.8 2.5 1.2-1.4 2.4 1.4 " +
+            "2.4-2.5 1.2-.5 2.8-2.7-.6L12 22l-1.6-2.3-2.7.6-.5-2.8-2.5-1.2 1.4-2.4-1.4-2.4 2.5-1.2" +
+            ".5-2.8 2.7.6z"
+
+    /**
+     * The Settings and Device-details row glyphs.
+     *
+     * iOS names SF Symbols here (`envelope.fill`, `checkmark.shield.fill`,
+     * `ipad.and.iphone`, …). There is no equivalent set on Android that is not a
+     * separate artifact, so these are drawn to the same silhouette in the same
+     * 24 dp box. Where a symbol has a filled iOS variant it is drawn as a stroke
+     * here, because every other icon on these screens is a stroke and a lone filled
+     * glyph reads as a different weight rather than as emphasis.
+     */
+    const val SUPPORT = "M3 7h18v10H3z M3 7l9 6 9-6"
+    const val PRIVACY = "M12 3l7 3v5.5c0 4-3 7.2-7 8.5-4-1.3-7-4.5-7-8.5V6z M9 12l2 2 4-4"
+    const val TERMS = "M5 4h10a2 2 0 012 2v14H7a2 2 0 01-2-2z M17 8h2v12h-2"
+    const val DEVICE =
+        "M4 3h9a1 1 0 011 1v16a1 1 0 01-1 1H4a1 1 0 01-1-1V4a1 1 0 011-1z " +
+            "M16 8h4a1 1 0 011 1v11a1 1 0 01-1 1h-4a1 1 0 01-1-1V9a1 1 0 011-1z"
+    const val MOON = "M20 14.5A8.5 8.5 0 019.5 4 8.5 8.5 0 1020 14.5z"
+    const val SUN =
+        "M12 7a5 5 0 100 10 5 5 0 000-10z M12 2v2m0 16v2M2 12h2m16 0h2M5 5l1.5 1.5" +
+            "M17.5 17.5L19 19M19 5l-1.5 1.5M6.5 17.5L5 19"
+    const val PHONE = "M7 2h10a1 1 0 011 1v18a1 1 0 01-1 1H7a1 1 0 01-1-1V3a1 1 0 011-1z M10 18.5h4"
+    const val LANGUAGE =
+        "M12 3a9 9 0 100 18 9 9 0 000-18z M3 12h18 " +
+            "M12 3c2.5 2.5 3.8 5.5 3.8 9S14.5 18.5 12 21c-2.5-2.5-3.8-5.5-3.8-9S9.5 5.5 12 3z"
+    const val KEY = "M4.5 12a3.5 3.5 0 107 0 3.5 3.5 0 10-7 0z M11.5 12H21m-3 0v3m-3-3v2"
+    const val PEER =
+        "M10 14a4 4 0 005.7 0l2.8-2.8a4 4 0 10-5.7-5.7l-1 1 " +
+            "M14 10a4 4 0 00-5.7 0l-2.8 2.8a4 4 0 105.7 5.7l1-1"
+    const val HOURGLASS = "M7 3h10v3l-5 6 5 6v3H7v-3l5-6-5-6z"
+    const val BOLT = "M13 2L4 14h6l-1 8 9-12h-6z"
+    const val TRASH =
+        "M4 7h16 M9 7V5a1 1 0 011-1h4a1 1 0 011 1v2 M6 7l1 13a1 1 0 001 1h8a1 1 0 001-1l1-13"
+
+    /**
      * The piggy bank that sits beside "welcome" and "your wallet".
      *
      * This is the asset the scaffold's comment said was missing from `shared/`. It is

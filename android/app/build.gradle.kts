@@ -140,6 +140,8 @@ kotlin {
 dependencies {
     implementation(project(":core:common"))
     implementation(project(":core:designsystem"))
+    // BIT-98: the dark-mode choice, read at the root before the first frame.
+    implementation(project(":core:preferences"))
     implementation(project(":core:wallet"))
     // The only place the wallet implementation is named. BIT-6 swaps this line
     // (and the binding in di/WalletModule.kt) for :core:wallet-ldk.
@@ -150,6 +152,10 @@ dependencies {
     implementation(project(":core:wallet-seed"))
     implementation(project(":core:wallet-keystore"))
     implementation(project(":feature:signup"))
+    // BIT-98 — the navigational skeleton: Home in its no-funds state, and the
+    // Settings tree hanging off its bottom bar.
+    implementation(project(":feature:home"))
+    implementation(project(":feature:settings"))
 
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)

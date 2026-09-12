@@ -24,7 +24,7 @@ import com.bittr.android.feature.signup.PinScreen
 import com.bittr.android.feature.signup.ReadyScreen
 import com.bittr.android.feature.signup.SignupStartScreen
 import com.bittr.android.feature.signup.VerifyScreen
-import com.bittr.android.navigation.HomePlaceholderScreen
+import com.bittr.android.feature.home.HomeNoFunds
 import java.io.File
 import org.junit.Assume.assumeNoException
 import org.junit.Rule
@@ -99,7 +99,8 @@ class CreateWalletArcScreenshotTest {
                 )
             },
             "7-ready" to { ReadyScreen(onContinue = {}, onSkip = {}) },
-            "8-home" to { HomePlaceholderScreen() },
+            // Where the arc lands: Home in its no-funds state (BIT-98).
+            "8-home" to { HomeNoFunds() },
         )
     }
 

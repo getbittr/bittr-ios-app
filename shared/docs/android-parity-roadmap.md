@@ -81,9 +81,17 @@ the seed/PIN layer that BIT-93 already landed.
 | `features/academy` | Academy | content API |
 
 Also in this wave, not flow-bearing on their own: the Home shell in its
-no-funds state, Settings and Device details as screens, and wiring BIT-72's
-scanner result into a destination parser (`AddressParsing.swift:15` is the iOS
-single entry point for scan and paste — port it once, Send consumes it later).
+no-funds state, Settings and Device details as screens (**built** — BIT-98),
+and wiring BIT-72's scanner result into a destination parser
+(`AddressParsing.swift:15` is the iOS single entry point for scan and paste —
+port it once, Send consumes it later).
+
+`features/settings` appears in neither wave's table on purpose. Its screens are
+Wave 1 and are built, but the flow itself asserts a synced wallet in three
+places — the header spinner stopping, a `CHF` conversion on Home, and the
+two-button Copy/Close alert on the Public-key row — so it goes green in Wave 2
+behind BIT-6. `SettingsFlowTest` walks everything either side of those three
+steps on the JVM, and names them.
 
 ### Wave 2 — the engine (BIT-6), the critical path
 

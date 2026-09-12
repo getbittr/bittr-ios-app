@@ -1,6 +1,23 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
+    <!--
+        The three getbittr.com pages Settings opens in a WebView (Get support, the
+        privacy policy, the terms). Also what the price, map and academy screens will
+        need — and, later, the Lightning node. BIT-91 records what the app collects;
+        this permission does not by itself widen that.
+    -->
+    <uses-permission android:name="android.permission.INTERNET" />
+
+    <!--
+        Android 13+ runtime permission for notifications, requested by Settings →
+        Device details → Device token, which is the port of iOS's
+        `askForPushNotifications()`. The delivery half needs Firebase (BIT-39), which
+        only Ruben can provision; asking is the half that works without it, and it is
+        exactly what the iOS row does on a device that has not been asked yet.
+    -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+
     <application
         android:name=".BittrApplication"
         android:allowBackup="false"
