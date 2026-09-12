@@ -8,6 +8,18 @@ We started tracking the changelog at **0.1.184** (the TestFlight build current w
 
 ## [Unreleased]
 
+### Security
+
+- Debug/regtest builds no longer read **production** notification state. `GET /api/notifications` is authenticated by a lightning-pubkey signature, and the Settings screen was calling it on a hard-coded `https://getbittr.com` URL regardless of build configuration, so a test build read real customer payout state for whatever pubkey it held. It now goes through `EnvironmentConfig.bittrAPIBaseURL` like the rest of the client. (BIT-32)
+
+### Fixed
+
+- Six further BTC price call sites (Home, Value, the widget, and the historical EUR/CHF series) also had the production host hard-coded and now follow the build environment. No behaviour change — the price is the same in both environments — but they were the same latent bug.
+
+### Added
+
+- A `Check hard-coded API URLs` build phase fails the build on a literal bittr API host outside `BittrAPIEnvironment.swift`. Seven such literals had accumulated independently, so this is enforced rather than reviewed. Runnable by hand: `sh ios/Scripts/check-hardcoded-api-urls.sh`.
+
 ## [0.1.185] - 2026-09-08
 
 ### Added

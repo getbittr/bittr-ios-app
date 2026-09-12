@@ -323,7 +323,7 @@ extension HomeViewController {
         do {
             receivedDictionary = try await withCheckedThrowingContinuation { continuation in
                 Task {
-                    await CallsManager.makeApiCall(url: "https://getbittr.com/api/price/btc", parameters: nil, getOrPost: .get) { result in
+                    await CallsManager.makeApiCall(url: "\(EnvironmentConfig.bittrAPIBaseURL)/price/btc", parameters: nil, getOrPost: .get) { result in
                         DispatchQueue.main.async {
                             switch result {
                             case .success(let receivedDictionary):
@@ -507,7 +507,7 @@ extension HomeViewController {
             // Current value.
             let currentFetched = self.currentValueFetched ?? .distantPast
             if currentFetched <= freshCutoff,
-               let url = URL(string: "https://getbittr.com/api/price/btc"),
+               let url = URL(string: "\(EnvironmentConfig.bittrAPIBaseURL)/price/btc"),
                let (data, _) = try? await URLSession.shared.data(from: url) {
                 await MainActor.run {
                     self.currentValue = data

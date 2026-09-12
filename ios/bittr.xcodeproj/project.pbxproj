@@ -125,6 +125,7 @@
 		05AF89762D437073009D629C /* SwapViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05AF89752D437073009D629C /* SwapViewController.swift */; };
 		05B30E2E2E26281200CF10EC /* Swap.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05B30E2D2E26281200CF10EC /* Swap.swift */; };
 		05DA11AC0000000000000D01 /* SwapLiveActivityController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05DA11AC0000000000000C01 /* SwapLiveActivityController.swift */; };
+		05B1732C000000000000B001 /* BittrAPIEnvironment.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05B1732C000000000000A001 /* BittrAPIEnvironment.swift */; };
 		05DA11AC0000000000000B01 /* SwapActivityAttributes.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05DA11AC0000000000000A01 /* SwapActivityAttributes.swift */; };
 		05BE46192BB9A83100555B9B /* SPConfetti in Frameworks */ = {isa = PBXBuildFile; productRef = 05BE46182BB9A83100555B9B /* SPConfetti */; };
 		05BFCEB72A3B113E00565E2A /* Transfer2ViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05BFCEB62A3B113E00565E2A /* Transfer2ViewController.swift */; };
@@ -343,6 +344,7 @@
 		05AF89752D437073009D629C /* SwapViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SwapViewController.swift; sourceTree = "<group>"; };
 		05B30E2D2E26281200CF10EC /* Swap.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Swap.swift; sourceTree = "<group>"; };
 		05DA11AC0000000000000C01 /* SwapLiveActivityController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SwapLiveActivityController.swift; sourceTree = "<group>"; };
+		05B1732C000000000000A001 /* BittrAPIEnvironment.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = BittrAPIEnvironment.swift; path = BittrWidget/BittrAPIEnvironment.swift; sourceTree = SOURCE_ROOT; };
 		05DA11AC0000000000000A01 /* SwapActivityAttributes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = SwapActivityAttributes.swift; path = BittrWidget/SwapActivityAttributes.swift; sourceTree = SOURCE_ROOT; };
 		05BFCEB62A3B113E00565E2A /* Transfer2ViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Transfer2ViewController.swift; sourceTree = "<group>"; };
 		05BFCEB82A3B1A1100565E2A /* RegisterIbanViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RegisterIbanViewController.swift; sourceTree = "<group>"; };
@@ -902,6 +904,7 @@
 				05A965C12A6FBE1F00265BE6 /* LDKNodeError.swift */,
 				05117AB42E979E3300A5E4E6 /* BDKErrors.swift */,
 				37A484BB2E4B7BA70027A348 /* EnvironmentConfig.swift */,
+				05B1732C000000000000A001 /* BittrAPIEnvironment.swift */,
 				05980B532A46F7E4001F312F /* BittrWallet.swift */,
 				0577C3F82AFA28180047A3DC /* BittrService.swift */,
 				051BE0872B641D41009CED5B /* Reachability.swift */,
@@ -991,6 +994,7 @@
 			isa = PBXNativeTarget;
 			buildConfigurationList = 05C3C0AB29CCB55800C1E695 /* Build configuration list for PBXNativeTarget "bittr" */;
 			buildPhases = (
+				05B1732C000000000000C001 /* Check hard-coded API URLs */,
 				05C3C07D29CCB55600C1E695 /* Sources */,
 				05C3C07E29CCB55600C1E695 /* Frameworks */,
 				05C3C07F29CCB55600C1E695 /* Resources */,
@@ -1156,6 +1160,21 @@
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXShellScriptBuildPhase section */
+		05B1732C000000000000C001 /* Check hard-coded API URLs */ = {
+			isa = PBXShellScriptBuildPhase;
+			alwaysOutOfDate = 1;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputPaths = (
+			);
+			name = "Check hard-coded API URLs";
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "# Fails the build on a literal \"https://getbittr.com/api/...\" outside\n# BittrAPIEnvironment.swift, which would send DEBUG builds to production.\n# Logic lives in the script so it can also be run by hand. See BIT-32.\nsh \"${SRCROOT}/Scripts/check-hardcoded-api-urls.sh\"\n";
+		};
 		B17C0DE500000000A5110001 /* Set git hash */ = {
 			isa = PBXShellScriptBuildPhase;
 			alwaysOutOfDate = 1;
@@ -1353,6 +1372,7 @@
 				05E305372F517F56003DE7CF /* ReloadWallet.swift in Sources */,
 				05117AE02EA73B6B00A5E4E6 /* LevelTableViewCell.swift in Sources */,
 				37A484BC2E4B7BA70027A348 /* EnvironmentConfig.swift in Sources */,
+				05B1732C000000000000B001 /* BittrAPIEnvironment.swift in Sources */,
 				05117AF72EAA754800A5E4E6 /* Demo Data.swift in Sources */,
 				05A8BD882B750F82002F0282 /* ShowCachedData.swift in Sources */,
 				05F1FB642C341852004AE14F /* SendSwitch.swift in Sources */,
