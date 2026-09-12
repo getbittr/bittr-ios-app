@@ -12,7 +12,7 @@ shared/     Cross-platform sources of truth.
   flows/      Maestro flows — drive both apps; screenshot catalog source.
   test-ids/   Shared accessibility/test ID constants.
   assets/     Brand assets shared between platforms.
-  docs/       Plan, screen inventory, parity tracker, regtest setup.
+  docs/       Plan, screen inventory, parity tracker, regtest setup, API contracts.
 ```
 
 See [ANDROID_PORT_PLAN.md](../ANDROID_PORT_PLAN.md) for the Android port strategy.
