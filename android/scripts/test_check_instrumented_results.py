@@ -196,6 +196,102 @@ def test_a_truncated_result_file_fails():
     check("and blames an unfinished run", "did not finish writing" in out, out)
 
 
+def annotations(out):
+    """Just the ::error:: lines — what a reader without repository auth gets."""
+    return [line for line in out.splitlines() if line.startswith("::error")]
+
+
+def test_a_failure_annotation_names_the_failing_tests():
+    # Run 27 (518cdd7) annotated exactly "These tests failed:" and nothing else,
+    # because GitHub cuts a workflow command at the first newline. The names were
+    # in the job log and the uploaded report, both of which need repository auth.
+    # An annotation is the one artefact of a run that does not, so the detail has
+    # to survive the escape — this asserts it does.
+    with tempfile.TemporaryDirectory() as tmp:
+        cases = all_required({"theHardeningBaselineIsAppliedToTheRealWebView": "failed"})
+        results = write_results(pathlib.Path(tmp), cases)
+        code, out = run(results)
+    check("a failing required test exits 1", code == 1, out)
+    lines = annotations(out)
+    check("it produces exactly one ::error:: annotation", len(lines) == 1, lines)
+    blob = "\n".join(lines)
+    check(
+        "and the annotation names the failing test, not just a heading",
+        "theHardeningBaselineIsAppliedToTheRealWebView" in blob,
+        blob,
+    )
+    check(
+        "and carries its message, with newlines escaped as %0A",
+        "%0A" in blob and "bittrLnurl" in blob,
+        blob,
+    )
+    check("and the annotation is a single physical line", len(blob.splitlines()) == 1, blob)
+
+
+def test_a_percent_in_a_failure_message_is_escaped():
+    # A literal % would otherwise eat the next two characters as an escape, so a
+    # message like "expected 0% but was 50%" would arrive mangled or truncated.
+    with tempfile.TemporaryDirectory() as tmp:
+        classname = f"{PACKAGE}.ThirdPartyIsolationTest"
+        broken = (f'<testcase classname="{classname}" '
+                  'name="aThirdPartyPageFindsNoBridgeToPostTo">'
+                  '<failure message="expected 0% but was 50%"/></testcase>')
+        cases = [c for c in all_required()
+                 if "aThirdPartyPageFindsNoBridgeToPostTo" not in c] + [broken]
+        results = write_results(pathlib.Path(tmp), cases)
+        code, out = run(results)
+    check("a % in a failure message still exits 1", code == 1, out)
+    blob = "\n".join(annotations(out))
+    check("and reaches the annotation escaped as %25", "0%25 but was 50%25" in blob, blob)
+
+
+def test_the_verdict_line_distinguishes_the_failure_modes():
+    # "vacuity check FAILED" was run 27's entire headline, and it reads the same
+    # whether nothing ran or nine ran and one failed. Those are opposite findings:
+    # one says the evidence is absent, the other says the evidence is bad.
+    with tempfile.TemporaryDirectory() as tmp:
+        cases = all_required({"aThirdPartyPageCannotTriggerLnurlAuth": "failed"})
+        results = write_results(pathlib.Path(tmp), cases)
+        _, ran_but_failed = run(results)
+    with tempfile.TemporaryDirectory() as tmp:
+        results = write_results(pathlib.Path(tmp), [])
+        _, nothing_ran = run(results)
+
+    def verdict(out):
+        for line in out.splitlines():
+            if line.startswith("check-instrumented-results: verdict "):
+                return line
+        return ""
+
+    got = verdict(ran_but_failed)
+    check("a real red reports 0 missing and 1 failed",
+          "0 missing" in got and "1 failed" in got, got)
+    check("and reports the canary as passed, because it did",
+          "canary passed" in got, got)
+    check("a vacuous run reports every required test missing",
+          f"{len(checker.REQUIRED)} missing" in verdict(nothing_ran), verdict(nothing_ran))
+    check("and reports the canary as FAILED, because it never ran",
+          "canary FAILED" in verdict(nothing_ran), verdict(nothing_ran))
+
+
+def test_an_oversized_failure_message_is_truncated_not_dropped():
+    with tempfile.TemporaryDirectory() as tmp:
+        classname = f"{PACKAGE}.ThirdPartyIsolationTest"
+        cases = [
+            f'<testcase classname="{classname}" name="t{i}">'
+            f'<failure message="{"x" * 280}"/></testcase>'
+            for i in range(40)
+        ] + all_required()
+        results = write_results(pathlib.Path(tmp), cases)
+        code, out = run(results)
+    check("a very large failure set still exits 1", code == 1, out)
+    blob = "\n".join(annotations(out))
+    check("and the annotation stays within GitHub's limit",
+          len(blob) <= checker.ANNOTATION_LIMIT + 200, len(blob))
+    check("and says it was truncated rather than silently ending",
+          "truncated" in blob, blob)
+
+
 def main():
     for name, fn in sorted(globals().items()):
         if name.startswith("test_") and callable(fn):

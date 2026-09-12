@@ -79,8 +79,16 @@ duration=$((test_end - test_start))
 # on a GREEN run it is the load-bearing half, because connectedDebugAndroidTest
 # exits 0 when it matched no tests at all. BIT-62's first named risk is a
 # vacuously green run, and Gradle's exit code cannot tell one from a real pass.
+#
+# Captured rather than streamed straight through so the verdict line can be
+# lifted into the job's ::notice::. The output is echoed immediately below, so
+# the log still reads in order; `2>&1` keeps a traceback in the same stream
+# rather than letting it arrive out of band and unexplained.
 check_status=0
-python3 android/scripts/check-instrumented-results.py || check_status=$?
+check_output=$(python3 android/scripts/check-instrumented-results.py 2>&1) || check_status=$?
+printf '%s\n' "$check_output"
+verdict=$(printf '%s\n' "$check_output" \
+  | sed -n 's/^check-instrumented-results: verdict //p' | tail -1)
 
 if [ "$status" -eq 0 ] && [ "$check_status" -ne 0 ]; then
   echo "::error::Gradle reported success but the required tests did not all run and"\
@@ -108,12 +116,18 @@ fi
   echo
   echo "Result: **$result** · ${webview_line:-WebView provider not reported}"
   echo
+  echo "\`${verdict:-no verdict: check-instrumented-results did not complete}\`"
+  echo
   echo "These are BIT-58 DoD 2 and BIT-33 Acceptance 3-4. Until BIT-62 they had"
   echo "only ever been compiled. The per-test table is in the job log, and the"
   echo "HTML report is attached to the run as \`instrumented-test-report\`."
 } >> "${GITHUB_STEP_SUMMARY:-/dev/null}" || echo "::warning::Could not write the summary. The test result itself is unaffected."
 
-echo "::notice title=S-36 isolation tests — $result::${duration}s on a real WebView · 9 required tests · vacuity check $([ "$check_status" -eq 0 ] && echo passed || echo FAILED)"
+# The verdict names counts and the canary's state, so the one line a reader gets
+# without repository auth distinguishes "nothing ran" from "nine ran, one failed".
+# The fallback matters: if the checker died before printing a verdict, saying so
+# is right and claiming a clean vacuity result would not be.
+echo "::notice title=S-36 isolation tests — $result::${duration}s on a real WebView · ${verdict:-no verdict: check-instrumented-results did not complete}"
 
 if [ "$status" -ne 0 ]; then
   exit "$status"

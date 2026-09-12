@@ -79,6 +79,38 @@ MODULE_BUILD_DIR = (
     pathlib.Path(__file__).resolve().parents[1] / "feature/website/build"
 )
 
+# GitHub truncates a workflow command at the first newline, so a multi-line
+# `::error::` arrives as its first line and nothing else. That is not cosmetic.
+# The first red run of this job (run 27, 518cdd7) annotated exactly
+# "These tests failed:" — the names and messages were on the lines after it, and
+# those live only in the job log and the uploaded report, BOTH of which need
+# repository auth to read. The annotation is the one part of a run a reader gets
+# without credentials, so it has to carry the finding, not a heading for it.
+#
+# The escapes below are GitHub's own for command *data*: a literal % would
+# otherwise eat the next two characters as an escape.
+ANNOTATION_LIMIT = 4000
+
+
+def annotation_escape(text):
+    return (
+        text.replace("%", "%25").replace("\r", "%0D").replace("\n", "%0A")
+    )
+
+
+def annotate(message, title):
+    """Emit `message` as one `::error::`, newlines intact, plus plain text.
+
+    Both, deliberately: the annotation is what survives without auth, the plain
+    text is what a person reading the log sees in context and what the local
+    `python3 check-instrumented-results.py` run prints.
+    """
+    body = message if len(message) <= ANNOTATION_LIMIT else (
+        message[:ANNOTATION_LIMIT] + "\n… truncated; full detail is in the job log."
+    )
+    print(f"::error title={annotation_escape(title)}::{annotation_escape(body)}")
+    print(message)
+
 # AGP has moved this directory between major versions — `androidTest-results/`
 # gained a `connected/` level, then a variant level under it — and the failure
 # mode of hard-coding the wrong one is a FALSE RED after a twenty-minute emulator
@@ -195,33 +227,38 @@ def main(argv=None):
 
     missing = sorted(REQUIRED - set(by_id))
     if missing:
-        problems.append(
+        problems.append((
+            f"{len(missing)} required test(s) did not run",
             "These tests did not run at all. Either they were renamed or deleted, or "
             "the run never reached them:\n"
             + "".join(f"    {test_id}\n" for test_id in missing)
             + "  If a rename was intended, update REQUIRED in this file in the same "
-            "commit — that edit is the review point for dropping a check."
-        )
+            "commit — that edit is the review point for dropping a check.",
+        ))
 
     skipped = sorted(t for t, c in by_id.items() if c.skipped)
     if skipped:
-        problems.append(
+        problems.append((
+            f"{len(skipped)} required test(s) were skipped",
             "These tests were skipped. A skipped test does not fail a build, which is "
             "how a green run comes to prove nothing:\n"
-            + "".join(f"    {test_id}\n" for test_id in skipped)
-        )
+            + "".join(f"    {test_id}\n" for test_id in skipped),
+        ))
 
     failed = sorted(t for t, c in by_id.items() if c.problem)
     if failed:
-        problems.append(
+        problems.append((
+            f"{len(failed)} test(s) failed",
             "These tests failed:\n"
             + "".join(f"    {t}\n      {by_id[t].problem.splitlines()[0][:300]}\n"
-                      for t in failed)
-        )
+                      for t in failed),
+        ))
 
     canary = f"{PACKAGE}.CrossOriginIframeIsolationTest#theCrossOriginIframeActuallyRan"
+    canary_ok = canary in by_id and by_id[canary].passed
     if canary in by_id and not by_id[canary].passed:
-        problems.append(
+        problems.append((
+            "the cross-origin iframe canary did not pass",
             "theCrossOriginIframeActuallyRan did not pass, so read every other result "
             "in this run as unproven rather than as evidence. It asserts the "
             "cross-origin iframe loaded and reported in; without that, "
@@ -229,17 +266,24 @@ def main(argv=None):
             "tick. Check that both LocalTestServer ports are reachable from inside "
             "the emulator and that cleartext to 127.0.0.1 is permitted for the test "
             "APK (feature/website/src/androidTest/AndroidManifest.xml)."
-        )
+        ))
+
+    # One line, fixed shape, so the job's `::notice::` can state what happened
+    # rather than only that *something* did. "vacuity check FAILED" was the whole
+    # headline on run 27, and it is the same words whether nothing ran or nine
+    # tests ran and one failed — which are opposite findings.
+    print(f"\ncheck-instrumented-results: verdict {len(REQUIRED)} required · "
+          f"{len(missing)} missing · {len(skipped)} skipped · {len(failed)} failed · "
+          f"canary {'passed' if canary_ok else 'FAILED'}")
 
     if problems:
         print()
-        for problem in problems:
-            print(f"::error::{problem.splitlines()[0]}")
-            print(problem)
+        for title, problem in problems:
+            annotate(problem, title)
         print("check-instrumented-results: FAILED.")
         return 1
 
-    print(f"\ncheck-instrumented-results: all {len(REQUIRED)} required tests ran and "
+    print(f"check-instrumented-results: all {len(REQUIRED)} required tests ran and "
           "passed on a real Android image.")
     return 0
 
