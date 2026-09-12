@@ -178,9 +178,21 @@ class Case:
         # with no message attribute would otherwise store "", which is falsy, and
         # a failed test would read as passed — a bug of exactly the kind this file
         # exists to catch, in the file that catches it.
+        #
+        # The ATTRIBUTE is not where AGP puts the interesting part. For connected
+        # tests the `message` attribute is routinely absent and the assertion text
+        # and stack trace are the element's TEXT — so reading only the attribute
+        # reported both of run 34692523156's real failures as "(no message)",
+        # which named the tests and then said nothing about them. Attribute
+        # first (it is the one-line summary when present), element text second,
+        # and the literal only when there is genuinely neither.
         self.problem = None
         if problems:
-            self.problem = (problems[0].get("message") or "").strip() or "(no message)"
+            self.problem = (
+                (problems[0].get("message") or "").strip()
+                or (problems[0].text or "").strip()
+                or "(no message)"
+            )
 
     @property
     def passed(self):

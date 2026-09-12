@@ -145,7 +145,15 @@ class Case:
         # exists to catch, in the file that catches it.
         self.problem = None
         if problems:
-            self.problem = (problems[0].get("message") or "").strip() or "(no message)"
+            # Attribute first, element TEXT second. For connected tests AGP
+            # routinely omits the `message` attribute and puts the assertion and
+            # stack trace in the element body, so reading only the attribute
+            # reports a real failure as "(no message)".
+            self.problem = (
+                (problems[0].get("message") or "").strip()
+                or (problems[0].text or "").strip()
+                or "(no message)"
+            )
 
     @property
     def passed(self):

@@ -67,6 +67,10 @@ def testcase(test_id, outcome="passed"):
         "skipped": "<skipped/>",
         "failed": '<failure message="bmgr backupnow reported the package was backed up"/>',
         "failed-without-message": "<failure/>",
+        "failed-text-only": (
+            "<failure>java.lang.AssertionError: the installed rules did not "
+            "exclude the wallet directory\n\tat com.bittr.android.Backup...</failure>"
+        ),
     }[outcome]
     return f'<testcase classname="{classname}" name="{name}">{body}</testcase>'
 
@@ -334,6 +338,25 @@ def test_a_very_long_problem_is_truncated_rather_than_dropped():
     encoded = checker.annotate("x" * (checker.MAX_ANNOTATION + 500))
     check("an over-long problem is truncated", len(encoded) < checker.MAX_ANNOTATION + 200, len(encoded))
     check("and says so", "truncated" in encoded, encoded)
+
+
+def test_a_failure_with_text_but_no_message_attribute_is_reported():
+    # THE BUG THIS PINS. AGP routinely omits the `message` attribute on connected
+    # tests and puts the assertion in the element body. Reading only the attribute
+    # named run 34692523156's two real failures and then said "(no message)" about
+    # both — the names without the reason, which is one step short of useless when
+    # the job log is 403 and the whole diagnosis has to fit in an annotation.
+    with tempfile.TemporaryDirectory() as tmp:
+        dirs = both_modules(
+            pathlib.Path(tmp),
+            {"theInstalledRulesExcludeTheWalletDirectoryFromBothPaths": "failed-text-only"},
+        )
+        code, out = run(dirs)
+    check("a <failure> carrying only body text exits 1", code == 1, out)
+    check("and the assertion text is reported rather than '(no message)'",
+          "the installed rules did not exclude" in out, out)
+    check("so it does not fall back to the placeholder",
+          "(no message)" not in out, out)
 
 
 def main():
