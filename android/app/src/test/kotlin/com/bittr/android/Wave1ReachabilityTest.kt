@@ -1,7 +1,9 @@
 package com.bittr.android
 
+import androidx.activity.compose.setContent
+import androidx.compose.runtime.Composable
 import androidx.compose.ui.test.assertIsDisplayed
-import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -34,13 +36,28 @@ import org.robolectric.annotation.Config
 @Config(sdk = [34], qualifiers = "w411dp-h891dp-420dpi")
 class Wave1ReachabilityTest {
 
+    /**
+     * [MainActivity] rather than `createComposeRule()`, so this runs on the release
+     * unit-test variant too — see [ComposeRuleVariantGuardTest] for why the bare
+     * rule cannot. The activity has already composed by the time the rule hands it
+     * over, so [composeContent] replaces its content rather than adding to it.
+     */
     @get:Rule
-    val composeRule = createComposeRule()
+    val composeRule = createAndroidComposeRule<MainActivity>()
+
+    /**
+     * Not named `setContent`: the trailing lambda would then bind to the activity
+     * extension's first parameter, which is `parent: CompositionContext?`, not the
+     * content.
+     */
+    private fun composeContent(content: @Composable () -> Unit) {
+        composeRule.runOnUiThread { composeRule.activity.setContent { content() } }
+    }
 
     @Test
     fun `home carries the three identifiers the Wave 1 flows tap`() {
         val opened = mutableListOf<String>()
-        composeRule.setContent {
+        composeContent {
             BittrTheme {
                 HomeNoFunds(
                     onCurrency = { opened += "value" },

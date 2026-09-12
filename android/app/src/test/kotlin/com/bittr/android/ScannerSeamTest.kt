@@ -1,7 +1,8 @@
 package com.bittr.android
 
+import androidx.activity.compose.setContent
 import androidx.compose.runtime.SideEffect
-import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -38,8 +39,14 @@ import org.robolectric.annotation.Config
 @Config(sdk = [34])
 class ScannerSeamTest {
 
+    /**
+     * [MainActivity] rather than `createComposeRule()`, so this runs on the release
+     * unit-test variant too — see [ComposeRuleVariantGuardTest] for why the bare
+     * rule cannot. The graph below still replaces the activity's own content, so
+     * what is under test is unchanged.
+     */
     @get:Rule
-    val composeRule = createComposeRule()
+    val composeRule = createAndroidComposeRule<MainActivity>()
 
     /** Minted with the BIP-173 reference implementation; regtest, as the debug build is. */
     private val regtestAddress = "bcrt1qt8t4ycw8eld5taqqh2ug7mhq3pwu3dpvxl25fw"
@@ -47,12 +54,14 @@ class ScannerSeamTest {
     private lateinit var navController: NavHostController
 
     private fun openScanner() {
-        composeRule.setContent {
-            val controller = rememberNavController()
-            SideEffect { navController = controller }
-            NavHost(navController = controller, startDestination = CALLER) {
-                composable(CALLER) {}
-                composable(Routes.SCANNER) {}
+        composeRule.runOnUiThread {
+            composeRule.activity.setContent {
+                val controller = rememberNavController()
+                SideEffect { navController = controller }
+                NavHost(navController = controller, startDestination = CALLER) {
+                    composable(CALLER) {}
+                    composable(Routes.SCANNER) {}
+                }
             }
         }
         composeRule.runOnIdle { navController.navigate(Routes.SCANNER) }
