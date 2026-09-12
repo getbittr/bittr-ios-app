@@ -217,10 +217,35 @@ class Case:
         return "FAILED" if self.problem else "passed"
 
 
+# Prefixes the suite prints its per-run observations under. These are the lines
+# that say WHICH of the two green outcomes a run got — a real backup set that
+# excluded our material, or a package the framework declined outright — and
+# which of the two Keystore flags the device was able to report on.
+#
+# They go to instrumentation stdout, which AGP puts in <system-out> in the XML
+# and in the HTML report. Both are artefacts, and downloading a workflow
+# artefact needs a token that reading a public run's annotations does not. A
+# result nobody can read without credentials is most of the way back to no
+# result, so the gate lifts these into the job log itself.
+EVIDENCE_PREFIXES = ("BACKUP_EXCLUSION", "KEYSTORE_KEY_INFO")
+
+
+def evidence_lines(root):
+    """Lines under EVIDENCE_PREFIXES from every <system-out> in one result file."""
+    found = []
+    for out in root.iter("system-out"):
+        for line in (out.text or "").splitlines():
+            stripped = line.strip()
+            if stripped.startswith(EVIDENCE_PREFIXES):
+                found.append(stripped)
+    return found
+
+
 def collect(results_dir):
-    """Every <testcase> under results_dir, plus the files they came from."""
+    """Every <testcase> under results_dir, the files, and the evidence lines."""
     files = sorted(results_dir.rglob("TEST-*.xml"))
     cases = []
+    evidence = []
     for path in files:
         try:
             root = ElementTree.parse(path).getroot()
@@ -233,7 +258,8 @@ def collect(results_dir):
         # <testsuites> wrapping <testsuite>, or a bare <testsuite>. Both occur.
         for case in root.iter("testcase"):
             cases.append(Case(case))
-    return files, cases
+        evidence.extend(evidence_lines(root))
+    return files, cases, evidence
 
 
 def main(argv=None):
@@ -277,8 +303,9 @@ def main(argv=None):
 
     files = []
     cases = []
+    evidence = []
     for results_dir in results_dirs:
-        found_files, found_cases = collect(results_dir)
+        found_files, found_cases, found_evidence = collect(results_dir)
         if not found_files:
             problems.append(
                 f"No TEST-*.xml under {results_dir}. connectedDebugAndroidTest goes "
@@ -287,6 +314,7 @@ def main(argv=None):
             )
         files.extend(found_files)
         cases.extend(found_cases)
+        evidence.extend(found_evidence)
 
     by_id = {}
     for case in cases:
@@ -303,6 +331,22 @@ def main(argv=None):
     for test_id in sorted(by_id):
         marker = "required" if test_id in REQUIRED else "extra"
         print(f"  [{by_id[test_id].state:>7}] {test_id}  ({marker})")
+
+    # Before the verdict, because on a red run this is the context the verdict
+    # has to be read against — and on a green one it is the difference between
+    # "the rules were exercised and held" and "the package was never offered to
+    # a transport". Absence is itself reported: these lines are printed
+    # unconditionally by the tests that own them, so none arriving means those
+    # tests did not reach the print, whatever their recorded outcome says.
+    print("\nWhat the device reported:")
+    if evidence:
+        for line in evidence:
+            print(f"  {line}")
+    else:
+        print("  (none — no BACKUP_EXCLUSION or KEYSTORE_KEY_INFO line in any "
+              "<system-out>. Those are printed unconditionally by the tests that "
+              "own them, so this means the tests did not get that far, or the "
+              "runner did not capture instrumentation stdout.)")
 
     missing = sorted(REQUIRED - set(by_id))
     if missing:

@@ -85,15 +85,18 @@ def testcase(test_id, outcome="passed"):
     return f'<testcase classname="{classname}" name="{name}">{body}</testcase>'
 
 
-def write_results(tmp, cases, filename="TEST-results.xml"):
+def write_results(tmp, cases, filename="TEST-results.xml", system_out=None):
     """Write one AGP-shaped result file into a connected/<device>/ layout."""
     device = tmp / "connected" / "debug" / "Pixel_6_API_34(AVD) - 14"
     device.mkdir(parents=True, exist_ok=True)
+    tail = f"<system-out>{system_out}</system-out>\n" if system_out else ""
     (device / filename).write_text(
         '<?xml version="1.0" encoding="UTF-8"?>\n'
         f'<testsuite name="wallet-instrumented" tests="{len(cases)}">\n'
         + "\n".join(cases)
-        + "\n</testsuite>\n"
+        + "\n"
+        + tail
+        + "</testsuite>\n"
     )
     return tmp / "connected"
 
@@ -375,6 +378,50 @@ def test_a_failure_with_text_but_no_message_attribute_is_reported():
     check("so it does not fall back to the placeholder",
           "(no message)" not in out, out)
 
+
+
+def test_the_evidence_lines_are_lifted_into_the_log():
+    # BIT-59's definition of done is that the tests' RESULTS appear in the run.
+    # The lines that say which of the two green outcomes a run got live in
+    # instrumentation stdout, i.e. in <system-out> in the XML and in the HTML
+    # report — both artefacts, and downloading an artefact from this public repo
+    # needs a token that reading the run does not. So the gate reprints them.
+    with tempfile.TemporaryDirectory() as tmp:
+        root = pathlib.Path(tmp)
+        dirs = both_modules(root)
+        out_file = next((root / "app").rglob("TEST-*.xml"))
+        out_file.write_text(
+            out_file.read_text().replace(
+                "</testsuite>",
+                "<system-out>BACKUP_EXCLUSION path=device-transfer api=34 "
+                "package=com.bittr.android.regtest result=Success canaryReturned=true\n"
+                "noise that is not evidence\n"
+                "KEYSTORE_KEY_INFO api=34 unlockedDeviceRequired=&lt;not exposed&gt;\n"
+                "</system-out>\n</testsuite>",
+            )
+        )
+        code, out = run(dirs)
+    check("a run with evidence lines still exits 0", code == 0, out)
+    check("the backup evidence line is in the log", "canaryReturned=true" in out, out)
+    check("the keystore evidence line is in the log", "KEYSTORE_KEY_INFO" in out, out)
+    check(
+        "and unprefixed stdout is not dragged in with it",
+        "noise that is not evidence" not in out,
+        out,
+    )
+
+
+def test_absent_evidence_lines_are_reported_not_omitted():
+    # The tests print these unconditionally, so none arriving means they did not
+    # reach the print — which a silently empty section would hide.
+    with tempfile.TemporaryDirectory() as tmp:
+        code, out = run(both_modules(pathlib.Path(tmp)))
+    check("a run with no evidence lines still exits 0", code == 0, out)
+    check(
+        "and says so rather than printing nothing",
+        "did not get that far" in out,
+        out,
+    )
 
 def main():
     for name, fn in sorted(globals().items()):
