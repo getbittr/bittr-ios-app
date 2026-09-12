@@ -128,11 +128,55 @@ fi
 status=0
 test_start=$(date +%s)
 
-echo "--- :core:wallet-ldk:connectedDebugAndroidTest (Keystore — what the platform gave us)"
-(cd android && ./gradlew :core:wallet-ldk:connectedDebugAndroidTest --no-daemon) || status=$?
+# Tee'd rather than left to the job log, because the job log is not readable.
+# /actions/jobs/{id}/logs answers 403 "Must have admin rights to Repository" on
+# this PUBLIC repo, and artifacts answer 401, so from outside the runner the only
+# anonymous channel is the check-run annotation list. Gradle failing BEFORE any
+# test runs — install rejected, no connected device, a missing SDK component —
+# produces no JUnit XML, so the results gate can only say "the required tests did
+# not run" with an empty list of failures under it. That is the exact shape of
+# the two runs this was added for: it distinguishes "no test asked" from "the
+# wallet claim is false", and those are the two outcomes this job exists to keep
+# apart.
+#
+# Written by the emulator runner; fall back so the script stays runnable locally.
+RUNNER_TEMP_DIR=${RUNNER_TEMP:-${TMPDIR:-/tmp}}
 
-echo "--- :app:connectedDebugAndroidTest (installed app — backup exclusion under bmgr)"
-(cd android && ./gradlew :app:connectedDebugAndroidTest --no-daemon) || status=$?
+# `run_gradle <label> <task>`: stream to the log as before, keep a copy, and on
+# failure re-state the tail INSIDE an ::error:: so it lands in the annotations.
+#
+# The encoding is the point and is easy to get wrong. A workflow command is one
+# line: everything after the first newline is ordinary log output, i.e. invisible
+# again. Literal newlines therefore have to be sent as the `%0A` escape, and `%`
+# itself has to be escaped first or a `%` in Gradle's output would corrupt the
+# ones we add. Order matters — `%` before `%0A`.
+run_gradle() {
+  label=$1
+  task=$2
+  log="$RUNNER_TEMP_DIR/$(echo "$task" | tr ':' '_').log"
+
+  echo "--- $task ($label)"
+  # `set -o pipefail` is on, so this takes Gradle's status and not tee's.
+  if (cd android && ./gradlew "$task" --no-daemon 2>&1) | tee "$log"; then
+    return 0
+  fi
+
+  # 40 lines: enough for a Gradle "What went wrong" block plus its cause chain,
+  # short enough to stay well inside the annotation message limit.
+  tail_encoded=$(tail -40 "$log" | sed -e 's/%/%25/g' | awk '{printf "%s%%0A", $0}')
+
+  echo "::error::$task FAILED — Gradle's own output, not a test failure. If the"\
+    " tail below shows an install, device or SDK error then no test ran, and the"\
+    " results gate's empty failure list means 'nothing executed' rather than"\
+    " 'nothing broke'. Last 40 lines:%0A$tail_encoded"
+  return 1
+}
+
+run_gradle "Keystore — what the platform gave us" \
+  :core:wallet-ldk:connectedDebugAndroidTest || status=$?
+
+run_gradle "installed app — backup exclusion under bmgr" \
+  :app:connectedDebugAndroidTest || status=$?
 
 test_end=$(date +%s)
 duration=$((test_end - test_start))
