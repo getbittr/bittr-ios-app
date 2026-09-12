@@ -443,6 +443,35 @@ class TokenContrastTest {
         )
     }
 
+    /**
+     * The page is not the only thing a button lands on.
+     *
+     * Re-rendering the BIT-93 arc on the merged parity tree to close this issue's third
+     * DoD line showed that of the four dark screens with a filled button, only the
+     * phrase screen's sits directly on `surface`. The start and ready screens put it on
+     * the `cardWash` card, measured `#4C688E` in the PNG — an adjacency the test above
+     * does not look at, because it only knows about the page. `primary` could be moved
+     * to a value that clears `blue1` and fails the card, and the suite would stay green
+     * while the button on two of the three screens went back to being hard to see.
+     *
+     * So: every dark surface a filled control can be drawn on, measured against the
+     * fill. `surfaceContainerHigh` is the tightest at 3.96 : 1 and is the one to watch.
+     */
+    @Test
+    fun `A11Y-22 the dark filled control clears every surface it can land on`() {
+        for ((where, bg) in listOf(
+            "the page" to BittrDarkColors.surface,
+            // White @ 9 % over the page — what the arc's start and ready screens
+            // actually put the button on.
+            "the card" to composite(BittrDarkColorsExtended.cardWash, BittrDarkColors.surface),
+            "surfaceContainer" to BittrDarkColors.surfaceContainer,
+            "surfaceContainerHigh" to BittrDarkColors.surfaceContainerHigh,
+            "surfaceBright" to BittrDarkColors.surfaceBright,
+        )) {
+            assertAtLeast(aaLarge, BittrDarkColors.primary, bg, "dark filled button on $where")
+        }
+    }
+
     @Test
     fun `A11Y-22 the dark Material slot and the dark canvas pill are one decision`() {
         // `actionFill` had already inverted to grey1 for the onboarding pill, with the
