@@ -137,6 +137,19 @@ echo "--- :app:connectedDebugAndroidTest (installed app — backup exclusion und
 test_end=$(date +%s)
 duration=$((test_end - test_start))
 
+# --- The set itself, not bmgr's report of it ----------------------------------
+#
+# BackupExclusionTest can only search `bmgr backupnow`'s stdout, which is a
+# report and not a backup set. check-backup-set.sh reads the set, from the host,
+# after `adb root` — see its header for why that half cannot live inside the
+# suite, and for the three outcomes it distinguishes. Only one of them is
+# evidence; it says which one this run got.
+#
+# `|| status=$?` for the same reason the Gradle runs above use it: a marker in a
+# real backup set is the BIT-20 §5.3 halt, and the summary below must still be
+# written so the result is reportable rather than just red.
+bash android/scripts/check-backup-set.sh || status=$?
+
 # --- The vacuity check --------------------------------------------------------
 #
 # Deliberately runs whatever Gradle said. connectedDebugAndroidTest exits 0 when
@@ -177,6 +190,12 @@ fi
   echo "**A red \`BackupExclusionTest\` is a reportable outcome, not a flake.**"
   echo "Per BIT-20 §5.3 it is a halt on \`match → keep\`, and the result goes"
   echo "back to BIT-20 rather than being worked around here."
+  echo
+  echo "The cloud-backup claim is checked twice, at different strengths:"
+  echo "\`bmgr\`'s own report from inside the suite, and — when \`adb root\`"
+  echo "succeeds — a grep of the backup transport's on-disk tree for the marker"
+  echo "the test wrote. Only the second reads the backup set itself. Grep the"
+  echo "log for \`Backup set inspection\` to see which one this run got."
   echo
   echo "The device-to-device transfer path is NOT proven by this job — \`bmgr\`"
   echo "has no D2D mode. Grep the log for \`BACKUP_EXCLUSION_D2D\` for what was"

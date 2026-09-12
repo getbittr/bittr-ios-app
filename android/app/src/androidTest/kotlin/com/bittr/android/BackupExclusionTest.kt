@@ -92,10 +92,18 @@ class BackupExclusionTest {
      * constant: a constant could match a stale artefact left by an earlier run
      * and turn a real leak into a green.
      */
-    private val marker: String = "BIT59-SEED-MARKER-" + System.nanoTime().toString(16)
+    private val marker: String = MARKER_PREFIX + System.nanoTime().toString(16)
 
     @Before
     fun writeWalletBearingState() {
+        // Printed so the value survives out of this process. The in-test
+        // assertions below can only search `bmgr`'s own stdout, which is a
+        // report and not the backup set; check-backup-set.sh greps the
+        // transport's on-disk tree for MARKER_PREFIX after the run, which is the
+        // backup set itself. See that script's header for why the stronger half
+        // has to live outside the test.
+        println("BACKUP_EXCLUSION_MARKER=$marker")
+
         paths.createDirectories()
 
         // The real wrap, through the real Keystore codec. Writing a hand-rolled
@@ -326,7 +334,23 @@ class BackupExclusionTest {
             "Backup is not allowed",
         ).any { output.contains(it, ignoreCase = true) }
 
-        val succeededWithNothing =
+        // NOT a strong signal, and labelled so it cannot be mistaken for one.
+        // "Backup finished with result: Success" is what `bmgr` prints at the end
+        // of ANY run that completed, including one that backed this package up in
+        // full — and the marker could never appear in this output, because bmgr
+        // reports on the run and does not echo file contents. So this branch
+        // means "bmgr did not visibly refuse", which is weaker than "nothing of
+        // ours was backed up" and is accepted only because the platform's exact
+        // decline wording varies by API level and image.
+        //
+        // The strong version of this assertion is not reachable from in here at
+        // all: the backup set lives under the transport's own data directory,
+        // which is 0700 to another uid, and UiAutomation's shell runs as `shell`
+        // rather than root. check-backup-set.sh does it from the host after this
+        // suite finishes — `adb root`, then grep the transport tree for
+        // MARKER_PREFIX — and that is the check that would catch a real leak
+        // through a bmgr run this method called a pass.
+        val notVisiblyRefused =
             output.contains("Success", ignoreCase = true) && !output.contains(marker)
 
         assertTrue(
@@ -337,7 +361,7 @@ class BackupExclusionTest {
                 "shipping on an exclusion the device does not honour, and the guard " +
                 "reverts to iOS behaviour (quarantine on anything but a live " +
                 "mnemonic) until it is re-decided.",
-            declined || succeededWithNothing,
+            declined || notVisiblyRefused,
         )
 
         assertFalse(
@@ -460,6 +484,14 @@ class BackupExclusionTest {
         }
 
     private companion object {
+        /**
+         * Shared with `android/scripts/check-backup-set.sh`, which greps the
+         * backup transport's on-disk tree for it after this suite runs. Changing
+         * it here without changing it there turns that check into one that can
+         * never fire — i.e. into a permanent silent pass. `test_check_backup_set.sh`
+         * reads both files and fails the `build` job if they drift.
+         */
+        const val MARKER_PREFIX = "BIT59-SEED-MARKER-"
         const val MANIFEST = "AndroidManifest.xml"
         const val MAX_ASSET_COOKIE = 4
         const val ANDROID_NS = "http://schemas.android.com/apk/res/android"

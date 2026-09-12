@@ -21,8 +21,12 @@ import org.w3c.dom.Element
  *
  * **What this test does not do, stated plainly.** It reads configuration. It
  * does not prove that a backup set produced by a real device contains none of
- * this. That is `BackupExclusionTest`, it drives `bmgr` and a device-transfer,
- * and it needs hardware CI does not have yet. The distinction matters because
+ * this. That is `BackupExclusionTest`, which drives `bmgr` and now runs on every
+ * push in the `wallet-instrumented` job (BIT-59, API 34 emulator). The
+ * device-transfer half of it remains unproven — `bmgr` has no D2D mode — and
+ * that residual gap is §4 of `wallet-security-properties.md`.
+ *
+ * The distinction matters because
  * whether `allowBackup="false"` alone also suppresses the API 31+ transfer
  * path is exactly the kind of documented-behaviour claim this project has
  * decided not to assert from memory — and it is precisely the question rule 4
