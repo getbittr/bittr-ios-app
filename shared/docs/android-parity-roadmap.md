@@ -141,14 +141,23 @@ none of it shortens the path to a feature-complete app.
 Ranked by how much each unblocks. Updated 2026-09-12 after Ruben answered the
 two open calls on BIT-93 — four of the seven items below are now closed.
 
-1. **BIT-6 is marked `blocked` with an empty unblock descriptor, and the
-   Bitcoin Wallet Engineer is `idle`, not paused.** The long pole — 26 of 36
-   flows — has no recorded blocker and an available owner. This is the single
-   highest-leverage item on the board and it costs one status change.
+1. **BIT-6 is blocked behind two in-progress verification tasks** — BIT-59
+   (wallet-layer instrumented tests in CI) and BIT-18 (Test K1, proving a
+   non-auth-bound Keystore key survives lock-screen mutation). Both have active
+   owners and are `in_progress`, so the long pole is *sequenced*, not stalled,
+   and nobody outside those two issues can shorten it today.
+
+   **Corrected 2026-09-12:** an earlier revision of this file said BIT-6 was
+   "blocked with an empty unblock descriptor" and that clearing it "costs one
+   status change". That is no longer true — `diagnostics/blockers` now reports
+   two real first-class blockers. Do not act on the old reading.
 2. **Backend repo credential** — a deploy key, org PAT or App install that can
    reach the backend repo. The existing key is scoped to `bittr-ios-app` only.
    Gates only the two *server-side* Wave 3 changes, not the client port.
 3. **Firebase project** — push flows only, Wave 3.
+
+With the four items closed below, **nothing on the founder's desk is on Wave 1's
+critical path.** Wave 1 is start-now work; Wave 2 is owner-driven.
 
 ### Closed since this file was written
 
