@@ -62,10 +62,52 @@ class KeystoreKeyInfoTest {
                 "failed PIN attempts.",
             info.isUserAuthenticationRequired,
         )
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+        // `setUnlockedDeviceRequired` has existed since API 28. The GETTER,
+        // `KeyInfo.isUnlockedDeviceRequired()`, has not — it is absent from
+        // android.jar through API 36 and present from 37 (CINNAMON_BUN), which
+        // is this project's compileSdk. So the call below COMPILES against 37
+        // and throws `NoSuchMethodError` on every device older than that.
+        //
+        // This was a real red, not a hypothetical: BIT-59's first emulator run
+        // of this class died here on API 34 with
+        //
+        //     java.lang.NoSuchMethodError: No virtual method
+        //     isUnlockedDeviceRequired()Z in class
+        //     Landroid/security/keystore/KeyInfo;
+        //
+        // which is the exact failure mode this class exists to catch, landing
+        // on the class itself. A compileSdk-guarded call is invisible to every
+        // JVM test and to lint's API-level checks, because the API the code was
+        // compiled against does have the method.
+        //
+        // Read reflectively rather than under a `SDK_INT >= CINNAMON_BUN`
+        // guard, for two reasons. A version guard hard-codes an answer that
+        // varies by OEM build and would have to be re-derived the next time the
+        // Keystore surface moves, and — the point of this class — "the device
+        // does not expose this property" is itself an observation worth
+        // recording. It is printed, not skipped silently: a green run on an API
+        // 34 emulator says out loud which of the two flags it was able to
+        // check. The spec-side guarantee is covered regardless by
+        // `KeystoreKeySpecTest`, which asserts we never CALL
+        // setUnlockedDeviceRequired(true).
+        val unlockedDeviceRequired = try {
+            KeyInfo::class.java.getMethod("isUnlockedDeviceRequired").invoke(info) as Boolean
+        } catch (_: NoSuchMethodException) {
+            null
+        }
+        println(
+            "KEYSTORE_KEY_INFO api=${Build.VERSION.SDK_INT} " +
+                "device=${Build.MANUFACTURER}/${Build.MODEL} " +
+                "userAuthenticationRequired=${info.isUserAuthenticationRequired} " +
+                "unlockedDeviceRequired=${unlockedDeviceRequired ?: "<not exposed by this API level>"}",
+        )
+        if (unlockedDeviceRequired != null) {
             assertFalse(
-                "The generated key reports unlocked-device as required.",
-                info.isUnlockedDeviceRequired,
+                "The generated key reports unlocked-device as required. Rule 2 says " +
+                    "it must not be: the seed has to be readable while the device is " +
+                    "locked, which is what lets a payment arrive without the user " +
+                    "present.",
+                unlockedDeviceRequired,
             )
         }
         assertEquals(256, info.keySize)
