@@ -213,6 +213,20 @@ data class BittrColors(
      * titles, Academy level headers. See the note on [BittrLightColorsExtended].
      */
     val emphasis: Color,
+    /**
+     * The `DetailRow` label — the key half of every key/value row.
+     *
+     * iOS draws it in the brand yellow, which is **1.59 : 1 on white**: the app's worst
+     * contrast failure, on its most-repeated component (~33 call sites across Swap
+     * status, Transaction detail, Confirm send, Buy and Transfer4). Every screen where
+     * a user reads back an address, an amount or a deposit code before acting on it.
+     *
+     * Not [brandFixed] and not [emphasis]: this is body text that owes AA, so it takes
+     * its own token rather than borrowing one whose floor is 3 : 1. Both values stay
+     * recognisably in the brand hue — the light one is the yellow itself darkened at
+     * constant hue (46.2° → 46.1°). **DEV-40 — founder sign-off, BIT-15 §A3.**
+     */
+    val rowLabel: Color,
     /** `yellow`. The seven sites that stay brand-yellow in both modes. */
     val brandFixed: Color,
     /** `unconfirmed`. Pending transactions. Never the only signal — A11Y-03. */
@@ -310,6 +324,7 @@ val BittrLightColorsExtended = BittrColors(
     lossBg = Red1,
     lossBgMuted = Red1.copy(alpha = 0.70f),
     emphasis = Color.Black,
+    rowLabel = Color(0xFF8A6A00), // 5.07 : 1 on white. DEV-40 — founder sign-off, BIT-15.
     brandFixed = Yellow,
     unconfirmed = Color(0xFFB1B1B1),
     footnote = Color.Black.copy(alpha = 0.25f),
@@ -350,6 +365,7 @@ val BittrDarkColorsExtended = BittrColors(
     lossBg = Red2.copy(alpha = 0.30f),
     lossBgMuted = Red2.copy(alpha = 0.30f),
     emphasis = Yellow,
+    rowLabel = Color(0xFFFFE28A), // 4.69 : 1 on blue2. DEV-40 — founder sign-off, BIT-15.
     brandFixed = Yellow,
     unconfirmed = Color.White.copy(alpha = 0.50f),
     footnote = Color.White.copy(alpha = 0.50f),

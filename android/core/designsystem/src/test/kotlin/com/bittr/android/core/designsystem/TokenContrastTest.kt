@@ -3,6 +3,7 @@ package com.bittr.android.core.designsystem
 import androidx.compose.material3.ColorScheme
 import androidx.compose.ui.graphics.Color
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import kotlin.math.max
@@ -157,6 +158,38 @@ class TokenContrastTest {
         // The merge only moves the light value. If this ever fails, the fix has grown
         // into a dark-mode redesign and needs to go back to the founder.
         assertEquals(0xFFFFC502.toInt(), BittrDarkColorsExtended.emphasis.toArgbInt())
+    }
+
+    // -----------------------------------------------------------------------
+    // DEV-40 — the `DetailRow` label
+    // -----------------------------------------------------------------------
+
+    @Test
+    fun `DEV-40 the DetailRow label clears AA as body text in both modes`() {
+        // ~33 call sites, every read-back of an address, an amount or a deposit code.
+        // Body text at Gilroy-Regular, so the floor is 4.5 and not the 3.0 that
+        // `emphasis` gets to use. Founder sign-off — BIT-15 §A3.
+        assertAtLeast(
+            aa, BittrLightColorsExtended.rowLabel, BittrLightColors.surfaceContainer,
+            "the row label on white",
+        )
+        assertAtLeast(
+            aa, BittrDarkColorsExtended.rowLabel, BittrDarkColors.surfaceContainer,
+            "the row label on blue2",
+        )
+    }
+
+    @Test
+    fun `DEV-40 the row label is not the brand yellow in either mode`() {
+        // This is the regression the token exists to prevent: the yellow is 1.59 : 1 on
+        // white, the app's worst failure. A porter reaching for `brandFixed` here — or
+        // anyone "restoring" the iOS look — trips this rather than shipping it.
+        assertNotEquals(0xFFFFC502.toInt(), BittrLightColorsExtended.rowLabel.toArgbInt())
+        assertNotEquals(0xFFFFC502.toInt(), BittrDarkColorsExtended.rowLabel.toArgbInt())
+        // And it stays in the brand family rather than becoming a generic grey: the
+        // light value is the yellow darkened at constant hue, 46.2° → 46.1°.
+        assertEquals(0xFF8A6A00.toInt(), BittrLightColorsExtended.rowLabel.toArgbInt())
+        assertEquals(0xFFFFE28A.toInt(), BittrDarkColorsExtended.rowLabel.toArgbInt())
     }
 
     // -----------------------------------------------------------------------
