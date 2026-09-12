@@ -32,7 +32,7 @@ extension SendViewController {
         let amountText = (self.amountTextField.text ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
         guard !amountText.isEmpty, let enteredSatoshis = self.getSatoshisFrom(enteredAmount: amountText), enteredSatoshis > 0 else {
             self.stopLNURLSpinner()
-            self.showAlert(title: Language.getWord(withID: "invoice"), message: Language.getWord(withID: "amountmissing"), buttons: [.dismiss(Language.getWord(withID: "okay"))])
+            self.showAlert(id: TestID.Alert.amountMissing, title: Language.getWord(withID: "invoice"), message: Language.getWord(withID: "amountmissing"), buttons: [.dismiss(Language.getWord(withID: "okay"))])
             return
         }
         let enteredAmount = enteredSatoshis * 1000
@@ -292,7 +292,7 @@ extension UIViewController {
         // On a re-prompt after an invalid entry, lead with why we're asking again.
         let message = note.map { "\($0)\n\n\(payableRange)" } ?? payableRange
 
-        self.showTextFieldAlert(title: Language.getWord(withID: "withdrawrequest"), message: message, initialText: "", placeholder: Language.getWord(withID: "amountinsatoshis"), keyboardType: .numberPad, cancelTitle: Language.getWord(withID: "cancel"), saveTitle: Language.getWord(withID: "confirm")) { enteredText in
+        self.showTextFieldAlert(id: TestID.Alert.withdrawRequest, title: Language.getWord(withID: "withdrawrequest"), message: message, initialText: "", placeholder: Language.getWord(withID: "amountinsatoshis"), keyboardType: .numberPad, cancelTitle: Language.getWord(withID: "cancel"), saveTitle: Language.getWord(withID: "confirm")) { enteredText in
 
             // Re-prompt (explaining why) if the entry isn't a positive amount within range.
             guard let enteredSatoshis = enteredText.parsedUserAmount(allowingFraction: false)?.satoshis(), enteredSatoshis > 0 else {
@@ -655,7 +655,7 @@ func signLNURLAuthK1DERHex(k1: Data, privateKeyData: Data) throws -> String {
 extension SendViewController {
     
     func startLNURLSpinner() {
-        self.showLoading(message: Language.getWord(withID: "handlinglnurl"))
+        self.showLoading(id: TestID.Loading.handlingLnurl, message: Language.getWord(withID: "handlinglnurl"))
     }
     
     func stopLNURLSpinner() {

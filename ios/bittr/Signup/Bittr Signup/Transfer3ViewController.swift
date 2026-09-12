@@ -139,7 +139,7 @@ class Transfer3ViewController: UIViewController {
         // Copy details to clipboard.
         let value = sender.boundString ?? ""
         UIPasteboard.general.string = value
-        self.showAlert(title: Language.getWord(withID: "copied"), message: value, buttons: [.dismiss(Language.getWord(withID: "okay"))])
+        self.showAlert(id: TestID.Alert.copied, title: Language.getWord(withID: "copied"), message: value, buttons: [.dismiss(Language.getWord(withID: "okay"))])
     }
     
     func changeColors() {

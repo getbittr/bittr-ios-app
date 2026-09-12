@@ -136,7 +136,7 @@ appId: com.bittr.bittr-regtest
 - runFlow:
     when:
       visible:
-        text: "balance"
+        id: "alert.insufficientOnchainBalance"
     commands:
       - tapOn:
           id: "alert.button.0"
@@ -168,7 +168,7 @@ appId: com.bittr.bittr-regtest
 - runFlow:
     when:
       visible:
-        text: "error"
+        id: "alert.transactionError"
     commands:
       - tapOn:
           id: "alert.button.0"
@@ -179,7 +179,7 @@ appId: com.bittr.bittr-regtest
       - runFlow:
           when:
             visible:
-              text: "low fee"
+              id: "alert.lowFee"
           commands:
             - tapOn:
                 id: "alert.button.1"

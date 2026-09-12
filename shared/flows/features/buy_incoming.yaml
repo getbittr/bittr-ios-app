@@ -205,6 +205,8 @@ appId: com.bittr.bittr-regtest
 # focus it (tapOn also waits out the alert's slide-up), type the note, tap Save.
 - tapOn:
     id: "transaction.addNoteButton"
+- assertVisible:
+    id: "alert.addNote"
 - tapOn:
     id: "alert.textField"
 # Capture the note alert once the keyboard has finished popping up.
@@ -213,7 +215,7 @@ appId: com.bittr.bittr-regtest
 - takeScreenshot: shared/docs/screenshots/buy_incoming/10a_note_alert
 - inputText: "Funding transaction buy_incoming"
 - tapOn:
-    text: "Save"
+    id: "alert.button.1"
 
 # The note now shows in the transaction's note stack.
 - assertVisible:

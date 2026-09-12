@@ -280,7 +280,7 @@ appId: com.bittr.bittr-regtest
 - tapOn:
     id: "signup.bittr.otp.resendButton"
 - assertVisible:
-    text: ".*wait 30 seconds.*"
+    id: "alert.resendCode"
 - waitForAnimationToEnd:
     timeout: 3000
 - takeScreenshot: shared/docs/screenshots/buy_signup_no_notifications/04b_resend_cooldown
@@ -325,15 +325,17 @@ appId: com.bittr.bittr-regtest
       id: "alert.button.0"
     timeout: 20000
 
-# Distinguish the two cases by the presence of a "Continue" button (Alert B
-# has one; Alert A doesn't). If it's Alert A (no Continue), tap Okay to fire
-# the system dialog (auto-denied). When notifications were already denied this
-# block is skipped, because Alert B is shown directly.
+# Distinguish the two cases by which alert is up. If Alert B (the denied gate)
+# is not on screen it must be Alert A, so tap Okay to fire the system dialog
+# (auto-denied). When notifications were already denied this block is skipped,
+# because Alert B is shown directly.
 - runFlow:
     when:
       notVisible:
-        text: "Continue"
+        id: "alert.receiveNotificationsDenied"
     commands:
+      - assertVisible:
+          id: "alert.receiveNotificationsPrompt"
       - takeScreenshot: shared/docs/screenshots/buy_signup_no_notifications/05_notifications_prompt
       - tapOn:
           id: "alert.button.0"
@@ -399,7 +401,7 @@ appId: com.bittr.bittr-regtest
 - tapOn:
     id: "signup.bittr.success.ibanButton"
 - assertVisible:
-    text: ".*[Cc]opied.*"
+    id: "alert.copied"
 - waitForAnimationToEnd:
     timeout: 3000
 - takeScreenshot: shared/docs/screenshots/buy_signup_no_notifications/10_iban_copied
@@ -408,7 +410,7 @@ appId: com.bittr.bittr-regtest
 - tapOn:
     id: "signup.bittr.success.nameButton"
 - assertVisible:
-    text: ".*[Cc]opied.*"
+    id: "alert.copied"
 - waitForAnimationToEnd:
     timeout: 3000
 - takeScreenshot: shared/docs/screenshots/buy_signup_no_notifications/11_name_copied
@@ -417,7 +419,7 @@ appId: com.bittr.bittr-regtest
 - tapOn:
     id: "signup.bittr.success.codeButton"
 - assertVisible:
-    text: ".*[Cc]opied.*"
+    id: "alert.copied"
 - waitForAnimationToEnd:
     timeout: 3000
 - takeScreenshot: shared/docs/screenshots/buy_signup_no_notifications/12_code_copied

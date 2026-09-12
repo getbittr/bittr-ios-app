@@ -3,7 +3,14 @@
 Canonical accessibility/test ID constants used by Maestro flows. Defined here once, generated to platform-native code.
 
 - **iOS**: `ios/bittr/Helpers/TestIDs.swift` — `enum TestID { ... }`, set on `view.accessibilityIdentifier`.
-- **Android** (when scaffolded): `android/app/src/main/.../TestIDs.kt` — `object TestID { ... }`, set with `Modifier.testTag()`.
+- **Android**: `android/core/common/src/main/kotlin/com/bittr/android/core/common/TestIDs.kt` — `object TestID { ... }`, set with `Modifier.testTag()`.
+
+> **Android gotcha, worth knowing before you debug a flow for an hour:** Compose
+> `Modifier.testTag` is *not* exposed to the accessibility tree Maestro reads. It
+> works only because `testTagsAsResourceId = true` is set on the root node in
+> `android/app/src/main/kotlin/com/bittr/android/MainActivity.kt`. Remove that and
+> every `assertVisible: id:` fails with "element not found" while the app looks
+> completely correct on screen.
 
 ## Source format
 
@@ -24,7 +31,67 @@ Canonical accessibility/test ID constants used by Maestro flows. Defined here on
 → Swift: `TestID.Signup.Create.Start.createWalletButton == "signup.create.start.createWalletButton"`
 → Kotlin: `TestID.Signup.Create.Start.createWalletButton == "signup.create.start.createWalletButton"`
 
-JSON keys are camelCase. Branches get PascalCased in code (`Signup`, `Create`); leaves stay camelCase (`createWalletButton`). The string ID — what Maestro matches — is the lowercased dot path.
+JSON keys are camelCase. Branches get PascalCased in code (`Signup`, `Create`); leaves stay camelCase (`createWalletButton`). The string ID — what Maestro matches — is the dot path verbatim, case included: the flow selects `id: "alert.lowFee"`, not `alert.lowfee`.
+
+### Runtime-indexed IDs
+
+Some IDs get a row/position number appended when the view is built: the mnemonic word labels, the history table cells, the alert buttons. The flows assert on the numbered form (`history.transactionButton0`, `alert.button.1`, `signup.create.mnemonic.word12`), so the number has to be produced by the *same rule* on both platforms — hand-interpolating it at each call site is how one platform ends up 1-based and the other 0-based.
+
+Such a leaf carries an `_index` spec instead of `null`:
+
+```json
+"history": { "transactionButton": { "_index": { "offset": 0 } } },
+"alert":   { "button":            { "_index": { "offset": 0, "separator": "." } } },
+"signup":  { "create": { "mnemonic": { "word": { "_index": { "offset": 1 } } } } }
+```
+
+- `offset` — what position 0 is numbered as. `0` for table rows, `1` for the mnemonic words (`word1` … `word12`).
+- `separator` — inserted before the number. Empty by default; `"."` for `alert.button.0`.
+
+It generates the base constant *and* an `…At()` helper:
+
+```kotlin
+const val transactionButton = "history.transactionButton"
+fun transactionButtonAt(position: Int) = "history.transactionButton$position"   // 0 → …Button0
+fun wordAt(position: Int) = "signup.create.mnemonic.word${position + 1}"        // 0 → …word1
+```
+
+Always pass the **0-based position** — the loop index, the `indexPath.row` — and let the helper apply the offset. This mirrors iOS, where `Signup3ViewController` writes `"\(TestID.Signup.Create.Mnemonic.word)\(index + 1)"` for a 0-based `index`.
+
+### Alerts
+
+`alert.button.0` says *a* button on *an* alert was tapped. It does not say which alert — and an alert that is up when it should not be still has a `button.0`. Until BIT-78 the suite closed that gap by matching the alert's wording, which made a copy edit look like a test failure and made the wrong alert with the right words look like a pass.
+
+Each alert now carries its own id on the card:
+
+```swift
+self.showAlert(id: TestID.Alert.lowFee, title: …, message: …, buttons: […])
+self.showLoading(id: TestID.Loading.syncingWallet, message: …)
+```
+
+```yaml
+- assertVisible:
+    id: "alert.lowFee"        # not: text: ".*very low fees.*"
+- tapOn:
+    id: "alert.button.1"      # the button, once you know it is the right alert
+```
+
+- **`id` is optional.** An alert no flow touches does not need one. Add it when a flow starts asserting on that alert — that is the moment the identity matters.
+- **Name it for the alert, not the copy key.** `alert.lowFee` survives `lowfee2` being renamed or reworded; `alert.lowfee2` does not. Where the title is generic (`oops`, `error`) the message is what makes the alert distinct, so name from that.
+- **Two alerts that differ only in their buttons are two alerts.** The notification gate is the worked example: the same title and near-identical message, one with a Continue button and one without, so `alert.receiveNotificationsPrompt` and `alert.receiveNotificationsDenied` are separate ids. Telling them apart by "does a Continue button exist" is what this replaces.
+- **The id goes on the card, not the overlay.** Replacing a live alert reuses the overlay and rebuilds only the card, so an id on the overlay would outlive the alert that earned it.
+- **Alerts raised through a helper take the id as a parameter.** `SwapViewController.cancelSwap(alertID:…)` — every caller cancels for a different reason, so every caller raises a different alert.
+
+The loading card (`showLoading`) is the same surface with its own `loading.*` branch: it is non-dismissable and has no buttons, so `alert.button.N` never applies to it.
+
+## Checking flows against the registry
+
+```sh
+./shared/test-ids/check_flow_ids.py            # fails on any unregistered ID
+./shared/test-ids/check_flow_ids.py --unused   # also lists registered-but-unselected IDs
+```
+
+Every `id:` selector in `shared/flows/**` must resolve to a plain leaf or to an indexed leaf plus a number. An unregistered ID fails at run time as "element not found", which looks exactly like a missing `testTag` in the app and costs an emulator boot to diagnose. CI runs this before the build.
 
 ## Naming convention
 
@@ -42,7 +109,11 @@ JSON keys are camelCase. Branches get PascalCased in code (`Signup`, `Create`); 
 ./shared/test-ids/build.py
 ```
 
-Regenerates `ios/bittr/Helpers/TestIDs.swift`. Run after editing `test-ids.json`. The generated file is committed for diff visibility.
+Regenerates both `ios/bittr/Helpers/TestIDs.swift` and the Android `TestIDs.kt`. Run after editing `test-ids.json`. The generated files are committed for diff visibility, and CI (`.github/workflows/android-maestro.yml`) fails the build if they are stale — editing the JSON without regenerating is how the two platforms drift apart silently.
+
+`--platform ios|android|both` limits which file is written (default `both`). The Android port may not change iOS sources without sign-off, so registry additions made for the port are generated with `--platform android` and `TestIDs.swift` is left to lag until the iOS regeneration is signed off. CI treats a stale Kotlin file as an error and a stale Swift file as a notice, for the same reason.
+
+Never edit a generated file directly. That drift has already happened once: `transaction.descriptionLabel` was added straight to `TestIDs.swift` and used by `TransactionViewController` and `features/remove_wallet.yaml`, but never added to `test-ids.json` — so the next regeneration would have deleted it and broken the iOS build. It is in the JSON now, and the CI staleness check exists so it cannot recur.
 
 ## Workflow when adding an ID
 

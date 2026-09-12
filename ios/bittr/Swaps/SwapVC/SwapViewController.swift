@@ -265,7 +265,7 @@ class SwapViewController: UIViewController, UITextFieldDelegate, UNUserNotificat
         if self.thisSwap!.swapDirection == .lightningToOnchain {
             guard self.didVerifyBoltzInvoice() else {
                 Log.info("Received Boltz invoice doesn't match our preimage. Abort swap.")
-                self.showAlert(title: Language.getWord(withID: "error"), message: Language.getWord(withID: "swapvalidationfailed"), buttons: [.dismiss(Language.getWord(withID: "okay"))])
+                self.showAlert(id: TestID.Alert.swapValidationFailed, title: Language.getWord(withID: "error"), message: Language.getWord(withID: "swapvalidationfailed"), buttons: [.dismiss(Language.getWord(withID: "okay"))])
                 SentryManager.countMetric("swap.lightningtoonchain.invoicerejected")
                 return
             }
@@ -416,10 +416,12 @@ class SwapViewController: UIViewController, UITextFieldDelegate, UNUserNotificat
         self.nextSpinner.stopAnimating()
     }
     
-    func cancelSwap(alertTitle:String = Language.getWord(withID: "error"), alertMessage:String, alertButtons:[AlertButton] = [.dismiss(Language.getWord(withID: "okay"))]) {
+    // Every caller passes a different reason, so the alert it raises is a
+    // different alert — `alertID` is what tells them apart to a flow.
+    func cancelSwap(alertID:String? = nil, alertTitle:String = Language.getWord(withID: "error"), alertMessage:String, alertButtons:[AlertButton] = [.dismiss(Language.getWord(withID: "okay"))]) {
         DispatchQueue.main.async {
             self.resetNextButton()
-            self.showAlert(title: alertTitle, message: alertMessage, buttons: alertButtons)
+            self.showAlert(id: alertID, title: alertTitle, message: alertMessage, buttons: alertButtons)
         }
     }
 }

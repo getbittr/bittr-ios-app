@@ -189,7 +189,7 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
         
         if !self.coreVC!.walletHasSynced {
             // Wallet isn't ready.
-            self.showAlert(title: Language.getWord(withID: "syncingwallet"), message: Language.getWord(withID: "syncingwallet2"), buttons: [.dismiss(Language.getWord(withID: "okay"))])
+            self.showAlert(id: TestID.Alert.syncingWallet, title: Language.getWord(withID: "syncingwallet"), message: Language.getWord(withID: "syncingwallet2"), buttons: [.dismiss(Language.getWord(withID: "okay"))])
             return
         }
         
@@ -200,7 +200,7 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
         
         if !self.coreVC!.walletHasSynced {
             // Wallet isn't ready.
-            self.showAlert(title: Language.getWord(withID: "syncingwallet"), message: Language.getWord(withID: "syncingwallet2"), buttons: [.dismiss(Language.getWord(withID: "okay"))])
+            self.showAlert(id: TestID.Alert.syncingWallet, title: Language.getWord(withID: "syncingwallet"), message: Language.getWord(withID: "syncingwallet2"), buttons: [.dismiss(Language.getWord(withID: "okay"))])
             return
         }
         
@@ -213,7 +213,7 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
         
         if !self.coreVC!.walletHasSynced {
             // Wallet isn't ready.
-            self.showAlert(title: Language.getWord(withID: "syncingwallet"), message: Language.getWord(withID: "syncingwallet2"), buttons: [.dismiss(Language.getWord(withID: "okay"))])
+            self.showAlert(id: TestID.Alert.syncingWallet, title: Language.getWord(withID: "syncingwallet"), message: Language.getWord(withID: "syncingwallet2"), buttons: [.dismiss(Language.getWord(withID: "okay"))])
             return
         }
         
@@ -356,7 +356,7 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
         
         if !self.coreVC!.walletHasSynced {
             // Wallet isn't ready.
-            self.showAlert(title: Language.getWord(withID: "syncingwallet"), message: Language.getWord(withID: "syncingwallet2"), buttons: [.dismiss(Language.getWord(withID: "okay"))])
+            self.showAlert(id: TestID.Alert.syncingWallet, title: Language.getWord(withID: "syncingwallet"), message: Language.getWord(withID: "syncingwallet2"), buttons: [.dismiss(Language.getWord(withID: "okay"))])
             return
         }
         

@@ -11,6 +11,37 @@ enum TestID {
         static let nextLessonButton = "academy.nextLessonButton"
         static let nextPageButton = "academy.nextPageButton"
     }
+    enum Alert {
+        static let addNote = "alert.addNote"
+        static let amountMissing = "alert.amountMissing"
+        // Runtime-indexed: position 0 → "alert.button.0", position 1 → "alert.button.1", …
+        static let button = "alert.button"
+        static func buttonAt(_ position: Int) -> String { "alert.button.\(position)" }
+        static let confirmStatements = "alert.confirmStatements"
+        static let copied = "alert.copied"
+        static let incomingPayment = "alert.incomingPayment"
+        static let incorrectPhrase = "alert.incorrectPhrase"
+        static let incorrectPin = "alert.incorrectPin"
+        static let insufficientOnchainBalance = "alert.insufficientOnchainBalance"
+        static let invalidWords = "alert.invalidWords"
+        static let lightningExplanation = "alert.lightningExplanation"
+        static let lowFee = "alert.lowFee"
+        static let noScreenshot = "alert.noScreenshot"
+        static let notificationsRequired = "alert.notificationsRequired"
+        static let onlyIban = "alert.onlyIban"
+        static let paymentRequest = "alert.paymentRequest"
+        static let paymentRequestFailed = "alert.paymentRequestFailed"
+        static let pinLength = "alert.pinLength"
+        static let pinRequired = "alert.pinRequired"
+        static let receiveNotificationsDenied = "alert.receiveNotificationsDenied"
+        static let receiveNotificationsPrompt = "alert.receiveNotificationsPrompt"
+        static let resendCode = "alert.resendCode"
+        static let swapValidationFailed = "alert.swapValidationFailed"
+        static let syncingWallet = "alert.syncingWallet"
+        static let textField = "alert.textField"
+        static let transactionError = "alert.transactionError"
+        static let withdrawRequest = "alert.withdrawRequest"
+    }
     enum Article {
         static let downButton = "article.downButton"
         static let tableView = "article.tableView"
@@ -51,10 +82,18 @@ enum TestID {
         static let titleLabel = "header.titleLabel"
     }
     enum History {
+        // Runtime-indexed: position 0 → "history.swapComplete0", position 1 → "history.swapComplete1", …
         static let swapComplete = "history.swapComplete"
+        static func swapCompleteAt(_ position: Int) -> String { "history.swapComplete\(position)" }
+        // Runtime-indexed: position 0 → "history.swapPending0", position 1 → "history.swapPending1", …
         static let swapPending = "history.swapPending"
+        static func swapPendingAt(_ position: Int) -> String { "history.swapPending\(position)" }
+        // Runtime-indexed: position 0 → "history.transactionAmount0", position 1 → "history.transactionAmount1", …
         static let transactionAmount = "history.transactionAmount"
+        static func transactionAmountAt(_ position: Int) -> String { "history.transactionAmount\(position)" }
+        // Runtime-indexed: position 0 → "history.transactionButton0", position 1 → "history.transactionButton1", …
         static let transactionButton = "history.transactionButton"
+        static func transactionButtonAt(_ position: Int) -> String { "history.transactionButton\(position)" }
     }
     enum Home {
         static let balanceCardButton = "home.balanceCardButton"
@@ -69,6 +108,11 @@ enum TestID {
         static let receiveButton = "home.receiveButton"
         static let sendButton = "home.sendButton"
         static let syncStatusButton = "home.syncStatusButton"
+    }
+    enum Loading {
+        static let handlingLnurl = "loading.handlingLnurl"
+        static let receivingPayment = "loading.receivingPayment"
+        static let syncingWallet = "loading.syncingWallet"
     }
     enum Map {
         static let mapSpinner = "map.mapSpinner"
@@ -239,7 +283,9 @@ enum TestID {
                 static let mnemonicStack = "signup.create.mnemonic.mnemonicStack"
                 static let nextButton = "signup.create.mnemonic.nextButton"
                 static let topLabelOne = "signup.create.mnemonic.topLabelOne"
+                // Runtime-indexed: position 0 → "signup.create.mnemonic.word1", position 1 → "signup.create.mnemonic.word2", …
                 static let word = "signup.create.mnemonic.word"
+                static func wordAt(_ position: Int) -> String { "signup.create.mnemonic.word\(position + 1)" }
             }
             enum PinConfirm {
                 static let topLabel = "signup.create.pinConfirm.topLabel"

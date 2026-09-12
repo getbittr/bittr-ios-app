@@ -214,14 +214,12 @@ appId: com.bittr.bittr-regtest
     text: ".*[0-9].*"
 - takeScreenshot: shared/docs/screenshots/send_lightning/05_zero_pasted
 
-# Next without an amount raises the "Please enter the amount…" alert (single
-# Okay at index 0). Verify the message, then dismiss it. Match a substring
-# (Maestro treats `text` as a full-string regex, so the `.*` wrappers absorb any
-# title prefix / surrounding text and keep the apostrophe out of the pattern).
+# Next without an amount raises the amount-missing alert (single Okay at
+# index 0). Verify it's that alert, then dismiss it.
 - tapOn:
     id: "send.nextButton"
 - assertVisible:
-    text: ".*enter the amount of satoshis.*"
+    id: "alert.amountMissing"
 - takeScreenshot: shared/docs/screenshots/send_lightning/06_amount_missing
 - tapOn:
     id: "alert.button.0"
@@ -291,10 +289,10 @@ appId: com.bittr.bittr-regtest
 # upfront range popup any more. The range is kept behind the scenes and only
 # surfaced (as an alert) if the amount entered on confirm is out of range. Wait
 # the overlay out, then let the keyboard animate up. (The overlay is the shared
-# bottom loading popup — matched by its label text, since it has no test-id.)
+# bottom loading popup.)
 - extendedWaitUntil:
     notVisible:
-      text: ".*Handling lightning request.*"
+      id: "loading.handlingLnurl"
     timeout: 30000
 - waitForAnimationToEnd:
     timeout: 3000

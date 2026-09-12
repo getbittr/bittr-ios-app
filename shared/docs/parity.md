@@ -4,6 +4,8 @@ Per-feature status of iOS vs Android implementation. Updated as Maestro flows go
 
 Every flow under `shared/flows/` is listed below. iOS is the source of truth and is implemented; Android isn't scaffolded yet, so it reads `not started` across the board until the port begins.
 
+**Assertion fragility — the alert surface is matched by copy.** `alert.button._index` and `alert.textField` are the only accessibility ids on the alert surface, so *which* alert is on screen is asserted by matching its wording: 220 alert interactions across 33 flow files, and 147 `text:` matchers of which 39 depend on app copy. Reword one of those strings and the flow fails silently, on both platforms at once once they share `shared/strings/`. The dependency is pinned in `shared/strings/copy-lock.json` and checked in CI — the measurement, the seven strings hardcoded outside the copy table, and the verbatim rule for the `*Language.swift` → `shared/strings/` move are in `shared/strings/README.md`.
+
 ## Onboarding & wallet setup
 
 | Feature | iOS | Android | Maestro flow | Notes |
