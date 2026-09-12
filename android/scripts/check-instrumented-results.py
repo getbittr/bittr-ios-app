@@ -65,6 +65,19 @@ REQUIRED = {
     f"{PACKAGE}.CrossOriginIframeIsolationTest#aCrossOriginIframeFindsNoBridgeToPostTo",
     f"{PACKAGE}.CrossOriginIframeIsolationTest#aCrossOriginIframeCannotNavigateTheTopFrameToALightningUrl",
     f"{PACKAGE}.CrossOriginIframeIsolationTest#aCrossOriginIframeTriggersNoNetworkCallToAnLnurlEndpoint",
+    # The probe's positive controls. Every bridge assertion above is "the list
+    # came back empty", which is also what a probe that has stopped working
+    # returns. theCrossOriginIframeActuallyRan proves the frame loaded; these two
+    # prove the probe inside it still recognises a bridge. They plant a
+    # bridge-shaped object from JavaScript — never addJavascriptInterface, which
+    # JavascriptInterfaceGuardTest bans repo-wide with no allowlist — and require
+    # that both the name list and the for...in catch-all report it.
+    #
+    # These are the tests that fail if the alias exclusion is ever widened until
+    # it excludes everything, which is one edit away from a suite that passes
+    # forever without looking at anything.
+    f"{PACKAGE}.CrossOriginIframeIsolationTest#theIframeBridgeProbeReportsABridgeThatIsActuallyThere",
+    f"{PACKAGE}.ThirdPartyIsolationTest#theBridgeProbeReportsABridgeThatIsActuallyThere",
     # BIT-33 Acceptance 3 and 4 — the hostile page as the main frame.
     f"{PACKAGE}.ThirdPartyIsolationTest#aThirdPartyPageFindsNoBridgeToPostTo",
     f"{PACKAGE}.ThirdPartyIsolationTest#aThirdPartyPageCannotNavigateToALightningUrl",

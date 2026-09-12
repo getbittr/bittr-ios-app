@@ -100,7 +100,11 @@ def test_a_full_green_run_passes():
     with tempfile.TemporaryDirectory() as tmp:
         results = write_results(pathlib.Path(tmp), all_required())
         code, out = run(results)
-    check("a run with all 9 required tests passing exits 0", code == 0, out)
+    check(
+        f"a run with all {len(checker.REQUIRED)} required tests passing exits 0",
+        code == 0,
+        out,
+    )
     check("and says so", "ran and\npassed" in out or "ran and passed" in out, out)
 
 
