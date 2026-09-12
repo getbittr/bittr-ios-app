@@ -17,11 +17,11 @@ android {
         targetCompatibility = JavaVersion.VERSION_17
     }
 
-    testOptions {
-        unitTests {
-            isIncludeAndroidResources = true
-        }
-    }
+    // No `testOptions` block: this module has no `src/test`. AppPreferences is
+    // exercised through :app (SettingsFlowTest drives the real Settings screens
+    // over a real AppPreferences), which is where the behaviour that matters
+    // actually lives. Declaring unit-test configuration for tests that do not
+    // exist is what made `./gradlew test` fail — see the dependencies block.
 }
 
 kotlin {
@@ -38,7 +38,19 @@ dependencies {
     // uses.
     api(libs.kotlinx.coroutines.core)
 
-    testImplementation(libs.junit)
-    testImplementation(libs.robolectric)
-    testImplementation(libs.androidx.test.ext.junit)
+    // No `testImplementation` lines, deliberately. This module has no `src/test`,
+    // and under Gradle 9 a test dependency without a test is not inert: it puts
+    // classes on the unit-test runtime classpath, so the Test task counts as
+    // having sources, discovers nothing, and FAILS —
+    //
+    //   > Task :core:preferences:testDebugUnitTest FAILED
+    //     There are test sources present and no filters are applied, but the test
+    //     task did not discover any tests to execute.
+    //
+    // That took `./gradlew test` — the CI gate — red on android-parity from the
+    // moment this module landed, alongside :feature:home and :feature:settings.
+    // It is invisible to the per-module task lines agents run locally, because a
+    // module with no tests is not one anybody thinks to name.
+    //
+    // If this module gains a `src/test`, add the dependencies back with it.
 }
