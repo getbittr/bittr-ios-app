@@ -229,12 +229,27 @@ data class BittrColors(
      */
     val emphasis: Color,
     /**
-     * The `DetailRow` label — the key half of every key/value row.
+     * The `DetailRow` label — the **key half only** of a key/value row. The value half is
+     * already `blackorwhite` on iOS and ports to the scheme's `onSurface`.
      *
-     * iOS draws it in the brand yellow, which is **1.59 : 1 on white**: the app's worst
-     * contrast failure, on its most-repeated component (~33 call sites across Swap
-     * status, Transaction detail, Confirm send, Buy and Transfer4). Every screen where
-     * a user reads back an address, an amount or a deposit code before acting on it.
+     * iOS draws the key in the brand yellow, which is **1.59 : 1 on white**: the app's
+     * worst contrast failure, on the screens where a user reads back an address, an
+     * amount or a deposit code before acting on it.
+     *
+     * Read the provenance before you go looking for it in the source — it is **not** a
+     * `Colors.getColor` token. It is a static Display-P3 literal in `Main.storyboard`
+     * (`red="0.9647" green="0.7804" blue="0.2667"`, i.e. `#FFC502` in sRGB), so it does
+     * not switch on dark mode: it is yellow in *both*, and in light mode it sits on the
+     * white card. **61 labels carry it** — 49 with outlets plus the 12 Academy step
+     * digits — and only three are ever recoloured in code (`labelRegular`/`labelInstant`
+     * to `blackorwhite`, `profitLabel` to profit/loss). **46 outlet-bound labels ship the
+     * yellow**, 39 of them on Swap status, Transaction detail, Confirm send, Buy and
+     * Transfer4. Grepping `Colors.swift` finds none of this and turns up only the value
+     * halves, which look fine — that is the trap.
+     *
+     * **Not** Settings › Device details: `DeviceTableViewCell.swift:117-118` gives those
+     * rows their own contract (`blackorwhite`, 21.00 : 1 light / 5.97 : 1 dark) and they
+     * stay on `onSurface`. This token would lower both. Logged as an exclusion on BIT-4.
      *
      * Not [brandFixed] and not [emphasis]: this is body text that owes AA, so it takes
      * its own token rather than borrowing one whose floor is 3 : 1. Both values stay
