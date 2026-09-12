@@ -63,6 +63,18 @@
     -->
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
 
+    <!--
+      The network. Declared here rather than inherited (BIT-99).
+
+      Until the Wave 1 screens landed, INTERNET reached the merged manifest only
+      through MapLibre's own AAR manifest — so the app's ability to make any request
+      at all was a side effect of which map SDK was on the graph. Three screens now
+      fetch over the network for reasons of their own: the price chart calls the
+      bittr price API, the map syncs BTCMap, and the Academy downloads lesson
+      images. A permission three features depend on should be a line in this file.
+    -->
+    <uses-permission android:name="android.permission.INTERNET" />
+
     <application
         android:name=".BittrApplication"
         android:allowBackup="false"

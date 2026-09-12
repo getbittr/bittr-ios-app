@@ -4,7 +4,7 @@ plugins {
 }
 
 android {
-    namespace = "com.bittr.android.feature.value"
+    namespace = "com.bittr.android.feature.map"
     compileSdk = libs.versions.compileSdk.get().toInt()
 
     defaultConfig {
@@ -33,22 +33,30 @@ kotlin {
     }
 }
 
-// No charting library. The chart is one stroked path and a card that follows a
-// finger; a library would bring its own gesture handling, and the gesture is the
-// part `bitcoin_value.yaml` drives.
 dependencies {
     implementation(project(":core:common"))
     implementation(project(":core:designsystem"))
+    // The map asks for location through here rather than naming a permission. There
+    // is one approved location permission and it is coarse; BittrPermissions is the
+    // single place in the repo allowed to spell it out (LocationPrecisionGuardTest).
+    implementation(project(":core:permissions"))
 
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.compose.ui)
-    implementation(libs.androidx.compose.ui.graphics)
     implementation(libs.androidx.compose.material3)
     implementation(libs.androidx.compose.ui.tooling.preview)
     debugImplementation(libs.androidx.compose.ui.tooling)
 
     implementation(libs.androidx.core.ktx)
     implementation(libs.kotlinx.coroutines.core)
+
+    // The renderer. It lived on :app between BIT-53 and this issue so the manifest
+    // guards had a real merge to assert against; the build file it was declared in
+    // said to move it with the map screen, and this is that screen. Both guards read
+    // every build file in the tree, so they follow it here without being edited —
+    // and :app still merges MapLibre's manifest transitively, which is what
+    // LocationPrecisionGuardTest's `tools:node="remove"` assertion depends on.
+    api(libs.maplibre.android)
 
     testImplementation(libs.junit)
     testImplementation(libs.robolectric)

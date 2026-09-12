@@ -68,7 +68,17 @@ include(":feature:signup")
 // build file. See CameraCaptureGuardTest in :app.
 include(":feature:scanner")
 
-// The Bitcoin value / price chart (iOS ValueViewController). BIT-99, Wave 1. Holds
-// the span model and the screen's state for now; the chart, the price repository and
-// the Compose screen follow.
+// The Bitcoin value / price chart (iOS ValueViewController). BIT-99, Wave 1.
 include(":feature:value")
+
+// The Bitcoin map (iOS Map/). BIT-99, Wave 1. Owns the MapLibre dependency and the
+// BTCMap sync: both are constrained by approved copy rather than by taste — the
+// renderer choice is BIT-53's and the whole-dataset sync is what makes the shipped
+// "your location is never sent" true — so having one module boundary around them is
+// what keeps "which code can reach the map stack" answerable from one build file.
+// See MapSdkGuardTest and LocationEgressGuardTest in :app.
+include(":feature:map")
+
+// The Academy (iOS Academy/). BIT-99, Wave 1. Read-only content plus the lesson
+// unlock rule; no wallet, no network beyond the six lesson images.
+include(":feature:academy")

@@ -4,7 +4,7 @@ plugins {
 }
 
 android {
-    namespace = "com.bittr.android.feature.value"
+    namespace = "com.bittr.android.feature.academy"
     compileSdk = libs.versions.compileSdk.get().toInt()
 
     defaultConfig {
@@ -22,6 +22,8 @@ android {
 
     testOptions {
         unitTests {
+            // Robolectric needs the merged resources and the manifest to inflate
+            // anything; without it the test-tag checks fail at setContent.
             isIncludeAndroidResources = true
         }
     }
@@ -33,16 +35,15 @@ kotlin {
     }
 }
 
-// No charting library. The chart is one stroked path and a card that follows a
-// finger; a library would bring its own gesture handling, and the gesture is the
-// part `bitcoin_value.yaml` drives.
+// No image-loading library. The Academy is the one screen in the app that shows a
+// remote image — six of them across twenty-two lessons — and `LessonImages.kt` is
+// two dozen lines of HttpURLConnection and BitmapFactory against that.
 dependencies {
     implementation(project(":core:common"))
     implementation(project(":core:designsystem"))
 
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.compose.ui)
-    implementation(libs.androidx.compose.ui.graphics)
     implementation(libs.androidx.compose.material3)
     implementation(libs.androidx.compose.ui.tooling.preview)
     debugImplementation(libs.androidx.compose.ui.tooling)

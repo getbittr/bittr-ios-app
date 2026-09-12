@@ -93,12 +93,33 @@ the seed/PIN layer that BIT-93 already landed.
 | `features/pin_warning` | PinVC | **screens built** (BIT-97); needs the flow driven |
 | `features/wrong_pin` | PinVC | **screens built** (BIT-97); no-channel branch only — the channel close is Wave 2 |
 | `features/forgot_pin` | PinVC → RestoreVC | **screens built** (BIT-97); needs the flow driven |
-| `features/bitcoin_value` | ValueVC | price API, no wallet state |
-| `features/bitcoin_map` | MapVC | BTCMap public API; SDK settled in BIT-53 (coarse-location constraint is binding) |
-| `features/academy` | Academy | content API |
+| `features/bitcoin_value` | ValueVC | **screens built** (BIT-99); needs the flow driven |
+| `features/bitcoin_map` | MapVC | **screens built** (BIT-99); needs the flow driven. Basemap tiles wait on BIT-73 — see below |
+| `features/academy` | Academy | **screens built** (BIT-99); needs the flow driven |
 
 Also in this wave, not flow-bearing on their own: the Home shell in its
 no-funds state, and Settings and Device details as screens.
+
+**The three read-only screens landed on 2026-09-12 (BIT-99)** as `:feature:value`,
+`:feature:map` and `:feature:academy`, all three reachable from the Home
+placeholder through the identifiers their flows tap (`home.currencyButton`,
+`home.mapButton`, `nav.academyButton`). Three things about them are worth knowing
+before the flows are driven on an emulator:
+
+- **The map draws no basemap yet, deliberately.** `MapBasemap.STYLE_URI` is null
+  and the renderer paints a background-only style, because
+  `android/docs/map-sdk-decision.md` says no map screen may point at a vendor's
+  tiles while the current copy ships, and the pipeline that would serve bittr's own
+  is BIT-73. Everything `bitcoin_map.yaml` drives is the app's own code over its
+  own data and works today; only the drawn streets are missing. One constant
+  changes when BIT-73 lands.
+- **The Academy content is transcribed, not retyped.** `tools/academy_content.py`
+  generates `AcademyContent.kt` from the iOS demo data — four levels, 22 lessons,
+  360 components. Lesson ids are the completion keys on both platforms, so they
+  have to match exactly. Re-run the script rather than editing the output.
+- **The price and BTCMap requests go to the live APIs.** Neither needs a wallet, a
+  node or a credential, which is why these were Wave 1 — but the value flow's
+  90-second wait is real, and it is two sequential round trips.
 
 ~~wiring BIT-72's scanner result into a destination parser~~ — **done (BIT-100,
 2026-09-12).** `core/common/…/destination/` holds a pure-Kotlin port of

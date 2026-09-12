@@ -1,6 +1,10 @@
 package com.bittr.android.navigation
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -11,12 +15,14 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.bittr.android.core.common.TestID
 import com.bittr.android.core.designsystem.BittrBody
 import com.bittr.android.core.designsystem.BittrCanvas
+import com.bittr.android.core.designsystem.BittrCanvasShapes
 import com.bittr.android.core.designsystem.BittrCard
 import com.bittr.android.core.designsystem.BittrLogo
 import com.bittr.android.core.designsystem.BittrPiggy
@@ -39,9 +45,22 @@ import com.bittr.android.core.designsystem.CanvasSpacer
  * all already specified there.
  *
  * It carries `home.headerLabel` so a flow can assert the arc completed.
+ *
+ * **The three controls at the bottom are real** (BIT-99). The currency icon, the map
+ * icon and the Academy tab are the entry points `bitcoin_value.yaml`,
+ * `bitcoin_map.yaml` and `academy.yaml` tap from Home, and all three screens behind
+ * them need an unlocked wallet and nothing else. They are drawn as a plain row
+ * rather than as the mock's nav bar for the same reason the rest of this screen is a
+ * placeholder: the bar's other entries go to screens that do not exist. What is here
+ * is what works.
  */
 @Composable
-fun HomePlaceholderScreen(modifier: Modifier = Modifier) {
+fun HomePlaceholderScreen(
+    modifier: Modifier = Modifier,
+    onOpenValue: () -> Unit = {},
+    onOpenMap: () -> Unit = {},
+    onOpenAcademy: () -> Unit = {},
+) {
     BittrCanvas(modifier = modifier, appBar = false) {
         Column(
             verticalArrangement = Arrangement.Center,
@@ -85,7 +104,38 @@ fun HomePlaceholderScreen(modifier: Modifier = Modifier) {
                     modifier = Modifier.fillMaxWidth(),
                 )
             }
+
+            CanvasSpacer(BittrTokens.Spacing.lg)
+
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(BittrTokens.Spacing.sm),
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                HomeEntry("value", TestID.Home.currencyButton, onOpenValue, Modifier.weight(1f))
+                HomeEntry("map", TestID.Home.mapButton, onOpenMap, Modifier.weight(1f))
+                HomeEntry("academy", TestID.Nav.academyButton, onOpenAcademy, Modifier.weight(1f))
+            }
         }
+    }
+}
+
+/** One entry point, carrying the id its flow taps. */
+@Composable
+private fun HomeEntry(
+    label: String,
+    testTag: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Box(
+        contentAlignment = Alignment.Center,
+        modifier = modifier
+            .heightIn(min = BittrTokens.Size.minTouchTarget)
+            .background(BittrTheme.colors.scrim1, BittrCanvasShapes.wordRow)
+            .clickable(role = Role.Button, onClick = onClick)
+            .testTag(testTag),
+    ) {
+        Text(text = label, style = MaterialTheme.typography.labelLarge)
     }
 }
 

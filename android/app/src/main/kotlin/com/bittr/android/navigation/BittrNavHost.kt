@@ -11,7 +11,10 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.bittr.android.BuildConfig
 import com.bittr.android.core.common.destination.BitcoinNetwork
 import com.bittr.android.core.wallet.WalletState
+import com.bittr.android.feature.academy.AcademyScreen
+import com.bittr.android.feature.map.MapScreen
 import com.bittr.android.feature.scanner.ScannerScreen
+import com.bittr.android.feature.value.ValueScreen
 import com.bittr.android.feature.signup.CreateWalletScreen
 import com.bittr.android.feature.signup.RestoreWalletScreen
 
@@ -33,6 +36,17 @@ object Routes {
      * (`shared/flows/features/send_onchain.yaml:83-85`).
      */
     const val SCANNER = "scanner"
+
+    /**
+     * The three Wave 1 read-only screens (BIT-99). Each needs an unlocked wallet and
+     * nothing else — no funds, no node — which is why they are reachable before the
+     * wallet engine lands, and each is one destination rather than several: the
+     * Academy holds its open lesson as state and the map holds its open place the
+     * same way, matching the modals iOS presents over them.
+     */
+    const val VALUE = "value"
+    const val MAP = "map"
+    const val ACADEMY = "academy"
 }
 
 /**
@@ -46,7 +60,7 @@ object Routes {
  *
  * The whole create-wallet arc is one destination — see
  * `CreateWalletScreen`'s documentation for why the twelve words must not travel as
- * navigation arguments. Destinations for the rest of the port (buy, receive, map,
+ * navigation arguments. Destinations for the rest of the port (buy, receive,
  * settings) are added here as BIT-7 reaches them.
  */
 @Composable
@@ -117,7 +131,23 @@ fun BittrNavHost(
         }
 
         composable(Routes.HOME) {
-            HomePlaceholderScreen()
+            HomePlaceholderScreen(
+                onOpenValue = { navController.navigate(Routes.VALUE) },
+                onOpenMap = { navController.navigate(Routes.MAP) },
+                onOpenAcademy = { navController.navigate(Routes.ACADEMY) },
+            )
+        }
+
+        composable(Routes.VALUE) {
+            ValueScreen(onBack = { navController.popBackStack() })
+        }
+
+        composable(Routes.MAP) {
+            MapScreen(onBack = { navController.popBackStack() })
+        }
+
+        composable(Routes.ACADEMY) {
+            AcademyScreen(onBack = { navController.popBackStack() })
         }
 
         composable(Routes.SCANNER) {
