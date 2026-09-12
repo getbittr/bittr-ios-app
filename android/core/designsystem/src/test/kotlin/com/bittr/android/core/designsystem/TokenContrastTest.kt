@@ -472,6 +472,97 @@ class TokenContrastTest {
         }
     }
 
+    /**
+     * The same collision one slot over, in the scheme nobody thought to check: a
+     * `TextButton` paints its **text** `primary`, and in light mode `primary` is a page.
+     *
+     * Everything above measures `primary` as a fill, against the 3 : 1 floor of 1.4.11.
+     * But the app has two raw Material `TextButton`s — the alert's way-out button
+     * (`BittrAlert`, position 0) and the scanner's Close — and for those `primary` is
+     * 14 sp label text, which is not large text and therefore owes **4.5**, not 3.
+     *
+     * In dark that was already fine at 6.38 : 1. In light it was **1.42 : 1** — brand
+     * yellow on the `grey1` page, the exact failure this issue is named for, in the
+     * other scheme and on the other kind of control. `BittrLightColors` already says
+     * *"a filled Material `Button` is wrong in light mode and always was"*; a Material
+     * `TextButton` is wrong there for the identical reason, and neither was written
+     * down as a number until now.
+     *
+     * Both call sites now name `onSurfaceVariant`, which is what "drawn quieter on a
+     * surface" is supposed to mean — 5.57 : 1 light, 5.28 : 1 dark.
+     */
+    @Test
+    fun `A11Y-22 a TextButton label owes AA, so it cannot be primary in light mode`() {
+        for ((scheme, colors) in listOf(
+            "light" to BittrLightColors,
+            "dark" to BittrDarkColors,
+        )) {
+            assertAtLeast(
+                aa, colors.onSurfaceVariant, colors.surface,
+                "the $scheme TextButton label — the alert's way out, and the scanner's Close",
+            )
+        }
+        // The trap this replaced. Leaving the label to Material's default puts `primary`
+        // on the page: fine in dark, invisible in light. Asserted as a measurement so
+        // that dropping the `colors =` argument at either call site has a number on it.
+        assertTrue(
+            "light primary now clears AA as label text — re-read the note on BittrLightColors " +
+                "before letting a TextButton fall back to it",
+            contrast(BittrLightColors.primary, BittrLightColors.surface) < aa,
+        )
+    }
+
+    /**
+     * The alert's action button, which is on a `surface` rather than on the canvas.
+     *
+     * `actionFill` was specified for the onboarding canvas — ink on yellow in light,
+     * grey1 on blue1 in dark. `BittrAlert` is the first thing to put it on `surface`
+     * instead, so that adjacency needs its own number: it is not covered by the canvas
+     * tests above, and it is the pair that decides whether the alert's Continue button
+     * is visible. Both schemes clear the container floor with room to spare, which is
+     * what makes `actionFill` the right answer on both backgrounds rather than a
+     * canvas-only token that happens to be reachable.
+     */
+    @Test
+    fun `A11Y-22 the alert's action button is visible on the surface it sits on`() {
+        for ((scheme, colors, base) in listOf(
+            Triple("light", BittrLightColorsExtended, BittrLightColors),
+            Triple("dark", BittrDarkColorsExtended, BittrDarkColors),
+        )) {
+            assertAtLeast(
+                aaLarge, colors.actionFill, base.surface,
+                "the $scheme alert's action button against the alert",
+            )
+            assertAtLeast(
+                aa, colors.onActionFill, colors.actionFill,
+                "the $scheme alert's action button label",
+            )
+        }
+    }
+
+    /**
+     * Why `BittrAlert` spells out `containerColor = surface`.
+     *
+     * Material's `AlertDialog` reaches for `surfaceContainerHigh`, and the dark filled
+     * button that BIT-94 fixed measures **3.96 : 1** there — over the 3 : 1 container
+     * floor, so the confirm button stays legal, but with no margin left. It is the
+     * tightest pair in the dark scheme and the one that decides how far `primary` can
+     * move. Recorded as a number rather than a comment so that taking the
+     * `containerColor` line back out is a test failure away from being noticed.
+     */
+    @Test
+    fun `A11Y-22 the dialog container is the tightest surface the fix has to clear`() {
+        assertAtLeast(
+            aaLarge, BittrDarkColors.primary, BittrDarkColors.surfaceContainerHigh,
+            "the dark filled button on Material's default dialog container",
+        )
+        assertTrue(
+            "the dialog container now has AA-text headroom — BittrAlert's containerColor " +
+                "override can be reconsidered",
+            contrast(BittrDarkColors.primary, BittrDarkColors.surfaceContainerHigh) < aa,
+        )
+    }
+
     @Test
     fun `A11Y-22 the dark Material slot and the dark canvas pill are one decision`() {
         // `actionFill` had already inverted to grey1 for the onboarding pill, with the

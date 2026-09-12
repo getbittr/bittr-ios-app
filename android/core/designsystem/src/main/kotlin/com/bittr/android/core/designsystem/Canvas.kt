@@ -35,6 +35,7 @@ import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.graphics.vector.PathParser
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -119,7 +120,7 @@ fun BittrAppBar(onBack: (() -> Unit)? = null, modifier: Modifier = Modifier) {
                     contentDescription = "Back",
                     modifier = Modifier
                         .size(AppBarIconBox)
-                        .clickable(onClick = onBack)
+                        .clickable(role = Role.Button, onClick = onBack)
                         .padding(12.dp),
                 )
             }
@@ -198,7 +199,7 @@ fun BittrPrimaryButton(
                 if (enabled) colors.actionFill else colors.actionFillDisabled,
                 BittrCanvasShapes.pill,
             )
-            .clickable(enabled = enabled, onClick = onClick),
+            .clickable(enabled = enabled, role = Role.Button, onClick = onClick),
     ) {
         if (content != null) {
             content()
@@ -237,7 +238,7 @@ fun BittrTonalButton(
             .fillMaxWidth()
             .height(if (compact) ButtonHeightCompact else ButtonHeight)
             .background(colors.tonalFill, BittrCanvasShapes.pill)
-            .clickable(onClick = onClick),
+            .clickable(role = Role.Button, onClick = onClick),
     ) {
         Text(text, style = MaterialTheme.typography.labelLarge, color = colors.onTonalFill)
     }
@@ -260,7 +261,7 @@ fun BittrTextButton(
         modifier = modifier
             .fillMaxWidth()
             .heightIn(min = BittrTokens.Size.minTouchTarget)
-            .clickable(enabled = enabled, onClick = onClick),
+            .clickable(enabled = enabled, role = Role.Button, onClick = onClick),
     ) {
         Text(
             text = text,
@@ -436,7 +437,7 @@ private fun AlertButton(
         modifier = Modifier
             .heightIn(min = BittrTokens.Size.minTouchTarget)
             .background(background, BittrCanvasShapes.pill)
-            .clickable(onClick = onClick)
+            .clickable(role = Role.Button, onClick = onClick)
             .padding(horizontal = 22.dp)
             .then(testTag?.let { Modifier.testTag(it) } ?: Modifier),
     ) {

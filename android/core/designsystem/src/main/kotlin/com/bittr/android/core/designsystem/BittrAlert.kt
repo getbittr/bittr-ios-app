@@ -5,7 +5,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -124,6 +124,14 @@ fun BittrAlert(
 
 /**
  * Position 0 is the way out and is drawn quieter; everything after it is an action.
+ *
+ * **The quiet one spells out its label colour.** A Material `TextButton` paints its
+ * text `primary`, and in light mode `primary` here is the brand yellow — a *surface*,
+ * not an accent (see [BittrLightColors]). Yellow label on the `grey1` page is
+ * **1.42 : 1**: the way out of the alert was very nearly invisible, for the same
+ * reason and by the same mechanism as the dark filled button in BIT-94, one slot over.
+ * `onSurfaceVariant` is what "quieter" is supposed to mean on a surface — 5.57 : 1
+ * light, 5.28 : 1 dark. A11Y-22, BIT-94.
  */
 @Composable
 private fun AlertButton(button: BittrAlertButton, position: Int) {
@@ -133,12 +141,30 @@ private fun AlertButton(button: BittrAlertButton, position: Int) {
         .testTag(TestID.Alert.buttonAt(position))
 
     if (position == 0 && button.dismissesAlert) {
-        TextButton(onClick = button.onClick, modifier = buttonModifier) {
+        TextButton(
+            onClick = button.onClick,
+            modifier = buttonModifier,
+            colors = ButtonDefaults.textButtonColors(
+                contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+            ),
+        ) {
             Text(button.label)
         }
     } else {
-        Button(onClick = button.onClick, modifier = buttonModifier) {
-            Text(button.label)
-        }
+        // **Not a Material `Button`.** It would paint its container `primary`, and in
+        // light mode `primary` is the brand yellow *on the `grey1` page* — 1.42 : 1,
+        // the same container-vs-surface failure as BIT-94's dark button, which the
+        // rendered `scanner-rationale.png` showed as 95 000 pixels of yellow fill.
+        // [BittrLightColors] already states the rule this violated: the primary call to
+        // action in this app is [BittrPrimaryButton] on `actionFill` — 17.35 : 1 light,
+        // 6.38 : 1 dark. `arrow = false` because an alert action is a choice, not a
+        // step forward. A11Y-22, BIT-94.
+        BittrPrimaryButton(
+            text = button.label,
+            onClick = button.onClick,
+            modifier = buttonModifier,
+            arrow = false,
+            compact = true,
+        )
     }
 }

@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -177,9 +178,16 @@ internal fun ScannerScreenContent(
                 }
             }
 
+            // The label colour is spelled out for the reason `BittrAlert`'s way-out
+            // button spells it out: a Material `TextButton` paints its text `primary`,
+            // and in light mode `primary` is the brand yellow, which is a surface in
+            // this app — 1.42 : 1 on the `grey1` page. A11Y-22, BIT-94.
             TextButton(
                 onClick = onClose,
                 modifier = Modifier.testTag(TestID.Scanner.closeButton),
+                colors = ButtonDefaults.textButtonColors(
+                    contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                ),
             ) {
                 Text(ScannerCopy.CLOSE)
             }
