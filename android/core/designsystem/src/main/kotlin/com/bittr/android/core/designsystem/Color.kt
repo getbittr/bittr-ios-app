@@ -265,11 +265,25 @@ data class BittrColors(
     val footnote: Color,
     /** The insignificant leading zeros of the Home balance. §3 S-09, DEV-24. */
     val balanceDimmed: Color,
-    /** `white0.7orblue1`. */
+    /**
+     * `white0.7orblue1`. **The fill of every amount/address input field in the wallet** —
+     * Send address, Send amount, Receive amount, Receive note, and, after DEV-61, Swap
+     * amount. Dark is `blue1`, which carries the placeholder at 5.28 and the typed value
+     * at 7.15. A11Y-22.
+     */
     val scrim1: Color,
     /** `white0.7orblue2`. */
     val scrim2: Color,
-    /** `white0.7orblue3`. */
+    /**
+     * `white0.7orblue3`. **A card fill, not a field fill.** Dark is `blue3`, where pure
+     * white — the ceiling — is 4.44, so nothing on this surface can be AA body text. Its
+     * five call sites are all ≥ 14sp-bold labels (the four Receive action cards and the
+     * map's *Go to maps* button), which are large text at a 3.0 floor and clear it.
+     *
+     * The Swap amount field used to fill with this and does not any more: its placeholder
+     * and its typed value are 16sp regular, and no white-based token can carry them here.
+     * A11Y-22, DEV-61 — see [scrim1].
+     */
     val scrim3: Color,
     /** `transparentyellow`. */
     val scrimBrand: Color,
@@ -417,6 +431,14 @@ val BittrLightColorsExtended = BittrColors(
  *
  * Nothing here changes under DEV-47 or A11Y-04 — both fixes are light-mode-only, which
  * is what makes them cheap.
+ *
+ * **[scrim3] stays `blue3` — A11Y-22 / DEV-61.** Moving it to `blue2` the way A11Y-02
+ * moved `surface` was the obvious reading of the Swap placeholder failure, and it is
+ * wrong: the Swap amount field sits *inside* `centerCard`, which is `yelloworblue2` =
+ * `blue2`, so a `blue2` fill is **1.00 : 1** against the card it lives in — the field
+ * stops being visible at all. The fix is at the call site instead: the Swap field fills
+ * with [scrim1] like every other field in the wallet, and `scrim3` keeps `blue3` for the
+ * five card surfaces that are large text and clear their floor there.
  */
 val BittrDarkColorsExtended = BittrColors(
     profit = Green1,
