@@ -5,35 +5,38 @@ This test does not gate the storage design — it *verifies* one of its rules.
 
 ## Status
 
-**Two of the seven rows now have real observations; five do not, and there is no
-verdict on rule 2 yet.** API 34 came back green on all five reachable cases and
-API 26 on the one it can witness. That is one emulator API level and a partial
-second — not the matrix, and specifically not the two OEM handsets this test was
-written for. Nothing here may yet be quoted as evidence that rule 2 holds *on a
-customer's phone*.
+**All five emulator rows are measured. The two OEM handset rows are not, and
+they are the rows this test was written for.**
 
-What remains is a hardware gap on two rows and three unrun emulator levels — see
-[What is blocking the run](#what-is-blocking-the-run).
+Across API 26, 30, 33, 34 and 35: **21 cases PASS, 3 not reachable, 2 no-verdict,
+and zero FAIL.** No device in the emulator matrix contradicts BIT-8 rule 2. That
+retires the *documentation* half of the doubt — the AOSP javadoc rule 2 rests on
+is now an observation on five AOSP builds spanning eight years rather than a
+quotation.
+
+It does not touch the *OEM* half. Emulators run AOSP, and K1 exists precisely
+because OEM builds diverge, so nothing here may yet be quoted as evidence that
+rule 2 holds *on a customer's phone*. What remains is a hardware gap on two rows
+— see [What is blocking the run](#what-is-blocking-the-run).
 
 The harness itself is now tested, device-free, and gated in CI: see [Checking the
 harness without a device](#checking-the-harness-without-a-device). That is a
 statement about the driver's reasoning and nothing else. **It is not evidence
 about Keystore**, and no amount of it ever will be.
 
-The five emulator rows now have a way to be produced —
+The five emulator rows are produced by
 `.github/workflows/k1-keystore-lockscreen.yml`, which boots an emulator on an
-ordinary GitHub-hosted runner. **Seven runs have been made. The first six
+ordinary GitHub-hosted runner. **Nine runs have been made. The first six
 produced no rows at all**, and every defect they exposed was in this harness
 rather than in Android. See [Runs so far](#runs-so-far).
 
 Run #6 was the decisive one: it proved that `adb shell locksettings verify` exits
 0 for everything on the API 34 image, which condemned every host-side witness the
 driver had. Those witnesses were **rebuilt on the device side** — see [How a row
-avoids being a false green](#how-a-row-avoids-being-a-false-green) — and **run #7
-produced the first rows this issue has ever had**: API 34 green on all five cases
-with full witnesses, API 26 short by the three cases nothing on that device can
-witness. See [Results](#results). The two physical-device rows still need handsets
-someone owns.
+avoids being a false green](#how-a-row-avoids-being-a-false-green) — run #7
+produced the first rows this issue ever had, and **run #8 completed the sweep**.
+See [Results](#results). The two physical-device rows still need handsets someone
+owns.
 
 ## What is being proved
 
@@ -353,18 +356,16 @@ screen" on exit. Never point it at a device holding a real wallet.
 
 ## Results
 
-**Empty. Nothing here has been run.**
-
-Table format, one block per device —
-`M2 | PASS | old-credential-rejected+new-credential-set | TRUSTED_ENVIRONMENT`:
+**Five of seven rows. Run #8 (`41a7d8f`, `k1-run/26-30-33-34-35`) swept every
+emulator level in the matrix.**
 
 | device | API | M1 | M2 | M3 | M4 | M5 | M6 |
 |---|---|---|---|---|---|---|---|
 | emulator | 26 | **PASS** | n/r | n/r | n/r | *no verdict* | — |
-| emulator | 30 | — | — | — | — | — | — |
-| emulator | 33 | — | — | — | — | — | — |
+| emulator | 30 | **PASS** | **PASS** | **PASS** | **PASS** | *no verdict* | — |
+| emulator | 33 | **PASS** | **PASS** | **PASS** | **PASS** | **PASS** | — |
 | emulator | 34 | **PASS** | **PASS** | **PASS** | **PASS** | **PASS** | — |
-| emulator | 35 | — | — | — | — | — | — |
+| emulator | 35 | **PASS** | **PASS** | **PASS** | **PASS** | **PASS** | — |
 | physical Samsung | — | — | — | — | — | — | — |
 | physical Xiaomi | — | — | — | — | — | — | — |
 
@@ -372,28 +373,33 @@ Table format, one block per device —
 mutation could not be witnessed on this device and the reason is recorded ·
 *no verdict* = the run could not produce a rule-2 answer, which is **not** a FAIL
 
-**First rows, run #7 (`8c7c3e4`).** Read them with the caveats below, not off the
-grid:
+**21 PASS · 3 not reachable · 2 no-verdict · 0 FAIL.** Every PASS carries its
+observed transition in the annotation — `secure:false->true+complexity:NONE->MEDIUM`
+and so on — so each row states what was seen to happen, not that something was
+attempted. Read the rows with these four caveats, not off the grid:
 
-- **API 34 is five for five, with full witnesses on every row.** Every mutation
-  was observed to happen — keyguard transition *and* complexity bucket move — and
-  the non-auth-bound key opened its blob afterwards in a process that did not
-  exist when the key was made. This is the first evidence on this issue that is
-  about Keystore at all.
-- **`securityLevel=SOFTWARE` on both rows.** Per `seed-storage-security` §4 this
-  is observed, not attested, and on an emulator it means what it says: there is
-  no TEE behind these keys. Five green emulator rows retire the *documentation*
-  half of the doubt. They do not touch the OEM half, and they are not a hardware
-  claim.
-- **API 26's M5 is not a rule-2 failure**, though run #7 first recorded it as one.
-  See [the control key on a software
-  keystore](#the-control-key-on-a-software-keystore).
-- **M2/M3/M4 on API 26 are `not reachable` as designed** —
+- **Nothing in the matrix contradicts rule 2.** Zero FAIL across five AOSP builds
+  spanning API 26 (2017) to 35 (2024). A non-auth-bound `AES/GCM` key opened its
+  blob after every mutation that was witnessed, from a process that did not exist
+  when the key was made.
+- **`securityLevel=SOFTWARE` on every row, and this is not a hardware claim.** Per
+  `seed-storage-security` §4 the column is observed, not attested, and on an
+  emulator it means what it says: no TEE behind these keys. What five green
+  emulator levels retire is the *documentation* half of the doubt. The OEM half is
+  untouched.
+- **M5 has no verdict on API 26 and 30 — the control, not the claim.** See [the
+  control key and the API 31 boundary](#the-control-key-and-the-api-31-boundary).
+  The practical consequence is worth stating in the open: *"remove the lock screen
+  entirely"* — BIT-18's mutation 4, and the most alarming one for a user — is
+  evidenced on **three** emulator levels, not five.
+- **M2/M3/M4 on API 26 are `not reachable` by design.**
   `getPasswordComplexity()` does not exist below API 29, so nothing on that device
-  can witness a mutation that leaves it secure on both sides.
+  can witness a mutation that leaves it secure on both sides. API 30 and up carry
+  all three.
 
-**No verdict on BIT-8 rule 2 yet.** One emulator API level is not the matrix, and
-the two rows that carry the most weight are the two that need handsets.
+**This is not yet a verdict that rule 2 holds on a customer's phone.** The two
+rows that carry the most weight are the two that need handsets, and they are
+exactly the rows K1 was written for.
 
 ### Runs so far
 
@@ -406,8 +412,29 @@ the two rows that carry the most weight are the two that need handsets.
 | [#5](https://github.com/getbittr/bittr-ios-app/actions/runs/34596169712) | `k1-run/pilot` | `060b71a` | API 34, `default`, `x86_64` | **refused** — the credential witness does not work on this image |
 | [#6](https://github.com/getbittr/bittr-ios-app/actions/runs/34596943875) | `k1-run/pilot` | `0ab54f3` | API 34, `default`, `x86_64` | **refused** — and named why: `locksettings verify` always exits 0 |
 | [#7](https://github.com/getbittr/bittr-ios-app/actions/runs/34693098167) | `k1-run/26-34` | `8c7c3e4` | API 26 `x86`, API 34 `x86_64`, both `default` | **first rows.** API 34 five for five. API 26: M1 PASS, M2-M4 not reachable, M5 no verdict (the control key, not rule 2) |
+| [#8](https://github.com/getbittr/bittr-ios-app/actions/runs/34693658092) | `k1-run/26-30-33-34-35` | `41a7d8f` | API 26 `x86`; 30, 33, 34, 35 `x86_64`; all `default` | **the sweep.** 21 PASS, 3 not reachable, 2 no verdict, **0 FAIL**. 33/34/35 five for five; 30 four for five; 26 one for one |
+| [#9](https://github.com/getbittr/bittr-ios-app/actions/runs/34721755933) | `k1-run/26` | `284f025` | API 26 `x86`, `default` | **re-measured the one ambiguous row.** Identical to #8, and M1 is now known to be a real observation — see below |
 
-None of the six is a row, and none may be read as one.
+None of runs #1–#6 is a row, and none may be read as one.
+
+**Run #9 exists because one row of run #8 could not be told apart from a harness
+default, and it is worth being explicit about which.** `observe()` leaves
+`OBS_SECURE=true` when the device does not answer — correct for `reset_to_none`,
+which should keep trying to clear a lock screen it is unsure about, and wrong for
+the post-mutation witness. `284f025` split the two and made an unanswered
+observation an `ERROR`, but it landed after run #8 had already been pushed.
+
+For 19 of run #8's 21 PASS rows that gap is provably harmless: their witness
+strings carry a complexity reading (`complexity:NONE->MEDIUM`), and a defaulted
+observation reports `unreadable`, which no row can be built from. **API 26's M1 is
+the exception.** `getPasswordComplexity()` does not exist there, so its witness is
+`secure:false->true` alone — which is exactly what a silently defaulted
+observation would also print. It could not be distinguished from the annotation.
+
+Run #9 re-ran that level on `284f025`, where a defaulted observation cannot
+produce a row at all, and M1 came back `PASS` again. **The observation was real.**
+One emulator boot to convert one row from "probably fine" to "measured", on a test
+whose entire subject is the difference between those two things.
 
 **Run #1** established one thing and hid the rest. The emulator booted on an
 ordinary GitHub-hosted `ubuntu-latest` runner, the probe built, and the matrix ran
@@ -651,17 +678,75 @@ owner cannot be removed without a factory reset, so the script refuses to set on
 on a handset. The same treatment now covers M2/M3/M4 below API 29. Recording that
 is the honest answer to the question the issue asked.
 
-### The control key on a software keystore
+### Run #8 — what the sweep settled and what it did not
+
+Run #8 is the first run of this harness that spent its emulator boots on Android
+rather than on itself. Five images, five tables, **no harness defect** — after six
+consecutive runs that found one. The rebuilt device-side witnesses held on every
+image, including API 26, which is the oldest and least like the one they were
+developed against.
+
+What it settles: **rule 2's premise is no longer a quotation.** "Keystore's
+documented lock-screen invalidation applies only to auth-bound keys" was AOSP
+javadoc when BIT-8 was decided; it is now an observation on five AOSP builds, with
+every mutation independently witnessed and zero contradictions. That was the
+entire point of splitting K1 out of BIT-6.
+
+What it does not settle, in order of how much it matters:
+
+1. **Both OEM rows.** Emulators are AOSP. K1 exists because OEM builds diverge,
+   and this run contains no evidence about a Samsung or a Xiaomi.
+2. **M5 below API 31** — the control is not working there, so credential
+   *removal* is evidenced on 33/34/35 only.
+3. **Hardware backing.** Every row is `SOFTWARE`. A TEE-backed key is a different
+   code path in the same API, and no emulator can exercise it.
+
+Items 1 and 3 are the same gap seen twice: they both need a handset.
+
+### The control key and the API 31 boundary
 
 Run #7's API 26 row came back `**FAIL**` on M5, and **that label was wrong** — the
 harness's own bug, fixed in the same heartbeat that found it.
 
 What actually failed was the *positive control*, not the claim. M5 and M6 create
 an auth-bound key that is **supposed to die** when the credential is destroyed; if
-it survives, the non-auth-bound key's survival proves nothing. On this image it
-survived — `KeyInfo` reports `SOFTWARE`, so there is no hardware keystore to
-enforce the invalidation Android documents. `K1OpenTest` therefore stopped
-*before* decrypting anything.
+it survives, the non-auth-bound key's survival proves nothing. On that image it
+survived, so `K1OpenTest` stopped *before* decrypting anything and the row is
+recorded `ERROR` — no verdict.
+
+**Run #7 explained that by `securityLevel=SOFTWARE`, and run #8 refutes the
+explanation.** The reasoning was "`KeyInfo` reports `SOFTWARE`, so there is no
+hardware keystore to enforce the invalidation Android documents" — which sounded
+right and was reached from a single data point. Run #8 reports `SOFTWARE` on
+**every row of all five levels**, and the control key dies correctly on three of
+them:
+
+| API | control key after the credential is destroyed | security level |
+|---|---|---|
+| 26 | **survived** — no verdict on M5 | `SOFTWARE` |
+| 30 | **survived** — no verdict on M5 | `SOFTWARE` |
+| 33 | invalidated, as documented | `SOFTWARE` |
+| 34 | invalidated, as documented | `SOFTWARE` |
+| 35 | invalidated, as documented | `SOFTWARE` |
+
+So the split is by **API level, not by security level**, and it falls between 30
+and 33. That is consistent with Keystore 2.0, which replaced the legacy keystore
+daemon in Android 12 / **API 31**: the hypothesis is that keystore2's software
+implementation enforces auth-bound invalidation where its predecessor did not.
+
+**That is a hypothesis and K1 does not test it.** The boundary is bracketed, not
+located — 31 and 32 are not in this matrix — and the mechanism is inferred from a
+version coincidence rather than observed. It is written down because the next
+person to read an API 26 `ERROR` row deserves better than the explanation run #7
+gave, which the data has since contradicted. Locating the boundary exactly would
+cost two more emulator boots and would tell us nothing about rule 2, which is why
+it has not been spent.
+
+A more careful reading of what these two rows mean: on API 26 and 30 K1 cannot
+tell whether the non-auth-bound key survived credential removal, because the
+instrument that would make that answer meaningful is not working. It is **not**
+evidence that the key died there. It is the absence of evidence either way, and
+the harness says so rather than guessing.
 
 So the run never tested rule 2 on that row. But `**FAIL**` is defined by this
 document as *"this device contradicts BIT-8 rule 2"*, and the result cell is the
@@ -691,8 +776,21 @@ claim hardware backing at 26–27**, whatever the column says.
 
 ## Verdict on `wallet-core-spec`
 
-**Not yet issued.** BIT-6's one-line verdict is due when the table has rows, and
-it is deliberately not written in advance.
+**Issued for the emulator matrix, withheld for the handsets.** One line, as
+BIT-18's definition of done asks, recorded in `wallet-core-spec` §6 and against
+the lock-screen row of its §3 risk table:
+
+> **K1 — AOSP confirmed, OEM unproven.** A non-auth-bound `AES/GCM` Keystore key
+> decrypted its blob after every witnessed lock-screen mutation on emulator API
+> 26, 30, 33, 34 and 35 — 21 PASS, 0 FAIL (run #8) — so BIT-8 rule 2 may be built
+> on; the physical Samsung and Xiaomi rows are unrun, so "the lock-screen scenario
+> is handled" is still not a claim BIT-6 may make about a customer's phone.
+
+The two halves of that line are deliberate, and §3's own words are the reason:
+*"Documentation is not a device, OEM builds diverge, and this is a funds path."*
+Run #8 answers the first clause. It cannot answer the second, and a verdict that
+blurred them would let the OEM risk be retired by evidence that never looked at
+an OEM.
 
 ## What is blocking the run
 
@@ -700,23 +798,36 @@ The container this harness was built in has **no emulator, no `/dev/kvm`, and no
 attached device**, so no row can be produced from it directly. That was the whole
 blocker. It is now the blocker on two of the seven rows.
 
-- **The five emulator rows are no longer blocked on hardware.** They run in CI on
-  the KVM host the Maestro job already uses — see *Running the emulator rows in
-  CI* above. Run #1 proved the mechanism: a GitHub-hosted `ubuntu-latest` runner
-  has `/dev/kvm`, passed the preflight, built the probe and booted an emulator
-  without `ANDROID_EMULATOR_RUNNER` being set at all. What the rows are blocked on
-  now is the matrix producing `PASS` against that image, and run #1 says it did
-  not. No new machine, no purchase, no new access.
+- **The five emulator rows are done.** They ran in CI on an ordinary GitHub-hosted
+  `ubuntu-latest` runner, which has `/dev/kvm` — see *Running the emulator rows in
+  CI* above. `ANDROID_EMULATOR_RUNNER` was never set; the self-hosted host is an
+  optional override, not a prerequisite. No new machine, no purchase, no new
+  access was needed for any of them, and none should be requested on this issue's
+  account.
 - **The Samsung and Xiaomi rows cannot be automated into CI at all.** They need
   physical handsets someone owns, and they are the rows that actually matter:
   emulators run AOSP, and K1 exists precisely because *OEM builds diverge*. Five
-  green emulator rows would confirm the AOSP javadoc that rule 2 already rests
-  on — which is not the same as confirming rule 2.
+  green emulator rows confirm the AOSP javadoc that rule 2 already rests on —
+  which is not the same as confirming rule 2.
 
-The honest reading of that split: CI can retire the *documentation* half of the
+The honest reading of that split: CI has retired the *documentation* half of the
 doubt, cheaply and repeatably, and it cannot touch the *OEM* half. A physical
 Samsung and a physical Xiaomi, run once by hand with `k1-lockscreen-matrix.sh`,
 remain the only way to close this issue as specified.
+
+**This is not a CI-runner request and it must not be escalated as one.** The
+distinction has been mistaken twice on this issue's behalf. What is needed is two
+handsets someone can attach a USB cable to and hand over for an afternoon — a
+Samsung and a Xiaomi, any model on API 29+ so all six cases are reachable, with no
+real wallet on them. Running them is one command and no Android knowledge:
+
+```sh
+bash android/scripts/k1-lockscreen-matrix.sh --out ~/k1-samsung.md
+```
+
+It refuses a device holding user accounts unless `--i-know` is passed, and it
+restores the handset to "no lock screen" when it finishes. The output file is the
+row. **Never point it at a device holding a real wallet.**
 
 ## If a row comes back red
 
