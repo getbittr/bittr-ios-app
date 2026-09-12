@@ -84,4 +84,38 @@ internal object SourceTree {
     }
 
     fun File.repoPath(): String = relativeTo(root).path
+
+    /**
+     * [File.readText] with comments removed.
+     *
+     * Same idiom, and same reason, as `:core:wallet-ldk`'s `WalletSourceTree`:
+     * a guard that scans source has to read *code*, and the documentation next
+     * to a rule names the very strings the rule is about. Stripping comments is
+     * what lets the two coexist.
+     *
+     * Deliberately crude — no string-literal awareness. A comment marker inside
+     * a string literal is something a reviewer should look at anyway.
+     */
+    fun codeOf(file: File): String {
+        val source = file.readText()
+        val out = StringBuilder(source.length)
+        var index = 0
+        while (index < source.length) {
+            when {
+                source.startsWith("/*", index) -> {
+                    val end = source.indexOf("*/", index + 2)
+                    index = if (end < 0) source.length else end + 2
+                }
+                source.startsWith("//", index) -> {
+                    val end = source.indexOf('\n', index)
+                    index = if (end < 0) source.length else end
+                }
+                else -> {
+                    out.append(source[index])
+                    index++
+                }
+            }
+        }
+        return out.toString()
+    }
 }

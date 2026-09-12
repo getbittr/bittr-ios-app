@@ -56,6 +56,9 @@ include(":core:permissions")
 // the same API; nothing above this line changes when it lands.
 include(":core:wallet")
 include(":core:wallet-stub")
+// The real binding: ldk-node + BDK, plus the seed storage and LDK-state
+// quarantine model decided in BIT-8 and BIT-20. See core/wallet-ldk/README.md.
+include(":core:wallet-ldk")
 
 // The seed, split along the line that makes it testable: :core:wallet-seed is pure
 // Kotlin (BIP-39, the PIN verifier, the state machine) and runs on the JVM;
