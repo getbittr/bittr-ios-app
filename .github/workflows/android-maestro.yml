@@ -61,7 +61,37 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  JAVA_VERSION: '17'
+  # Two JDKs, and the order is load-bearing: `setup-java` points JAVA_HOME at the
+  # LAST one listed, so Gradle itself runs on 21 while 17 stays installed for the
+  # four pure-Kotlin modules that ask for `jvmToolchain(17)`.
+  #
+  # It was '17' alone until BIT-59 put this module's Robolectric tests in front of
+  # a CI runner. Robolectric 4.16.1 declares a minimum JDK per SDK level — read
+  # off org.robolectric.plugins.DefaultSdkProvider rather than from memory:
+  #
+  #   SDK 33 -> Java 9    SDK 34 -> Java 17
+  #   SDK 35 -> Java 17   SDK 36 -> Java 21
+  #
+  # and :core:wallet-ldk pins @Config(sdk = [26, 34, 36]) on the three classes
+  # that prove BIT-8 rule 3 and BIT-20 rules 3 and 5. On JDK 17 those three die at
+  # initialisation — "Failed to create a Robolectric sandbox: Android SDK 36
+  # requires Java 21 (have Java 17)" — before a single assertion runs, and every
+  # emulator job in this workflow `needs: build`, so the failure takes the whole
+  # run with it.
+  #
+  # The alternative was to move the pin down to 35. Rejected: RobolectricSdkPinGuardTest
+  # explains why that module states the API levels its claims hold at, and 36 is
+  # the level :app targets. Lowering a security claim's coverage to fit the CI
+  # JDK is the wrong end to fix this from — especially since every developer
+  # machine here already runs Gradle on 21, which is exactly why this was green
+  # locally and red in CI.
+  #
+  # Bytecode targets are untouched: sourceCompatibility/jvmTarget stay at 17
+  # everywhere. This changes the JVM the build and the tests RUN on, not what
+  # they compile to.
+  JAVA_VERSION: |
+    17
+    21
   # Pinned deliberately. The definition of done is three consecutive green runs, which
   # only means something if the three runs used the same tooling — an unpinned installer
   # makes the Maestro version a variable that can change between run 1 and run 3, and
