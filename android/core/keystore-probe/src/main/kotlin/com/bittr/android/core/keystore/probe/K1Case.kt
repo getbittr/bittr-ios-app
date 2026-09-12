@@ -11,10 +11,10 @@ package com.bittr.android.core.keystore.probe
  * @param startsSecure whether the harness must have a lock screen set *before* the seal phase.
  *   Checked in the seal phase, so a harness that failed to reach the start state fails loudly
  *   instead of quietly testing a different mutation.
- * @param endsSecure the same for after the mutation. For the four cases where this equals
- *   [startsSecure] it only catches a harness that did nothing at all; the real
- *   mutation-effectiveness witness for those is host-side (`locksettings verify`, see
- *   `android/scripts/k1-lockscreen-matrix.sh`).
+ * @param endsSecure the same for after the mutation. Where this differs from [startsSecure] it is
+ *   a decisive witness that the mutation landed, available on every API in the matrix. Where it
+ *   does not — M2, M3, M4 — the case has no keyguard witness and rests on
+ *   [K1Credential.complexity] instead; see [hasKeyguardWitness].
  * @param usesAuthBoundControl whether an auth-bound key is a valid witness that the mutation
  *   destroyed credentials. True only for the cases that *destroy* the credential. A PIN → PIN
  *   change re-wraps the synthetic password and auth-bound keys survive it legitimately, so
@@ -34,6 +34,16 @@ enum class K1Case(
     M5_REMOVE("M5", true, false, true, "remove the lock screen entirely"),
     M6_ADMIN_RESET("M6", true, false, true, "device-owner forced reset of the secure lock screen"),
     ;
+
+    /**
+     * True when `KeyguardManager.isDeviceSecure` alone proves this mutation happened, because the
+     * case crosses the has-a-credential line in one direction or the other.
+     *
+     * False for M2/M3/M4, which are secure on both sides. Those three are reachable only where
+     * [K1Credential.complexity] answers — API 29 and up — and are recorded `not reachable` below
+     * it rather than run without a witness.
+     */
+    val hasKeyguardWitness: Boolean get() = startsSecure != endsSecure
 
     /** The key rule 2 is about. One per case, so every case starts from a clean key. */
     val nonAuthAlias: String get() = "k1_nonauth_$id"

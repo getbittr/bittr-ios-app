@@ -6,6 +6,7 @@ import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
+import org.junit.Assume.assumeTrue
 import org.junit.Test
 import org.junit.runner.RunWith
 
@@ -33,7 +34,12 @@ class K1SealTest {
 
         // The harness is responsible for the start state. If it is wrong, this run is testing
         // some other mutation than the one it will report, so it stops here.
+        //
+        // For M2/M3/M4 this check is weak on its own — the device is secure on both sides, so it
+        // only catches a driver that reached no state at all. What makes those three reportable is
+        // `complexityAtSeal` above travelling into K1State and being compared in phase 2.
         val secureAtSeal = K1Harness.isDeviceSecure()
+        val complexityAtSeal = K1Harness.complexity()
         assertEquals(
             "case ${case.id} (${case.summary}) requires isDeviceSecure=${case.startsSecure} " +
                 "before sealing, but the device reports $secureAtSeal — the driver script did " +
@@ -41,6 +47,31 @@ class K1SealTest {
             case.startsSecure,
             secureAtSeal,
         )
+
+        // Can this device witness this mutation at all? Asked here, before a key is generated and
+        // before anything touches the lock screen, so an unwitnessable case costs one
+        // instrumentation rather than a whole seal/mutate/open cycle ending in a row nobody can
+        // trust.
+        //
+        // Asked of the *device*, not of Build.VERSION. K1 has already made the API-level-guess
+        // mistake once — the isUnlockedDeviceRequired readback was gated at API 28 for a method
+        // that arrived in 36.1, and compileSdk hid it on every device in the matrix. The device is
+        // the only thing that knows.
+        //
+        // An assumption failure rather than a failure: BIT-18 says "where reachable" of the
+        // mutations it asks for, and the driver turns this into a `NOT REACHABLE` row. That is a
+        // finding — "K1 cannot answer this on API 26" is a true and useful sentence — where a
+        // green row from a run with no witness would be the false green this harness exists to
+        // prevent.
+        if (!case.hasKeyguardWitness) {
+            assumeTrue(
+                "reason=no-credential-change-witness — case ${case.id} (${case.summary}) leaves " +
+                    "the device secure on both sides, so KeyguardManager sees nothing, and this " +
+                    "device did not answer getPasswordComplexity() (API ${Build.VERSION.SDK_INT}). " +
+                    "K1 will not report a row for a mutation it cannot witness.",
+                K1Credential.isReadable(complexityAtSeal),
+            )
+        }
 
         // Rule 2 is checked twice, against two different things, because neither check alone
         // covers the whole matrix.
@@ -114,6 +145,7 @@ class K1SealTest {
                 deviceSecureAtSeal = secureAtSeal,
                 authControlCreated = controlCreated,
                 securityLevel = facts.securityLevel,
+                complexityAtSeal = complexityAtSeal,
             ),
         )
 
@@ -122,6 +154,7 @@ class K1SealTest {
             case = case,
             facts = mapOf(
                 "deviceSecure" to secureAtSeal.toString(),
+                "complexity" to complexityAtSeal,
                 "authControl" to controlCreated.toString(),
                 "securityLevel" to facts.securityLevel,
                 "envelopeBytes" to envelope.size.toString(),

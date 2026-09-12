@@ -78,9 +78,35 @@ D="${K1_FAKE_DIR:?K1_FAKE_DIR is not set}"
 
 knob() { cat "$D/knobs/$1" 2>/dev/null || printf '%s' "${2:-}"; }
 cred() { cat "$D/cred" 2>/dev/null || printf ''; }
-set_cred() { printf '%s' "$1" >"$D/cred"; }
+credtype() { cat "$D/credtype" 2>/dev/null || printf 'pin'; }
+set_cred() { printf '%s' "$1" >"$D/cred"; printf '%s' "${2:-$(credtype)}" >"$D/credtype"; }
 trace() { printf '%s\n' "$*" >>"$D/trace"; }
 prop() { sed -n "s/^$1=//p" "$D/props" | head -n 1; }
+
+# What DevicePolicyManager.getPasswordComplexity() would say about the credential
+# this fake device is currently holding.
+#
+# The credential TYPE is tracked alongside the value, because the real API buckets
+# by type as well as length and because "set-password landed as a pattern" is one
+# of the faults this suite has to be able to stage. A driver that could not see
+# that difference would report M3 for a device that did M4.
+#
+# Unreadable below API 29, which is the fact that makes M2/M3/M4 unreachable on
+# the API 26 and 28 rows of the matrix — modelled here so that refusal is under
+# test rather than taken on trust.
+bucket() {
+  [ "$(prop ro.build.version.sdk)" -lt 29 ] && { printf 'unreadable'; return; }
+  [ "$(knob complexity_unreadable 0)" = "1" ] && { printf 'unreadable'; return; }
+  local c t
+  c="$(cred)"
+  t="$(credtype)"
+  [ -z "$c" ] && { printf 'NONE'; return; }
+  case "$t" in
+    pattern) printf 'LOW' ;;
+    password) [ "${#c}" -ge 6 ] && printf 'HIGH' || printf 'MEDIUM' ;;
+    *) [ "${#c}" -ge 8 ] && printf 'HIGH' || printf 'MEDIUM' ;;
+  esac
+}
 
 # The driver only ever passes -s, and only first.
 [ "${1:-}" = "-s" ] && shift 2
@@ -161,7 +187,7 @@ emit_skip() {
   cat <<EOF
 INSTRUMENTATION_STATUS: class=$1
 INSTRUMENTATION_STATUS_CODE: 1
-INSTRUMENTATION_STATUS: stack=org.junit.AssumptionViolatedException: reason=$(knob skip_reason not-a-device-owner)
+INSTRUMENTATION_STATUS: stack=org.junit.AssumptionViolatedException: reason=${2:-$(knob skip_reason not-a-device-owner)}
 INSTRUMENTATION_STATUS_CODE: -4
 INSTRUMENTATION_RESULT: stream=
 Time: 0.41
@@ -181,7 +207,7 @@ EOF
 k1_log() { printf '10-01 12:00:00.000  4242  4242 I K1      : %s\n' "$*" >>"$D/logcat"; }
 
 do_instrument() {
-  local cls="" kcase="" short verdict secure
+  local cls="" kcase="" short verdict secure cx seal_cx
   while [ $# -gt 0 ]; do
     if [ "$1" = "-e" ]; then
       case "${2:-}" in
@@ -200,6 +226,7 @@ do_instrument() {
     K1SealTest) verdict="$(knob verdict_seal pass)" ;;
     K1OpenTest) verdict="$(knob verdict_open pass)" ;;
     K1AdminResetTest) verdict="$(knob verdict_admin pass)" ;;
+    K1ObserveTest) verdict="$(knob verdict_observe pass)" ;;
     *) verdict=fail ;;
   esac
 
@@ -209,22 +236,42 @@ do_instrument() {
     crash) emit_crash; return ;;
   esac
 
-  emit_pass "$cls"
   [ -n "$(cred)" ] && secure=true || secure=false
+  cx="$(bucket)"
+
+  # K1SealTest's own refusal: a case that is secure on both sides and a device
+  # that will not bucket its credential means nothing can witness the mutation.
+  # The real test declines with assumeTrue; the driver must turn that into a
+  # NOT REACHABLE row rather than into an error or, worse, a row.
+  if [ "$short" = "K1SealTest" ] && [ "$cx" = "unreadable" ]; then
+    case "$kcase" in
+      M2 | M3 | M4)
+        emit_skip "$cls" "no-credential-change-witness"
+        return
+        ;;
+    esac
+  fi
+
+  emit_pass "$cls"
   case "$short" in
     K1SealTest)
-      k1_log "phase=seal case=$kcase deviceSecure=$secure securityLevel=TEE"
+      printf '%s' "$cx" >"$D/cx_seal"
+      k1_log "phase=seal case=$kcase deviceSecure=$secure complexity=$cx securityLevel=TEE"
       ;;
     K1AdminResetTest)
       # The forced reset destroys the credential — K1Case.M6 is endsSecure=false.
-      set_cred ""
+      set_cred "" none
       k1_log "phase=admin-reset case=$kcase deviceSecure=false"
       ;;
+    K1ObserveTest)
+      k1_log "phase=observe case=- deviceSecure=$secure complexity=$cx"
+      ;;
     K1OpenTest)
+      seal_cx=$(cat "$D/cx_seal" 2>/dev/null || printf 'unreadable')
       if [ "$(knob open_no_verdict 0)" = "1" ]; then
-        k1_log "phase=open case=$kcase deviceSecure=$secure securityLevel=TEE"
+        k1_log "phase=open case=$kcase deviceSecure=$secure complexityAtSeal=$seal_cx complexity=$cx securityLevel=TEE"
       else
-        k1_log "phase=open case=$kcase deviceSecure=$secure securityLevel=TEE verdict=PASS"
+        k1_log "phase=open case=$kcase deviceSecure=$secure complexityAtSeal=$seal_cx complexity=$cx securityLevel=TEE verdict=PASS"
       fi
       ;;
   esac
@@ -289,23 +336,16 @@ case "${1:-}" in
     shift 2 || true
     case "$sub" in
       verify)
-        # The real semantics, which are not the obvious ones and which cost K1 a
-        # whole run: with NO credential set there is nothing to check against, so
-        # `locksettings verify --old <anything>` succeeds. `verify --old X` is
-        # therefore not the question "is the credential X" — on a bare device it
-        # answers yes for every X.
+        trace "locksettings-verify ${*}"
+        # Models the API 34 `default` image as run #6 found it: exit 0 for
+        # EVERYTHING — the credential just set, a deliberately wrong one, and a
+        # bare `verify` with no argument.
         #
-        # Modelling this faithfully is what makes the driver's junk-credential
-        # probe testable. The earlier version answered the convenient question
-        # instead, so a driver that could not distinguish "the PIN is 1234" from
-        # "there is no PIN" passed this suite.
-        if [ -z "$(cred)" ]; then
-          rc=0
-        elif [ "${1:-}" = "--old" ]; then
-          [ "${2:-}" = "$(cred)" ] && rc=0 || rc=1
-        else
-          rc=1
-        fi
+        # Kept, and kept broken, on purpose. The driver no longer calls it, and
+        # this is the regression test for that: if a future edit reintroduces a
+        # host-side credential check, this stub will cheerfully agree with it and
+        # the scenarios below will catch the false green it produces.
+        rc=0
         ;;
       set-pin | set-password | set-pattern)
         # `--old` is what separates the two kinds of call the driver makes: it
@@ -318,6 +358,14 @@ case "${1:-}" in
         else
           old=""; new="${1:-}"; is_mutation=0
         fi
+        # The credential's type, which is what getPasswordComplexity() buckets by
+        # and therefore what makes M3 (password) distinguishable from M4 (pattern)
+        # on the device side.
+        case "$sub" in
+          set-pin) newtype=pin ;;
+          set-password) newtype=password ;;
+          set-pattern) newtype=pattern ;;
+        esac
         if [ "$is_mutation" = "0" ]; then
           # Count the bare `set-pin` calls. The driver now makes one in its
           # preflight and one per case, and the two failure modes are different
@@ -337,7 +385,7 @@ case "${1:-}" in
           [ "$n" -gt "$(knob setup_noop_after 0)" ]; then
           rc=0
         elif [ "$is_mutation" = "0" ]; then
-          set_cred "$new"
+          set_cred "$new" "$newtype"
           rc=0
         elif [ "$(knob mutation_fails 0)" = "1" ]; then
           rc=1
@@ -345,17 +393,20 @@ case "${1:-}" in
           # Exits 0, changes nothing. The false green this whole test exists for.
           rc=0
         elif [ "$(knob mutation_wipes 0)" = "1" ]; then
-          # Reported success and left the device with NO credential at all. The
-          # state every `verify --old` answers yes to, so a driver without the
-          # junk-credential probe cannot see it for what it is.
-          set_cred ""
+          # Reported success and left the device with NO credential at all. On the
+          # old host-side witness this was indistinguishable from a device that
+          # simply had a credential, because `verify --old` answers yes either
+          # way. The keyguard reading sees it immediately.
+          set_cred "" none
           rc=0
         elif [ -n "$(knob mutation_lands_on "")" ]; then
-          # Landed, but not where it was aimed.
-          set_cred "$(knob mutation_lands_on "")"
+          # Landed, but not where it was aimed. mutation_lands_on_type aims it at
+          # a different credential TYPE as well, which is the shape that bucket
+          # comparison catches and a value-only check would not.
+          set_cred "$(knob mutation_lands_on "")" "$(knob mutation_lands_on_type "$newtype")"
           rc=0
         else
-          set_cred "$new"
+          set_cred "$new" "$newtype"
           rc=0
         fi
         ;;
@@ -381,7 +432,7 @@ case "${1:-}" in
         elif [ -n "$(knob clear_noop_after "")" ] && [ "$c" -gt "$(knob clear_noop_after 0)" ]; then
           rc=0
         else
-          set_cred ""
+          set_cred "" none
           rc=0
         fi
         ;;
@@ -424,6 +475,7 @@ scenario() {
   : >"$SANDBOX/android/core/keystore-probe/build/outputs/apk/androidTest/probe-debug-androidTest.apk"
 
   printf '' >"$FAKE/cred"
+  printf 'none' >"$FAKE/credtype"
   : >"$FAKE/trace"
   : >"$FAKE/logcat"
   printf 'List of devices attached\nemulator-5554\tdevice\n\n' >"$FAKE/devices"
@@ -440,7 +492,7 @@ EOF
 
 knob() { printf '%s' "$2" >"$FAKE/knobs/$1"; }
 prop() { sed -i "s|^$1=.*|$1=$2|" "$FAKE/props"; }
-start_cred() { printf '%s' "$1" >"$FAKE/cred"; }
+start_cred() { printf '%s' "$1" >"$FAKE/cred"; printf '%s' "${2:-pin}" >"$FAKE/credtype"; }
 
 physical() {
   prop ro.hardware qcom
@@ -588,7 +640,7 @@ run_driver M2
 expect_rc 1
 refute_out "| M2 | PASS |"
 expect_out "| M2 | ERROR |"
-expect_out "the OLD credential still verifies after the mutation"
+expect_out "the credential complexity is MEDIUM both before and after the mutation"
 # The driver must not even ask the question: running the open phase against an
 # unmutated device produces a green that means nothing, and a green is what gets
 # quoted later.
@@ -604,26 +656,26 @@ knob setup_noop 1
 run_driver M2
 expect_rc 2
 refute_out "| M2 | PASS |"
-expect_out "does not verify afterwards"
-refute_trace "install"
+expect_out "still reports itself as having no lock screen"
+# The install now happens BEFORE this refusal, and that is the point rather than
+# a regression. The question "will this image hold a lock screen" is asked of the
+# device through K1ObserveTest, so there is nothing to ask until the probe is on
+# it. What must still be true is that no CASE is spent.
+expect_trace "install"
 refute_trace "instrument K1SealTest M2"
 refute_trace "instrument K1OpenTest M2"
 
-scenario "a credential refusal prints the raw answers, not a conclusion"
+scenario "a credential refusal quotes the device, not the driver's conclusion"
 # The refusal message is the entire content of such a run — no table, no
-# artefact, and the step log behind a 403. Two device behaviours produce the
-# same "the PIN did not take", and which one it is decides whether the fix is an
-# image change or a redesign of the witness that carries M2/M3/M4. So the three
-# verify forms and what they returned have to be IN the refusal.
+# artefact, and the step log behind a 403. "The PIN did not take" is the
+# driver's reading; what makes the next step obvious is the device's own words,
+# so the observation goes in verbatim.
 knob setup_noop 1
 run_driver M2
 expect_rc 2
-expect_out "What the device answered, raw"
-expect_out "locksettings verify --old '1234'"
-expect_out "deliberately wrong"
-# This fake stores nothing, so the wrong credential verifies — case (a). The
-# message must say so rather than leaving the reader to infer it.
-expect_out "ACCEPTED"
+expect_out "What the device answered:"
+expect_out "phase=observe"
+expect_out "deviceSecure=false"
 
 scenario "an image that stops storing credentials mid-run is a per-case ERROR"
 # The preflight's set-pin works, so the matrix starts; the one for M2's start
@@ -634,7 +686,7 @@ run_driver M2
 expect_rc 1
 refute_out "| M2 | PASS |"
 expect_out "| M2 | ERROR |"
-expect_out "does not verify afterwards; the start state was never reached"
+expect_out "the device still reports no lock screen; the start state was never reached"
 refute_trace "instrument K1SealTest M2"
 refute_trace "instrument K1OpenTest M2"
 
@@ -646,7 +698,6 @@ knob no_secure_lock_screen 1
 run_driver M2
 expect_rc 2
 expect_out "does not declare android.software.secure_lock_screen"
-refute_trace "install"
 refute_trace "instrument K1SealTest M2"
 
 scenario "a clear that exits 0 and removes nothing is not a PASS"
@@ -666,30 +717,114 @@ run_driver M5
 expect_rc 2
 refute_out "| M5 | PASS |"
 expect_out "could not clear the lock screen"
-refute_trace "install"
+refute_trace "instrument K1SealTest M5"
 
 scenario "a PIN change that wipes the credential entirely is not a PASS"
-# M2 aims 1234 -> 5678. The device ends with no credential at all, which is the
-# one state `locksettings verify --old X` answers yes to for every X — so the
-# row must come from the junk-credential probe, and it must name what it found
-# rather than reporting the change it aimed for.
+# M2 aims PIN -> longer PIN and the device ends with no credential at all. The
+# complexity bucket DID move (MEDIUM -> NONE), so the witness that carries M2 is
+# satisfied and would sign off on this row — the keyguard check is what catches
+# it, and the row must describe an M5 rather than the M2 it aimed for.
 knob mutation_wipes 1
 run_driver M2
 expect_rc 1
 refute_out "| M2 | PASS |"
 expect_out "| M2 | ERROR |"
-expect_out "does not verify either"
+expect_out "must end deviceSecure=true"
 refute_trace "instrument K1OpenTest M2"
 
-scenario "a mutation that lands on the wrong credential is not a PASS"
-# set-password reports success, the old PIN stops verifying — so the existing
-# old-credential witness is satisfied — but what is on the device is not what M3
-# says is on the device. Only a positive check on the new credential catches it.
-knob mutation_lands_on 9999
+scenario "a set-password that in fact set a pattern is a PASS with the divergence named"
+# The honest limit of the device-side witness, made explicit rather than left
+# for someone to discover while quoting a row.
+#
+# Nothing public on Android reports the credential's TYPE, so a set-password that
+# landed as a pattern cannot be refuted — the credential did change, the device
+# is still secure, and the key's survival is a real observation either way. What
+# K1 can see is that the bucket is LOW where a password predicts HIGH.
+#
+# That is recorded as a note against a row that still passes, and deliberately
+# not as an ERROR: the bucket table is AOSP documentation, and a device that
+# buckets differently would turn the whole matrix red on the strength of the
+# very thing this test exists to distrust.
+knob mutation_lands_on 1236
+knob mutation_lands_on_type pattern
 run_driver M3
-expect_rc 1
-refute_out "| M3 | PASS |"
-expect_out "| M3 | ERROR |"
+expect_rc 0
+expect_out "| M3 | PASS |"
+expect_out "complexity:MEDIUM->LOW"
+expect_out "AOSP's table predicts"
+
+scenario "the driver never asks locksettings verify anything"
+# The regression guard for run #6. This fake's `verify` exits 0 for everything,
+# faithfully, so any host-side credential check reintroduced into the driver
+# would be answered yes and would produce exactly the false green that six runs
+# of this test were spent discovering. The defence is that the call is not made.
+run_driver
+expect_rc 0
+refute_trace "locksettings-verify"
+
+scenario "the witness column carries the observed transition, not a label"
+# A reader deciding whether to quote a row should see the evidence, not the
+# driver's summary of its own evidence.
+run_driver M1 M4 M5
+expect_rc 0
+expect_out "secure:false->true+complexity:NONE->MEDIUM"
+expect_out "secure:true->true+complexity:MEDIUM->LOW"
+expect_out "secure:true->false+complexity:MEDIUM->NONE"
+
+# ---------------------------------------------------------------------------
+# Where the device cannot witness the mutation at all
+# ---------------------------------------------------------------------------
+
+scenario "on API 26 the secure-on-both-sides cases are NOT REACHABLE, not PASS"
+# getPasswordComplexity() arrived in API 29. Below it nothing on the device can
+# see a PIN -> PIN change happen: secure before, secure after, and no bucket to
+# compare. BIT-18 asks for that mutation, so the answer is a recorded NOT
+# REACHABLE with the reason — "K1 cannot witness this on API 26" is a true and
+# useful sentence, where a green row would be a survival claim about a change
+# nothing observed.
+prop ro.build.version.sdk 26
+run_driver
+expect_rc 0
+for c in M2 M3 M4; do
+  expect_out "| $c | NOT REACHABLE |"
+  refute_out "| $c | PASS |"
+done
+expect_out "no-credential-change-witness"
+# And the cases that DO have a keyguard witness still run: an API-26 row is
+# three results short, not empty.
+expect_out "| M1 | PASS |"
+expect_out "| M5 | PASS |"
+# The refusal is the device's, made in the seal phase. The driver must not
+# pre-empt it from $API — that inference is the mistake the isUnlockedDeviceRequired
+# guard already made once.
+expect_trace "instrument K1SealTest M2"
+refute_trace "instrument K1OpenTest M2"
+
+scenario "a device that will not report complexity is treated the same way"
+# Same refusal, different cause: a modern API where getPasswordComplexity()
+# throws rather than answers — an OEM that hardened a `normal` permission. The
+# driver must not infer readability from the API level any more than it infers
+# the API level from readability.
+knob complexity_unreadable 1
+run_driver
+expect_rc 0
+for c in M2 M3 M4; do expect_out "| $c | NOT REACHABLE |"; done
+expect_out "| M1 | PASS |"
+expect_out "| M5 | PASS |"
+# The run still succeeds: nothing failed, three questions were unanswerable.
+expect_out "every case run produced a result"
+
+scenario "an observation that does not come back is not read as 'no lock screen'"
+# Fail-closed, in the direction that protects a device rather than the one that
+# produces rows. An unanswered observe must leave the driver believing the lock
+# screen is still there, so reset_to_none keeps trying to remove it instead of
+# reporting a removal that never happened — and no case is spent on a device
+# whose state is unknown.
+knob verdict_observe fail
+run_driver M2
+expect_rc 2
+refute_out "| M2 | PASS |"
+expect_out "could not clear the lock screen"
 
 scenario "an open phase with no verdict line is not a PASS"
 knob open_no_verdict 1
@@ -742,14 +877,15 @@ refute_out "| M2 | PASS |"
 scenario "a device whose lock screen cannot be cleared is refused"
 # It starts with a credential the driver cannot remove, so it can never reach
 # M1's start state and nothing downstream would describe the device it ran on.
-# Refused before the APK is installed rather than reported per case.
+# Refused before any case is spent — the install precedes it now, because the
+# question is asked of the device through K1ObserveTest.
 start_cred 0000
 knob clear_fails 1
 run_driver M2
 expect_rc 2
 expect_out "could not clear the lock screen"
 refute_out "| M2 | PASS |"
-refute_trace "install"
+refute_trace "instrument K1SealTest M2"
 
 scenario "a lock screen that stops clearing after the matrix starts is an ERROR"
 # Same fault, arriving later: the preflight passes, so there is a table, and M5

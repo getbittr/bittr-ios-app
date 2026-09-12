@@ -1,6 +1,16 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
+    <!--
+      What K1Credential.complexity() needs to answer at all. Protection level `normal`, so it is
+      granted at install with no prompt and no `pm grant` step in the driver — which matters,
+      because a runtime grant would be another thing reporting success without doing anything.
+
+      Declared only in the androidTest manifest: the library this module ships is nothing, and
+      the permission belongs to the experiment rather than to any product code.
+    -->
+    <uses-permission android:name="android.permission.REQUEST_PASSWORD_COMPLEXITY" />
+
     <application>
         <!--
           Only mutation 5 (M6_ADMIN_RESET) uses this. It is inert until something outside the

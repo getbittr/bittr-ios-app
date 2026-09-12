@@ -45,14 +45,34 @@
 #   - the device-side witnesses in K1OpenTest passed: the KeyguardManager
 #     transition, and for the credential-destroying cases the auth-bound control
 #     key being gone
-#   - the host-side witness observed the credential actually change, and change
-#     into the thing the case says it changed into
+#   - the device observed its own credential actually change
 #
-# The last one is what carries M2/M3/M4, where the device is secure on both
-# sides of the mutation and KeyguardManager cannot tell that anything happened.
-# `locksettings verify` against the OLD credential must succeed before and fail
-# after, and against the NEW one must fail before and succeed after. Without it
-# those three rows would rest on the driver's say-so.
+# EVERY WITNESS IS ON THE DEVICE SIDE OF adb, AND THAT IS RECENT
+#
+# It used to be `adb shell locksettings verify`, and run #6 killed that. On the
+# API 34 `default` image all three forms of it exit 0 — the credential just set,
+# a deliberately wrong one, and a bare `verify` with no argument at all. A
+# witness that always says yes is exactly how a false green gets made, and every
+# host-side check in this script rested on that one call.
+#
+# So the questions moved across adb. `K1ObserveTest` runs on the device and
+# reports what the framework itself sees:
+#
+#   KeyguardManager.isDeviceSecure       is there a credential at all
+#   DevicePolicyManager.getPasswordComplexity()   which bucket it is in (API 29+)
+#
+# The first is decisive for the mutations that cross the has-a-credential line
+# (M1 sets one, M5 and M6 destroy one) and available on every API here. The
+# second is what carries M2/M3/M4, which are secure on both sides: the
+# credentials below are picked to sit in different complexity buckets, so a
+# mutation that landed moves the bucket and one that exited 0 and did nothing
+# does not. Below API 29 nothing answers for those three and K1SealTest refuses
+# them, which lands as a `NOT REACHABLE` row with the reason attached.
+#
+# This also costs the run nothing in failed credential attempts. The old probe
+# spent one every time it asked a question, and Android locks the credential out
+# for 30s after five in a row — a hazard on exactly the Samsung and Xiaomi
+# handsets K1 exists for. Only a wrong `clear --old` guess costs one now.
 #
 # The driver is exercised against a fake device — including each of those
 # failure shapes — by android/scripts/test-k1-driver.sh, which needs no device
@@ -62,8 +82,9 @@
 #
 # This sets, changes and removes the device lock screen. On a physical device
 # that is your real lock screen, and a failure partway through can leave the
-# device on the script's PIN (5678) rather than yours. Every case restores the
-# device to "no lock screen" on exit, and the PIN in use is printed on failure.
+# device on one of the script's credentials rather than yours. Every case
+# restores the device to "no lock screen" on exit, and every credential the
+# script can have left behind is printed on failure.
 # It refuses to touch a device holding user accounts unless --i-know overrides.
 #
 # M6 (device-owner forced credential reset) needs `dpm set-device-owner`, which
@@ -83,10 +104,35 @@ ADMIN_COMPONENT="${TEST_PKG}/${TEST_CLASS_ROOT}.K1DeviceAdminReceiver"
 
 # The credentials the mutations move between. Nothing here is secret; they are
 # printed on failure precisely so a physical device can be recovered by hand.
-PIN_A="1234"
-PIN_B="5678"
+#
+# CHOSEN SO THAT EVERY MUTATION MOVES THE COMPLEXITY BUCKET
+#
+# `getPasswordComplexity()` is the only device-side signal that can see M2/M3/M4
+# happen, and it reports a bucket, not a credential. Two PINs in the same bucket
+# would make a real PIN change indistinguishable from no change at all, and the
+# row would be a survival claim about a mutation nothing observed.
+#
+# Under AOSP's buckets: a 4-digit PIN with no repeating or arithmetic run is
+# MEDIUM, the same at 8 digits is HIGH, any pattern is LOW, an 8-character
+# alphanumeric password is HIGH. So M1 NONE->MEDIUM, M2 MEDIUM->HIGH, M3
+# MEDIUM->HIGH, M4 MEDIUM->LOW, M5/M6 MEDIUM->NONE.
+#
+# Note what is being relied on and what is not. The driver requires the bucket to
+# MOVE, which is a fact it observes. It does not require it to land where the
+# table above predicts — that mapping is AOSP documentation, and an OEM that
+# buckets differently would still move. A surprising landing is recorded as a
+# note next to the row for a human, not as a verdict.
+#
+# 1379 rather than the old 1234: consecutive digits are an arithmetic run, which
+# drops a PIN to LOW and made PIN_A and PATTERN indistinguishable.
+PIN_A="1379"
+PIN_B="13795284"
 PASSWORD="k1pass99"
 PATTERN="1236"
+
+# Everything the script can leave on a device if it dies partway through, for the
+# recovery message and for reset_to_none's candidate list.
+ALL_CREDS=("$PIN_A" "$PIN_B" "$PASSWORD" "$PATTERN")
 
 ALL_CASES="M1 M2 M3 M4 M5"
 WITH_DEVICE_OWNER=0
@@ -223,52 +269,48 @@ wake() {
   sh_ wm dismiss-keyguard >/dev/null 2>&1 || true
 }
 
-# A credential no case ever sets, used to ask one unambiguous question.
+# --- asking the device ------------------------------------------------------
 #
-# `locksettings verify --old X` succeeds for EVERY X when no credential is set —
-# there is nothing to check against, so the shell command has nothing to reject.
-# That makes a bare `verify --old "$PIN_A"` two claims at once, "the credential
-# is $PIN_A" and "there is no credential", and K1 spent run #4 unable to tell
-# them apart: M2-M5 reported "the OLD credential still verifies after the
-# mutation" (which is also what a device with NO credential looks like) while M1
-# reported the device secure when the driver believed it had cleared it. Two
-# opposite device states, one observation.
+# One `am instrument` of K1ObserveTest, whose answers land in OBS_SECURE and
+# OBS_COMPLEXITY. See the header: this replaced `locksettings verify` wholesale
+# after run #6 showed that call exits 0 on the API 34 image whatever is stored.
 #
-# A deliberately wrong credential separates them, because it can only verify on a
-# device that has none.
-JUNK_CRED="90197"
+# Fails closed in the direction that keeps a device safe rather than the one that
+# produces rows: an observation that does not come back leaves OBS_SECURE=true,
+# so reset_to_none keeps trying to clear rather than reporting a lock screen
+# removed that is still there.
+OBS_SECURE="true"
+OBS_COMPLEXITY="unreadable"
+OBS_LINE=""
 
-# True when the device has SOME lock-screen credential. The one primitive the
-# other two are built on.
-#
-# Fails closed: an unreadable or unrecognised answer leaves this true ("still
-# secure"), so reset_to_none keeps trying rather than reporting a clear that
-# never happened.
-#
-# Costs one failed credential attempt when a credential IS set, and Android
-# throttles after five in a row (30s lockout), so this is called at decision
-# points rather than in loops. A successful verify resets that counter, which is
-# why credential_is asks this one first and the positive check second.
+# Pull `key=value` out of a K1 report line.
+field() {
+  printf '%s' "$1" | grep -oE "(^| )$2=[^ ]*" | tail -n 1 | cut -d= -f2
+}
+
+observe() {
+  local out="$workdir/observe.out" verdict
+  verdict=$(instrument "${TEST_CLASS_ROOT}.K1ObserveTest" "$out" "-")
+  OBS_LINE=$(k1_line)
+  if [ "$verdict" != "pass" ] || [ -z "$OBS_LINE" ]; then
+    OBS_SECURE="true"
+    OBS_COMPLEXITY="unreadable"
+    OBS_LINE="(K1ObserveTest did not report: $(failure_excerpt "$out"))"
+    return 1
+  fi
+  OBS_SECURE=$(field "$OBS_LINE" deviceSecure)
+  OBS_COMPLEXITY=$(field "$OBS_LINE" complexity)
+  [ -n "$OBS_SECURE" ] || OBS_SECURE="true"
+  [ -n "$OBS_COMPLEXITY" ] || OBS_COMPLEXITY="unreadable"
+  return 0
+}
+
+# True when the device reports itself as having a lock-screen credential.
 device_has_credential() {
-  ! sh_status "locksettings verify --old '$JUNK_CRED'" >/dev/null 2>&1
+  observe || return 0
+  [ "$OBS_SECURE" = "true" ]
 }
 
-# True when $1 is the device's current credential. This is the witness that
-# carries M2/M3/M4 — see WHAT COUNTS AS A RESULT above.
-#
-# Both halves are required. Without the first, this returns true on a device
-# with no lock screen at all, which is the false green K1 is least able to
-# afford: "the key survived a PIN change" reported from a device that never had
-# a PIN.
-credential_is() {
-  device_has_credential || return 1
-  sh_status "locksettings verify --old '$1'" >/dev/null 2>&1
-}
-
-# True when the device has no lock-screen credential at all.
-#
-# Deliberately the same tool the mutations use, rather than grepping `dumpsys
-# trust` for a field name that is not stable across API 26-35.
 has_no_credential() {
   ! device_has_credential
 }
@@ -279,26 +321,25 @@ has_no_credential() {
 reset_to_none() {
   wake
   has_no_credential && return 0
-  for old in "$PIN_A" "$PIN_B" "$PASSWORD" "$PATTERN"; do
+  for old in "${ALL_CREDS[@]}"; do
     # Re-probe only after a clear that claimed success.
     #
-    # Both a wrong `clear --old` and a `device_has_credential` probe against a
-    # device that still has one are failed credential attempts, and Android locks
-    # the credential out for 30s after five in a row. Probing on every iteration
-    # made this loop cost up to nine, which is past that line — and a lockout
-    # here would surface as "could not clear the lock screen" on a device that
-    # was merely being asked too fast. Cheap on an emulator that gets deleted
-    # afterwards; not cheap on the Samsung and Xiaomi handsets, which are the
-    # rows K1 actually exists for.
+    # The probe itself is free now — asking K1ObserveTest costs no credential
+    # attempt — but a wrong `locksettings clear --old` still does, and Android
+    # locks the credential out for 30s after five in a row. Four candidates is
+    # inside that, and skipping the probe after a failed clear keeps the loop
+    # short on the handsets where a lockout would surface as "could not clear
+    # the lock screen" on a device that was merely being asked too fast.
     if sh_status "locksettings clear --old '$old'" >/dev/null 2>&1; then
       has_no_credential && return 0
     fi
   done
   # One last look before giving up, in case a clear removed the credential while
-  # reporting failure. Costs a probe only on the path that is already failing.
+  # reporting failure.
   has_no_credential && return 0
   echo "k1: could not clear the lock screen on $DEVICE_LABEL." >&2
-  echo "    Credentials tried: $PIN_A $PIN_B $PASSWORD $PATTERN (pattern as digits)." >&2
+  echo "    Credentials tried: ${ALL_CREDS[*]} (pattern as digits)." >&2
+  echo "    The device reports: ${OBS_LINE:-nothing}" >&2
   return 1
 }
 
@@ -314,60 +355,25 @@ reset_to_none() {
 #
 # So the capability is established once, up front, against the device — not
 # inferred from the API level, and not assumed because `locksettings` exited 0.
-# It costs four adb round-trips and it runs before the APK is installed, because
-# a device that fails this cannot produce a K1 result by any route.
 #
 # Deliberately a functional probe and not only a feature query. Both are checked
 # and they answer different questions: `android.software.secure_lock_screen`
-# (API 29+) is what the image *claims*, and set/verify/clear is what it *does*.
-# The second has to exist because the first is absent on API 26-28 by definition
-# and because a feature flag is another piece of documentation.
-# The raw observations behind a credential refusal, not a conclusion drawn from
-# them.
+# (API 29+) is what the image *claims*, and set-then-observe-then-clear is what
+# it *does*. The second has to exist because the first is absent on API 26-28 by
+# definition and because a feature flag is another piece of documentation.
 #
-# Two different device behaviours produce an identical "the PIN did not take",
-# and K1 has now been wrong about which one it was looking at:
+# It runs AFTER the install, which is new: the probe it uses is on the device
+# now, so there is nothing to ask until the APK is there. The install checks
+# above it are cheap and catch their own failures, so nothing is lost by the
+# reorder — and a lock-screen refusal arriving after "installed" reads correctly,
+# because that is the order the two facts were established in.
 #
-#   (a) `set-pin` stores nothing. Then no `verify` has anything to check and they
-#       all succeed, including the deliberately wrong one.
-#   (b) `locksettings verify` always exits 0 on this image whatever is stored.
-#       Then the credential may be perfectly well set and the WITNESS is what is
-#       broken — and every host-side witness in this script is built on it,
-#       including the one that carries M2/M3/M4.
-#
-# (b) is the more serious finding, because a witness that always says yes is how
-# a false green gets made. Run #4 is consistent with it end to end: every
-# `credential_is` answering yes explains M1 finding the device secure after a
-# clear AND M2-M5 reporting the old credential surviving a change.
-#
-# So this prints what each form actually returned and lets the reader conclude.
-# Three verifies, run once, on a device the run is abandoning anyway.
-credential_probe_report() {
-  echo "    What the device answered, raw — the same question three ways:"
-  echo "      locksettings verify --old '$PIN_A'   (the credential just set)"
-  if sh_status "locksettings verify --old '$PIN_A'" >/dev/null 2>&1; then
-    echo "        -> exit 0 (accepted)"
-  else
-    echo "        -> non-zero (rejected)"
-  fi
-  echo "      locksettings verify --old '$JUNK_CRED'   (deliberately wrong)"
-  if sh_status "locksettings verify --old '$JUNK_CRED'" >/dev/null 2>&1; then
-    echo "        -> exit 0 (ACCEPTED — a wrong credential cannot verify on a device"
-    echo "           that has one, so either nothing is stored or verify is not"
-    echo "           checking. Every host-side witness in this script rests on this"
-    echo "           call, so K1 has no usable witness on this image either way.)"
-  else
-    echo "        -> non-zero (rejected, which is correct: something IS stored, and"
-    echo "           the failure above is then about '$PIN_A' specifically)"
-  fi
-  echo "      locksettings verify   (no --old)"
-  if sh_status "locksettings verify" >/dev/null 2>&1; then
-    echo "        -> exit 0"
-  else
-    echo "        -> non-zero"
-  fi
-}
-
+# What it also establishes, once, for the whole run: whether this device answers
+# getPasswordComplexity() at all. That answer is what decides between a real row
+# and a `NOT REACHABLE` one for M2/M3/M4 — but the decision is made on the device
+# by K1SealTest, not here. This only prints it, so the reason a matrix came back
+# three rows short is visible at the top of the log rather than inferred from
+# three identical notes at the bottom.
 lockscreen_preflight() {
   wake
 
@@ -392,14 +398,33 @@ lockscreen_preflight() {
     echo "k1: locksettings set-pin failed on $DEVICE_LABEL before any case ran." >&2
     return 1
   fi
-  if ! credential_is "$PIN_A"; then
-    echo "k1: on $DEVICE_LABEL, 'locksettings set-pin $PIN_A' exited 0 and the" >&2
-    echo "    credential does not verify afterwards. K1 cannot witness a lock-screen" >&2
-    echo "    mutation on this image, so it will not report rows about one." >&2
+  # `set-pin` exiting 0 is not evidence a credential exists. The device is what
+  # says so, and it says so through the same KeyguardManager the OS locks with.
+  if ! device_has_credential; then
+    echo "k1: on $DEVICE_LABEL, 'locksettings set-pin $PIN_A' exited 0 and the device" >&2
+    echo "    still reports itself as having no lock screen. K1 cannot mutate a lock" >&2
+    echo "    screen this image will not hold, so it will not report rows about one." >&2
     echo >&2
-    credential_probe_report >&2
+    echo "    What the device answered:" >&2
+    echo "      $OBS_LINE" >&2
     sh_ locksettings clear --old "$PIN_A" >/dev/null 2>&1 || true
     return 1
+  fi
+
+  # One reading, kept for the run: does this device bucket its credential at all?
+  #
+  # Not a refusal either way. Without it M1/M5/M6 still have a decisive keyguard
+  # witness and are worth running; it is M2/M3/M4 that go NOT REACHABLE, and
+  # K1SealTest makes that call per case on the device rather than here.
+  COMPLEXITY_READABLE=0
+  if [ "$OBS_COMPLEXITY" != "unreadable" ] && [ -n "$OBS_COMPLEXITY" ]; then
+    COMPLEXITY_READABLE=1
+    echo "k1: credential complexity is readable here ('$PIN_A' buckets as $OBS_COMPLEXITY)"
+  else
+    echo "k1: this device does not report credential complexity (API $API)." >&2
+    echo "    M2/M3/M4 are secure on both sides of their mutation, so nothing on this" >&2
+    echo "    device can witness them; they will be recorded NOT REACHABLE rather than" >&2
+    echo "    run without a witness. M1/M5/M6 are unaffected." >&2
   fi
 
   # Leave nothing behind: M1 requires a device with no credential, and it is the
@@ -412,11 +437,6 @@ lockscreen_preflight() {
   echo "k1: lock screen is settable and clearable on $DEVICE_LABEL"
   return 0
 }
-
-if ! lockscreen_preflight; then
-  echo "k1: refusing to run the matrix — see above." >&2
-  exit 2
-fi
 
 # ---------------------------------------------------------------------------
 # Instrumentation
@@ -578,6 +598,21 @@ echo "k1: installed $TEST_PKG, instrumentation $RUNNER registered"
 echo
 
 # ---------------------------------------------------------------------------
+# Lock-screen preflight
+# ---------------------------------------------------------------------------
+#
+# Needs the workdir, because every question it asks the device goes through an
+# `am instrument` whose output has to land somewhere. The trap gains the
+# lock-screen restore once there is an installed probe able to check it.
+workdir=$(mktemp -d)
+trap 'rm -rf "$workdir"' EXIT
+
+if ! lockscreen_preflight; then
+  echo "k1: refusing to run the matrix — see above." >&2
+  exit 2
+fi
+
+# ---------------------------------------------------------------------------
 # Per-case run
 # ---------------------------------------------------------------------------
 
@@ -597,7 +632,6 @@ record() {
   return 0
 }
 
-workdir=$(mktemp -d)
 trap 'rm -rf "$workdir"; reset_to_none >/dev/null 2>&1 || true' EXIT
 
 for case_id in "${cases[@]}"; do
@@ -621,44 +655,57 @@ for case_id in "${cases[@]}"; do
     # lesson `adb install` taught above. Until run #3 this went unchecked until
     # the pre-mutation witness, which is two `am instrument` invocations later,
     # so the run spent the seal phase on a device it was wrong about and the
-    # table blamed the seal phase. Verified here, the row names the setup.
-    if ! credential_is "$PIN_A"; then
+    # table blamed the seal phase. Checked here, the row names the setup.
+    if ! device_has_credential; then
       record "$case_id" "ERROR" "-" "-" \
-        "locksettings set-pin reported success but '$PIN_A' does not verify afterwards; the start state was never reached"
+        "locksettings set-pin reported success but the device still reports no lock screen; the start state was never reached. Device said: $OBS_LINE"
       overall=1
       continue
     fi
   fi
 
+  # What the device bucketed the start credential as. This is half of the only
+  # witness M2/M3/M4 have; the other half is read after the mutation.
+  cx_before="$OBS_COMPLEXITY"
+
   # --- phase 1: seal -----------------------------------------------------
-  # A skip is not a valid outcome for the seal phase — only K1AdminResetTest has
-  # an assumption in it — so anything other than a pass is an error here.
-  if [ "$(instrument "${TEST_CLASS_ROOT}.K1SealTest" "$seal_out" "$case_id")" != "pass" ]; then
+  #
+  # A skip here is the device refusing the case for want of a witness: M2/M3/M4
+  # are secure on both sides, so below API 29 — where getPasswordComplexity()
+  # does not exist — nothing on the device can see their mutation happen.
+  #
+  # That decision is made on the device, in K1SealTest, and not from $API here.
+  # K1 has already been wrong once about which API level a method arrived in
+  # (the isUnlockedDeviceRequired readback was gated at 28 for something that
+  # landed in 36.1, and compileSdk hid it on every device in the matrix). The
+  # device is the only thing that knows, so it is the thing that is asked.
+  seal_verdict=$(instrument "${TEST_CLASS_ROOT}.K1SealTest" "$seal_out" "$case_id")
+  if [ "$seal_verdict" = "skip" ]; then
+    reason=$(grep -oE 'reason=[^ ]+' "$seal_out" | tail -n 1)
+    record "$case_id" "NOT REACHABLE" "none available" "-" \
+      "${reason:-the device declined this case}: nothing on this device can witness a mutation that leaves it secure on both sides. A row here would be a survival claim about a change nothing observed."
+    continue
+  fi
+  if [ "$seal_verdict" != "pass" ]; then
     echo "k1: seal phase failed for $case_id"
     sed -n '1,40p' "$seal_out"
     note=""
     # The one seal failure that is a finding about the device rather than a bug
-    # in the harness: the driver established the start state and verified it
-    # through LockSettingsService, and KeyguardManager in the app process
-    # disagrees. Those two read the same credential, so a divergence is the
-    # platform contradicting itself — and it matters in BOTH directions. Run #4
-    # hit the M1 one (host cleared the credential, device still reported secure)
-    # having been built expecting only the M2-M5 one.
+    # in the harness: the driver just asked the device, through K1ObserveTest,
+    # and the seal phase asks the same KeyguardManager moments later and gets the
+    # other answer. It matters in BOTH directions — run #4 hit the M1 one (the
+    # credential was cleared and the device still reported itself secure) having
+    # been built expecting only the M2-M5 one.
     #
-    # Recorded with what the host actually observed, because "the driver did not
-    # reach the start state" is the probe's reading and the row needs the other
-    # side of the disagreement to be worth anything.
+    # Recorded with the earlier observation quoted, because "the driver did not
+    # reach the start state" is the seal phase's reading and the row needs the
+    # other side of the disagreement to be worth anything.
     if grep -q 'did not reach the start state' "$seal_out"; then
-      if [ "$case_id" = "M1" ]; then
-        note=" — NOTE: the host observed NO credential here (a deliberately wrong one verified,"
-        note="$note which only happens on a device with none), yet the device reports itself secure."
-      else
-        note=" — NOTE: the host verified '$PIN_A' here and confirmed a wrong credential is"
-        note="$note rejected, yet the device reports itself insecure."
-      fi
-      note="$note LockSettingsService and KeyguardManager disagree on this image; suspect it"
-      note="$note (see the image step in .github/workflows/k1-keystore-lockscreen.yml)"
-      note="$note before the driver."
+      note=" — NOTE: the driver's own observation immediately before this was"
+      note="$note '$OBS_LINE', which disagrees with what the seal phase then read."
+      note="$note Two readings of KeyguardManager on the same device, moments apart,"
+      note="$note disagreeing: suspect the image (see the image step in"
+      note="$note .github/workflows/k1-keystore-lockscreen.yml) before the driver."
     fi
     record "$case_id" "ERROR" "seal" "-" "seal phase failed; no verdict on rule 2 — $(failure_excerpt "$seal_out")$note"
     overall=1
@@ -667,23 +714,24 @@ for case_id in "${cases[@]}"; do
   seal_line=$(k1_line)
   echo "k1:   seal  $seal_line"
 
+  # The seal phase's own reading, taken in the process that made the key. Used
+  # for the witness column so the table shows the transition the *probe* saw
+  # rather than the one the driver arranged.
+  sealed_secure=$(field "$seal_line" deviceSecure)
+
   # --- phase 2: mutate ---------------------------------------------------
-  # The old credential must verify *before* the mutation, so that its failure
-  # afterwards means the mutation landed rather than that it never worked.
-  # What must verify before the mutation, and what must verify after it. Both
-  # halves are needed: see the witness section below.
+  #
+  # What the device must look like afterwards. `end_secure` is required and
+  # decides the row; `expect_cx` is the bucket AOSP's table predicts and only
+  # ever produces a note — see the credential block at the top of this file for
+  # why the predicted value is not allowed to decide anything.
   case "$case_id" in
-    M1)     pre_cred="";        post_cred="$PIN_A" ;;
-    M2)     pre_cred="$PIN_A";  post_cred="$PIN_B" ;;
-    M3)     pre_cred="$PIN_A";  post_cred="$PASSWORD" ;;
-    M4)     pre_cred="$PIN_A";  post_cred="$PATTERN" ;;
-    M5|M6)  pre_cred="$PIN_A";  post_cred="" ;;
+    M1)     end_secure="true";  expect_cx="MEDIUM" ;;
+    M2)     end_secure="true";  expect_cx="HIGH" ;;
+    M3)     end_secure="true";  expect_cx="HIGH" ;;
+    M4)     end_secure="true";  expect_cx="LOW" ;;
+    M5|M6)  end_secure="false"; expect_cx="NONE" ;;
   esac
-  if [ -n "$pre_cred" ] && ! credential_is "$pre_cred"; then
-    record "$case_id" "ERROR" "-" "-" "the start credential did not verify before mutating; witness unusable"
-    overall=1
-    continue
-  fi
 
   wake
   mutated=1
@@ -734,56 +782,69 @@ for case_id in "${cases[@]}"; do
     continue
   fi
 
-  # --- the host-side witness --------------------------------------------
-  # For M2/M3/M4 this is the only evidence the credential changed at all:
-  # KeyguardManager reports secure on both sides, so K1OpenTest's device-side
-  # witness cannot see these mutations happen.
+  # --- the witness -------------------------------------------------------
   #
-  # Two halves, and both are load-bearing:
+  # Did the mutation actually happen? Asked of the device, once, here — before
+  # the open phase runs, deliberately.
   #
-  #   negative — the OLD credential must stop verifying. Catches a mutation
-  #              command that exits 0 and changes nothing.
-  #   positive — the intended NEW credential must verify (or, for the cases
-  #              that destroy it, no credential must). Catches a mutation that
-  #              reported success and landed somewhere else: `set-password`
-  #              that in fact cleared the lock screen satisfies the negative
-  #              half perfectly, and the row would then say M3 while the device
-  #              did M5. The key survives both, so the verdict would even be
-  #              right — about the wrong mutation.
+  # K1OpenTest asserts the same two things itself, and that redundancy is the
+  # point rather than an oversight: this check makes a failed witness an ERROR
+  # ("this run has no verdict on rule 2"), while the same failure reaching
+  # K1OpenTest would come back as a failed test and be recorded **FAIL** ("this
+  # device contradicts BIT-8 rule 2"). Those two rows mean opposite things and
+  # only one of them is about Android. A harness bug must not be able to
+  # masquerade as a platform finding.
   #
-  # The positive half fails closed. Where `locksettings verify` cannot check a
-  # credential type on some image — a pattern passed as digits is the one to
-  # watch — the row comes out ERROR ("no verdict") rather than PASS. That is the
-  # correct direction for this test, but it does mean an ERROR here is a reason
-  # to check the device by hand, not automatically a broken device.
-  if [ -n "$pre_cred" ]; then
-    if credential_is "$pre_cred"; then
-      record "$case_id" "ERROR" "mutate" "-" \
-        "the OLD credential still verifies after the mutation — nothing changed, so a survival result would be evidence of nothing"
-      overall=1
-      continue
-    fi
-    witness="old-credential-rejected"
-  else
-    witness="keyguard-transition"
+  # Two required checks:
+  #
+  #   keyguard  — the device must end up on the right side of the
+  #               has-a-credential line. Decisive for M1/M5/M6; for M2/M3/M4 it
+  #               catches a mutation that landed as a wipe, which would
+  #               otherwise pass the complexity check and mislabel an M5 as an
+  #               M3.
+  #   bucket    — where it is readable, the complexity bucket must have MOVED.
+  #               This is the check that carries M2/M3/M4, and it is the direct
+  #               replacement for `locksettings verify`: a mutation command that
+  #               exits 0 and does nothing leaves the bucket where it was.
+  #
+  # And one check that only ever annotates: whether it moved to the bucket AOSP
+  # predicts. Getting that wrong means either the mutation landed somewhere else
+  # or this device buckets credentials differently — and K1 cannot tell which,
+  # so it records both values and lets a human decide. Failing the row on it
+  # would make the matrix red on the first OEM that disagrees with the
+  # documentation this test exists to distrust.
+  observe || true
+  if [ "$OBS_SECURE" != "$end_secure" ]; then
+    record "$case_id" "ERROR" "mutate" "-" \
+      "after the mutation the device reports deviceSecure=$OBS_SECURE, but $case_id must end deviceSecure=$end_secure — the mutation did not do what the row would say it did. Device said: $OBS_LINE"
+    overall=1
+    continue
   fi
+  # The witness column carries the observations themselves, not a word standing
+  # in for them. A reader checking whether a row means what it says should not
+  # have to trust the driver's summary of its own evidence.
+  witness="secure:${sealed_secure:-?}->${OBS_SECURE}"
 
-  if [ -n "$post_cred" ]; then
-    if ! credential_is "$post_cred"; then
+  cx_after="$OBS_COMPLEXITY"
+  if [ "$cx_before" != "unreadable" ] && [ "$cx_after" != "unreadable" ]; then
+    if [ "$cx_before" = "$cx_after" ]; then
       record "$case_id" "ERROR" "mutate" "-" \
-        "the mutation reported success and the old credential is gone, but the credential $case_id aimed for does not verify either — the device is in an unknown state and this row would not describe the mutation it names"
+        "the credential complexity is $cx_before both before and after the mutation — nothing observable changed, so a survival result would be evidence of nothing"
       overall=1
       continue
     fi
-    witness="${witness}+new-credential-set"
-  else
-    if ! has_no_credential; then
-      record "$case_id" "ERROR" "mutate" "-" \
-        "$case_id was supposed to destroy the credential, but the device still has one — the row would not describe the mutation it names"
-      overall=1
-      continue
+    witness="${witness}+complexity:${cx_before}->${cx_after}"
+    if [ "$cx_after" != "$expect_cx" ]; then
+      notes+=("**$case_id** — the mutation landed, but in bucket \`$cx_after\` where AOSP's table predicts \`$expect_cx\`. Either it landed on a different credential than the one $case_id names, or this device buckets credentials differently. The row's verdict does not rest on this; check the device by hand before quoting this row as being specifically about ${case_id}'s credential type.")
     fi
-    witness="${witness}+credential-gone"
+  elif [ "$case_id" = "M2" ] || [ "$case_id" = "M3" ] || [ "$case_id" = "M4" ]; then
+    # Belt and braces: K1SealTest should already have skipped these. Reaching
+    # here means the seal phase and this disagree about what is readable, and a
+    # row written now would rest on nothing.
+    record "$case_id" "ERROR" "mutate" "-" \
+      "no credential-change witness (complexity before=$cx_before after=$cx_after) and $case_id is secure on both sides; the seal phase should have declined this case"
+    overall=1
+    continue
   fi
 
   # --- phase 3: open, in a process that did not exist at seal time -------

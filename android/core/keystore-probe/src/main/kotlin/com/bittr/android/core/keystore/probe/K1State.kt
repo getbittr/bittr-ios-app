@@ -23,11 +23,18 @@ class K1State(
     val deviceSecureAtSeal: Boolean,
     val authControlCreated: Boolean,
     val securityLevel: String,
+    /**
+     * [K1Credential.complexity] as it read *before* the mutation. The open phase compares it with
+     * the reading after, and that comparison is the only witness M2/M3/M4 have — so it has to
+     * survive the process death between the phases, which means it goes in the file.
+     */
+    val complexityAtSeal: String,
 ) {
     companion object {
         private const val KEY_SECURE_AT_SEAL = "deviceSecureAtSeal"
         private const val KEY_CONTROL = "authControlCreated"
         private const val KEY_SECURITY_LEVEL = "securityLevel"
+        private const val KEY_COMPLEXITY_AT_SEAL = "complexityAtSeal"
 
         private fun dir(context: Context): File =
             File(context.noBackupFilesDir, "k1").apply { mkdirs() }
@@ -46,6 +53,7 @@ class K1State(
                 setProperty(KEY_SECURE_AT_SEAL, state.deviceSecureAtSeal.toString())
                 setProperty(KEY_CONTROL, state.authControlCreated.toString())
                 setProperty(KEY_SECURITY_LEVEL, state.securityLevel)
+                setProperty(KEY_COMPLEXITY_AT_SEAL, state.complexityAtSeal)
             }
             propsFile(context, case).outputStream().use { props.store(it, "BIT-18/K1 ${case.id}") }
         }
@@ -68,6 +76,9 @@ class K1State(
                 deviceSecureAtSeal = loaded.getProperty(KEY_SECURE_AT_SEAL).toBoolean(),
                 authControlCreated = loaded.getProperty(KEY_CONTROL).toBoolean(),
                 securityLevel = loaded.getProperty(KEY_SECURITY_LEVEL) ?: "UNRECORDED",
+                // A state file written before this field existed reads as "could not tell", which
+                // routes into the no-witness refusal rather than into a comparison against "".
+                complexityAtSeal = loaded.getProperty(KEY_COMPLEXITY_AT_SEAL) ?: K1Credential.UNREADABLE,
             )
         }
     }

@@ -18,12 +18,16 @@ about Keystore**, and no amount of it ever will be.
 
 The five emulator rows now have a way to be produced —
 `.github/workflows/k1-keystore-lockscreen.yml`, which boots an emulator on an
-ordinary GitHub-hosted runner. Three runs have been made and all came back red
-*before measuring anything*: the probe's seal phase fails, so no mutation has yet
-been attempted. Run #3 named the two causes — a version guard that was wrong by
-eight API levels, and a `locksettings set-pin` that exits 0 without setting a PIN
-— and both are now fixed. See [Runs so far](#runs-so-far). The two physical-device
-rows still need handsets someone owns.
+ordinary GitHub-hosted runner. **Six runs have been made and none produced a
+row**, and five of the six defects they exposed were in this harness rather than
+in Android. See [Runs so far](#runs-so-far).
+
+Run #6 was the decisive one: it proved that `adb shell locksettings verify` exits
+0 for everything on the API 34 image, which condemned every host-side witness the
+driver had. Those witnesses have now been **rebuilt on the device side** — see
+[How a row avoids being a false green](#how-a-row-avoids-being-a-false-green) —
+and run #7 is the first run of the rebuilt harness. The two physical-device rows
+still need handsets someone owns.
 
 ## What is being proved
 
@@ -50,14 +54,14 @@ password" is two different credential types and the entire premise of K1 is that
 OEM builds diverge — there is no reason to assume a pattern and an alphanumeric
 password take the same path through an OEM's `LockSettingsService`.
 
-| case | BIT-18 mutation | secure before → after | auth-bound control |
-|---|---|---|---|
-| M1 | 1. set a lock screen where none existed | no → yes | — |
-| M2 | 2. change PIN → PIN | yes → yes | — |
-| M3 | 3. change PIN → password | yes → yes | — |
-| M4 | 3. change PIN → pattern | yes → yes | — |
-| M5 | 4. remove the lock screen entirely | yes → no | yes |
-| M6 | 5. forced reset of the secure lock screen | yes → no | yes |
+| case | BIT-18 mutation | secure before → after | auth-bound control | witness | needs API |
+|---|---|---|---|---|---|
+| M1 | 1. set a lock screen where none existed | no → yes | — | keyguard | 26 |
+| M2 | 2. change PIN → PIN | yes → yes | — | complexity bucket | 29 |
+| M3 | 3. change PIN → password | yes → yes | — | complexity bucket | 29 |
+| M4 | 3. change PIN → pattern | yes → yes | — | complexity bucket | 29 |
+| M5 | 4. remove the lock screen entirely | yes → no | yes | keyguard + control key | 26 |
+| M6 | 5. forced reset of the secure lock screen | yes → no | yes | keyguard + control key | 26 |
 
 ## How a row avoids being a false green
 
@@ -73,32 +77,90 @@ have to line up before a row reads PASS:
    carry a dead key to a pass.
 2. **Phase 2 emitted a `verdict=PASS` line.** A green exit with no line is scored
    as a harness failure, not a pass.
-3. **The device-side witness passed.** `K1OpenTest` asserts the post-mutation
-   `KeyguardManager` state *before* it decrypts, so a run that mutated nothing
-   fails its start-state assertion instead of reporting survival.
-4. **The host-side witness passed**, in both directions. `locksettings verify`
-   against the **old** credential must succeed before the mutation and fail
-   after it, *and* the **new** credential the case aimed for must verify after
-   it (for M5 and M6, which destroy the credential: no credential must verify).
+3. **The keyguard witness passed.** The device must end up on the correct side of
+   the has-a-credential line: `KeyguardManager.isDeviceSecure` false → true for
+   M1, true → false for M5 and M6, unchanged for M2/M3/M4. `K1OpenTest` asserts
+   it *before* it decrypts, so a run that mutated nothing fails on the witness
+   rather than reporting survival.
+4. **The credential-change witness passed.** Where the device reports it,
+   `DevicePolicyManager.getPasswordComplexity()` must have **moved bucket**
+   across the mutation. A mutation command that exits 0 and does nothing leaves
+   the bucket exactly where it was.
 
-Item 4 is what carries M2, M3 and M4. Those three are secure on both sides of the
-mutation, so `KeyguardManager` cannot tell that anything happened and item 3
-degrades to "the driver did not do literally nothing". The asymmetry is real and
-is recorded here rather than hidden behind an assertion that would look stronger
-than it is.
+**Every one of those four is read on the device side of `adb`, and that is
+recent.** Item 4 used to be `locksettings verify` on the host, and
+[run #6](#run-6--the-witness-is-what-is-broken-not-the-device) established that
+on the API 34 image that call exits 0 for everything — the credential just set, a
+deliberately wrong one, and a bare `verify` with no argument at all. A witness
+that always says yes is how a false green gets made, so the question moved across
+`adb` into `K1ObserveTest`, which asks the same framework services the OS itself
+locks with. `locksettings` now only ever *mutates*; it is never asked a question.
 
-Both directions of item 4 are needed, and the second was added after the driver
-was caught scoring a mutation green that had landed somewhere other than where it
-was aimed. A `set-password` that in fact *cleared* the lock screen satisfies the
-old-credential half perfectly — the old PIN stops verifying, exactly as M3
-predicts. The key survives that too, so the verdict would even have been correct;
-it would just have been a correct verdict about **M5, printed on the M3 row**.
-Since only the row survives into a security statement, that is a false green.
+Item 4 is what carries M2, M3 and M4. Those three are secure on both sides, so
+item 3 degrades to "the driver did not do literally nothing" and the bucket move
+is the only evidence there is. It arrived in **API 29**, so on API 26 and 28 those
+three cases have no witness at all and are recorded `NOT REACHABLE` with the
+reason attached — see [Where a case cannot be
+witnessed](#where-a-case-cannot-be-witnessed).
 
-The positive half fails closed: where `locksettings verify` cannot check a
-credential type on some image — a pattern passed as digits is the one to watch —
-the row comes out `ERROR` rather than `PASS`. An `ERROR` there means *check this
-device by hand*, not *this device failed*.
+Items 3 and 4 are each checked **twice**: once by the driver between the phases,
+and again inside `K1OpenTest`. That redundancy is the point rather than an
+oversight. A witness failure caught by the driver is an `ERROR` — *this run has no
+verdict on rule 2*. The same failure reaching `K1OpenTest` comes back as a failed
+test and would be recorded `FAIL` — *this device contradicts rule 2*. Those two
+rows mean opposite things and only one of them is about Android, so a harness bug
+must not be able to arrive dressed as a platform finding.
+
+### What the bucket witness can and cannot see
+
+The credentials in `k1-lockscreen-matrix.sh` are chosen to sit in **different**
+buckets, because two PINs in the same bucket would make a real PIN change
+indistinguishable from no change at all:
+
+| case | mutation | bucket move |
+|---|---|---|
+| M1 | none → PIN `1379` | `NONE` → `MEDIUM` |
+| M2 | PIN `1379` → PIN `13795284` | `MEDIUM` → `HIGH` |
+| M3 | PIN → password `k1pass99` | `MEDIUM` → `HIGH` |
+| M4 | PIN → pattern `1236` | `MEDIUM` → `LOW` |
+| M5 / M6 | PIN → none | `MEDIUM` → `NONE` |
+
+**A row requires the bucket to move. It does not require it to land where that
+table predicts**, and the distinction is deliberate. The mapping above is AOSP
+documentation — a 4-digit non-sequential PIN is `MEDIUM`, the same at 8 digits is
+`HIGH`, a pattern is always `LOW` — and the premise of this entire test is that
+documentation is not a device. Failing a row because an OEM buckets credentials
+differently would turn the matrix red on the strength of the thing K1 exists to
+distrust. So a surprising landing is recorded as a **note beside a row that still
+passes**, naming both the expected and the observed bucket.
+
+That leaves one honest limit, stated here rather than left for someone to find
+while quoting a row: **nothing public on Android reports the credential's
+*type*.** A `set-password` that in fact set a pattern cannot be refuted by this
+harness — the credential did change, the device is still secure, and the key's
+survival is a real observation either way. What K1 *can* see is that the bucket
+landed on `LOW` where a password predicts `HIGH`, and it says so in the note. The
+case that used to worry this section — a `set-password` that in fact *cleared* the
+lock screen, giving an M5 result printed on the M3 row — is now caught outright by
+item 3, because M3 must end `isDeviceSecure=true`.
+
+### Where a case cannot be witnessed
+
+M2, M3 and M4 are secure on both sides of their mutation. On a device that does
+not report password complexity — **API 26 and 28**, where
+`getPasswordComplexity()` does not exist, or an OEM build that refuses it —
+nothing can see those mutations happen, and K1 will not report rows about them.
+They come back `NOT REACHABLE` with `reason=no-credential-change-witness`.
+
+M1, M5 and M6 are unaffected: the keyguard transition is decisive and available on
+every API in the matrix. An API 26 row is three results short, not empty.
+
+**That refusal is made by the device, not by the driver.** `K1SealTest` asks
+`getPasswordComplexity()` and declines the case with `assumeTrue` if it gets no
+answer; the driver turns that skip into the row. The driver never infers it from
+`Build.VERSION.SDK_INT` — K1 has already made exactly that mistake once, gating
+the `isUnlockedDeviceRequired` readback at API 28 for a method that arrived in
+36.1, where `compileSdk 37` hid it and it threw on every device in the matrix.
 
 ### The auth-bound control, and why it is not on every row
 
@@ -265,6 +327,19 @@ and a device disagrees, the stub is the first thing to suspect, not the last.**
 Its assumptions are the least-tested part of K1 precisely because they are the
 part no test here can reach.
 
+The stub's `verify` is now modelled as run #6 found it on a real device — **exit 0
+for everything** — and deliberately kept that way even though the driver no longer
+calls it. It is the regression guard: any host-side credential check reintroduced
+into the driver would be answered yes by this fake and would produce exactly the
+false green that six runs were spent discovering. One scenario asserts the call is
+never made at all.
+
+The suite also covers what the rebuilt witness must do: that M2/M3/M4 come back
+`NOT REACHABLE` on API 26 and on a device that refuses to report complexity, that
+M1/M5 still run there, that an unanswered observation is *not* read as "no lock
+screen", and that the witness column carries the observed transition rather than a
+word standing in for it.
+
 **This script changes a real lock screen.** It refuses a physical device holding
 user accounts unless `--i-know` is passed, refuses `--with-device-owner` on
 anything it does not recognise as an emulator, and restores the device to "no lock
@@ -375,13 +450,18 @@ requires *no* credential, passed its start-state assertion, so `KeyguardManager`
 itself works on this image.
 
 That is the third time this harness has trusted an `exit 0` (after `adb install`
-and `am instrument`), and it is fixed the same way: the credential is verified
-host-side through `locksettings verify` immediately after it is set, and the
-matrix now runs a **lock-screen preflight** before installing anything — set a
-PIN, verify it, clear it, plus `pm list features` for
+and `am instrument`), and it was fixed the same way: the credential is checked
+immediately after it is set, and the matrix runs a **lock-screen preflight** —
+set a PIN, confirm it took, clear it, plus `pm list features` for
 `android.software.secure_lock_screen` on API 29+. An image that cannot hold a
 lock screen is refused with that named as the reason, instead of producing six
 rows about a mutation that never happened.
+
+> **Superseded in two details by run #6.** The check after `set-pin` was
+> `locksettings verify`, which run #6 showed answers yes unconditionally; it is
+> now `KeyguardManager.isDeviceSecure` read through `K1ObserveTest`. And the
+> preflight now runs *after* the install rather than before it, because the
+> probe it asks lives in the APK. Neither changes what this run found.
 
 **The image has changed as a result.** K1 no longer runs on `aosp_atd`. ATD
 images are stripped by removing what an automated test is assumed not to need,
@@ -503,44 +583,42 @@ by the same broken witness. Moving off ATD was still right for K1 — a stripped
 image is the wrong host for a lock-screen measurement — but it was not the fix,
 and this document should not be read as claiming it was.
 
-### What this costs, and what it does not
+### What this cost, and the rebuild that answered it — including M2
 
-`locksettings verify` is the witness for M2/M3/M4 (see *How a row avoids being a
-false green*). Losing it is not fatal to all of them, but it is not free either:
+Run #6 condemned the witness, not the device. The rebuild moved every question to
+the device side of `adb` (`K1ObserveTest`, `K1Credential`), and it recovers
+**all six cases on API 29+**, including the one this section previously recorded
+as unwitnessable:
 
-| case | mutation | witness after run #6 |
+| case | mutation | witness after the rebuild |
 |---|---|---|
-| M1 | none → PIN | `isDeviceSecure` false → true, device-side. **Intact.** |
-| M2 | PIN → PIN | same type, same complexity, secure on both sides. **None.** |
-| M3 | PIN → password | credential *type* changes; `DevicePolicyManager.getPasswordComplexity()` (API 29+) can see it, device-side. **Replaceable.** |
-| M4 | PIN → pattern | as M3. **Replaceable.** |
-| M5 | PIN → none | `isDeviceSecure` true → false, plus the auth-bound control key. **Intact.** |
-| M6 | admin reset | as M5. **Intact.** |
+| M1 | none → PIN | `isDeviceSecure` false → true. **Intact, every API.** |
+| M2 | PIN → PIN | complexity bucket `MEDIUM` → `HIGH`. **Recovered, API 29+.** |
+| M3 | PIN → password | bucket `MEDIUM` → `HIGH`. **Recovered, API 29+.** |
+| M4 | PIN → pattern | bucket `MEDIUM` → `LOW`. **Recovered, API 29+.** |
+| M5 | PIN → none | `isDeviceSecure` true → false, plus the auth-bound control key. **Intact, every API.** |
+| M6 | admin reset | as M5. **Intact, every API.** |
 
-So five of the six can be witnessed without `locksettings verify`, by reading the
-device through the probe instead of through `adb`. **M2 cannot.** A PIN→PIN change
-is invisible to every device-side signal K1 has: the device is secure before and
-after, the credential type does not change, and an auth-bound key legitimately
-survives it.
+**M2 was written off too early, and it is worth being precise about the mistake.**
+Run #6 recorded it as having no possible witness because "the credential type does
+not change". True — but the bucket is not the type. `getPasswordComplexity()`
+buckets by length as well, so a PIN → *longer* PIN is a real PIN change that a
+device-side signal can see. That is why `PIN_B` is now 8 digits rather than 4: the
+old `1234` → `5678` was a genuine mutation that no instrument K1 has could
+distinguish from doing nothing.
 
-The honest disposition for M2 on any device where `verify` does not discriminate
-is **`not reachable`, recorded as such** — the same treatment M6 gets on a
-physical handset. A PASS on M2 without a witness would be precisely the false
-green this harness exists to prevent: *"the key survived a PIN change"*, on a run
-that never established a PIN change happened.
-
-Whether that is acceptable for BIT-18's definition of done is **Ruben's call, not
-this document's** — mutation 2 is one of the five the issue asks for. It may be
-that a physical Samsung and Xiaomi, where `locksettings verify` may well behave,
-are the only places M2 is ever witnessed, which would fit the issue's own view
-that the OEM rows are the ones that matter.
-
-Until the witness is rebuilt: **no verdict on rule 2, and no row.**
+So the disposition changes. M2 is **not** `not reachable` in general — it is
+reachable wherever complexity is readable, which is API 29 and up, which is four
+of the five emulator rows and both physical handsets. It falls back to `NOT
+REACHABLE` only on API 26 and 28, alongside M3 and M4, for the same reason and
+with the same recorded cause. **No question for Ruben is outstanding here**; the
+earlier one is withdrawn.
 
 **`not reachable` is a finding, not a gap.** BIT-18 says "where reachable" of
 mutation 5, and M6 is expected to be unreachable on physical devices: a device
 owner cannot be removed without a factory reset, so the script refuses to set one
-on a handset. Recording that is the honest answer to the question the issue asked.
+on a handset. The same treatment now covers M2/M3/M4 below API 29. Recording that
+is the honest answer to the question the issue asked.
 
 ### Key security level, recorded not asserted
 

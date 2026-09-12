@@ -35,8 +35,10 @@ object K1Harness {
         return K1Case.byId(raw)
     }
 
-    fun isDeviceSecure(): Boolean =
-        context.getSystemService(KeyguardManager::class.java).isDeviceSecure
+    fun isDeviceSecure(): Boolean = K1Credential.isDeviceSecure(context)
+
+    /** NONE / LOW / MEDIUM / HIGH, or `unreadable`. See [K1Credential.complexity]. */
+    fun complexity(): String = K1Credential.complexity(context)
 
     /**
      * Emit one machine-readable line per phase.
@@ -48,10 +50,18 @@ object K1Harness {
      * checks the instrumentation exit status too, and treats a green exit with no result line
      * as a harness failure rather than as a pass.
      */
-    fun report(phase: String, case: K1Case, facts: Map<String, String>) {
+    fun report(phase: String, case: K1Case, facts: Map<String, String>) =
+        report(phase, case.id, facts)
+
+    /**
+     * The case-less form, for [K1ObserveTest]: an observation of the device is about the device,
+     * not about a mutation, and labelling it with a case would put a case id on a line that says
+     * nothing about that case.
+     */
+    fun report(phase: String, caseId: String, facts: Map<String, String>) {
         val all = linkedMapOf(
             "phase" to phase,
-            "case" to case.id,
+            "case" to caseId,
             "api" to Build.VERSION.SDK_INT.toString(),
             "device" to "${Build.MANUFACTURER}/${Build.MODEL}",
             "build" to Build.FINGERPRINT,
