@@ -53,20 +53,7 @@ class ComposeRuleVariantGuardTest {
 
         /** `createComposeRule()` / `createEmptyComposeRule()`, call site or import. */
         val BARE_RULE = Regex("""\bcreate(Empty)?ComposeRule\b""")
-
-        /** Block comments (KDoc included) and line comments. */
-        val COMMENTS = Regex("""/\*[\s\S]*?\*/|//[^\n]*""")
     }
-
-    /**
-     * Source with comments stripped.
-     *
-     * Five files in this directory name `createComposeRule()` in their KDoc, to
-     * explain why they do not use it — including this one. A guard that reads those
-     * as violations fails on the very documentation that keeps the rule learnable,
-     * so it would be deleted rather than obeyed.
-     */
-    private fun File.code(): String = readText().replace(COMMENTS, "")
 
     private fun appUnitTestSources(): List<File> {
         val dir = File(SourceTree.root, TEST_DIR)
@@ -78,16 +65,28 @@ class ComposeRuleVariantGuardTest {
         )
         val files = dir.walkTopDown()
             .filter { it.isFile && it.extension == "kt" }
-            .filterNot { it.name == "ComposeRuleVariantGuardTest.kt" }
             .toList()
         assertTrue("Found no Kotlin sources under $dir.", files.isNotEmpty())
         return files
     }
 
+    /**
+     * Scans [SourceTree.codeWithoutLiterals], not raw text — the distinction is the
+     * one the other guards in this package learned the hard way, and it applies
+     * twice here.
+     *
+     * Comments must go because six files in this directory name
+     * `createComposeRule()` in their KDoc precisely to explain why they do not use
+     * it. String literals must go because this test's own failure message names it
+     * too. A guard that reads either as a violation fails on the documentation that
+     * keeps the rule learnable, and gets deleted rather than obeyed. With literals
+     * stripped, this file needs no self-exclusion: the pattern it holds is inside a
+     * regex literal, so the scan cannot see it.
+     */
     @Test
     fun `no app unit test uses the bare compose rule`() {
         val offenders = appUnitTestSources()
-            .filter { BARE_RULE.containsMatchIn(it.code()) }
+            .filter { BARE_RULE.containsMatchIn(with(SourceTree) { it.codeWithoutLiterals() }) }
             .map { with(SourceTree) { it.repoPath() } }
             .sorted()
 
