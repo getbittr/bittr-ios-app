@@ -359,15 +359,23 @@ class CrossOriginIframeIsolationTest {
     fun theIframeBridgeProbeReportsABridgeThatIsActuallyThere() {
         val webView = loadParentPage(PLANTED_PARENT_PATH)
 
-        val report = evaluate(webView, "JSON.stringify(window.__bittrIframe)")
+        // Asked the way theCrossOriginIframeActuallyRan asks it, and for the same
+        // reason: evaluateJavascript hands back a JSON *encoding* of the result,
+        // so a stringified object arrives with its quotes escaped and a substring
+        // test for {"ran":true} would never match its own subject. Reducing the
+        // question to a bare boolean first keeps the comparison exact.
+        val ran = evaluate(webView, "JSON.stringify(!!(window.__bittrIframe || {}).ran)")
 
-        assertTrue(
+        assertEquals(
             "The iframe carrying a planted bridge never reported in at all, so this " +
                 "control proved nothing about the probe. Check the second " +
                 "LocalTestServer and the planted iframe document before reading any " +
-                "other result in this file. Report: $report",
-            "\"ran\":true" in report.replace(" ", ""),
+                "other result in this file.",
+            "\"true\"",
+            ran,
         )
+
+        val report = evaluate(webView, "JSON.stringify(window.__bittrIframe)")
 
         assertTrue(
             "The iframe's probe did not report a planted window.bittrLnurl by name. " +
