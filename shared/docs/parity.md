@@ -145,7 +145,8 @@ Mostly defensive alerts on the onboarding/auth screens, with no flow:
 ### Not parity-tracked
 
 - **LNURL-auth (login)** — `SendLNURL.swift`, in-app-browser path in `WebsiteViewController.swift`. Not in product scope; intentionally untracked.
-- **Widget** — `BittrWidget/*` price widget + `widget-deeplink://` → "openvalue". Can't be driven by Maestro (home-screen widget); the deeplink→Value path could be tested if desired.
+- **Widget** — `BittrWidget/*` price widget + `widget-deeplink://` → "openvalue". Can't be driven by Maestro (home-screen widget); the deeplink→Value path could be tested if desired. **In scope for the port but not for the v1 Maestro gate** (it can't be in a gate it can't be tested by); specified from source in [`widget-spec.md`](widget-spec.md) instead of from a screenshot, and scheduled as Phase 4 item 11. Decision: BIT-11.
+- **Swap Live Activity** — `BittrWidget/SwapLiveActivity.swift` + `SwapActivityAttributes.swift`, rendered in the Dynamic Island / Lock Screen and driven by remote pushes. Maestro can't drive either surface, so it's absent from the screenshot catalog for the same reason the price widget is. Five `SwapPhase` states, each with its own copy/icon/tint. **Not yet scoped for Android** (the equivalent is an ongoing notification, not a widget) and has no spec — see `widget-spec.md` §8.
 - **QR scanner (live scan)** — camera not available in the simulator; `ScannerViewController` is exercised via the "scanning not supported" path only (`send_onchain.yaml`).
 
 ### Confirmed absent in iOS (not parity gaps — do not build for parity)
