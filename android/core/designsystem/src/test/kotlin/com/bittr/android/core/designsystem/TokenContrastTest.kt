@@ -142,9 +142,13 @@ class TokenContrastTest {
             aaLarge, BittrLightColorsExtended.emphasis, BittrLightColors.primary,
             "screen title on brand yellow, light",
         )
+        // `surface`, not `primary`. Until BIT-94 the two were the same colour in dark
+        // mode and this line read `primary` — which measured the right pixels for the
+        // wrong reason. A screen title is drawn on the page, and in dark the page is
+        // `surface`; `primary` is now the accent a control fills itself with. 4.51 : 1.
         assertAtLeast(
-            aaLarge, BittrDarkColorsExtended.emphasis, BittrDarkColors.primary,
-            "screen title on primary, dark",
+            aaLarge, BittrDarkColorsExtended.emphasis, BittrDarkColors.surface,
+            "screen title on the dark page",
         )
     }
 
@@ -401,6 +405,110 @@ class TokenContrastTest {
     fun `the tonal fill shows what is on it at the large-text floor`() {
         for ((name, c) in schemes) {
             assertAtLeast(aaLarge, c.onTonalFill, c.tonalFill, "$name content on the tonal fill")
+        }
+    }
+
+    // -----------------------------------------------------------------------
+    // A11Y-22 / BIT-94 — 1.4.11 for a control's container, not its label
+    // -----------------------------------------------------------------------
+
+    /**
+     * The half of 1.4.11 that sixteen green tests did not cover.
+     *
+     * Everything above this line measures something drawn *on* a fill. Nothing
+     * measured a fill against the page behind it — which is how `primary` and
+     * `surface` both came to be `blue1` and stayed that way through a founder
+     * sign-off. A Material filled `Button` paints its container `primary`, so in dark
+     * mode the container was exactly the page: **1.00 : 1**. Its label still cleared
+     * AA, so the control rendered as text floating in space and every test passed.
+     *
+     * This is the part that has to hold for a control to be a control.
+     */
+    @Test
+    fun `A11Y-22 a dark filled control is visible against the page it sits on`() {
+        // The fix. grey1 on blue1, where blue1 on blue1 used to be.
+        assertAtLeast(
+            aaLarge, BittrDarkColors.primary, BittrDarkColors.surface,
+            "dark filled button against the page",
+        )
+        assertAtLeast(
+            aa, BittrDarkColors.onPrimary, BittrDarkColors.primary,
+            "dark filled button label",
+        )
+        // Not only `Button`: a Switch track, a Slider, a focused TextField indicator and
+        // a FAB are all `primary`, and all of them were the page colour too.
+        assertTrue(
+            "primary is the page colour again — every filled control just went invisible",
+            BittrDarkColors.primary.toArgbInt() != BittrDarkColors.surface.toArgbInt(),
+        )
+    }
+
+    @Test
+    fun `A11Y-22 the dark Material slot and the dark canvas pill are one decision`() {
+        // `actionFill` had already inverted to grey1 for the onboarding pill, with the
+        // reasoning written down; BIT-94 is the Material slot catching up to it rather
+        // than a second answer to the same question. Drift between these two is a dark
+        // mode where the arc's button and every other screen's button are different
+        // colours, which no screenshot of either one on its own would show.
+        assertEquals(
+            BittrDarkColorsExtended.actionFill.toArgbInt(),
+            BittrDarkColors.primary.toArgbInt(),
+        )
+        assertEquals(
+            BittrDarkColorsExtended.onActionFill.toArgbInt(),
+            BittrDarkColors.onPrimary.toArgbInt(),
+        )
+    }
+
+    @Test
+    fun `A11Y-22 light primary is a surface, so a filled Material Button is wrong there`() {
+        // The asymmetry, asserted so it reads as decided rather than as the same bug
+        // half-fixed. Light `primary` is the brand yellow and the brand yellow is a
+        // *page* in this app — 56 storyboard fills. Against `surface` it is 1.42 : 1,
+        // and moving it would unpick those fills and six tests above. So the light CTA
+        // is not a Material `Button` at all; it is BittrPrimaryButton on `actionFill`.
+        assertTrue(
+            "light primary now clears the container floor — re-read the note on BittrLightColors",
+            contrast(BittrLightColors.primary, BittrLightColors.surface) < aaLarge,
+        )
+        assertAtLeast(
+            aaLarge, BittrLightColorsExtended.actionFill, BittrLightColors.surface,
+            "the light CTA that is usable — the ink pill",
+        )
+    }
+
+    @Test
+    fun `A11Y-22 the tonal fills are exempt from the container floor, and that is deliberate`() {
+        // Every remaining fill that loses to the page, in one place, so that "it is not
+        // in the test" can never again be the reason something shipped invisible.
+        //
+        // These are tonal containers — the cream PIN cell, the secondary pill,
+        // `primaryContainer`. §1.1 states the rule for them: a fill that carries its own
+        // content is identified by that content, not by its edge, and is never a border
+        // that has to be perceived against the canvas. The content side is asserted by
+        // `the tonal fill shows what is on it at the large-text floor`, and this test is
+        // void without it.
+        //
+        // A filled *button* is not in this category and does not get this exemption:
+        // its edge is the only thing that says it can be pressed.
+        for ((name, fill, bg) in listOf(
+            Triple(
+                "light tonal fill on the canvas",
+                BittrLightColorsExtended.tonalFill, BittrLightColorsExtended.canvas,
+            ),
+            Triple(
+                "dark tonal fill on the canvas",
+                BittrDarkColorsExtended.tonalFill, BittrDarkColorsExtended.canvas,
+            ),
+            Triple(
+                "dark primaryContainer on the page",
+                BittrDarkColors.primaryContainer, BittrDarkColors.surface,
+            ),
+        )) {
+            assertTrue(
+                "$name now clears 3 : 1 — good, but it changed; re-read §1.1 before keeping it",
+                contrast(fill, bg) < aaLarge,
+            )
         }
     }
 
