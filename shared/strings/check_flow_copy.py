@@ -16,11 +16,13 @@ words. A rewording in transit breaks the suite in the worst possible way:
 
 This check makes that loud instead. `copy-lock.json` pins each matcher to the
 string keys it depends on and to the text those keys had when the matcher was
-written. The check re-resolves the lock against whatever copy source is present
--- `ios/bittr/Language.swift` before the move, `shared/strings/en.json` after it
+written. The check re-resolves the lock against every copy source present --
+`ios/bittr/Language.swift` and `shared/strings/en.json`, overlaid in that order
 -- so the same lock file proves the move was verbatim without booting a
-simulator. Run it on both sides of the migration commit: green before, green
-after, and no word changed.
+simulator. Run it on both sides of the migration commit, and at every point in
+between: the move is a key at a time, and a key that has moved resolves from its
+new home while the rest still resolve from the old one. Green throughout means no
+word changed.
 
 Not all of the app's copy is in the copy source. Some of what the suite matches
 on is a hardcoded Swift literal or storyboard text (the QR menu's "Copy" and
@@ -122,13 +124,39 @@ def _flatten(node, prefix=""):
             yield full, value
 
 
-def default_source() -> Path:
-    """en.json once it exists, Language.swift until then.
+def default_sources() -> list[Path]:
+    """Every copy source present, in migration order: Language.swift, then en.json.
 
     The point of the default is that the same command is correct on both sides of
     the migration commit, so CI does not need editing halfway through the move.
+    The move is not one commit, though — it is a key at a time, and while it runs
+    a key lives in exactly one of the two files. Preferring en.json the moment it
+    exists reads a half-migrated tree as a mass deletion: BIT-56 landed a two-key
+    en.json on `ios-parity` and the guard reported 10 keys missing that had never
+    moved. So read both and overlay, which is the only reading that is true at
+    every point of the move: en.json wins where both define a key, because that is
+    where the key is going.
     """
-    return JSON_SOURCE if JSON_SOURCE.exists() else SWIFT_SOURCE
+    return [p for p in (SWIFT_SOURCE, JSON_SOURCE) if p.exists()]
+
+
+def load_all(sources: list[Path]) -> dict[str, str]:
+    """Merge the sources left to right; the destination of the move wins."""
+    copy: dict[str, str] = {}
+    for source in sources:
+        copy.update(load_copy(source))
+    return copy
+
+
+def label_for(sources: list[Path]) -> str:
+    """Repo-relative names for the messages. A --source outside the repo keeps its own."""
+    names = []
+    for source in sources:
+        try:
+            names.append(str(source.resolve().relative_to(ROOT)))
+        except ValueError:
+            names.append(str(source))
+    return " + ".join(names)
 
 
 def collect_matchers() -> dict[str, list[str]]:
@@ -202,7 +230,7 @@ def holds(entry: dict, key: str, copy: dict[str, str]) -> bool:
     return matches(entry["matcher"], text) or matches_rendered(entry["matcher"], text)
 
 
-def check(lock: dict, copy: dict[str, str], used: dict[str, list[str]], source: Path) -> int:
+def check(lock: dict, copy: dict[str, str], used: dict[str, list[str]], source: str) -> int:
     declared = {entry["matcher"]: entry for entry in lock["matchers"]}
     failures = 0
 
@@ -243,7 +271,7 @@ def check(lock: dict, copy: dict[str, str], used: dict[str, list[str]], source: 
                     f"missing key: {key}\n"
                     f"  matcher: {matcher!r}\n"
                     f"  expected text: {entry['texts'].get(key)!r}\n"
-                    f"  was in: {source.relative_to(ROOT)}, now absent\n"
+                    f"  was in: {source}, now absent\n"
                     f"  would fail: {', '.join(flows)}"
                 )
             elif not holds(entry, key, copy):
@@ -280,7 +308,7 @@ def check(lock: dict, copy: dict[str, str], used: dict[str, list[str]], source: 
                     f"  matcher: {matcher!r}\n"
                     f"  not in {literal['file']} any more\n"
                     f"  would fail: {', '.join(flows)}\n"
-                    f"  This copy is hardcoded outside {source.relative_to(ROOT)}. If the "
+                    f"  This copy is hardcoded outside {source}. If the "
                     f"consolidation has replaced it with a key lookup, move the entry from "
                     f"`literals` to `keys` in the same commit."
                 )
@@ -300,13 +328,13 @@ def check(lock: dict, copy: dict[str, str], used: dict[str, list[str]], source: 
     print(
         f"{len(used)} matchers across {len(set().union(*used.values())) if used else 0} flow files; "
         f"{len(enforced)} declared as copy, covering {keys} keys in "
-        f"{source.relative_to(ROOT)} and {literals} hardcoded literals; "
+        f"{source} and {literals} hardcoded literals; "
         f"{len(copy)} keys available; {failures} failures"
     )
     return 1 if failures else 0
 
 
-def update(lock_path: Path, copy: dict[str, str], used: dict[str, list[str]], source: Path) -> int:
+def update(lock_path: Path, copy: dict[str, str], used: dict[str, list[str]], source: str) -> int:
     """Rewrite the lock: keep every human declaration, propose the new matchers.
 
     Classifications are never downgraded by a regeneration — an entry a human
@@ -372,7 +400,7 @@ def update(lock_path: Path, copy: dict[str, str], used: dict[str, list[str]], so
                     "failure. See shared/strings/README.md."
                 ),
                 "_classes": CLASSES,
-                "source": str(source.relative_to(ROOT)),
+                "source": source,
                 "matchers": entries,
             },
             indent=2,
@@ -390,14 +418,24 @@ def update(lock_path: Path, copy: dict[str, str], used: dict[str, list[str]], so
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("--update", action="store_true", help="rewrite copy-lock.json from the current flows")
-    parser.add_argument("--source", type=Path, default=None, help="copy source (default: en.json if present, else Language.swift)")
+    parser.add_argument(
+        "--source",
+        type=Path,
+        action="append",
+        default=None,
+        help="copy source, repeatable, later ones win (default: every source present)",
+    )
     args = parser.parse_args()
 
-    source = args.source or default_source()
-    if not source.exists():
-        sys.exit(f"{source}: no such copy source")
+    sources = args.source or default_sources()
+    for source in sources:
+        if not source.exists():
+            sys.exit(f"{source}: no such copy source")
+    if not sources:
+        sys.exit(f"no copy source found: neither {SWIFT_SOURCE} nor {JSON_SOURCE} exists")
 
-    copy = load_copy(source)
+    copy = load_all(sources)
+    source = label_for(sources)
     used = collect_matchers()
 
     if args.update:

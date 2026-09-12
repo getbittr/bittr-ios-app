@@ -193,6 +193,40 @@ def _(tmp):
     assert "receive_invoice.yaml" in result.stdout, result.stdout
 
 
+@case("a half-migrated tree passes — the moved key resolves from en.json, the rest from Swift")
+def _(tmp):
+    # The move is a key at a time, not one commit. BIT-56 landed a two-key en.json
+    # beside a full Language.swift on `ios-parity`, and the guard — which preferred
+    # en.json the moment it existed — called 10 keys that had never moved deleted.
+    matcher, key, text = SIMPLE
+    path = tmp / SWIFT
+    path.write_text(path.read_text().replace(f'"{key}": "{text}"', f'"{key}moved": "{text}"'))
+    (tmp / "shared/strings/en.json").write_text(json.dumps({key: text}, indent=2, ensure_ascii=False))
+    result = run(tmp)
+    assert result.returncode == 0, (
+        "a key that moved to en.json while the rest stayed in Language.swift read as "
+        "missing — a half-migrated tree is a red build for no reason:\n" + result.stdout
+    )
+    assert "0 failures" in result.stdout, result.stdout
+
+
+@case("a key reworded on its way into a half-migrated en.json still fails")
+def _(tmp):
+    # What the overlay order buys: en.json wins over Language.swift, so the copy of
+    # the key left behind in the Swift table cannot mask the rewording. Get this
+    # backwards and the union silently un-arms the guard for every key mid-move.
+    matcher, key, text = SIMPLE
+    (tmp / "shared/strings/en.json").write_text(
+        json.dumps({key: "Invoice & amount"}, indent=2, ensure_ascii=False)
+    )
+    result = run(tmp)
+    assert result.returncode == 1, (
+        "en.json reworded the key and Language.swift's stale copy masked it:\n" + result.stdout
+    )
+    assert f"drift: {key}" in result.stdout, result.stdout
+    assert "receive_invoice.yaml" in result.stdout, result.stdout
+
+
 def main() -> int:
     failed = 0
     for name, fn in CASES:

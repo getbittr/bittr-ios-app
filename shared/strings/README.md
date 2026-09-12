@@ -27,16 +27,18 @@ A word changed in transit breaks those assertions **silently** — a copy change
 
 ### The guard
 
-`check_flow_copy.py` pins every text the suite matches on to the copy it depends on, and re-resolves that lock against whichever source is present: `ios/bittr/Language.swift` before the move, `shared/strings/en.json` after it. Same lock, both sides of the migration commit:
+`check_flow_copy.py` pins every text the suite matches on to the copy it depends on, and re-resolves that lock against every source present — `ios/bittr/Language.swift` and `shared/strings/en.json`, overlaid in that order, so a key that has moved resolves from its new home and the rest from the old one. Same lock, both sides of the migration commit **and every point in between**:
 
 ```sh
 ./shared/strings/check_flow_copy.py                             # before: green
-# … do the move …
+# … move a key, or all of them …
 ./shared/strings/check_flow_copy.py                             # after: green == verbatim
 ./shared/strings/check_flow_copy.py --source ios/bittr/Language.swift   # pin the source explicitly
 ./shared/strings/check_flow_copy.py --update                    # re-lock after a deliberate copy change
 ./shared/strings/test_check_flow_copy.py                        # prove the guard still bites
 ```
+
+The overlay is load-bearing in both directions. Reading only `en.json` once it exists reads a half-migrated tree as a mass deletion — BIT-56 landed a two-key `en.json` on `ios-parity` and the guard reported 10 keys missing that had never moved. Reading only `Language.swift` would let the Swift table's leftover copy of a moved key mask a rewording in `en.json`. `en.json` wins, because that is where the key is going; both readings are covered by a test.
 
 It runs in CI (the `build` job in `.github/workflows/android-maestro.yml`, alongside the test-id checks) on any change to `shared/flows/`, `shared/strings/` or `ios/bittr/Language.swift`. Failures name the flow that would have gone red, so the cost of finding out is a CI minute rather than a simulator run.
 
