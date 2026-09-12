@@ -285,6 +285,57 @@ def test_the_d2d_gap_is_reported_on_a_green_run():
           "wallet-security-properties.md §4" in out, out)
 
 
+def test_the_failure_annotation_carries_the_test_names():
+    # THE BUG THIS PINS. The emitted annotation used to be
+    # `problem.splitlines()[0]`, so a red run's annotation read "These tests
+    # failed:" with nothing under it. On this PUBLIC repo the job log answers
+    # 403 and artifacts answer 401, so the annotation is the only thing readable
+    # from outside the runner — and an empty failure list there is not merely
+    # unhelpful, it looks exactly like "no tests ran", which is a different
+    # finding with a different owner.
+    with tempfile.TemporaryDirectory() as tmp:
+        dirs = both_modules(
+            pathlib.Path(tmp),
+            {"aCloudBackupRunProducesNoBackupSetForThisPackage": "failed"},
+        )
+        code, out = run(dirs)
+
+    annotations = [ln for ln in out.splitlines() if ln.startswith("::error::")]
+    check("a red run emits an annotation", annotations, out)
+    joined = "".join(annotations)
+    check(
+        "and the failing test's name is inside the annotation itself",
+        "aCloudBackupRunProducesNoBackupSetForThisPackage" in joined,
+        joined,
+    )
+    check("and it stays one line, or the rest falls into the unreadable log",
+          all("\n" not in a for a in annotations), joined)
+    check("with the newlines encoded rather than dropped", "%0A" in joined, joined)
+
+
+def test_a_percent_in_a_failure_message_cannot_corrupt_the_escapes():
+    # `%` must be escaped BEFORE `%0A` is introduced. Done the other way round,
+    # a test whose message contains a literal "%0A" — or any percent sign —
+    # rewrites the encoding of the annotation around it.
+    check("a bare percent is escaped", checker.annotate("100% used") == "100%25 used")
+    check(
+        "and a literal %0A in the text does not become a newline",
+        checker.annotate("a%0Ab") == "a%250Ab",
+    )
+    check(
+        "while real newlines do",
+        checker.annotate("a\nb") == "a%0Ab",
+    )
+
+
+def test_a_very_long_problem_is_truncated_rather_than_dropped():
+    # An over-long annotation is rejected wholesale, which would put us back at
+    # an empty failure list by a different route.
+    encoded = checker.annotate("x" * (checker.MAX_ANNOTATION + 500))
+    check("an over-long problem is truncated", len(encoded) < checker.MAX_ANNOTATION + 200, len(encoded))
+    check("and says so", "truncated" in encoded, encoded)
+
+
 def main():
     for name, fn in sorted(globals().items()):
         if name.startswith("test_") and callable(fn):

@@ -58,6 +58,32 @@ with no pip step in front of them.
 import argparse
 import pathlib
 import sys
+
+# Annotation message limit is generous but not unlimited, and a problem block is
+# a handful of test ids plus one truncated message each.
+MAX_ANNOTATION = 4000
+
+
+def annotate(text):
+    """Encode a multi-line problem so all of it survives into an annotation.
+
+    A workflow command is ONE line: everything after the first newline is
+    ordinary log output. That matters more here than it looks, because on this
+    PUBLIC repo the job log answers 403 "Must have admin rights to Repository"
+    and artifacts answer 401 — so anything that falls out of the annotation is
+    readable by a signed-in human and by nothing else.
+
+    This function exists because the previous code took `splitlines()[0]`, which
+    is a correct way to make a one-line annotation and threw away the only part
+    anyone needed: the annotation for a red wallet run read "These tests failed:"
+    with an empty list under it, which looks exactly like "no tests ran" and is
+    not. `%` is escaped BEFORE `%0A` is introduced, or a percent sign in a test's
+    own failure message would corrupt the escapes added after it.
+    """
+    text = text.rstrip()
+    if len(text) > MAX_ANNOTATION:
+        text = text[:MAX_ANNOTATION] + "\n… truncated; full text is above this line."
+    return text.replace("%", "%25").replace("\r", "").replace("\n", "%0A")
 import xml.etree.ElementTree as ElementTree
 
 ANDROID_DIR = pathlib.Path(__file__).resolve().parents[1]
@@ -304,7 +330,7 @@ def main(argv=None):
     if problems:
         print()
         for problem in problems:
-            print(f"::error::{problem.splitlines()[0]}")
+            print(f"::error::{annotate(problem)}")
             print(problem)
         print("check-wallet-instrumented-results: FAILED.")
         return 1
