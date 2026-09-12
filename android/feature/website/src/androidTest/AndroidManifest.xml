@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  This manifest exists for exactly one reason: without it the isolation tests
+  cannot load their own fixtures, and BIT-62 is the first time anyone found out,
+  because BIT-58's tests had only ever been COMPILED.
+
+  ThirdPartyIsolationTest and CrossOriginIframeIsolationTest serve their hostile
+  pages from LocalTestServer, which is a plain HTTP server on 127.0.0.1 — it has
+  to be, because the point is to control the origin, and a self-signed https
+  origin would trip SSL handling rather than the thing under test.
+
+  Cleartext HTTP has been refused by default since targetSdk 28, and there is no
+  loopback exception in the platform's default network security config. This
+  module's test APK targets far past that. So `loadUrl("http://127.0.0.1:41001/…")`
+  fails with net::ERR_CLEARTEXT_NOT_PERMITTED, the WebView commits an error page,
+  onProgressChanged still reaches 100 — so the CountDownLatch in loadHostilePage()
+  is released and the test does NOT hang — and the probe object the assertions read
+  back was never created.
+
+  Note what that produces, because it is the whole argument for the canary test:
+  three of the nine tests go red (the two that read a probe, and
+  theCrossOriginIframeActuallyRan), and the rest go GREEN having proved nothing.
+  "No LNURL endpoint was contacted" and "the page never loaded" are the same tick.
+  theCrossOriginIframeActuallyRan is what turns that into a red, exactly as BIT-58
+  intended when it insisted on keeping it as a separate test.
+
+  WHY A DOMAIN-SCOPED CONFIG AND NOT usesCleartextTraffic="true"
+
+  The one-attribute version would re-permit cleartext to everything for the test
+  APK, so a future test that quietly depended on plaintext traffic to a real host
+  would work instead of failing. The config below permits 127.0.0.1 and localhost
+  and nothing else.
+
+  WHY THIS CANNOT REACH THE SHIPPED APP
+
+  It is in src/androidTest/, which is only ever built into the instrumentation
+  test APK. It is not in src/main/ and not in src/debug/, so it is absent from
+  :app's merged manifest in every build type. The R-11 baseline that
+  theHardeningBaselineIsAppliedToTheRealWebView asserts is untouched: this changes
+  what the operating system will route, not one setting on the WebView.
+-->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <application android:networkSecurityConfig="@xml/network_security_config_androidtest" />
+
+</manifest>

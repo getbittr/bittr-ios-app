@@ -1,0 +1,351 @@
+#!/usr/bin/env python3
+"""Fail a green `connectedDebugAndroidTest` that did not actually run the tests.
+
+    android/scripts/check-instrumented-results.py
+    android/scripts/check-instrumented-results.py --results-dir <dir>
+
+Exit codes: 0 the required tests ran and passed · 1 they did not.
+
+WHY THIS EXISTS
+
+BIT-62 is "run the S-36 instrumented tests", and the failure mode it names first
+is a **vacuously green run**. There are three separate ways to get one, and
+Gradle's exit code catches none of them.
+
+1. *Zero tests ran.* `connectedDebugAndroidTest` succeeds when it matched
+   nothing. Break the runner declaration, mis-merge the test manifest, filter on
+   a package that no longer exists, and the task prints BUILD SUCCESSFUL having
+   installed an APK and executed no test at all. This is the big one: the whole
+   premise of BIT-62 is that a test nobody has run might be asserting nothing,
+   and "the task went green" is precisely the evidence that does not distinguish
+   those cases.
+
+2. *A test was silently skipped.* `@Ignore`, or an assumption that fails, is
+   reported as skipped, and a skipped test does not fail a build. A green run
+   with `theCrossOriginIframeActuallyRan` skipped is the exact state BIT-58 wrote
+   that test to prevent.
+
+3. *The one that matters got renamed away.* Nothing else in the repo asserts that
+   these specific tests exist. `assembleDebugAndroidTest` in the build job proves
+   the source set compiles; a file that compiles can have had its canary deleted.
+
+So the gate is not "did Gradle succeed" but "did these named tests run, and
+pass". REQUIRED below is the list, and it is deliberately a hard-coded literal:
+deriving it from the XML would make it a description of whatever happened to run,
+which is the property being checked.
+
+Adding a test does not break this — extras are reported and allowed. Renaming or
+deleting one does, which is the point.
+
+NO DEPENDENCIES, DELIBERATELY
+
+stdlib only, matching ci-runs.py and shared/test-ids/*.py: these checks run on a
+runner, on a Mac and in a container, with no pip step in front of them.
+"""
+
+import argparse
+import pathlib
+import re
+import sys
+import xml.etree.ElementTree as ElementTree
+
+PACKAGE = "com.bittr.android.feature.website"
+
+# Every test that must have run and passed for the S-36 isolation claim to hold.
+#
+# The comments are not decoration: this list is the only place in the repo that
+# says what the emulator job is *for*, and a future reader deciding whether a
+# rename is safe needs to know which of these is load-bearing.
+REQUIRED = {
+    # BIT-58 DoD 2 — the cross-origin iframe. theCrossOriginIframeActuallyRan is
+    # the canary: it is the reason the other three in this class mean anything,
+    # because "no bridge was found" and "the iframe never loaded" are otherwise
+    # the same result.
+    f"{PACKAGE}.CrossOriginIframeIsolationTest#theCrossOriginIframeActuallyRan",
+    f"{PACKAGE}.CrossOriginIframeIsolationTest#aCrossOriginIframeFindsNoBridgeToPostTo",
+    f"{PACKAGE}.CrossOriginIframeIsolationTest#aCrossOriginIframeCannotNavigateTheTopFrameToALightningUrl",
+    f"{PACKAGE}.CrossOriginIframeIsolationTest#aCrossOriginIframeTriggersNoNetworkCallToAnLnurlEndpoint",
+    # The probe's positive controls. Every bridge assertion above is "the list
+    # came back empty", which is also what a probe that has stopped working
+    # returns. theCrossOriginIframeActuallyRan proves the frame loaded; these two
+    # prove the probe inside it still recognises a bridge. They plant a
+    # bridge-shaped object from JavaScript — never addJavascriptInterface, which
+    # JavascriptInterfaceGuardTest bans repo-wide with no allowlist — and require
+    # that both the name list and the for...in catch-all report it.
+    #
+    # These are the tests that fail if the alias exclusion is ever widened until
+    # it excludes everything, which is one edit away from a suite that passes
+    # forever without looking at anything.
+    f"{PACKAGE}.CrossOriginIframeIsolationTest#theIframeBridgeProbeReportsABridgeThatIsActuallyThere",
+    f"{PACKAGE}.ThirdPartyIsolationTest#theBridgeProbeReportsABridgeThatIsActuallyThere",
+    # BIT-33 Acceptance 3 and 4 — the hostile page as the main frame.
+    f"{PACKAGE}.ThirdPartyIsolationTest#aThirdPartyPageFindsNoBridgeToPostTo",
+    f"{PACKAGE}.ThirdPartyIsolationTest#aThirdPartyPageCannotNavigateToALightningUrl",
+    f"{PACKAGE}.ThirdPartyIsolationTest#aThirdPartyPageTriggersNoNetworkCallToAnLnurlEndpoint",
+    f"{PACKAGE}.ThirdPartyIsolationTest#aThirdPartyPageCannotTriggerLnurlAuth",
+    # The half the source-scanning guards in :app cannot cover: this one reads the
+    # live WebSettings off the real object rather than reading the source that set
+    # them, so it catches a setting applied and then overwritten.
+    f"{PACKAGE}.ThirdPartyIsolationTest#theHardeningBaselineIsAppliedToTheRealWebView",
+}
+
+MODULE_BUILD_DIR = (
+    pathlib.Path(__file__).resolve().parents[1] / "feature/website/build"
+)
+
+# GitHub truncates a workflow command at the first newline, so a multi-line
+# `::error::` arrives as its first line and nothing else. That is not cosmetic.
+# The first red run of this job (run 27, 518cdd7) annotated exactly
+# "These tests failed:" — the names and messages were on the lines after it, and
+# those live only in the job log and the uploaded report, BOTH of which need
+# repository auth to read. The annotation is the one part of a run a reader gets
+# without credentials, so it has to carry the finding, not a heading for it.
+#
+# The escapes below are GitHub's own for command *data*: a literal % would
+# otherwise eat the next two characters as an escape.
+ANNOTATION_LIMIT = 4000
+
+# Per failing test, inside that budget. 300 was the old value and it was too
+# small by about fifty characters: these assertions carry a paragraph of context
+# and then the finding — `… and for any window property with a postMessage
+# method. Found: [...]`. Run 68 would have been diagnosable from its annotation
+# with the message and a wider cut; it had neither.
+PER_TEST_DETAIL = 700
+
+# Where a stack trace stops being a message and starts being a stack. Used to
+# read AGP's <failure> body, which is the whole trace with the message on top.
+STACK_FRAME = re.compile(r"^\s*(at\s+\S+\(|\.{3}\s+\d+\s+more$|Caused by:)")
+
+
+def failure_message(element):
+    """The failure message, however the writer of this XML chose to record it.
+
+    A `message=` attribute is what Gradle's own JUnit XML uses, and it is what
+    every fixture in test_check_instrumented_results.py modelled. AGP's
+    connected-test reporter is a different writer — ddmlib's XmlTestRunListener
+    — and it sets neither `message` nor `type`: the entire stack trace goes in
+    the element body.
+
+    So on the first genuinely red run, run 68 (3bb6e52), both failures annotated
+    "(no message)". The annotation is the one artefact of a run that is readable
+    without repository auth; it said two tests failed and nothing whatsoever
+    about why, and the actual cause took another twelve-minute emulator run to
+    find. Reading the body is the difference between a red that diagnoses itself
+    and a red that only tells you to go and look somewhere you cannot.
+    """
+    attribute = (element.get("message") or "").strip()
+    if attribute:
+        return attribute
+    lines = []
+    for line in (element.text or "").strip().splitlines():
+        if STACK_FRAME.match(line):
+            break
+        lines.append(line.rstrip())
+    return "\n".join(lines).strip()
+
+
+def detail(text):
+    """`text` indented under a test name, cut to PER_TEST_DETAIL with a mark."""
+    kept = text[:PER_TEST_DETAIL]
+    if len(text) > PER_TEST_DETAIL:
+        kept += " …"
+    return "".join(f"      {line}\n" for line in (kept.splitlines() or [""]))
+
+
+def annotation_escape(text):
+    return (
+        text.replace("%", "%25").replace("\r", "%0D").replace("\n", "%0A")
+    )
+
+
+def annotate(message, title):
+    """Emit `message` as one `::error::`, newlines intact, plus plain text.
+
+    Both, deliberately: the annotation is what survives without auth, the plain
+    text is what a person reading the log sees in context and what the local
+    `python3 check-instrumented-results.py` run prints.
+    """
+    body = message if len(message) <= ANNOTATION_LIMIT else (
+        message[:ANNOTATION_LIMIT] + "\n… truncated; full detail is in the job log."
+    )
+    print(f"::error title={annotation_escape(title)}::{annotation_escape(body)}")
+    print(message)
+
+# AGP has moved this directory between major versions — `androidTest-results/`
+# gained a `connected/` level, then a variant level under it — and the failure
+# mode of hard-coding the wrong one is a FALSE RED after a twenty-minute emulator
+# boot, which is the most expensive kind of wrong this file could be. So the
+# default is the first of these that exists, and `--results-dir` overrides.
+#
+# Only `outputs/` is searched, never `build/` wholesale: unit-test XML lands in
+# `build/test-results/` and is written by a task that needs no device. Reading it
+# here would let `./gradlew test` satisfy a gate whose entire claim is "these ran
+# on a real Android image".
+DEFAULT_RESULTS_CANDIDATES = (
+    MODULE_BUILD_DIR / "outputs/androidTest-results/connected",
+    MODULE_BUILD_DIR / "outputs/androidTest-results",
+    MODULE_BUILD_DIR / "outputs/connected_android_test_additional_output",
+)
+
+
+def default_results_dir():
+    for candidate in DEFAULT_RESULTS_CANDIDATES:
+        if candidate.is_dir():
+            return candidate
+    return DEFAULT_RESULTS_CANDIDATES[0]
+
+
+class Case:
+    """One <testcase>, reduced to the three things this gate has an opinion about."""
+
+    def __init__(self, element):
+        self.id = f"{element.get('classname', '?')}#{element.get('name', '?')}"
+        # AGP writes <skipped/> for @Ignore and for a failed assumption alike;
+        # both mean "this did not run", which is what is being checked.
+        self.skipped = element.find("skipped") is not None
+        problems = list(element.findall("failure")) + list(element.findall("error"))
+        # `or "(no message)"` is load-bearing rather than cosmetic: a <failure/>
+        # carrying nothing at all would otherwise store "", which is falsy, and
+        # a failed test would read as passed — a bug of exactly the kind this file
+        # exists to catch, in the file that catches it.
+        self.problem = None
+        if problems:
+            self.problem = failure_message(problems[0]) or "(no message)"
+
+    @property
+    def passed(self):
+        return not self.skipped and self.problem is None
+
+    @property
+    def state(self):
+        if self.skipped:
+            return "SKIPPED"
+        return "FAILED" if self.problem else "passed"
+
+
+def collect(results_dir):
+    """Every <testcase> under results_dir, plus the files they came from."""
+    files = sorted(results_dir.rglob("TEST-*.xml"))
+    cases = []
+    for path in files:
+        try:
+            root = ElementTree.parse(path).getroot()
+        except ElementTree.ParseError as exc:
+            # A truncated result file means the run died mid-write — usually the
+            # emulator going away. That is a failure, not something to skip past.
+            print(f"::error::{path} is not parseable XML ({exc}). The test run did "
+                  "not finish writing its results; treat this as a failed run.")
+            raise SystemExit(1)
+        # <testsuites> wrapping <testsuite>, or a bare <testsuite>. Both occur.
+        for case in root.iter("testcase"):
+            cases.append(Case(case))
+    return files, cases
+
+
+def main(argv=None):
+    parser = argparse.ArgumentParser(description=__doc__.split("\n")[0])
+    parser.add_argument(
+        "--results-dir",
+        type=pathlib.Path,
+        default=None,
+        help="Gradle's androidTest-results directory. Defaults to the first of "
+             "the known AGP layouts that exists under :feature:website.",
+    )
+    args = parser.parse_args(argv)
+    results_dir = args.results_dir or default_results_dir()
+
+    if not results_dir.is_dir():
+        print(f"::error::No instrumented-test results at {results_dir}. Gradle "
+              "reported success without writing any, which means no test ran. The "
+              "S-36 isolation claim is unverified — see BIT-62.")
+        return 1
+
+    files, cases = collect(results_dir)
+
+    if not files:
+        print(f"::error::No TEST-*.xml under {results_dir}. connectedDebugAndroidTest "
+              "goes green when it matches no tests, so this is the vacuous-green case "
+              "BIT-62 exists to catch, not an empty-directory quirk.")
+        return 1
+
+    by_id = {}
+    for case in cases:
+        # A test that appears more than once — a second device, or a re-run — has
+        # to pass every time it appears, so the worse outcome is the one kept. The
+        # alternative silently lets one green attempt paper over a red one, which
+        # is the retry-as-a-pass habit shared/flows/README.md rules out.
+        existing = by_id.get(case.id)
+        if existing is None or (existing.passed and not case.passed):
+            by_id[case.id] = case
+
+    print(f"{len(files)} result file(s), {len(by_id)} test(s), from {results_dir}")
+    for test_id in sorted(by_id):
+        marker = "required" if test_id in REQUIRED else "extra"
+        print(f"  [{by_id[test_id].state:>7}] {test_id}  ({marker})")
+
+    problems = []
+
+    missing = sorted(REQUIRED - set(by_id))
+    if missing:
+        problems.append((
+            f"{len(missing)} required test(s) did not run",
+            "These tests did not run at all. Either they were renamed or deleted, or "
+            "the run never reached them:\n"
+            + "".join(f"    {test_id}\n" for test_id in missing)
+            + "  If a rename was intended, update REQUIRED in this file in the same "
+            "commit — that edit is the review point for dropping a check.",
+        ))
+
+    skipped = sorted(t for t, c in by_id.items() if c.skipped)
+    if skipped:
+        problems.append((
+            f"{len(skipped)} required test(s) were skipped",
+            "These tests were skipped. A skipped test does not fail a build, which is "
+            "how a green run comes to prove nothing:\n"
+            + "".join(f"    {test_id}\n" for test_id in skipped),
+        ))
+
+    failed = sorted(t for t, c in by_id.items() if c.problem)
+    if failed:
+        problems.append((
+            f"{len(failed)} test(s) failed",
+            "These tests failed:\n"
+            + "".join(f"    {t}\n{detail(by_id[t].problem)}" for t in failed),
+        ))
+
+    canary = f"{PACKAGE}.CrossOriginIframeIsolationTest#theCrossOriginIframeActuallyRan"
+    canary_ok = canary in by_id and by_id[canary].passed
+    if canary in by_id and not by_id[canary].passed:
+        problems.append((
+            "the cross-origin iframe canary did not pass",
+            "theCrossOriginIframeActuallyRan did not pass, so read every other result "
+            "in this run as unproven rather than as evidence. It asserts the "
+            "cross-origin iframe loaded and reported in; without that, "
+            '"no bridge was found" and "the iframe never got to look" are the same '
+            "tick. Check that both LocalTestServer ports are reachable from inside "
+            "the emulator and that cleartext to 127.0.0.1 is permitted for the test "
+            "APK (feature/website/src/androidTest/AndroidManifest.xml)."
+        ))
+
+    # One line, fixed shape, so the job's `::notice::` can state what happened
+    # rather than only that *something* did. "vacuity check FAILED" was the whole
+    # headline on run 27, and it is the same words whether nothing ran or nine
+    # tests ran and one failed — which are opposite findings.
+    print(f"\ncheck-instrumented-results: verdict {len(REQUIRED)} required · "
+          f"{len(missing)} missing · {len(skipped)} skipped · {len(failed)} failed · "
+          f"canary {'passed' if canary_ok else 'FAILED'}")
+
+    if problems:
+        print()
+        for title, problem in problems:
+            annotate(problem, title)
+        print("check-instrumented-results: FAILED.")
+        return 1
+
+    print(f"check-instrumented-results: all {len(REQUIRED)} required tests ran and "
+          "passed on a real Android image.")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

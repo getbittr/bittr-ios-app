@@ -211,6 +211,14 @@ jobs:
           bash android/scripts/test-k1-annotation.sh
           python3 android/scripts/test_k1_result.py
           bash android/scripts/test-k1-driver.sh
+      - name: Test the instrumented-results reader
+        # Same argument, one job over. check-instrumented-results.py is what decides
+        # whether the `instrumented` job's green means anything, and its whole
+        # purpose is to refuse a green run that proved nothing — so a bug in it does
+        # not look like a bug, it looks like a pass. No emulator needed: the seam is
+        # a results directory, so the fixtures are XML in a temp dir and this runs
+        # here in seconds rather than only after an AVD has booted.
+        run: python3 android/scripts/test_check_instrumented_results.py
 
       - name: Check every flow ID is registered
         # A flow selecting an ID that is in no registry entry fails at run time
@@ -254,6 +262,34 @@ jobs:
             || echo "::notice::TestIDs.swift is behind test-ids.json. Regenerating it is an iOS change and needs sign-off."
           git checkout -- ios/bittr/Helpers/TestIDs.swift
 
+      - name: No WebView bridge in the non-Kotlin sources
+        # The Kotlin half of this ban is JavascriptInterfaceGuardTest, which runs
+        # in the step below and reads code with comments and string literals
+        # stripped — so a file may explain why the API is banned and may not call
+        # it. Nothing reads the Java, XML or manifest sources at all, and a bridge
+        # can be installed from a Java file or an object declared in XML, so they
+        # get a plain grep. There is no prose in them to trip over.
+        #
+        # `--exclude-dir=build` is load-bearing, not tidiness: Gradle writes JUnit
+        # results as XML, so a local run leaves TEST-JavascriptInterfaceGuardTest.xml
+        # on disk containing every banned name in its own failure message. Grepping
+        # it back is the same mistake the Kotlin guards used to make — reading
+        # something that talks about the ban and calling it a violation.
+        #
+        # `|| true` on grep -r: it exits 1 when it finds nothing, which is the
+        # case this step is hoping for.
+        run: |
+          set -euo pipefail
+          hits=$(grep -rn --include='*.java' --include='*.xml' \
+                   --exclude-dir=build --exclude-dir=.gradle \
+                   -e 'addJavascriptInterface' -e 'JavascriptInterface' \
+                   android/ || true)
+          if [ -n "$hits" ]; then
+            echo "$hits"
+            echo "::error::addJavascriptInterface is banned (BIT-33 R-1). It is the one WebView bridge API with no origin or frame scoping, and S-36 loads an arbitrary third-party URL from BTCMap place data. See JavascriptInterfaceGuardTest."
+            exit 1
+          fi
+
       - name: Unit tests
         working-directory: android
         # `test`, not `testDebugUnitTest`. The pure-Kotlin modules (:core:common,
@@ -273,6 +309,21 @@ jobs:
         # None of this depends on the emulator image's fingerprint enrolment. It is
         # a property of the APK, so it holds on any runner.
         run: ./gradlew test --no-daemon
+
+      - name: Compile the instrumented tests
+        working-directory: android
+        # This step used to say "compiled, not run — running it needs a device;
+        # the issue's Remaining section names that as the open item". BIT-62 closed
+        # that item: the `instrumented` job below runs the same source set on a
+        # booted emulator. What this step is now is the FAST half of the pair.
+        #
+        # Keeping it is not redundancy. `instrumented` costs an emulator boot and
+        # runs on a different runner; a Kotlin compile error in androidTest should
+        # go red here, in the same minute as every other compile error, rather than
+        # after an AVD has come up. It also still guards the case where the
+        # emulator job is skipped or unavailable: the source set is never left with
+        # nothing looking at it.
+        run: ./gradlew :feature:website:assembleDebugAndroidTest --no-daemon
 
       - name: Assemble debug APK
         working-directory: android
@@ -481,5 +532,149 @@ jobs:
             maestro-video/**
             maestro-report.xml
             shared/docs/screenshots/android_scaffold_smoke/**
+          retention-days: 14
+          if-no-files-found: warn
+
+  instrumented:
+    name: S-36 isolation tests (emulator)
+    # BIT-62. The `build` job compiles :feature:website's androidTest source set;
+    # this job is the only thing in the repo that RUNS it. Until it existed,
+    # CrossOriginIframeIsolationTest — BIT-58's definition of done, "the test that
+    # would have caught the iOS gap" — had never been executed on anything, and a
+    # test that has never run is closer to a comment than to a check.
+    #
+    # WHY ITS OWN JOB RATHER THAN A STEP IN `maestro`
+    #
+    # That was the open question on BIT-62, and the answer is three things, in
+    # descending order of how much they cost to get wrong.
+    #
+    # 1. It needs a different system image. The Maestro job runs aosp_atd — an
+    #    Automated Test Device, stripped for boot speed — and its AVD snapshot is
+    #    cached under a key naming that image. What ATD strips varies by API level
+    #    and a WebView provider is a plausible casualty; the Maestro flow drives
+    #    Compose UI and would not notice, whereas every single test in this suite
+    #    constructs a real android.webkit.WebView and would fail at construction.
+    #    Sharing the AVD would mean this suite's correctness depended on a choice
+    #    made for a different test's speed. ci-instrumented.sh checks the provider
+    #    out loud on every run so the assumption cannot rot silently either way.
+    #
+    # 2. Red here must mean something different from red there. "The Maestro smoke
+    #    flow failed" and "the wallet reacted to a cross-origin iframe" are not the
+    #    same news, and one job cannot report them as different news.
+    #
+    # 3. It costs no wall-clock. Both jobs need only `build`, so on GitHub-hosted
+    #    runners they run side by side; the cost is runner-minutes, not waiting.
+    #    On a single self-hosted runner they serialise — see
+    #    android/docs/self-hosted-runner.md — which is a reason to keep this job's
+    #    own timeout honest, not a reason to merge them.
+    runs-on: ${{ fromJSON(vars.ANDROID_EMULATOR_RUNNER || '["ubuntu-latest"]') }}
+    needs: build
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Mark job start
+        run: echo "JOB_START_EPOCH=$(date +%s)" >> "$GITHUB_ENV"
+
+      - name: Set up JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: ${{ env.JAVA_VERSION }}
+
+      - name: Set up Gradle
+        # This job builds the test APK itself rather than downloading the build
+        # job's, because `connectedDebugAndroidTest` is the command an engineer
+        # runs locally to reproduce a failure, and CI doing something else is how
+        # "works on my machine" gets invented. The cache makes the second compile
+        # cheap; `am instrument` on a downloaded APK would be faster still and
+        # would give up the JUnit XML the vacuity check reads.
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          build-scan-publish: false
+
+      - name: Enable KVM
+        # Same rule and the same reasoning as the maestro job above: GitHub-hosted
+        # runners expose /dev/kvm but not to non-root users, and on a self-hosted
+        # host this belongs in the image rather than in job code.
+        if: runner.environment == 'github-hosted'
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' \
+            | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      - name: Preflight — hardware acceleration is actually available
+        run: |
+          set -euo pipefail
+          if [ ! -e /dev/kvm ]; then
+            echo "::error::No /dev/kvm on runner '${{ runner.name }}'. Without hardware acceleration the emulator does not fail, it crawls, and this job dies on its timeout looking like a flaky emulator. See android/docs/self-hosted-runner.md."
+            exit 1
+          fi
+          if [ ! -r /dev/kvm ] || [ ! -w /dev/kvm ]; then
+            echo "::error::/dev/kvm exists but is not read/write for user '$(id -un)'. Add the runner user to the 'kvm' group. See android/docs/self-hosted-runner.md."
+            ls -l /dev/kvm
+            exit 1
+          fi
+          echo "KVM OK on ${{ runner.environment }} runner '${{ runner.name }}' as $(id -un)."
+
+      - name: Cache AVD
+        uses: actions/cache@v4
+        id: avd-cache
+        with:
+          path: |
+            ~/.android/avd/*
+            ~/.android/adb*
+          # A different key from the maestro job's on purpose — a different image,
+          # for the reason in this job's header. Sharing the key would hand this
+          # suite an ATD snapshot and the failure would arrive as nine broken
+          # tests rather than as a cache-key mistake.
+          key: avd-api34-default-x86_64-webview
+
+      - name: Create AVD snapshot
+        if: steps.avd-cache.outputs.cache-hit != 'true'
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 34
+          target: default
+          arch: x86_64
+          profile: pixel_6
+          force-avd-creation: false
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
+          disable-animations: false
+          script: echo "AVD created and snapshotted"
+
+      - name: Run the S-36 isolation tests
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 34
+          # `default`, not `aosp_atd`: a full AOSP image, which ships a WebView
+          # provider. Slower to boot and that is the right trade — the suite is
+          # about the WebView, so the component ATD might have stripped is the
+          # only component under test.
+          target: default
+          arch: x86_64
+          profile: pixel_6
+          force-avd-creation: false
+          emulator-options: -no-snapshot-save -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
+          disable-animations: true
+          # `bash <file>`, not an inline block: the action runs this input under
+          # /usr/bin/sh (dash), and a bashism here fails AFTER the emulator has
+          # booted. android/scripts/check-action-scripts.sh enforces the shape.
+          script: bash android/scripts/ci-instrumented.sh
+
+      - name: Upload instrumented test report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: instrumented-test-report
+          # The XML is what the vacuity check reads and is worth keeping for the
+          # same reason the check exists — it is the artefact that distinguishes
+          # "nine tests passed" from "nothing ran". The HTML is what a person
+          # opens to read a failure's assertion message, which for these tests is
+          # several paragraphs long and carries the whole diagnosis.
+          path: |
+            android/feature/website/build/outputs/androidTest-results/**
+            android/feature/website/build/reports/androidTests/**
           retention-days: 14
           if-no-files-found: warn

@@ -184,6 +184,9 @@ dependencies {
     // LocationPrecisionGuardTest asserting something real: MapLibre's own AAR
     // declares ACCESS_FINE_LOCATION, and the `tools:node="remove"` line below is the
     // only reason the shipped APK does not ask for it.
+    implementation(project(":core:lnurl"))
+    implementation(project(":feature:signup"))
+    implementation(project(":feature:website"))
 
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
