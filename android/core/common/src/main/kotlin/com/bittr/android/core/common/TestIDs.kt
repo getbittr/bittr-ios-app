@@ -22,6 +22,7 @@ object TestID {
         fun buttonAt(position: Int) = "alert.button.$position"
         const val confirmStatements = "alert.confirmStatements"
         const val copied = "alert.copied"
+        const val exclusiveInitiative = "alert.exclusiveInitiative"
         const val incomingPayment = "alert.incomingPayment"
         const val incorrectPhrase = "alert.incorrectPhrase"
         const val incorrectPin = "alert.incorrectPin"
@@ -228,6 +229,10 @@ object TestID {
     }
     object Signup {
         object Bittr {
+            object Initiative {
+                const val cancelButton = "signup.bittr.initiative.cancelButton"
+                const val confirmButton = "signup.bittr.initiative.confirmButton"
+            }
             object Otp {
                 const val codeButton = "signup.bittr.otp.codeButton"
                 const val codeTextField = "signup.bittr.otp.codeTextField"

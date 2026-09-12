@@ -182,7 +182,8 @@ class Transfer1ViewController: UIViewController, UITextFieldDelegate {
             return
         }
 
-        self.showConfirmationSheet(title: Language.getWord(withID: "initiativetitle"),
+        self.showConfirmationSheet(id: TestID.Alert.exclusiveInitiative,
+                                   title: Language.getWord(withID: "initiativetitle"),
                                    message: Language.getWord(withID: "initiativemessage"),
                                    confirmTitle: Language.getWord(withID: "initiativeconfirm"),
                                    cancelTitle: Language.getWord(withID: "cancel"),

@@ -345,6 +345,7 @@
     "amountMissing": null,
     "confirmStatements": null,
     "copied": null,
+    "exclusiveInitiative": null,
     "incomingPayment": null,
     "incorrectPhrase": null,
     "incorrectPin": null,

@@ -19,6 +19,7 @@ enum TestID {
         static func buttonAt(_ position: Int) -> String { "alert.button.\(position)" }
         static let confirmStatements = "alert.confirmStatements"
         static let copied = "alert.copied"
+        static let exclusiveInitiative = "alert.exclusiveInitiative"
         static let incomingPayment = "alert.incomingPayment"
         static let incorrectPhrase = "alert.incorrectPhrase"
         static let incorrectPin = "alert.incorrectPin"

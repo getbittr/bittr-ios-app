@@ -397,7 +397,11 @@ extension UIViewController {
     /// instead of growing the card past the bottom of a small screen. There is no
     /// close cross — the only ways out are confirming and cancelling, so nothing
     /// can be read as a confirmation that the customer never gave.
-    func showConfirmationSheet(presentingController:UIViewController? = nil, title:String, message:String, confirmTitle:String, cancelTitle:String, confirmIdentifier:String, cancelIdentifier:String, onConfirm:@escaping () -> Void, onCancel:(() -> Void)? = nil) {
+    ///
+    /// `id` names *which* sheet this is and goes on the card, exactly as it does in
+    /// showAlert — the two buttons carry their own identifiers, but those say what a
+    /// tap does, not what card is up.
+    func showConfirmationSheet(presentingController:UIViewController? = nil, id:String? = nil, title:String, message:String, confirmTitle:String, cancelTitle:String, confirmIdentifier:String, cancelIdentifier:String, onConfirm:@escaping () -> Void, onCancel:(() -> Void)? = nil) {
 
         let host = presentingController ?? self.alertHost
 
@@ -411,6 +415,7 @@ extension UIViewController {
 
             let chrome = self.makeAlertChrome(live ?? AlertOverlayView(), on: host, cardColor: Colors.getColor("yelloworblue2"))
             let card = chrome.card
+            card.accessibilityIdentifier = id
 
             let alertIcon = self.addAlertHeader(to: card, title: title, trailingLimit: card)
 
