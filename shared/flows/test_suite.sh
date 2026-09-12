@@ -22,7 +22,7 @@
 #   shared/flows/test_suite.sh --expect-vulnerable ...  # evil-flow failures
 #                                              # count as EXPECTED (red run on
 #                                              # an unfixed build), not errors
-#   shared/flows/test_suite.sh --unhappy       # onboarding unhappy path
+#   shared/flows/test_suite.sh --unhappy       # just the onboarding unhappy path
 #                                              # (starts screenshot_server.js —
 #                                              # needs Accessibility permission)
 #
@@ -87,7 +87,7 @@ while [[ $# -gt 0 ]]; do
     case "$1" in
         --evil)              RUN_EVIL=1 ;;
         --evil-only)         RUN_EVIL=1; RUN_CORE=0 ;;
-        --unhappy)           RUN_UNHAPPY=1 ;;
+        --unhappy)           RUN_UNHAPPY=1; RUN_CORE=0 ;;
         --keep-going)        KEEP_GOING=1 ;;
         --expect-vulnerable) EXPECT_VULNERABLE=1 ;;
         --from)              shift; FROM_FLOW="${1:-}"

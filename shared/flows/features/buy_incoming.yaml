@@ -78,6 +78,16 @@ appId: com.bittr.bittr-regtest
     id: "buy.yourCode"
 - evalScript: ${output.depositCode = maestro.copiedText}
 
+# Dismiss BuyVC before the push. The incoming-payment alert is added as a
+# subview of CoreVC.view (AlertManager.showAlert), so it'd be hidden behind the
+# BuyVC modal if we left it open — Maestro (and the user) would never see it,
+# and the transaction would present tangled over the modal.
+- swipe:
+    direction: DOWN
+    duration: 800
+- assertVisible:
+    id: "home.headerLabel"
+
 # Trigger the e2e bank-transaction event server-side.
 - runScript: ../scripts/trigger_bank_transaction.js
 
@@ -85,25 +95,50 @@ appId: com.bittr.bittr-regtest
 - evalScript: ${output.blocksToMine = 6}
 - runScript: ../scripts/mine_blocks.js
 
-# Backend processes the bank transaction → notification arrives → app eventually
-# settles on TransactionViewController showing the completed transaction details.
-# (A QuestionViewController "incoming €X" page may appear briefly along the way,
-# but the stable terminal state is the transaction screen.)
+# Real APNS push doesn't reach the iOS Simulator, so — like buy_more — inject the
+# matching push via push_server.js instead of waiting on the app's (slow) next
+# foreground sync. The backend returns a notification_id for the first deposit,
+# so build_payout_push builds a lightningPayout push.
+- runScript: ../scripts/build_payout_push.js
+- runScript: ../scripts/push_notification.js
+
+# The payout push surfaces the "bittr payout" alert (Okay → receive). With BuyVC
+# dismissed it's over Home, so wait for it and confirm the transaction landed.
+- extendedWaitUntil:
+    visible:
+      id: "alert.button.0"
+    timeout: 30000
+- tapOn:
+    id: "alert.button.0"
 - extendedWaitUntil:
     visible:
       id: "transaction.labelAmount"
     timeout: 60000
 - takeScreenshot: shared/docs/screenshots/buy_incoming/04_transaction
 
-# Close the TransactionViewController (header down button) → back on the Buy
-# screen it was presented over.
-- tapOn:
-    id: "header.downButton"
-- assertVisible:
-    id: "buy.headerLabel"
-# Close the BuyViewController (its own down button) → back on Home.
-- tapOn:
-    id: "buy.downButton"
+# The first deposit fires more than one incoming-payment event (the payout, then
+# the channel-open HTLC), so alerts and transaction screens can stack. Clear
+# whatever is on top — payment alerts (Okay) and transaction screens (down) —
+# until we settle back on Home.
+- repeat:
+    times: 6
+    commands:
+      - waitForAnimationToEnd:
+          timeout: 2500
+      - runFlow:
+          when:
+            visible:
+              id: "alert.button.0"
+          commands:
+            - tapOn:
+                id: "alert.button.0"
+      - runFlow:
+          when:
+            visible:
+              id: "transaction.labelAmount"
+          commands:
+            - tapOn:
+                id: "header.downButton"
 - assertVisible:
     id: "home.headerLabel"
 
