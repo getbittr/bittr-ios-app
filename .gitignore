@@ -107,6 +107,11 @@ android/captures/
 android/.idea/
 android/*.iml
 android/.cxx/
+# Kotlin build-session scratch, written by the Kotlin Gradle plugin on any local
+# `./gradlew test` or `assemble`. Not covered by the `build/` rule — it sits
+# beside it, not under it — so without this line it shows up as untracked after
+# every build and invites being committed by a `git add -A`.
+android/.kotlin/
 # Module build output is already covered by the `build/` rule further up, which
 # matches at any depth — that is why the old android/build/ and android/app/build/
 # entries are gone rather than extended. The project is multi-module (app, core/*,

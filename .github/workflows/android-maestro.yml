@@ -211,6 +211,20 @@ jobs:
         # already-red job, so nothing else would ever catch a bug in it.
         run: python3 android/scripts/test_report_test_failures.py
 
+      - name: Test the backup-set inspector
+        # check-backup-set.sh is the only check in the repo that reads a real
+        # backup SET rather than `bmgr`'s report of one, and it is what would
+        # raise the BIT-20 §5.3 halt. Its failure mode is not a crash: it is
+        # saying "no wallet marker" when it never looked, which reads exactly
+        # like evidence. The first draft did precisely that — grepped three
+        # hard-coded paths and treated "none of them exist on this image" as
+        # clean — and `outcome_3_no_directories` in this suite pins it.
+        #
+        # Runs here rather than in the emulator job because the seam is `adb`:
+        # with a stub on PATH every branch is reachable in milliseconds, where in
+        # the emulator job only the branch that device happens to take ever runs.
+        run: bash android/scripts/test_check_backup_set.sh
+
       - name: Check every flow ID is registered
         # A flow selecting an ID that is in no registry entry fails at run time
         # with "element not found" — indistinguishable from a missing testTag in
@@ -361,7 +375,25 @@ jobs:
         # after an AVD has come up. It also still guards the case where the
         # emulator job is skipped or unavailable: the source set is never left with
         # nothing looking at it.
-        run: ./gradlew :feature:website:assembleDebugAndroidTest --no-daemon
+        #
+        # ALL THREE MODULES, not just :feature:website. This step covered one of
+        # the three androidTest source sets the emulator jobs run, so a Kotlin
+        # error in BackupExclusionTest or KeystoreKeyInfoTest compiled nowhere in
+        # the fast half and surfaced only after the `wallet-instrumented` job had
+        # booted an AVD — a 45-minute timeout's worth of feedback loop for a
+        # missing import. The asymmetry was an accident of BIT-62 landing before
+        # BIT-59, not a decision.
+        #
+        # Listed with `:app` last because it is the slowest and depends on
+        # :core:wallet-ldk anyway (androidTestImplementation), so the library
+        # modules are built first regardless. Gradle picks the order from the
+        # task graph rather than from this list — the ordering here is for the
+        # reader, not a guarantee.
+        run: |
+          ./gradlew --no-daemon \
+            :feature:website:assembleDebugAndroidTest \
+            :core:wallet-ldk:assembleDebugAndroidTest \
+            :app:assembleDebugAndroidTest
 
       - name: Assemble debug APK
         working-directory: android
