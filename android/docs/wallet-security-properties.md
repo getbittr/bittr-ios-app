@@ -40,7 +40,7 @@ written.
 | 2 | …and what the device actually produced | `KeyInfo` read back off a generated key | `KeystoreKeyInfoTest` | written — no device in CI |
 | 2 | …and it survives a lock-screen change | — | **BIT-18 / K1**, device matrix | separate issue |
 | 3 | The wrapped blob is a cache, never the only copy | Blob loss routes to the restore screen; terminal failures classify as "no usable mnemonic" | `BlobDestroyedRecoversTest` | green |
-| 4 | The blob is excluded from Auto Backup | `allowBackup="false"` + `dataExtractionRules` + siting under `getNoBackupFilesDir()` | `BackupExclusionRulesTest` + `StateDirLocationTest` (configuration) · `BackupExclusionTest` (behaviour) | configuration green; behaviour **written — no device in CI, see §4** |
+| 4 | The blob is excluded from Auto Backup | `allowBackup="false"` + `dataExtractionRules` + siting under `getNoBackupFilesDir()` | `BackupExclusionRulesTest` + `StateDirLocationTest` (configuration) · `BackupExclusionTest` (behaviour) + `check-backup-set.sh` (the set itself) | configuration green; behaviour **partly proven on one device — run 107 inspected a real set and found no wallet material, but could not show the set was non-empty; see §4** |
 | 5 | No PIN-derived wrapping | PIN stays a salted-SHA-256 verifier; the unwrap path takes no PIN argument | `WalletKeystorePolicyGuardTest` (bans `PBEKeySpec`/PBKDF2) · `BlobWriteVerifiedTest` (unwrap signature takes no PIN) | green |
 
 ### BIT-20 — the LDK state quarantine guard
@@ -51,7 +51,7 @@ written.
 | 7 | match → keep · mismatch → quarantine · absent → quarantine | `SeedImportGuard` | `BlobDestroyedRecoversTest` (match, mismatch) · `ForeignStateQuarantinedTest` (absent) | green |
 | 8 | Three-way blob classification; transient ≠ absence | Classification on exception type, no fallback branch meaning "absent" | `TransientKeystoreFailureAbortsTest` | green |
 | 9 | Quarantine never overwrites a prior quarantine | Uniquely-named subdirectory under `no_backup/foreign_ldk_state/` | `QuarantineDoesNotClobberTest` | green |
-| 10 | Exclusion widens to the LDK state directory, both backup paths | The three layers in rule 4, scoped to the whole wallet directory | as rule 4 | configuration green; behaviour **written, never run** |
+| 10 | Exclusion widens to the LDK state directory, both backup paths | The three layers in rule 4, scoped to the whole wallet directory | as rule 4 | configuration green; behaviour **partly proven on one device, see §4** |
 
 ### Port-faithfulness fixes carried without a separate ruling
 
@@ -120,16 +120,62 @@ configuration: `allowBackup="false"`, `dataExtractionRules` wired up, both
 path resolves under `no_backup`.
 
 None of that proves a backup set produced by a real device contains none of it.
-That is `BackupExclusionTest` (`app/src/androidTest`, BIT-101). It now exists,
-and it has never run: CI has no `connectedAndroidTest` step yet (BIT-59), and
-there is no device in the agent container.
+That is `BackupExclusionTest` (`app/src/androidTest`, BIT-101), which has now
+run on a device once — run 107 of the wallet emulator job, API 34 `aosp_atd`.
 
 **What it does.** Plants a wallet-bearing install — wrapped blob, ldk-node
 state, discriminator, BDK database, and a quarantine subdirectory under the
 uniquely-generated name BIT-20 rule 4 gives it — then drives `bmgr` to produce
-a real set, deletes everything it planted, restores, and asserts none of it came
-back. Once on the cloud-backup path and once with the local transport in
-device-transfer mode, because API 31+ configures the two separately.
+a real set and leaves that set on the local transport. Once on the cloud-backup
+path and once with the local transport in device-transfer mode, because API 31+
+configures the two separately. The **verdict** comes from
+`android/scripts/check-backup-set.sh`, which greps the transport's own on-disk
+tree from the host in the same job.
+
+**Why the verdict is not in the test — BIT-108.** The first version deleted what
+it planted, ran `bmgr restore`, and asserted nothing came back. On run 107 the
+device-transfer case produced an empty `<failure>` and every case of
+`InstalledBackupConfigurationTest` after it never ran: `bmgr restore` kills the
+target process, and the instrumentation runs inside it. That is not fixable by
+writing the assertion more carefully.
+
+It was also worth less than it looked. A restore only kills the process when the
+framework has something to restore, so the assertion passed exactly when the
+package was ineligible and nothing had been backed up — the case where it had
+nothing to check — and died exactly when there was a set worth checking. Run 107
+is that shape end to end: cloud passed, device-transfer died. So the restore is
+gone from both paths, not just from the one that crashed, and
+`BackupExclusionInstrumentationGuardTest` fails the build if it is reintroduced.
+The suite now creates the conditions and proves it created them — transport
+live and local, the `is_device_transfer` hook actually taken, `bmgr backupnow`
+completing with a considered per-package result rather than a transport error —
+and the host script reads the set.
+
+The same guard keeps the `bmgr wipe` out of the suite's `@After`. The host reads
+the transport after Gradle exits, so a wipe there deletes the only artefact the
+run produces; on run 107 the one inspectable set survived purely because the
+crash skipped teardown. The wipe now runs before each backup, which also makes
+the surviving set deterministically the device-transfer one — `NAME_ASCENDING`
+puts that method last, and it is the path the flag may not cover.
+
+**What run 107 actually reported.** The transport was live and the set was real:
+`backupManagerAndTheLocalTransportAreLiveOnThisDevice` and the cloud case both
+passed. `check-backup-set.sh` ran, emitted neither its "could not gain root" nor
+its "no candidate directory" warning, and found no wallet marker — so on that
+device the backup set that survived to be inspected carried none of the planted
+wallet material. That is the strongest evidence rule 5 has so far, and it is
+still one device, one API level, and one set.
+
+It is not yet the full claim, for a reason the current revision closes: the run
+could not show the set was non-empty. `allowBackup="false"` making the package
+ineligible produces an empty set, which satisfies every exclusion check while
+proving nothing about the rules. The canary now carries its own host-greppable
+prefix (`BIT101-CANARY-MARKER-`, deliberately distinct from the wallet marker so
+finding it is not read as the halt) and the decoys carry a third. Once
+`check-backup-set.sh` requires the canary before reporting its evidence outcome,
+"the rules excluded our wallet files" and "the framework never offered this
+package to the transport" stop being the same green. That is the outstanding
+half, tracked on BIT-108.
 
 **Why it is in `:app` rather than `:core:wallet-ldk`, where BIT-101 asked for
 it.** A library module's instrumented tests are self-instrumenting: the package
@@ -143,13 +189,14 @@ every `check`) fails the build if those literals stop matching `WalletPaths`, an
 fails it again if the instrumented class is `@Ignore`d or drops below three
 cases. A test that needs hardware is a test nobody watches rot.
 
-**Two things that could make the first run red without the product being
-wrong**, recorded now so they are not diagnosed under pressure later: the
-instrumentation runs inside the process whose data is being restored, and
-whether `bmgr restore` kills that process is not documented either way; and
-`is_device_transfer` is a local-transport test hook rather than API, so the test
-asserts the setting was taken rather than assuming it. Both are results to
-record on BIT-101 and BIT-20, not to design around.
+**The two hazards recorded before the first run, and where they stand.** The
+first — the instrumentation running inside the process whose data is being
+restored, with `bmgr restore`'s effect on it undocumented either way — is
+**settled**: it kills the process, and the restore is gone (BIT-108, above).
+The second is open by design: `is_device_transfer` is a local-transport test
+hook rather than API, so the test asserts the setting was taken rather than
+assuming it, and a rename in a future platform release fails loudly instead of
+quietly turning the device-transfer case into a second cloud case.
 
 Also unresolved, and deliberately left to the device: the root of
 `domain="file"` is `getFilesDir()`, while the wallet directory is under
@@ -174,10 +221,16 @@ that is a **halt**, not a smaller test. The finding goes back to BIT-20 with
 the empirical result attached, and the guard reverts to iOS behaviour
 (quarantine on anything but a live mnemonic) until it is re-decided.
 
-Until `BackupExclusionTest` is green on both paths, `match → keep` is shipping
-on a proven *configuration* and an unproven *behaviour*. Writing it did not
-change that: an unrun test is not evidence, and the row above says **written**,
-not green. What changed is that BIT-59 now has something to run.
+A crashed process is not that halt, and run 107 is not it. It also is not a
+clean bill of health for the device-transfer path: what it shows is a set that
+was inspected and carried no wallet material, on one device, at one API level,
+without the run being able to say the set was non-empty.
+
+So `match → keep` is still shipping on a proven *configuration* and a
+*partly* proven behaviour, and the row above says so. The remaining step is
+small and named: the canary has to be required by the host-side check before
+its evidence outcome is reported, so an ineligible package and an excluded one
+stop producing the same green.
 
 ---
 
