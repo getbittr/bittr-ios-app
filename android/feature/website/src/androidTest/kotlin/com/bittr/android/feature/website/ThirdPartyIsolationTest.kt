@@ -95,11 +95,31 @@ class ThirdPartyIsolationTest {
                                              typeof window[n] === 'function'); });
 
             // Try to use them anyway, in case one exists under a name not listed.
+            //
+            // `postMessage` is a DOM method on every Window, and `for…in` walks
+            // Window.prototype, so the window turns up here under each of its own
+            // aliases — `window`, `self`, `frames`, `parent`, `top`. None is a
+            // bridge. They are excluded by *identity* rather than by name: a name
+            // list is what broke this test the first time it ever ran (it listed
+            // four of the five and `frames` walked straight through), and a name
+            // list is also the thing a bridge injected under an unexpected name
+            // would slip past — which is the entire reason for this catch-all.
+            var selfAliases = [];
+            ['self', 'frames', 'parent', 'top', 'opener'].forEach(function (n) {
+              try { if (window[n]) selfAliases.push(window[n]); } catch (e) {}
+            });
+            selfAliases.push(window);
+            function isSelfAlias(v) {
+              for (var i = 0; i < selfAliases.length; i++) {
+                try { if (v === selfAliases[i]) return true; } catch (e) {}
+              }
+              return false;
+            }
+
             for (var key in window) {
               try {
                 var v = window[key];
-                if (v && typeof v.postMessage === 'function' && key !== 'parent' &&
-                    key !== 'top' && key !== 'self' && key !== 'window') {
+                if (v && typeof v.postMessage === 'function' && !isSelfAlias(v)) {
                   window.__bittrProbe.bridges.push('postMessage:' + key);
                   v.postMessage('lightning:$LNURL');
                 }

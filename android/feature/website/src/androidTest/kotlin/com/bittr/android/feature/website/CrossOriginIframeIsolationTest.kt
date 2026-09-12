@@ -117,8 +117,8 @@ class CrossOriginIframeIsolationTest {
      * - the names an `addJavascriptInterface` port would plausibly have used.
      * - **any** own property of `window` carrying a `postMessage` — the catch-all
      *   for a bridge injected under a name this test does not know. `parent`,
-     *   `top` and friends are excluded by name because `postMessage` on a
-     *   cross-origin `Window` is legitimately reachable and is not a bridge.
+     *   `top` and the window's other aliases are excluded by identity, because
+     *   `postMessage` on a `Window` is the DOM API and is not a bridge.
      * - a `lightning:` navigation of its own frame, which reaches
      *   `shouldOverrideUrlLoading` with `isForMainFrame = false`.
      * - a `lightning:` navigation of **top**, which is the escalation an iframe
@@ -145,12 +145,28 @@ class CrossOriginIframeIsolationTest {
                 note(n, typeof window[n] === 'object' || typeof window[n] === 'function');
               });
 
-            var skip = { parent: 1, top: 1, self: 1, window: 1, frames: 1, opener: 1 };
+            // By identity, not by name — see the same block in
+            // ThirdPartyIsolationTest. That version listed these by name, missed
+            // `frames`, and reported the window itself as a bridge on the first
+            // run it ever got. A name list also cannot exclude an alias it has
+            // not heard of, while still needing to admit a bridge under a name
+            // it has not heard of, which is the wrong way round.
+            var selfAliases = [];
+            ['self', 'frames', 'parent', 'top', 'opener'].forEach(function (n) {
+              try { if (window[n]) selfAliases.push(window[n]); } catch (e) {}
+            });
+            selfAliases.push(window);
+            function isSelfAlias(v) {
+              for (var i = 0; i < selfAliases.length; i++) {
+                try { if (v === selfAliases[i]) return true; } catch (e) {}
+              }
+              return false;
+            }
+
             for (var key in window) {
-              if (skip[key]) continue;
               try {
                 var v = window[key];
-                if (v && typeof v.postMessage === 'function') {
+                if (v && typeof v.postMessage === 'function' && !isSelfAlias(v)) {
                   report.bridges.push('postMessage:' + key);
                   // Use it, so that a bridge which exists but is never called
                   // cannot be argued to be harmless.

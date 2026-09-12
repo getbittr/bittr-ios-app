@@ -50,6 +50,18 @@ def testcase(test_id, outcome="passed"):
         "skipped": "<skipped/>",
         "failed": '<failure message="expected:&lt;[]&gt; but was:&lt;[bittrLnurl]&gt;"/>',
         "failed-without-message": "<failure/>",
+        # How AGP actually writes a connected-test failure: no `message`, no
+        # `type`, the whole stack trace in the body. Run 68's two reds were this
+        # shape and the reader called them "(no message)".
+        "failed-in-body": (
+            "<failure>org.junit.ComparisonFailure: A page on a non-allowlisted "
+            "origin must find no bridge object at all. Found: "
+            "[&quot;postMessage:frames&quot;] expected:&lt;...&gt; but was:&lt;...&gt;\n"
+            "\tat org.junit.Assert.assertEquals(Assert.java:117)\n"
+            "\tat com.bittr.android.feature.website.ThirdPartyIsolationTest."
+            "aThirdPartyPageFindsNoBridgeToPostTo(ThirdPartyIsolationTest.kt:198)\n"
+            "</failure>"
+        ),
     }[outcome]
     return f'<testcase classname="{classname}" name="{name}">{body}</testcase>'
 
@@ -158,6 +170,43 @@ def test_a_failure_without_a_message_is_still_a_failure():
         code, out = run(results)
     check("a <failure/> with no message exits 1", code == 1, out)
     check("and is reported as FAILED", "FAILED" in out, out)
+
+
+def test_a_failure_whose_message_is_in_the_body_is_read_from_the_body():
+    # The reason run 68 cost an extra emulator run. AGP's connected-test reporter
+    # writes no `message` attribute at all, so the annotation — the only artefact
+    # readable without repository auth — said "(no message)" for both reds. The
+    # cause was named in the body, three inches away.
+    with tempfile.TemporaryDirectory() as tmp:
+        results = write_results(
+            pathlib.Path(tmp),
+            all_required({"aThirdPartyPageFindsNoBridgeToPostTo": "failed-in-body"}),
+        )
+        code, out = run(results)
+    check("a <failure> with its message in the body exits 1", code == 1, out)
+    blob = "\n".join(annotations(out))
+    check("and the annotation carries the finding, not '(no message)'",
+          "postMessage:frames" in blob and "(no message)" not in blob, blob)
+    check("and stops before the stack frames",
+          "org.junit.Assert.assertEquals" not in blob, blob)
+
+
+def test_a_long_assertion_message_is_not_cut_before_its_finding():
+    # These assertions state the rule first and the observed value last, so a
+    # 300-character cut kept the paragraph and dropped the answer.
+    prose = "why this matters, at length. " * 12  # ~350 chars before the finding
+    with tempfile.TemporaryDirectory() as tmp:
+        classname = f"{PACKAGE}.ThirdPartyIsolationTest"
+        name = "aThirdPartyPageFindsNoBridgeToPostTo"
+        verbose = (f'<testcase classname="{classname}" name="{name}">'
+                   f'<failure message="{prose}Found: [SOME_BRIDGE]"/></testcase>')
+        cases = [c for c in all_required() if name not in c] + [verbose]
+        results = write_results(pathlib.Path(tmp), cases)
+        code, out = run(results)
+    check("a verbose assertion message still exits 1", code == 1, out)
+    blob = "\n".join(annotations(out))
+    check("and the tail of the message survives into the annotation",
+          "Found: [SOME_BRIDGE]" in blob, blob)
 
 
 def test_a_pass_does_not_override_a_failure_for_the_same_test():

@@ -45,6 +45,7 @@ runner, on a Mac and in a container, with no pip step in front of them.
 
 import argparse
 import pathlib
+import re
 import sys
 import xml.etree.ElementTree as ElementTree
 
@@ -90,6 +91,52 @@ MODULE_BUILD_DIR = (
 # The escapes below are GitHub's own for command *data*: a literal % would
 # otherwise eat the next two characters as an escape.
 ANNOTATION_LIMIT = 4000
+
+# Per failing test, inside that budget. 300 was the old value and it was too
+# small by about fifty characters: these assertions carry a paragraph of context
+# and then the finding — `… and for any window property with a postMessage
+# method. Found: [...]`. Run 68 would have been diagnosable from its annotation
+# with the message and a wider cut; it had neither.
+PER_TEST_DETAIL = 700
+
+# Where a stack trace stops being a message and starts being a stack. Used to
+# read AGP's <failure> body, which is the whole trace with the message on top.
+STACK_FRAME = re.compile(r"^\s*(at\s+\S+\(|\.{3}\s+\d+\s+more$|Caused by:)")
+
+
+def failure_message(element):
+    """The failure message, however the writer of this XML chose to record it.
+
+    A `message=` attribute is what Gradle's own JUnit XML uses, and it is what
+    every fixture in test_check_instrumented_results.py modelled. AGP's
+    connected-test reporter is a different writer — ddmlib's XmlTestRunListener
+    — and it sets neither `message` nor `type`: the entire stack trace goes in
+    the element body.
+
+    So on the first genuinely red run, run 68 (3bb6e52), both failures annotated
+    "(no message)". The annotation is the one artefact of a run that is readable
+    without repository auth; it said two tests failed and nothing whatsoever
+    about why, and the actual cause took another twelve-minute emulator run to
+    find. Reading the body is the difference between a red that diagnoses itself
+    and a red that only tells you to go and look somewhere you cannot.
+    """
+    attribute = (element.get("message") or "").strip()
+    if attribute:
+        return attribute
+    lines = []
+    for line in (element.text or "").strip().splitlines():
+        if STACK_FRAME.match(line):
+            break
+        lines.append(line.rstrip())
+    return "\n".join(lines).strip()
+
+
+def detail(text):
+    """`text` indented under a test name, cut to PER_TEST_DETAIL with a mark."""
+    kept = text[:PER_TEST_DETAIL]
+    if len(text) > PER_TEST_DETAIL:
+        kept += " …"
+    return "".join(f"      {line}\n" for line in (kept.splitlines() or [""]))
 
 
 def annotation_escape(text):
@@ -145,12 +192,12 @@ class Case:
         self.skipped = element.find("skipped") is not None
         problems = list(element.findall("failure")) + list(element.findall("error"))
         # `or "(no message)"` is load-bearing rather than cosmetic: a <failure/>
-        # with no message attribute would otherwise store "", which is falsy, and
+        # carrying nothing at all would otherwise store "", which is falsy, and
         # a failed test would read as passed — a bug of exactly the kind this file
         # exists to catch, in the file that catches it.
         self.problem = None
         if problems:
-            self.problem = (problems[0].get("message") or "").strip() or "(no message)"
+            self.problem = failure_message(problems[0]) or "(no message)"
 
     @property
     def passed(self):
@@ -250,8 +297,7 @@ def main(argv=None):
         problems.append((
             f"{len(failed)} test(s) failed",
             "These tests failed:\n"
-            + "".join(f"    {t}\n      {by_id[t].problem.splitlines()[0][:300]}\n"
-                      for t in failed),
+            + "".join(f"    {t}\n{detail(by_id[t].problem)}" for t in failed),
         ))
 
     canary = f"{PACKAGE}.CrossOriginIframeIsolationTest#theCrossOriginIframeActuallyRan"
