@@ -213,6 +213,26 @@ dependencies {
     testImplementation(libs.androidx.test.ext.junit)
     testImplementation(platform(libs.androidx.compose.bom))
     testImplementation(libs.androidx.compose.ui.test.junit4)
+    // Deliberately NOT `testImplementation(ui-test-manifest)`, and the reason is
+    // worth keeping because it is the obvious fix and it does not work (BIT-106).
+    //
+    // `ui-test-manifest` is what declares `androidx.activity.ComponentActivity`,
+    // the bare activity a `createComposeRule()` launches. Adding it to
+    // `testImplementation` does put that activity into
+    // `packaged_manifests/releaseUnitTest/`, so the change looks correct — but
+    // Robolectric never reads that file. `test_config.properties` also gives it
+    // `android_resource_apk`, and with `isIncludeAndroidResources = true` set above
+    // that APK wins. Its manifest comes from the MAIN variant
+    // (`processReleaseManifestForPackage`), which no test-only configuration can
+    // reach. Verified: with the dependency added, the release
+    // `apk-for-local-test.ap_` still has no `ComponentActivity` in its string pool
+    // and all 16 tests still failed identically.
+    //
+    // The two configurations that WOULD reach it — `releaseImplementation` or
+    // `src/release/AndroidManifest.xml` — both put a bare exported activity in the
+    // shipped APK, to fix a test. So `:app` tests go through `MainActivity`
+    // instead; see ComposeRuleVariantGuardTest, which enforces that.
+    // Line 193 stays: androidTest is debug-only and resolves through it correctly.
 
     // BackupExclusionTest is plain JUnit4 over `bmgr` — no Compose, no Espresso.
     // Declared explicitly rather than leant on transitively through ext-junit,

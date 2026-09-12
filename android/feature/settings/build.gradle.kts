@@ -22,11 +22,11 @@ android {
         compose = true
     }
 
-    testOptions {
-        unitTests {
-            isIncludeAndroidResources = true
-        }
-    }
+    // No `testOptions` block: this module has no `src/test`. The Settings tree is
+    // covered by SettingsFlowTest in :app, which walks it through the shipping nav
+    // graph against a real AppPreferences — the wiring that can actually break,
+    // and which this module cannot see. See the dependencies block for why an
+    // empty test configuration is not free.
 }
 
 kotlin {
@@ -57,11 +57,12 @@ dependencies {
     implementation(libs.hilt.android)
     ksp(libs.hilt.compiler)
 
-    testImplementation(libs.junit)
-    testImplementation(libs.kotlinx.coroutines.test)
-    testImplementation(libs.robolectric)
-    testImplementation(libs.androidx.test.ext.junit)
-    testImplementation(platform(libs.androidx.compose.bom))
-    testImplementation(libs.androidx.compose.ui.test.junit4)
+    // No `testImplementation` lines, deliberately — this module has no `src/test`.
+    // Under Gradle 9 a test dependency without a test is not inert: it puts
+    // classes on the unit-test runtime classpath, so the Test task counts as
+    // having sources, discovers nothing, and FAILS with "There are test sources
+    // present ... but the test task did not discover any tests to execute". That
+    // held the `./gradlew test` CI gate red on android-parity, together with
+    // :core:preferences and :feature:home. Add them back with the tests.
     debugImplementation(libs.androidx.compose.ui.test.manifest)
 }
