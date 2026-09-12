@@ -72,8 +72,29 @@ node shared/flows/scripts/clipboard_server.js
 
 In another terminal, from the repo root, run a flow:
 
+> **The flows no longer name an app id, so every `maestro test` line below needs
+> one passed in.** They declare `appId: ${APP_ID}` and the runner supplies the
+> value, which is what lets the same file drive the iOS simulator and an Android
+> emulator (`shared/flows/README.md` → [App id](shared/flows/README.md#app-id)).
+> Two ways to not think about it again:
+>
+> ```sh
+> # Prefix each command:
+> maestro test --env APP_ID=com.bittr.bittr-regtest shared/flows/onboarding/smoke.yaml
+>
+> # Or let the suite runner do it — it also starts the helper servers above,
+> # and takes the same flow paths:
+> shared/flows/test_suite.sh onboarding/fresh_install.yaml
+> ```
+>
+> Maestro passes `--env` values into its JS scope as ordinary globals, so a
+> missing `APP_ID` fails the run as an undefined-variable error from the
+> JavaScript evaluation rather than as anything mentioning app ids. If a flow
+> dies on contact and the message names `APP_ID`, this is why.
+
 ```sh
 # Terminal B — from the repo root
+# (each of these needs --env APP_ID=com.bittr.bittr-regtest; see the note above)
 
 # Option 1: Full reset + onboarding from scratch:
 maestro test shared/flows/onboarding/fresh_install.yaml

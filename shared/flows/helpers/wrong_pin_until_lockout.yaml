@@ -22,7 +22,7 @@
 # wait (the PIN buttons only flash a background and toggle a dot), the main
 # speed-up across the 40+ taps in this flow.
 
-appId: com.bittr.bittr-regtest
+appId: ${APP_ID}
 ---
 - assertVisible:
     id: "unlock.topLabel"

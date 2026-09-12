@@ -18,7 +18,7 @@
 #
 # Run: maestro test shared/flows/features/buy_more.yaml
 
-appId: com.bittr.bittr-regtest
+appId: ${APP_ID}
 ---
 - launchApp
 - runFlow: ../helpers/wait_for_launch.yaml

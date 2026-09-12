@@ -18,7 +18,7 @@ android {
         //
         // Changing this value or the debug applicationIdSuffix below also requires
         // updating APP_ID in .github/workflows/android-maestro.yml, the `appId:` in
-        // shared/flows/android/scaffold_smoke.yaml, and BiometricUnlockFlagTest,
+        // the workflow's APP_ID (which Maestro receives as --env APP_ID), and BiometricUnlockFlagTest,
         // which keys the regtest assertion off the applicationId rather than the
         // build type.
         applicationId = "com.bittr.android"

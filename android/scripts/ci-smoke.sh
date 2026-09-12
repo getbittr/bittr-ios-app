@@ -3,6 +3,17 @@
 # The emulator half of the Android Maestro smoke run: install the APK, record the
 # screen, run the flow, and write the wall-clock table BIT-5 asks for.
 #
+# THE FLOW IS A SHARED ONE. `shared/flows/onboarding/smoke.yaml` is the same file
+# iOS runs, not an Android copy of it — the only difference between the two runs
+# is `--env APP_ID`, which is the whole point of BIT-102. This used to be
+# `shared/flows/android/scaffold_smoke.yaml`, an Android-only duplicate that
+# existed solely because the shared flows hardcoded the iOS bundle id and used
+# `clearKeychain`. Both reasons are gone: the id is parameterised, and Maestro's
+# AndroidDriver implements clearKeychain as a no-op (the only no-op in that
+# driver, and nothing in it throws "unsupported"), so the shared file runs here
+# unmodified. A flow that reappears under shared/flows/android/ is a real parity
+# gap and belongs in shared/docs/parity.md.
+#
 # Invoked by .github/workflows/android-maestro.yml as the `script:` input to
 # reactivecircus/android-emulator-runner, from the repository root.
 #
@@ -28,8 +39,16 @@
 # keeps it that way, and runs in the build job long before an emulator boots.
 #
 # It is also now executable outside CI. With an emulator up and an APK in apk/:
-#   JOB_START_EPOCH=$(date +%s) bash android/scripts/ci-smoke.sh
+#   APP_ID=com.bittr.android.regtest JOB_START_EPOCH=$(date +%s) bash android/scripts/ci-smoke.sh
 set -euo pipefail
+
+# The shared flow reads its app id from the environment, so an unset APP_ID does
+# not fail at parse time — it fails inside the flow, after an emulator boot, as a
+# launch against a package that is not installed. Fail here instead, and do NOT
+# default it: the literal already lives in two places that must agree
+# (android/app/build.gradle.kts and the workflow's env), and a third copy hidden
+# in a fallback is how those drift apart without anyone noticing.
+: "${APP_ID:?APP_ID is unset. The workflow sets it (env.APP_ID in .github/workflows/android-maestro.yml, which must match applicationId + the debug applicationIdSuffix in android/app/build.gradle.kts). Running this by hand? Prefix the command with APP_ID=com.bittr.android.regtest.}"
 
 # The emulator is booted by the time this script starts, so this is
 # the first moment the job can observe how long booting took.
@@ -59,7 +78,7 @@ installed=$(date +%s)
 # here is "no video, plus a warning saying so", which is exactly the
 # behaviour that existed before this block.
 mkdir -p maestro-video
-video="$PWD/maestro-video/scaffold_smoke.webm"
+video="$PWD/maestro-video/smoke.webm"
 recording=no
 if rec_out=$(adb emu screenrecord start "$video" 2>&1) \
    && ! printf '%s' "$rec_out" | grep -qi '^KO'; then
@@ -73,10 +92,11 @@ fi
 set +e
 flow_start=$(date +%s)
 maestro test \
+  --env APP_ID="$APP_ID" \
   --debug-output maestro-debug \
   --format junit \
   --output maestro-report.xml \
-  shared/flows/android/scaffold_smoke.yaml
+  shared/flows/onboarding/smoke.yaml
 status=$?
 flow_end=$(date +%s)
 set -e
@@ -160,10 +180,10 @@ fi
   echo "| setup (JDK, Maestro install, AVD cache) | $setup |"
   echo "| $boot_label | $boot |"
   echo "| APK install | $install |"
-  echo "| **flow** (\`scaffold_smoke.yaml\`) | **$flow** |"
+  echo "| **flow** (\`onboarding/smoke.yaml\`, shared with iOS) | **$flow** |"
   echo "| emulator job, total | $total |"
   echo
-  echo "Result: **$result** · Maestro \`${MAESTRO_VERSION:-unpinned}\` · runner \`${RUNNER_ENVIRONMENT:-unknown}\`"
+  echo "Result: **$result** · Maestro \`${MAESTRO_VERSION:-unpinned}\` · \`APP_ID=$APP_ID\` · runner \`${RUNNER_ENVIRONMENT:-unknown}\`"
   echo
   echo "This is the emulator job only. The \`build\` job runs before it, and on the"
   echo "BIT-5 evidence runs it was the LONGER half — end-to-end run time is both."

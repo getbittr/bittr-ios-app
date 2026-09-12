@@ -12,7 +12,8 @@ import org.junit.runner.RunWith
 import org.robolectric.annotation.Config
 
 /**
- * The JVM half of `shared/flows/android/scaffold_smoke.yaml`.
+ * The JVM half of `shared/flows/onboarding/smoke.yaml` — the shared smoke flow the
+ * emulator job runs (it replaced the Android-only `scaffold_smoke.yaml` in BIT-102).
  *
  * The smoke flow is two claims — *the app launches* and *the first screen asserts* —
  * and until this test existed only the second half was covered off-emulator.
@@ -43,7 +44,7 @@ import org.robolectric.annotation.Config
  * source, in [TestTagsAsResourceIdGuardTest].
  *
  * The assertions below are the flow's steps in the flow's order. If a step is added
- * to `scaffold_smoke.yaml`, add it here too.
+ * to `onboarding/smoke.yaml`, add it here too.
  */
 @RunWith(AndroidJUnit4::class)
 @Config(sdk = [34])
@@ -54,12 +55,13 @@ class AppLaunchTest {
 
     @Test
     fun `app launches and the smoke flow's first screen is on it`() {
-        // scaffold_smoke.yaml: extendedWaitUntil visible id core.launchComplete.
+        // onboarding/smoke.yaml: via helpers/wait_for_launch.yaml, extendedWaitUntil
+        // visible id core.launchComplete.
         // Reaching this assertion at all is the launch claim — the rule has already
         // constructed the Hilt graph, inflated the activity and run the composition.
         composeRule.onNodeWithTag(TestID.Core.launchComplete).assertIsDisplayed()
 
-        // scaffold_smoke.yaml: the three assertVisible steps.
+        // onboarding/smoke.yaml: the three assertVisible steps.
         composeRule.onNodeWithTag(TestID.Signup.Create.Start.headerLabel).assertIsDisplayed()
         composeRule.onNodeWithTag(TestID.Signup.Create.Start.createWalletButton).assertIsDisplayed()
         composeRule.onNodeWithTag(TestID.Signup.Create.Start.restoreButton).assertIsDisplayed()

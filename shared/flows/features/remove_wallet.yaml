@@ -24,7 +24,7 @@
 #
 # Run: maestro test shared/flows/features/remove_wallet.yaml
 
-appId: com.bittr.bittr-regtest
+appId: ${APP_ID}
 ---
 - launchApp
 - runFlow: ../helpers/wait_for_launch.yaml

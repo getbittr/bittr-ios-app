@@ -23,7 +23,7 @@
 #
 # Run: maestro test shared/flows/features/evil_boltz_wrong_address.yaml
 
-appId: com.bittr.bittr-evil
+appId: ${EVIL_APP_ID}
 ---
 # 1) Provision: wipe → create wallet → bittr signup → fund lightning channel,
 #    then a second deposit with onchain payout for the submarine leg's UTXO.

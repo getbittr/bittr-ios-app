@@ -31,7 +31,7 @@
 # CacheManager.getMnemonic(). We bake in the same fixed test phrase
 # restore_wallet.yaml uses, so the cached mnemonic matches exactly.
 
-appId: com.bittr.bittr-regtest
+appId: ${APP_ID}
 ---
 # Start from a clean slate: restore a fresh wallet (clears state + keychain,
 # fixed mnemonic, PIN 1234, failed-attempt counter at 0). Ends on Home.

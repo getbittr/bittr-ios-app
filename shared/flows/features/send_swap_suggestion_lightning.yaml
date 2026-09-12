@@ -34,7 +34,7 @@
 #
 # Run: maestro test shared/flows/features/send_swap_suggestion_lightning.yaml
 
-appId: com.bittr.bittr-regtest
+appId: ${APP_ID}
 ---
 # Launch without clearState so existing wallet state is preserved across runs.
 - launchApp

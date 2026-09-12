@@ -20,7 +20,7 @@
 #
 # Prerequisites: same as evil_bootstrap.yaml.
 
-appId: com.bittr.bittr-evil
+appId: ${EVIL_APP_ID}
 ---
 # Wait for any in-flight sync, then open Buy.
 - extendedWaitUntil:

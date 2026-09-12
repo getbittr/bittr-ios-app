@@ -33,7 +33,7 @@
 #
 # Run: maestro test shared/flows/features/bitcoin_map.yaml
 
-appId: com.bittr.bittr-regtest
+appId: ${APP_ID}
 ---
 - launchApp:
     permissions:

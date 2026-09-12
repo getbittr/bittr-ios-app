@@ -24,7 +24,7 @@
 # first real run (e.g. buy_signup assumes the test wallet has no bittr account
 # yet). Tune the order here as flows are added.
 
-appId: com.bittr.bittr-regtest
+appId: ${APP_ID}
 ---
 # --- Setup: clean wallet → bittr account → funded channel ---------------------
 - runFlow: onboarding/fresh_install_skip_signup.yaml  # clearState + create wallet, skip bittr signup, PIN 1234
