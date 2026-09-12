@@ -153,10 +153,15 @@ fi
 # expensive direction: a spurious HALT on `match -> keep`, escalated to BIT-20 as
 # an empirical result. Naming the issue in it also makes a hit in a backup set
 # self-explaining to whoever finds it.
-if [ "${#marker_here}" -ge 12 ] && [ "${marker_here#*BIT59}" != "$marker_here" ]; then
+#
+# It names BIT101 rather than BIT59 because BIT-101 wrote the class that plants
+# the material; BIT-59 only runs it. The issue named here should be the one
+# whose test writes the bytes, so that a hit found in a backup set leads to the
+# file that put it there.
+if [ "${#marker_here}" -ge 12 ] && [ "${marker_here#*BIT101}" != "$marker_here" ]; then
   echo "ok   marker_prefix_is_distinctive ($marker_here)"
 else
-  echo "FAIL marker_prefix_is_distinctive: '$marker_here' must be >= 12 chars and name BIT59"
+  echo "FAIL marker_prefix_is_distinctive: '$marker_here' must be >= 12 chars and name BIT101"
   failures=$((failures + 1))
 fi
 

@@ -1,525 +1,458 @@
 package com.bittr.android
 
-import android.content.pm.ApplicationInfo
-import android.content.res.XmlResourceParser
+import android.content.Context
 import android.os.Build
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
-import com.bittr.android.core.wallet.ldk.seed.AndroidKeystoreBlobCodec
-import com.bittr.android.core.wallet.ldk.state.WalletPaths
 import java.io.File
-import java.io.FileInputStream
+import java.security.SecureRandom
 import org.junit.After
-import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Before
+import org.junit.FixMethodOrder
 import org.junit.Test
 import org.junit.runner.RunWith
-import org.xmlpull.v1.XmlPullParser
+import org.junit.runners.MethodSorters
 
 /**
- * **BIT-8 rule 4 / BIT-20 rule 5, empirically — the claim §4 of
- * `wallet-security-properties.md` says is the one not yet proven.**
+ * **BIT-8 rule 4 / BIT-20 rule 5 — the empirical half. What a real backup set
+ * actually contains.**
  *
- * `BackupExclusionRulesTest` and `StateDirLocationTest` prove the
- * *configuration* on the JVM: `allowBackup="false"`, both `<cloud-backup>` and
- * `<device-transfer>` excluding the wallet directory, no `<include>`, every
- * wallet path under `getNoBackupFilesDir()`. None of that proves a backup set
- * produced by a real device contains none of it. This does, or says exactly
- * which half it could not.
+ * `BackupExclusionRulesTest` reads the manifest and `data_extraction_rules.xml`.
+ * `StateDirLocationTest` proves every wallet path resolves under `no_backup`.
+ * Both assert *configuration*. Neither can tell you what the platform put in a
+ * backup set, and under BIT-20 rule 5 that is not a follow-up question — it is
+ * the precondition of `match → keep`. The discriminator proves a state
+ * directory is *yours*; it does not prove it is *current*. Same-seed **stale**
+ * state signs fine, and publishing a revoked commitment hands the whole channel
+ * balance to the counterparty. Foreign state cannot sign, so the case the
+ * discriminator does not cover is the worse one, and it is closed at the
+ * storage layer or not at all.
  *
- * ## Why this test is in `:app` and not in `:core:wallet-ldk`
+ * So this test plants wallet-shaped files, drives `bmgr` to produce a real
+ * backup set on both the cloud-backup and the device-transfer path, throws the
+ * files away, restores, and asserts none of them came back.
  *
- * BIT-59 asks for `:core:wallet-ldk:connectedAndroidTest`, and for
- * `KeystoreKeyInfoTest` that is right — the Keystore is a device service and
- * does not care which package calls it. For *this* test it would be worse than
- * useless, and quietly so.
+ * ### Why this lives in `:app` and not in `:core:wallet-ldk`
  *
- * An Android library module's instrumented tests run in a self-instrumenting
- * test APK built from the library's own manifest. `:core:wallet-ldk` has no
- * `AndroidManifest.xml` at all, so that APK gets AGP's generated stub: no
- * `android:allowBackup="false"`, no `android:dataExtractionRules`. Backup
- * therefore defaults to **enabled** there. A `bmgr` run against that package
- * would be measuring the opposite configuration from the one we ship, and the
- * most likely result — a backup set that does contain the files — would read as
- * "the exclusion is broken" when it means "the test was pointed at the wrong
- * APK". The inverse is worse: passing for a reason unrelated to our manifest.
+ * BIT-101 asked for it in `:core:wallet-ldk`, next to `WalletPaths`. It cannot
+ * usefully go there. A library module's instrumented tests are self-
+ * instrumenting: the package under test is `…core.wallet.ldk.test`, whose
+ * manifest carries neither `allowBackup="false"` nor `dataExtractionRules`. A
+ * test there would produce a backup set for a package configured by default,
+ * and prove nothing about the install we ship. `com.bittr.android` is the only
+ * package whose backup configuration is the product's, so the test has to run
+ * against it.
  *
- * The property under test is a property of the **installed application**, so
- * the test has to run inside it. `:app`'s androidTest APK instruments
- * `com.bittr.android.regtest` (the debug `applicationIdSuffix`), whose merged
- * manifest is the real one. `:core:wallet-ldk` arrives here as an
- * `androidTestImplementation` dependency — test-only, nothing added to the
- * shipped app, which still binds `:core:wallet-stub`.
+ * The cost is that the path names below are literals rather than references to
+ * `WalletPaths` — `:app` deliberately does not depend on `:core:wallet-ldk`
+ * yet, and a test-only dependency would drag the bdk/ldk-node native libraries
+ * into the test APK for four strings. `BackupExclusionInstrumentationGuardTest`
+ * (JVM, `:app`) fails the build if these literals stop matching `WalletPaths`,
+ * so the duplication cannot rot silently.
  *
- * ## What is asserted, and what is only recorded
+ * ### Why the canary and the decoys are not padding
  *
- * Hard assertions, in the order a failure would matter:
+ * An empty backup set excludes everything. Absence of wallet material means
+ * nothing unless the run can also show that the set was *not* empty, or show
+ * that the framework explicitly declined to back this package up. That is what
+ * [CANARY] is for: an ordinary file in `files/`, which no rule excludes. If it
+ * comes back, the set was real and the wallet material's absence is a result.
+ * If it does not, the run has to be able to point at the framework saying so —
+ * see [assertNoWalletMaterialSurvives]. Neither branch is allowed to be a
+ * silent pass.
  *
- * 1. The **installed** package really has backup off (`FLAG_ALLOW_BACKUP`
- *    clear), its merged binary manifest really points `dataExtractionRules` at
- *    our resource, and the rules **as compiled into the APK** exclude the wallet
- *    directory from both sections with no `<include>` re-admitting it. The JVM
- *    tests read the source tree; these read what the platform installed, which
- *    is the artefact a manifest merge or an aapt change could have altered
- *    without the source moving.
- * 2. Wallet material really lands under `no_backup`, written through the real
- *    `WalletPaths` + `AndroidKeystoreBlobCodec`, not a fixture.
- * 3. The backup transport is present and drivable — the vacuity canary. Without
- *    it every assertion below passes by never having run anything.
- * 4. `bmgr backupnow` on this package produces no backup set for it.
+ * The two decoys test the `dataExtractionRules` layer on its own terms. Those
+ * `<exclude>` entries name `wallet` and `no_backup` in `domain="file"`, whose
+ * root is `getFilesDir()` — a *sibling* of `getNoBackupFilesDir()`, not its
+ * parent. So the decoys sit where the rules literally point. If a decoy comes
+ * back while the wallet markers do not, that is worth knowing and the failure
+ * message says exactly what it means: the rules layer is a no-op and the
+ * `no_backup` siting is carrying rule 5 alone.
  *
- * Recorded, not asserted: the device-to-device transfer path. See
- * [theDeviceTransferPathIsRecordedBecauseItCannotBeDriven]. That gap is the
- * halt condition in `wallet-security-properties.md` §4 and it is reported
- * rather than papered over.
+ * ### Status, and the known hazards
+ *
+ * **Written, never run.** There is no device in the agent container, and no
+ * `connectedAndroidTest` step in CI yet — BIT-59. Recording that here rather
+ * than letting the file's existence imply a green result. Two things could make
+ * the first real run red for reasons that are not a product defect, and both
+ * are results to record rather than to design around:
+ *
+ * 1. **Restoring into a live process.** The instrumentation runs *inside*
+ *    `com.bittr.android`, and whether `bmgr restore` kills the target process
+ *    is not documented either way. If it does, the run dies mid-class rather
+ *    than failing an assertion. The method order below puts the cheap
+ *    observations first so their results are already streamed to the host when
+ *    that happens.
+ * 2. **`is_device_transfer`.** The local transport reads it from
+ *    `Settings.Secure.BACKUP_LOCAL_TRANSPORT_PARAMETERS`; it is a test hook,
+ *    not API, and [selectLocalTransport] asserts the value was actually taken
+ *    rather than assuming it. A rename in a future platform release should fail
+ *    loudly here, not quietly turn the device-transfer test into a second cloud
+ *    test.
+ *
+ * If the device-transfer path turns out not to be excludable at all, that is
+ * the **halt** recorded in `docs/wallet-security-properties.md` §4 — it goes
+ * back to BIT-20 with the result attached, and the guard reverts to iOS
+ * behaviour until it is re-decided. It is not a smaller test.
+ *
+ * Nothing planted here is key material: the blob is a fixed ASCII marker.
+ * Never mainnet keys, never real funds.
  */
 @RunWith(AndroidJUnit4::class)
+// The three methods must run in the order they are written: `backup…` proves
+// the machinery is live, and the two that follow are only meaningful if it is.
+// NAME_ASCENDING sorts b < c < d, which is why the names begin as they do —
+// renaming one without checking that is how the ordering silently inverts.
+@FixMethodOrder(MethodSorters.NAME_ASCENDING)
 class BackupExclusionTest {
 
+    private companion object {
+        const val LOCAL_TRANSPORT = "com.android.localtransport/.LocalTransport"
+
+        /** The test hook the local transport reads its operation type from. */
+        const val TRANSPORT_PARAMETERS = "backup_local_transport_parameters"
+
+        // Mirrors WalletPaths in :core:wallet-ldk. Kept in step by
+        // BackupExclusionInstrumentationGuardTest, which runs on the JVM.
+        const val WALLET_DIR = "wallet"
+        const val LDK_STATE_DIR = "ldk_state"
+        const val QUARANTINE_DIR = "foreign_ldk_state"
+        const val SEED_BLOB = "seed.bin"
+        const val BDK_DATABASE = "bdk_wallet.sqlite"
+        const val DISCRIMINATOR = "seed_discriminator"
+        const val LDK_DATABASE = "ldk_node_data.sqlite"
+
+        /** An ordinary file no rule excludes. Its return is what makes the run non-vacuous. */
+        const val CANARY = "backup_canary.txt"
+
+        /**
+         * The prefix every planted file's contents start with, so the material
+         * this class writes is findable by a plain `grep` from outside the
+         * process.
+         *
+         * This class asserts from the inside: plant, back up, delete, restore,
+         * assert nothing came back. That is the strong test, and it is also a
+         * test whose green depends on `bmgr restore` having worked. A restore
+         * that silently did nothing produces "nothing came back" for the wrong
+         * reason — the canary assertion below is what catches that, and it
+         * catches it only when the framework said `Success`.
+         *
+         * So `android/scripts/check-backup-set.sh` reads the backup set itself,
+         * from the host, after this suite finishes: `adb root`, then grep the
+         * local transport's on-disk tree for this prefix. It needs no restore
+         * to work and no assertion here to be right — if wallet material is in
+         * the set, the bytes are on disk under the transport's directory and
+         * the grep finds them. That check exists because it fails independently
+         * of everything in this file.
+         *
+         * **Changing this value without changing it there** turns that grep
+         * into one that can never match, i.e. into a permanent silent pass.
+         * `android/scripts/test_check_backup_set.sh` reads both files in the
+         * `build` job and goes red if they drift.
+         */
+        const val MARKER_PREFIX = "BIT101-WALLET-MARKER-"
+    }
+
     private val instrumentation = InstrumentationRegistry.getInstrumentation()
-
-    /** The instrumented app under test — `com.bittr.android.regtest` on debug. */
-    private val context = instrumentation.targetContext
-
+    private val context: Context = instrumentation.targetContext
     private val packageName: String = context.packageName
+    private val random = SecureRandom()
 
-    private val paths = WalletPaths.forContext(context)
-
-    /**
-     * A value we can search a backup set for. Random per run rather than a
-     * constant: a constant could match a stale artefact left by an earlier run
-     * and turn a real leak into a green.
-     */
-    private val marker: String = MARKER_PREFIX + System.nanoTime().toString(16)
+    private var backupWasEnabled: Boolean = false
+    private var originalTransport: String = ""
+    private var originalParameters: String = ""
 
     @Before
-    fun writeWalletBearingState() {
-        // Printed so the value survives out of this process. The in-test
-        // assertions below can only search `bmgr`'s own stdout, which is a
-        // report and not the backup set; check-backup-set.sh greps the
-        // transport's on-disk tree for MARKER_PREFIX after the run, which is the
-        // backup set itself. See that script's header for why the stronger half
-        // has to live outside the test.
-        println("BACKUP_EXCLUSION_MARKER=$marker")
-
-        paths.createDirectories()
-
-        // The real wrap, through the real Keystore codec. Writing a hand-rolled
-        // byte array here would test the file layout and nothing else.
-        paths.seedBlobFile.writeBytes(
-            AndroidKeystoreBlobCodec().wrap(
-                "$marker void super old faith primary cradle behave crucial".toByteArray(),
-            ),
-        )
-        // Stand-ins for ldk-node's own files. The claim is about the state
-        // *directory*, so what matters is that something is in it and that it
-        // carries the marker; booting ldk-node to obtain a real sqlite file
-        // would add a native dependency and prove nothing extra about backup.
-        File(paths.ldkStateDir, "ldk_node_data.sqlite").writeText("$marker channel state")
-        paths.discriminatorFile.writeText("$marker discriminator")
-        paths.bdkDatabaseFile.writeText("$marker bdk")
+    fun recordTheDeviceState() {
+        backupWasEnabled = "enabled" in DeviceShell.bmgr("enabled").lowercase()
+        originalTransport = DeviceShell.bmgr("list transports")
+            .lineSequence()
+            .firstOrNull { it.trimStart().startsWith("*") }
+            ?.trimStart()?.removePrefix("*")?.trim()
+            .orEmpty()
+        originalParameters = DeviceShell.run("settings get secure $TRANSPORT_PARAMETERS")
+            .trim()
+            .takeUnless { it == "null" || it.isEmpty() }
+            .orEmpty()
     }
 
     @After
-    fun removeWalletBearingState() {
-        paths.walletDir.deleteRecursively()
-        AndroidKeystoreBlobCodec().deleteKey()
-    }
-
-    // --- 1. The installed manifest, not the source XML -------------------------
-
-    @Test
-    fun theInstalledPackageHasBackupDisabled() {
-        val info = context.packageManager.getApplicationInfo(packageName, 0)
-
-        assertEquals(
-            "The installed package $packageName reports FLAG_ALLOW_BACKUP set. " +
-                "BackupExclusionRulesTest reads android/app/src/main/AndroidManifest.xml; " +
-                "this reads what the platform actually installed, and they have " +
-                "disagreed. A manifest merge from a library dependency can re-add " +
-                "allowBackup, and nothing on the JVM would notice.",
-            0,
-            info.flags and ApplicationInfo.FLAG_ALLOW_BACKUP,
-        )
-    }
-
-    @Test
-    fun theInstalledManifestPointsAtOurDataExtractionRules() {
-        // API 31+ only: the attribute does not exist below S, where allowBackup
-        // and fullBackupContent are the whole story.
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) return
-
-        // `ApplicationInfo.dataExtractionRulesRes` would say this in one line and
-        // is @hide, so it is not available to a test that has to keep compiling.
-        // Reading the installed APK's own binary manifest through the app's
-        // AssetManager is public API and is strictly better evidence anyway: it
-        // is the *merged, compiled, installed* manifest, which is the artefact a
-        // library dependency could have changed without the source tree moving.
-        val declared = applicationTagAttributes()
-
-        val rules = declared[android.R.attr.dataExtractionRules]
-        assertTrue(
-            "The installed manifest declares no android:dataExtractionRules. That " +
-                "attribute is the ONLY thing configuring the API 31+ " +
-                "device-transfer path — allowBackup does not govern it, which is " +
-                "the whole reason res/xml/data_extraction_rules.xml exists (see " +
-                "its header). Without it the transfer path is unconfigured, " +
-                "whatever the source tree says. Attributes found on <application>: " +
-                declared.keys.joinToString { "0x%08x".format(it) },
-            rules != null,
-        )
-        assertEquals(
-            "The installed manifest's android:dataExtractionRules points at a " +
-                "different resource than @xml/data_extraction_rules. Something " +
-                "in the merge replaced our rules with another module's.",
-            R.xml.data_extraction_rules,
-            rules,
-        )
-    }
-
-    @Test
-    fun theInstalledRulesExcludeTheWalletDirectoryFromBothPaths() {
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) return
-
-        // Parsed out of the APK's compiled resources, not off disk.
-        // BackupExclusionRulesTest reads the source XML on the JVM; this reads
-        // what aapt actually compiled into the installed app, which is the form
-        // the platform's backup machinery will consult.
-        val excludedBySection = mutableMapOf<String, MutableSet<String>>()
-        var section: String? = null
-
-        context.resources.getXml(R.xml.data_extraction_rules).use { parser ->
-            var event = parser.eventType
-            while (event != XmlPullParser.END_DOCUMENT) {
-                if (event == XmlPullParser.START_TAG) {
-                    when (parser.name) {
-                        "cloud-backup", "device-transfer" -> section = parser.name
-                        "exclude" -> section?.let {
-                            excludedBySection
-                                .getOrPut(it) { mutableSetOf() }
-                                .add("${attr(parser, "domain")}:${attr(parser, "path")}")
-                        }
-                        // An <include> anywhere re-admits what the excludes took
-                        // out, and would do it silently. BackupExclusionRulesTest
-                        // asserts there is none in the source; this asserts it of
-                        // the compiled resource.
-                        "include" -> throw AssertionError(
-                            "The installed data_extraction_rules.xml contains an " +
-                                "<include> in the '$section' section. An include " +
-                                "re-admits paths the excludes removed. HALT — see " +
-                                "wallet-security-properties.md §4.",
-                        )
-                    }
-                }
-                if (event == XmlPullParser.END_TAG &&
-                    (parser.name == "cloud-backup" || parser.name == "device-transfer")
-                ) {
-                    section = null
-                }
-                event = parser.next()
-            }
+    fun putTheDeviceBack() {
+        // Order matters: drop our dataset from the transport before letting go
+        // of the transport, or the canary outlives the test on a shared device.
+        DeviceShell.bmgr("wipe $LOCAL_TRANSPORT $packageName")
+        if (originalParameters.isEmpty()) {
+            DeviceShell.run("settings delete secure $TRANSPORT_PARAMETERS")
+        } else {
+            DeviceShell.run("settings put secure $TRANSPORT_PARAMETERS $originalParameters")
         }
-
-        listOf("cloud-backup", "device-transfer").forEach { name ->
-            val excluded = excludedBySection[name].orEmpty()
-            assertTrue(
-                "The installed rules have no '$name' section, so that path is " +
-                    "unconfigured in the APK the device is running. Found: " +
-                    excludedBySection.keys,
-                excluded.isNotEmpty(),
-            )
-            assertTrue(
-                "The '$name' section does not exclude the wallet directory in the " +
-                    "file domain. Found: $excluded. BIT-20 rule 5 widened this from " +
-                    "the seed blob to the whole LDK state directory, because the " +
-                    "discriminator proves state is yours and not that it is current.",
-                "file:${WalletPaths.WALLET_DIR}" in excluded,
-            )
-            assertTrue(
-                "The '$name' section does not exclude the no_backup tree in the " +
-                    "file domain. That is the belt-and-braces entry; losing it " +
-                    "means anything new landing under no_backup is no longer " +
-                    "covered by name. Found: $excluded",
-                "file:no_backup" in excluded,
-            )
-        }
+        if (originalTransport.isNotEmpty()) DeviceShell.bmgr("transport $originalTransport")
+        if (!backupWasEnabled) DeviceShell.bmgr("enable false")
+        removePlantedFiles()
     }
-
-    // --- 2. Where the material actually landed ---------------------------------
-
-    @Test
-    fun everyWalletFileLandedUnderNoBackup() {
-        val noBackup = context.noBackupFilesDir.canonicalFile
-
-        val written = listOf(
-            paths.seedBlobFile,
-            paths.discriminatorFile,
-            paths.bdkDatabaseFile,
-            File(paths.ldkStateDir, "ldk_node_data.sqlite"),
-        )
-
-        written.forEach { file ->
-            assertTrue("Expected $file to have been written by the fixture.", file.isFile)
-            assertTrue(
-                "$file is not under ${noBackup}. Siting is the layer that survives " +
-                    "someone flipping allowBackup or adding an <include> rule — see " +
-                    "WalletPaths' header. StateDirLocationTest asserts this against an " +
-                    "injected directory; this asserts it against the real Context.",
-                file.canonicalFile.startsWith(noBackup),
-            )
-        }
-
-        assertTrue(
-            "The wrapped seed blob must not contain the plaintext marker; if it " +
-                "does, the blob is not actually encrypted and the rest of this " +
-                "test is measuring the wrong risk.",
-            !String(paths.seedBlobFile.readBytes(), Charsets.ISO_8859_1).contains(marker),
-        )
-    }
-
-    // --- 3. The vacuity canary -------------------------------------------------
 
     /**
-     * The counterpart of BIT-62's WebView preflight, and here for the same
-     * reason: every `bmgr` assertion in this class is of the form "the backup
-     * set does not contain X", and an image with no backup transport satisfies
-     * all of them by producing no backup set for any reason at all.
+     * The precondition every other assertion rests on.
      *
-     * So this test does not check our package. It checks that the *mechanism*
-     * is alive, by confirming the Backup Manager is enabled and has a transport
-     * selected. If this is red, every other `bmgr` result in this class is
-     * meaningless and must not be read as evidence.
+     * A device with the backup manager disabled, or without the local
+     * transport, produces an empty set for every package — on which the two
+     * tests below would pass while proving nothing. This is a test rather than
+     * an `Assume` for exactly that reason: a skipped test and a green test look
+     * the same in an exit code, and a `connectedAndroidTest` step that runs
+     * zero tests exits 0.
      */
     @Test
-    fun theBackupTransportIsActuallyAvailable() {
-        val enabled = shell("bmgr enabled")
+    fun backupManagerAndTheLocalTransportAreLiveOnThisDevice() {
+        if (!backupWasEnabled) DeviceShell.bmgr("enable true")
+
+        val enabled = DeviceShell.bmgr("enabled")
         assertTrue(
-            "`bmgr enabled` reported: '$enabled'. The Backup Manager is off, so " +
-                "`bmgr backupnow` below would decline for a reason that has nothing " +
-                "to do with our manifest, and this suite's greens would prove " +
-                "nothing. CI enables it in android/scripts/ci-wallet-instrumented.sh; " +
-                "locally run `adb shell bmgr enable true`.",
-            enabled.contains("currently enabled", ignoreCase = true),
+            "The backup manager reports \"${enabled.trim()}\" after `bmgr enable true`. " +
+                "With it off, every backup set on this device is empty and the two tests " +
+                "that follow would pass without the platform having done anything.",
+            "enabled" in enabled.lowercase() && "not enabled" !in enabled.lowercase(),
         )
 
-        val transport = shell("bmgr list transports")
+        val transports = DeviceShell.bmgr("list transports")
         assertTrue(
-            "`bmgr list transports` reported: '$transport'. No transport is " +
-                "selected (the '*' marks it), so no backup set can be produced at " +
-                "all and every exclusion assertion here is vacuous. On an emulator " +
-                "select com.android.localtransport/.LocalTransport.",
-            transport.contains("*"),
+            "This device does not offer $LOCAL_TRANSPORT. Available transports:\n" +
+                transports +
+                "\nThe local transport is the only one that keeps the set on the device, " +
+                "and it is the only one these tests can restore from. A Play-image " +
+                "emulator offers the GMS transports instead, which cannot be restored " +
+                "from on demand — run this on an AOSP image.",
+            LOCAL_TRANSPORT in transports,
         )
     }
-
-    // --- 4. The backup set itself ----------------------------------------------
-
-    @Test
-    fun aCloudBackupRunProducesNoBackupSetForThisPackage() {
-        val output = shell("bmgr backupnow $packageName")
-
-        // The platform declines an ineligible package rather than producing an
-        // empty set for it. Both readings are a pass for the claim — nothing of
-        // ours reached a transport — but they are different sentences, so the
-        // assertion accepts either and the message prints what was actually said.
-        val declined = listOf(
-            "not eligible",
-            "not allowed",
-            "Package $packageName not installed",
-            "no backup",
-            "Backup is not allowed",
-        ).any { output.contains(it, ignoreCase = true) }
-
-        // NOT a strong signal, and labelled so it cannot be mistaken for one.
-        // "Backup finished with result: Success" is what `bmgr` prints at the end
-        // of ANY run that completed, including one that backed this package up in
-        // full — and the marker could never appear in this output, because bmgr
-        // reports on the run and does not echo file contents. So this branch
-        // means "bmgr did not visibly refuse", which is weaker than "nothing of
-        // ours was backed up" and is accepted only because the platform's exact
-        // decline wording varies by API level and image.
-        //
-        // The strong version of this assertion is not reachable from in here at
-        // all: the backup set lives under the transport's own data directory,
-        // which is 0700 to another uid, and UiAutomation's shell runs as `shell`
-        // rather than root. check-backup-set.sh does it from the host after this
-        // suite finishes — `adb root`, then grep the transport tree for
-        // MARKER_PREFIX — and that is the check that would catch a real leak
-        // through a bmgr run this method called a pass.
-        val notVisiblyRefused =
-            output.contains("Success", ignoreCase = true) && !output.contains(marker)
-
-        assertTrue(
-            "`bmgr backupnow $packageName` did not show the package being excluded " +
-                "from the backup set. Raw output:\n$output\n\n" +
-                "If this run actually backed the package up, that is the BIT-20 §5.3 " +
-                "HALT condition, not a test to loosen: `match -> keep` is then " +
-                "shipping on an exclusion the device does not honour, and the guard " +
-                "reverts to iOS behaviour (quarantine on anything but a live " +
-                "mnemonic) until it is re-decided.",
-            declined || notVisiblyRefused,
-        )
-
-        assertFalse(
-            "The seed marker appeared in bmgr's own output for $packageName, which " +
-                "means wallet material reached the backup pipeline. HALT — see " +
-                "wallet-security-properties.md §4.",
-            output.contains(marker),
-        )
-    }
-
-    // --- The half that cannot be driven ----------------------------------------
 
     /**
-     * **This is the documented gap, kept visible on purpose.**
-     *
-     * `bmgr` drives the cloud-backup path only. It has no flag for the API 31+
-     * device-to-device transfer path — that runs through
-     * `BackupTransport.FLAG_DEVICE_TO_DEVICE_TRANSFER`, which the shell tool
-     * does not expose and an instrumented test cannot set, so no test on an
-     * emulator can produce a real D2D transfer set and read it back.
-     *
-     * That matters more than a normal untested path, because
-     * `allowBackup="false"` is **not** documented to suppress D2D on API 31+ —
-     * which is exactly why `data_extraction_rules.xml` configures
-     * `<device-transfer>` separately, and exactly the claim §4 says we will not
-     * assert from memory.
-     *
-     * So this test asserts the strongest thing that is genuinely observable on
-     * the device — the rules resource is attached to the *installed* package
-     * (also covered above) and the wallet directory is sited where a
-     * `<device-transfer>` `<exclude>` names it — and then prints the residual
-     * gap so the run itself carries it. It never claims the D2D path is proven.
+     * The cloud-backup path: `<cloud-backup>` in `data_extraction_rules.xml`,
+     * plus `allowBackup="false"`, plus the `no_backup` siting.
      */
     @Test
-    fun theDeviceTransferPathIsRecordedBecauseItCannotBeDriven() {
-        val info = context.packageManager.getApplicationInfo(packageName, 0)
-        val rulesAttached = Build.VERSION.SDK_INT < Build.VERSION_CODES.S ||
-            applicationTagAttributes()[android.R.attr.dataExtractionRules] != null
+    fun cloudBackupOfAWalletBearingInstallCarriesNoWalletMaterial() {
+        assertNoWalletMaterialSurvives(deviceTransfer = false)
+    }
 
+    /**
+     * The device-transfer path, which is configured separately from API 31 and
+     * is the half `allowBackup="false"` may not cover. This is the run that
+     * decides whether `match → keep` is sound; see the class comment.
+     */
+    @Test
+    fun deviceTransferOfAWalletBearingInstallCarriesNoWalletMaterial() {
+        assertNoWalletMaterialSurvives(deviceTransfer = true)
+    }
+
+    private fun assertNoWalletMaterialSurvives(deviceTransfer: Boolean) {
+        val path = if (deviceTransfer) "device-transfer" else "cloud-backup"
+        selectLocalTransport(deviceTransfer)
+
+        val markers = plantWalletMaterial() + plantDecoys()
+        val canary = File(context.filesDir, CANARY)
+            .also { it.parentFile?.mkdirs(); it.writeText(stamp("canary")) }
+        val canaryContents = canary.readText()
+
+        val backup = DeviceShell.bmgr("backupnow $packageName")
+        val result = resultFor(packageName, backup)
+
+        (markers.map { it.file } + canary).forEach { it.delete() }
+        File(context.noBackupFilesDir, WALLET_DIR).deleteRecursively()
+        File(context.filesDir, WALLET_DIR).deleteRecursively()
+
+        val restore = restoreLatestSet()
+        val canaryReturned = canary.isFile && canary.readText() == canaryContents
+
+        // The record BIT-59's first run should be read against. Printed before
+        // the assertions so it survives a failure.
         println(
-            "BACKUP_EXCLUSION_D2D api=${Build.VERSION.SDK_INT} " +
-                "device=${Build.MANUFACTURER}/${Build.MODEL} package=$packageName " +
-                "allowBackup=${info.flags and ApplicationInfo.FLAG_ALLOW_BACKUP != 0} " +
-                "dataExtractionRulesAttached=$rulesAttached " +
-                "walletDir=${paths.walletDir.canonicalPath} " +
-                "verdict=NOT_EMPIRICALLY_PROVEN " +
-                "reason=bmgr-has-no-device-to-device-mode",
+            "BACKUP_EXCLUSION path=$path api=${Build.VERSION.SDK_INT} package=$packageName " +
+                "result=${result ?: "<no result line>"} canaryReturned=$canaryReturned",
         )
+        println("BACKUP_EXCLUSION backupnow output:\n$backup")
+        println("BACKUP_EXCLUSION restore output:\n$restore")
 
-        assertTrue(
-            "The device-transfer path is configured only by dataExtractionRules, " +
-                "and the installed manifest does not carry it. Nothing excludes " +
-                "the wallet directory from a D2D transfer.",
-            rulesAttached,
-        )
-    }
-
-    /**
-     * The `<application>` tag of the **installed** APK's merged manifest, as a
-     * map from attribute resource id to the resource id it points at (0 when the
-     * value is not a resource reference).
-     *
-     * Reading it through the app's own `AssetManager` is the public-API way to
-     * ask what the platform actually installed. `ApplicationInfo` exposes
-     * `allowBackup` as a flag but keeps `dataExtractionRulesRes` `@hide`, and a
-     * test that reaches for a hidden field is one non-SDK-interface policy change
-     * away from failing for a reason unrelated to the wallet.
-     */
-    private fun applicationTagAttributes(): Map<Int, Int> {
-        // The no-argument overload is `openXmlResourceParser(0, fileName)`, and
-        // cookie 0 is not guaranteed to be the base APK once split APKs are in
-        // play. Trying the low cookies in turn costs nothing and keeps a
-        // packaging detail from producing a red that reads as a backup failure.
-        // If none of them yield a manifest, that is still a hard failure below —
-        // this method never returns a silent empty map.
-        val attempts = mutableListOf<String>()
-        for (cookie in 0..MAX_ASSET_COOKIE) {
-            val found = try {
-                context.assets.openXmlResourceParser(cookie, MANIFEST).use { parser ->
-                    applicationTagAttributes(parser)
-                }
-            } catch (throwable: Throwable) {
-                attempts += "cookie $cookie: ${throwable.javaClass.simpleName}"
-                null
-            }
-            if (!found.isNullOrEmpty()) return found
-            if (found != null) attempts += "cookie $cookie: no <application> tag"
-        }
-        throw AssertionError(
-            "Could not read the installed APK's merged AndroidManifest.xml through " +
-                "the app's AssetManager, so this test cannot say what the platform " +
-                "installed. This is a packaging/tooling failure, NOT evidence about " +
-                "backup exclusion — do not read it as either a pass or the BIT-20 " +
-                "halt. Attempts: ${attempts.joinToString("; ")}",
-        )
-    }
-
-    private fun applicationTagAttributes(parser: XmlResourceParser): Map<Int, Int> {
-        var event = parser.eventType
-        while (event != XmlPullParser.END_DOCUMENT) {
-            if (event == XmlPullParser.START_TAG && parser.name == "application") {
-                return (0 until parser.attributeCount).associate { index ->
-                    parser.getAttributeNameResource(index) to
-                        parser.getAttributeResourceValue(index, 0)
-                }
-            }
-            event = parser.next()
-        }
-        return emptyMap()
-    }
-
-    /**
-     * Runs a command as the `shell` user via `UiAutomation`, which is how an
-     * instrumented test reaches `bmgr` at all — `bmgr` refuses the app's own
-     * uid, and Runtime.exec() from the test process runs as that uid.
-     */
-    private fun shell(command: String): String =
-        instrumentation.uiAutomation.executeShellCommand(command).use { descriptor ->
-            FileInputStream(descriptor.fileDescriptor).use { it.readBytes().decodeToString() }
-        }
-
-    /**
-     * An `<exclude>` attribute, read from the namespace it is actually in.
-     *
-     * **This is what made the test red while the app was correct.** Unlike the
-     * manifest, `data-extraction-rules` declares no `xmlns:android` and its
-     * `domain`/`path` attributes are UNPREFIXED — they live in the null
-     * namespace. Reading them with the android namespace returned `null` for
-     * every one, so each entry was recorded as the string `"null:null"` and the
-     * "does not exclude the wallet directory" assertion failed against a config
-     * that excludes it correctly.
-     *
-     * The failure mode to keep in mind is the opposite one: a silent `null` here
-     * builds a set that matches nothing, and had the assertions been written the
-     * other way round (asserting some path is ABSENT) this same bug would have
-     * produced a permanent green. So a missing attribute throws rather than
-     * returning null — `<exclude>` without a domain and path is malformed, and
-     * this test may not quietly agree with it.
-     */
-    private fun attr(parser: XmlResourceParser, name: String): String =
-        parser.getAttributeValue(null, name)
-            ?: parser.getAttributeValue(ANDROID_NS, name)
-            ?: throw AssertionError(
-                "An <exclude> in the installed data_extraction_rules.xml has no " +
-                    "'$name' attribute in either the null or the android namespace. " +
-                    "That is a malformed rule, and treating it as an empty match " +
-                    "would let this test pass over a rule the platform cannot apply.",
+        for (marker in markers) {
+            assertFalse(
+                "${marker.what} came back from a $path set: ${marker.file}. " +
+                    marker.consequence +
+                    "\n\nbmgr backupnow said:\n$backup\nbmgr restore said:\n$restore",
+                marker.file.exists(),
             )
+        }
 
-    private companion object {
-        /**
-         * Shared with `android/scripts/check-backup-set.sh`, which greps the
-         * backup transport's on-disk tree for it after this suite runs. Changing
-         * it here without changing it there turns that check into one that can
-         * never fire — i.e. into a permanent silent pass. `test_check_backup_set.sh`
-         * reads both files and fails the `build` job if they drift.
-         */
-        const val MARKER_PREFIX = "BIT59-SEED-MARKER-"
-        const val MANIFEST = "AndroidManifest.xml"
-        const val MAX_ASSET_COOKIE = 4
-        const val ANDROID_NS = "http://schemas.android.com/apk/res/android"
+        // Only now: was the absence above worth anything?
+        val declined = result == null || !result.equals("Success", ignoreCase = true)
+        assertTrue(
+            "The framework reported \"$result\" for $packageName on the $path path — a " +
+                "backup it considers successful — yet the canary written to " +
+                "${canary.path} did not come back. This run cannot tell whether the set " +
+                "excluded the wallet material or was empty for some unrelated reason, so " +
+                "the assertions above prove nothing. Investigate before reading this " +
+                "class as green.\n\nbmgr backupnow said:\n$backup\nbmgr restore said:\n" +
+                restore,
+            canaryReturned || declined,
+        )
+        if (!canaryReturned) {
+            // allowBackup="false" is expected to produce exactly this on the
+            // cloud path: the package is never offered to the transport, so
+            // nothing of ours is in the set — including the canary. Recorded
+            // rather than asserted, because which layer does the work is what
+            // the device-transfer run is here to find out.
+            println(
+                "BACKUP_EXCLUSION $path: the framework declined to back up $packageName " +
+                    "(result=${result ?: "<no result line>"}). Exclusion was not exercised " +
+                    "on this path; the package was ineligible outright.",
+            )
+        }
     }
+
+    /**
+     * Selects the local transport, in cloud or device-transfer mode.
+     *
+     * `is_device_transfer` is a test hook on the local transport, read from a
+     * secure setting rather than passed to `bmgr`. It is asserted back out of
+     * the settings provider because a hook that silently stops existing would
+     * turn [deviceTransferOfAWalletBearingInstallCarriesNoWalletMaterial] into
+     * a second copy of the cloud test — green, and covering nothing. The
+     * transport is re-selected afterwards so it re-reads its parameters.
+     */
+    private fun selectLocalTransport(deviceTransfer: Boolean) {
+        val parameters = "is_device_transfer=$deviceTransfer"
+        DeviceShell.run("settings put secure $TRANSPORT_PARAMETERS $parameters")
+
+        val readBack = DeviceShell.run("settings get secure $TRANSPORT_PARAMETERS").trim()
+        assertTrue(
+            "Wrote \"$parameters\" to secure setting $TRANSPORT_PARAMETERS and read back " +
+                "\"$readBack\". The local transport takes its operation type from there; " +
+                "without it this is a cloud backup wearing a device-transfer name.",
+            readBack == parameters,
+        )
+
+        val selected = DeviceShell.bmgr("transport $LOCAL_TRANSPORT")
+        assertTrue(
+            "Could not select $LOCAL_TRANSPORT: ${selected.trim()}",
+            LOCAL_TRANSPORT in selected,
+        )
+    }
+
+    /** `bmgr list sets` → newest token → `bmgr restore <token> <package>`. */
+    private fun restoreLatestSet(): String {
+        val sets = DeviceShell.bmgr("list sets")
+        val token = Regex("""^\s*([0-9a-fA-F]+)\s*:""", RegexOption.MULTILINE)
+            .findAll(sets)
+            .map { it.groupValues[1] }
+            .lastOrNull()
+        val command = if (token != null) "restore $token $packageName" else "restore $packageName"
+        return "$ bmgr $command\n(sets: ${sets.trim()})\n${DeviceShell.bmgr(command)}"
+    }
+
+    /**
+     * A wallet-bearing install, in the shape `WalletPaths` produces.
+     *
+     * The quarantine subdirectory gets the same `<index>-<random>` name
+     * `LdkStateStore` allocates (BIT-20 rule 4 — quarantines never clobber, so
+     * their names cannot be fixed). It is here precisely because it is not
+     * matchable by a fixed path: an exclusion that only covered the paths this
+     * test could name would pass and still leak the one directory holding the
+     * state a user needs to sweep a force-closed channel.
+     */
+    private fun plantWalletMaterial(): List<Marker> {
+        val walletDir = File(context.noBackupFilesDir, WALLET_DIR)
+        val stateDir = File(walletDir, LDK_STATE_DIR)
+        val quarantine = File(File(walletDir, QUARANTINE_DIR), quarantineName())
+        stateDir.mkdirs()
+        quarantine.mkdirs()
+
+        val stateConsequence =
+            "That is ldk-node state on a second device under the same seed. The " +
+                "discriminator matches, so the guard keeps it, and stale channel state " +
+                "that signs publishes a revoked commitment — the counterparty takes the " +
+                "channel balance. See seed-storage-security §5.1."
+
+        return listOf(
+            Marker(
+                what = "The wrapped seed blob",
+                file = File(walletDir, SEED_BLOB),
+                consequence = "A wrapped seed off this device is the one artefact BIT-8 " +
+                    "rule 4 exists to keep on it. (The blob planted here is a fixed " +
+                    "ASCII marker, not key material.)",
+            ),
+            Marker(
+                what = "The ldk-node state database",
+                file = File(stateDir, LDK_DATABASE),
+                consequence = stateConsequence,
+            ),
+            Marker(
+                what = "The seed discriminator",
+                file = File(stateDir, DISCRIMINATOR),
+                consequence = "The discriminator is what makes arriving state look like " +
+                    "*yours*. Backing it up is what lets stale state pass the guard.",
+            ),
+            Marker(
+                what = "The BDK wallet database",
+                file = File(walletDir, BDK_DATABASE),
+                consequence = "On-chain descriptors and addresses leave the device with it.",
+            ),
+            Marker(
+                what = "A quarantined ldk-node state file",
+                file = File(quarantine, LDK_DATABASE),
+                consequence = "$stateConsequence Quarantine names are unique by " +
+                    "construction (BIT-20 rule 4), so an exclusion that matched only " +
+                    "fixed paths would miss exactly this one.",
+            ),
+        ).onEach { it.file.writeText(stamp(it.file.name)) }
+    }
+
+    /**
+     * Where `data_extraction_rules.xml`'s `domain="file"` excludes literally
+     * point: under `getFilesDir()`, not under `getNoBackupFilesDir()`.
+     */
+    private fun plantDecoys(): List<Marker> = listOf(
+        Marker(
+            what = "The <exclude domain=\"file\" path=\"wallet\"> decoy",
+            file = File(File(context.filesDir, WALLET_DIR), "decoy.txt"),
+            consequence = "Nothing the product writes lives here — the wallet directory " +
+                "is under no_backup. What its return means is that the " +
+                "dataExtractionRules layer is a no-op and the no_backup siting is " +
+                "carrying BIT-20 rule 5 on its own. Fix the rules; do not relax the rule.",
+        ),
+        Marker(
+            what = "The <exclude domain=\"file\" path=\"no_backup\"> decoy",
+            file = File(File(context.filesDir, "no_backup"), "decoy.txt"),
+            consequence = "As above. getNoBackupFilesDir() is a sibling of getFilesDir(), " +
+                "so this entry never matched the real wallet directory either.",
+        ),
+    ).onEach { it.file.parentFile?.mkdirs(); it.file.writeText(stamp(it.file.name)) }
+
+    private fun removePlantedFiles() {
+        File(context.noBackupFilesDir, WALLET_DIR).deleteRecursively()
+        File(context.filesDir, WALLET_DIR).deleteRecursively()
+        File(context.filesDir, "no_backup").deleteRecursively()
+        File(context.filesDir, CANARY).delete()
+    }
+
+    /** `<index>-<8 hex chars>`, the scheme `LdkStateStore.allocateQuarantineDirectory` uses. */
+    private fun quarantineName(): String =
+        "%04d-%s".format(1, ByteArray(4).also(random::nextBytes).joinToString("") { "%02x".format(it) })
+
+    /**
+     * Distinct per file and per run, so a restored file cannot be mistaken for
+     * a leftover — and prefixed with [MARKER_PREFIX] so `check-backup-set.sh`
+     * can find these bytes in the transport's own tree without a restore.
+     */
+    private fun stamp(label: String): String =
+        MARKER_PREFIX + "$label ${ByteArray(8).also(random::nextBytes).joinToString("") { "%02x".format(it) }}"
+
+    /** The result the framework reported for [target] in `bmgr backupnow` output. */
+    private fun resultFor(target: String, output: String): String? =
+        Regex("""Package\s+${Regex.escape(target)}\s+with result:\s*(.+)""")
+            .find(output)
+            ?.groupValues
+            ?.get(1)
+            ?.trim()
+
+    private data class Marker(val what: String, val file: File, val consequence: String)
 }

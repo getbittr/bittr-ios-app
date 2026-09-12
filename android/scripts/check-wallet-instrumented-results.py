@@ -113,29 +113,41 @@ REQUIRED = {
     f"{LDK_PACKAGE}.KeystoreKeyInfoTest#recordTheObservedSecurityLevel",
     # --- :app — the installed application (BIT-8 rule 4 / BIT-20 rule 5) -------
     #
-    # theBackupTransportIsActuallyAvailable is the canary: it is the reason the
-    # other backup results mean anything, because on an image with no transport
-    # "the backup set excluded our files" and "no backup set was ever produced"
-    # are the same tick.
-    f"{APP_PACKAGE}.BackupExclusionTest#theBackupTransportIsActuallyAvailable",
-    f"{APP_PACKAGE}.BackupExclusionTest#theInstalledPackageHasBackupDisabled",
-    # These two read the INSTALLED APK — its merged binary manifest and its
-    # compiled resources — rather than the source tree BackupExclusionRulesTest
-    # reads on the JVM. That is the difference between "we wrote the rule" and
-    # "the rule survived the manifest merge and aapt", and a library dependency
-    # re-adding allowBackup is exactly the kind of thing only the former sees.
-    f"{APP_PACKAGE}.BackupExclusionTest#theInstalledManifestPointsAtOurDataExtractionRules",
-    f"{APP_PACKAGE}.BackupExclusionTest#theInstalledRulesExcludeTheWalletDirectoryFromBothPaths",
-    f"{APP_PACKAGE}.BackupExclusionTest#everyWalletFileLandedUnderNoBackup",
-    f"{APP_PACKAGE}.BackupExclusionTest#aCloudBackupRunProducesNoBackupSetForThisPackage",
-    # Asserts what is observable about the D2D path and prints the residual gap.
-    # Required so that the gap keeps being REPORTED: deleting this test would
-    # remove the only line in a green run that says D2D is not proven, which is
-    # how "not yet proven" quietly becomes "proven".
-    f"{APP_PACKAGE}.BackupExclusionTest#theDeviceTransferPathIsRecordedBecauseItCannotBeDriven",
+    # BackupExclusionTest (BIT-101) is the behavioural half: plant a
+    # wallet-bearing install, drive `bmgr`, delete what was planted, restore,
+    # assert none of it came back. Three methods, @FixMethodOrder NAME_ASCENDING.
+    #
+    # backupManagerAndTheLocalTransportAreLiveOnThisDevice is the canary: it is
+    # the reason the other two mean anything, because on an image with no local
+    # transport "the backup set excluded our files" and "no backup set was ever
+    # produced" are the same tick. It also names com.android.localtransport
+    # specifically, which is what makes a Play-image runner a legible red rather
+    # than a vacuous green.
+    f"{APP_PACKAGE}.BackupExclusionTest#backupManagerAndTheLocalTransportAreLiveOnThisDevice",
+    f"{APP_PACKAGE}.BackupExclusionTest#cloudBackupOfAWalletBearingInstallCarriesNoWalletMaterial",
+    # The half `allowBackup="false"` may not cover, and the one BIT-20 §5.3
+    # turns on. Required by name so that a `is_device_transfer` hook that stops
+    # existing cannot quietly reduce this suite to one cloud test run twice.
+    f"{APP_PACKAGE}.BackupExclusionTest#deviceTransferOfAWalletBearingInstallCarriesNoWalletMaterial",
+    # InstalledBackupConfigurationTest is the configuration half, on the device.
+    # These read the INSTALLED APK — its merged binary manifest and its compiled
+    # resources — rather than the source tree BackupExclusionRulesTest reads on
+    # the JVM. That is the difference between "we wrote the rule" and "the rule
+    # survived the manifest merge and aapt", and a library dependency re-adding
+    # allowBackup is exactly the kind of thing only the former sees.
+    #
+    # They are required alongside the three above because they are what makes a
+    # red BackupExclusionTest readable: green here plus red there rules out "we
+    # misconfigured it" and leaves the halt.
+    f"{APP_PACKAGE}.InstalledBackupConfigurationTest#theInstalledPackageHasBackupDisabled",
+    f"{APP_PACKAGE}.InstalledBackupConfigurationTest#theInstalledManifestPointsAtOurDataExtractionRules",
+    f"{APP_PACKAGE}.InstalledBackupConfigurationTest#theInstalledRulesExcludeTheWalletDirectoryFromBothPaths",
+    f"{APP_PACKAGE}.InstalledBackupConfigurationTest#everyWalletFileLandedUnderNoBackup",
 }
 
-CANARY = f"{APP_PACKAGE}.BackupExclusionTest#theBackupTransportIsActuallyAvailable"
+CANARY = (
+    f"{APP_PACKAGE}.BackupExclusionTest#backupManagerAndTheLocalTransportAreLiveOnThisDevice"
+)
 
 MODULES = ("core/wallet-ldk", "app")
 
@@ -320,24 +332,34 @@ def main(argv=None):
 
     if CANARY in by_id and not by_id[CANARY].passed:
         problems.append(
-            "theBackupTransportIsActuallyAvailable did not pass, so read every other "
-            "backup result in this run as unproven rather than as evidence. It "
-            "asserts the Backup Manager is enabled and a transport is selected; "
-            "without that, no backup set is produced for ANY package and "
+            "backupManagerAndTheLocalTransportAreLiveOnThisDevice did not pass, so "
+            "read every other backup result in this run as unproven rather than as "
+            "evidence. It asserts the Backup Manager is enabled and that "
+            "com.android.localtransport/.LocalTransport is offered; without that, no "
+            "backup set is produced for ANY package and "
             '"the wallet files were excluded" and "nothing was backed up at all" '
             "are the same tick. Check the transport setup in "
             "android/scripts/ci-wallet-instrumented.sh, and that the emulator image "
-            "ships com.android.localtransport."
+            "is an AOSP one — Play images offer the GMS transports instead, which "
+            "cannot be restored from on demand."
         )
 
-    # Said on every run, green or red. The point of BIT-59 is to replace a claim
-    # made from memory with a measured result, and a run that proves the cloud
-    # path while saying nothing about device-to-device would be read as proving
-    # both. wallet-security-properties.md §4 is where that gap is tracked.
-    print("\nNOTE: the API 31+ device-to-device transfer path is NOT proven by this "
-          "suite — `bmgr` has no D2D mode to drive. BackupExclusionTest asserts what "
-          "is observable about it and prints BACKUP_EXCLUSION_D2D; the residual gap "
-          "and its halt condition are wallet-security-properties.md §4.")
+    # Said on every run, green or red. A reader who sees two green backup tests
+    # should be told, in the run, which layer each of them exercised — because
+    # `allowBackup="false"` makes the package ineligible outright, and an
+    # ineligible package produces an empty set that satisfies "nothing of ours
+    # came back" without the <device-transfer> rules having been consulted at
+    # all. That is a pass for BIT-20 rule 5 and it is NOT a proof that the rules
+    # work; the BACKUP_EXCLUSION lines in the instrumentation output say which
+    # of the two happened, per path.
+    print("\nNOTE: read the BACKUP_EXCLUSION lines in the instrumentation output "
+          "before quoting this suite. Each path prints the framework's own result "
+          "for the package and whether the canary came back: canaryReturned=true "
+          "means the set was real and excluded our material, canaryReturned=false "
+          "with a declining result means the package was ineligible and exclusion "
+          "was never exercised on that path. Both are passes; only the first is "
+          "evidence about the rules. wallet-security-properties.md §4 is where "
+          "that distinction is tracked.")
 
     if problems:
         print()

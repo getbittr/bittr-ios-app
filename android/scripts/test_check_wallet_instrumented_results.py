@@ -50,7 +50,17 @@ LDK_PACKAGE = checker.LDK_PACKAGE
 
 LDK_REQUIRED = sorted(t for t in checker.REQUIRED if t.startswith(LDK_PACKAGE))
 APP_REQUIRED = sorted(
-    t for t in checker.REQUIRED if t.startswith(f"{APP_PACKAGE}.BackupExclusionTest")
+    # Both :app classes: BackupExclusionTest (the bmgr behaviour) and
+    # InstalledBackupConfigurationTest (the installed configuration). Filtering
+    # on the module's package rather than on one class name is deliberate —
+    # splitting the suite into a second class must not silently halve what these
+    # tests build a fixture for.
+    #
+    # LDK_PACKAGE is a sub-package of APP_PACKAGE, so the exclusion is what
+    # keeps the two lists disjoint; test_the_required_set_spans_both_modules
+    # asserts that they are.
+    t for t in checker.REQUIRED
+    if t.startswith(f"{APP_PACKAGE}.") and not t.startswith(f"{LDK_PACKAGE}.")
 )
 
 
@@ -151,7 +161,7 @@ def test_the_app_half_missing_entirely_fails():
         code, out = run([ldk])
     check("only the library module's results exits 1", code == 1, out)
     check("and names the missing backup tests",
-          "BackupExclusionTest#aCloudBackupRunProducesNoBackupSetForThisPackage" in out,
+          "BackupExclusionTest#cloudBackupOfAWalletBearingInstallCarriesNoWalletMaterial" in out,
           out)
 
 
@@ -180,7 +190,7 @@ def test_zero_testcases_in_a_wellformed_file_fails():
 
 
 def test_a_skipped_transport_canary_fails():
-    # @Ignore on theBackupTransportIsActuallyAvailable, everything else green.
+    # @Ignore on backupManagerAndTheLocalTransportAreLiveOnThisDevice, else green.
     # Gradle exits 0, and every backup assertion in the run is then unfalsifiable.
     with tempfile.TemporaryDirectory() as tmp:
         dirs = both_modules(pathlib.Path(tmp), {CANARY.split("#")[1]: "skipped"})
@@ -205,9 +215,9 @@ def test_a_renamed_required_test_fails():
     with tempfile.TemporaryDirectory() as tmp:
         dirs = both_modules(
             pathlib.Path(tmp),
-            drop=(f"{APP_PACKAGE}.BackupExclusionTest#everyWalletFileLandedUnderNoBackup",),
+            drop=(f"{APP_PACKAGE}.InstalledBackupConfigurationTest#everyWalletFileLandedUnderNoBackup",),
         )
-        extra = testcase(f"{APP_PACKAGE}.BackupExclusionTest#filesAreUnderNoBackup")
+        extra = testcase(f"{APP_PACKAGE}.InstalledBackupConfigurationTest#filesAreUnderNoBackup")
         app_dir = dirs[1]
         next(app_dir.rglob("TEST-*.xml")).write_text(
             '<?xml version="1.0" encoding="UTF-8"?>\n<testsuite name="w" tests="1">\n'
@@ -239,7 +249,7 @@ def test_a_failure_without_a_message_is_still_a_failure():
     with tempfile.TemporaryDirectory() as tmp:
         dirs = both_modules(
             pathlib.Path(tmp),
-            {"aCloudBackupRunProducesNoBackupSetForThisPackage": "failed-without-message"},
+            {"cloudBackupOfAWalletBearingInstallCarriesNoWalletMaterial": "failed-without-message"},
         )
         code, out = run(dirs)
     check("a <failure/> with no message exits 1", code == 1, out)
@@ -252,13 +262,13 @@ def test_a_pass_does_not_override_a_failure_for_the_same_test():
     with tempfile.TemporaryDirectory() as tmp:
         dirs = both_modules(
             pathlib.Path(tmp),
-            {"aCloudBackupRunProducesNoBackupSetForThisPackage": "failed"},
+            {"cloudBackupOfAWalletBearingInstallCarriesNoWalletMaterial": "failed"},
         )
         retry = write_results(
             pathlib.Path(tmp) / "retry",
             [testcase(
                 f"{APP_PACKAGE}.BackupExclusionTest"
-                "#aCloudBackupRunProducesNoBackupSetForThisPackage",
+                "#cloudBackupOfAWalletBearingInstallCarriesNoWalletMaterial",
                 "passed",
             )],
         )
@@ -278,13 +288,20 @@ def test_a_truncated_result_file_fails():
     check("and blames an unfinished run", "did not finish writing" in out, out)
 
 
-def test_the_d2d_gap_is_reported_on_a_green_run():
-    # The gap must be stated on the runs people actually read, which are the
-    # green ones. A suite that proves the cloud path while saying nothing about
-    # device-to-device gets read as proving both.
+def test_a_green_run_says_how_to_tell_a_real_pass_from_an_ineligible_one():
+    # The caveat must be stated on the runs people actually read, which are the
+    # green ones. `allowBackup="false"` makes the package ineligible outright,
+    # and an ineligible package produces an empty set that satisfies "nothing of
+    # ours came back" without the <device-transfer> rules being consulted. That
+    # is a pass for BIT-20 rule 5 and it is not a proof that the rules work, so
+    # a green run has to point the reader at the line that distinguishes them.
     with tempfile.TemporaryDirectory() as tmp:
         code, out = run(both_modules(pathlib.Path(tmp)))
-    check("a green run still reports the D2D gap", code == 0 and "NOT proven" in out, out)
+    check(
+        "a green run points at the BACKUP_EXCLUSION lines",
+        code == 0 and "canaryReturned" in out and "BACKUP_EXCLUSION" in out,
+        out,
+    )
     check("and points at where it is tracked",
           "wallet-security-properties.md §4" in out, out)
 
@@ -300,7 +317,7 @@ def test_the_failure_annotation_carries_the_test_names():
     with tempfile.TemporaryDirectory() as tmp:
         dirs = both_modules(
             pathlib.Path(tmp),
-            {"aCloudBackupRunProducesNoBackupSetForThisPackage": "failed"},
+            {"cloudBackupOfAWalletBearingInstallCarriesNoWalletMaterial": "failed"},
         )
         code, out = run(dirs)
 
@@ -309,7 +326,7 @@ def test_the_failure_annotation_carries_the_test_names():
     joined = "".join(annotations)
     check(
         "and the failing test's name is inside the annotation itself",
-        "aCloudBackupRunProducesNoBackupSetForThisPackage" in joined,
+        "cloudBackupOfAWalletBearingInstallCarriesNoWalletMaterial" in joined,
         joined,
     )
     check("and it stays one line, or the rest falls into the unreadable log",

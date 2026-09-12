@@ -18,6 +18,7 @@ import org.junit.Test
 import org.junit.rules.TemporaryFolder
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
+import org.robolectric.annotation.Config
 
 /**
  * **BIT-20 rule 3 — a transient Keystore failure is a failure, not an absence.**
@@ -36,8 +37,17 @@ import org.robolectric.RobolectricTestRunner
  *
  * Runs under Robolectric only because `KeyPermanentlyInvalidatedException` is a
  * framework class; nothing here touches a real Keystore.
+ *
+ * Pinned to 26 / 34 / 36: `minSdk`, the level the CI emulator boots, and the
+ * newest Robolectric 4.16.1 can instantiate. `KeyPermanentlyInvalidatedException`
+ * exists from API 23, so the floor here is the wallet's floor and not the
+ * class's. Left unpinned, Robolectric follows the library manifest's
+ * `targetSdkVersion` — which, with no `targetSdk` in this module, is
+ * `compileSdk`, and the class silently stops running the moment that goes past
+ * what Robolectric ships.
  */
 @RunWith(RobolectricTestRunner::class)
+@Config(sdk = [26, 34, 36])
 class TransientKeystoreFailureAbortsTest {
 
     @get:Rule val temporaryFolder = TemporaryFolder()

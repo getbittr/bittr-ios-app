@@ -82,6 +82,17 @@ internal object SourceTree {
     fun File.codeWithoutLiterals(): String = stripKotlin(readText(), keepStringLiterals = false)
 
     /**
+     * [File.readText] with comments removed, as a free function taking the file.
+     *
+     * The same thing [File.code] is, in the call shape `:core:wallet-ldk`'s
+     * `WalletSourceTree` uses — kept so a guard moving between the two modules
+     * does not have to change its call sites. It goes through [stripKotlin]
+     * rather than through a crude comment strip, so a `//` inside a string
+     * literal stays part of the string.
+     */
+    fun codeOf(file: File): String = file.code()
+
+    /**
      * Removes Kotlin comments — and, when [keepStringLiterals] is false, string
      * and character literals — from [text].
      *

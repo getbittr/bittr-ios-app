@@ -54,8 +54,10 @@ adb devices
 # transport is selected, no backup set is produced for ANY package — so all of
 # them pass, having proved nothing about our manifest.
 #
-# BackupExclusionTest.theBackupTransportIsActuallyAvailable asserts this from
-# inside the suite too, so a green run cannot have skipped it. Doing it here as
+# BackupExclusionTest.backupManagerAndTheLocalTransportAreLiveOnThisDevice
+# asserts this from inside the suite too — and asserts the LOCAL transport by
+# name, not merely that some transport is selected — so a green run cannot have
+# skipped it. Doing it here as
 # well buys a legible failure seconds in rather than one buried in a test report,
 # and is where the transport actually gets turned on.
 

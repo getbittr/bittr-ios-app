@@ -174,6 +174,10 @@ dependencies {
     testImplementation(platform(libs.androidx.compose.bom))
     testImplementation(libs.androidx.compose.ui.test.junit4)
 
+    // BackupExclusionTest is plain JUnit4 over `bmgr` — no Compose, no Espresso.
+    // Declared explicitly rather than leant on transitively through ext-junit,
+    // the same way :core:wallet-ldk declares it.
+    androidTestImplementation(libs.junit)
     androidTestImplementation(libs.androidx.test.ext.junit)
     androidTestImplementation(libs.androidx.espresso.core)
     androidTestImplementation(platform(libs.androidx.compose.bom))

@@ -11,12 +11,16 @@
 #
 # WHY THIS IS SEPARATE FROM THE TEST
 #
-# BackupExclusionTest.aCloudBackupRunProducesNoBackupSetForThisPackage can only
-# search `bmgr backupnow`'s stdout, and that is a report rather than a backup
-# set: "Backup finished with result: Success" is printed by any run that
-# completed, including one that backed the package up in full. The test says so
-# in its own comments and calls that branch `notVisiblyRefused` rather than
-# anything stronger.
+# BackupExclusionTest plants files, backs up, deletes them, restores, and
+# asserts none of them came back. That is a strong test, and it is also one
+# whose green depends on `bmgr restore` having done something: a restore that
+# silently no-ops produces "nothing came back" for the wrong reason. The suite's
+# canary catches that when the framework reported Success — and by construction
+# cannot when the framework declined the package, which is the expected
+# `allowBackup="false"` outcome on the cloud path.
+#
+# This check needs no restore at all. If wallet material reached the set, the
+# bytes are on disk under the transport's own directory and a grep finds them.
 #
 # The set lives under the transport's data directory, mode 0700 to another uid,
 # and UiAutomation's shell runs as `shell` — so the test process cannot read it
@@ -56,7 +60,7 @@ set -euo pipefail
 # both files and fails in the `build` job if these two drift, because a drift
 # would make the grep below match nothing for ever — a permanent silent pass on
 # the one check that reads a real backup set.
-MARKER_PREFIX="BIT59-SEED-MARKER-"
+MARKER_PREFIX="BIT101-WALLET-MARKER-"
 
 # Where the local transport keeps its sets. Image-dependent, and which of the
 # two LocalTransport packagings is present varies too, so this is a candidate
