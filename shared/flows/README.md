@@ -220,6 +220,18 @@ shared/flows/
                           currency (EUR↔CHF, verified on Home), device token,
                           public key, Bittr peer / pending payout, and
                           Lightning connections (QuestionViewController).
+  diagnostics/     One-off device checks. NOT in suite.yaml and NOT part of the
+                   parity scoreboard: each one is meaningful only on a specific
+                   simulator, so running it in suite order on the canonical
+                   capture device proves nothing. Writes to
+                   shared/docs/device-checks/, never to shared/docs/screenshots/,
+                   which is single-device by contract (BIT-3).
+    btcmap_alert_iphone_se.yaml
+                          BIT-82. Opens the "Powered by BTCMap.org" alert — the
+                          app's longest message, in one unscrollable UILabel — on
+                          a 375x667 iPhone SE and captures it, to confirm the
+                          final location-disclosure paragraph is not clipped.
+                          Needs an existing wallet (PIN 1234). Not yet run on iOS.
   helpers/         Reusable subflows invoked via runFlow.
     unlock.yaml           Enters PIN 1234 on the unlock screen.
     wrong_pin_until_lockout.yaml  Enters the wrong PIN ten times on the unlock
