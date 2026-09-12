@@ -33,6 +33,11 @@ built the APK, booted an emulator, installed the app and passed
 `shared/flows/android/scaffold_smoke.yaml`. Every step of this workflow has now executed
 successfully at least once; none of it is unexercised code any more.
 
+(That flow no longer exists. BIT-102 parameterised the shared flows' `appId`, which
+removed the reason for an Android-only copy of the smoke flow — the job now runs
+`shared/flows/onboarding/smoke.yaml`, the same file iOS runs. The green run above
+stands as the record of the harness working; it just named the older file.)
+
 The run before it was red, and is worth keeping on the record because the fix shaped the
 workflow. It failed on the first line of its own script, after a full emulator boot:
 
@@ -152,8 +157,14 @@ Android Studio's Compose preview without booting an emulator at all.
 
 ```sh
 ./gradlew :app:installDebug
-maestro test ../shared/flows/android/scaffold_smoke.yaml
+cd .. && APP_ID=com.bittr.android.regtest \
+  maestro test shared/flows/onboarding/smoke.yaml
 ```
+
+That is the *shared* smoke flow — the same file iOS runs. It takes the app id from
+`--env APP_ID`, which is the only difference between the two platforms' runs; see
+`shared/flows/README.md` → App id. `android/scripts/smoke-consecutive.sh` reads the
+id off the workflow so you don't have to pass it.
 
 CI runs this on every push: `.github/workflows/android-maestro.yml`.
 

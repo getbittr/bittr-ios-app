@@ -13,8 +13,16 @@
 # pause looks exactly like the end.
 #
 # Put this straight after every launchApp, before any gate or tap.
+#
+# On Android there is no launch animation yet, so `core.launchComplete` is set
+# immediately and this subflow returns at once. It is still called rather than
+# skipped, for two reasons: the flow does not need rewriting when the animation
+# is ported, and — because this file has its own `appId: ${APP_ID}` — calling it
+# is what proves `--env` reaches a *subflow's* config block and not just the
+# top-level one. (Maestro's `enterEnvScope` copies the live bindings rather than
+# replacing them, so it does; this is the flow that demonstrates it on a device.)
 
-appId: com.bittr.bittr-regtest
+appId: ${APP_ID}
 ---
 - extendedWaitUntil:
     visible:

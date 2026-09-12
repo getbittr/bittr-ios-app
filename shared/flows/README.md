@@ -309,8 +309,9 @@ shared/flows/
 shared/flows/test_suite.sh
 shared/flows/test_suite.sh --device "iPhone 15"   # extra args pass to maestro
 
-# Single flow
-maestro test shared/flows/onboarding/fresh_install.yaml
+# Single flow — needs APP_ID, see "App id" below
+maestro test --env APP_ID=com.bittr.bittr-regtest \
+             shared/flows/onboarding/fresh_install.yaml
 ```
 
 Don't run `maestro test shared/flows/` to get the whole suite: a folder run
@@ -343,6 +344,42 @@ shared/flows/test_suite.sh suite_remove_wallet_channel.yaml
 
 Destructive and self-contained: it wipes app data at the start and ends on
 Signup1 with no wallet. Run it on its own, not interleaved with `suite.yaml`.
+### App id
+
+No flow names an app id. Every one of them declares `appId: ${APP_ID}` and the
+runner supplies the value, because the id is the one thing that legitimately
+differs between the two platforms:
+
+| | app id | supplied by |
+|---|---|---|
+| iOS debug | `com.bittr.bittr-regtest` | `test_suite.sh` (default; override with `APP_ID=…`) |
+| Android debug | `com.bittr.android.regtest` | `.github/workflows/android-maestro.yml` → `android/scripts/ci-smoke.sh` |
+
+Android `applicationId`s cannot contain hyphens, which is the entire reason the
+two differ. Parameterising it is what lets the **same flow file** run on both — a
+shared flow and its Android twin used to be two files that drifted apart.
+
+`shared/flows/check_app_ids.py` (run in the Android CI build job, seconds in) fails
+the build if a literal id reappears in a flow. It also catches the subtler form,
+a hardcoded default inside an `evalScript`.
+
+There is a second variable, `EVIL_APP_ID`, for the `Debug-EvilBoltz` build the
+`--evil` flows tamper with. That is a second *app*, not a second platform: the
+evil flows onboard it alongside the regtest app, so it cannot share `APP_ID` —
+pointing `APP_ID` at Android would otherwise make them unrunnable. `test_suite.sh`
+defaults it; running an evil flow by hand needs it passed:
+
+```sh
+maestro test --env APP_ID=com.bittr.bittr-regtest \
+             --env EVIL_APP_ID=com.bittr.bittr-evil \
+             shared/flows/features/evil_boltz_wrong_invoice.yaml
+```
+
+One directive in the shared flows is iOS-only — `clearKeychain`, on the
+`launchApp` in the fresh-install flows. It is deliberately **not** guarded per
+platform: Maestro's `AndroidDriver` implements it as an empty method, so it costs
+nothing there, and it is the only no-op in that driver (nothing in it throws
+"unsupported"). Every other directive these flows use is implemented on both.
 
 ### Push notifications
 
@@ -360,7 +397,9 @@ The flow then POSTs the payload to `http://localhost:8888/push`, which `xcrun si
 `features/forgot_pin.yaml` exercises the "Forgot PIN" recovery path. The flow has to type the wallet's 12-word mnemonic on the RestoreVC screen, and Maestro's JS sandbox can't read it out of the simulator on its own — pass it in via env var:
 
 ```sh
-maestro test --env MNEMONIC="word1 word2 ... word12" shared/flows/features/forgot_pin.yaml
+maestro test --env APP_ID=com.bittr.bittr-regtest \
+             --env MNEMONIC="word1 word2 ... word12" \
+             shared/flows/features/forgot_pin.yaml
 ```
 
 Use the same mnemonic the wallet was set up with (the one happy_path_wallet generated during onboarding). `parse_mnemonic.js` validates the count and splits the words into `output.words[1..12]`.
@@ -373,7 +412,7 @@ Use the same mnemonic the wallet was set up with (the one happy_path_wallet gene
 # In a separate terminal, before running the flow:
 node shared/flows/scripts/clipboard_server.js
 
-maestro test shared/flows/features/send_lightning.yaml
+maestro test --env APP_ID=com.bittr.bittr-regtest shared/flows/features/send_lightning.yaml
 ```
 
 The flow sets `output.clipboardText` before each paste; `set_clipboard.js` POSTs it to the helper, which `pbcopy`'s it onto the booted simulator. iOS may show a one-off "Allow Paste" prompt — the flow accepts it automatically.

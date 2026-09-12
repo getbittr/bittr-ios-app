@@ -55,7 +55,7 @@
 #
 # Run: maestro test shared/flows/features/buy_signup_no_notifications.yaml
 
-appId: com.bittr.bittr-regtest
+appId: ${APP_ID}
 ---
 # Auto-deny the iOS notification system dialog. This permissions config does
 # NOT pre-set the OS permission — the app's notification state stays

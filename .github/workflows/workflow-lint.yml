@@ -1,0 +1,148 @@
+name: Workflow lint
+
+# THE ONE CHECK THAT CANNOT LIVE INSIDE THE WORKFLOW IT CHECKS.
+#
+# android-maestro.yml already runs actionlint, as the first step of its `build`
+# job. That step is worth keeping and it could not have caught BIT-110, because
+# the file it lints was rejected before any job was scheduled: two consecutive
+# runs on android-parity (121 and 122) reported `conclusion: failure` with
+# `total_count: 0` jobs and no check run, so the linter never executed. A lint
+# hosted by the thing it validates is unavailable in exactly the case it exists
+# for.
+#
+# What GitHub rejected was two duplicate mapping keys, both introduced by clean
+# merges that stacked two authors' work into one region of the file:
+#
+#   * `jobs.instrumented`, defined at line 523 and again at 814 — BIT-33 and
+#     BIT-62 each wrote a job to run android/scripts/ci-instrumented.sh.
+#   * `run:` twice inside one `build` step, at 490 and 505 — BIT-62's
+#     single-module assemble and BIT-59's three-module replacement.
+#
+# Neither is a YAML syntax error. A duplicate key is well-formed YAML that most
+# parsers accept and silently resolve last-one-wins, which is why parsing the
+# file locally reported four healthy jobs and told nobody anything was wrong.
+# GitHub's parser rejects it; so does actionlint, naming both by line number.
+#
+# WHY A SEPARATE WORKFLOW FIXES IT
+#
+# GitHub validates and schedules each workflow file independently. An invalid
+# android-maestro.yml fails its own run and does not stop this one, so this job
+# still starts, still runs, and turns an unreadable zero-job failure into a
+# normal red run whose log carries the file, the line and the reason.
+#
+# It is deliberately cheap and boring: no emulator, no Gradle, no JDK, no cache.
+# If this file ever needs any of those, the need belongs in another workflow —
+# this one's whole value is that it is too simple to break, since a lint that is
+# itself invalid reports nothing, and nothing is what BIT-110 cost two days of
+# unfalsifiable merges.
+
+on:
+  push:
+    paths:
+      - '.github/workflows/**'
+  pull_request:
+    paths:
+      - '.github/workflows/**'
+  workflow_dispatch:
+
+# Path-filtered to workflow changes only. That is not a saving, it is the
+# correct scope: these files are the only input, so a push that leaves them
+# untouched cannot change the answer.
+
+permissions:
+  contents: read
+
+concurrency:
+  # NOT cancel-in-progress, which is the opposite of the usual choice for a lint
+  # and deliberate. BIT-110's actual cost was that merges onto android-parity
+  # became unfalsifiable — the tip had no readable verdict. A cancelled run is
+  # also no verdict, so cancelling superseded runs would reintroduce a smaller
+  # version of the condition this file exists to end: push three commits quickly
+  # and the first two carry no answer about whether they broke the gate.
+  #
+  # It is affordable here for the reason it is not affordable in
+  # android-maestro.yml, whose own guard enforces the opposite rule: that
+  # workflow boots emulators and this one downloads a 3 MB binary for a few
+  # seconds. Queueing every commit's lint costs almost nothing and buys a
+  # per-commit answer.
+  group: workflow-lint-${{ github.sha }}
+  cancel-in-progress: false
+
+jobs:
+  actionlint:
+    name: actionlint (all workflows)
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run actionlint over every workflow file
+        # Pinned, and to the same version as android-maestro.yml's own lint step,
+        # so the two cannot disagree about whether a file is valid. Bump them
+        # together.
+        #
+        # No file arguments: bare actionlint discovers everything under
+        # .github/workflows, which is the point — this must cover files that do
+        # not exist yet, including any workflow whose own triggers would never
+        # have fired on the push that broke it.
+        run: |
+          set -euo pipefail
+          curl -fsSL -o /tmp/actionlint.tar.gz \
+            "https://github.com/rhysd/actionlint/releases/download/v${ACTIONLINT_VERSION}/actionlint_${ACTIONLINT_VERSION}_linux_amd64.tar.gz"
+          tar -xzf /tmp/actionlint.tar.gz -C /tmp actionlint
+          /tmp/actionlint -color
+          echo "actionlint: every file under .github/workflows is valid."
+        env:
+          ACTIONLINT_VERSION: '1.7.12'
+
+      - name: Reject duplicate keys explicitly
+        # Belt and braces for the specific defect above, and not redundant with
+        # actionlint for one reason: actionlint validates the workflow schema, so
+        # a future non-workflow YAML file in this tree, or a version bump that
+        # changes which rules are fatal, could let a duplicate key through. This
+        # check knows one rule and cannot stop enforcing it.
+        #
+        # It reports EVERY duplicate rather than the first. The two in BIT-110
+        # were in different jobs, and a fix-the-first-then-push loop costs a full
+        # round trip per defect to learn something one run already knew.
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import glob, sys, yaml
+
+          found = []
+
+          class Strict(yaml.SafeLoader):
+              pass
+
+          def no_duplicates(loader, node, deep=False):
+              mapping = {}
+              for key_node, value_node in node.value:
+                  key = loader.construct_object(key_node, deep=deep)
+                  if key in mapping:
+                      found.append((current, key, key_node.start_mark.line + 1))
+                  mapping[key] = loader.construct_object(value_node, deep=deep)
+              return mapping
+
+          Strict.add_constructor(
+              yaml.resolver.BaseResolver.DEFAULT_MAPPING_TAG, no_duplicates
+          )
+
+          files = sorted(glob.glob(".github/workflows/*.yml")
+                         + glob.glob(".github/workflows/*.yaml"))
+          if not files:
+              sys.exit("check: no workflow files found — wrong working directory?")
+
+          for current in files:
+              with open(current) as handle:
+                  yaml.load(handle, Strict)
+
+          for path, key, line in found:
+              print(f"::error file={path},line={line}::"
+                    f"duplicate key '{key}' — GitHub rejects the file before it "
+                    f"schedules any job, so this fails with zero jobs and no log")
+
+          if found:
+              sys.exit(f"check: {len(found)} duplicate key(s) across {len(files)} file(s).")
+          print(f"check: {len(files)} workflow file(s), no duplicate keys.")
+          PY

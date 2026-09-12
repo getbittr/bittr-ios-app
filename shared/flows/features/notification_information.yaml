@@ -36,7 +36,7 @@
 #
 # Run: maestro test shared/flows/features/notification_information.yaml
 
-appId: com.bittr.bittr-regtest
+appId: ${APP_ID}
 ---
 # Launch without clearState so existing wallet state is preserved across runs.
 # Allow notifications so the foreground push is delivered and handled.

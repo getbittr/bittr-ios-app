@@ -148,7 +148,7 @@ exactly the kind of intermittent failure that BIT-5 says to treat as a blocker
 rather than paper over with retries — so it is worth eliminating structurally.
 
 **The failure video needs the emulator console auth token.** On failure the job
-uploads `maestro-video/scaffold_smoke.webm`, recorded via `adb emu screenrecord` —
+uploads `maestro-video/smoke.webm`, recorded via `adb emu screenrecord` —
 an *emulator console* command, not an `adb shell` one. The console authenticates
 against `~/.emulator_console_auth_token`, read from the **home directory of the user
 running `adb`**. On a GitHub-hosted runner one user does everything, so this is
@@ -203,7 +203,8 @@ Run the workflow via `workflow_dispatch` and check, in order:
 
 1. The `Preflight` step prints `KVM OK` and names your host.
 2. The emulator boots in roughly a minute, not five.
-3. `shared/flows/android/scaffold_smoke.yaml` passes.
+3. `shared/flows/onboarding/smoke.yaml` passes — the shared flow, run with
+   `--env APP_ID`; it replaced the Android-only `scaffold_smoke.yaml` in BIT-102.
 4. **Three consecutive runs all pass.** This is the actual definition of done
    for BIT-5, and one green run does not establish it — a flaky pass is a failure.
 

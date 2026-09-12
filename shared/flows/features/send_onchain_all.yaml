@@ -24,7 +24,7 @@
 #
 # Run: maestro test shared/flows/features/send_onchain_all.yaml
 
-appId: com.bittr.bittr-regtest
+appId: ${APP_ID}
 ---
 # Launch without clearState so existing wallet state is preserved across runs.
 - launchApp

@@ -9,7 +9,7 @@
 #
 # Run: maestro test shared/flows/onboarding/fresh_install_skip_signup.yaml
 
-appId: com.bittr.bittr-regtest
+appId: ${APP_ID}
 ---
 - launchApp:
     clearState: true

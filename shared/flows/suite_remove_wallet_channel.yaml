@@ -39,7 +39,7 @@
 # is re-captured too — it is the same tail the suite already covers, from the
 # same build, so the re-capture is equivalent.
 
-appId: com.bittr.bittr-regtest
+appId: ${APP_ID}
 ---
 # Clean wallet, PIN 1234, bittr signup deliberately skipped so buy_signup
 # below has its empty-state Buy screen to work with.

@@ -33,7 +33,7 @@
 # A shell env var alone does NOT reach the app — Maestro launches it on the
 # simulator, so the value has to travel as a launch argument like this.
 
-appId: com.bittr.bittr-regtest
+appId: ${APP_ID}
 env:
   SLOW_SYNC: "0"
 ---
