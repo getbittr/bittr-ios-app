@@ -37,10 +37,10 @@ written.
 |---|---|---|---|---|
 | 1 | The mnemonic is the single root of recovery | Nothing persisted that is not BIP32-derivable from the seed. Swap refund keys stay at `m/503'/0'/0'/0/<i>` | `SwapRefundKeyDerivationTest` | green |
 | 2 | The Keystore key is non-auth-bound | `KeyGenParameterSpec` with neither `setUserAuthenticationRequired(true)` nor `setUnlockedDeviceRequired(true)`; AES-256/GCM; `setRandomizedEncryptionRequired(true)` | `KeystoreKeySpecTest` (asked for) · `WalletKeystorePolicyGuardTest` (stays that way) | green |
-| 2 | …and what the device actually produced | `KeyInfo` read back off a generated key | `KeystoreKeyInfoTest` | written — no device in CI |
+| 2 | …and what the device actually produced | `KeyInfo` read back off a generated key | `KeystoreKeyInfoTest` | runs in CI — BIT-59, `wallet-instrumented` job, API 34 emulator |
 | 2 | …and it survives a lock-screen change | — | **BIT-18 / K1**, device matrix | separate issue |
 | 3 | The wrapped blob is a cache, never the only copy | Blob loss routes to the restore screen; terminal failures classify as "no usable mnemonic" | `BlobDestroyedRecoversTest` | green |
-| 4 | The blob is excluded from Auto Backup | `allowBackup="false"` + `dataExtractionRules` + siting under `getNoBackupFilesDir()` | `BackupExclusionRulesTest` + `StateDirLocationTest` (configuration) · `BackupExclusionTest` (behaviour) + `check-backup-set.sh` (the set itself) | configuration green; behaviour **partly proven on one device — run 107 inspected a real set and found no wallet material, but could not show the set was non-empty; see §4** |
+| 4 | The blob is excluded from Auto Backup | `allowBackup="false"` + `dataExtractionRules` + siting under `getNoBackupFilesDir()` | `BackupExclusionRulesTest` + `StateDirLocationTest` (configuration, JVM) · `InstalledBackupConfigurationTest` (installed artefact, emulator) · `BackupExclusionTest` (behaviour, emulator) + `check-backup-set.sh` (the set itself) | configuration green; behaviour **partly proven on one device — run 107 inspected a real set and found no wallet material, but could not show the set was non-empty — and since BIT-59 the suite runs on every push (`wallet-instrumented` job); see §4** |
 | 5 | No PIN-derived wrapping | PIN stays a salted-SHA-256 verifier; the unwrap path takes no PIN argument | `WalletKeystorePolicyGuardTest` (bans `PBEKeySpec`/PBKDF2) · `BlobWriteVerifiedTest` (unwrap signature takes no PIN) | green |
 
 ### BIT-20 — the LDK state quarantine guard
@@ -177,17 +177,52 @@ finding it is not read as the halt) and the decoys carry a third. Once
 package to the transport" stop being the same green. That is the outstanding
 half, tracked on BIT-108.
 
-**Why it is in `:app` rather than `:core:wallet-ldk`, where BIT-101 asked for
-it.** A library module's instrumented tests are self-instrumenting: the package
-under test would be `…core.wallet.ldk.test`, whose manifest carries neither
-`allowBackup="false"` nor `dataExtractionRules`. That set would be produced for
-a default-configured package and would say nothing about the install we ship.
-`com.bittr.android` is the only package whose backup configuration is the
-product's. The cost is duplicated path literals, since `:app` does not depend on
-`:core:wallet-ldk` yet; `BackupExclusionInstrumentationGuardTest` (JVM, runs on
-every `check`) fails the build if those literals stop matching `WalletPaths`, and
+**What runs, and where.** The `wallet-instrumented` job boots an API 34
+`aosp_atd` emulator and runs `android/scripts/ci-wallet-instrumented.sh`, which
+drives `:core:wallet-ldk:connectedDebugAndroidTest` and
+`:app:connectedDebugAndroidTest`. Both, because the two tests this section turns
+on are in different modules and a step scoped to the library alone would exit 0
+having never executed the one that touches funds-losing behaviour. The image is
+AOSP rather than Play-flavoured because the suite drives
+`com.android.localtransport/.LocalTransport`; a Play image offers the GMS
+transports instead, which cannot be restored from on demand.
+
+**What the tests do.**
+
+- `BackupExclusionTest` plants a wallet-bearing install — wrapped blob, ldk-node
+  state, discriminator, BDK database, and a quarantine subdirectory under the
+  uniquely-generated name BIT-20 rule 4 gives it — drives `bmgr` to produce a
+  real set, deletes everything it planted, restores, and asserts none of it came
+  back. Once on the cloud-backup path and once with the local transport in
+  device-transfer mode (`is_device_transfer=true`, asserted back out of the
+  settings provider so a renamed hook cannot degrade the second run into a
+  second copy of the first), because API 31+ configures the two separately.
+- `InstalledBackupConfigurationTest` asserts the configuration against the
+  *installed artefact* rather than the source tree: `FLAG_ALLOW_BACKUP` off the
+  installed package, the `dataExtractionRules` attribute out of the merged
+  binary manifest, and the compiled rules out of the APK's resources. A manifest
+  merge that re-added backup, or an `<include>` that survived into the APK, now
+  fails on the device rather than passing on the JVM.
+
+They are separate classes because a red in each means a different thing. Red
+configuration, green behaviour: the install is misconfigured and the platform
+excluded the material anyway — fix the configuration and conclude nothing from
+the green. Green configuration, red behaviour: what we wrote is what the device
+is running and the device honoured none of it. That second one is the §5.3 halt
+with the "we misconfigured it" explanation already ruled out.
+
+**Why `BackupExclusionTest` is in `:app` rather than `:core:wallet-ldk`, where
+BIT-59 originally asked for it.** A library module's instrumented tests are
+self-instrumenting: the package under test would be `…core.wallet.ldk.test`,
+whose manifest carries neither `allowBackup="false"` nor `dataExtractionRules`.
+That set would be produced for a default-configured package and would say
+nothing about the install we ship. `com.bittr.android` is the only package whose
+backup configuration is the product's. The cost is duplicated path literals,
+since `:app` does not depend on `:core:wallet-ldk` in the shipped
+configuration; `BackupExclusionInstrumentationGuardTest` (JVM, runs on every
+`check`) fails the build if those literals stop matching `WalletPaths`, and
 fails it again if the instrumented class is `@Ignore`d or drops below three
-cases. A test that needs hardware is a test nobody watches rot.
+cases.
 
 **The two hazards recorded before the first run, and where they stand.** The
 first — the instrumentation running inside the process whose data is being
@@ -198,13 +233,56 @@ hook rather than API, so the test asserts the setting was taken rather than
 assuming it, and a rename in a future platform release fails loudly instead of
 quietly turning the device-transfer case into a second cloud case.
 
-Also unresolved, and deliberately left to the device: the root of
+- **No transport.** On an image where the Backup Manager is off or no transport
+  is selected, no backup set is produced for any package, so every "the set
+  excludes our files" assertion passes having run nothing.
+  `ci-wallet-instrumented.sh` turns the transport on and fails loudly if it
+  cannot; `backupManagerAndTheLocalTransportAreLiveOnThisDevice` asserts the
+  local transport by name from inside the suite; and
+  `check-wallet-instrumented-results.py` requires that test to have *passed*,
+  not merely to have not failed, because a skipped test and a green one look the
+  same in an exit code.
+- **An empty set.** An empty set excludes everything trivially, so each path
+  writes a canary into `files/`, which no rule excludes, and asserts either that
+  the canary came back or that the framework is on record declining to back the
+  package up. A failure naming the canary is the suite refusing to certify an
+  empty set — not a backup-exclusion regression.
+- **An ineligible package.** `allowBackup="false"` makes the package ineligible
+  outright, and that is the expected cloud-path outcome. It is a pass for rule 5
+  and it is *not* a proof that the `<device-transfer>` rules work, because they
+  were never consulted. The `BACKUP_EXCLUSION` lines printed on every run say
+  which of the two happened, per path: `canaryReturned=true` means a real set
+  that excluded our material; `canaryReturned=false` with a declining result
+  means the package was never offered to the transport.
+
+**The strongest check does not run inside the suite at all.** The in-test
+assertions depend on `bmgr restore` having done something, and a restore that
+silently no-ops produces "nothing came back" for the wrong reason.
+`BackupExclusionTest` therefore prefixes every planted file's contents with
+`MARKER_PREFIX`, and `android/scripts/check-backup-set.sh` greps the transport's
+own on-disk tree for it from the host after `adb root` — no restore involved. It
+cannot live inside the suite: the set is `0700` to another uid and
+`UiAutomation`'s shell runs as `shell`. It distinguishes three outcomes rather
+than two — marker found (the §5.3 halt), directories present and clean
+(evidence), and *could not look* (a `::warning::`, explicitly **not** evidence).
+Grep a run's log for `Backup set inspection` to see which one it got.
+
+**Also unresolved, and deliberately left to the device:** the root of
 `domain="file"` is `getFilesDir()`, while the wallet directory is under
 `getNoBackupFilesDir()` — a sibling of it, not a child. If that is so, the
 `<exclude>` entries name paths the product never writes to and the `no_backup`
 siting is carrying rule 5 alone. `BackupExclusionTest` plants a decoy at each of
 the two paths those entries name. Whichever way it comes out, the answer is to
 fix the rules, never to relax the rule.
+
+**Two things that could make the first run red without the product being
+wrong**, recorded now so they are not diagnosed under pressure later: the
+instrumentation runs inside the process whose data is being restored, and
+whether `bmgr restore` kills that process is not documented either way (method
+order is `backupManager… → cloudBackup… → deviceTransfer…` so the cheap
+observations reach the log first); and `is_device_transfer` is a
+local-transport test hook rather than API. Both are results to record on BIT-101
+and BIT-20, not to design around.
 
 This matters more than a normal missing test, because BIT-20 rule 5 makes it a
 **precondition** of the `match → keep` guard rather than a follow-up. A

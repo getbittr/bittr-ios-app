@@ -222,4 +222,19 @@ dependencies {
     androidTestImplementation(libs.androidx.espresso.core)
     androidTestImplementation(platform(libs.androidx.compose.bom))
     androidTestImplementation(libs.androidx.compose.ui.test.junit4)
+
+    // BIT-59. Test-only, and deliberately NOT the `implementation` line above:
+    // the shipped app still binds :core:wallet-stub, and this must not be the
+    // thing that quietly swaps the wallet implementation — that swap is BIT-6's
+    // to make, in one reviewed line.
+    //
+    // BackupExclusionTest needs it because the property it proves is a property
+    // of the *installed application* — its merged manifest, its data directory,
+    // its package name under `bmgr`. A library module's own instrumented tests
+    // run in a test APK built from the library's manifest, and :core:wallet-ldk
+    // has none, so backup defaults to ENABLED there: the exact opposite of the
+    // configuration under test. The test has to run inside :app, and it needs
+    // WalletPaths and AndroidKeystoreBlobCodec to write the material it then
+    // looks for in a backup set.
+    androidTestImplementation(project(":core:wallet-ldk"))
 }

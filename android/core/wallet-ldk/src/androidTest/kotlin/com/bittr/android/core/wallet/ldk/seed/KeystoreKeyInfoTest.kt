@@ -11,7 +11,6 @@ import org.junit.After
 import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
-import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
@@ -30,10 +29,14 @@ import org.junit.runner.RunWith
  * to mutate the lock screen between two halves of one test, which an
  * instrumented test cannot do to itself.
  *
- * **Status: written, not yet run.** CI has an emulator (the Maestro job, API
- * 34) but no `connectedAndroidTest` step yet; wiring one is tracked
- * separately. Recording that here rather than letting the file's existence
- * imply a green result.
+ * **Status: run in CI.** BIT-59 added the `wallet-instrumented` job, which runs
+ * this class on an API 34 `aosp_atd` emulator via
+ * `:core:wallet-ldk:connectedDebugAndroidTest` on every push. The previous note
+ * here said "written, not yet run", and that was worth its own line for as long
+ * as it was true: a test that has never executed is closer to a comment than to
+ * a check, and [theBlobRoundTripsThroughTheRealKeystore] is what that costs —
+ * it carried an inverted assertion for its whole unrun life, demanding the
+ * plaintext BE present in the wrapped blob.
  */
 @RunWith(AndroidJUnit4::class)
 class KeystoreKeyInfoTest {
@@ -59,10 +62,52 @@ class KeystoreKeyInfoTest {
                 "failed PIN attempts.",
             info.isUserAuthenticationRequired,
         )
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+        // `setUnlockedDeviceRequired` has existed since API 28. The GETTER,
+        // `KeyInfo.isUnlockedDeviceRequired()`, has not — it is absent from
+        // android.jar through API 36 and present from 37 (CINNAMON_BUN), which
+        // is this project's compileSdk. So the call below COMPILES against 37
+        // and throws `NoSuchMethodError` on every device older than that.
+        //
+        // This was a real red, not a hypothetical: BIT-59's first emulator run
+        // of this class died here on API 34 with
+        //
+        //     java.lang.NoSuchMethodError: No virtual method
+        //     isUnlockedDeviceRequired()Z in class
+        //     Landroid/security/keystore/KeyInfo;
+        //
+        // which is the exact failure mode this class exists to catch, landing
+        // on the class itself. A compileSdk-guarded call is invisible to every
+        // JVM test and to lint's API-level checks, because the API the code was
+        // compiled against does have the method.
+        //
+        // Read reflectively rather than under a `SDK_INT >= CINNAMON_BUN`
+        // guard, for two reasons. A version guard hard-codes an answer that
+        // varies by OEM build and would have to be re-derived the next time the
+        // Keystore surface moves, and — the point of this class — "the device
+        // does not expose this property" is itself an observation worth
+        // recording. It is printed, not skipped silently: a green run on an API
+        // 34 emulator says out loud which of the two flags it was able to
+        // check. The spec-side guarantee is covered regardless by
+        // `KeystoreKeySpecTest`, which asserts we never CALL
+        // setUnlockedDeviceRequired(true).
+        val unlockedDeviceRequired = try {
+            KeyInfo::class.java.getMethod("isUnlockedDeviceRequired").invoke(info) as Boolean
+        } catch (_: NoSuchMethodException) {
+            null
+        }
+        println(
+            "KEYSTORE_KEY_INFO api=${Build.VERSION.SDK_INT} " +
+                "device=${Build.MANUFACTURER}/${Build.MODEL} " +
+                "userAuthenticationRequired=${info.isUserAuthenticationRequired} " +
+                "unlockedDeviceRequired=${unlockedDeviceRequired ?: "<not exposed by this API level>"}",
+        )
+        if (unlockedDeviceRequired != null) {
             assertFalse(
-                "The generated key reports unlocked-device as required.",
-                info.isUnlockedDeviceRequired,
+                "The generated key reports unlocked-device as required. Rule 2 says " +
+                    "it must not be: the seed has to be readable while the device is " +
+                    "locked, which is what lets a payment arrive without the user " +
+                    "present.",
+                unlockedDeviceRequired,
             )
         }
         assertEquals(256, info.keySize)
@@ -76,10 +121,16 @@ class KeystoreKeyInfoTest {
 
         val blob = codec.wrap(mnemonic.toByteArray())
 
-        assertNotEquals(
+        // Searched over the BYTES, not over `String(blob)`. The blob is
+        // [ivLength][iv][AES-GCM ciphertext], so almost all of it is not valid
+        // UTF-8, and decoding it maps every bad sequence to U+FFFD. That would
+        // weaken this assertion in the one direction that matters: a negative
+        // search over a string in which arbitrary bytes have already collapsed
+        // into replacement characters can miss a match that is really there.
+        assertEquals(
             "The blob must not contain the plaintext.",
             -1,
-            String(blob).indexOf(mnemonic).let { if (it >= 0) it else -1 },
+            blob.indexOfSubsequence(mnemonic.toByteArray()),
         )
         assertArrayEquals(mnemonic.toByteArray(), codec.unwrap(blob))
     }
@@ -130,6 +181,15 @@ class KeystoreKeyInfoTest {
                 "device=${Build.MANUFACTURER}/${Build.MODEL} level=$level",
         )
         assertTrue("Expected a security level to be reported.", level.isNotBlank())
+    }
+
+    /** First index at which [needle] occurs in this array, or -1. */
+    private fun ByteArray.indexOfSubsequence(needle: ByteArray): Int {
+        if (needle.isEmpty() || needle.size > size) return -1
+        for (start in 0..size - needle.size) {
+            if ((needle.indices).all { this[start + it] == needle[it] }) return start
+        }
+        return -1
     }
 
     private fun generateWalletKey(): SecretKey =
