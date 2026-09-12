@@ -666,6 +666,150 @@ class TokenContrastTest {
     }
 
     // -----------------------------------------------------------------------
+    // BIT-95 — the consent switch, which is a control whose *state* has to be seen
+    // -----------------------------------------------------------------------
+
+    /**
+     * Every background the consent switch is drawn on, per scheme.
+     *
+     * **The card, not just the canvas.** `ToggleRow` is inside a `BittrCard`, so the
+     * fill behind the switch is `cardWash` over the canvas — and that is the *worse*
+     * background of the two: the green track measures 1.32 : 1 there against 1.65 : 1 on
+     * the bare page. BIT-94 learned this one screen over, with the filled button on the
+     * start and ready screens; the issue that filed this measured the canvas only.
+     */
+    private fun switchBackgrounds(c: BittrColors) = listOf(
+        "the canvas" to c.canvas,
+        "the card it is actually on" to card(c),
+    )
+
+    /**
+     * The border of a checked switch, as rendered.
+     *
+     * `mutedOnCanvas` is translucent and Material strokes the track border *inside* the
+     * track's bounds, so the checked border composites over [BittrColors.switchOn] and
+     * not over the page. That is why this is a two-step composite and not a token read,
+     * and why promoting `switchOn` out of `Canvas.kt` was a precondition for asserting
+     * anything here at all.
+     */
+    private fun checkedBorder(c: BittrColors): Color = composite(c.mutedOnCanvas, c.switchOn)
+
+    @Test
+    fun `BIT-95 a checked consent switch has a boundary on every background it lands on`() {
+        for ((name, c) in schemes) {
+            for ((where, bg) in switchBackgrounds(c)) {
+                assertAtLeast(aaLarge, checkedBorder(c), bg, "$name checked switch border on $where")
+            }
+        }
+    }
+
+    @Test
+    fun `BIT-95 the unchecked switch keeps the boundary the checked one borrowed`() {
+        // The unchecked track is transparent, so its border composites over the
+        // background directly. This state was never broken — it is asserted because the
+        // fix is "both states use the same border", and that claim is only worth
+        // anything while this half still holds.
+        for ((name, c) in schemes) {
+            for ((where, bg) in switchBackgrounds(c)) {
+                assertAtLeast(aaLarge, c.mutedOnCanvas, bg, "$name unchecked switch border on $where")
+            }
+        }
+    }
+
+    /**
+     * The thumb and the border are both measured against the **track**, not against each
+     * other — and in dark mode that distinction is the whole of it.
+     *
+     * The dark border composites to `#DDEDE6` and the thumb is white: against each other
+     * they are 1.10 : 1. They are not adjacent, which is why that number is not a defect.
+     * Material's checked thumb is 24 dp in a 32 dp track, so it sits inside the track's
+     * edge and the 2 dp border takes only part of that gap. Scanned across the thumb's
+     * centre line in `arc-2-confirm-on-dark.png` at 420 dpi: `#DEEEE7` ×5 (the border),
+     * `#1F8A5B` ×56, `#FFFFFF` ×61 (the thumb), `#1F8A5B` ×4, `#DEEEE7` ×5. Four pixels
+     * of green on the tight side, and a blend pixel either way.
+     *
+     * So the green is doing real work after all. It is not the boundary — it loses to the
+     * card at 1.32 : 1 — but it *is* the separator between two light elements, and both
+     * sides of it clear 3 : 1 against it. A "fix" that darkened the green toward the card
+     * would have to keep this margin too.
+     */
+    @Test
+    fun `BIT-95 the thumb and the border are each visible against the track between them`() {
+        for ((name, c) in schemes) {
+            // White on the green. 4.33 : 1 — held to the 3 : 1 non-text floor.
+            assertAtLeast(aaLarge, c.onSwitchOn, c.switchOn, "$name checked thumb on its track")
+            assertAtLeast(
+                aaLarge, checkedBorder(c), c.switchOn,
+                "$name checked border against the track it strokes",
+            )
+            // Unchecked: the thumb is `mutedOnCanvas` over a transparent track, so the
+            // background is what it has to clear.
+            for ((where, bg) in switchBackgrounds(c)) {
+                assertAtLeast(aaLarge, c.mutedOnCanvas, bg, "$name unchecked thumb on $where")
+            }
+        }
+    }
+
+    /**
+     * Why the fix is a border and not a better green — as arithmetic, not as a preference.
+     *
+     * The issue that filed this offered three options, two of which move the fill:
+     * darken `switchAccent` until it clears 3 : 1, or swap it per scheme the way the rest
+     * of the system swaps yellow for blue. Both are impossible in dark mode while the
+     * thumb stays white, and this is the test that says so.
+     *
+     * A track clearing 3 : 1 against the dark card needs a relative luminance of at least
+     * **0.501**. A track a **white** thumb still clears 3 : 1 against cannot exceed
+     * **0.300**. The band is empty, and it is empty for every hue — luminance does not
+     * care whether the colour is green. So a fill-only fix necessarily also darkens the
+     * thumb, which is a pale track with an ink dot on it: a different control from the
+     * one the mock draws, and a founder call rather than a designer one.
+     *
+     * If this assertion ever fails, the dark canvas or the card wash has moved and the
+     * option genuinely reopened — which is worth knowing.
+     */
+    @Test
+    fun `BIT-95 no track colour can both clear the dark card and keep a white thumb`() {
+        val darkCard = card(BittrDarkColorsExtended)
+        val floorToClearTheCard = aaLarge * (luminance(darkCard) + 0.05) - 0.05
+        val ceilingToKeepAWhiteThumb = (luminance(Color.White) + 0.05) / aaLarge - 0.05
+
+        assertTrue(
+            "a track can now clear the dark card and keep a white thumb (L in " +
+                "%.3f..%.3f) — the fill-only fix this test rules out has reopened"
+                    .format(floorToClearTheCard, ceilingToKeepAWhiteThumb),
+            floorToClearTheCard > ceilingToKeepAWhiteThumb,
+        )
+        // The mock's green is nowhere near either end of that, for the record: it is
+        // *below* the floor, which is why it loses to the card rather than to the thumb.
+        assertTrue(
+            "switchAccent now clears the dark card on its own — re-read BittrColors.switchOn",
+            luminance(BittrDarkColorsExtended.switchOn) < floorToClearTheCard,
+        )
+    }
+
+    @Test
+    fun `BIT-95 the checked track is the mock's switchAccent and is not the boundary`() {
+        // The value, pinned: this is a mock-specified colour and the fix deliberately did
+        // not touch it. Someone "fixing the contrast" by moving the green instead of the
+        // border trips this and reads the note.
+        for ((name, c) in schemes) {
+            assertEquals("$name switchAccent", 0xFF1F8A5B.toInt(), c.switchOn.toArgbInt())
+            // The failure this issue is about, kept as a measurement so that the track
+            // can never be mistaken for the thing that makes the control perceivable.
+            assertTrue(
+                "$name: the checked track now clears 3 : 1 on the card by itself — good, " +
+                    "but the border is still what the design relies on; re-read switchOn",
+                contrast(c.switchOn, card(c)) < aaLarge,
+            )
+        }
+        // The regression that filed BIT-95 was the *wiring* — `checkedBorderColor =
+        // SwitchOn`, a control whose border is its own fill — and nothing in this file can
+        // see a call site. That half is `CanvasComponentColorsTest`, which needs a
+        // composition and is therefore the only test in this module that does.
+    }
+
+    // -----------------------------------------------------------------------
     // Structural
     // -----------------------------------------------------------------------
 
