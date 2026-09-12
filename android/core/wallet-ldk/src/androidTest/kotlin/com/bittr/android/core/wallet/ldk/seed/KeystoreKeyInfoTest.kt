@@ -11,7 +11,6 @@ import org.junit.After
 import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
-import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
@@ -30,10 +29,14 @@ import org.junit.runner.RunWith
  * to mutate the lock screen between two halves of one test, which an
  * instrumented test cannot do to itself.
  *
- * **Status: written, not yet run.** CI has an emulator (the Maestro job, API
- * 34) but no `connectedAndroidTest` step yet; wiring one is tracked
- * separately. Recording that here rather than letting the file's existence
- * imply a green result.
+ * **Status: run in CI.** BIT-59 added the `wallet-instrumented` job, which runs
+ * this class on an API 34 `aosp_atd` emulator via
+ * `:core:wallet-ldk:connectedDebugAndroidTest` on every push. The previous note
+ * here said "written, not yet run", and that was worth its own line for as long
+ * as it was true: a test that has never executed is closer to a comment than to
+ * a check, and [theBlobRoundTripsThroughTheRealKeystore] is what that costs —
+ * it carried an inverted assertion for its whole unrun life, demanding the
+ * plaintext BE present in the wrapped blob.
  */
 @RunWith(AndroidJUnit4::class)
 class KeystoreKeyInfoTest {
@@ -76,10 +79,16 @@ class KeystoreKeyInfoTest {
 
         val blob = codec.wrap(mnemonic.toByteArray())
 
-        assertNotEquals(
+        // Searched over the BYTES, not over `String(blob)`. The blob is
+        // [ivLength][iv][AES-GCM ciphertext], so almost all of it is not valid
+        // UTF-8, and decoding it maps every bad sequence to U+FFFD. That would
+        // weaken this assertion in the one direction that matters: a negative
+        // search over a string in which arbitrary bytes have already collapsed
+        // into replacement characters can miss a match that is really there.
+        assertEquals(
             "The blob must not contain the plaintext.",
             -1,
-            String(blob).indexOf(mnemonic).let { if (it >= 0) it else -1 },
+            blob.indexOfSubsequence(mnemonic.toByteArray()),
         )
         assertArrayEquals(mnemonic.toByteArray(), codec.unwrap(blob))
     }
@@ -130,6 +139,15 @@ class KeystoreKeyInfoTest {
                 "device=${Build.MANUFACTURER}/${Build.MODEL} level=$level",
         )
         assertTrue("Expected a security level to be reported.", level.isNotBlank())
+    }
+
+    /** First index at which [needle] occurs in this array, or -1. */
+    private fun ByteArray.indexOfSubsequence(needle: ByteArray): Int {
+        if (needle.isEmpty() || needle.size > size) return -1
+        for (start in 0..size - needle.size) {
+            if ((needle.indices).all { this[start + it] == needle[it] }) return start
+        }
+        return -1
     }
 
     private fun generateWalletKey(): SecretKey =
