@@ -256,6 +256,17 @@ jobs:
         #
         # None of this depends on the emulator image's fingerprint enrolment. It is
         # a property of the APK, so it holds on any runner.
+        #
+        # `test` also covers :app:testReleaseUnitTest, and that is load-bearing
+        # rather than incidental — do not narrow this step to the debug task.
+        # :app is the only module with a release unit-test component (see the
+        # androidComponents block in app/build.gradle.kts), and it is where every
+        # assertion about the SHIPPED build lives: BiometricUnlockFlagTest's
+        # biometrics-on branch is only exercised there. It is also the only variant
+        # that catches the Robolectric trap in BIT-106, where a test written with
+        # `createComposeRule()` cannot resolve its activity on release and dies
+        # before its first assertion. ComposeRuleVariantGuardTest now fails that on
+        # debug too, so it is caught locally, but the release task is the backstop.
         run: ./gradlew test --no-daemon
 
       - name: Assemble debug APK

@@ -1,8 +1,9 @@
 package com.bittr.android
 
+import androidx.activity.compose.setContent
 import androidx.compose.ui.test.assertContentDescriptionEquals
 import androidx.compose.ui.test.assertIsDisplayed
-import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithTag
@@ -62,7 +63,7 @@ private class GateStore : SecureStore {
 class PinGateFlowTest {
 
     @get:Rule
-    val composeRule = createComposeRule()
+    val composeRule = createAndroidComposeRule<MainActivity>()
 
     /**
      * The fixed phrase `restore_wallet.yaml` and `pin_warning.yaml` bake in, so the
@@ -82,18 +83,32 @@ class PinGateFlowTest {
         wallet.setPin(CORRECT_PIN)
     }
 
+    /**
+     * The unlock screen, composed over the real activity.
+     *
+     * It goes through [MainActivity] rather than `createComposeRule()` so the test
+     * passes on the release unit-test variant too — the bare `ComponentActivity`
+     * that `createComposeRule()` launches reaches the manifest only through
+     * `debugImplementation(ui-test-manifest)`, and Robolectric reads the main
+     * variant's manifest. That is BIT-106; `ComposeRuleVariantGuardTest` is what
+     * keeps it from coming back. The activity has already set its content by the
+     * time the rule hands it over, so this replaces that content rather than adding
+     * to it — the same shape [SettingsFlowTest] uses.
+     */
     private fun gate(
         onUnlocked: () -> Unit = {},
         onWalletWiped: () -> Unit = {},
     ): UnlockViewModel {
         val viewModel = UnlockViewModel(wallet)
-        composeRule.setContent {
-            BittrTheme {
-                UnlockScreen(
-                    onUnlocked = onUnlocked,
-                    onWalletWiped = onWalletWiped,
-                    viewModel = viewModel,
-                )
+        composeRule.runOnUiThread {
+            composeRule.activity.setContent {
+                BittrTheme {
+                    UnlockScreen(
+                        onUnlocked = onUnlocked,
+                        onWalletWiped = onWalletWiped,
+                        viewModel = viewModel,
+                    )
+                }
             }
         }
         return viewModel
@@ -347,9 +362,15 @@ class PinGateFlowTest {
 
         var wiped = false
         val viewModel = UnlockViewModel(afterRelaunch)
-        composeRule.setContent {
-            BittrTheme {
-                UnlockScreen(onUnlocked = {}, onWalletWiped = { wiped = true }, viewModel = viewModel)
+        composeRule.runOnUiThread {
+            composeRule.activity.setContent {
+                BittrTheme {
+                    UnlockScreen(
+                        onUnlocked = {},
+                        onWalletWiped = { wiped = true },
+                        viewModel = viewModel,
+                    )
+                }
             }
         }
 
