@@ -21,6 +21,7 @@ We started tracking the changelog at **0.1.184** (the TestFlight build current w
 ### Added
 
 - A `Check hard-coded API URLs` build phase fails the build on a literal bittr API host outside `BittrAPIEnvironment.swift`. Seven such literals had accumulated independently, so this is enforced rather than reviewed. Runnable by hand: `sh ios/Scripts/check-hardcoded-api-urls.sh`.
+- **The exclusive-initiative confirmation required by Terms & Conditions §2.5** is now collected in the app. It is asked once per registration, on the IBAN + email screen, before the IBAN and email are sent to Bittr — the first moment Bittr provides a Service. The wording is taken from §2.5 and the getbittr.com interstitial (sources and the exact departures are recorded in `shared/docs/exclusive-initiative-copy.md`). The confirmation is timestamped (ISO-8601, UTC), stored against the IBAN entity, and sent to the backend as `exclusive_initiative_confirmed_at` at registration. Declining leaves the customer on the screen with nothing sent and nothing recorded. The website has had this since launch; the apps never did.
 
 ### Changed
 

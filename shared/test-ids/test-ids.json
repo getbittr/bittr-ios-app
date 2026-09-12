@@ -172,6 +172,7 @@
     "labelAmount": null,
     "swapStatusButton": null,
     "descriptionButton": null,
+    "descriptionLabel": null,
     "copyIdButton": null,
     "urlIdButton": null,
     "copyBottomIdButton": null,
@@ -297,6 +298,10 @@
         "emailButton": null,
         "nextButton": null,
         "skipButton": null
+      },
+      "initiative": {
+        "confirmButton": null,
+        "cancelButton": null
       },
       "otp": {
         "topLabel": null,

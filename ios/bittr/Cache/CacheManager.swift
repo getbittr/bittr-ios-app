@@ -123,6 +123,12 @@ class CacheManager: NSObject {
     static func setPaymentMode(ibanID:String, paymentMode:String) {
         updateIban(id: ibanID) { $0.paymentMode = paymentMode }
     }
+
+    // Note for callers: addIban only carries the IBAN and the email onto a known
+    // entity, so the confirmation has to be persisted through here.
+    static func setInitiativeConfirmedAt(ibanID:String, timestamp:String) {
+        updateIban(id: ibanID) { $0.initiativeConfirmedAt = timestamp }
+    }
     
     static func addBittrIban(ibanID:String, ourIban:String, ourSwift:String, yourCode:String, lightningAddressUsername:String?) {
         updateIban(id: ibanID) { iban in
