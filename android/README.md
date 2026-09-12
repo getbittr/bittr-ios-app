@@ -106,6 +106,36 @@ Use `test`, **not** `testDebugUnitTest`. `:core:common`, `:core:wallet` and
 `testDebugUnitTest` reports `NO-SOURCE` for them and goes green having run a
 fraction of the suite.
 
+`test` also covers **`:app:testReleaseUnitTest`**, and that is the half most
+easily lost. `:app` is the only module with a release unit-test component
+(`androidComponents` in `app/build.gradle.kts`), and it is where the assertions
+about the *shipped* build live — `BiometricUnlockFlagTest`'s biometrics-on
+branch runs nowhere else.
+
+This matters because `./gradlew --offline test` does **not** work: it fails
+during configuration-cache serialisation on an uncached `lint-gradle` artifact,
+before running a single test. The workaround is to name tasks —
+
+```sh
+./gradlew --offline :core:common:test :core:wallet:test :core:wallet-seed:test \
+  :core:wallet-stub:test :core:designsystem:testDebugUnitTest \
+  :feature:signup:testDebugUnitTest :feature:value:testDebugUnitTest \
+  :feature:academy:testDebugUnitTest :feature:map:testDebugUnitTest \
+  :feature:scanner:testDebugUnitTest \
+  :app:testDebugUnitTest :app:testReleaseUnitTest
+```
+
+— and a hand-written list is exactly where a variant goes missing. Leaving
+`:app:testReleaseUnitTest` off that line is what let BIT-97, BIT-100 and BIT-99
+each close over 16 tests that had never passed (BIT-106). If you use the
+offline line, keep the release task on it, and treat `./gradlew test` with a
+network as the real answer.
+
+Do not add a module with no `src/test` to that line, or to the build with
+`testImplementation` dependencies: Gradle 9 fails a `Test` task that has a
+non-empty test classpath and discovers nothing, which is a second way this gate
+goes red without anyone touching a test.
+
 Requires JDK 17+ and an Android SDK with `platforms;android-37.0` (`compileSdk = 37`
 — note the `.0`, the API level carries a minor component now and `android-37` is not
 a package that exists). Point Gradle at the SDK with `ANDROID_HOME`, or a
