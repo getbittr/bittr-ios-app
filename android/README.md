@@ -2,16 +2,50 @@
 
 Native Android app — Kotlin + Jetpack Compose + Material 3.
 
-**Status: scaffold, Gradle half verified, emulator half unverified.** The project
-builds and the unit tests pass — that has been run. The DI graph resolves and
-navigation renders one screen. There is no feature code and no wallet. See
-`../ANDROID_PORT_PLAN.md` for where this is going.
+**Status: scaffold, verified on a device, unverified in CI.** The project builds, the
+unit tests pass, the DI graph resolves and navigation renders one screen. There is no
+feature code and no wallet. See `../ANDROID_PORT_PLAN.md` for where this is going.
 
-**The Maestro flow has never been executed**, here or in CI. It is written and the
-workflow that would run it is written, but no emulator has booted against this app:
-the environment the scaffold was built in has no `/dev/kvm`. BIT-5's definition of
-done — three consecutive green CI runs plus a wall-clock number — is therefore still
-open, and the emulator job should be read as untested code until a run exists.
+**The Maestro flow has run green on a real emulator** — 2026-09-10, on a MacBook
+following `docs/local-setup-macos.md`. That closes the assumption the scaffold rested
+on: Compose `testTag`s really are reachable by Maestro's `id:` selectors through
+`testTagsAsResourceId`, which no JVM test can prove (Robolectric reads the semantics
+tree directly and passes with the flag either way). Details in that doc under "What
+the first run proved".
+
+**Three consecutive local runs, green, no retries** — 2026-09-10, same MacBook,
+via `scripts/smoke-consecutive.sh`:
+
+| run | result | wall clock |
+|-----|--------|------------|
+| 1 | green | 12.1s |
+| 2 | green | 10.9s |
+| 3 | green | 10.4s |
+
+Median 10.9s, spread 1.7s, total 33.7s. That is the flow itself against an already
+booted emulator — it answers "is the flow reliable", not "how long does CI take",
+which is a different question with an answer minutes away. Local Maestro was 2.5.1
+against CI's pinned 2.10.0, so treat the numbers as comparable to each other and not
+to a CI run; the script says so itself when it detects the skew.
+
+**CI has now run, and was red.** The first execution of the emulator job in this
+workflow's history failed on the first line of its own script, after a full emulator
+boot:
+
+```
+/usr/bin/sh: 1: set: Illegal option -o pipefail
+```
+
+`reactivecircus/android-emulator-runner` runs its `script:` input under `/usr/bin/sh`
+— dash on the Ubuntu images — not bash. The body is now `scripts/ci-smoke.sh`, called
+as `bash <file>` so the interpreter is chosen by this repo rather than by whichever
+image the runner happens to be, and `scripts/check-action-scripts.sh` fails the build
+job in seconds if any `script:` input stops being POSIX. The good news underneath the
+red: the AVD was created and the emulator booted on a GitHub-hosted runner before that
+line ran, so the expensive part of the job is not in question.
+
+BIT-5's definition of done is three consecutive green *CI* runs plus a wall-clock
+number, so it stays open until CI is observed green three times.
 
 ## Build
 

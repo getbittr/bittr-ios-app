@@ -323,6 +323,27 @@ the `push`/`clipboard` helper servers (which Maestro can't start itself) and
 passing the `MNEMONIC` env that `forgot_pin` needs. A failure aborts the suite
 at that flow — run the individual flow above to debug.
 
+### The remove-wallet channel-close arc
+
+`features/remove_wallet.yaml` branches on whether the wallet has an open
+Lightning channel, and in `suite.yaml` the channel branch can never fire: the
+flow runs last, right after `restore_wallet.yaml` re-creates a wallet with no
+channel, so the guard is always false. Seven screenshots
+(`remove_wallet/04`–`09b` — the close-connection warnings, the on-chain close
+and its confirmation popup) are therefore unreachable in suite order, however
+often the suite runs.
+
+Reordering isn't the fix — `remove_wallet` wipes the wallet, so moving it
+earlier strands every flow after it. Instead the arc has its own pass, which
+builds a funded, channelled wallet first:
+
+```sh
+shared/flows/test_suite.sh suite_remove_wallet_channel.yaml
+```
+
+Destructive and self-contained: it wipes app data at the start and ends on
+Signup1 with no wallet. Run it on its own, not interleaved with `suite.yaml`.
+
 ### Push notifications
 
 Flows that exercise incoming-payment alerts (`features/buy_more.yaml`) need a fake APNS push delivered to the simulator. Maestro's JS sandbox can't shell out, so a local helper bridges the gap:

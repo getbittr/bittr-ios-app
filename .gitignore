@@ -126,3 +126,11 @@ android/.cxx/
 maestro-debug/
 maestro-report.xml
 .maestro/tests/
+# Per-flow logs from test_suite.sh when BITTR_LOG_DIR points in-tree —
+# bit14_topup.sh does this so a long unattended capture pass stays diagnosable.
+shared/flows/logs/
+
+# screenshot_map.py writes these beside --repo unless --out-dir is given;
+# the canonical pair lives in shared/docs/.
+/reference-set.json
+/reference-set.md

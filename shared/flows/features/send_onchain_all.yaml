@@ -126,6 +126,13 @@ appId: com.bittr.bittr-regtest
 - copyTextFrom:
     id: "send.confirm.amountLabel"
 - evalScript: ${output.amountBeforeFee = maestro.copiedText}
+# The amount above was quoted at the middle (≈1 hour) fee — that is the tier a
+# send starts on, and on a max send it is what sets the amount. The tile has to
+# exist and be tagged on both platforms. Which tile is *highlighted* is carried
+# only by a background colour, with no accessibility state behind it, so the
+# screenshot below is what proves the default selection matches. See BIT-17.
+- assertVisible:
+    id: "send.confirm.feeMediumButton"
 - takeScreenshot: shared/docs/screenshots/send_onchain_all/03_confirm
 
 # Pick the fast (≈10 minute) fee. On a max-amount send the fee usually exceeds

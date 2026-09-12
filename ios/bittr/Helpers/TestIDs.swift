@@ -202,6 +202,7 @@ enum TestID {
             static let amountLabel = "send.confirm.amountLabel"
             static let confirmButton = "send.confirm.confirmButton"
             static let feeFastButton = "send.confirm.feeFastButton"
+            static let feeMediumButton = "send.confirm.feeMediumButton"
             static let feeSlowButton = "send.confirm.feeSlowButton"
         }
         static let currencyButton = "send.currencyButton"
