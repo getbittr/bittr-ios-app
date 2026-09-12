@@ -371,10 +371,24 @@ def main(argv=None):
     # Built outside the f-string on purpose: a backslash inside an f-string
     # expression is a syntax error before Python 3.12, and this script's own
     # rule is stdlib-only on whatever the runner ships.
+    # The absence wording is deliberately agnostic about the cause, because the
+    # first version was not and was wrong within one run. It said absence meant
+    # "the tests did not reach the print"; run 110 had KeystoreKeyInfoTest pass
+    # all five cases — it plainly reached the print — and still reported no
+    # lines. So the lines are printed and do not land in <system-out>: AGP does
+    # not file instrumentation stdout there, which is a wrong assumption in THIS
+    # script about where to look, not an observation about the device. Known
+    # cause as of run 110; tracked on BIT-108, since the fix (get the
+    # observation to the host) is the same one the assertion needs.
     reported = "\n".join(evidence) if evidence else (
-        "No BACKUP_EXCLUSION or KEYSTORE_KEY_INFO line arrived. Those are printed "
-        "unconditionally by the tests that own them, so this means those tests did "
-        "not reach the print — read any pass in this run as unproven."
+        "No BACKUP_EXCLUSION or KEYSTORE_KEY_INFO line reached <system-out>. Read "
+        "any pass in this run as UNPROVEN either way: these lines are what say "
+        "which of the two green outcomes a run got. Two causes, and they are not "
+        "distinguishable from here — the tests did not reach the print, or the "
+        "lines were printed and the runner did not file instrumentation stdout "
+        "into the result XML. The latter is the known cause as of run 110 and is "
+        "tracked on BIT-108; do not read this as a device finding without "
+        "checking which one it was."
     )
     print(f"::notice title=What the device reported::{annotate(reported)}")
 

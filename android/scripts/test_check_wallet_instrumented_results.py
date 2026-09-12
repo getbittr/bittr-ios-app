@@ -527,7 +527,15 @@ def test_absent_evidence_is_reported_in_the_annotation_too():
     notices = [l for l in out.splitlines() if l.startswith("::notice title=What the device reported::")]
     check("absence is still emitted as an annotation", len(notices) == 1, out)
     check("and the annotation says the pass is unproven",
-          notices and "unproven" in notices[0], out)
+          notices and "UNPROVEN" in notices[0], out)
+    # The first version of this message asserted a cause ("the tests did not
+    # reach the print") and run 110 falsified it inside one run: a class that
+    # passed, and so plainly reached its print, still produced no lines. An
+    # annotation that explains an absence with the wrong cause is worse than one
+    # that reports the absence, because it is read as a device finding.
+    check("and offers both causes rather than asserting one",
+          notices and "did not reach the print" in notices[0]
+          and "did not file instrumentation stdout" in notices[0], out)
 
 
 def test_the_evidence_annotation_stays_one_line():
