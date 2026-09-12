@@ -98,9 +98,28 @@ the seed/PIN layer that BIT-93 already landed.
 | `features/academy` | Academy | content API |
 
 Also in this wave, not flow-bearing on their own: the Home shell in its
-no-funds state, Settings and Device details as screens, and wiring BIT-72's
-scanner result into a destination parser (`AddressParsing.swift:15` is the iOS
-single entry point for scan and paste — port it once, Send consumes it later).
+no-funds state, and Settings and Device details as screens.
+
+~~wiring BIT-72's scanner result into a destination parser~~ — **done (BIT-100,
+2026-09-12).** `core/common/…/destination/` holds a pure-Kotlin port of
+`AddressParsing.swift:15`: bare address, BIP-21 with an amount, BOLT-11, LNURL,
+across bech32/bech32m and base58check, with the network taken from
+`BuildConfig.BITCOIN_NETWORK` (debug = regtest, as on iOS). 30 unit tests, no
+node and no emulator.
+
+Two things landed with it that are worth knowing about:
+
+- **BIT-72's scanner was merged at the same time.** It had been `done` since it
+  was built but sat on `feature/bit-72-scanner-screen` with no branch
+  containing it, so `:feature:scanner` was not in the trunk build at all.
+- **The iOS LNURL-auth case bug (BIT-84/BIT-85) is not ported.** Detection
+  lower-cases; routing then matches `tag=login&k1` case-sensitively, so an
+  upper-cased query misroutes. The port matches case-insensitively throughout
+  and pins it with a test.
+
+Send consumes the parser when it is built on BIT-6's wave; until then the
+scanner route returns a parsed `Destination` on the caller's back stack entry,
+and `ScannerRouteWiringTest` fails the build if that regresses to a bare pop.
 
 ### Wave 2 — the engine (BIT-6), the critical path
 

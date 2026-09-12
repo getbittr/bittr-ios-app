@@ -8,6 +8,8 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.bittr.android.BuildConfig
+import com.bittr.android.core.common.destination.BitcoinNetwork
 import com.bittr.android.core.wallet.WalletState
 import com.bittr.android.feature.scanner.ScannerScreen
 import com.bittr.android.feature.signup.CreateWalletScreen
@@ -51,6 +53,11 @@ object Routes {
 fun BittrNavHost(
     navController: NavHostController = rememberNavController(),
     viewModel: WalletGateViewModel = hiltViewModel(),
+    // Which chain a scanned address has to be on. Debug is regtest, release is
+    // mainnet, mirroring iOS's `EnvironmentConfig.bitcoinDevKitNetwork`. Injected
+    // rather than read inside the parser because `:core:common` cannot see `:app`'s
+    // BuildConfig — the same reason AuthCapabilities is injected.
+    network: BitcoinNetwork = BitcoinNetwork.fromBuildConfig(BuildConfig.BITCOIN_NETWORK),
 ) {
     val walletState by viewModel.walletState.collectAsState()
 
@@ -114,13 +121,16 @@ fun BittrNavHost(
         }
 
         composable(Routes.SCANNER) {
-            // The scanned string goes nowhere yet, because Send does not exist yet
-            // (BIT-7). When it does, this hands the code to the same entry point the
-            // paste control feeds — one route for both, as on iOS
-            // (`AddressParsing.swift:15`). The scanner itself is complete: routing
-            // the result is Send's half of the seam, not the scanner's.
+            // What the camera read is parsed here, by the same entry point the paste
+            // control will feed — one parser for both, as on iOS
+            // (`AddressParsing.swift:15`) — and handed back to whoever opened the
+            // scanner via `ScannerResult`.
+            //
+            // Nothing opens the scanner yet: Send arrives with the engine (BIT-6).
+            // But the result no longer evaporates on the way out, which is the half
+            // of the seam BIT-72 deliberately left for BIT-100.
             ScannerScreen(
-                onScanned = { navController.popBackStack() },
+                onScanned = { scanned -> ScannerResult.handleScan(navController, scanned, network) },
                 onClose = { navController.popBackStack() },
             )
         }

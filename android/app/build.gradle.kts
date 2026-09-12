@@ -33,6 +33,12 @@ android {
         // On by default — the shipped app follows Android convention. The debug
         // build overrides it to false; see below.
         buildConfigField("boolean", "BIOMETRIC_UNLOCK_ENABLED", "true")
+
+        // Which chain this build accepts addresses and invoices on, consumed via
+        // core.common.destination.BitcoinNetwork. Mainnet by default; the debug
+        // build overrides it below, exactly as iOS does
+        // (`isDevelopment ? .regtest : .bitcoin`).
+        buildConfigField("String", "BITCOIN_NETWORK", "\"MAINNET\"")
     }
 
     buildTypes {
@@ -52,6 +58,10 @@ android {
             // independently broken. Enforced by BiometricUnlockFlagTest and
             // BiometricApiGuardTest; consumed via core.common.AuthCapabilities.
             buildConfigField("boolean", "BIOMETRIC_UNLOCK_ENABLED", "false")
+
+            // Debug == regtest, so a mainnet address pasted into the Maestro build
+            // is rejected at parse time rather than at broadcast time.
+            buildConfigField("String", "BITCOIN_NETWORK", "\"REGTEST\"")
         }
         release {
             isMinifyEnabled = true
