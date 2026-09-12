@@ -273,6 +273,23 @@ class CrossOriginIframeIsolationTest {
 
         Thread.sleep(MISBEHAVE_MILLIS)
         instrumentation.waitForIdleSync()
+
+        // [theCrossOriginIframeActuallyRan] states this as a named control, and it
+        // is repeated here so that it holds for every test rather than for one of
+        // them. JUnit gives no ordering guarantee between methods, so on a broken
+        // fixture the named control is a single red among four greens — which
+        // reads like one flaky test, not like "none of this ran". Asserted in the
+        // shared helper, the whole class goes red together and says why.
+        val ran = evaluate(webView, "JSON.stringify(!!(window.__bittrIframe || {}).ran)")
+        assertEquals(
+            "The cross-origin iframe did not report in, so nothing below was " +
+                "exercised. Both fixtures are served over http on 127.0.0.1, which " +
+                "only src/androidTest/res/xml/network_security_config_test.xml " +
+                "permits; without it the WebView renders an error page that still " +
+                "reports 100% progress and finds no bridge for the wrong reason.",
+            "\"true\"",
+            ran,
+        )
         return webView
     }
 

@@ -216,7 +216,47 @@ class ThirdPartyIsolationTest {
 
         Thread.sleep(MISBEHAVE_MILLIS)
         instrumentation.waitForIdleSync()
+        assertFixtureRan(webView)
         return webView
+    }
+
+    /**
+     * Fails unless the fixture's own script actually executed.
+     *
+     * Progress reaching 100 is not that assertion, which is the point of this
+     * one. A WebView that refuses a URL — `ERR_CLEARTEXT_NOT_PERMITTED` being the
+     * one this suite is most likely to hit, since the fixtures are served over
+     * http on loopback — renders an *error page*, and an error page finishes
+     * loading and reports 100% just as a real page does.
+     *
+     * Every assertion in this class is of the form "the hostile page did not
+     * manage to X". A page that never ran did not manage to X either, so without
+     * this the whole class goes green while testing nothing at all — the precise
+     * failure mode that makes a security test worse than no test, because it also
+     * reports success. `window.__bittrProbe` is set on the fixture's first script
+     * line and exists nowhere else, so its presence is proof the page is the one
+     * that was asked for and that its JavaScript ran.
+     */
+    private fun assertFixtureRan(webView: WebView) {
+        val marker = evaluate(webView, "typeof window.__bittrProbe")
+
+        assertEquals(
+            "The hostile fixture's script did not run, so every assertion in this " +
+                "class would pass without exercising anything. The usual cause is the " +
+                "page not actually loading — cleartext to 127.0.0.1 is permitted only " +
+                "by src/androidTest/res/xml/network_security_config_test.xml, and " +
+                "without it the WebView shows an error page that still reports 100% " +
+                "progress. Current URL: ${urlOf(webView)}",
+            "\"object\"",
+            marker,
+        )
+    }
+
+    /** [WebView.getUrl] read on the main thread, for failure messages. */
+    private fun urlOf(webView: WebView): String? {
+        var url: String? = null
+        instrumentation.runOnMainSync { url = webView.url }
+        return url
     }
 
     /** Runs [script] in the page and returns its result as a JSON string. */
