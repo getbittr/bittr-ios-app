@@ -3,6 +3,7 @@ package com.bittr.android.core.wallet.stub
 import com.bittr.android.core.wallet.Mnemonic
 import com.bittr.android.core.wallet.WalletService
 import com.bittr.android.core.wallet.WalletState
+import com.bittr.android.core.wallet.WrongSeedException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -35,6 +36,9 @@ class StubWalletService : WalletService {
 
     private var pin: String? = null
 
+    /** Wrong [unlock] entries since the last success — the lockout counter, in RAM. */
+    private var failures: Int = 0
+
     /** The phrase the last [restoreWallet] was given, or null on the create path. */
     var restored: Mnemonic? = null
         private set
@@ -61,13 +65,44 @@ class StubWalletService : WalletService {
 
     override suspend fun setPin(pin: String) {
         this.pin = pin
+        failures = 0
         _state.value = WalletState.Locked
     }
 
     override suspend fun unlock(pin: String): Boolean {
-        if (pin != this.pin) return false
+        if (this.pin == null) return false
+        if (pin != this.pin) {
+            failures++
+            return false
+        }
+        failures = 0
         _state.value = WalletState.Ready
         return true
+    }
+
+    override suspend fun failedUnlockAttempts(): Int = failures
+
+    /**
+     * The seed this stub "holds" is whatever was last restored, falling back to
+     * [PHRASE] for the create path — which is what [createWallet] hands out.
+     */
+    override suspend fun holdsSeed(mnemonic: Mnemonic): Boolean =
+        pin != null && mnemonic == (restored ?: PHRASE)
+
+    override suspend fun resetPin(mnemonic: Mnemonic, pin: String) {
+        if (!holdsSeed(mnemonic)) {
+            throw WrongSeedException("The recovery phrase offered is not this wallet's")
+        }
+        this.pin = pin
+        failures = 0
+        _state.value = WalletState.Ready
+    }
+
+    override suspend fun removeWallet() {
+        pin = null
+        restored = null
+        failures = 0
+        _state.value = WalletState.Uninitialized
     }
 
     override suspend fun start() = Unit

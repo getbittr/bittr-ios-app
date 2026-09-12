@@ -65,10 +65,21 @@ import com.bittr.android.core.wallet.seed.Bip39
  * trade-off here than on Verify — it is twelve words, not three — which is exactly
  * why it is made the same way.
  *
+ * **The same screen serves the forgot-PIN reset**, which is iOS's arrangement too —
+ * `startPinReset` opens this very view controller with `resettingPin` set, and the
+ * only visible difference is that the primary button reads "Reset PIN". Hence
+ * [submitLabel]. What differs is entirely behind [onSubmit]: restoring stores whatever
+ * valid phrase was typed, resetting checks it against the phrase already on the
+ * device and stores nothing. See `UnlockViewModel`.
+ *
  * What is not ported: the "wallet recovery" article chip, which needs the article
- * fetch BIT-7 owns, and `removeWalletButton`, which is the forgot-PIN and
- * remove-wallet entry point rather than part of restoring — `restore_wallet.yaml`
- * does not touch it and iOS keeps it hidden unless `resettingPin` is set.
+ * fetch BIT-7 owns, and `removeWalletButton` — the "I have lost my phrase too, wipe
+ * the wallet" escape hatch iOS shows on the reset path. That one leads to
+ * `restoreWalletTapped`, whose no-channel and channel-close branches are
+ * `remove_wallet.yaml` and belong with BIT-6's wave, not here.
+ *
+ * @param submitLabel the primary button — "Restore wallet" when adopting a phrase,
+ *   "Reset PIN" when proving one you already have.
  */
 @Composable
 fun RestoreScreen(
@@ -76,6 +87,7 @@ fun RestoreScreen(
     onCancel: () -> Unit,
     modifier: Modifier = Modifier,
     busy: Boolean = false,
+    submitLabel: String = SignupStrings.RESTORE_WALLET,
 ) {
     val words = remember { mutableStateListOf(*Array(Bip39.WORD_COUNT) { "" }) }
     val focusRequesters = remember { List(Bip39.WORD_COUNT) { FocusRequester() } }
@@ -125,7 +137,7 @@ fun RestoreScreen(
 
                 CanvasSpacer(BittrTokens.Spacing.xl)
                 BittrPrimaryButton(
-                    text = SignupStrings.RESTORE_WALLET,
+                    text = submitLabel,
                     onClick = ::submit,
                     enabled = !busy,
                     modifier = Modifier.testTag(TestID.Signup.Restore.nextButton),

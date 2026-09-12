@@ -5,6 +5,7 @@ import com.bittr.android.core.wallet.SecureStore
 import com.bittr.android.core.wallet.WalletService
 import com.bittr.android.core.wallet.WalletState
 import com.bittr.android.core.wallet.WalletStorageException
+import com.bittr.android.core.wallet.WrongSeedException
 import java.security.MessageDigest
 import java.security.SecureRandom
 import javax.crypto.SecretKeyFactory
@@ -77,20 +78,95 @@ class SeedWalletService(
         }
         val salt = ByteArray(SALT_BYTES).also(random::nextBytes)
         store.write(KEY_PIN, salt + derive(pin, salt))
+        // A wallet that has just finished setup starts with a clean slate. Without
+        // this, a device that had been wiped for ten wrong PINs and then set up again
+        // would come back already locked out.
+        resetFailedAttempts()
         _state.value = WalletState.Locked
     }
 
     override suspend fun unlock(pin: String): Boolean {
-        val stored = store.read(KEY_PIN) ?: return false
-        if (stored.size != SALT_BYTES + KEY_BYTES) return false
+        val stored = store.read(KEY_PIN)
+        if (stored == null || stored.size != SALT_BYTES + KEY_BYTES) {
+            // No verifier to check against. Deliberately not counted as a failed
+            // attempt: there is no wallet here to protect, and counting would let a
+            // fresh install accumulate a lockout it can never clear.
+            return false
+        }
         val salt = stored.copyOfRange(0, SALT_BYTES)
         val expected = stored.copyOfRange(SALT_BYTES, stored.size)
         // Constant-time: a timing signal on a 4-digit secret is worth removing even
         // though an attacker at this point already has the unlocked device.
-        if (!MessageDigest.isEqual(expected, derive(pin, salt))) return false
+        if (!MessageDigest.isEqual(expected, derive(pin, salt))) {
+            recordFailedAttempt()
+            return false
+        }
+        resetFailedAttempts()
         _state.value = WalletState.Ready
         return true
     }
+
+    override suspend fun failedUnlockAttempts(): Int = failedAttemptsSnapshot()
+
+    override suspend fun holdsSeed(mnemonic: Mnemonic): Boolean {
+        val stored = store.read(KEY_SEED) ?: return false
+        // Constant-time for the same reason unlock is, and because this comparison is
+        // the only thing standing between a stranger holding the device and a PIN they
+        // choose themselves.
+        return MessageDigest.isEqual(stored, mnemonic.phrase.toByteArray(Charsets.UTF_8))
+    }
+
+    override suspend fun resetPin(mnemonic: Mnemonic, pin: String) {
+        require(isValidPin(pin)) { "PIN must be $MIN_PIN_LENGTH–$MAX_PIN_LENGTH digits" }
+        if (!holdsSeed(mnemonic)) {
+            throw WrongSeedException("The recovery phrase offered is not this wallet's")
+        }
+        val salt = ByteArray(SALT_BYTES).also(random::nextBytes)
+        // The seed is untouched — that is the entire point of this path. Only the
+        // verifier is replaced.
+        store.write(KEY_PIN, salt + derive(pin, salt))
+        // The user proved ownership by a stronger means than the PIN, so the lockout
+        // they were walking into is cleared. Leaving it would let someone who had just
+        // recovered their wallet get wiped by their next typo.
+        resetFailedAttempts()
+        _state.value = WalletState.Ready
+    }
+
+    override suspend fun removeWallet() {
+        // Counter and verifier first, seed last: a failure part-way through has to
+        // leave a wallet that can still be opened, never a seed with no way in.
+        // See WalletService.removeWallet.
+        store.removeIfPresent(KEY_PIN_ATTEMPTS)
+        store.removeIfPresent(KEY_PIN)
+        store.removeIfPresent(KEY_SEED)
+        _state.value = storedState()
+    }
+
+    private fun recordFailedAttempt() {
+        val next = failedAttemptsSnapshot() + 1
+        // Best effort, like iOS's `try?`: a counter that could not be written must not
+        // turn a wrong PIN into a crash on the one screen the user has to get past.
+        runCatching {
+            store.write(KEY_PIN_ATTEMPTS, next.toString().toByteArray(Charsets.UTF_8))
+        }
+    }
+
+    private fun resetFailedAttempts() {
+        runCatching { store.removeIfPresent(KEY_PIN_ATTEMPTS) }
+    }
+
+    /**
+     * The stored failure count, or 0 for anything that cannot be read as one.
+     *
+     * Fails open on a missing key, an unreadable blob and a negative number alike —
+     * see `WalletService.failedUnlockAttempts` for why that direction is the safe one.
+     */
+    private fun failedAttemptsSnapshot(): Int =
+        runCatching { store.read(KEY_PIN_ATTEMPTS) }.getOrNull()
+            ?.toString(Charsets.UTF_8)
+            ?.toIntOrNull()
+            ?.coerceAtLeast(0)
+            ?: 0
 
     /** No node yet — BIT-6. Present so the seam does not change shape when it lands. */
     override suspend fun start() = Unit
@@ -120,6 +196,18 @@ class SeedWalletService(
     companion object {
         const val KEY_SEED = "wallet.seed"
         const val KEY_PIN = "wallet.pin"
+
+        /**
+         * The failed-unlock counter, in secure storage rather than in preferences.
+         *
+         * Same reasoning as iOS's move off `UserDefaults`
+         * (`CacheManager.failedAttemptsAccount`): a counter in a plist is a counter an
+         * attacker with the file system resets in seconds, buying another ten guesses
+         * per pass. Keystore does not make that impossible — nothing on a device the
+         * attacker holds does — but it turns a text edit into a restore-from-backup
+         * cycle, which is the difference that matters against a 4-digit PIN.
+         */
+        const val KEY_PIN_ATTEMPTS = "wallet.pin.attempts"
 
         /** iOS `pinshouldbe4to8`, and `Signup5ViewController`'s `count > 3`. */
         const val MIN_PIN_LENGTH = 4

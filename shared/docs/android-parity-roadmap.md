@@ -73,9 +73,9 @@ the seed/PIN layer that BIT-93 already landed.
 | `onboarding/happy_path_wallet` | Signup1–7 | **screens built** (BIT-93); needs the flow driven |
 | `onboarding/restore_wallet` | RestoreVC | **screens built** (BIT-96); needs the flow driven |
 | `onboarding/fresh_install_unhappy` | Signup1–7 | the validation gates; BIT-19's wrong-word rejection |
-| `features/pin_warning` | PinVC | 3 wrong entries → warning alert |
-| `features/wrong_pin` | PinVC | 10 wrong → wipe (no-channel branch) |
-| `features/forgot_pin` | PinVC → RestoreVC | non-destructive mnemonic reset |
+| `features/pin_warning` | PinVC | **screens built** (BIT-97); needs the flow driven |
+| `features/wrong_pin` | PinVC | **screens built** (BIT-97); no-channel branch only — the channel close is Wave 2 |
+| `features/forgot_pin` | PinVC → RestoreVC | **screens built** (BIT-97); needs the flow driven |
 | `features/bitcoin_value` | ValueVC | price API, no wallet state |
 | `features/bitcoin_map` | MapVC | BTCMap public API; SDK settled in BIT-53 (coarse-location constraint is binding) |
 | `features/academy` | Academy | content API |

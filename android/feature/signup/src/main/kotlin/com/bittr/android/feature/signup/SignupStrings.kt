@@ -13,8 +13,15 @@ package com.bittr.android.feature.signup
  * Do not paraphrase these. They are the strings a bittr user has already read on
  * iOS, and the alert copy in particular was written to avoid revealing the correct
  * recovery words.
+ *
+ * **Public, though it names a feature module.** BIT-97's PIN gate lives in `:app` and
+ * reuses these screens, so it needs the same PIN titles; the alternative was a second
+ * copy of "Confirm your PIN" in a second module, which is how two strings that are
+ * supposed to be one start to drift. When the `shared/strings/` extraction lands this
+ * object goes away and the coupling with it — until then one copy in the wrong module
+ * beats two copies in the right ones.
  */
-internal object SignupStrings {
+object SignupStrings {
 
     // Signup1 — create or restore.
     const val WELCOME = "welcome"
