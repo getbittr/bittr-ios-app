@@ -197,11 +197,9 @@ class BackupExclusionTest {
                     when (parser.name) {
                         "cloud-backup", "device-transfer" -> section = parser.name
                         "exclude" -> section?.let {
-                            val domain = parser.getAttributeValue(ANDROID_NS, "domain")
-                            val path = parser.getAttributeValue(ANDROID_NS, "path")
                             excludedBySection
                                 .getOrPut(it) { mutableSetOf() }
-                                .add("$domain:$path")
+                                .add("${attr(parser, "domain")}:${attr(parser, "path")}")
                         }
                         // An <include> anywhere re-admits what the excludes took
                         // out, and would do it silently. BackupExclusionRulesTest
@@ -482,6 +480,34 @@ class BackupExclusionTest {
         instrumentation.uiAutomation.executeShellCommand(command).use { descriptor ->
             FileInputStream(descriptor.fileDescriptor).use { it.readBytes().decodeToString() }
         }
+
+    /**
+     * An `<exclude>` attribute, read from the namespace it is actually in.
+     *
+     * **This is what made the test red while the app was correct.** Unlike the
+     * manifest, `data-extraction-rules` declares no `xmlns:android` and its
+     * `domain`/`path` attributes are UNPREFIXED — they live in the null
+     * namespace. Reading them with the android namespace returned `null` for
+     * every one, so each entry was recorded as the string `"null:null"` and the
+     * "does not exclude the wallet directory" assertion failed against a config
+     * that excludes it correctly.
+     *
+     * The failure mode to keep in mind is the opposite one: a silent `null` here
+     * builds a set that matches nothing, and had the assertions been written the
+     * other way round (asserting some path is ABSENT) this same bug would have
+     * produced a permanent green. So a missing attribute throws rather than
+     * returning null — `<exclude>` without a domain and path is malformed, and
+     * this test may not quietly agree with it.
+     */
+    private fun attr(parser: XmlResourceParser, name: String): String =
+        parser.getAttributeValue(null, name)
+            ?: parser.getAttributeValue(ANDROID_NS, name)
+            ?: throw AssertionError(
+                "An <exclude> in the installed data_extraction_rules.xml has no " +
+                    "'$name' attribute in either the null or the android namespace. " +
+                    "That is a malformed rule, and treating it as an empty match " +
+                    "would let this test pass over a rule the platform cannot apply.",
+            )
 
     private companion object {
         /**
