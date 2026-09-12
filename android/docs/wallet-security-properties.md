@@ -239,11 +239,45 @@ that is a **halt**, not a smaller test. The finding goes back to BIT-20 with
 the empirical result attached, and the guard reverts to iOS behaviour
 (quarantine on anything but a live mnemonic) until it is re-decided.
 
+**First result, read and recorded — run 107 (`684791c`), 2026-09-12.** The
+cloud-backup path passed. The device-transfer path came back **red, with a
+completely empty `<failure>`** — no message, no stack trace — and the four
+`InstalledBackupConfigurationTest` cases did not run at all.
+
+That shape is not an assertion failing. Every assertion in
+`BackupExclusionTest` carries a message, `@FixMethodOrder(NAME_ASCENDING)` puts
+`deviceTransfer…` last in the class, and an empty `<failure>` followed by every
+later class never starting is what the runner records when the instrumentation
+process **dies** mid-test. It is the first of the two hazards this section
+already predicted: *the instrumentation runs inside the process whose data is
+being restored.* The device-transfer restore appears to kill it.
+
+So the honest reading is a finding about the harness, not about the product,
+and **it is not the §5.3 halt** — a halt needs the marker found in a real set,
+which is a different observation from an assertion that never got to run. It is
+also not a clean bill of health: the device-transfer path remains *unproven*,
+now for a demonstrated reason rather than an unexamined one. It goes to BIT-101
+as a test-design problem, because a restore assertion cannot live in the
+process being restored.
+
+What should have settled it in the same run could not be read.
+`check-backup-set.sh` greps the transport's own tree from the host, needs no
+surviving process, and therefore still answers on exactly this kind of red —
+but its evidential outcome was a bare `echo` into a job log that answers 403 on
+this public repo, while its two *non*-evidential outcomes emitted annotations.
+The one run that proved something was the one run nobody could read without
+credentials. Fixed in the same commit as this paragraph: that verdict and the
+`BACKUP_EXCLUSION`/`KEYSTORE_KEY_INFO` lines are now `::notice::` annotations,
+which are the only channel this repo answers 200 on without a token. The gate
+also now names the empty-`<failure>`-plus-missing-tests signature in its own
+annotation, so the next reader does not re-derive it — or, worse, read it as
+the halt.
+
 Until `BackupExclusionTest` is green on both paths, `match → keep` is shipping
-on a proven *configuration* and a *behaviour that now runs but has not yet
-reported*. That is the honest status. BIT-59 built the job and the gates; what
-it cannot do by building them is produce the first result, and this row does not
-move to green until a run has been read and recorded here.
+on a proven *configuration*, a **green cloud-backup path**, and a
+**device-transfer path that has run and not yet returned a readable verdict**.
+That is the honest status. This row does not move to green until a run reports
+the device-transfer path without the process dying under it.
 
 BIT-59 put both halves on a machine that can answer them. Whether the answer it
 gives is enough to release the `match → keep` guard is BIT-20's call, not this

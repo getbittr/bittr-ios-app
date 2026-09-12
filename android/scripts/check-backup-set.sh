@@ -116,5 +116,23 @@ if [ -n "$leaks" ]; then
   exit 1
 fi
 
+# A ::notice:: rather than a plain echo, and the asymmetry it fixes is the whole
+# point of this script. Of the three outcomes above, the two that are NOT
+# evidence already emit annotations (a ::error:: for the halt, a ::warning:: for
+# "could not look"), while this one — the only one that is evidence — was a bare
+# echo into the job log. On this public repo that log answers 403 and artifacts
+# answer 401, so the run that PROVED something was the one run nobody could read
+# without credentials, and the finding had to be taken on trust.
+#
+# It matters most exactly when the suite is red: this check reads the
+# transport's tree from the host with no restore and no surviving instrumentation
+# process, so it still answers when the in-process assertions cannot. See the
+# empty-<failure> block in check-wallet-instrumented-results.py.
+echo "::notice title=Backup set inspection::Looked inside the backup transport's own"\
+  " on-disk tree from the host: NO wallet marker ($MARKER_PREFIX) under any of the"\
+  " transport directories present on this image. This is the evidence outcome — the"\
+  " set was reachable, it was searched, and the wallet material was not in it. It is"\
+  " independent of whether the instrumentation process survived, so it holds even on"\
+  " a red run."
 echo "Looked inside the backup set: no wallet marker under any of the above."
 exit 0

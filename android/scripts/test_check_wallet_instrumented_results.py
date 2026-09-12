@@ -423,6 +423,130 @@ def test_absent_evidence_lines_are_reported_not_omitted():
         out,
     )
 
+# --- The run 107 shape: process death, not an assertion ----------------------
+#
+# Run 107 failed `deviceTransferOfAWalletBearingInstallCarriesNoWalletMaterial`
+# with a completely empty <failure> and did not run the four
+# InstalledBackupConfigurationTest cases at all. The obvious reading of that —
+# "the device-transfer path leaked wallet material" — is the BIT-20 §5.3 halt,
+# and it would have been declared on evidence that does not say it. These tests
+# pin the distinction so it cannot quietly regress into the obvious reading.
+
+
+def _run_107_shape(tmp):
+    """Empty <failure> on the last-ordered test, and the next class missing.
+
+    NAME_ASCENDING puts deviceTransfer… last in BackupExclusionTest, so a
+    process that dies there takes every later class with it.
+    """
+    return both_modules(
+        tmp,
+        {"deviceTransferOfAWalletBearingInstallCarriesNoWalletMaterial":
+            "failed-without-message"},
+        drop=[t for t in APP_REQUIRED if "InstalledBackupConfigurationTest" in t],
+    )
+
+
+def test_an_empty_failure_with_missing_tests_is_named_as_process_death():
+    with tempfile.TemporaryDirectory() as tmp:
+        code, out = run(_run_107_shape(pathlib.Path(tmp)))
+    check("the run 107 shape still exits 1", code == 1, out)
+    check("and is named as process death rather than an assertion",
+          "process" in out and "DIES mid-test" in out, out)
+    check("and says it is not on its own the §5.3 halt",
+          "NOT on its own the BIT-20 §5.3 halt" in out, out)
+    check("and points at the check that does settle it",
+          "Backup set inspection" in out, out)
+    check("and the diagnosis reaches the annotation, not just the log",
+          any("::error::" in line and "DIES mid-test" in line
+              for line in out.splitlines()), out)
+
+
+def test_an_empty_failure_alone_is_not_called_process_death():
+    # The conjunction is the signal. An empty <failure> while everything else
+    # ran is an unhelpful failure, not a dead process — calling it one would
+    # hand every reader an excuse for a red the product may well have earned.
+    with tempfile.TemporaryDirectory() as tmp:
+        dirs = both_modules(
+            pathlib.Path(tmp),
+            {"deviceTransferOfAWalletBearingInstallCarriesNoWalletMaterial":
+                "failed-without-message"},
+        )
+        code, out = run(dirs)
+    check("an empty failure with nothing missing still exits 1", code == 1, out)
+    check("and is NOT explained away as process death",
+          "DIES mid-test" not in out, out)
+
+
+def test_a_normal_failure_with_missing_tests_is_not_called_process_death():
+    # The other half of the conjunction: tests can go missing for dull reasons
+    # (a rename), and a failure that carried a real assertion message is
+    # evidence about the product.
+    with tempfile.TemporaryDirectory() as tmp:
+        dirs = both_modules(
+            pathlib.Path(tmp),
+            {"deviceTransferOfAWalletBearingInstallCarriesNoWalletMaterial": "failed"},
+            drop=[t for t in APP_REQUIRED if "InstalledBackupConfigurationTest" in t],
+        )
+        code, out = run(dirs)
+    check("a message-carrying failure plus missing tests exits 1", code == 1, out)
+    check("and is NOT explained away as process death",
+          "DIES mid-test" not in out, out)
+
+
+# --- The evidence lines have to leave the job log ----------------------------
+#
+# On this public repo the job log answers 403 and artifacts answer 401.
+# Annotations are the only channel that answers 200 without a token, so an
+# observation that reaches only the log has not been reported.
+
+
+def test_the_evidence_lines_reach_an_annotation_not_only_the_log():
+    line = ("BACKUP_EXCLUSION path=device-transfer api=34 package=com.bittr.android "
+            "result=Success canaryReturned=true")
+    with tempfile.TemporaryDirectory() as tmp:
+        tmp = pathlib.Path(tmp)
+        ldk = write_results(tmp / "wallet-ldk",
+                            [testcase(t) for t in LDK_REQUIRED],
+                            system_out=line)
+        app = write_results(tmp / "app", [testcase(t) for t in APP_REQUIRED])
+        code, out = run([ldk, app])
+    check("a green run with evidence still exits 0", code == 0, out)
+    notices = [l for l in out.splitlines() if l.startswith("::notice title=What the device reported::")]
+    check("the evidence is emitted as a notice annotation", len(notices) == 1, out)
+    check("and the annotation carries the line itself",
+          notices and "canaryReturned=true" in notices[0], out)
+
+
+def test_absent_evidence_is_reported_in_the_annotation_too():
+    # Silence is the reading that matters: these lines are printed
+    # unconditionally, so none arriving means the tests did not reach the print.
+    # Reporting that only in the unreadable log is the same as not reporting it.
+    with tempfile.TemporaryDirectory() as tmp:
+        code, out = run(both_modules(pathlib.Path(tmp)))
+    notices = [l for l in out.splitlines() if l.startswith("::notice title=What the device reported::")]
+    check("absence is still emitted as an annotation", len(notices) == 1, out)
+    check("and the annotation says the pass is unproven",
+          notices and "unproven" in notices[0], out)
+
+
+def test_the_evidence_annotation_stays_one_line():
+    # Two evidence lines must not become two log lines, or the second is
+    # ordinary output and falls out of the annotation.
+    out_lines = "BACKUP_EXCLUSION path=cloud-backup canaryReturned=false\nKEYSTORE_KEY_INFO securityLevel=TEE"
+    with tempfile.TemporaryDirectory() as tmp:
+        tmp = pathlib.Path(tmp)
+        ldk = write_results(tmp / "wallet-ldk",
+                            [testcase(t) for t in LDK_REQUIRED],
+                            system_out=out_lines)
+        app = write_results(tmp / "app", [testcase(t) for t in APP_REQUIRED])
+        code, out = run([ldk, app])
+    notices = [l for l in out.splitlines() if l.startswith("::notice title=What the device reported::")]
+    check("both evidence lines share one annotation line", len(notices) == 1, out)
+    check("with the newline encoded rather than dropped",
+          notices and "%0A" in notices[0] and "KEYSTORE_KEY_INFO" in notices[0], out)
+
+
 def main():
     for name, fn in sorted(globals().items()):
         if name.startswith("test_") and callable(fn):

@@ -199,12 +199,21 @@ class Case:
         # first (it is the one-line summary when present), element text second,
         # and the literal only when there is genuinely neither.
         self.problem = None
+        # An EMPTY <failure> — no attribute and no text — is not just an
+        # unhelpful message, it is a different event. Every assertion in this
+        # suite is written with a message attached, so a failure carrying none
+        # did not come from an assertion: it is what the runner synthesises for
+        # the test that was in flight when the instrumentation process died.
+        # Kept as a separate flag because the distinction decides whether a red
+        # run is read as a product finding or as a harness one.
+        self.problem_empty = False
         if problems:
-            self.problem = (
+            text = (
                 (problems[0].get("message") or "").strip()
                 or (problems[0].text or "").strip()
-                or "(no message)"
             )
+            self.problem_empty = not text
+            self.problem = text or "(no message)"
 
     @property
     def passed(self):
@@ -348,6 +357,27 @@ def main(argv=None):
               "own them, so this means the tests did not get that far, or the "
               "runner did not capture instrumentation stdout.)")
 
+    # ...and again as an annotation, which is the part that matters.
+    #
+    # The previous commit put these lines in the job log and called the problem
+    # solved. It was not: on this public repo the job log answers 403 and
+    # artifacts answer 401, so "in the log" means "readable by a signed-in
+    # maintainer and by nobody else" — the same inaccessibility that made the
+    # result unreadable in the first place, moved one step. Annotations are the
+    # only channel that answers 200 without a token, which is why every other
+    # verdict in this file goes through one. Emitted on green runs too: on a
+    # green run this IS the result, because it says which of the two green
+    # outcomes the run got.
+    # Built outside the f-string on purpose: a backslash inside an f-string
+    # expression is a syntax error before Python 3.12, and this script's own
+    # rule is stdlib-only on whatever the runner ships.
+    reported = "\n".join(evidence) if evidence else (
+        "No BACKUP_EXCLUSION or KEYSTORE_KEY_INFO line arrived. Those are printed "
+        "unconditionally by the tests that own them, so this means those tests did "
+        "not reach the print — read any pass in this run as unproven."
+    )
+    print(f"::notice title=What the device reported::{annotate(reported)}")
+
     missing = sorted(REQUIRED - set(by_id))
     if missing:
         problems.append(
@@ -374,6 +404,37 @@ def main(argv=None):
                       for t in failed)
         )
 
+    # An empty <failure> alongside required tests that never ran is the
+    # signature of the instrumentation process dying mid-test, not of an
+    # assertion. Named here so the next reader does not have to re-derive it:
+    # run 107 produced exactly this shape and the obvious reading — "the
+    # device-transfer path leaked wallet material" — would have been the §5.3
+    # halt, declared on evidence that says nothing of the kind.
+    #
+    # It stays a FAILURE. This block explains a red run; it never excuses one.
+    # The distinction it draws is about which issue the red belongs to, and the
+    # host-side check-backup-set.sh verdict is what settles it, because that one
+    # reads the transport's own tree and needs no surviving process.
+    empty_failures = sorted(t for t in failed if by_id[t].problem_empty)
+    if empty_failures and missing:
+        problems.append(
+            "Read the two blocks above together before acting on either. These "
+            "failed with a COMPLETELY empty <failure> — no message, no stack "
+            "trace:\n"
+            + "".join(f"    {t}\n" for t in empty_failures)
+            + "  Every assertion in this suite is written with a message attached, "
+            "so a failure carrying none did not come from an assertion. Together "
+            "with required tests that did not run at all, this is what the runner "
+            "records when the instrumentation process DIES mid-test — and this "
+            "suite restores data into the very process it is running in.\n"
+            "  So this is most likely a finding about the test harness, NOT about "
+            "the product, and it is NOT on its own the BIT-20 §5.3 halt. What "
+            "settles it is the `Backup set inspection` annotation: that check "
+            "greps the transport's own on-disk tree from the HOST, so it survives "
+            "a process that does not. A marker found there is the halt. This "
+            "signature alone is not."
+        )
+
     if CANARY in by_id and not by_id[CANARY].passed:
         problems.append(
             "backupManagerAndTheLocalTransportAreLiveOnThisDevice did not pass, so "
@@ -396,7 +457,7 @@ def main(argv=None):
     # all. That is a pass for BIT-20 rule 5 and it is NOT a proof that the rules
     # work; the BACKUP_EXCLUSION lines in the instrumentation output say which
     # of the two happened, per path.
-    print("\nNOTE: read the BACKUP_EXCLUSION lines in the instrumentation output "
+    print("\nNOTE: read the 'What the device reported' annotation on this run "
           "before quoting this suite. Each path prints the framework's own result "
           "for the package and whether the canary came back: canaryReturned=true "
           "means the set was real and excluded our material, canaryReturned=false "

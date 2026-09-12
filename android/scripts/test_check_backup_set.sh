@@ -109,6 +109,17 @@ expect "outcome_1_marker_in_the_set_is_a_halt" 1 "HALT"
 configure yes "/data/data/com.android.localtransport/files" ""
 expect "outcome_2_present_and_clean" 0 "Looked inside the backup set"
 
+# ...and it has to be READABLE, which is a separate property from being correct.
+#
+# The asymmetry this pins: outcomes 1 and 3 always emitted annotations, while
+# outcome 2 — the only one that is evidence — was a bare echo. On this public
+# repo the job log answers 403 and artifacts answer 401, so the run that proved
+# something was the one run nobody could read without credentials. It matters
+# most on a RED run, because this check needs no surviving instrumentation
+# process and so still answers when the in-process assertions cannot.
+expect "outcome_2_is_readable_without_a_token" 0 \
+  "::notice title=Backup set inspection::"
+
 # --- Outcome 3a: no root ------------------------------------------------------
 #
 # Must NOT claim the set was clean. `adb root` is refused on a production image
