@@ -67,3 +67,8 @@ include(":feature:signup")
 // boundary is what keeps "which code can touch the camera" answerable by reading one
 // build file. See CameraCaptureGuardTest in :app.
 include(":feature:scanner")
+
+// The Bitcoin value / price chart (iOS ValueViewController). BIT-99, Wave 1. Holds
+// the span model and the screen's state for now; the chart, the price repository and
+// the Compose screen follow.
+include(":feature:value")
