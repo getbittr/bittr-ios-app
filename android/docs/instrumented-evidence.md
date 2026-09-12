@@ -12,8 +12,9 @@ reading the repo rather than the issue tracker. It is the companion to
 
 ## The runs
 
-`.github/workflows/android-maestro.yml`, job **`S-36 isolation tests (emulator)`**, on
-branch `feature/bit-62-instrumented-ci`.
+`.github/workflows/android-maestro.yml`, job **`S-36 isolation tests (emulator)`**. Runs
+25 to 98 are on `feature/bit-62-instrumented-ci`, which is now merged; anything after that
+is on `android-parity`.
 
 | # | commit | result | verdict line |
 |---|---|---|---|
@@ -21,14 +22,35 @@ branch `feature/bit-62-instrumented-ci`.
 | 27 | `518cdd7` | **RED** | 179s · 9 required · vacuity check FAILED |
 | 68 | `3bb6e52` | **RED** | 202s · 9 required · 0 missing · 0 skipped · **2 failed** · canary passed |
 | 95 | `5956c29` | **green** | 203s · 9 required · 0 missing · 0 skipped · 0 failed · canary passed |
+| 97 | `52b0ffe` | **RED** | 233s · 11 required · 0 missing · 0 skipped · **1 failed** · canary passed |
+| 98 | `3b2392a` | **RED** | job never ran — `build` failed first, on `:app`'s unit tests |
 
-Run 95 is the first execution of `CrossOriginIframeIsolationTest` in the test's life.
+Run 95 is the first execution of `CrossOriginIframeIsolationTest` in the test's life. It
+is also, as of this writing, the last verdict this suite has given: runs 97 and 98 are
+both about the two positive controls added *after* it, and neither has yet been answered
+on a device.
+
+**Run 97** is the positive controls' own false red, diagnosed under
+*The positive controls* below and fixed in `3b2392a`. Note `11 required`, not 9 — the two
+controls are in the `REQUIRED` set, so neither can be quietly dropped.
+
+**Run 98** carries no signal about this suite at all. `build` went red on `:app`'s unit
+tests — the BIT-106 test-gate breakage, unrelated to anything here and fixed three hours
+later on `android-parity` by `8ae197d`, which the branch tip predates. Every emulator job
+`needs: build`, so `instrumented` was *skipped*, not failed. Worth stating plainly,
+because a red run with this suite's job showing grey is the one shape that looks like
+evidence and is not.
+
+The verdict on `3b2392a` therefore has to come from `android-parity`, which carries both
+that commit and `8ae197d`. Four attempts to get it produced nothing, for a reason that had
+nothing to do with the tests — see *The gate that would not start* below.
 
 Reproduce the table without credentials — the repository is public and the Actions REST
 API on a public repo is readable anonymously:
 
 ```sh
 android/scripts/ci-runs.py --branch feature/bit-62-instrumented-ci
+android/scripts/ci-runs.py --branch android-parity
 ```
 
 ## What the green actually establishes
@@ -62,8 +84,44 @@ level, and a WebView provider is a plausible casualty. The Maestro flow drives C
 and would not notice; **every** test in this suite constructs a real
 `android.webkit.WebView` and would fail at construction. Sharing the AVD would make this
 suite's correctness depend on a choice made for a different test's speed, so this job
-uses a full AOSP `default` image and pays the slower boot. `ci-instrumented.sh` prints
-the WebView provider on every run so the assumption cannot rot silently either way.
+uses a full AOSP `default` image and pays the slower boot.
+
+`ci-instrumented.sh` does not take that on trust. It reads `dumpsys webviewupdate` before
+running anything, prints the provider on every run, and **fails the job outright** if the
+image ships none — because the alternative is every test in the suite failing at `WebView`
+construction with `MissingWebViewPackageException`, and not one of those failures
+mentioning the system image. So the assumption cannot rot silently in either direction.
+
+## The gate that would not start
+
+Runs **121, 122, 125 and 126** on `android-parity` are red having started **zero jobs** —
+not this job, *all four*, `build` and `maestro` included. Recorded here because it is the
+reason this suite went most of a day without a verdict, and because the failure is unusually
+hard to read.
+
+Two consolidation merges stacked two authors' work into non-overlapping regions of the same
+files. Git merged cleanly and produced text nobody wrote: `jobs.instrumented` defined twice
+— BIT-33 and BIT-62 had each written a job to run `ci-instrumented.sh` — plus two `run:`
+keys in one `build` step, and `ci-instrumented.sh` itself left as two scripts concatenated,
+the older copy appended after the newer one's `exit`.
+
+A duplicate key is well-formed YAML. Most parsers accept it and silently resolve
+last-one-wins, so loading the file locally reported four healthy jobs and told nobody
+anything was wrong. GitHub's parser rejects it, and rejects it *before scheduling
+anything* — so there is no step log to read, no check run, and no failing step to open.
+With no `name:` ever parsed, the run list shows the file path where the workflow name goes,
+which scans as a different workflow rather than a broken one. The tell:
+
+```sh
+# a healthy run lists its jobs; a startup failure returns total_count 0
+curl -s https://api.github.com/repos/getbittr/bittr-ios-app/actions/runs/<id>/jobs
+```
+
+Fixed under BIT-110 in `e202344`, which kept the BIT-62 copy of the job. That is not a
+preference between two designs: the BIT-33 copy booted `aosp_atd`, which is the one image
+the section above explains this suite must not run on. `.github/workflows/workflow-lint.yml`
+now runs actionlint from a file of its own, because the lint that names this defect was
+inside the file that could not start.
 
 ## Run 68: the red was the test's, not the wallet's
 
@@ -89,7 +147,7 @@ direction. Both now exclude by object identity rather than by name: a name list 
 exclude an alias it has not heard of, while the entire job of the catch-all is to admit a
 bridge under a name it has not heard of.
 
-## The positive controls (run 96)
+## The positive controls (runs 97 and 98)
 
 After run 95 there was still one hole. Every bridge assertion in both classes is
 `assertEquals("[]", bridges)` — and an empty list is also exactly what a probe that has
@@ -121,6 +179,36 @@ frame cross-origin to its parent they are genuinely *different* objects — cros
 `Window` proxies, each with a real `postMessage` — and the probe has to reject those
 while still reporting the planted object sitting beside them. An exclusion written
 slightly too wide passes every other test in the file and fails only there.
+
+### Run 97: the control's own false red
+
+The iframe control failed on its first run, and — exactly like run 68 — the failure was
+the test's, not the wallet's. The assertion that fired says the iframe "never reported in
+at all", and the report it printed alongside itself was:
+
+```
+{"ran":true,"bridges":["bittrLnurl","postMessage:bittrLnurl"],"errors":[],
+ "topNavigated":false,"planted":["lightning:lnurl1dp68gurn8ghj7..."]}
+```
+
+`ran` is true and both halves of the probe found the planted bridge. The control had
+worked perfectly and then failed to notice.
+
+The check was a substring test for `{"ran":true}` against
+`JSON.stringify(window.__bittrIframe)`. `evaluateJavascript` hands back a JSON *encoding*
+of its result, so a stringified object arrives with every quote escaped: the haystack held
+`\"ran\":true` and the needle was `"ran":true`. It could not have matched its own subject
+on any run, green or red.
+
+`3b2392a` asks it the way `theCrossOriginIframeActuallyRan` asks it — reduce to a bare
+boolean in JS, compare the whole encoded value exactly. The three other checks in that
+test were unaffected: `bittrLnurl`, `postMessage:bittrLnurl` and `lightning:` contain no
+quote characters, so they survive the escaping intact, which is why the same bug did not
+take the whole test down and made the failure look like the probe's.
+
+Two false reds now, out of two substantive findings, and both found by a run rather than
+by review. That is the argument for this job stated better than the issue stated it: a
+test nobody has executed can be asserting something false as easily as asserting nothing.
 
 ### Why the bridge is planted from JavaScript
 
