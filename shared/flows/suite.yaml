@@ -43,6 +43,7 @@ appId: com.bittr.bittr-regtest
 - runFlow: features/receive.yaml
 - runFlow: features/receive_onchain.yaml       # onchain receive → small onchain send
 - runFlow: features/receive_invoice.yaml       # lightning receive → send
+- runFlow: features/receive_lnurl.yaml         # the user's own lightning address; read-only, needs the channel
 - runFlow: features/swap.yaml                  # lightning <-> onchain, both directions
 - runFlow: features/send_onchain.yaml          # onchain send (5 EUR)
 - runFlow: features/send_onchain_all.yaml      # send all remaining onchain funds

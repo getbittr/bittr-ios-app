@@ -39,6 +39,7 @@ Every flow under `shared/flows/` is listed below. iOS is the source of truth and
 | Receive | done | not started | `features/receive.yaml` | Auto-recovers via `happy_path_wallet` + `happy_path_signup` if launched on a clean install. |
 | Receive onchain → Send round-trip | done | not started | `features/receive_onchain.yaml` | Taps the header spinner right after unlock: while syncing this opens the sync status view (waits for it to auto-dismiss), or — if the sync already finished — the balance/Move screen, which it closes. Shows the onchain address, copies it via the QR long-press context menu (exercises Share + Copy), pastes into Send asserting Regular/onchain with and without a 5000 sat amount, then renews until the address pool is exhausted. Uses `helpers/show_onchain_address.yaml`. |
 | Receive invoice → Send round-trip | done | not started | `features/receive_invoice.yaml` | Switches the type to a lightning invoice, copies it, pastes into Send asserting lightning with and without a 2000 sat amount. Requires an active channel. Uses `helpers/show_invoice.yaml`. |
+| Receive LNURL / Lightning address | done | not started | `features/receive_lnurl.yaml` | The user's own lightning address — the fourth Receive type. Parks on the onchain address first so the More → "Show LNURL" switch is a real type change (with a channel *and* an address, Receive already opens on LNURL), then reads the info alert and copies the address. Branches on whether the bittr account carries an address: captures either the populated state (label + QR) or the "Unavailable" state (QR hidden). Identifies the mode structurally — the title renders as "Address" for both onchain and LNURL — via the card row: LNURL is the only type with no add-amount card, so there is no amount/description state to capture. Read-only; requires an active channel. Uses `helpers/show_onchain_address.yaml` + `helpers/show_lnurl.yaml`. |
 
 ## Send
 
@@ -87,6 +88,7 @@ Reusable building blocks (not standalone features) and the full-suite runner.
 | `helpers/unlock.yaml` | Enter PIN 1234 on the unlock screen (also listed above). |
 | `helpers/show_onchain_address.yaml` | From a freshly-opened Receive screen, make sure the onchain address is the one shown. |
 | `helpers/show_invoice.yaml` | From a freshly-opened Receive screen, switch the type to a lightning invoice. |
+| `helpers/show_lnurl.yaml` | From a freshly-opened Receive screen, switch the type to the user's own lightning address, asserting the LNURL card row. Needs a channel (no More button without one). |
 | `helpers/wrong_pin_until_lockout.yaml` | Enter the wrong PIN ten times to trigger the lockout/wipe; shared by `wrong_pin` and `wrong_pin_with_channel`. |
 | `helpers/create_wallet_with_channel.yaml` | Provision a fresh wallet *with* an open channel (onboarding + `buy_incoming`); used by `forgot_pin_remove_wallet`. |
 | `helpers/ensure_bittr_channel.yaml` | Ensure an open channel exists, building the bittr account/channel as needed; used by `wrong_pin_with_channel`. **Unverified** — not yet run against Maestro. |
@@ -96,14 +98,13 @@ Reusable building blocks (not standalone features) and the full-suite runner.
 
 The gaps below come from a full iOS-code audit (every view controller, app target and notification path cross-referenced against the flow suite). Each item exists in the iOS app but has no flow exercising it. Grouped by priority for the Android parity effort.
 
-Previously listed here and now covered: Restore wallet (`onboarding/restore_wallet.yaml`), Settings (`features/settings.yaml`), Profits (within the buy flows), the QR scanner (within `features/send_onchain.yaml`), and the article reader (within `onboarding/happy_path_wallet.yaml`). Send end-to-end is covered onchain (`features/send_onchain.yaml`) and lightning LNURL-**pay** (`features/send_lightning.yaml`).
+Previously listed here and now covered: Restore wallet (`onboarding/restore_wallet.yaml`), Settings (`features/settings.yaml`), Profits (within the buy flows), the QR scanner (within `features/send_onchain.yaml`), the article reader (within `onboarding/happy_path_wallet.yaml`), and the Receive "LNURL" type (`features/receive_lnurl.yaml`). Send end-to-end is covered onchain (`features/send_onchain.yaml`) and lightning LNURL-**pay** (`features/send_lightning.yaml`).
 
 ### Production-scope features needing a flow (high priority)
 
 | Feature | Where (iOS) | Notes |
 |---|---|---|
 | LNURL-withdraw | `SendVC/SendLNURL.swift` (`handleWithdrawAmountCompletion`, `sendWithdrawRequest`, k1) | In active production scope. Only LNURL-pay is covered today; the withdraw path has no flow. |
-| Receive "LNURL" type | `ReceiveViewController.swift` (`tappedLnurl`, More-picker option 4) | The user's own Lightning-address receive screen is never opened (onchain / invoice / Bitcoin QR are covered). |
 | External deep links | `SceneDelegate.swift`, `Core/URIs.swift`, `Info.plist` (`bitcoin:` / `lightning:` schemes) | Opening the app / Send screen from an external URI. Send flows only use the in-app Paste button. |
 | Swap-file export / share | `SwapStatusViewController.swift:350` (`downloadSwapFileTapped`) | No flow taps the swap-file download/share. |
 
