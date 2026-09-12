@@ -11,6 +11,6 @@ class BitcoinValue: NSObject {
     
     var currentValue:CGFloat = 0
     var chosenCurrency:String = "€"
-    var apiUrl:String = "https://getbittr.com/api/price/btc/historical/eur"
+    var apiUrl:String = "\(EnvironmentConfig.bittrAPIBaseURL)/price/btc/historical/eur"
 }
 

@@ -421,7 +421,7 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate, UIContextMen
     @IBAction func copyTapped(_ sender: UIButton) {
         let copyingText = self.currentCopyableText
         UIPasteboard.general.string = copyingText
-        self.showAlert(title: Language.getWord(withID: "copied"), message: copyingText, buttons: [.dismiss(Language.getWord(withID: "okay"))])
+        self.showAlert(id: TestID.Alert.copied, title: Language.getWord(withID: "copied"), message: copyingText, buttons: [.dismiss(Language.getWord(withID: "okay"))])
     }
     
     @IBAction func refreshTapped(_ sender: UIButton) {

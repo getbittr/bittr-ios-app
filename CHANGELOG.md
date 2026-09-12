@@ -8,6 +8,25 @@ We started tracking the changelog at **0.1.184** (the TestFlight build current w
 
 ## [Unreleased]
 
+### Security
+
+- Debug/regtest builds no longer read **production** notification state. `GET /api/notifications` is authenticated by a lightning-pubkey signature, and the Settings screen was calling it on a hard-coded `https://getbittr.com` URL regardless of build configuration, so a test build read real customer payout state for whatever pubkey it held. It now goes through `EnvironmentConfig.bittrAPIBaseURL` like the rest of the client. (BIT-32)
+- The in-app browser's LNURL bridge is now limited to pages on `getbittr.com`. It was previously installed on every page the browser opened — including a merchant's website reached from the Bitcoin map and the block explorer — which let a page bittr does not control hand the wallet an LNURL-auth request and have it signed with the user's identity for the attacker's domain. (BIT-34)
+- LNURL links are now recognised by their scheme and by a strict bech32 parse, rather than by testing whether the URL contains the text `lnurl` or `tag=login` anywhere in it.
+
+### Fixed
+
+- Six further BTC price call sites (Home, Value, the widget, and the historical EUR/CHF series) also had the production host hard-coded and now follow the build environment. No behaviour change — the price is the same in both environments — but they were the same latent bug.
+
+### Added
+
+- A `Check hard-coded API URLs` build phase fails the build on a literal bittr API host outside `BittrAPIEnvironment.swift`. Seven such literals had accumulated independently, so this is enforced rather than reviewed. Runnable by hand: `sh ios/Scripts/check-hardcoded-api-urls.sh`.
+- **The exclusive-initiative confirmation required by Terms & Conditions §2.5** is now collected in the app. It is asked once per registration, on the IBAN + email screen, before the IBAN and email are sent to Bittr — the first moment Bittr provides a Service. The wording is taken from §2.5 and the getbittr.com interstitial (sources and the exact departures are recorded in `shared/docs/exclusive-initiative-copy.md`). The confirmation is timestamped (ISO-8601, UTC), stored against the IBAN entity, and sent to the backend as `exclusive_initiative_confirmed_at` at registration. Declining leaves the customer on the screen with nothing sent and nothing recorded. The website has had this since launch; the apps never did.
+
+### Changed
+
+- An LNURL pay request that offers a single fixed amount now asks for confirmation before paying, matching the withdraw flow. Previously this was the one pay path that reached the payment step with no confirmation dialog.
+
 ## [0.1.185] - 2026-09-08
 
 ### Added

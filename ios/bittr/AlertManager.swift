@@ -175,7 +175,7 @@ private extension UIViewController {
         button.setShadow()
         button.clipsToBounds = false
         button.accessibilityLabel = title
-        button.accessibilityIdentifier = "alert.button.\(index)"
+        button.accessibilityIdentifier = TestID.Alert.buttonAt(index)
         button.addAction(UIAction { _ in handler() }, for: .touchUpInside)
         
         let buttonLabel = UILabel()
@@ -196,6 +196,40 @@ private extension UIViewController {
         return button
     }
     
+    // makeAlertButton's plate, but with a label that wraps — for a button whose
+    // title is the sentence being agreed to rather than a one-word verb.
+    func makeWrappingAlertButton(title: String, identifier: String, handler: @escaping () -> Void) -> UIButton {
+
+        let button = UIButton(type: .custom)
+        button.translatesAutoresizingMaskIntoConstraints = false
+        button.backgroundColor = Colors.getColor("white0.7orblue1")
+        button.layer.cornerRadius = 8
+        button.setShadow()
+        button.clipsToBounds = false
+        button.accessibilityLabel = title
+        button.accessibilityIdentifier = identifier
+        button.addAction(UIAction { _ in handler() }, for: .touchUpInside)
+
+        let buttonLabel = UILabel()
+        buttonLabel.translatesAutoresizingMaskIntoConstraints = false
+        buttonLabel.numberOfLines = 0
+        buttonLabel.font = UIFont(name: "Gilroy-Bold", size: 16)
+        buttonLabel.text = title
+        buttonLabel.textColor = Colors.getColor("blackorwhite")
+        buttonLabel.textAlignment = .center
+        buttonLabel.isAccessibilityElement = false
+        button.addSubview(buttonLabel)
+
+        NSLayoutConstraint.activate([
+            button.heightAnchor.constraint(greaterThanOrEqualToConstant: 40),
+            buttonLabel.topAnchor.constraint(equalTo: button.topAnchor, constant: 10),
+            buttonLabel.bottomAnchor.constraint(equalTo: button.bottomAnchor, constant: -10),
+            buttonLabel.leadingAnchor.constraint(equalTo: button.leadingAnchor, constant: 15),
+            buttonLabel.trailingAnchor.constraint(equalTo: button.trailingAnchor, constant: -15)
+        ])
+        return button
+    }
+
     // The slide-up.
     func slideIn(_ chrome: AlertChrome, on host: UIViewController, completion: (() -> Void)? = nil) {
         
@@ -251,8 +285,13 @@ struct AlertButton {
 
 extension UIViewController {
     
-    func showAlert(presentingController:UIViewController? = nil, title:String, message:String, buttons:[AlertButton]) {
-        
+    // `id` names *which* alert this is (TestID.Alert.…), set on the card so a
+    // flow can assert `id: "alert.lowFee"` instead of matching its wording. It
+    // goes on the card rather than the overlay because replacing a live alert
+    // reuses the overlay and rebuilds only the card — the id has to travel with
+    // the content, or a replaced alert keeps answering to its predecessor's id.
+    func showAlert(presentingController:UIViewController? = nil, id:String? = nil, title:String, message:String, buttons:[AlertButton]) {
+
         let host = presentingController ?? self.alertHost
         
         self.alertPresenter = host
@@ -268,7 +307,8 @@ extension UIViewController {
             
             let chrome = self.makeAlertChrome(live ?? AlertOverlayView(), on: host, cardColor: Colors.getColor("yelloworblue2"))
             let card = chrome.card
-            
+            card.accessibilityIdentifier = id
+
             let alertIcon = self.addAlertHeader(to: card, title: title, trailingLimit: nil)
             
             // Close image
@@ -347,7 +387,97 @@ extension UIViewController {
         }
     }
     
-    func showTextFieldAlert(presentingController: UIViewController? = nil, title: String, message: String = "", initialText: String, placeholder: String, keyboardType: UIKeyboardType = .default, cancelTitle: String, saveTitle: String, onSave: @escaping (String) -> Void) {
+    // MARK: - Confirmation sheet
+
+    /// A card the customer has to act on before something proceeds: a block of text
+    /// and one affirmative button whose title *is* the statement being agreed to.
+    ///
+    /// It differs from showAlert in the two ways that statement needs: the button
+    /// title wraps instead of truncating at one line, and a long message scrolls
+    /// instead of growing the card past the bottom of a small screen. There is no
+    /// close cross — the only ways out are confirming and cancelling, so nothing
+    /// can be read as a confirmation that the customer never gave.
+    ///
+    /// `id` names *which* sheet this is and goes on the card, exactly as it does in
+    /// showAlert — the two buttons carry their own identifiers, but those say what a
+    /// tap does, not what card is up.
+    func showConfirmationSheet(presentingController:UIViewController? = nil, id:String? = nil, title:String, message:String, confirmTitle:String, cancelTitle:String, confirmIdentifier:String, cancelIdentifier:String, onConfirm:@escaping () -> Void, onCancel:(() -> Void)? = nil) {
+
+        let host = presentingController ?? self.alertHost
+
+        self.alertPresenter = host
+
+        DispatchQueue.main.async {
+            // Replace whatever alert is already on screen, as showAlert does.
+            let live = host.view.liveAlertOverlay
+            live?.stopObservingKeyboard()
+            live?.discardCard()
+
+            let chrome = self.makeAlertChrome(live ?? AlertOverlayView(), on: host, cardColor: Colors.getColor("yelloworblue2"))
+            let card = chrome.card
+            card.accessibilityIdentifier = id
+
+            let alertIcon = self.addAlertHeader(to: card, title: title, trailingLimit: card)
+
+            // Message, inside a scroll view.
+            let messageScrollView = UIScrollView()
+            messageScrollView.translatesAutoresizingMaskIntoConstraints = false
+            messageScrollView.backgroundColor = .clear
+            card.addSubview(messageScrollView)
+
+            let messageLabel = UILabel()
+            messageLabel.translatesAutoresizingMaskIntoConstraints = false
+            messageLabel.numberOfLines = 0
+            messageLabel.attributedText = message.attributed()
+            messageScrollView.addSubview(messageLabel)
+
+            let confirmButton = self.makeWrappingAlertButton(title: confirmTitle, identifier: confirmIdentifier) { [weak self] in
+                self?.hideAlert()
+                onConfirm()
+            }
+            let cancelButton = self.makeAlertButton(title: cancelTitle, index: 0) { [weak self] in
+                self?.hideAlert()
+                onCancel?()
+            }
+            cancelButton.accessibilityIdentifier = cancelIdentifier
+
+            let buttonsStack = UIStackView(arrangedSubviews: [confirmButton, cancelButton])
+            buttonsStack.translatesAutoresizingMaskIntoConstraints = false
+            buttonsStack.axis = .vertical
+            buttonsStack.distribution = .fill
+            buttonsStack.spacing = 10
+            buttonsStack.clipsToBounds = false
+            card.addSubview(buttonsStack)
+
+            // The scroll view hugs its text (999, so it yields to the cap) and stops
+            // growing at just under half the screen, leaving the buttons room.
+            let scrollViewFitsText = messageScrollView.heightAnchor.constraint(equalTo: messageScrollView.contentLayoutGuide.heightAnchor)
+            scrollViewFitsText.priority = UILayoutPriority(999)
+
+            NSLayoutConstraint.activate([
+                messageScrollView.topAnchor.constraint(equalTo: alertIcon.bottomAnchor, constant: 25),
+                messageScrollView.leadingAnchor.constraint(equalTo: card.leadingAnchor, constant: 40),
+                messageScrollView.trailingAnchor.constraint(equalTo: card.trailingAnchor, constant: -40),
+                messageScrollView.heightAnchor.constraint(lessThanOrEqualToConstant: host.view.bounds.height * 0.45),
+                scrollViewFitsText,
+
+                messageLabel.topAnchor.constraint(equalTo: messageScrollView.contentLayoutGuide.topAnchor),
+                messageLabel.bottomAnchor.constraint(equalTo: messageScrollView.contentLayoutGuide.bottomAnchor),
+                messageLabel.leadingAnchor.constraint(equalTo: messageScrollView.contentLayoutGuide.leadingAnchor),
+                messageLabel.trailingAnchor.constraint(equalTo: messageScrollView.contentLayoutGuide.trailingAnchor),
+                messageLabel.widthAnchor.constraint(equalTo: messageScrollView.frameLayoutGuide.widthAnchor),
+
+                buttonsStack.topAnchor.constraint(equalTo: messageScrollView.bottomAnchor, constant: 25),
+                buttonsStack.leadingAnchor.constraint(equalTo: card.leadingAnchor, constant: 15),
+                buttonsStack.trailingAnchor.constraint(equalTo: card.trailingAnchor, constant: -15),
+                buttonsStack.bottomAnchor.constraint(equalTo: card.bottomAnchor, constant: -15)
+            ])
+
+            self.slideIn(chrome, on: host)
+        }
+    }
+
+    func showTextFieldAlert(presentingController: UIViewController? = nil, id: String? = nil, title: String, message: String = "", initialText: String, placeholder: String, keyboardType: UIKeyboardType = .default, cancelTitle: String, saveTitle: String, onSave: @escaping (String) -> Void) {
         
         let host = presentingController ?? self.alertHost
         
@@ -359,7 +489,8 @@ extension UIViewController {
             overlay.discardCard()
             let chrome = self.makeAlertChrome(overlay, on: host, cardColor: Colors.getColor("yelloworblue2"))
             let card = chrome.card
-            
+            card.accessibilityIdentifier = id
+
             let alertIcon = self.addAlertHeader(to: card, title: title, trailingLimit: card)
             
             // Add message, if present.
@@ -394,7 +525,7 @@ extension UIViewController {
             textField.keyboardType = keyboardType
             textField.autocapitalizationType = (keyboardType == .default) ? .sentences : .none
             textField.returnKeyType = .done
-            textField.accessibilityIdentifier = "alert.textField"
+            textField.accessibilityIdentifier = TestID.Alert.textField
             fieldView.addSubview(textField)
             
             // Dismissal helper.
@@ -481,21 +612,26 @@ extension UIViewController {
     // MARK: - Loading overlay
 
     // Shows a non-dismissable loading overlay over this view controller.
-    func showLoading(message: String) {
+    // `id` names which loading card this is (TestID.Loading.…) — see showAlert.
+    func showLoading(id: String? = nil, message: String) {
         DispatchQueue.main.async {
-            
+
             // Already showing → just swap the message, don't stack a second overlay.
             if let existing = self.view.subviews.compactMap({ $0 as? LoadingOverlayView }).first(where: { !$0.isDismissing }) {
                 existing.messageLabel?.text = message
+                // The message swap makes this a different card to the suite, so
+                // the id has to move with it.
+                existing.card?.accessibilityIdentifier = id
                 return
             }
-            
+
             // A plain view over everything absorbs all touches, so nothing
             // behind it is tappable and there's no gesture to dismiss it.
             let overlay = LoadingOverlayView()
             let chrome = self.makeAlertChrome(overlay, on: self, cardColor: Colors.getColor("whiteorblue3"))
             let card = chrome.card
-            
+            card.accessibilityIdentifier = id
+
             // Spinner
             let spinner = UIActivityIndicatorView(style: .medium)
             spinner.color = Colors.getColor("blackorwhite")

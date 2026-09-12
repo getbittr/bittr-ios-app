@@ -21,7 +21,7 @@ extension CoreViewController {
             // No alert: let them unlock as quickly as possible.
         } else if !self.walletHasSynced {
             Log.info("Wallet hasn't synced yet.")
-            self.showLoading(message: Language.getWord(withID: "syncingwallet3"))
+            self.showLoading(id: TestID.Loading.syncingWallet, message: Language.getWord(withID: "syncingwallet3"))
         } else {
             Log.info("Wallet has synced. Will process notification.")
             if !self.wasNotified {
@@ -43,7 +43,7 @@ extension CoreViewController {
             self.wasNotified = true
             // No alert: let them unlock as quickly as possible.
         } else if !self.walletHasSynced {
-            self.showLoading(message: Language.getWord(withID: "syncingwallet3"))
+            self.showLoading(id: TestID.Loading.syncingWallet, message: Language.getWord(withID: "syncingwallet3"))
         } else {
             // The incoming payment can be triggered from both the HTLC-resume push
             // AND a Live Activity tap around the same time — handle it only once.
@@ -54,7 +54,7 @@ extension CoreViewController {
             self.isHandlingIncomingHTLC = true
             UserDefaults.standard.removeObject(forKey: "pendingSwapResume")
             if !self.wasNotified {
-                self.showAlert(title: Language.getWord(withID: "incomingpayment"), message: Language.getWord(withID: "newbittrpayment"), buttons: [.action(Language.getWord(withID: "okay")) { self.triggerHTLCReady() }])
+                self.showAlert(id: TestID.Alert.incomingPayment, title: Language.getWord(withID: "incomingpayment"), message: Language.getWord(withID: "newbittrpayment"), buttons: [.action(Language.getWord(withID: "okay")) { self.triggerHTLCReady() }])
             } else {
                 self.triggerHTLCReady()
             }
@@ -62,7 +62,7 @@ extension CoreViewController {
     }
     
     func triggerHTLCReady() {
-        self.showLoading(message: Language.getWord(withID: "receivingpayment"))
+        self.showLoading(id: TestID.Loading.receivingPayment, message: Language.getWord(withID: "receivingpayment"))
         self.lightningNotification = nil
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
             self.facilitateHTLCReady()
@@ -81,13 +81,13 @@ extension CoreViewController {
         guard let depositCode = BitcoinManager.shared.bittrWallet.ibanEntities.first(where: { !$0.yourUniqueCode.isEmpty })?.yourUniqueCode else {
             self.hideLoading()
             self.isHandlingIncomingHTLC = false
-            self.showAlert(title: Language.getWord(withID: "incomingpayment"), message: Language.getWord(withID: "bittrpayoutfail"), buttons: [.dismiss(Language.getWord(withID: "close"))])
+            self.showAlert(id: TestID.Alert.incomingPayment, title: Language.getWord(withID: "incomingpayment"), message: Language.getWord(withID: "bittrpayoutfail"), buttons: [.dismiss(Language.getWord(withID: "close"))])
             return
         }
         guard let pubkey = BitcoinManager.shared.nodeId() else {
             self.hideLoading()
             self.isHandlingIncomingHTLC = false
-            self.showAlert(title: Language.getWord(withID: "incomingpayment"), message: Language.getWord(withID: "bittrpayoutfail2"), buttons: [.dismiss(Language.getWord(withID: "close"))])
+            self.showAlert(id: TestID.Alert.incomingPayment, title: Language.getWord(withID: "incomingpayment"), message: Language.getWord(withID: "bittrpayoutfail2"), buttons: [.dismiss(Language.getWord(withID: "close"))])
             return
         }
         let timestamp = Int(Date().timeIntervalSince1970)
@@ -102,12 +102,12 @@ extension CoreViewController {
                     if response.success, response.action == "resumed" {
                         // No alert – the incoming payment screen will show automatically
                     } else if response.success, response.action == "failed_timeout" {
-                        self.showAlert(title: Language.getWord(withID: "incomingpayment"), message: Language.getWord(withID: "bittrpayoutfail"), buttons: [.dismiss(Language.getWord(withID: "close"))])
+                        self.showAlert(id: TestID.Alert.incomingPayment, title: Language.getWord(withID: "incomingpayment"), message: Language.getWord(withID: "bittrpayoutfail"), buttons: [.dismiss(Language.getWord(withID: "close"))])
                     } else {
                         // Backend returned 200 with success == false: translate
                         // the raw error code into a friendly message.
                         Log.info("htlc_ready failed: \(response.error ?? "unknown")")
-                        self.showAlert(title: Language.getWord(withID: "incomingpayment"), message: self.htlcReadyFriendlyMessage(forCode: response.error), buttons: [.dismiss(Language.getWord(withID: "close"))])
+                        self.showAlert(id: TestID.Alert.incomingPayment, title: Language.getWord(withID: "incomingpayment"), message: self.htlcReadyFriendlyMessage(forCode: response.error), buttons: [.dismiss(Language.getWord(withID: "close"))])
                     }
                 }
             } catch {
@@ -123,7 +123,7 @@ extension CoreViewController {
                     if let bittrError = error as? BittrServiceError, case let .serverError(message) = bittrError {
                         code = message
                     }
-                    self.showAlert(title: Language.getWord(withID: "incomingpayment"), message: self.htlcReadyFriendlyMessage(forCode: code), buttons: [.dismiss(Language.getWord(withID: "close"))])
+                    self.showAlert(id: TestID.Alert.incomingPayment, title: Language.getWord(withID: "incomingpayment"), message: self.htlcReadyFriendlyMessage(forCode: code), buttons: [.dismiss(Language.getWord(withID: "close"))])
                 }
             }
         }
@@ -141,7 +141,7 @@ extension CoreViewController {
     }
 
     func triggerPayout() {
-        self.showLoading(message: Language.getWord(withID: "receivingpayment"))
+        self.showLoading(id: TestID.Loading.receivingPayment, message: Language.getWord(withID: "receivingpayment"))
         DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
             self.facilitateNotificationPayout()
         }
@@ -625,7 +625,7 @@ extension CoreViewController {
         } else if !self.walletHasSynced {
             Log.info("Wallet hasn't synced yet.")
             self.lightningNotification = notification
-            self.showLoading(message: Language.getWord(withID: "syncingwallet3"))
+            self.showLoading(id: TestID.Loading.syncingWallet, message: Language.getWord(withID: "syncingwallet3"))
         } else {
             // User is signed in, handle notification immediately
             self.handleSwapNotificationImmediately()
@@ -698,7 +698,7 @@ extension CoreViewController {
         }
         
         // Show loading state
-        self.showLoading(message: Language.getWord(withID: "receivingpayment"))
+        self.showLoading(id: TestID.Loading.receivingPayment, message: Language.getWord(withID: "receivingpayment"))
         
         // Get pubkey
         var pubkey = String()

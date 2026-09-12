@@ -24,6 +24,16 @@ shared/flows/
                           signup and exiting via "I don't have an IBAN" →
                           "Go to wallet" to Home. The error-branch counterpart
                           to happy_path_wallet. Top-level entry.
+    seed_gate_rejects_wrong_words.yaml
+                          Wipes state and proves the Signup4 seed-confirmation
+                          gate REJECTS wrong input: valid-but-wrong BIP39 words,
+                          a non-BIP39 string, and an empty field each raise
+                          their own alert (asserted by test id, not by copy) and
+                          leave the flow still on Signup4 — then the right words
+                          advance it. Parity-critical: recovery is mnemonic-only
+                          (BIT-8), so this gate is the whole recovery guarantee,
+                          and every other flow types the RIGHT words. Runs first
+                          in suite.yaml. Top-level entry.
     happy_path_wallet.yaml  Reusable subflow: wallet creation, Signup1 →
                           the wallet-ready screen (Signup7).
     happy_path_signup.yaml  Reusable subflow: bittr signup, Signup7 → Home.
@@ -73,6 +83,16 @@ shared/flows/
                           it, paste into Send and assert it lands as lightning
                           (no amount, then with a 2000 sat amount). Needs an
                           active channel. Uses helpers/show_invoice.yaml.
+    receive_lnurl.yaml    The Receive screen's LNURL / Lightning-Address mode —
+                          the user's OWN lightning address (not the inbound push
+                          in notification_lnurl.yaml, nor the outbound pay in
+                          send_lightning.yaml). Parks on the onchain address
+                          first so More → "Show LNURL" is a real type change,
+                          then reads the info alert and copies the address.
+                          Captures either the populated state (label + QR) or
+                          the "Unavailable" state (QR hidden). Read-only; needs
+                          an active channel for the More button. Uses
+                          helpers/show_onchain_address.yaml + show_lnurl.yaml.
     send_onchain.yaml     Onchain send end-to-end: open Send, switch to
                           Regular, wait out the BDK sync spinner, enter an
                           address and a 5 EUR amount, confirm on the Confirm
@@ -200,6 +220,18 @@ shared/flows/
                           currency (EUR↔CHF, verified on Home), device token,
                           public key, Bittr peer / pending payout, and
                           Lightning connections (QuestionViewController).
+  diagnostics/     One-off device checks. NOT in suite.yaml and NOT part of the
+                   parity scoreboard: each one is meaningful only on a specific
+                   simulator, so running it in suite order on the canonical
+                   capture device proves nothing. Writes to
+                   shared/docs/device-checks/, never to shared/docs/screenshots/,
+                   which is single-device by contract (BIT-3).
+    btcmap_alert_iphone_se.yaml
+                          BIT-82. Opens the "Powered by BTCMap.org" alert — the
+                          app's longest message, in one unscrollable UILabel — on
+                          a 375x667 iPhone SE and captures it, to confirm the
+                          final location-disclosure paragraph is not clipped.
+                          Needs an existing wallet (PIN 1234). Not yet run on iOS.
   helpers/         Reusable subflows invoked via runFlow.
     unlock.yaml           Enters PIN 1234 on the unlock screen.
     wrong_pin_until_lockout.yaml  Enters the wrong PIN ten times on the unlock
@@ -217,6 +249,21 @@ shared/flows/
     show_invoice.yaml     From a freshly-opened Receive screen, switches the
                           type to a lightning invoice (via More → Create
                           invoice) and waits out the QR spinner. Needs a channel.
+    show_lnurl.yaml       From a freshly-opened Receive screen, switches the
+                          type to the user's own lightning address (via More →
+                          Show LNURL) and asserts the LNURL card row — Copy +
+                          More, no renew, no add-amount. The title is unusable
+                          for this (it reads "Address" for both onchain and
+                          LNURL), hence the structural check. Needs a channel.
+    capture_mnemonic_words.yaml  Reads all 12 words off Signup3 into
+                          output.words[1..12] (1-based, matching the on-screen
+                          numbering and the index Signup4 asks for). Used by
+                          seed_gate_rejects_wrong_words.yaml. happy_path_wallet
+                          and fresh_install_unhappy still inline their own
+                          copies — deliberately, since both are proven against
+                          the simulator and sit on the critical path of nearly
+                          every flow; consolidate on a run where they can be
+                          re-run.
   scripts/         Maestro `runScript` helpers (GraalJS).
     mine_blocks.js              POST /e2e/mine-blocks on the regtest backend.
     trigger_bank_transaction.js POST /e2e/bank-transaction (incoming SEPA).
@@ -275,6 +322,27 @@ dependencies hold and the wipes come last; `test_suite.sh` wraps it, starting
 the `push`/`clipboard` helper servers (which Maestro can't start itself) and
 passing the `MNEMONIC` env that `forgot_pin` needs. A failure aborts the suite
 at that flow — run the individual flow above to debug.
+
+### The remove-wallet channel-close arc
+
+`features/remove_wallet.yaml` branches on whether the wallet has an open
+Lightning channel, and in `suite.yaml` the channel branch can never fire: the
+flow runs last, right after `restore_wallet.yaml` re-creates a wallet with no
+channel, so the guard is always false. Seven screenshots
+(`remove_wallet/04`–`09b` — the close-connection warnings, the on-chain close
+and its confirmation popup) are therefore unreachable in suite order, however
+often the suite runs.
+
+Reordering isn't the fix — `remove_wallet` wipes the wallet, so moving it
+earlier strands every flow after it. Instead the arc has its own pass, which
+builds a funded, channelled wallet first:
+
+```sh
+shared/flows/test_suite.sh suite_remove_wallet_channel.yaml
+```
+
+Destructive and self-contained: it wipes app data at the start and ends on
+Signup1 with no wallet. Run it on its own, not interleaved with `suite.yaml`.
 
 ### Push notifications
 

@@ -56,7 +56,7 @@ class Signup6ViewController: UIViewController, UITextFieldDelegate {
                 self.signupVC?.coreVC?.startWallet()
             } else {
                 // Pin is incorrect.
-                self.showAlert(title: Language.getWord(withID: "incorrectpin"), message: Language.getWord(withID: "repeatnumber"), buttons: [.dismiss(Language.getWord(withID: "okay"))])
+                self.showAlert(id: TestID.Alert.incorrectPin, title: Language.getWord(withID: "incorrectpin"), message: Language.getWord(withID: "repeatnumber"), buttons: [.dismiss(Language.getWord(withID: "okay"))])
             }
         }
     }

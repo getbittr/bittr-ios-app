@@ -280,7 +280,7 @@ extension UIViewController {
                 return
             }
             
-            await CallsManager.makeApiCall(url: "https://getbittr.com/api/notifications?timestamp=\(timestamp)&signature=\(lightningSignature)&pubkey=\(lightningPubKey)", parameters: nil, getOrPost: .get) { result in
+            await CallsManager.makeApiCall(url: "\(EnvironmentConfig.bittrAPIBaseURL)/notifications?timestamp=\(timestamp)&signature=\(lightningSignature)&pubkey=\(lightningPubKey)", parameters: nil, getOrPost: .get) { result in
                 
                 DispatchQueue.main.async {
                     deviceVC?.tappedCell?.stopAnimating()

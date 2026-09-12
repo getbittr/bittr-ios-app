@@ -300,6 +300,10 @@
         "nextButton": null,
         "skipButton": null
       },
+      "initiative": {
+        "confirmButton": null,
+        "cancelButton": null
+      },
       "otp": {
         "topLabel": null,
         "codeTextField": null,
@@ -337,6 +341,38 @@
   },
   "alert": {
     "button": { "_index": { "offset": 0, "separator": "." } },
-    "textField": null
+    "textField": null,
+    "addNote": null,
+    "amountMissing": null,
+    "confirmStatements": null,
+    "copied": null,
+    "exclusiveInitiative": null,
+    "incomingPayment": null,
+    "incorrectPhrase": null,
+    "incorrectPin": null,
+    "insufficientOnchainBalance": null,
+    "invalidWords": null,
+    "lightningExplanation": null,
+    "lowFee": null,
+    "missingWords": null,
+    "noScreenshot": null,
+    "notificationsRequired": null,
+    "onlyIban": null,
+    "paymentRequest": null,
+    "paymentRequestFailed": null,
+    "pinLength": null,
+    "pinRequired": null,
+    "receiveNotificationsDenied": null,
+    "receiveNotificationsPrompt": null,
+    "resendCode": null,
+    "swapValidationFailed": null,
+    "syncingWallet": null,
+    "transactionError": null,
+    "withdrawRequest": null
+  },
+  "loading": {
+    "handlingLnurl": null,
+    "receivingPayment": null,
+    "syncingWallet": null
   }
 }

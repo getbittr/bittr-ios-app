@@ -77,7 +77,13 @@ class MapViewController: UIViewController, CLLocationManagerDelegate, MKMapViewD
         self.mapView.showsUserLocation = true
         self.mapView.pointOfInterestFilter = .excludingAll
         self.locationManager.delegate = self
-        self.locationManager.desiredAccuracy = kCLLocationAccuracyHundredMeters
+        // Deliberately coarser than the ~111 m that Apple's App Privacy
+        // definitions call Precise Location (latitude/longitude to three
+        // decimal places). Nothing here needs better: the fix only centres a
+        // 1500 m viewport, and the cached-places filter runs off the map's
+        // centre, not the fix. Matches the Android build, which ships
+        // ACCESS_COARSE_LOCATION only. Don't raise it without a use for it.
+        self.locationManager.desiredAccuracy = kCLLocationAccuracyKilometer
         self.showDefaultSwitzerlandRegion()
         
         // Download
