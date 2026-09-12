@@ -21,6 +21,11 @@ android {
         // shared/flows/android/scaffold_smoke.yaml, and BiometricUnlockFlagTest,
         // which keys the regtest assertion off the applicationId rather than the
         // build type.
+        //
+        // It also requires re-registering the app in Firebase (BIT-39). The two
+        // google-services.json files in src/debug/ and src/release/ are keyed by
+        // package name and cannot simply be edited — the mobilesdk_app_id is issued
+        // against the name. GoogleServicesConfigTest fails on the mismatch.
         applicationId = "com.bittr.android"
         minSdk = libs.versions.minSdk.get().toInt()
         targetSdk = libs.versions.targetSdk.get().toInt()
