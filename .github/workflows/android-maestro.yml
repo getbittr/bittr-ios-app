@@ -106,6 +106,12 @@ env:
   # Bump this on purpose, in its own commit, and re-run the three runs.
   MAESTRO_VERSION: '2.10.0'
   # Must match android/app/build.gradle.kts: applicationId + debug applicationIdSuffix.
+  #
+  # Load-bearing, not informational. android/scripts/ci-smoke.sh passes this to
+  # Maestro as `--env APP_ID`, and every shared flow reads its `appId:` from it
+  # (BIT-102) — so this single line is what makes the iOS flow files run here.
+  # The emulator step fails fast if it is unset rather than discovering it as a
+  # failed launch after a boot.
   APP_ID: com.bittr.android.regtest
 
 jobs:
@@ -309,6 +315,13 @@ jobs:
         run: |
           python3 shared/strings/test_check_flow_copy.py
           python3 shared/strings/check_flow_copy.py
+      - name: Check no flow hardcodes an app id
+        # The twin of the check above, for the other thing a flow names that can
+        # be wrong for one platform only. A shared flow that says
+        # `appId: com.bittr.bittr-regtest` parses fine and runs fine on iOS; on
+        # Android it boots an emulator, installs the APK and then fails to launch
+        # a package that was never installed. Seconds here, ~20 minutes there.
+        run: python3 shared/flows/check_app_ids.py
 
       - name: Check generated test IDs are in sync
         # The generated TestIDs.swift/.kt are committed for diff visibility. If
@@ -794,7 +807,7 @@ jobs:
             maestro-debug/**
             maestro-video/**
             maestro-report.xml
-            shared/docs/screenshots/android_scaffold_smoke/**
+            shared/docs/screenshots/signup_create_smoke/**
           retention-days: 14
           if-no-files-found: warn
 

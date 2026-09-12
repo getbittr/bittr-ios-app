@@ -12,7 +12,7 @@
 # verifying and the QR renders), then — only if a More button is present —
 # open the type picker and choose "Address".
 
-appId: com.bittr.bittr-regtest
+appId: ${APP_ID}
 ---
 # Wait for the address pool to finish verifying and the QR to render.
 - extendedWaitUntil:

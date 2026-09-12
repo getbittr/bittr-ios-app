@@ -87,6 +87,23 @@ MNEMONIC="attack urge across cupboard year armor list vital outer leader anxiety
 # Maestro launches the app on the simulator, so the value only reaches it as a
 # launch argument. Harmless to pass to every flow — only receive_onchain reads it.
 SLOW_SYNC="${BITTR_SLOW_SYNC:-0}"
+# The app under test. Every shared flow now takes its app id from ${APP_ID}
+# rather than naming one (BIT-102), so the SAME flow file drives the iOS
+# simulator and an Android emulator and the id is the only difference between the
+# two runs — see shared/flows/README.md, "App id".
+#
+# This script is the iOS entry point, so it defaults to the iOS regtest bundle
+# and nothing about running the suite changes. Overridable from the environment
+# for an Android run or a renamed build; the Android CI path sets it in
+# .github/workflows/android-maestro.yml and android/scripts/ci-smoke.sh.
+APP_ID="${APP_ID:-com.bittr.bittr-regtest}"
+
+# The EvilBoltz build is a second *app*, not a second platform: the --evil flows
+# onboard it alongside the regtest app and tamper with its swaps. It gets its own
+# variable so APP_ID keeps meaning "the app under test on this platform" — giving
+# both one name would make the evil flows unrunnable the moment APP_ID is
+# pointed at Android.
+EVIL_APP_ID="${EVIL_APP_ID:-com.bittr.bittr-evil}"
 
 EVIL_FLOWS=(
     "features/evil_boltz_wrong_invoice.yaml"   # SEC-01 reverse-swap tamper
@@ -216,17 +233,19 @@ fi
 app_installed() { xcrun simctl get_app_container booted "$1" app >/dev/null 2>&1; }
 
 if [[ -n "${BOOTED_UDID}" ]]; then
-    if app_installed "com.bittr.bittr-regtest"; then
-        ok "bittr regtest installed"
+    # Checks the id the flows will actually launch, not a copy of it. With
+    # APP_ID overridden, a literal here would pass while every flow failed.
+    if app_installed "${APP_ID}"; then
+        ok "${APP_ID} installed"
     else
-        fail "bittr regtest not installed — build & run the 'bittr' scheme (Debug) in Xcode once"
+        fail "${APP_ID} not installed — build & run the 'bittr' scheme (Debug) in Xcode once"
         PREFLIGHT_OK=0
     fi
     if [[ ${RUN_EVIL} -eq 1 ]]; then
-        if app_installed "com.bittr.bittr-evil"; then
-            ok "bittr evil installed"
+        if app_installed "${EVIL_APP_ID}"; then
+            ok "${EVIL_APP_ID} installed"
         else
-            fail "bittr evil not installed — build & run the 'bittr evil' scheme in Xcode once"
+            fail "${EVIL_APP_ID} not installed — build & run the 'bittr evil' scheme in Xcode once"
             PREFLIGHT_OK=0
         fi
     fi
@@ -327,7 +346,8 @@ for flow in "${FLOWS_TO_RUN[@]}"; do
     info "  log: ${FLOW_LOG}"
     START_TS=$(date +%s)
     # `set -o pipefail` is on, so this tests maestro's status, not tee's.
-    if maestro test --env MNEMONIC="${MNEMONIC}" --env SLOW_SYNC="${SLOW_SYNC}" \
+    if maestro test --env APP_ID="${APP_ID}" --env EVIL_APP_ID="${EVIL_APP_ID}" \
+            --env MNEMONIC="${MNEMONIC}" --env SLOW_SYNC="${SLOW_SYNC}" \
             "${FLOW_PATH}" 2>&1 | tee "${FLOW_LOG}"; then
         RESULTS+=("${GREEN}✔${RESET} ${flow} ($(($(date +%s) - START_TS))s)")
     else

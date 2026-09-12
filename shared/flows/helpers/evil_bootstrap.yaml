@@ -1,4 +1,5 @@
-# Helper: provisions the "bittr evil" app (com.bittr.bittr-evil — the
+# Helper: provisions the "bittr evil" app (${EVIL_APP_ID}, by default
+# com.bittr.bittr-evil — the
 # Debug-EvilBoltz build with the swap-tamper harness armed, see
 # ios/bittr/Helpers/EvilBoltz.swift):
 #
@@ -20,12 +21,12 @@
 #
 # Override the target app by setting output.APP_ID (and optionally
 # output.pushBundleId) before runFlow-ing this file — both default to
-# com.bittr.bittr-evil.
+# ${EVIL_APP_ID}.
 
-appId: com.bittr.bittr-evil
+appId: ${EVIL_APP_ID}
 ---
-# Resolve the app under test + the push target (default: the evil app).
-- evalScript: "${output.APP_ID = (output.APP_ID == null ? 'com.bittr.bittr-evil' : output.APP_ID)}"
+# Resolve the app under test + the push target (default: ${EVIL_APP_ID}).
+- evalScript: "${output.APP_ID = (output.APP_ID == null ? EVIL_APP_ID : output.APP_ID)}"
 - evalScript: "${output.pushBundleId = (output.pushBundleId == null ? output.APP_ID : output.pushBundleId)}"
 
 # 1) Provision the wallet + bittr account — but only if this install hasn't

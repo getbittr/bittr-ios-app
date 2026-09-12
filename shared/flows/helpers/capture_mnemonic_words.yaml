@@ -17,7 +17,7 @@
 # left alone rather than migrated blind — worth consolidating on a run where
 # they can be re-run.
 
-appId: com.bittr.bittr-regtest
+appId: ${APP_ID}
 ---
 - assertVisible:
     id: "signup.create.mnemonic.mnemonicStack"

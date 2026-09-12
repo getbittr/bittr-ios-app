@@ -131,11 +131,6 @@ android/.kotlin/
 maestro-debug/
 maestro-report.xml
 .maestro/tests/
-
-# Python bytecode — the shared/ and android/scripts/ checks are run as scripts,
-# and importing one (test_ci_runs.py imports ci-runs.py) leaves this behind.
-__pycache__/
-*.pyc
 # Per-flow logs from test_suite.sh when BITTR_LOG_DIR points in-tree —
 # bit14_topup.sh does this so a long unattended capture pass stays diagnosable.
 shared/flows/logs/
@@ -144,3 +139,8 @@ shared/flows/logs/
 # the canonical pair lives in shared/docs/.
 /reference-set.json
 /reference-set.md
+
+# Python bytecode — the shared/ and android/scripts/ checks are run as scripts,
+# and importing one (test_ci_runs.py imports ci-runs.py) leaves this behind.
+__pycache__/
+*.pyc

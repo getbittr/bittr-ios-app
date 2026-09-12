@@ -1,15 +1,20 @@
-# First Maestro flow — verifies that test IDs set in Signup1ViewController
-# are actually reachable by Maestro. If this passes, the test ID pipeline works
-# end to end (JSON → generator → Swift → accessibilityIdentifier → Maestro).
+# The smoke flow, on both platforms — verifies that the shared test IDs are
+# actually reachable by Maestro. If this passes, the test ID pipeline works end
+# to end (JSON → generator → Swift/Kotlin → accessibilityIdentifier/testTag →
+# Maestro), which is why it is also the Android CI gate
+# (`android/scripts/ci-smoke.sh`).
 #
-# Prerequisite: the app must be on the Signup1 screen (the create-or-restore
-# entry point new users see). Easiest path: wipe app data on the simulator
-# (`xcrun simctl uninstall booted com.bittr.bittr-regtest && build & run from
-# Xcode`), or reset wallet via Settings → Reset.
+# This flow needs no prerequisite state: it launches with clearState, so it runs
+# against a fresh install or a provisioned one.
 #
-# appId is the regtest variant (com.bittr.bittr-regtest), produced by a Debug build.
+# Per-platform app id comes from ${APP_ID} — the one documented difference
+# between the two runs. See shared/flows/README.md, "App id".
+#
+# clearKeychain below is deliberately NOT guarded per platform: Maestro's
+# AndroidDriver implements it as a no-op, so it costs nothing on Android and
+# still wipes the iOS keychain, which is where the wallet lives.
 
-appId: com.bittr.bittr-regtest
+appId: ${APP_ID}
 ---
 - launchApp:
     clearState: true

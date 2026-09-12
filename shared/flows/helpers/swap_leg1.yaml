@@ -7,7 +7,7 @@
 # fees alert, without one (notifications denied) it shows the "notifications
 # required" gate instead. The caller waits for whichever appears and branches.
 
-appId: com.bittr.bittr-regtest
+appId: ${APP_ID}
 ---
 # Settle any wallet sync first (also covers the re-sync after a reprovision).
 - extendedWaitUntil:

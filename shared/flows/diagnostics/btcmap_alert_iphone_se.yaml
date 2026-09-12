@@ -57,7 +57,7 @@
 #   - the last one ends "…the area around you." with the full stop visible;
 #   - the Close button is fully on screen, inside the card.
 
-appId: com.bittr.bittr-regtest
+appId: ${APP_ID}
 ---
 - launchApp:
     permissions:

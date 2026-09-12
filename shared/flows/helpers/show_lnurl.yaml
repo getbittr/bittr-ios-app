@@ -12,7 +12,7 @@
 # done unconditionally so the subflow works from whichever type the screen
 # happens to be showing.
 
-appId: com.bittr.bittr-regtest
+appId: ${APP_ID}
 ---
 # Wait for the initial QR to render before touching the type picker.
 - extendedWaitUntil:

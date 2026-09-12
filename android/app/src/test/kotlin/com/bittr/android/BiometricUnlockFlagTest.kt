@@ -8,10 +8,10 @@ import org.junit.Test
  * Pins the biometric flag to the APK it ships in.
  *
  * The invariant is not "debug is false" but "the artefact CI installs is false",
- * so the test keys off [BuildConfig.APPLICATION_ID] — the same string
- * `shared/flows/android/scaffold_smoke.yaml` names as its `appId` and the workflow
- * exports as `APP_ID`. Flipping the flag, or renaming the regtest applicationId out
- * from under the flows, both fail here rather than on an emulator.
+ * so the test keys off [BuildConfig.APPLICATION_ID] — the same string the workflow
+ * exports as `APP_ID` and passes to Maestro as `--env APP_ID`, which is where every
+ * shared flow's `appId:` now comes from. Flipping the flag, or renaming the regtest
+ * applicationId out from under the flows, both fail here rather than on an emulator.
  *
  * Both branches assert, so this is never vacuous: it also catches the release build
  * silently losing biometrics, which is a shipped-behaviour regression rather than a

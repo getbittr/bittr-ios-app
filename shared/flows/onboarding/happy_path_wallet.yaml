@@ -13,7 +13,7 @@
 # responsibility, so this subflow doesn't disturb existing app state when
 # called conditionally.
 
-appId: com.bittr.bittr-regtest
+appId: ${APP_ID}
 ---
 - assertVisible:
     id: "signup.create.start.createWalletButton"

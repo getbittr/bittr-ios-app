@@ -8,7 +8,7 @@
 # Used by forgot_pin_remove_wallet.yaml to self-provision the channel arc when
 # the device has no wallet.
 
-appId: com.bittr.bittr-regtest
+appId: ${APP_ID}
 ---
 - runFlow:
     file: ../onboarding/happy_path_wallet.yaml

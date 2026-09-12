@@ -151,7 +151,7 @@ For each feature: build screen(s), wire managers, extend Maestro flow, mark gree
 
 #### Suite ordering — do not copy `shared/flows/suite.yaml` as-is
 
-When the Android suite grows past `shared/flows/android/scaffold_smoke.yaml`, the ordering is a decision to re-make, not an artefact to inherit. `suite.yaml` runs `features/remove_wallet.yaml` last, directly after `onboarding/restore_wallet.yaml` re-creates the wallet. A freshly restored wallet has no channel, so `output.hasChannel` (line 73) is always false and the flow's entire active-channel arc — lines 100–267, including seven `takeScreenshot` steps — has never executed on iOS.
+When the Android suite grows past the smoke flow (`shared/flows/onboarding/smoke.yaml`, shared with iOS since BIT-102), the ordering is a decision to re-make, not an artefact to inherit. `suite.yaml` runs `features/remove_wallet.yaml` last, directly after `onboarding/restore_wallet.yaml` re-creates the wallet. A freshly restored wallet has no channel, so `output.hasChannel` (line 73) is always false and the flow's entire active-channel arc — lines 100–267, including seven `takeScreenshot` steps — has never executed on iOS.
 
 Two things follow for the port:
 

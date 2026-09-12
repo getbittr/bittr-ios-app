@@ -13,7 +13,7 @@ import org.robolectric.annotation.Config
 
 /**
  * Asserts that the screen exposes exactly the test IDs
- * `shared/flows/android/scaffold_smoke.yaml` selects on.
+ * `shared/flows/onboarding/smoke.yaml` — the shared smoke flow — selects on.
  *
  * This is not a duplicate of the Maestro flow — it is the fast half of it. Deleting
  * or renaming a `testTag` is a one-character change that Maestro only catches after
