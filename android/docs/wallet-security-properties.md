@@ -129,9 +129,33 @@ closed and what it did not:
 
 | Path | Status after BIT-59 |
 |---|---|
-| Cloud backup | **Driven.** `bmgr` is enabled, the local transport selected, and `bmgr backupnow` run against the installed package; the test asserts no backup set is produced for it. |
+| Cloud backup | **Driven, and checked at two different strengths — see below.** `bmgr` is enabled, the local transport selected, and `bmgr backupnow` run against the installed package. |
 | The installed artefact, as opposed to the source tree | **Driven.** The test reads `FLAG_ALLOW_BACKUP` off the installed package, and the `dataExtractionRules` attribute and the compiled rules out of the installed APK — so a manifest merge that re-added backup, or an `<include>` that survived into the APK, now fails on the device rather than passing on the JVM. |
 | Device-to-device transfer (API 31+) | **Still not proven, and not provable this way.** `bmgr` has no D2D mode: that path runs through `BackupTransport.FLAG_DEVICE_TO_DEVICE_TRANSFER`, which the shell tool does not expose and an instrumented test cannot set. No test on an emulator can produce a real D2D transfer set and read it back. |
+
+**The cloud-backup row is two claims, and only one of them reads a backup set.**
+Worth separating here, because "driven" covered a real gap between them:
+
+- **`bmgr`'s report.** The in-test assertion can only search `bmgr backupnow`'s
+  stdout, which describes a run rather than a set — `Backup finished with
+  result: Success` is printed by any run that completed, including one that
+  backed the package up in full. The test names that branch `notVisiblyRefused`
+  rather than anything stronger. It is accepted because the platform's decline
+  wording varies by API level and image, and it is *not* evidence that nothing
+  of ours was written.
+- **The set itself.** `BackupExclusionTest` plants a per-run marker in the LDK
+  state files it writes, and `android/scripts/check-backup-set.sh` greps the
+  transport's on-disk tree for it from the host after `adb root`. This is the
+  only check in the repo that reads a real backup **set**; it cannot live inside
+  the suite, because the set is `0700` to another uid and `UiAutomation`'s shell
+  runs as `shell`.
+
+The second is conditional on `adb root` succeeding and on the transport's
+directories existing on the image, so it distinguishes three outcomes rather
+than two: marker found (the §5.3 halt), present and clean (evidence), and *could
+not look* (a `::warning::`, explicitly **not** evidence). Grep a run's log for
+`Backup set inspection` to see which one it got. A green `BackupExclusionTest`
+from a run that could not look rests on `bmgr`'s report alone.
 
 That last row is why this section still exists. It is also the row that matters
 most, because `allowBackup="false"` is **not** documented to suppress D2D on API
