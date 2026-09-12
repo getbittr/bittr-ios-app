@@ -19,6 +19,14 @@ android {
     buildFeatures {
         compose = true
     }
+
+    testOptions {
+        unitTests {
+            // Same reason as `:feature:signup`: Robolectric needs the merged
+            // resources and the manifest before `setContent` will inflate.
+            isIncludeAndroidResources = true
+        }
+    }
 }
 
 kotlin {
@@ -41,4 +49,14 @@ dependencies {
     debugImplementation(libs.androidx.compose.ui.tooling)
 
     testImplementation(libs.junit)
+    // `TokenContrastTest` is arithmetic on the token values and needs none of this.
+    // `CanvasComponentColorsTest` is the other half — whether a component *reads* the
+    // token it is supposed to — and that needs a composition, because the colours are
+    // assembled inside a `@Composable`. BIT-95: the defect was a call site, not a value,
+    // and the pure-JVM guard could not have seen it.
+    testImplementation(libs.robolectric)
+    testImplementation(libs.androidx.test.ext.junit)
+    testImplementation(platform(libs.androidx.compose.bom))
+    testImplementation(libs.androidx.compose.ui.test.junit4)
+    debugImplementation(libs.androidx.compose.ui.test.manifest)
 }

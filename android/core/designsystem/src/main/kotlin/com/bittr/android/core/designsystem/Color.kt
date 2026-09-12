@@ -84,6 +84,21 @@ private val BarTrack = Color(0xFFC5A03A)
 private val Ink = Color(0xFF0D0D0D)
 private val Cream = Color(0xFFF8EEC6)
 
+/**
+ * The mock's `switchAccent`, `#1F8A5B` — a green that is neither the profit green nor
+ * the brand. The "on" state of the consent toggle, and nothing else.
+ *
+ * **It used to be a `private val` in `Canvas.kt`, and BIT-95 is what that cost.** The
+ * reasoning was that a colour used by one control belongs beside that control — but the
+ * rule at the top of this file is the one that applies: *a colour that only exists
+ * inside a composable is a colour the designer cannot change*, and it is also a colour
+ * `TokenContrastTest` cannot measure. It shipped at **1.65 : 1 against the dark canvas
+ * and 1.32 : 1 against the card the switch is actually on** for exactly as long as it
+ * was invisible to the guard. Both schemes hold the same value today, which is a fact
+ * worth being able to see rather than a field worth saving.
+ */
+private val SwitchAccent = Color(0xFF1F8A5B)
+
 // ---------------------------------------------------------------------------
 // Material 3 schemes — §1.3
 // ---------------------------------------------------------------------------
@@ -296,6 +311,35 @@ data class BittrColors(
     /** Content on [tonalFill]. */
     val onTonalFill: Color,
     /**
+     * The checked consent switch's track — the mock's `switchAccent`.
+     *
+     * **This fill does not carry the control's boundary, and in dark mode it cannot.**
+     * It is 1.65 : 1 on the dark canvas and 1.32 : 1 on the card the switch is really
+     * drawn on. The reason that is not fixed by darkening or swapping the green is
+     * arithmetic rather than taste: a track clearing 3 : 1 against the dark card needs a
+     * relative luminance of at least 0.501, and a track keeping a **white** thumb at
+     * 3 : 1 cannot exceed 0.300. The band is empty — no green, and no colour of any hue,
+     * satisfies both. A fill-only fix therefore means an ink thumb on a pale track,
+     * which is a different control from the one the mock draws.
+     *
+     * So the boundary is carried by the border instead — [mutedOnCanvas], which is what
+     * the *unchecked* state already used and which clears 3 : 1 in both schemes on both
+     * backgrounds. The outline then stays put across the state change and the fill and
+     * the thumb position are what move, which is what a switch is supposed to look like.
+     *
+     * [mutedOnCanvas] is translucent and Material strokes the border inside the track, so
+     * the rendered border is it composited over this green. Sampled off the card in
+     * `arc-2-confirm-on*.png`: `#133225` on `#FFCA19` — **9.08 : 1** light, `#DEEEE7` on
+     * `#4C688E` — **4.76 : 1** dark, against 1.32 : 1 for the bare fill it replaces.
+     * `TokenContrastTest` holds all of it, including the empty band. BIT-95.
+     */
+    val switchOn: Color,
+    /**
+     * The checked switch's thumb. White, from the mock — 4.33 : 1 on [switchOn], which is
+     * the pair that says where the thumb is within its travel.
+     */
+    val onSwitchOn: Color,
+    /**
      * The open arc of the bittr mark, which is the one part of the logo that is not
      * ink. The shipped SVG draws it `#FDBE10` for a white page; on the brand canvas
      * the mock draws it white, because brand-on-brand would disappear. See [BittrLogo].
@@ -348,6 +392,8 @@ val BittrLightColorsExtended = BittrColors(
     actionFillDisabled = Ink.copy(alpha = 0.45f),
     tonalFill = Cream,
     onTonalFill = Ink,
+    switchOn = SwitchAccent,
+    onSwitchOn = Color.White,
     canvasArc = Color.White,
 )
 
@@ -392,6 +438,11 @@ val BittrDarkColorsExtended = BittrColors(
     actionFillDisabled = Color.White.copy(alpha = 0.30f),
     tonalFill = Blue3,
     onTonalFill = Color.White,
+    // Not swapped for the blue family, unlike `actionFill`. Green means "yes, I
+    // understand" on a consent control; there is no blue that says that. It is allowed
+    // to stay because it is not what makes the control perceivable — see [switchOn].
+    switchOn = SwitchAccent,
+    onSwitchOn = Color.White,
     // White would vanish into the ink strokes beside it on a blue canvas; the brand
     // yellow is the one colour that reads on both, and dark mode keeps exactly seven
     // brand-yellow sites already (see `brandFixed`). This is the eighth.
