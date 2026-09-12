@@ -8,7 +8,10 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.bittr.android.BuildConfig
+import com.bittr.android.core.common.destination.BitcoinNetwork
 import com.bittr.android.core.wallet.WalletState
+import com.bittr.android.feature.scanner.ScannerScreen
 import com.bittr.android.feature.signup.CreateWalletScreen
 import com.bittr.android.feature.signup.RestoreWalletScreen
 
@@ -22,6 +25,14 @@ object Routes {
     const val SIGNUP_RESTORE = "signup/restore"
     const val PIN_UNLOCK = "pin/unlock"
     const val HOME = "home"
+
+    /**
+     * The QR scanner (iOS S-16). Reached from Send, and it returns there — on iOS
+     * it is a modal the Send screen presents and dismisses, which is why the flow
+     * expects `send.regularButton` to be back on screen after the scanner closes
+     * (`shared/flows/features/send_onchain.yaml:83-85`).
+     */
+    const val SCANNER = "scanner"
 }
 
 /**
@@ -42,6 +53,11 @@ object Routes {
 fun BittrNavHost(
     navController: NavHostController = rememberNavController(),
     viewModel: WalletGateViewModel = hiltViewModel(),
+    // Which chain a scanned address has to be on. Debug is regtest, release is
+    // mainnet, mirroring iOS's `EnvironmentConfig.bitcoinDevKitNetwork`. Injected
+    // rather than read inside the parser because `:core:common` cannot see `:app`'s
+    // BuildConfig — the same reason AuthCapabilities is injected.
+    network: BitcoinNetwork = BitcoinNetwork.fromBuildConfig(BuildConfig.BITCOIN_NETWORK),
 ) {
     val walletState by viewModel.walletState.collectAsState()
 
@@ -102,6 +118,21 @@ fun BittrNavHost(
 
         composable(Routes.HOME) {
             HomePlaceholderScreen()
+        }
+
+        composable(Routes.SCANNER) {
+            // What the camera read is parsed here, by the same entry point the paste
+            // control will feed — one parser for both, as on iOS
+            // (`AddressParsing.swift:15`) — and handed back to whoever opened the
+            // scanner via `ScannerResult`.
+            //
+            // Nothing opens the scanner yet: Send arrives with the engine (BIT-6).
+            // But the result no longer evaporates on the way out, which is the half
+            // of the seam BIT-72 deliberately left for BIT-100.
+            ScannerScreen(
+                onScanned = { scanned -> ScannerResult.handleScan(navController, scanned, network) },
+                onClose = { navController.popBackStack() },
+            )
         }
     }
 }

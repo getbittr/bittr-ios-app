@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!--
+      The camera permission, declared in the module that uses it.
+
+      CameraX declares this in its own manifest too, so the merged result is the same
+      either way. It is written out here because the permission is the subject of
+      approved copy (DEV-37, BIT-15 -> decision-brief D1) and a permission that only
+      ever arrives through a dependency's manifest is a permission nobody in this
+      repo has to think about before it ships.
+
+      Note what the permission does and does not settle. Granting it allows recording
+      as well as reading — Android has no read-only camera permission — so the
+      shipped sentence "Nothing is recorded" cannot rest on what the user was asked
+      for. It rests on the use cases ScannerCameraSession binds, which is why the
+      guard test checks the binding rather than the request.
+    -->
+    <uses-permission android:name="android.permission.CAMERA" />
+
+    <!--
+      Not required. A device without a camera can still buy, hold and send bitcoin —
+      it just cannot scan, which is the `scanningnotavailable` state the scanner
+      already handles and the reason the paste control on Send exists. Marking the
+      feature required would remove those devices from the Play listing to disable
+      one button.
+    -->
+    <uses-feature
+        android:name="android.hardware.camera.any"
+        android:required="false" />
+
+</manifest>

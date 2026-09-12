@@ -1,5 +1,41 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <!--
+      Three permissions this app must never ship, held out of the merged manifest by
+      name (BIT-57). All three are enforced rather than trusted because all three can
+      arrive without anyone in this repo typing them.
+
+      ACCESS_FINE_LOCATION — the approved map rationale (DEV-54) says bittr needs
+      your *approximate* location, matching iOS's kCLLocationAccuracyHundredMeters.
+      Map and places SDKs routinely declare FINE in their own manifests, and the
+      merger unions permissions: adding one dependency is enough to put "precise
+      location" in the merged manifest, on the Play listing's permission list, and
+      in the system dialog as a Precise/Approximate toggle — with no Kotlin change
+      to review. A source scan cannot see that happen. This line can.
+
+      ACCESS_BACKGROUND_LOCATION — the approved reassurance (DEV-54, approved
+      2026-09-11) says the location is used "on your device to position the map".
+      Collecting it while the map is not on screen is not that. It is also the one
+      location permission Play reviews by hand (BIT-51), and geofencing and
+      place-awareness SDKs declare it for their own reasons.
+
+      RECORD_AUDIO — the approved scanner rationale (DEV-37) says nothing is
+      recorded. CameraX's video artefact (androidx.camera:camera-video) declares
+      RECORD_AUDIO, so pulling it in for any reason would advertise a recording
+      capability on the store listing even before a line of code used it.
+
+      `tools:node="remove"` is a no-op while nothing declares these, which is the
+      point: it is already in place for the merge that would otherwise introduce
+      them. If one of them ever becomes genuinely necessary, the copy changes first
+      and changed copy goes back through compliance — do not delete these lines to
+      make a build pass. Asserted by LocationPrecisionGuardTest,
+      LocationEgressGuardTest and CameraCaptureGuardTest.
+    -->
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" tools:node="remove" />
+    <uses-permission android:name="android.permission.ACCESS_BACKGROUND_LOCATION" tools:node="remove" />
+    <uses-permission android:name="android.permission.RECORD_AUDIO" tools:node="remove" />
 
     <application
         android:name=".BittrApplication"
