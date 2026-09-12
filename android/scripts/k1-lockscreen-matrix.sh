@@ -288,16 +288,25 @@ field() {
   printf '%s' "$1" | grep -oE "(^| )$2=[^ ]*" | tail -n 1 | cut -d= -f2
 }
 
+# Its own temp file rather than one under $workdir, deliberately. The EXIT trap
+# restores the device's lock screen, and doing that now needs an observation — so
+# a scratch file whose lifetime is the run's would make the last and most
+# important call to this function the one that cannot write anywhere. On a
+# physical handset that is the difference between the script's PIN being removed
+# and being left on someone's phone.
 observe() {
-  local out="$workdir/observe.out" verdict
+  local out verdict
+  out=$(mktemp)
   verdict=$(instrument "${TEST_CLASS_ROOT}.K1ObserveTest" "$out" "-")
   OBS_LINE=$(k1_line)
   if [ "$verdict" != "pass" ] || [ -z "$OBS_LINE" ]; then
     OBS_SECURE="true"
     OBS_COMPLEXITY="unreadable"
     OBS_LINE="(K1ObserveTest did not report: $(failure_excerpt "$out"))"
+    rm -f "$out"
     return 1
   fi
+  rm -f "$out"
   OBS_SECURE=$(field "$OBS_LINE" deviceSecure)
   OBS_COMPLEXITY=$(field "$OBS_LINE" complexity)
   [ -n "$OBS_SECURE" ] || OBS_SECURE="true"
@@ -632,7 +641,11 @@ record() {
   return 0
 }
 
-trap 'rm -rf "$workdir"; reset_to_none >/dev/null 2>&1 || true' EXIT
+# Restore first, delete second. The restore is the promise this script makes to
+# anyone who points it at a physical handset, and it now needs to ask the device
+# a question; ordering the cleanup ahead of it would have quietly turned the
+# last-resort restore into the one that could not run.
+trap 'reset_to_none >/dev/null 2>&1 || true; rm -rf "$workdir"' EXIT
 
 for case_id in "${cases[@]}"; do
   echo "k1: === $case_id ==="
@@ -855,8 +868,31 @@ for case_id in "${cases[@]}"; do
   if [ "$(instrument "${TEST_CLASS_ROOT}.K1OpenTest" "$open_out" "$case_id")" != "pass" ]; then
     echo "k1: open phase FAILED for $case_id"
     sed -n '1,60p' "$open_out"
+
+    # Which kind of failure? The two mean opposite things and only the result
+    # cell survives into a security statement.
+    #
+    # K1OpenTest checks its witnesses before it decrypts, and tags every one of
+    # those assertions with [K1_WITNESS_FAILURE]. A tagged failure means the
+    # rule-2 key was never tested — the run has no verdict. An untagged one is
+    # the decrypt itself, which is the real red.
+    #
+    # Run #7 is why this exists. On API 26 the auth-bound CONTROL key survived a
+    # credential removal on a SOFTWARE keystore, the test stopped before
+    # decrypting anything, and the row still came out `**FAIL**` — which this
+    # harness defines as "this device contradicts BIT-8 rule 2". It does not say
+    # that. It says K1 cannot answer here. Writing the harder claim from the
+    # weaker evidence is the same mistake as a false green, pointed the other
+    # way, and it would have cost a design change the evidence did not call for.
+    if grep -q 'K1_WITNESS_FAILURE' "$open_out"; then
+      record "$case_id" "ERROR" "$witness" "-" \
+        "a WITNESS assertion failed in the open phase, not the rule-2 decrypt — the non-auth-bound key was never tested, so this row is NOT a rule-2 result and must not be read as one. $(failure_excerpt "$open_out")"
+      overall=1
+      continue
+    fi
+
     record "$case_id" "**FAIL**" "$witness" "-" \
-      "the non-auth-bound key did not survive, or a witness assertion failed. Do NOT switch designs — report on BIT-18 and BIT-8 (see the issue). $(failure_excerpt "$open_out")"
+      "the non-auth-bound key did not survive. Do NOT switch designs — report on BIT-18 and BIT-8 (see the issue). $(failure_excerpt "$open_out")"
     overall=1
     continue
   fi

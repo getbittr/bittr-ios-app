@@ -174,7 +174,7 @@ emit_fail() {
   cat <<EOF
 INSTRUMENTATION_STATUS: class=$1
 INSTRUMENTATION_STATUS_CODE: 1
-INSTRUMENTATION_STATUS: stack=junit.framework.AssertionFailedError: the non-auth-bound key did NOT survive
+INSTRUMENTATION_STATUS: stack=junit.framework.AssertionFailedError: ${2:-the non-auth-bound key did NOT survive}
 INSTRUMENTATION_STATUS_CODE: -2
 INSTRUMENTATION_RESULT: stream=
 FAILURES!!!
@@ -232,6 +232,12 @@ do_instrument() {
 
   case "$verdict" in
     fail) emit_fail "$cls"; return ;;
+    witness_fail)
+      # K1OpenTest failing one of its WITNESS assertions rather than the decrypt.
+      # Tagged, because the driver must score it ERROR and not **FAIL**.
+      emit_fail "$cls" "[K1_WITNESS_FAILURE] the auth-bound control key survived case $kcase"
+      return
+      ;;
     skip) emit_skip "$cls"; return ;;
     crash) emit_crash; return ;;
   esac
@@ -856,6 +862,37 @@ expect_rc 1
 expect_out "| M2 | **FAIL** |"
 expect_out "Do NOT switch designs"
 expect_out "at least one row is FAIL or ERROR"
+# A red row is exactly when someone is least likely to be thinking about the
+# device they left it on. The restore is not conditional on the run going well,
+# and the mutation put PIN_B there.
+expect_cred ""
+
+scenario "a witness failure in the open phase is an ERROR, not a FAIL"
+# Run #7, API 26, M5. The auth-bound CONTROL key survived a credential removal on
+# a SOFTWARE keystore, so K1OpenTest stopped before decrypting anything — and the
+# row still said **FAIL**, which this harness defines as "this device contradicts
+# BIT-8 rule 2". It says no such thing; the rule-2 key was never tested.
+#
+# Writing the harder claim from the weaker evidence is a false green pointed the
+# other way, and this one would have cost a design change the evidence did not
+# call for.
+knob verdict_open witness_fail
+run_driver M5
+expect_rc 1
+expect_out "| M5 | ERROR |"
+refute_out "**FAIL**"
+refute_out "Do NOT switch designs"
+expect_out "is NOT a rule-2 result"
+expect_cred ""
+
+scenario "a failed decrypt is still a FAIL, and still says do not switch designs"
+# The other side of the same fence: an UNtagged open failure is the real red, and
+# nothing about the fix above may soften it.
+knob verdict_open fail
+run_driver M5
+expect_rc 1
+expect_out "| M5 | **FAIL** |"
+expect_out "Do NOT switch designs"
 
 scenario "a failed seal phase is an ERROR, not a FAIL"
 # A seal that never happened is a broken harness. Calling it FAIL would report a
@@ -873,6 +910,7 @@ run_driver M2
 expect_rc 1
 expect_out "| M2 | ERROR |"
 refute_out "| M2 | PASS |"
+expect_cred ""
 
 scenario "a device whose lock screen cannot be cleared is refused"
 # It starts with a credential the driver cannot remove, so it can never reach

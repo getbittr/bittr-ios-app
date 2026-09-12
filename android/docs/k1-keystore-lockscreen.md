@@ -5,11 +5,15 @@ This test does not gate the storage design — it *verifies* one of its rules.
 
 ## Status
 
-**The harness is complete and the result table is empty.** No row below has been
-run on a device. Nothing in this file may be quoted as evidence for rule 2 yet.
+**Two of the seven rows now have real observations; five do not, and there is no
+verdict on rule 2 yet.** API 34 came back green on all five reachable cases and
+API 26 on the one it can witness. That is one emulator API level and a partial
+second — not the matrix, and specifically not the two OEM handsets this test was
+written for. Nothing here may yet be quoted as evidence that rule 2 holds *on a
+customer's phone*.
 
-That is a hardware gap, not an unfinished harness — see [What is blocking the
-run](#what-is-blocking-the-run).
+What remains is a hardware gap on two rows and three unrun emulator levels — see
+[What is blocking the run](#what-is-blocking-the-run).
 
 The harness itself is now tested, device-free, and gated in CI: see [Checking the
 harness without a device](#checking-the-harness-without-a-device). That is a
@@ -18,16 +22,18 @@ about Keystore**, and no amount of it ever will be.
 
 The five emulator rows now have a way to be produced —
 `.github/workflows/k1-keystore-lockscreen.yml`, which boots an emulator on an
-ordinary GitHub-hosted runner. **Six runs have been made and none produced a
-row**, and five of the six defects they exposed were in this harness rather than
-in Android. See [Runs so far](#runs-so-far).
+ordinary GitHub-hosted runner. **Seven runs have been made. The first six
+produced no rows at all**, and every defect they exposed was in this harness
+rather than in Android. See [Runs so far](#runs-so-far).
 
 Run #6 was the decisive one: it proved that `adb shell locksettings verify` exits
 0 for everything on the API 34 image, which condemned every host-side witness the
-driver had. Those witnesses have now been **rebuilt on the device side** — see
-[How a row avoids being a false green](#how-a-row-avoids-being-a-false-green) —
-and run #7 is the first run of the rebuilt harness. The two physical-device rows
-still need handsets someone owns.
+driver had. Those witnesses were **rebuilt on the device side** — see [How a row
+avoids being a false green](#how-a-row-avoids-being-a-false-green) — and **run #7
+produced the first rows this issue has ever had**: API 34 green on all five cases
+with full witnesses, API 26 short by the three cases nothing on that device can
+witness. See [Results](#results). The two physical-device rows still need handsets
+someone owns.
 
 ## What is being proved
 
@@ -354,16 +360,40 @@ Table format, one block per device —
 
 | device | API | M1 | M2 | M3 | M4 | M5 | M6 |
 |---|---|---|---|---|---|---|---|
-| emulator | 26 | — | — | — | — | — | — |
+| emulator | 26 | **PASS** | n/r | n/r | n/r | *no verdict* | — |
 | emulator | 30 | — | — | — | — | — | — |
 | emulator | 33 | — | — | — | — | — | — |
-| emulator | 34 | — | — | — | — | — | — |
+| emulator | 34 | **PASS** | **PASS** | **PASS** | **PASS** | **PASS** | — |
 | emulator | 35 | — | — | — | — | — | — |
 | physical Samsung | — | — | — | — | — | — | — |
 | physical Xiaomi | — | — | — | — | — | — | — |
 
-`—` = not run · `PASS` / `FAIL` = a real observation · `not reachable` = the
-mutation could not be driven on this device, with the reason recorded
+`—` = not run · `PASS` / `FAIL` = a real observation · `n/r` = not reachable, the
+mutation could not be witnessed on this device and the reason is recorded ·
+*no verdict* = the run could not produce a rule-2 answer, which is **not** a FAIL
+
+**First rows, run #7 (`8c7c3e4`).** Read them with the caveats below, not off the
+grid:
+
+- **API 34 is five for five, with full witnesses on every row.** Every mutation
+  was observed to happen — keyguard transition *and* complexity bucket move — and
+  the non-auth-bound key opened its blob afterwards in a process that did not
+  exist when the key was made. This is the first evidence on this issue that is
+  about Keystore at all.
+- **`securityLevel=SOFTWARE` on both rows.** Per `seed-storage-security` §4 this
+  is observed, not attested, and on an emulator it means what it says: there is
+  no TEE behind these keys. Five green emulator rows retire the *documentation*
+  half of the doubt. They do not touch the OEM half, and they are not a hardware
+  claim.
+- **API 26's M5 is not a rule-2 failure**, though run #7 first recorded it as one.
+  See [the control key on a software
+  keystore](#the-control-key-on-a-software-keystore).
+- **M2/M3/M4 on API 26 are `not reachable` as designed** —
+  `getPasswordComplexity()` does not exist below API 29, so nothing on that device
+  can witness a mutation that leaves it secure on both sides.
+
+**No verdict on BIT-8 rule 2 yet.** One emulator API level is not the matrix, and
+the two rows that carry the most weight are the two that need handsets.
 
 ### Runs so far
 
@@ -375,6 +405,7 @@ mutation could not be driven on this device, with the reason recorded
 | [#4](https://github.com/getbittr/bittr-ios-app/actions/runs/34592863770) | `k1-run/pilot` | `2e3adf6` | API 34, `default`, `x86_64` | red — **first successful seals**; `ERROR` at `mutate` |
 | [#5](https://github.com/getbittr/bittr-ios-app/actions/runs/34596169712) | `k1-run/pilot` | `060b71a` | API 34, `default`, `x86_64` | **refused** — the credential witness does not work on this image |
 | [#6](https://github.com/getbittr/bittr-ios-app/actions/runs/34596943875) | `k1-run/pilot` | `0ab54f3` | API 34, `default`, `x86_64` | **refused** — and named why: `locksettings verify` always exits 0 |
+| [#7](https://github.com/getbittr/bittr-ios-app/actions/runs/34693098167) | `k1-run/26-34` | `8c7c3e4` | API 26 `x86`, API 34 `x86_64`, both `default` | **first rows.** API 34 five for five. API 26: M1 PASS, M2-M4 not reachable, M5 no verdict (the control key, not rule 2) |
 
 None of the six is a row, and none may be read as one.
 
@@ -619,6 +650,36 @@ mutation 5, and M6 is expected to be unreachable on physical devices: a device
 owner cannot be removed without a factory reset, so the script refuses to set one
 on a handset. The same treatment now covers M2/M3/M4 below API 29. Recording that
 is the honest answer to the question the issue asked.
+
+### The control key on a software keystore
+
+Run #7's API 26 row came back `**FAIL**` on M5, and **that label was wrong** — the
+harness's own bug, fixed in the same heartbeat that found it.
+
+What actually failed was the *positive control*, not the claim. M5 and M6 create
+an auth-bound key that is **supposed to die** when the credential is destroyed; if
+it survives, the non-auth-bound key's survival proves nothing. On this image it
+survived — `KeyInfo` reports `SOFTWARE`, so there is no hardware keystore to
+enforce the invalidation Android documents. `K1OpenTest` therefore stopped
+*before* decrypting anything.
+
+So the run never tested rule 2 on that row. But `**FAIL**` is defined by this
+document as *"this device contradicts BIT-8 rule 2"*, and the result cell is the
+part that survives into a security statement. Writing the harder claim from the
+weaker evidence is the same mistake as a false green, pointed the other way — and
+this one was pointed at a design change the evidence did not call for.
+
+Every witness assertion in `K1OpenTest` is now tagged `[K1_WITNESS_FAILURE]`, and
+the driver scores a tagged failure `ERROR` ("no verdict") while leaving an
+untagged one — the decrypt itself — as the real `**FAIL**`. Both directions are
+covered in `test-k1-driver.sh`.
+
+Worth stating plainly, because it is a limit of the control rather than a bug in
+it: the control is checked by **existence** (`containsAlias`), never by
+decryption, because decrypting an auth-bound key needs a real user authentication
+and `UserNotAuthenticatedException` is not distinguishable from invalidation. A
+device that leaves a dead alias in place would look identical to this. Either way
+K1 declines to report M5/M6 there.
 
 ### Key security level, recorded not asserted
 
