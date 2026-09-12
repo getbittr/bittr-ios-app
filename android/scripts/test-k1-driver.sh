@@ -226,7 +226,18 @@ do_instrument() {
     K1SealTest) verdict="$(knob verdict_seal pass)" ;;
     K1OpenTest) verdict="$(knob verdict_open pass)" ;;
     K1AdminResetTest) verdict="$(knob verdict_admin pass)" ;;
-    K1ObserveTest) verdict="$(knob verdict_observe pass)" ;;
+    K1ObserveTest)
+      verdict="$(knob verdict_observe pass)"
+      # observe_fails_after N: the first N observations answer, the rest do not.
+      # Aims a broken observe at the post-mutation witness without tripping the
+      # preflight, which would refuse the run before any case was spent.
+      o=$(cat "$D/observes" 2>/dev/null || echo 0)
+      o=$((o + 1))
+      printf '%s' "$o" >"$D/observes"
+      if [ -n "$(knob observe_fails_after "")" ] && [ "$o" -gt "$(knob observe_fails_after 0)" ]; then
+        verdict=fail
+      fi
+      ;;
     *) verdict=fail ;;
   esac
 
@@ -482,6 +493,7 @@ scenario() {
 
   printf '' >"$FAKE/cred"
   printf 'none' >"$FAKE/credtype"
+  printf '0' >"$FAKE/observes"
   : >"$FAKE/trace"
   : >"$FAKE/logcat"
   printf 'List of devices attached\nemulator-5554\tdevice\n\n' >"$FAKE/devices"
@@ -831,6 +843,26 @@ run_driver M2
 expect_rc 2
 refute_out "| M2 | PASS |"
 expect_out "could not clear the lock screen"
+
+scenario "an unanswered observation after the mutation is not a witness"
+# The fail-closed default cuts both ways and the two directions conflict.
+# `observe` leaves deviceSecure=true when it gets no answer, which is right for
+# reset_to_none — keep trying to remove a lock screen you are unsure about — and
+# exactly wrong as a witness, because M1-M4 all END deviceSecure=true and would
+# be handed their witness by the failure itself.
+#
+# The count is from the first observation of the run: the preflight makes four
+# (clear-check, post-set-pin, and the two around its own clear) and M1's start
+# state one more, so the fifth failure lands on the post-mutation witness. It is
+# a brittle number by nature — if this scenario starts failing after a change to
+# the preflight, re-count rather than assuming the driver regressed.
+knob observe_fails_after 5
+run_driver M1
+expect_rc 1
+refute_out "| M1 | PASS |"
+expect_out "| M1 | ERROR |"
+expect_out "the device did not answer after the mutation"
+refute_trace "instrument K1OpenTest M1"
 
 scenario "an open phase with no verdict line is not a PASS"
 knob open_no_verdict 1

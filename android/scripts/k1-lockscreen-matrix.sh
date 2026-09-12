@@ -826,7 +826,19 @@ for case_id in "${cases[@]}"; do
   # so it records both values and lets a human decide. Failing the row on it
   # would make the matrix red on the first OEM that disagrees with the
   # documentation this test exists to distrust.
-  observe || true
+  # An observation that does not come back is not a witness. `observe` leaves
+  # OBS_SECURE=true when it gets no answer — the right default for reset_to_none,
+  # which should keep trying to remove a lock screen it is unsure about, and the
+  # WRONG one here, because four of the six cases end `deviceSecure=true` and
+  # would have been handed their witness by the failure itself. Checked
+  # separately rather than folded into the comparison below, so the two defaults
+  # cannot be confused again.
+  if ! observe; then
+    record "$case_id" "ERROR" "mutate" "-" \
+      "the device did not answer after the mutation, so nothing witnessed it — the run has no verdict on rule 2. $OBS_LINE"
+    overall=1
+    continue
+  fi
   if [ "$OBS_SECURE" != "$end_secure" ]; then
     record "$case_id" "ERROR" "mutate" "-" \
       "after the mutation the device reports deviceSecure=$OBS_SECURE, but $case_id must end deviceSecure=$end_secure — the mutation did not do what the row would say it did. Device said: $OBS_LINE"
