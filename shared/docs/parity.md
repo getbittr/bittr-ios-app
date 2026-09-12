@@ -2,7 +2,25 @@
 
 Per-feature status of iOS vs Android implementation. Updated as Maestro flows go green on each platform.
 
-Every flow under `shared/flows/` is listed below. iOS is the source of truth and is implemented; Android isn't scaffolded yet, so it reads `not started` across the board until the port begins.
+For the *order* the Android side should be built in — which flows need the
+wallet engine, which don't, and what is holding each wave up — see
+[`android-parity-roadmap.md`](android-parity-roadmap.md). This file stays the
+per-flow status tracker.
+
+Every flow under `shared/flows/` is listed below. iOS is the source of truth and is
+implemented.
+
+The Android column takes three values, and the middle one exists because the
+Android Maestro runner is not stood up yet:
+
+- **`not started`** — nothing built.
+- **`screens built`** — every step of the flow is reachable in the app and is
+  covered by a JVM test that walks the flow's ids in the flow's order. That is
+  as far as a claim can honestly go without the runner: Robolectric reads the
+  Compose semantics tree directly, so it cannot prove `testTagsAsResourceId`
+  bridges those ids onto the accessibility tree Maestro queries.
+- **`done`** — the flow passes under Maestro in CI on Android. **Only this
+  counts** for BIT-7's definition of done. Nothing reads `done` yet.
 
 **Assertion fragility — the alert surface is matched by copy.** `alert.button._index` and `alert.textField` are the only accessibility ids on the alert surface, so *which* alert is on screen is asserted by matching its wording: 220 alert interactions across 33 flow files, and 147 `text:` matchers of which 39 depend on app copy. Reword one of those strings and the flow fails silently, on both platforms at once once they share `shared/strings/`. The dependency is pinned in `shared/strings/copy-lock.json` and checked in CI — the measurement, the seven strings hardcoded outside the copy table, and the verbatim rule for the `*Language.swift` → `shared/strings/` move are in `shared/strings/README.md`.
 
@@ -56,9 +74,9 @@ Every flow under `shared/flows/` is listed below. iOS is the source of truth and
 | Feature | iOS | Android | Maestro flow | Notes |
 |---|---|---|---|---|
 | Swap (lightning ↔ onchain, both directions) | done | not started | `features/swap.yaml` | Re-uses the existing channel + onchain balance from a prior buy flow. Also walks a swap TransactionViewController (Swap status screen, onchain/lightning ID copy, explorer WebsiteViewController, add note). |
-| Bitcoin value chart | done | not started | `features/bitcoin_value.yaml` | Opens from Home's currency icon; waits for price data, scrubs the graph, switches span m/y/5y. Needs an existing wallet (unlocks with PIN). |
-| Bitcoin map | done | not started | `features/bitcoin_map.yaml` | Opens from Home's map icon; waits for the btcmap sync, opens a place, optionally opens/closes its website in the in-app browser (WebsiteViewController), taps "Open in Maps" → Apple Maps and returns to Bittr via a coordinate tap on the "‹ bittr regtest" status-bar breadcrumb (fixed iPhone 15 geometry), closes the place, moves the map, recentres on user. Grants location via launchApp; needs an existing wallet (unlocks with PIN). |
-| Academy | done | not started | `features/academy.yaml` | Opens the Academy tab, plays the latest available lesson to completion (paging Next → Complete, waiting on image-download spinners; on page 2 it also taps Back to page 1 and forward again to exercise the Back button), then opens the next unlocked lesson. Needs an existing wallet (unlocks with PIN). |
+| Bitcoin value chart | done | screens built (BIT-99) | `features/bitcoin_value.yaml` | Opens from Home's currency icon; waits for price data, scrubs the graph, switches span m/y/5y. Needs an existing wallet (unlocks with PIN). |
+| Bitcoin map | done | screens built (BIT-99) | `features/bitcoin_map.yaml` | Opens from Home's map icon; waits for the btcmap sync, opens a place, optionally opens/closes its website in the in-app browser (WebsiteViewController), taps "Open in Maps" → Apple Maps and returns to Bittr via a coordinate tap on the "‹ bittr regtest" status-bar breadcrumb (fixed iPhone 15 geometry), closes the place, moves the map, recentres on user. Grants location via launchApp; needs an existing wallet (unlocks with PIN). **Two steps of this flow are iOS-only and need an Android rewrite before the runner sees it**: the "Open in Maps" hand-off returns to the app through a fixed-coordinate tap on the iOS status-bar breadcrumb, which has no Android counterpart (the back gesture does that job), and Android's `geo:` intent is answered by the system chooser rather than by Apple Maps. The Android map also draws no basemap until BIT-73 — every step the flow drives works; the streets under the markers do not. |
+| Academy | done | screens built (BIT-99) | `features/academy.yaml` | Opens the Academy tab, plays the latest available lesson to completion (paging Next → Complete, waiting on image-download spinners; on page 2 it also taps Back to page 1 and forward again to exercise the Back button), then opens the next unlocked lesson. Needs an existing wallet (unlocks with PIN). |
 | Profit screen | done | not started | _within_ `features/buy_incoming.yaml`, `features/buy_more.yaml` | No dedicated flow; the ProfitViewController is opened and asserted before and after each buy to prove the profit recalculated. |
 
 ## Settings & wallet management
@@ -72,12 +90,12 @@ Every flow under `shared/flows/` is listed below. iOS is the source of truth and
 
 | Feature | iOS | Android | Maestro flow | Notes |
 |---|---|---|---|---|
-| Pin unlock (subflow) | done | not started | `helpers/unlock.yaml` | Called by feature tests when the app launches into the unlock screen. |
-| Forgot PIN (non-destructive) | done | not started | `features/forgot_pin.yaml` | Forgot PIN → confirm Reset → mnemonic in RestoreVC → new PIN back to 1234 → Home with the same wallet. Needs the `MNEMONIC` env var. |
-| Wrong-PIN warning → Forgot PIN | done | not started | `features/pin_warning.yaml` | 3 wrong entries surface the warning alert (Okay + Forgot PIN); Forgot PIN jumps straight to the mnemonic reset. Self-contained (runs `restore_wallet` first). Non-destructive. |
-| Forgot PIN → remove wallet | done | not started | `features/forgot_pin_remove_wallet.yaml` | Removes the wallet via the Forgot-PIN path → Signup1; both channel/no-channel branches. Self-provisions a channel via `helpers/create_wallet_with_channel.yaml`. Destructive. |
-| Wrong-PIN lockout (no channel) | done | not started | `features/wrong_pin.yaml` | 10 wrong PINs → immediate wipe → Signup1. Self-provisions via `restore_wallet`. Shares `helpers/wrong_pin_until_lockout.yaml`. Destructive. |
-| Wrong-PIN lockout (with channel) | done | not started | `features/wrong_pin_with_channel.yaml` | 10 wrong PINs → cooperative channel close + "Try again" retry loop → wipe → Signup1. Self-provisions via `helpers/ensure_bittr_channel.yaml`. Channel detection is best-effort (unverified). Destructive. |
+| Pin unlock (subflow) | done | screens built (BIT-97) | `helpers/unlock.yaml` | Called by feature tests when the app launches into the unlock screen. |
+| Forgot PIN (non-destructive) | done | screens built (BIT-97) | `features/forgot_pin.yaml` | Forgot PIN → confirm Reset → mnemonic in RestoreVC → new PIN back to 1234 → Home with the same wallet. Needs the `MNEMONIC` env var. |
+| Wrong-PIN warning → Forgot PIN | done | screens built (BIT-97) | `features/pin_warning.yaml` | 3 wrong entries surface the warning alert (Okay + Forgot PIN); Forgot PIN jumps straight to the mnemonic reset. Self-contained (runs `restore_wallet` first). Non-destructive. |
+| Forgot PIN → remove wallet | done | not started — needs BIT-6 | `features/forgot_pin_remove_wallet.yaml` | Removes the wallet via the Forgot-PIN path → Signup1; both channel/no-channel branches. Self-provisions a channel via `helpers/create_wallet_with_channel.yaml`. Destructive. |
+| Wrong-PIN lockout (no channel) | done | screens built (BIT-97) | `features/wrong_pin.yaml` | 10 wrong PINs → immediate wipe → Signup1. Self-provisions via `restore_wallet`. Shares `helpers/wrong_pin_until_lockout.yaml`. Destructive. |
+| Wrong-PIN lockout (with channel) | done | not started — needs BIT-6 | `features/wrong_pin_with_channel.yaml` | 10 wrong PINs → cooperative channel close + "Try again" retry loop → wipe → Signup1. Self-provisions via `helpers/ensure_bittr_channel.yaml`. Channel detection is best-effort (unverified). Destructive. |
 
 ## Helper subflows & orchestration
 

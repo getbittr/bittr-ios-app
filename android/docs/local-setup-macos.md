@@ -57,7 +57,12 @@ of two ways — either is enough, you don't need both.
 
 ```sh
 echo 'export ANDROID_HOME=/opt/homebrew/share/android-commandlinetools' >> ~/.zshrc
+echo 'export PATH="$ANDROID_HOME/platform-tools:$PATH"' >> ~/.zshrc
 ```
+
+`sdkmanager` is on `PATH` from the Homebrew cask; `adb` is not. `smoke-consecutive.sh`
+will find it via `ANDROID_HOME` if you skip the PATH line, but anything you type
+yourself (`adb devices`, `adb install`) needs it.
 
 **Or** write an `android/local.properties` file, which points Gradle at the SDK
 without touching your environment. From the repo root:
@@ -195,7 +200,8 @@ Those package/device names exist in Google's repository — `aosp_atd` and `defa
 both ship arm64-v8a for API 34, and `pixel_6` is device id 44 in
 `avdmanager list device`. Boot, install, and a visible scaffold on `default` have
 been run on an M-series Mac. `scaffold_smoke.yaml` has passed locally — see the
-next section. CI is still open.
+next section. CI is still open. (That flow was retired in BIT-102; its shared
+replacement is `shared/flows/onboarding/smoke.yaml`, which asserts the same IDs.)
 
 `aosp_atd` is an Automated Test Device image — stripped AOSP, no Play Services, no
 Google apps, **no SystemUI**. Home is `EmptyHomeActivity`. Faster to boot and far
@@ -258,7 +264,8 @@ Hilt's Gradle plugin dropped AGP 8 at 2.59, and Hilt is the DI container.
 
 **Verified on 2026-09-10**, on an Apple Silicon MacBook following this document:
 `./gradlew :app:assembleDebug` succeeded, an emulator booted, and
-`scaffold_smoke.yaml` passed. That was the first execution of this harness against a
+`scaffold_smoke.yaml` passed (retired in BIT-102 in favour of the shared
+`onboarding/smoke.yaml`, which asserts the same IDs). That was the first execution of this harness against a
 real device in BIT-5's history, and it settles the question the whole scaffold was
 resting on — see "What the first run proved" below. ATD's window stays black (no
 SystemUI); use `bittr-preview` in section 2 if you want to see the pixels.
@@ -269,7 +276,8 @@ With an emulator up and the app installed (section 2 above):
 curl -fsSL "https://get.maestro.mobile.dev" | MAESTRO_VERSION=2.10.0 bash
 export PATH="$HOME/.maestro/bin:$PATH"
 
-maestro test shared/flows/android/scaffold_smoke.yaml   # from the repo root
+# from the repo root; the flow reads its app id from the environment
+APP_ID=com.bittr.android.regtest maestro test shared/flows/onboarding/smoke.yaml
 ```
 
 Pin `MAESTRO_VERSION` to match `.github/workflows/android-maestro.yml`. Unpinned, the
@@ -326,6 +334,7 @@ signup test IDs are visible. It asserts the same IDs the iOS flow does, delibera
 |---|---|
 | `failed to find package platforms;android-37` | You dropped the `.0`. It's `platforms;android-37.0`. |
 | `SDK location not found` | `ANDROID_HOME` unset and no `local.properties`. |
+| `adb is not on PATH` | `ANDROID_HOME` unset, or `platform-tools` not on `PATH`. `export PATH="$ANDROID_HOME/platform-tools:$PATH"` — Homebrew's cask puts `sdkmanager` on `PATH`, not `adb`. |
 | `zsh: no such file or directory: sdk.dir=/opt/...` | You pasted a *file's contents* at the shell prompt. `sdk.dir=…` goes inside `android/local.properties` — see the `printf` line in "Install". |
 | Gradle can't find a project / "no build file" | You opened the repo root. The Gradle build root is `android/`. |
 | Studio wants to downgrade AGP | Studio is older than AGP 9.4. Update Studio; do not downgrade AGP. |

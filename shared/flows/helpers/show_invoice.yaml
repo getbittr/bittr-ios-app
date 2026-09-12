@@ -6,7 +6,7 @@
 # wait for the initial QR to render, open the type picker, choose "Create
 # invoice", then wait out the spinner while the invoice is generated.
 
-appId: com.bittr.bittr-regtest
+appId: ${APP_ID}
 ---
 # Wait for the initial QR to render before touching the type picker.
 - extendedWaitUntil:

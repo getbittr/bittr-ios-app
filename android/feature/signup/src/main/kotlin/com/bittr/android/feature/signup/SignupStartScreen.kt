@@ -2,32 +2,45 @@ package com.bittr.android.feature.signup
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.dp
 import com.bittr.android.core.common.TestID
+import com.bittr.android.core.designsystem.BittrBody
+import com.bittr.android.core.designsystem.BittrCanvas
+import com.bittr.android.core.designsystem.BittrCard
+import com.bittr.android.core.designsystem.BittrPiggy
+import com.bittr.android.core.designsystem.BittrPrimaryButton
+import com.bittr.android.core.designsystem.BittrTextButton
 import com.bittr.android.core.designsystem.BittrTheme
 import com.bittr.android.core.designsystem.BittrTokens
+import com.bittr.android.core.designsystem.CanvasSpacer
 
 /**
  * Android counterpart of iOS `Signup1ViewController` — the create-or-restore entry
- * point a new user sees on a fresh install.
+ * point a new user sees on a fresh install. Artboard 01 of the Android design.
  *
- * **This is the scaffold version.** It carries the real test IDs and the real theme
- * and nothing else: no wallet creation, no article links, no copy from the iOS
- * screen. Its job is to give the Maestro harness something true to assert against
- * before there is feature work to break. BIT-7 ports the actual screen against the
- * screenshots in `shared/docs/screenshots/` and the strings in `shared/strings/`;
- * the test IDs below are the part that survives that rewrite unchanged.
+ * **"welcome" is ink, where the mock draws it white.** White on the card over the
+ * brand yellow is 1.43 : 1. That exact pairing is what DEV-47 removed from the token
+ * set — iOS's `whiteoryellow`, 16 call sites, every screen title — with founder
+ * sign-off on BIT-15. Reintroducing it on the first screen of the app would undo the
+ * single largest accessibility fix the port has made.
+ *
+ * What is still not ported: the "What is bittr?" article chip, which needs the article
+ * fetch BIT-7 owns. Restore is a button with nothing behind it for the same reason —
+ * BIT-93 is the create arc.
+ *
+ * **Create wallet no longer generates anything.** It advances to [ConfirmScreen],
+ * which is where the seed is made — so the spinner that used to live in this button
+ * lives there now, next to the action that actually takes time.
  */
 @Composable
 fun SignupStartScreen(
@@ -35,43 +48,50 @@ fun SignupStartScreen(
     onRestoreWallet: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
-    Column(
-        modifier = modifier
-            .fillMaxSize()
-            .padding(BittrTokens.Spacing.lg),
-        verticalArrangement = Arrangement.spacedBy(
-            BittrTokens.Spacing.md,
-            Alignment.CenterVertically,
-        ),
-        horizontalAlignment = Alignment.CenterHorizontally,
-    ) {
-        Text(
-            text = "bittr",
-            style = MaterialTheme.typography.headlineLarge,
-            modifier = Modifier.testTag(TestID.Signup.Create.Start.headerLabel),
-        )
-
-        Button(
-            onClick = onCreateWallet,
+    BittrCanvas(modifier = modifier) {
+        Column(
+            verticalArrangement = Arrangement.Center,
             modifier = Modifier
-                .fillMaxWidth()
-                .testTag(TestID.Signup.Create.Start.createWalletButton),
+                .weight(1f)
+                .padding(horizontal = CanvasGutter),
         ) {
-            Text("Create wallet")
-        }
+            BittrCard {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    BittrPiggy()
+                    Text(
+                        text = SignupStrings.WELCOME,
+                        style = MaterialTheme.typography.titleLarge,
+                        modifier = Modifier.testTag(TestID.Signup.Create.Start.headerLabel),
+                    )
+                }
 
-        OutlinedButton(
-            onClick = onRestoreWallet,
-            modifier = Modifier
-                .fillMaxWidth()
-                .testTag(TestID.Signup.Create.Start.restoreButton),
-        ) {
-            Text("Restore wallet")
+                CanvasSpacer(BittrTokens.Spacing.xl)
+                BittrBody(SignupStrings.CREATE_YOUR_OWN_WALLET)
+                CanvasSpacer(BittrTokens.Spacing.xl)
+
+                BittrPrimaryButton(
+                    text = SignupStrings.CREATE_WALLET,
+                    onClick = onCreateWallet,
+                    modifier = Modifier.testTag(TestID.Signup.Create.Start.createWalletButton),
+                )
+                BittrTextButton(
+                    text = SignupStrings.RESTORE_WALLET,
+                    onClick = onRestoreWallet,
+                    modifier = Modifier.testTag(TestID.Signup.Create.Start.restoreButton),
+                )
+            }
         }
     }
 }
 
-@Preview(showBackground = true)
+/** The mock's screen gutter — 18 dp, outside the card. */
+internal val CanvasGutter = 18.dp
+
+@Preview(showBackground = true, widthDp = 412, heightDp = 892)
 @Composable
 private fun SignupStartScreenPreview() {
     BittrTheme {

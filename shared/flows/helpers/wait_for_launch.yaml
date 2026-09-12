@@ -14,7 +14,7 @@
 #
 # Put this straight after every launchApp, before any gate or tap.
 
-appId: com.bittr.bittr-regtest
+appId: ${APP_ID}
 ---
 - extendedWaitUntil:
     visible:

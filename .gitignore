@@ -134,3 +134,8 @@ shared/flows/logs/
 # the canonical pair lives in shared/docs/.
 /reference-set.json
 /reference-set.md
+
+# Python bytecode — the shared/ and android/scripts/ checks are run as scripts,
+# and importing one (test_ci_runs.py imports ci-runs.py) leaves this behind.
+__pycache__/
+*.pyc

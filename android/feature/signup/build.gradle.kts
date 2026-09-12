@@ -41,6 +41,9 @@ dependencies {
     implementation(project(":core:common"))
     implementation(project(":core:designsystem"))
     implementation(project(":core:wallet"))
+    // The signup arc runs the seed challenge (BIP-39 word validation, the
+    // three-word check) directly; it is pure Kotlin and stays out of the UI.
+    implementation(project(":core:wallet-seed"))
 
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.compose.ui)

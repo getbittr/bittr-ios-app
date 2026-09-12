@@ -21,7 +21,7 @@
 #
 # Run: maestro test shared/flows/features/evil_boltz_wrong_invoice.yaml
 
-appId: com.bittr.bittr-evil
+appId: ${EVIL_APP_ID}
 ---
 # 1) Provision: wipe → create wallet → bittr signup → fund lightning channel.
 - runFlow: ../helpers/evil_bootstrap.yaml

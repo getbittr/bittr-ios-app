@@ -18,7 +18,7 @@ android {
         //
         // Changing this value or the debug applicationIdSuffix below also requires
         // updating APP_ID in .github/workflows/android-maestro.yml, the `appId:` in
-        // shared/flows/android/scaffold_smoke.yaml, and BiometricUnlockFlagTest,
+        // the workflow's APP_ID (which Maestro receives as --env APP_ID), and BiometricUnlockFlagTest,
         // which keys the regtest assertion off the applicationId rather than the
         // build type.
         applicationId = "com.bittr.android"
@@ -33,6 +33,12 @@ android {
         // On by default — the shipped app follows Android convention. The debug
         // build overrides it to false; see below.
         buildConfigField("boolean", "BIOMETRIC_UNLOCK_ENABLED", "true")
+
+        // Which chain this build accepts addresses and invoices on, consumed via
+        // core.common.destination.BitcoinNetwork. Mainnet by default; the debug
+        // build overrides it below, exactly as iOS does
+        // (`isDevelopment ? .regtest : .bitcoin`).
+        buildConfigField("String", "BITCOIN_NETWORK", "\"MAINNET\"")
     }
 
     buildTypes {
@@ -52,6 +58,10 @@ android {
             // independently broken. Enforced by BiometricUnlockFlagTest and
             // BiometricApiGuardTest; consumed via core.common.AuthCapabilities.
             buildConfigField("boolean", "BIOMETRIC_UNLOCK_ENABLED", "false")
+
+            // Debug == regtest, so a mainnet address pasted into the Maestro build
+            // is rejected at parse time rather than at broadcast time.
+            buildConfigField("String", "BITCOIN_NETWORK", "\"REGTEST\"")
         }
         release {
             isMinifyEnabled = true
@@ -140,11 +150,35 @@ kotlin {
 dependencies {
     implementation(project(":core:common"))
     implementation(project(":core:designsystem"))
+    // BIT-98: the dark-mode choice, read at the root before the first frame.
+    implementation(project(":core:preferences"))
+    implementation(project(":core:permissions"))
     implementation(project(":core:wallet"))
     // The only place the wallet implementation is named. BIT-6 swaps this line
     // (and the binding in di/WalletModule.kt) for :core:wallet-ldk.
     implementation(project(":core:wallet-stub"))
+    // BIT-93: the seed half of the wallet — real BIP-39 key material behind a PIN,
+    // no funds. :core:wallet-seed is the pure-Kotlin logic, :core:wallet-keystore
+    // the Android Keystore storage it is bound to in di/WalletModule.kt.
+    implementation(project(":core:wallet-seed"))
+    implementation(project(":core:wallet-keystore"))
     implementation(project(":feature:signup"))
+    // BIT-98 — the navigational skeleton: Home in its no-funds state, and the
+    // Settings tree hanging off its bottom bar.
+    implementation(project(":feature:home"))
+    implementation(project(":feature:settings"))
+    implementation(project(":feature:scanner"))
+    // The three Wave 1 read-only screens (BIT-99).
+    implementation(project(":feature:value"))
+    implementation(project(":feature:map"))
+    implementation(project(":feature:academy"))
+
+    // The map renderer moved to :feature:map with the map screen, as the note here
+    // said it should when that screen landed (BIT-53 -> BIT-99). It still reaches
+    // :app's manifest merge through that module, which is what keeps
+    // LocationPrecisionGuardTest asserting something real: MapLibre's own AAR
+    // declares ACCESS_FINE_LOCATION, and the `tools:node="remove"` line below is the
+    // only reason the shipped APK does not ask for it.
 
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)

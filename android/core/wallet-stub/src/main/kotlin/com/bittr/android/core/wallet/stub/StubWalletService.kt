@@ -1,28 +1,124 @@
 package com.bittr.android.core.wallet.stub
 
+import com.bittr.android.core.wallet.Mnemonic
 import com.bittr.android.core.wallet.WalletService
 import com.bittr.android.core.wallet.WalletState
+import com.bittr.android.core.wallet.WrongSeedException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 
 /**
- * Deterministic no-op [WalletService], used by the scaffold and by CI.
+ * Deterministic in-memory [WalletService], used by CI.
  *
- * It holds no key material, touches no disk, and opens no sockets — which is the
- * point: the Maestro harness has to be able to fail for exactly one reason (the
- * app is broken), not for eleven (node won't sync, regtest is down, channel
- * didn't open). Real wallet-backed flows arrive with :core:wallet-ldk in BIT-6.
+ * It touches no disk, opens no sockets and reaches no Keystore — which is the point:
+ * the Maestro harness has to be able to fail for exactly one reason (the app is
+ * broken), not for eleven (node won't sync, regtest is down, channel didn't open).
+ * Real wallet-backed flows arrive with :core:wallet-ldk in BIT-6.
  *
- * Reports [WalletState.Uninitialized] so the app lands on the signup entry point,
- * matching a fresh install on iOS.
+ * Since BIT-93 it walks the create-wallet arc too, so a flow can drive signup end to
+ * end and assert against a phrase it knows in advance. State lives in memory only, so
+ * every launch starts at [WalletState.Uninitialized] the way a fresh install does.
+ *
+ * ### This must never be the binding in a build a user could fund
+ *
+ * [PHRASE] is the BIP-39 specification's all-zero-entropy test vector. It is public,
+ * it is in every BIP-39 test suite on earth, and any bitcoin sent to a wallet derived
+ * from it is gone immediately. That is deliberate — a stub that minted plausible
+ * *real* seeds would be far more dangerous, because the failure would be silent. The
+ * app binds [com.bittr.android.core.wallet.seed.SeedWalletService] in
+ * `di/WalletModule.kt`; this class is for tests and flows.
  */
 class StubWalletService : WalletService {
 
     private val _state = MutableStateFlow(WalletState.Uninitialized)
     override val state: StateFlow<WalletState> = _state.asStateFlow()
 
+    private var pin: String? = null
+
+    /** Wrong [unlock] entries since the last success — the lockout counter, in RAM. */
+    private var failures: Int = 0
+
+    /** The phrase the last [restoreWallet] was given, or null on the create path. */
+    var restored: Mnemonic? = null
+        private set
+
+    override suspend fun createWallet(): Mnemonic {
+        pin = null
+        _state.value = WalletState.Uninitialized
+        return PHRASE
+    }
+
+    /**
+     * Accept whatever phrase the flow typed in, and remember it.
+     *
+     * [restored] is what makes the restore flow assertable: a stub that dropped the
+     * phrase on the floor would let a build that restores the *wrong* wallet pass, so
+     * the one thing this has to prove — that the words the user typed are the words
+     * that got stored — would go untested.
+     */
+    override suspend fun restoreWallet(mnemonic: Mnemonic) {
+        restored = mnemonic
+        pin = null
+        _state.value = WalletState.Uninitialized
+    }
+
+    override suspend fun setPin(pin: String) {
+        this.pin = pin
+        failures = 0
+        _state.value = WalletState.Locked
+    }
+
+    override suspend fun unlock(pin: String): Boolean {
+        if (this.pin == null) return false
+        if (pin != this.pin) {
+            failures++
+            return false
+        }
+        failures = 0
+        _state.value = WalletState.Ready
+        return true
+    }
+
+    override suspend fun failedUnlockAttempts(): Int = failures
+
+    /**
+     * The seed this stub "holds" is whatever was last restored, falling back to
+     * [PHRASE] for the create path — which is what [createWallet] hands out.
+     */
+    override suspend fun holdsSeed(mnemonic: Mnemonic): Boolean =
+        pin != null && mnemonic == (restored ?: PHRASE)
+
+    override suspend fun resetPin(mnemonic: Mnemonic, pin: String) {
+        if (!holdsSeed(mnemonic)) {
+            throw WrongSeedException("The recovery phrase offered is not this wallet's")
+        }
+        this.pin = pin
+        failures = 0
+        _state.value = WalletState.Ready
+    }
+
+    override suspend fun removeWallet() {
+        pin = null
+        restored = null
+        failures = 0
+        _state.value = WalletState.Uninitialized
+    }
+
     override suspend fun start() = Unit
 
     override suspend fun stop() = Unit
+
+    companion object {
+        /**
+         * The BIP-39 all-zero-entropy test vector. Known to everyone, worth nothing —
+         * see the class documentation.
+         */
+        val PHRASE = Mnemonic(
+            listOf(
+                "abandon", "abandon", "abandon", "abandon", "abandon", "abandon",
+                "abandon", "abandon", "abandon", "abandon", "abandon", "about",
+            ),
+        )
+    }
 }

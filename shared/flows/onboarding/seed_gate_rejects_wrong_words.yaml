@@ -36,7 +36,7 @@
 #
 # Run: maestro test shared/flows/onboarding/seed_gate_rejects_wrong_words.yaml
 
-appId: com.bittr.bittr-regtest
+appId: ${APP_ID}
 ---
 # Clean slate — no wallet, so this walks the real first-run gate.
 - launchApp:

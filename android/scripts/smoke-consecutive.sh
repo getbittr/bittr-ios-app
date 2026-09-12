@@ -21,7 +21,12 @@
 #
 #   android/scripts/smoke-consecutive.sh              # 3 runs, the DoD default
 #   android/scripts/smoke-consecutive.sh -n 10        # hunting a suspected flake
-#   android/scripts/smoke-consecutive.sh -f shared/flows/android/other.yaml
+#   android/scripts/smoke-consecutive.sh -f shared/flows/features/pin_warning.yaml
+#
+# The flow is a SHARED one — `shared/flows/onboarding/smoke.yaml`, the same file
+# iOS runs — and it takes its app id from `--env APP_ID`. That id is read off the
+# workflow below rather than written here, so there is one copy of it per repo
+# rather than one per script; override it with APP_ID=... in the environment.
 #
 # Written for bash 3.2, which is what /bin/bash still is on macOS — so no
 # associative arrays, no ${var^^}, no EPOCHREALTIME.
@@ -29,7 +34,7 @@
 set -uo pipefail
 
 RUNS=3
-FLOW="shared/flows/android/scaffold_smoke.yaml"
+FLOW="shared/flows/onboarding/smoke.yaml"
 WORKFLOW=".github/workflows/android-maestro.yml"
 OUT_DIR="${TMPDIR:-/tmp}/bittr-smoke-consecutive"
 
@@ -86,8 +91,21 @@ fail() { echo "error: $*" >&2; exit 1; }
 
 command -v maestro >/dev/null 2>&1 \
   || fail "maestro is not on PATH. See android/docs/local-setup-macos.md."
-command -v adb >/dev/null 2>&1 \
-  || fail "adb is not on PATH. Add \$ANDROID_HOME/platform-tools."
+
+# Homebrew's android-commandlinetools cask puts sdkmanager on PATH, not adb.
+# The Mac setup doc exports ANDROID_HOME and stops there, so resolve through
+# that before complaining. Prepend so Maestro's own adb lookup sees it too.
+if ! command -v adb >/dev/null 2>&1; then
+  if [ -n "${ANDROID_HOME:-}" ] && [ -x "$ANDROID_HOME/platform-tools/adb" ]; then
+    PATH="$ANDROID_HOME/platform-tools:$PATH"
+    export PATH
+  elif [ -n "${ANDROID_SDK_ROOT:-}" ] && [ -x "$ANDROID_SDK_ROOT/platform-tools/adb" ]; then
+    PATH="$ANDROID_SDK_ROOT/platform-tools:$PATH"
+    export PATH
+  else
+    fail "adb is not on PATH. Export ANDROID_HOME and add \$ANDROID_HOME/platform-tools (see android/docs/local-setup-macos.md)."
+  fi
+fi
 
 # Exactly one device. With two attached, adb refuses every command with
 # "more than one device/emulator" — but Maestro picks one on its own, so the
@@ -112,10 +130,25 @@ if [ -f "$WORKFLOW" ]; then
   fi
 fi
 
+# The app id the shared flow launches. Read from the workflow for the same reason
+# the Maestro version is: a local copy of the literal is a copy that can disagree
+# with what CI actually runs, and the symptom would be a green local run against
+# the wrong package. An explicit APP_ID in the environment still wins, which is
+# what you want when testing a renamed or flavoured build.
+if [ -z "${APP_ID:-}" ] && [ -f "$WORKFLOW" ]; then
+  APP_ID=$(sed -n "s/^[[:space:]]*APP_ID:[[:space:]]*['\"]\{0,1\}\([^'\"[:space:]]*\)['\"]\{0,1\}.*/\1/p" "$WORKFLOW" | head -1)
+fi
+if [ -z "${APP_ID:-}" ]; then
+  echo "error: APP_ID is unset and could not be read from $WORKFLOW (env.APP_ID)." >&2
+  echo "       Re-run as: APP_ID=com.bittr.android.regtest $0" >&2
+  exit 2
+fi
+
 rm -rf "$OUT_DIR"
 mkdir -p "$OUT_DIR"
 
 echo "Flow:     $FLOW"
+echo "App id:   $APP_ID"
 echo "Runs:     $RUNS consecutive, no retries"
 echo "Maestro:  ${maestro_version:-unknown}"
 echo "Device:   $devices"
@@ -139,6 +172,7 @@ while [ "$run" -le "$RUNS" ]; do
 
   start=$(now_ms)
   maestro test \
+    --env APP_ID="$APP_ID" \
     --debug-output "$run_dir/debug" \
     --format junit \
     --output "$run_dir/report.xml" \

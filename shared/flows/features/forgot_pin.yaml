@@ -23,7 +23,7 @@
 #   5. Confirm new PIN 1234.
 #   6. Land on Home with the same wallet attached.
 
-appId: com.bittr.bittr-regtest
+appId: ${APP_ID}
 ---
 - launchApp
 - runFlow: ../helpers/wait_for_launch.yaml

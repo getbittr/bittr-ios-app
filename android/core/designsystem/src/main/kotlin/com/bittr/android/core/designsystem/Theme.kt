@@ -2,78 +2,65 @@ package com.bittr.android.core.designsystem
 
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.darkColorScheme
-import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
-import com.bittr.android.core.designsystem.BittrTokens.Palette
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.ReadOnlyComposable
 
 /**
- * Light scheme. On iOS, light mode is yellow-accented on white.
- */
-private val BittrLightColorScheme = lightColorScheme(
-    primary = Palette.Yellow,
-    onPrimary = Palette.Black,
-    primaryContainer = Palette.Yellow,
-    onPrimaryContainer = Palette.Black,
-    secondary = Palette.Blue1,
-    onSecondary = Palette.White,
-    background = Palette.White,
-    onBackground = Palette.Black,
-    surface = Palette.Grey3,
-    onSurface = Palette.Black,
-    surfaceVariant = Palette.Grey1,
-    onSurfaceVariant = Palette.Blue1,
-    outline = Palette.Grey2,
-    error = Palette.Red2,
-    onError = Palette.White,
-    errorContainer = Palette.Red1,
-    onErrorContainer = Palette.Black,
-)
-
-/**
- * Dark scheme. On iOS, dark mode swaps the yellow accent for the blue family
- * (`yelloworblue1/2/3` in Colors.swift) — that swap is the brand's dark identity,
- * not a tint of the light theme, so it is spelled out rather than derived.
- */
-private val BittrDarkColorScheme = darkColorScheme(
-    primary = Palette.Blue3,
-    onPrimary = Palette.White,
-    primaryContainer = Palette.Blue1,
-    onPrimaryContainer = Palette.White,
-    secondary = Palette.Yellow,
-    onSecondary = Palette.Black,
-    background = Palette.Black,
-    onBackground = Palette.White,
-    surface = Palette.Blue1,
-    onSurface = Palette.White,
-    surfaceVariant = Palette.Blue2,
-    onSurfaceVariant = Palette.White,
-    outline = Palette.Grey2,
-    error = Palette.Red2,
-    onError = Palette.White,
-    errorContainer = Palette.Red3,
-    onErrorContainer = Palette.White,
-)
-
-/**
- * App theme.
+ * The Bittr Compose theme.
  *
- * Deliberately **not** using Material You dynamic colour: this is a brand-led
- * financial app and the iOS side has a fixed palette, so letting the wallpaper
- * pick the accent would break parity. If BIT-4 wants dynamic colour it is a
- * design decision, made there.
+ * Carries BIT-4 `design-system` revision 7: colour (§1.1–§1.3), typography (§1.4),
+ * spacing (§1.5), shape (§1.6) and elevation (§1.7). The document is the spec; this
+ * is the transcription of it, and where the two disagree the document wins.
  *
- * Typography is Material 3's default for now — the iOS app ships Gilroy,
- * Montserrat, Palanquin and Syne (the `.ttf` files at the root of `ios/`), and
- * which of those come across is BIT-4's call, not a scaffold default.
+ * **Deliberately not Material You.** This is a brand-led financial app whose iOS side
+ * ships a fixed palette; letting the wallpaper pick the accent would break parity on
+ * the first screenshot comparison. Dynamic colour is not a default we are declining
+ * to override — it is a design decision, made here, against the port.
+ *
+ * **Dark mode follows the system, and the in-app toggle overrides it.** iOS gates dark
+ * mode on `CacheManager.darkModeIsOn()` alone and ignores the system setting. Android
+ * users expect `isSystemInDarkTheme()`; ignoring it is a bug report waiting to happen.
+ * Keeping the toggle preserves the Device screen's `Darkmode dark` / `Darkmode light`
+ * states and the Maestro flow that walks them. DEV-03 — **founder sign-off, BIT-15**.
+ *
+ * ### Reading the custom tokens
+ *
+ * Material's slots carry what Material can carry honestly. Everything else — profit,
+ * loss, the 70 % scrims, the merged emphasis token — is on [BittrTheme.colors]:
+ *
+ * ```kotlin
+ * Text(
+ *     text = "+ 2.4 %",
+ *     color = BittrTheme.colors.profit,
+ *     style = MaterialTheme.typography.labelLarge,
+ * )
+ * ```
+ *
+ * @param darkTheme system dark mode by default. Pass the user's stored preference here
+ *   when the Settings toggle is wired up; do not read it inside this function.
  */
 @Composable
 fun BittrTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
     content: @Composable () -> Unit,
 ) {
-    MaterialTheme(
-        colorScheme = if (darkTheme) BittrDarkColorScheme else BittrLightColorScheme,
-        content = content,
-    )
+    val extended = if (darkTheme) BittrDarkColorsExtended else BittrLightColorsExtended
+    CompositionLocalProvider(LocalBittrColors provides extended) {
+        MaterialTheme(
+            colorScheme = if (darkTheme) BittrDarkColors else BittrLightColors,
+            typography = BittrTypography,
+            shapes = BittrShapes,
+            content = content,
+        )
+    }
+}
+
+/**
+ * Accessor for the tokens Material 3 has no slot for. See [BittrColors].
+ */
+object BittrTheme {
+    val colors: BittrColors
+        @Composable @ReadOnlyComposable
+        get() = LocalBittrColors.current
 }
