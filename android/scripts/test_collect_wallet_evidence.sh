@@ -76,7 +76,23 @@ ok() {
 #   root_ok — "yes" or "no", what `adb root` does. "no" also makes the data
 #             directory unreadable, which is what a refused root means in
 #             practice: the command runs and finds nothing.
-#   logcat  — what `adb logcat -d` prints.
+#   logcat  — the device's log buffer, one record per line as `TAG<TAB>message`.
+#
+# The logcat branch models the two things about the command that the fallback
+# actually depends on, rather than treating it as "a file that gets dumped":
+#
+#   `-s TAG:LEVEL` selects, so a record under another tag is NOT returned. The
+#   fallback's whole premise is that instrumentation `println` reaches the log
+#   under `System.out`; a stub that ignores the selector would pass just as
+#   happily with the wrong tag, and the failure on a real device would be an
+#   empty file — which the gate reads as the sanctioned "the host looked, the
+#   device said nothing", at exit 0. Green, quiet, and the same unreadable state
+#   BIT-114 exists to fix. So it is selected here and pinned from both sides.
+#
+#   `-v raw` chooses the format. Without it logcat prefixes every line with its
+#   metadata (`I/System.out( 1234): …`), and the fallback anchors its prefix
+#   match at `^` — so dropping `-v raw` silently collects nothing, in exactly the
+#   same way.
 write_stub() {
   cat > "$stub_dir/adb" <<'STUB'
 #!/usr/bin/env bash
@@ -89,14 +105,38 @@ case "$1" in
     ;;
   wait-for-device) exit 0 ;;
   logcat)
-    # `-c` clears; anything else is a dump.
-    for argument in "$@"; do
-      if [ "$argument" = "-c" ]; then
-        : > "$dir/logcat"
-        exit 0
-      fi
+    shift
+    raw=no
+    tags=""
+    while [ "$#" -gt 0 ]; do
+      case "$1" in
+        -c) : > "$dir/logcat"; exit 0 ;;
+        -v) raw=$([ "${2:-}" = "raw" ] && echo yes || echo no); shift ;;
+        # Everything after -s is a TAG:LEVEL filterspec until the next flag.
+        -s)
+          shift
+          while [ "$#" -gt 0 ] && [ "${1#-}" = "$1" ]; do
+            tags="$tags ${1%%:*}"
+            shift
+          done
+          continue
+          ;;
+      esac
+      shift
     done
-    cat "$dir/logcat" 2>/dev/null
+    while IFS=$'\t' read -r tag message; do
+      [ -n "$tag" ] || continue
+      case "$tags" in
+        "") ;;                                  # no -s: the whole buffer
+        *" $tag"*) ;;                           # selected
+        *) continue ;;                          # a record under another tag
+      esac
+      if [ "$raw" = yes ]; then
+        printf '%s\n' "$message"
+      else
+        printf 'I/%s( 1234): %s\n' "$tag" "$message"
+      fi
+    done < "$dir/logcat" 2>/dev/null
     exit 0
     ;;
   shell)
@@ -124,13 +164,26 @@ STUB
   chmod +x "$stub_dir/adb"
 }
 
-# configure <root_ok> <logcat contents>
+# configure <root_ok> [<lines the app printed>]
+#
+# The second argument is what the app sent to stdout, so it lands in the buffer
+# under `System.out` — the tag Android's runtime redirects an app process's
+# System.out to, and the one the fallback selects. Use logcat_record to put a
+# record under a different tag.
 configure() {
   rm -rf "$stub_dir/data" "$stub_dir/cmdlog"
   mkdir -p "$stub_dir/data/data"
   printf '%s' "$1" > "$stub_dir/root_ok"
-  printf '%s' "${2:-}" > "$stub_dir/logcat"
+  : > "$stub_dir/logcat"
+  [ -n "${2:-}" ] && printf '%s\n' "$2" | logcat_record "System.out"
   write_stub
+}
+
+# logcat_record <tag>: append each line of stdin to the buffer under <tag>.
+logcat_record() {
+  while IFS= read -r line; do
+    printf '%s\t%s\n' "$1" "$line" >> "$stub_dir/logcat"
+  done
 }
 
 # plant <package> <line>…: the file EvidenceLog would have written.
@@ -197,6 +250,28 @@ case "$OUTPUT" in
     ok "the fallback answers and declares itself as the incomplete channel" ;;
   *) fail "the fallback did not warn that it was a fallback: $OUTPUT" ;;
 esac
+
+echo
+echo "--- the fallback reads the tag \`println\` lands on, and only that tag"
+# The other half of the pin above. That case fails if the fallback stops
+# selecting `System.out`; this one fails if it stops selecting at all. Together
+# they fix the tag rather than merely requiring that something comes back.
+#
+# Worth its own case because the fallback is the channel that has to work on the
+# day the file cannot be read, and a wrong tag would not show up as a failure. It
+# would show up as an empty file, which the gate is specifically built to treat
+# as the host honestly reporting a silent device — a green run that cannot see,
+# which is the defect this whole issue is.
+configure no ""
+printf '%s\n' "$APP_LINE" | logcat_record "ActivityManager"
+run_collect othertag
+status=$?
+[ "$status" -eq 0 ] || fail "a buffer with nothing under System.out exited $status, expected 0"
+if [ -s "$COLLECTED" ]; then
+  fail "the fallback collected a record logged under another tag, so it is not selecting System.out — on a real device it would sweep up unrelated log chatter that happens to start with a prefix"
+else
+  ok "a record under another tag is not mistaken for instrumentation output"
+fi
 
 echo
 echo "--- neither channel answering leaves an empty file, not no file"
