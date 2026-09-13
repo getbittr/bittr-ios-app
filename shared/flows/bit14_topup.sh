@@ -50,6 +50,14 @@ cd "${REPO_ROOT}" || { echo "cannot cd to ${REPO_ROOT}" >&2; exit 2; }
 
 SUITE="shared/flows/test_suite.sh"
 
+# The two bare `maestro test` calls below drive shared flows directly rather than
+# through ${SUITE}, so they have to supply what the suite runner would. Since
+# BIT-102 every shared flow declares `appId: ${APP_ID}` and names no id itself,
+# and a missing APP_ID surfaces as an undefined-variable error out of Maestro's
+# JS scope that never mentions app ids. Same default as test_suite.sh; exported
+# because those two calls run inside `bash -c`.
+export APP_ID="${APP_ID:-com.bittr.bittr-regtest}"
+
 # Where this run's Maestro logs go — one file per flow, under a per-pass dir.
 # test_suite.sh defaults to a throwaway /tmp dir, which is the wrong default for
 # a 60–90 minute unattended pass: the 2026-09-10 attempt stopped part-way
@@ -155,7 +163,7 @@ fi
 if should_run 2; then
     run_pass 2 "buy_signup_no_notifications" 14 -- bash -c '
         set -e
-        maestro test shared/flows/onboarding/fresh_install_skip_signup.yaml
+        maestro test --env APP_ID="$APP_ID" shared/flows/onboarding/fresh_install_skip_signup.yaml
         '"${SUITE}"' features/buy_signup_no_notifications.yaml
     '
 fi
@@ -220,7 +228,7 @@ fi
 # path. Same build, so this is an equivalent re-capture, not a different one.
 if [[ ${VERIFY_ONLY} -eq 0 && ${ONLY_PASS} -eq 0 ]]; then
     banner "Re-capturing onboarding/ from the canonical fresh_install"
-    if maestro test shared/flows/onboarding/fresh_install.yaml; then
+    if maestro test --env APP_ID="${APP_ID}" shared/flows/onboarding/fresh_install.yaml; then
         ok "onboarding/ is coherent"
     else
         warn "fresh_install re-capture failed — onboarding/01–20 may be a mix"
