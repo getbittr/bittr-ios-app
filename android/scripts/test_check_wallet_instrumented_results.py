@@ -567,6 +567,43 @@ def test_the_evidence_annotation_stays_one_line():
           notices and "%0A" in notices[0] and "KEYSTORE_KEY_INFO" in notices[0], out)
 
 
+def test_the_reading_guide_sends_the_reader_to_the_verdict_first():
+    # THE BUG THIS PINS. The guide used to open with "read 'What the device
+    # reported' first". That annotation has never carried a per-path line: the
+    # runner does not file instrumentation stdout into <system-out> (run 110
+    # onward, BIT-114), and runs 139/140 were green with the vacuity check passed
+    # — every test run, every print reached — and still reported none. So the
+    # first thing the guide told a reader to open was the one annotation that
+    # could not answer them, and the verdict came second.
+    #
+    # This is pinned by ORDER, not by presence, because both names appear in the
+    # text either way and the three checks in
+    # `test_a_green_run_says_how_to_tell_a_real_pass_from_an_ineligible_one`
+    # stay satisfied under the broken ordering. Order is the whole content of
+    # the fix, so order is what has to be asserted, or it drifts back silently
+    # the next time this paragraph is rewritten.
+    #
+    # Scoped to the NOTE line rather than the whole run: 'What the device
+    # reported' is legitimately printed earlier as a section heading and as its
+    # own annotation, and neither is the guide.
+    with tempfile.TemporaryDirectory() as tmp:
+        _, out = run(both_modules(pathlib.Path(tmp)))
+
+    note = [l for l in out.splitlines() if l.startswith("NOTE:")]
+    check("the reading guide is emitted as one NOTE line", len(note) == 1, out)
+    guide = note[0] if note else ""
+    verdict = guide.find("Backup set inspection")
+    detail = guide.find("What the device reported")
+    check("the guide names both annotations", verdict >= 0 and detail >= 0, guide)
+    check("and names the deciding one before the per-path one",
+          0 <= verdict < detail, guide)
+    # The per-path detail must stay described as conditional. Stating it flatly
+    # is how the reader ends up treating an absent annotation as a red flag
+    # about the device rather than the known runner gap.
+    check("and does not promise per-path detail every run",
+          "BIT-114" in guide, guide)
+
+
 def test_the_reading_guide_quotes_fields_the_tests_actually_print():
     # THE BUG THIS PINS, and it is the reason the two checks above are worded as
     # string pins rather than as prose review.

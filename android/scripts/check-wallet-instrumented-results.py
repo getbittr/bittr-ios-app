@@ -516,17 +516,33 @@ def main(argv=None):
     # and `setLeftOnTransport` is what they would grep the annotation for; the
     # paraphrase "whether the set was left on the transport" is not greppable and
     # is not what BackupExclusionTest prints.
-    print("\nNOTE: read the 'What the device reported' annotation on this run "
-          "before quoting this suite. Each path prints the framework's own result "
-          "for the package, the three marker prefixes it planted, and "
+    #
+    # Ordering, which BIT-108 raised and is right about: this used to open with
+    # "read 'What the device reported' first". That annotation has carried the
+    # gap wording and no per-path lines on every run to date — run 110 onward,
+    # and runs 139/140 were green with every test run and still reported none —
+    # so a reader who followed the first sentence landed on the annotation that
+    # cannot answer them, and reached the one that can only afterwards. The
+    # verdict goes first now and the per-path detail is described as conditional,
+    # which is what it is. It is still described rather than dropped: when the
+    # runner does file instrumentation stdout (BIT-114), those lines are how the
+    # host verdict gets tied to a path, and the guide should already name them.
+    print("\nNOTE: the verdict for this suite is the 'Backup set inspection' "
+          "annotation, not this one — read that one first. Whether the set was "
+          "real is decided on the HOST: it is a ::notice:: only when the canary "
+          "prefix was found in the transport's own tree, and a ::warning:: saying "
+          "the set was empty otherwise. A green suite with that warning is a pass "
+          "that proves nothing about the rules. The 'What the device reported' "
+          "annotation carries the per-path detail behind that verdict — the "
+          "BACKUP_EXCLUSION lines, one per path, each with the framework's own "
+          "result for the package, the three marker prefixes it planted, and "
           "`setLeftOnTransport` for whether the set it produced was left on the "
-          "transport for the host to read. Whether the "
-          "set was real is decided on the HOST, not here: the 'Backup set "
-          "inspection' annotation is a ::notice:: only when the canary prefix was "
-          "found in the transport's tree, and a ::warning:: saying the set was "
-          "empty otherwise. A green suite with that warning is a pass that proves "
-          "nothing about the rules. wallet-security-properties.md §4 is where that "
-          "distinction is tracked.")
+          "transport for the host to read — on any run that captured them. No run "
+          "has yet: instrumentation stdout is not reaching <system-out>, known "
+          "since run 110 and tracked on BIT-114, so expect the gap wording there "
+          "instead. That annotation is the tie between this suite and the host "
+          "phase; it is not the verdict. wallet-security-properties.md §4 is "
+          "where the distinction is tracked.")
 
     if problems:
         print()
