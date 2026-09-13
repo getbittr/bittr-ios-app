@@ -9,17 +9,41 @@ import org.junit.Test
  * **Keeps `BackupExclusionTest` pointed at the paths the wallet actually uses.**
  *
  * `BackupExclusionTest` is instrumented: it needs a device, so nothing in this
- * container or in CI today can tell you whether it still asserts about the
- * right files. It also cannot reference `WalletPaths` — it runs against
- * `:app`, which deliberately does not depend on `:core:wallet-ldk` yet, and a
- * test-only dependency would pull the bdk/ldk-node native libraries into the
- * test APK for six strings. So the path names are literals over there.
+ * container can tell you whether it still asserts about the right files.
  *
- * Duplicated literals in a test that never runs are how a security test quietly
- * stops covering anything: rename `ldk_state` in `WalletPaths`, and the
- * instrumented test goes on planting a file at the old path, finding it absent
- * from the backup set, and passing. This test runs on the JVM, on every `check`,
- * and fails that rename.
+ * ### What this used to check, and why that was not enough
+ *
+ * It used to compare *path literals*. `BackupExclusionTest` held its own copy of
+ * the six names because `:app` did not depend on `:core:wallet-ldk`, and this
+ * guard failed the build when the two copies drifted.
+ *
+ * Both halves of that have since expired. BIT-59 added
+ * `androidTestImplementation(project(":core:wallet-ldk"))` for that very test,
+ * so the copy was never necessary again — and the literal comparison turned out
+ * to be the weaker check anyway. BIT-6 split `bdk_store` out of the wallet
+ * directory, moving BDK's database from `wallet/bdk_wallet.sqlite` to
+ * `wallet/bdk_store/bdk_wallet.sqlite`. The literal `bdk_wallet.sqlite` was
+ * still present on both sides, so only the new *directory* name tripped this
+ * guard; the file being planted one level up — at a path the product had
+ * stopped writing — was invisible to it. **Matching names is not matching
+ * paths**, and the failure mode of getting that wrong is a security test that
+ * proves the exclusion of a path nobody uses.
+ *
+ * ### What it checks now
+ *
+ * `BackupExclusionTest` resolves every wallet path through `WalletPaths`, so
+ * nesting cannot drift: it either compiles against the real object or it does
+ * not. Two things the compiler still cannot see are left here.
+ *
+ * 1. **Coverage.** A path *added* to `WalletPaths` compiles fine while going
+ *    unplanted, and a wallet file the instrumented test never writes is one it
+ *    cannot prove stays out of a backup set. Every `val … : File` over there
+ *    has to be named here.
+ * 2. **No relapse into literals.** A path written back out as a string is the
+ *    old drift returning, one file at a time. The only legal exceptions are the
+ *    names `data_extraction_rules.xml` itself writes as literals, which is
+ *    where the decoys must sit — and that exception list is read from the XML
+ *    rather than written down here, so it narrows when the rules do.
  *
  * It also asserts the class is *runnable*, not merely present. A
  * `connectedAndroidTest` step that runs zero tests exits 0, and an `@Ignore`
@@ -42,6 +66,9 @@ class BackupExclusionInstrumentationGuardTest {
         const val DEVICE_TRANSFER_TEST =
             "deviceTransferOfAWalletBearingInstallCarriesNoWalletMaterial"
 
+        /** Where the two decoys are allowed to be literals, because it is. */
+        const val EXTRACTION_RULES = "app/src/main/res/xml/data_extraction_rules.xml"
+
         /**
          * A string literal that names a file or directory: no spaces, no
          * punctuation beyond what a path component carries. Everything else in
@@ -51,6 +78,18 @@ class BackupExclusionInstrumentationGuardTest {
         val PATH_COMPONENT = Regex("""^[A-Za-z0-9_.-]+$""")
 
         val STRING_LITERAL = Regex(""""([^"\n]*)"""")
+
+        /**
+         * A `WalletPaths` path property: `val walletDir: File = …`.
+         *
+         * The trailing `=` is what excludes the injected `noBackupDir`
+         * constructor parameter, which is the root the paths hang off rather
+         * than a path the wallet writes.
+         */
+        val PATH_PROPERTY = Regex("""\bval\s+(\w+)\s*:\s*File\s*=""")
+
+        /** A `path="…"` attribute in `data_extraction_rules.xml`. */
+        val RULES_PATH = Regex("""\bpath\s*=\s*"([^"]*)"""")
 
         /**
          * A `bmgr restore` driven from inside the instrumented test.
@@ -97,29 +136,97 @@ class BackupExclusionInstrumentationGuardTest {
     }
 
     @Test
-    fun `it plants a file at every path WalletPaths defines`() {
+    fun `it names every path WalletPaths defines`() {
+        // Literals go too: the question here is whether the instrumented test
+        // *references* the property, and an assertion message that merely
+        // mentions `bdkStoreDir` by name would otherwise satisfy a check about
+        // whether anything is planted there.
+        val instrumented = SourceTree.stripKotlin(
+            instrumentedTest.readText(),
+            keepStringLiterals = false,
+        )
+
+        val expected = PATH_PROPERTY.findAll(SourceTree.codeOf(walletPaths))
+            .map { it.groupValues[1] }
+            .toSortedSet()
+
+        assertTrue(
+            "Found no `val … : File =` properties in $WALLET_PATHS. Either the file has " +
+                "changed shape or this scan has drifted — and a scan that matches nothing " +
+                "passes without checking anything, which is worse than no guard at all.",
+            expected.isNotEmpty(),
+        )
+
+        val missing = expected.filterNot { Regex("""\b$it\b""").containsMatchIn(instrumented) }
+        assertTrue(
+            "WalletPaths defines $missing, and BackupExclusionTest never mentions them. A " +
+                "wallet file the instrumented test never writes is a wallet file it cannot " +
+                "prove stays out of a backup set — and the test would still be green. Plant " +
+                "a marker there, or assert about it the way bdkStoreDir and quarantineRoot " +
+                "are asserted about; if the new path is genuinely not wallet material, say " +
+                "so where it is declared and it still has to be named here.",
+            missing.isEmpty(),
+        )
+    }
+
+    /**
+     * The drift this guard used to merely detect, now made unwritable.
+     *
+     * `BackupExclusionTest` resolves its paths through `WalletPaths`, so the
+     * compiler catches a rename. What the compiler cannot catch is someone
+     * reintroducing one path as a string — which is how the duplication got
+     * there the first time, and it arrives one literal at a time rather than as
+     * a decision.
+     *
+     * The two decoys are the deliberate exception: they must sit where
+     * `data_extraction_rules.xml`'s `<exclude domain="file">` entries point,
+     * under `getFilesDir()` rather than under `getNoBackupFilesDir()`, and
+     * resolving *those* through `WalletPaths` would move them to where the
+     * product writes and destroy the thing they measure. So the exception list
+     * is read out of the rules file. If an entry is dropped from the XML, the
+     * matching literal stops being legal here in the same run — rather than
+     * lingering as an allowance nobody rechecks.
+     */
+    @Test
+    fun `it does not write a wallet path back out as a literal`() {
         val instrumented = SourceTree.codeOf(instrumentedTest)
 
-        val expected = STRING_LITERAL.findAll(SourceTree.codeOf(walletPaths))
+        val walletLiterals = STRING_LITERAL.findAll(SourceTree.codeOf(walletPaths))
+            .map { it.groupValues[1] }
+            .filter { PATH_COMPONENT.matches(it) }
+            .toSortedSet()
+        assertTrue(
+            "Found no path literals in $WALLET_PATHS — this scan is not looking where it " +
+                "thinks, and an empty ban passes without checking anything.",
+            walletLiterals.isNotEmpty(),
+        )
+
+        val rulesFile = File(SourceTree.root, EXTRACTION_RULES)
+        assertTrue(
+            "Expected the extraction rules at $EXTRACTION_RULES. They are where the decoy " +
+                "literals get their licence; without the file this test cannot tell a decoy " +
+                "from a relapse.",
+            rulesFile.isFile,
+        )
+        val allowed = RULES_PATH.findAll(rulesFile.readText())
             .map { it.groupValues[1] }
             .filter { PATH_COMPONENT.matches(it) }
             .toSortedSet()
 
-        assertTrue(
-            "Found no path literals in $WALLET_PATHS. Either the file has changed shape " +
-                "or this scan has drifted — and a scan that matches nothing passes " +
-                "without checking anything, which is worse than no guard at all.",
-            expected.isNotEmpty(),
-        )
+        val relapsed = walletLiterals
+            .filterNot { it in allowed }
+            .filter { Regex(""""${Regex.escape(it)}"""").containsMatchIn(instrumented) }
 
-        val missing = expected.filterNot { """"$it"""" in instrumented }
         assertTrue(
-            "WalletPaths names $missing, and BackupExclusionTest does not plant anything " +
-                "there. A wallet file the instrumented test never writes is a wallet file " +
-                "it cannot prove stays out of a backup set — and the test would still be " +
-                "green. Add the path to the marker list, or to the decoys if it is not " +
-                "wallet material.",
-            missing.isEmpty(),
+            "BackupExclusionTest writes $relapsed as string literals. Those are paths " +
+                "WalletPaths defines, and the copy is exactly the drift that let this suite " +
+                "plant BDK's database at wallet/bdk_wallet.sqlite for as long as it did " +
+                "after BIT-6 moved it into wallet/bdk_store/. Resolve them through the " +
+                "WalletPaths instance instead. The only literals allowed here are the ones " +
+                "$EXTRACTION_RULES names as `path` attributes — currently $allowed — " +
+                "because the decoys have to sit where those entries point and not where " +
+                "the product writes.",
+            relapsed.isEmpty(),
         )
     }
 
