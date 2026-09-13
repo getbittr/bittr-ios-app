@@ -5,6 +5,49 @@ plugins {
     alias(libs.plugins.hilt)
 }
 
+/**
+ * The node's deployment configuration, from outside the repository.
+ *
+ * Each entry is a `BuildConfig` constant name paired with the Gradle property
+ * and environment variable it may be supplied by, in that order of precedence.
+ * Absent means empty string — see the `ldkEnvironment.forEach` call below for
+ * why an unconfigured build is normal and not an error.
+ *
+ * `providers.gradleProperty` / `environmentVariable` rather than
+ * `project.findProperty` and `System.getenv`: both are configuration-cache-safe
+ * inputs, so changing one re-runs configuration instead of silently baking
+ * yesterday's value into today's APK.
+ */
+val ldkEnvironment: Map<String, String> = listOf(
+    Triple("LDK_CHAIN_SOURCE_URL", "bittr.ldk.chainSourceUrl", "BITTR_LDK_CHAIN_SOURCE_URL"),
+    Triple(
+        "LDK_RAPID_GOSSIP_SYNC_URL",
+        "bittr.ldk.rapidGossipSyncUrl",
+        "BITTR_LDK_RAPID_GOSSIP_SYNC_URL",
+    ),
+    Triple("LDK_LIGHTNING_NODE_ID", "bittr.ldk.lightningNodeId", "BITTR_LDK_LIGHTNING_NODE_ID"),
+    Triple(
+        "LDK_LIGHTNING_NODE_ADDRESS",
+        "bittr.ldk.lightningNodeAddress",
+        "BITTR_LDK_LIGHTNING_NODE_ADDRESS",
+    ),
+    Triple("LDK_LSPS2_TOKEN", "bittr.ldk.lsps2Token", "BITTR_LDK_LSPS2_TOKEN"),
+).associate { (field, property, variable) ->
+    val raw = providers.gradleProperty(property)
+        .orElse(providers.environmentVariable(variable))
+        .getOrElse("")
+        .trim()
+    // A value carrying a quote or a backslash would break out of the generated
+    // Java string literal and fail to compile — or, worse, compile into
+    // something else. Refused rather than escaped: none of these five values has
+    // any business containing either character, so one that does is a
+    // mis-supplied property and should say so at configuration time.
+    require(raw.none { it == '"' || it == '\\' }) {
+        "$property must not contain a quote or a backslash (supplied via $property or $variable)"
+    }
+    field to raw
+}
+
 android {
     namespace = "com.bittr.android"
     compileSdk = libs.versions.compileSdk.get().toInt()
@@ -44,6 +87,36 @@ android {
         // build overrides it below, exactly as iOS does
         // (`isDevelopment ? .regtest : .bitcoin`).
         buildConfigField("String", "BITCOIN_NETWORK", "\"MAINNET\"")
+
+        // iOS's EnvironmentConfig, as the five values :core:wallet-ldk needs to
+        // build a node (BIT-126). Read at runtime through di/LdkEnvironmentConfig.
+        //
+        // Every one of them defaults to "" and **none of them may ever be given a
+        // real default in this file**. That is not caution, it is the issue's
+        // note as a build rule: never mainnet keys, never production node access,
+        // never real funds. NoEmbeddedNodeCredentialsTest keeps the library
+        // module clean of them; NoCommittedNodeCredentialsTest keeps this one
+        // clean, and it reads this build file too, so a helpful default added
+        // here fails the build rather than shipping.
+        //
+        // Supply them per build, either as Gradle properties — in
+        // ~/.gradle/gradle.properties or on the command line, never in a
+        // committed gradle.properties — or as environment variables:
+        //
+        //   ./gradlew :app:assembleDebug \
+        //     -Pbittr.ldk.chainSourceUrl=... \
+        //     -Pbittr.ldk.lightningNodeId=... \
+        //     -Pbittr.ldk.lightningNodeAddress=...
+        //
+        //   BITTR_LDK_CHAIN_SOURCE_URL=... ./gradlew :app:assembleDebug
+        //
+        // An unconfigured build is the normal state of this repository and is not
+        // an error: LdkEnvironmentConfig.fromBuildConfig() returns null and
+        // di/WalletModule composes the seed-only wallet, which is exactly what
+        // the app did before BIT-126. CI and Maestro run that build.
+        ldkEnvironment.forEach { (name, value) ->
+            buildConfigField("String", name, "\"$value\"")
+        }
     }
 
     buildTypes {
@@ -126,6 +199,24 @@ android {
                     "bittr.screenshot.dir",
                     layout.buildDirectory.dir("screenshots/$variant").get().asFile.absolutePath,
                 )
+
+                // Whether this build was handed an LdkEnvironment from outside
+                // the repository. False for every build CI makes and every build
+                // a clone makes, which is the case LdkEnvironmentConfigTest
+                // asserts about: with nothing supplied, the compiled BuildConfig
+                // must carry no node credentials.
+                //
+                // Passed in rather than re-derived in the test, because the test
+                // can see the compiled constants and cannot see where they came
+                // from — and the difference between "blank because nobody
+                // configured it" and "blank because someone configured it to
+                // blank" is the whole assertion. A developer who does supply real
+                // values gets the assertion skipped with a message rather than a
+                // red build they would eventually delete the test to fix.
+                it.systemProperty(
+                    "bittr.ldk.configured",
+                    ldkEnvironment.values.any { value -> value.isNotBlank() }.toString(),
+                )
             }
         }
     }
@@ -162,6 +253,13 @@ dependencies {
     // The only place the wallet implementation is named. BIT-6 swaps this line
     // (and the binding in di/WalletModule.kt) for :core:wallet-ldk.
     implementation(project(":core:wallet-stub"))
+    // BIT-126: the node's host — the foreground service, the wallet's scope, and
+    // the WalletService decorator that binds start/stop to NodeLifecycle. On the
+    // graph whether or not this build has an LdkEnvironment, because the
+    // <service> and its two permissions have to reach the merged manifest either
+    // way; which WalletService is composed is decided at runtime in
+    // di/WalletModule, not by which module is on the classpath.
+    implementation(project(":core:wallet-ldk"))
     // BIT-93: the seed half of the wallet — real BIP-39 key material behind a PIN,
     // no funds. :core:wallet-seed is the pure-Kotlin logic, :core:wallet-keystore
     // the Android Keystore storage it is bound to in di/WalletModule.kt.

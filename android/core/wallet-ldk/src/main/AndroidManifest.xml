@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!--
+      The wallet's foreground service (BIT-126).
+
+      Declared here rather than in :app because it is this module's component:
+      :app names a WalletService implementation in one Hilt module and nothing
+      else, and an app that had to also remember a <service> line would be an app
+      where forgetting it produces a node that starts and is frozen minutes later
+      with no error anywhere.
+
+      The two permissions it needs are declared in :app's manifest instead, with
+      the rationale next to the others. That split is this repo's convention and
+      the reason for it is in that file: a permission is a claim on the Play
+      listing and in the system dialog, so it is a decision that should be
+      visible in the app's own manifest rather than arriving through a merge.
+
+      android:exported="false" — nothing outside this app may start the wallet.
+      It is the AGP default for a service with no intent filter; stated because
+      "the default is safe" is not something a reader can check.
+
+      android:foregroundServiceType="dataSync" — required from API 34, and it
+      must match the type passed to ServiceCompat.startForeground or the call
+      throws. See WalletForegroundService's class comment for why dataSync and
+      what its API 35 time cap costs.
+    -->
+    <application>
+        <service
+            android:name=".host.WalletForegroundService"
+            android:exported="false"
+            android:foregroundServiceType="dataSync" />
+    </application>
+
+</manifest>

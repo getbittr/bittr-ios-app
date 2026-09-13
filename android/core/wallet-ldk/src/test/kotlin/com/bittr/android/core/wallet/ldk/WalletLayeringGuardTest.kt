@@ -54,8 +54,18 @@ class WalletLayeringGuardTest {
          * acknowledgement order, which decides whether an event is replayed or
          * lost. Every one of those is a claim that would otherwise need a
          * funded regtest node to check.
+         *
+         * `host/` is the newest and the one whose membership is least obvious,
+         * because it holds a `Service` and an `Intent` — Android types, which
+         * this guard does not ban. It is listed because what it *decides* is
+         * ordering: the process is held up before a start begins, a runner is
+         * relaunched when its node is, and nothing erases key material while a
+         * node is live. Every one of those is provable against fakes, and none
+         * of them should stop being provable because someone reached for
+         * `Node` to ask whether it is running.
          */
-        val DECISION_PACKAGES = listOf("seed", "state", "bip", "node", "onchain", "lightning")
+        val DECISION_PACKAGES =
+            listOf("seed", "state", "bip", "node", "onchain", "lightning", "host")
 
         /** The only directory allowed to name a native binding. */
         const val ADAPTER_PACKAGE = "adapter"

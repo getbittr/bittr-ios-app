@@ -750,9 +750,12 @@ worth making to the product to satisfy a test.
     fee ceiling and the event pump's acknowledgement order; `LdkNodeSurface` is
     the binding, and its record-to-view mapping is asserted on the JVM for the
     same reason `LdkNodeConfigTest` can be. Three things to be plain about:
-    **nothing calls any of it** (that is BIT-126's wiring), **no test here runs
-    against a node** (BIT-123), and the pump's survival across backgrounding is
-    a property of the service that will host it, not of the loop.
+    **the event pump still has no caller** — BIT-126 built the host that will
+    run it (`NodeRunner`, restarted with every node start) and passed it an
+    empty list, because `EventLedger` and `ChannelClosureStore` both want
+    `CacheManager`-shaped storage Android does not have yet — **no test here
+    runs against a node** (BIT-123), and the pump's survival across
+    backgrounding is a property of the service hosting it, not of the loop.
 
     Two deliberate divergences from iOS are recorded in code and repeated here
     because they are the kind that get "tidied" back: the channel-balance
@@ -761,14 +764,40 @@ worth making to the product to satisfy a test.
     event whose handler threw is **not** acknowledged, where iOS acknowledges
     unconditionally. The first is a display figure, the second trades a replay
     for a loss. Neither touches key handling or signing.
-  - Wiring node start/stop to the Android process and service lifecycle.
-    `NodeLifecycle` starts and stops a node; **nothing calls it**, and
-    `WalletService.start`/`stop` are still the stub's no-ops. **BIT-126.**
+  **Start and stop now have a caller — in a build that was given a node.**
+  BIT-126 landed the host: `WalletNodeHost` owns the wallet's process-lifetime
+  `CoroutineScope`, `NodeBackedWalletService` binds `WalletService.start`/`stop`
+  to `NodeLifecycle.startOnce`/`stop`, and `WalletForegroundService` is what
+  keeps the process out of the frozen state while a node runs. `UnlockViewModel`
+  already called `wallet.start()` after a correct PIN; that call now reaches a
+  node. Four ordering rules carry JVM tests in `WalletNodeHostTest` — the
+  process is held up *before* a start begins, a cancelled caller does not
+  release it, a new node gets new runners, and `removeWallet` erases nothing
+  until the node is down.
 
-  Process death, Doze and background execution limits are untouched by any of
-  the above — `NodeConfigPlan`'s sync intervals are still a request rather than
-  a guarantee, for the reasons that data class states, and **BIT-123** is what
-  would measure the difference.
+  Three things about that are worth stating rather than discovering:
+
+  - **Whether it is on is a property of the build, not of the source.** The node
+    needs an `LdkEnvironment`, every field of which is empty in a clone — this
+    issue's note, as a build rule, asserted by `LdkEnvironmentConfigTest` against
+    the compiled `BuildConfig` and by `NoCommittedNodeCredentialsTest` against
+    the sources. An unconfigured build composes `SeedWalletService`, which is
+    what the app was before. **CI and Maestro run the unconfigured build, so
+    nothing below has been exercised against a running node.**
+  - **The foreground service notification is unapproved placeholder copy.** It
+    is permanently on the user's screen while the wallet runs and has no iOS
+    string to port. It must go through the copy process before it ships.
+  - **The scope is the host's, not the service's**, which is a deliberate
+    divergence from how BIT-126 was written. A scope inside the service would
+    make `ForegroundServiceStartNotAllowedException` — routine on Android 12+ for
+    a backgrounded app — fatal to the node start. The reasoning is in
+    `WalletNodeHost`'s class comment.
+
+  Process death, Doze and background execution limits remain unmeasured —
+  `NodeConfigPlan`'s sync intervals are still a request rather than a guarantee,
+  for the reasons that data class states. The foreground service is the
+  *mitigation*; **K8 is what would say whether it works**, and it needs a
+  device. **BIT-123.**
 - **K2 (background wake), K7 (interrupted payment) and K8 (Doze soak)** from
   `wallet-core-spec` §6. **BIT-123**, blocked on BIT-122: all three need a node
   that starts, and all three need a device. K2 is the behavioural half of rule

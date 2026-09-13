@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  UNAPPROVED PLACEHOLDER COPY. Do not ship as written.
+
+  These three strings are permanently on the user's screen while the wallet is
+  running, which makes them shipped copy and puts them inside the process in
+  shared/strings/README.md: copy is authored once, in shared/strings/en.json,
+  and reaches both apps from there.
+
+  They are here and not there because there is nothing to port. iOS has no
+  foreground service, so there is no existing string to move verbatim, and
+  writing new user-visible copy is not something a lifecycle issue gets to do on
+  its own — approved copy goes back through compliance, and a notification that
+  says the wrong thing about a non-custodial wallet is exactly the kind of claim
+  that process exists for (see bittr-regulatory-perimeter).
+
+  What they must not say is anything the app cannot stand behind: not "your
+  wallet is secure", not "syncing" when Doze has frozen the threads that would
+  sync, and no balance. What they do say is the smallest true thing.
+
+  Once approved, they move to shared/strings/en.json and this file becomes
+  generated output like every other strings.xml.
+-->
+<resources>
+
+    <!-- The Settings → Notifications channel name, and the shade's group label. -->
+    <string name="wallet_node_service_channel">Wallet</string>
+
+    <string name="wallet_node_service_title">bittr wallet is running</string>
+
+    <!--
+      Deliberately does not claim the wallet is up to date. Whether ldk-node's
+      background sync actually runs on a given device is unmeasured until K8, and
+      a notification that says "synced" would be the app asserting it.
+    -->
+    <string name="wallet_node_service_text">Keeping your Lightning node connected</string>
+
+</resources>

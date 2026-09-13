@@ -92,6 +92,33 @@
     -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
+    <!--
+        The wallet's foreground service (BIT-126). The <service> itself is declared
+        by :core:wallet-ldk, which owns it; the two permissions are here because
+        this is where permissions are decided in this repo, for the reason the
+        block above gives.
+
+        FOREGROUND_SERVICE is install-time and has been required since API 28.
+        FOREGROUND_SERVICE_DATA_SYNC is the API 34 per-type permission; without it
+        matching the service's android:foregroundServiceType, startForeground
+        throws SecurityException on 34+ rather than failing quietly.
+
+        Why the app needs one at all: ldk-node runs its sync on Rust threads that
+        Doze and App Standby freeze along with the process, so a Lightning node in
+        a cached process stops watching the chain — and a channel-monitor update
+        that is not seen is how a counterparty's stale commitment goes
+        unchallenged. The foreground service is what keeps the process out of that
+        state while the wallet is in use.
+
+        It is a claim on the Play listing and a permanently visible notification,
+        so it is deliberately not "always on": the service runs while a node
+        runs and is stopped with it (WalletNodeHost.stop). How much this actually
+        buys is unmeasured — K8 / BIT-123 is the measurement, and it needs a
+        device.
+    -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
+
     <application
         android:name=".BittrApplication"
         android:allowBackup="false"
