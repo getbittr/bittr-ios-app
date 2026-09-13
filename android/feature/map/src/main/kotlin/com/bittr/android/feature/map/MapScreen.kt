@@ -9,8 +9,10 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
@@ -33,6 +35,8 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import com.bittr.android.core.common.TestID
 import com.bittr.android.core.designsystem.BittrAlertDialog
 import com.bittr.android.core.designsystem.BittrCanvas
@@ -40,7 +44,21 @@ import com.bittr.android.core.designsystem.BittrCanvasShapes
 import com.bittr.android.core.designsystem.BittrTheme
 import com.bittr.android.core.designsystem.BittrTokens
 import com.bittr.android.core.designsystem.CanvasSpacer
+import com.bittr.android.feature.website.WebsiteScreen
 import kotlinx.coroutines.launch
+
+/**
+ * BTCMap's `website` values are inconsistent — some carry a scheme, some do not.
+ * A `WebView` handed `example.com` treats it as a relative reference and shows
+ * nothing, so the scheme is supplied here, at the edge where the untrusted place
+ * data enters, rather than in the browser.
+ *
+ * `https`, never `http`: an upgrade the site refuses is a page that fails to
+ * load, which is the safe direction, and `mixedContentMode` in
+ * `HardenedWebView` is set on the assumption that the top-level load is secure.
+ */
+private fun String.withScheme(): String =
+    if (startsWith("http://") || startsWith("https://")) this else "https://$this"
 
 /**
  * The Bitcoin map — a basemap with the nearby places on it, and the list of the same
@@ -255,7 +273,27 @@ internal fun MapScreen(
     }
 
     state.openWebsite?.let { url ->
-        WebsiteScreen(url = url, onClose = { state = state.copy(openWebsite = null) })
+        // `:feature:website`'s screen — the one WebView in the app, built by
+        // `HardenedWebView.create` with the BIT-33 R-11 baseline and the
+        // navigation policy on it. A merchant's `website` is whatever an
+        // OpenStreetMap contributor typed, so this is the call site that most
+        // needs it (BIT-112).
+        //
+        // The Dialog stays here rather than moving into the screen: iOS presents
+        // `WebsiteViewController` modally from `OnePlaceViewController`, whereas
+        // the screen's other call site is a navigation destination that must not
+        // be wrapped in one. The insets are the Dialog's to supply for the same
+        // reason — a full-bleed dialog has none of the host window's padding.
+        Dialog(
+            onDismissRequest = { state = state.copy(openWebsite = null) },
+            properties = DialogProperties(usePlatformDefaultWidth = false),
+        ) {
+            WebsiteScreen(
+                url = url.withScheme(),
+                onClose = { state = state.copy(openWebsite = null) },
+                modifier = Modifier.statusBarsPadding().navigationBarsPadding(),
+            )
+        }
     }
 
     state.alert?.let { alert ->

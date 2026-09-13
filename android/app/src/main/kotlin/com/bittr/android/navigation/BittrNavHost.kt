@@ -28,8 +28,8 @@ import com.bittr.android.feature.settings.DeviceViewModel
 import com.bittr.android.feature.settings.LightningQuestionScreen
 import com.bittr.android.feature.settings.SettingsScreen
 import com.bittr.android.feature.settings.WebsitePage
-import com.bittr.android.feature.settings.WebsiteScreen
 import com.bittr.android.feature.value.ValueScreen
+import com.bittr.android.feature.website.WebsiteScreen
 import com.bittr.android.feature.signup.CreateWalletScreen
 import com.bittr.android.feature.signup.RestoreWalletScreen
 
@@ -262,7 +262,11 @@ internal fun NavGraphBuilder.settingsArea(
             ?.let { name -> WebsitePage.entries.firstOrNull { it.name == name } }
             ?: WebsitePage.Support
 
-        WebsiteScreen(page = page, onDown = { navController.popBackStack() })
+        // `:feature:website`'s screen, not a settings-local one. The three pages
+        // here are three URLs; everything else about showing a URL — the R-11
+        // hardening baseline, the navigation policy, the trust derivation — is
+        // the in-app browser's job and belongs in one module (BIT-112).
+        WebsiteScreen(url = page.url, onClose = { navController.popBackStack() })
     }
 
     composable(Routes.DEVICE) {

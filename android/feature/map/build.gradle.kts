@@ -40,6 +40,11 @@ dependencies {
     // is one approved location permission and it is coarse; BittrPermissions is the
     // single place in the repo allowed to spell it out (LocationPrecisionGuardTest).
     implementation(project(":core:permissions"))
+    // A merchant's website opens in the app's one in-app browser, not in a WebView
+    // this module builds. The copy that used to live here was created with
+    // `WebView(context)` and platform defaults, which is what BIT-112 removed;
+    // WebViewHardeningGuardTest fails the build if it comes back.
+    implementation(project(":feature:website"))
 
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.compose.ui)
