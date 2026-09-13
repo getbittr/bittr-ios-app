@@ -736,12 +736,22 @@ worth making to the product to satisfy a test.
   Neither loads a native library. What they do **not** prove is that ldk-node
   honours any of it — that needs a running node, and it is BIT-123's.
 
-  **Still absent, and not yet written anywhere:** on-chain sync and balance
-  (nothing in `main` constructs a BDK `Wallet`), Lightning channel and payment
-  handling, and the wiring of node start/stop to the Android process and
-  service lifecycle. Process death, Doze and background execution limits are
-  untouched by the above — `NodeConfigPlan`'s sync intervals are still a
-  request rather than a guarantee, for the reasons that data class states.
+  **Still absent, each behind an issue that exists** — this list is written
+  with issue numbers for the same reason the paragraph above it was rewritten:
+
+  - On-chain sync and balance. Nothing in `main` constructs a BDK `Wallet`;
+    `BdkStore`, `ScanCoordinator` and `OnchainDrain` are decisions with no
+    wallet behind them. **BIT-124.**
+  - Lightning channel and payment handling, and the ldk-node event loop.
+    **BIT-125.**
+  - Wiring node start/stop to the Android process and service lifecycle.
+    `NodeLifecycle` starts and stops a node; **nothing calls it**, and
+    `WalletService.start`/`stop` are still the stub's no-ops. **BIT-126.**
+
+  Process death, Doze and background execution limits are untouched by any of
+  the above — `NodeConfigPlan`'s sync intervals are still a request rather than
+  a guarantee, for the reasons that data class states, and **BIT-123** is what
+  would measure the difference.
 - **K2 (background wake), K7 (interrupted payment) and K8 (Doze soak)** from
   `wallet-core-spec` §6. **BIT-123**, blocked on BIT-122: all three need a node
   that starts, and all three need a device. K2 is the behavioural half of rule
