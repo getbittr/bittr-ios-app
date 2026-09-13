@@ -30,7 +30,9 @@
 # Requires an active lightning channel: the More button — and therefore the
 # LNURL type — is not rendered without one. It does NOT require the lightning
 # address itself to exist; if the bittr account has none, the "Unavailable"
-# state is captured instead and is just as valid a reference for the port.
+# state is captured instead and is just as valid a reference for the port. On
+# the e2e wallet the address does exist, so the populated branch (03b) is the
+# one that fires — confirmed by the first green run, 2026-09-13.
 #
 # Entirely read-only: no amount is entered, no address is renewed, nothing is
 # sent. Safe to run anywhere in the suite once a channel is open.
@@ -108,12 +110,24 @@ appId: ${APP_ID}
           id: "receive.qrImageView"
       - takeScreenshot: shared/docs/screenshots/receive_lnurl/03a_lnurl_unavailable
 #   (b) A lightning address exists → the label carries it and the QR encodes it.
-#       The exact rendering is left unasserted on purpose: the value comes
-#       straight from the backend's `lightning_address_username` field, and
-#       whether that is a bare username or a full user@host address is not
-#       decidable from the iOS source (IbanEntity just stores the string). The
-#       screenshot is the reference; pin the format here once a real capture
-#       settles it.
+#       This is the branch the e2e wallet takes: the first green run (2026-09-13)
+#       captured 03b, with the label rendering a FULL user@host address. The
+#       value comes straight from the backend's `lightning_address_username`
+#       field and the iOS source does not constrain its shape (IbanEntity just
+#       stores the string), so the format is asserted from that observed run
+#       rather than from the source.
+#
+#       The shape is pinned, not the literal. The username is per-wallet — this
+#       flow's wallet is created fresh by onboarding — so the only stable fact
+#       is that the label is a full address and not a bare username. That is
+#       worth asserting: a bare username would render a QR nobody can pay,
+#       which is exactly the kind of silent breakage a screenshot alone would
+#       not catch. The host is deliberately left unpinned too; the fixed
+#       `e2ebittr@staging.getbittr.com` that send_lightning.yaml asserts is the
+#       e2e *payee*, a different account from the wallet under test.
+#
+#       `[.]` rather than `\.` because Maestro matches `text` as a full-string
+#       regex and YAML double quotes do not carry a `\.` escape.
 - runFlow:
     when:
       notVisible:
@@ -122,6 +136,9 @@ appId: ${APP_ID}
     commands:
       - assertVisible:
           id: "receive.qrImageView"
+      - assertVisible:
+          id: "receive.addressLabel"
+          text: ".+@.+[.].+"
       - takeScreenshot: shared/docs/screenshots/receive_lnurl/03b_lnurl_address
 
 # Tap the question mark to read the LNURL info alert ("Lightning address" —
