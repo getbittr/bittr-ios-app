@@ -293,6 +293,24 @@ jobs:
         # the emulator job only the branch that device happens to take ever runs.
         run: bash android/scripts/test_check_backup_set.sh
 
+      - name: Pin the wallet job's package name to what Gradle installs
+        # BIT-108 put the device-transfer backup on the HOST, where the package
+        # is a string handed to `adb` — `pm list packages`, /data/data/<pkg>/,
+        # `bmgr backupnow <pkg>`. Nothing compiles that string against the app.
+        #
+        # The first version of that phase used the `namespace`,
+        # com.bittr.android, rather than what is installed: applicationId plus
+        # the debug `applicationIdSuffix`, com.bittr.android.regtest. The phase
+        # then found no such package, reported the app as uninstalled, skipped
+        # the backup, and left check-backup-set.sh grepping a set nothing wrote
+        # — which is a warning at exit 0. A run that measured nothing, reading
+        # as a run that looked and found nothing.
+        #
+        # Here rather than in the emulator job for the usual reason: the drift
+        # is visible in three files with no device involved, and catching it
+        # after a boot costs a run to learn something a grep knew.
+        run: bash android/scripts/test_ci_wallet_host_phase.sh
+
       - name: Check every flow ID is registered
         # A flow selecting an ID that is in no registry entry fails at run time
         # with "element not found" — indistinguishable from a missing testTag in

@@ -218,9 +218,28 @@ duration=$((test_end - test_start))
 # the set. None of the three is evidence alone.
 echo "--- Device-transfer backup (host-driven — see BIT-108)"
 
-APP_PACKAGE=com.bittr.android
+# The INSTALLED package, which is not the namespace. build.gradle.kts sets
+# `applicationId = "com.bittr.android"` and the debug build type adds
+# `applicationIdSuffix = ".regtest"`, and connectedDebugAndroidTest installs the
+# debug variant — so everything below has to address `com.bittr.android.regtest`.
+#
+# Getting this wrong is silent in the worst available direction, and the first
+# draft of this phase got it wrong: `pm list packages` does not match, the phase
+# reports the app as not installed, the backup is skipped, and
+# check-backup-set.sh greps a set nothing ever wrote. The run is green with one
+# warning, and that warning blames AGP for an uninstall that never happened.
+#
+# $APP_ID is the workflow's copy of the same value (see its `env:` block, which
+# carries the same "must match build.gradle.kts" note) and is preferred when the
+# step exported it; the literal is the fallback for a local invocation.
+# test_ci_wallet_host_phase.sh pins both against build.gradle.kts, so a rename
+# there fails in the build job rather than here, where the failure is a warning
+# nobody reads as a bug.
+APP_PACKAGE="${APP_ID:-com.bittr.android.regtest}"
 HANDOFF_MARKER="BACKUP_EXCLUSION_HANDOFF device-transfer-plant-ready"
 HANDOFF_PATH="/data/data/$APP_PACKAGE/no_backup/backup_handoff.txt"
+
+echo "Target package: $APP_PACKAGE (APP_ID is ${APP_ID:-unset in this step})"
 
 # `|| true` throughout this phase, and no `status=$?` anywhere in it: a host
 # phase that cannot run is a "did not look", not a wallet finding. Every exit
@@ -236,14 +255,27 @@ device_transfer_backed_up=no
 # available here: it reads as "the app is not installed", skips the backup, and
 # leaves check-backup-set.sh grepping an empty set. Silent, and green apart from
 # a warning that would be blaming the wrong thing.
-if ! adb shell pm list packages 2>/dev/null | tr -d '\r' | grep -q "^package:$APP_PACKAGE$"; then
+installed_packages=$(adb shell pm list packages 2>/dev/null | tr -d '\r' || true)
+
+if ! printf '%s\n' "$installed_packages" | grep -q "^package:$APP_PACKAGE$"; then
+  # Which of the two causes it was. The anchored match fails identically whether
+  # AGP uninstalled the app or this script is addressing the wrong name, and
+  # those call for opposite fixes — so the warning quotes what the device
+  # actually has rather than asserting the cause. `(none)` is the uninstall;
+  # anything listed is a naming drift this script lost a run to once already.
+  bittr_packages=$(printf '%s\n' "$installed_packages" | grep -i 'bittr' || true)
+  bittr_packages=$(printf '%s' "${bittr_packages:-  (none)}" | tr '\n' ' ')
+
   echo "::warning title=Device-transfer backup::$APP_PACKAGE is not installed after"\
     " connectedAndroidTest, so there is nothing to back up on the device-transfer"\
-    " path and no set for check-backup-set.sh to read. The most likely cause is that"\
+    " path and no set for check-backup-set.sh to read. The bittr packages this device"\
+    " DOES have are:$bittr_packages. If that is (none), the cause is that"\
     " -Pandroid.injected.androidTest.leaveApksInstalledAfterRun stopped being honoured"\
     " by this AGP version, which would mean AGP uninstalled the app and the planted"\
-    " wallet material with it. This is a harness failure, NOT evidence about rule 5:"\
-    " any 'no wallet marker' below is a grep of an empty set."
+    " wallet material with it. If a package IS listed, this script is addressing the"\
+    " wrong name and test_ci_wallet_host_phase.sh should have caught it. Either way this"\
+    " is a harness failure, NOT evidence about rule 5: any 'no wallet marker' below is"\
+    " a grep of an empty set."
 else
   # `adb root` is what makes the app's data directory readable from here. It is
   # also what check-backup-set.sh needs, and the same caveat applies: a userdebug

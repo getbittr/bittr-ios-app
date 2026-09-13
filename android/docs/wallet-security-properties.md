@@ -241,12 +241,30 @@ transports instead, which cannot be restored from on demand.
 
 - `BackupExclusionTest` plants a wallet-bearing install — wrapped blob, ldk-node
   state, discriminator, BDK database, and a quarantine subdirectory under the
-  uniquely-generated name BIT-20 rule 4 gives it — drives `bmgr` to produce a
-  real set, deletes everything it planted, restores, and asserts none of it came
-  back. Once on the cloud-backup path and once with the local transport in
-  device-transfer mode (`is_device_transfer=true`, asserted back out of the
-  settings provider so a renamed hook cannot degrade the second run into a
-  second copy of the first), because API 31+ configures the two separately.
+  uniquely-generated name BIT-20 rule 4 gives it — alongside a canary in
+  `files/`, which no rule excludes, and a decoy at each path the
+  `dataExtractionRules` `<exclude domain="file">` entries name. Once on the
+  cloud-backup path and once with the local transport in device-transfer mode,
+  because API 31+ configures the two separately.
+
+  It no longer restores, and since BIT-108 it no longer drives the
+  device-transfer backup either — both kill the process the instrumentation runs
+  in (see *The device-transfer path cannot be driven from inside the process*
+  above). On the cloud path the package is ineligible, so no agent is ever bound
+  and the test drives `bmgr backupnow` itself. On the device-transfer path it
+  plants, arms `is_device_transfer=true`, asserts the hook back out of the
+  settings provider so a renamed hook cannot degrade that run into a second copy
+  of the cloud one, clears the stale dataset, writes a hand-off file under
+  `no_backup/`, and stops. `ci-wallet-instrumented.sh` reads the hand-off and
+  drives that backup from the host, where there is no instrumentation process
+  left to kill.
+
+  None of the three halves is evidence alone, and the test asserts none of the
+  rule-5 verdict: it creates the conditions and proves it created them.
+  `check-backup-set.sh` greps the transport's own tree and decides — and the
+  canary is what tells an excluded set apart from a set the framework never
+  wrote, which is the likely outcome under `allowBackup="false"` and reads
+  identically otherwise.
 - `InstalledBackupConfigurationTest` asserts the configuration against the
   *installed artefact* rather than the source tree: `FLAG_ALLOW_BACKUP` off the
   installed package, the `dataExtractionRules` attribute out of the merged
@@ -309,17 +327,32 @@ quietly turning the device-transfer case into a second cloud case.
   that excluded our material; `canaryReturned=false` with a declining result
   means the package was never offered to the transport.
 
-**The strongest check does not run inside the suite at all.** The in-test
-assertions depend on `bmgr restore` having done something, and a restore that
-silently no-ops produces "nothing came back" for the wrong reason.
-`BackupExclusionTest` therefore prefixes every planted file's contents with
-`MARKER_PREFIX`, and `android/scripts/check-backup-set.sh` greps the transport's
-own on-disk tree for it from the host after `adb root` — no restore involved. It
-cannot live inside the suite: the set is `0700` to another uid and
-`UiAutomation`'s shell runs as `shell`. It distinguishes three outcomes rather
-than two — marker found (the §5.3 halt), directories present and clean
-(evidence), and *could not look* (a `::warning::`, explicitly **not** evidence).
-Grep a run's log for `Backup set inspection` to see which one it got.
+**Since BIT-108 the verdict does not come from the suite at all.** The check that
+decides rule 5 is `android/scripts/check-backup-set.sh`: `BackupExclusionTest`
+prefixes every planted file's contents with `MARKER_PREFIX`, and that script
+greps the transport's own on-disk tree for it from the host after `adb root`.
+
+It was always the strongest check, for the reason its header gives — the in-test
+version depended on `bmgr restore` having done something, and a restore that
+silently no-ops produces "nothing came back" for the wrong reason. It is now
+also the *only* one, because the restore had to go: it killed the process it
+asserted from, and it was vacuous-or-fatal by construction. A restore only kills
+the process when the framework has something to restore, so that assertion
+passed exactly when nothing had been backed up.
+
+The grep survives what the restore did not — it needs no restore and no living
+instrumentation process, so it still answers on a run that went red. It cannot
+live inside the suite either way: the set is `0700` to another uid and
+`UiAutomation`'s shell runs as `shell`.
+
+It distinguishes four outcomes, and only one is evidence — wallet marker found
+(the §5.3 halt), no marker *and the canary present* (evidence: the set was
+reachable, searched, provably non-empty, and clean), no marker and no canary (a
+`::warning::` at exit 0 — an empty set, the expected `allowBackup="false"`
+shape, and **not** evidence), and *could not look* (also a `::warning::`, also
+not evidence). Decoy findings are reported alongside whichever outcome the run
+got and never trip the halt. Read the `Backup set inspection` annotation to see
+which one it was.
 
 **Also unresolved, and deliberately left to the device:** the root of
 `domain="file"` is `getFilesDir()`, while the wallet directory is under
