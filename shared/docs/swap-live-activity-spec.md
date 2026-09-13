@@ -1,6 +1,8 @@
 # Swap Live Activity spec — `SwapLiveActivity` (iOS) → Live Update (Android)
 
-**Status:** decided · **Decided by:** Head of App (Android), BIT-75 · **Source of truth:**
+**Status:** decided · **Decided by:** Head of App (Android), BIT-75 (§1–§5, §7 — the mechanism)
+and Mobile Product Designer, BIT-115 (§4.2, §4.3, §6 — the copy, icons and tint) ·
+**Source of truth:**
 `ios/BittrWidget/SwapLiveActivity.swift`, `ios/BittrWidget/SwapActivityAttributes.swift`,
 `ios/bittr/Swaps/SwapLiveActivityController.swift` at `2867c35`
 
@@ -180,16 +182,36 @@ the backend, and it is the one part that must not be redesigned:
 
 ### 4.2 Presentation per phase
 
-iOS values on the left; the Android port on the right. **The copy column is a transliteration, not
-a decision** — see §6.
+**Decided in BIT-115** — the copy, icons and tint below are the Android values to build, not a
+transliteration. §6 is the reasoning and the evidence; this is the table to implement from.
 
-| Phase | iOS title | iOS subtitle | SF Symbol | iOS tint | Android icon | Android tint token |
-| --- | --- | --- | --- | --- | --- | --- |
-| `preparing` | Getting ready | Setting up your transfer | `hourglass` | `bittrYellow` | hourglass | `Yellow` `#FFC502` |
-| `waitingConfirmation` | Confirming your transfer | This usually takes 10–30 minutes | `clock.fill` | `bittrYellow` | filled clock | `Yellow` `#FFC502` |
-| `completing` | Almost there | Adding it to your instant balance | `bolt.horizontal.fill` | `bittrYellow` | horizontal bolt | `Yellow` `#FFC502` |
-| `complete` | Swap complete | Your bitcoin is ready for instant payments ⚡️ | `checkmark.circle.fill` | `.green` (system) | filled check circle | `Green2` `#319A3D` |
-| `failed` | Swap didn't go through | Tap to sort it out | `xmark.circle.fill` | `.red` (system) | filled x circle | `Red2` `#FF3B30` |
+What iOS renders:
+
+| Phase | iOS title | iOS subtitle | SF Symbol | iOS tint |
+| --- | --- | --- | --- | --- |
+| `preparing` | Getting ready | Setting up your transfer | `hourglass` | `bittrYellow` |
+| `waitingConfirmation` | Confirming your transfer | This usually takes 10–30 minutes | `clock.fill` | `bittrYellow` |
+| `completing` | Almost there | Adding it to your instant balance | `bolt.horizontal.fill` | `bittrYellow` |
+| `complete` | Swap complete | Your bitcoin is ready for instant payments ⚡️ | `checkmark.circle.fill` | `.green` (system) |
+| `failed` | Swap didn't go through | Tap to sort it out | `xmark.circle.fill` | `.red` (system) |
+
+What Android renders. Copy is keyed, not literal — the keys are in `shared/strings/en.json`
+under `swapliveupdate.*`, and the rendered text is repeated here only so the table is readable:
+
+| Phase | Title (`…title`) | Subtitle (`…subtitle`) | Small icon | Tint |
+| --- | --- | --- | --- | --- |
+| `preparing` | Getting ready | Setting up your transfer | `ic_stat_swap_preparing` | `Yellow` `#FFC502` |
+| `waitingConfirmation` | Confirming your transfer | Usually 10–30 minutes | `ic_stat_swap_confirming` | `Yellow` `#FFC502` |
+| `completing` | Almost there | Adding to instant balance | `ic_stat_swap_completing` | `Yellow` `#FFC502` |
+| `complete` | Swap complete | Ready for instant payments ⚡️ | `ic_stat_swap_complete` | `Yellow` `#FFC502` |
+| `failed` | Swap didn't go through | Tap to sort it out | `ic_stat_swap_failed` | `Yellow` `#FFC502` |
+
+Three of the five subtitles are iOS's, unchanged, because they already fit. Two shrank: the
+collapsed line truncates at roughly 30 characters and iOS's were 32 and 33. `complete`'s dropped
+from 45 — it was never going to survive, and "Your bitcoin is" is the part the header already
+implies. **One tint, on all five phases** — see §6.5, which is also why the `Green2` / `Red2` that
+used to be in this column are gone. They moved to the progress bar (§4.3), which is where colour
+can do its job without the card changing colour underneath the user mid-swap.
 
 Three notes on the colours, because a straight transliteration gets all three wrong:
 
@@ -201,9 +223,9 @@ Three notes on the colours, because a straight transliteration gets all three wr
 3. `Red2` is `#FF3B30`, which happens to be exactly iOS's system red. That one is a coincidence,
    not a reason to trust the other two.
 
-Icons: these are SF Symbols and have no Android equivalents by name. They need real drawables.
-Material Symbols has close matches for all five (`hourglass_empty`, `schedule`, `bolt`,
-`check_circle`, `cancel`) but which glyph is a design call, not a porting call — §6.
+Icons: these are SF Symbols and have no Android equivalents by name. The five drawables exist —
+`android/app/src/main/res/drawable/ic_stat_swap_*.xml`, Material Symbols at **FILL 1**. §6.3 is
+why filled rather than outlined, and what constrains anyone re-syncing them from upstream.
 
 ### 4.3 The progress bar per phase
 
@@ -212,17 +234,37 @@ iOS: `preparing` → a static 0.12 bar; `waitingConfirmation`/`completing` → t
 
 Android, as three segments over the three non-terminal phases:
 
-| Phase | Segments | `setProgress` | Chip (`setShortCriticalText`) | Chronometer |
-| --- | --- | --- | --- | --- |
-| `preparing` | 25 / 50 / 25 | 0 | — | no |
-| `waitingConfirmation` | 25 / 50 / 25 | 25 | elapsed, e.g. `10m` | **yes** |
-| `completing` | 25 / 50 / 25 | 75 | elapsed | **yes** |
-| `complete` | one segment, 100, `Green2` | 100 | — | no |
-| `failed` | one segment, 100, `Red2` | 100 | — | no |
+| Phase | Segments | Segment colour | `setProgress` | Chip (`setShortCriticalText`) | Chronometer |
+| --- | --- | --- | --- | --- | --- |
+| `preparing` | 25 / 50 / 25 | `Ink` `#0D0D0D` | 0 | unset — §6.2 | no |
+| `waitingConfirmation` | 25 / 50 / 25 | `Ink` `#0D0D0D` | 25 | unset — §6.2 | **yes** |
+| `completing` | 25 / 50 / 25 | `Ink` `#0D0D0D` | 75 | unset — §6.2 | **yes** |
+| `complete` | one segment, 100 | `Green2` `#319A3D` | 100 | unset | no |
+| `failed` | one segment, 100 | `Red2` `#FF3B30` | 100 | unset | no |
 
-The chronometer and chip follow iOS's `showsTimer`, which is true for exactly
-`waitingConfirmation` and `completing`. On the other three phases iOS shows the phase icon where
-the timer would be; on Android the icon is the notification's small icon and needs no switch.
+The chronometer follows iOS's `showsTimer`, which is true for exactly `waitingConfirmation` and
+`completing`. On the other three phases iOS shows the phase icon where the timer would be; on
+Android the icon is the notification's small icon and needs no switch.
+
+**The segment colours are not what renders, and that is deliberate.** `ProgressStyle` runs every
+segment colour through `sanitizeProgressColor(segment, background, default)`, which rewrites
+anything below 3 : 1 against the background. Measured against our `#FFC502` tint:
+
+| Declared | Renders as | Ratio |
+| --- | --- | --- |
+| `Ink` `#0D0D0D` | `#0D0D0D` — unmodified | 12.25 : 1 |
+| `Green2` `#319A3D` | `#11852A` | 3.00 : 1 |
+| `Red2` `#FF3B30` | `#E3171D` | 3.00 : 1 |
+| `Yellow` `#FFC502` | `#966B00` | 3.01 : 1 |
+
+Two consequences. First, **the in-flight segments are ink because ink is the only one of the four
+that survives** — a bar declared in the brand colour over the brand background renders as a dark
+olive that appears in no token, silently. The probe test written under BIT-75 declares its three
+segments `YELLOW`; that is this defect, and it is why the numbers above are now pinned in
+`SwapLiveUpdatePresentationTest`. Second, the two terminal colours *are* worth declaring as the
+tokens even though neither renders as itself: the rewrite is deterministic and hue-preserving, so
+what lands is recognisably the brand's green and red. Do not "correct" the tokens to the rendered
+values — that would double-apply the rewrite on the next platform release that adjusts its floor.
 
 ### 4.4 Presentations
 
@@ -338,34 +380,193 @@ route anywhere.
 
 ---
 
-## 6. What a designer owns, not a porter
+## 6. The design decisions — **decided, BIT-115**
 
-Everything above is derivable from source. These are not, and the BIT-75 ticket was right that
-they need a designer's pass rather than a transliteration:
+§3–§5 are derivable from source. These five were not, and BIT-75 was right that they needed a
+designer rather than a transliteration. This section used to enumerate them as open; it now
+records what was decided and what the decision rests on.
 
-1. **The five titles and subtitles.** The iOS strings are written for a wide lock-screen banner
-   and an island. An Android notification's collapsed line is much shorter and truncates, and the
-   status-bar chip is a handful of characters. "This usually takes 10–30 minutes" (32 chars) is
-   fine expanded and will truncate collapsed. Decide per phase what the collapsed line says.
-2. **The chip text.** §4.3 proposes the elapsed time. It could as well be a phase abbreviation.
-   This is a genuinely new piece of copy with no iOS counterpart — the island shows a live timer
-   because it can; a 6-character chip may want something else.
-3. **The five icons.** Real drawables, from Material Symbols or drawn. §4.2 lists the closest
-   matches; picking is a design call.
-4. **What the expanded notification drops.** The expanded island has three regions and shows the
-   "bittr swap" label, the timer, the phase title, the bar *and* "*N* sats → instant". Android's
-   expanded notification is one region. Something goes. The app name is already in the notification
-   header, which makes "bittr swap" the obvious cut, but that is a call.
-5. **`setColorized(true)` is mandatory (§3.2) and it tints the notification.** Which brand colour
-   it tints *to*, and whether that reads acceptably on the lock screen over a user's wallpaper and
-   in both themes, is a design judgement that wants a real device.
+The headline is that **four of the five did not need a device**, which is not what §7.3 assumed.
+Three framework entry points are public and decide the rendered appearance off-device —
+`Notification.Colors#resolvePalette`, `ProgressStyle#sanitizeProgressColor`, and the drawables
+themselves under Robolectric's native graphics mode. Every number below is measured, and the
+measurements are pinned in `android/app/src/test/kotlin/com/bittr/android/SwapLiveUpdatePresentationTest.kt`
+so they fail rather than rot.
 
-These five are **copy and visual**, and they are the whole reason this can't just be implemented
-from the iOS source. None of them blocks the mechanism in §3–§5.
+### 6.1 The five titles and subtitles — **iOS copy survives, two subtitles shrink**
 
-**Strings:** twelve new entries (5 titles, 5 subtitles, 2 alert bodies) in `shared/strings/en.json`.
-They have no iOS `*Language.swift` counterparts — the iOS copy is hardcoded in SwiftUI — so these
-are new keys, not a migration.
+The decided strings are in §4.2. The collapsed line is one row at body size and truncates at
+roughly 30 characters, so the budget applied was **≤ 24 for a title** and **≤ 30 for a subtitle**,
+the tighter title budget because a title renders larger and is the first thing to be squeezed at
+a large font scale.
+
+Against that budget iOS's copy mostly already fits, and the honest outcome is that most of it is
+kept verbatim rather than rewritten for the sake of it. The three changes:
+
+| Phase | iOS | Android | Why |
+| --- | --- | --- | --- |
+| `waitingConfirmation` | This usually takes 10–30 minutes (32) | Usually 10–30 minutes (21) | Same information, inside budget. "This usually takes" is throat-clearing a notification cannot afford. |
+| `completing` | Adding it to your instant balance (33) | Adding to instant balance (25) | Same. |
+| `complete` | Your bitcoin is ready for instant payments ⚡️ (45) | Ready for instant payments ⚡️ (29) | "Your bitcoin is" is what the notification is already about. The ⚡️ stays — it is the instant-balance mark elsewhere in the app and it is one glyph. |
+
+Two things deliberately *not* done:
+
+- **The titles are not prefixed with "Swap".** The notification header already renders the app
+  name, and §6.4 puts the amount beside it, so "bittr · 21 000 sats · Getting ready" is the line
+  the user actually reads. A title that repeats the header wastes the shortest row on the surface.
+- **`complete`'s title is not pointed at `swapstatusswapcomplete`.** It is the same sentence, and
+  `shared/strings/README.md` is right that "Swap complete" living in three places is a problem —
+  but this is a fourth *legitimate* home, not a fourth copy to collapse. The status screen's key
+  labels one Boltz status; this key labels a phase that collapses **four** of them
+  (`invoice.paid`, `transaction.claim.pending`, `transaction.claimed`, `invoice.settled`). They
+  agree today by good luck of the copywriting, not by contract, and coupling them would make a
+  reword of a per-status screen label silently change a notification. Whoever does that
+  consolidation should leave `swapliveupdate.complete.title` alone.
+
+### 6.2 The chip text — **unset, on all five phases**
+
+The spec proposed elapsed time (`10m`). **That is the one option that can be wrong**, and it
+should not be built.
+
+`setShortCriticalText(String)` takes a static string. There is no chronometer variant of it — the
+elapsed count in the notification body ticks because `setWhen` + `setUsesChronometer` hands the
+system an origin and lets it render the clock, and the chip has no equivalent. So a chip reading
+`10m` is a snapshot taken at post time, and this surface re-posts only when the Boltz status
+changes. Between `transaction.mempool` and `transaction.confirmed` that is a **10–30 minute gap
+with no re-post**, so the chip would freeze at `0m` or `1m` for the whole wait it exists to
+describe. Re-posting on a timer to keep it honest is not available either: that is a wakeup a
+minute for half an hour, and in Doze — the lock-screen case, which is the entire use case — it
+would not fire anyway.
+
+Leaving it unset strictly dominates. The chip still appears; it renders the app icon, and
+`Notification` exposes `hasAppProvidedWhen()` and `showsChronometer()` as public accessors
+alongside `getShortCriticalText()`, which is the API shape of a renderer that falls back to a
+live time when no override is given. **That fallback is the one claim here that is not measured**
+— SystemUI is not something Robolectric runs — so it is written as the reason the downside is
+bounded, not as a fact.
+
+If the device check (§7.3) shows a bare chip with no timer, the replacement is **`1/3`, `2/3`,
+`3/3`**: it mirrors the segmented bar, it fits, and it changes exactly when the notification
+re-posts, so it is the only candidate that is never stale. Do not reach back for elapsed time.
+
+### 6.3 The five icons — **Material Symbols, FILL 1, authored**
+
+They exist: `ic_stat_swap_{preparing,confirming,completing,complete,failed}.xml`, mapped in §4.2.
+`hourglass_top` / `schedule` / `bolt` / `check_circle` / `cancel`.
+
+Three rules govern them, and each one is a way to get this wrong quietly:
+
+1. **Filled, not outlined.** `setSmallIcon` renders at status-bar size, where an outlined glyph's
+   2 dp strokes break up. This is why iOS's outlined `hourglass` does *not* port as
+   `hourglass_empty`, which §4.2 used to suggest. `hourglass_top` also happens to say "just
+   started" — a full upper chamber — which `hourglass_empty` does not say at all.
+2. **Alpha silhouettes.** On a colorized notification the framework paints the small icon in the
+   palette's primary text colour (measured: `#1A1B20`), so any colour in the drawable is
+   discarded. All detail is a transparent cut-out. Three of the five — the clock hands, the check,
+   the cross — are *only* cut-outs, so a wrong fill rule turns them into three identical discs.
+3. **The y-up grid.** Material Symbols are authored on a 960×960 grid with a `0 -960 960 960`
+   viewBox, which `VectorDrawable` has no equivalent for. Each file carries a
+   `<group android:translateY="960">` instead, and the path data underneath is byte-identical to
+   upstream so a re-sync does not need coordinates re-derived. Delete that group — the obvious
+   tidy-up — and the glyph renders entirely outside its own bounds: no crash, no warning, a blank
+   space in the status bar.
+
+Rules 2 and 3 are both silent failures, so both are asserted rather than documented: the guard
+rasterises all five and checks coverage, centring, and that the three disc glyphs still have
+enclosed transparent pixels.
+
+### 6.4 What the expanded notification drops — **"bittr swap"; the amount moves to `setSubText`**
+
+Android's expanded notification is one region against the island's three, so the island's five
+elements have to fit into: header (app name, sub-text, time), title, text, bar.
+
+| iOS element | Android |
+| --- | --- |
+| "bittr swap" label | **dropped** — the header already renders the app name |
+| the elapsed timer | header, via `setWhen` + `setUsesChronometer` (§4.3) |
+| the phase title | `setContentTitle` |
+| the bar | `ProgressStyle` |
+| "*N* sats → instant" | header, via **`setSubText`**, as the bare amount — `21 000 sats` |
+
+`setSubText` rather than folding the amount into the subtitle, because sub-text is Android's
+designated "which instance of this notification" slot and the amount is exactly that: §4.4 says
+concurrent swaps become separate notifications with no counterpart to the island's `minimal`
+variant, so the amount is the only thing distinguishing two of these in a shade. Folding it into
+`setContentText` would instead cost the phase subtitle its line, which is the one row carrying
+what is happening.
+
+The "→ instant" phrasing is dropped with the label. It was doing work on iOS because the island
+had no other room to say where the money is going; on Android `completing` and `complete` both
+say "instant" in the subtitle, at the two moments it matters.
+
+One accepted cost: sub-text and the chronometer share the header row, and sub-text truncates
+first. That is the right thing to lose — of the three header elements the amount is the one the
+user already knows.
+
+### 6.5 The tint — **`Yellow` `#FFC502`, one tint, all five phases**
+
+`setColorized(true)` is mandatory (§3.2), so the only questions were which colour and whether it
+reads. Both are settled, and the "wants a real device" caveat this section used to carry does not
+survive contact with `Notification.Colors#resolvePalette`, which is public and computes the exact
+rendered palette for a requested colour:
+
+| | Measured |
+| --- | --- |
+| Background | `#FFC502` — **the platform uses the requested colour verbatim**, it does not lighten or darken a colorized background |
+| Primary and secondary text | `#1A1B20`, chosen by the platform |
+| Contrast | **10.84 : 1** — AAA, against a 4.5 : 1 requirement |
+| Light vs dark scheme | **byte-identical** |
+
+That last row is the interesting one. BIT-94 and BIT-95 both turned on a token checked in one
+scheme and broken in the other, and this issue inherited the rule to check both. Here the answer
+is that **a colorized notification has only one scheme**: `resolvePalette` takes a `nightMode`
+flag and, for the colorized path, ignores it. So there is no dark variant of this tint to design,
+and no second set of numbers to maintain.
+
+The wallpaper half of the old caveat dissolves the same way: a colorized background is **opaque**,
+so a lock-screen render does not composite the user's wallpaper and legibility is not a function
+of it. What the wallpaper does affect is whether the card is *noticed*, and a saturated yellow is
+the best answer available to that.
+
+**Why one tint and not iOS's three.** iOS tints an accent inside the activity; `setColor` on a
+colorized notification paints the **entire card**. Transliterating the per-phase tints would
+therefore give a card that is yellow, then green, then red during one swap — which reads as three
+different notifications rather than one thing still happening, and that continuity is the whole
+job of this surface. So the card stays the brand colour throughout and the phase is carried by the
+icon, the copy, and the bar. Colour does work in exactly one place: the terminal bar (§4.3), where
+the swap is over and there is no continuity left to protect.
+
+**This is also self-documenting, by accident of the framework.** `Notification#isColorized()`
+returns true only when colorized was requested **and** the notification is a foreground service,
+or a media session, or *promoted ongoing*. Promotion is the system's call (§3.2). So the tint and
+the promotion are the same event: below API 36, or whenever promotion is declined, the card is not
+yellow — it is an ordinary notification. There is no state in which a yellow card is not a Live
+Update, and no need to check for one.
+
+### 6.6 Strings
+
+**Twelve new keys in `shared/strings/en.json`**, namespaced `swapliveupdate.*`. They have no iOS
+`*Language.swift` counterparts — the iOS copy is hardcoded in SwiftUI — so they are new keys, not
+a migration, and `check_flow_copy.py` is green with them added.
+
+The twelve are **not** the 5 titles / 5 subtitles / 2 alert bodies this section originally
+specified. The alert bodies do not exist as separate strings, and should not:
+
+- §5.4 makes the terminal post *itself* the alert — the same notification, same title, same text,
+  re-posted without `setOnlyAlertOnce` on an `IMPORTANCE_DEFAULT` channel. There is no second
+  surface with its own copy, so two alert-body keys would be two more copies of a sentence that
+  already renders from `swapliveupdate.{complete,failed}.subtitle`. `shared/strings/README.md`
+  spends a section on what duplicate copies of one sentence cost; minting two on purpose, on the
+  same page that records the cost, is not defensible.
+- The two keys that *are* needed and that nobody had written are the **notification channel's name
+  and description** — `swapliveupdate.channel.{name,description}`. They are user-visible, in
+  Settings › Notifications, and `NotificationChannel` cannot be constructed without the name.
+
+So: 5 titles, 5 subtitles, 2 channel strings.
+
+One note for the generator, which does not exist yet: `swapliveupdate.failed.title` contains an
+apostrophe, and an unescaped `'` in `strings.xml` is a build error rather than a rendering bug.
+`Swap complete` is now the fourth place that sentence lives in the repo — deliberately, see §6.1.
 
 ---
 
@@ -430,9 +631,25 @@ partially in the Maestro gate after all and §1's exclusion can be revisited for
 
 ### 7.3 Needs a human eye on a real device
 
-The lock-screen and status-bar-chip visual treatment: how the colorized tint reads over a
-wallpaper, on always-on display, in light and dark. Same class of check as `widget-spec.md` §6,
-and same status — a few minutes, not a blocker.
+**This shrank under BIT-115, and most of what it used to list is now measured.** It said the
+colorized tint over a wallpaper, in light and dark, needed an eye. It does not: the palette is
+computed by `Notification.Colors#resolvePalette`, which is public, so the rendered background and
+text colours and their 10.84 : 1 ratio are asserted on the JVM; the background is opaque, so the
+wallpaper is not composited; and the palette is byte-identical in both schemes, so there is no
+second case. §6.5 has the numbers.
+
+What genuinely still needs a device, and it is now **one question, not four**:
+
+- **What the status-bar chip renders when `setShortCriticalText` is unset.** §6.2 leaves it unset
+  on all five phases because a static string cannot tick, and expects the system to fall back to a
+  live elapsed time. SystemUI is not something Robolectric runs, so that is the one unmeasured
+  claim on this surface. If the chip comes up bare, §6.2 names the replacement (`1/3` … `3/3`) and
+  it is a one-line change.
+- Worth a glance while the device is in hand, but not blocking anything: the same card on
+  always-on display, where the panel may render the tint at reduced luminance.
+
+Same status as before — a few minutes, not a blocker, and now with a specific thing to look at
+rather than an impression to form.
 
 ---
 

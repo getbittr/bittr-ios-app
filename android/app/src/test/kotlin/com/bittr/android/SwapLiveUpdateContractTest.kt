@@ -48,12 +48,21 @@ class SwapLiveUpdateContractTest {
         const val CHANNEL = "swap-progress"
         const val ID = 7501
 
-        /** Stands in for `waitingConfirmation` — the phase that shows a bar and a live timer. */
+        /**
+         * Stands in for `waitingConfirmation` — the phase that shows a bar and a live timer.
+         * The decided copy, from `swapliveupdate.waitingconfirmation.*`. Spec §4.2.
+         */
         const val TITLE = "Confirming your transfer"
-        const val TEXT = "This usually takes 10-30 minutes"
+        const val TEXT = "Usually 10–30 minutes"
 
-        /** `Yellow` from the Android design tokens, not iOS's local `#FAC924`. See spec §4.2. */
-        const val YELLOW = 0xFFFFC502.toInt()
+        /**
+         * The segment colour for the three in-flight phases. **Ink, not the brand yellow** —
+         * `ProgressStyle` rewrites any segment below 3 : 1 against the background, and against
+         * our `#FFC502` tint a yellow segment renders as `#966B00`. Ink is the only one of the
+         * candidates that survives unmodified. Spec §4.3; pinned in
+         * [SwapLiveUpdatePresentationTest].
+         */
+        const val INK = 0xFF0D0D0D.toInt()
 
         const val STARTED_AT_MILLIS = 1_000_000L
     }
@@ -94,9 +103,9 @@ class SwapLiveUpdateContractTest {
     private fun threeSegmentProgress() = NotificationCompat.ProgressStyle()
         .setProgressSegments(
             listOf(
-                NotificationCompat.ProgressStyle.Segment(25).setColor(YELLOW),
-                NotificationCompat.ProgressStyle.Segment(50).setColor(YELLOW),
-                NotificationCompat.ProgressStyle.Segment(25).setColor(YELLOW),
+                NotificationCompat.ProgressStyle.Segment(25).setColor(INK),
+                NotificationCompat.ProgressStyle.Segment(50).setColor(INK),
+                NotificationCompat.ProgressStyle.Segment(25).setColor(INK),
             )
         )
         .setProgress(25)

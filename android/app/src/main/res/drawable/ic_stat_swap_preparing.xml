@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  BIT-115. Small icon for the swap Live Update, phase `preparing`.
+  hourglass_top, FILL 1 — iOS `hourglass`, filled so it survives status-bar size.
+
+  Material Symbols, weight 400, grade 0, optical size 24, **FILL 1**. Filled rather than
+  outlined on purpose: `setSmallIcon` is rendered at status-bar size, where the 2dp strokes
+  of an outlined glyph break up. That is why iOS's outlined `hourglass` does not port as
+  `hourglass_empty`.
+
+  **This is an alpha silhouette, not a coloured icon.** On a colorized notification the
+  framework paints the small icon in the palette's primary text colour
+  (`Notification.Colors#getPrimaryTextColor`, measured at #1A1B20 over our #FFC502 tint), so
+  the fillColor below is discarded at render time. White is declared only so the glyph is
+  visible in the tooling preview. Every piece of detail is a transparent cut-out; do not add
+  a second colour to any of these five, it will not survive.
+
+  Material Symbols are authored on a 960x960 grid with a y-up viewBox ("0 -960 960 960"),
+  which VectorDrawable has no equivalent for. The group's translateY is that offset, so the
+  path data below is byte-identical to the upstream glyph and can be re-synced without
+  re-deriving coordinates.
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="960"
+    android:viewportHeight="960">
+    <group android:translateY="960">
+        <path
+            android:fillColor="#FFFFFFFF"
+            android:pathData="M320-160h320v-120q0-66-47-113t-113-47q-66 0-113 47t-47 113v120ZM160-80v-80h80v-120q0-61 28.5-114.5T348-480q-51-32-79.5-85.5T240-680v-120h-80v-80h640v80h-80v120q0 61-28.5 114.5T612-480q51 32 79.5 85.5T720-280v120h80v80H160Z" />
+    </group>
+</vector>
