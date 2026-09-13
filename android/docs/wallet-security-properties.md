@@ -278,10 +278,38 @@ run produces a set the framework actually populated, rule 4/10 has no evidence
 either way and **stays `not yet proven`** — this is emphatically not the §5.3
 halt, which requires the wallet marker to be *found*, and nothing was found.
 
-Tracked as BIT-116. The next run is diagnostic rather than confirmatory: the
-warning now carries the searched roots and any set paths under them into the
-annotation itself, so whether the transport wrote nothing or wrote an empty set
-is answerable without the job log — which on this public repo answers 403.
+**The diagnostic ran, and the cause is in the check, not the transport.** The
+run for `ecd2e5e` carried the searched roots into the annotation, and they
+answered immediately: `find` came back with an unfiltered recursive listing of
+`/data/backup` — `pending/`, `fb-schedule`, `ancestral`, `processed` — and not
+one path matching its own `-name '*bittr*'`.
+
+`$present` is built from `ls -d`, which emits **one path per line**, and it was
+interpolated raw into the command strings handed to `adb shell`. A newline there
+does not separate arguments; it separates **commands**. So
+
+```
+grep -rl 'BIT101-WALLET-MARKER-' /data/backup /data/data/com.android.localtransport/files
+```
+
+was really sent as two commands — a grep of `/data/backup` alone, then a line
+the device shell tried to execute as a program, whose failure `2>/dev/null`
+swallowed. Both roots are present on this image and **the sets live under the
+second one**, so the tree that mattered was never read.
+
+That makes the empty-set result across every run to date an artefact of a
+malformed command rather than a fact about the transport, and it means **the
+§5.3 halt grep could not have found wallet material sitting in the real backup
+set**: the gate was failing as a pass on the one check that reads a live set.
+Fixed by flattening `$present` to a single line before interpolation. The suite
+could not have caught it — every case configured a single root, and with one
+root there is no newline and no bug; there is now a two-root case that asserts
+against what the stub was handed rather than against the verdict, which is
+identical either way.
+
+Tracked as BIT-116, which stays open: the fix restores the search, but no run
+has yet inspected a populated set, so rule 4/10 is still `not yet proven` and
+what it needs is still a run.
 
 **What runs, and where.** The `wallet-instrumented` job boots an API 34
 `aosp_atd` emulator and runs `android/scripts/ci-wallet-instrumented.sh`, which

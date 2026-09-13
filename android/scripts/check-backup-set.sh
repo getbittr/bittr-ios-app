@@ -163,7 +163,28 @@ fi
 echo "Transport directories present on this image:"
 printf '%s\n' "$present"
 
-sets=$(adb shell "find $present -maxdepth 3 -name '*bittr*' 2>/dev/null" | tr -d '\r' || true)
+# `$present` comes from `ls -d`, so it is NEWLINE-separated, and every use below
+# interpolates it into a command string handed to the device shell. A newline
+# there does not separate arguments — it separates COMMANDS. Interpolating it
+# raw turns
+#     grep -rl 'MARKER' /data/backup /data/data/com.android.localtransport/files
+# into
+#     grep -rl 'MARKER' /data/backup
+#     /data/data/com.android.localtransport/files
+# — a grep of the FIRST root only, plus a second line the shell tries to execute
+# as a program and whose failure `2>/dev/null` swallows. On an image with both
+# roots present that silently skipped the LocalTransport tree, which is where the
+# sets actually live, so the §5.3 halt grep could not have found wallet material
+# even if it were sitting there: the gate failed as a pass. Observed on the run
+# for ecd2e5e, where `find` returned an unfiltered listing of /data/backup and
+# not one path matching its own -name filter.
+#
+# The $SET_ROOTS expansion above is a different case and is correct: that literal
+# is space-separated, so the device shell splits it into arguments as intended.
+# Flatten to the same shape here rather than quoting, for the same reason.
+present_args=$(printf '%s' "$present" | tr '\n' ' ' | tr -s ' ')
+
+sets=$(adb shell "find $present_args -maxdepth 3 -name '*bittr*' 2>/dev/null" | tr -d '\r' || true)
 echo "Backup-set paths mentioning this package (recorded, not asserted):"
 printf '%s\n' "${sets:-  (none)}"
 
@@ -173,14 +194,16 @@ printf '%s\n' "${sets:-  (none)}"
 # result — and until now they existed only in the two echoes above, i.e. only in
 # the job log, which answers 403 on this public repo. Same reasoning as every
 # other verdict in this file: if it is not in an annotation it is not readable.
-# One line each: annotations are one line unless newlines are %0A-encoded.
-present_inline=$(printf '%s' "$present" | tr '\n' ' ' | tr -s ' ')
+# One line: annotations are one line unless newlines are %0A-encoded. The roots
+# reuse $present_args, which is already flattened and is the exact string the
+# greps above were handed — so the annotation reports what was really searched
+# rather than what was intended to be.
 sets_inline=$(printf '%s' "$sets" | tr '\n' ' ' | tr -s ' ')
 [ -n "${sets_inline// /}" ] || sets_inline="(none)"
 
-leaks=$(adb shell "grep -rl '$MARKER_PREFIX' $present 2>/dev/null" | tr -d '\r' || true)
-canaries=$(adb shell "grep -rl '$CANARY_PREFIX' $present 2>/dev/null" | tr -d '\r' || true)
-decoys=$(adb shell "grep -rl '$DECOY_PREFIX' $present 2>/dev/null" | tr -d '\r' || true)
+leaks=$(adb shell "grep -rl '$MARKER_PREFIX' $present_args 2>/dev/null" | tr -d '\r' || true)
+canaries=$(adb shell "grep -rl '$CANARY_PREFIX' $present_args 2>/dev/null" | tr -d '\r' || true)
+decoys=$(adb shell "grep -rl '$DECOY_PREFIX' $present_args 2>/dev/null" | tr -d '\r' || true)
 
 # Printed before any verdict, so the decoy finding survives every exit path
 # below — including the halt, where it is a second fact about the same set and
@@ -247,7 +270,7 @@ if [ -z "$canaries" ]; then
     " the suite result to tell the causes apart. To get the evidence outcome"\
     " instead, the run needs a set the framework actually populated."\
     " OBSERVED THIS RUN, and otherwise only in the job log, which answers 403"\
-    " without a token: transport directories present = [$present_inline];"\
+    " without a token: transport directories present = [$present_args];"\
     " paths under them mentioning this package = [$sets_inline]. If that second"\
     " list is (none), no set was written to these roots and the question is WHERE,"\
     " not what was excluded from it."

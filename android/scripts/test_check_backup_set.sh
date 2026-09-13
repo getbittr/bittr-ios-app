@@ -50,6 +50,11 @@ case "$1" in
   shell)
     shift
     joined="$*"
+    # Record verbatim what the device shell was handed. A newline in here is not
+    # cosmetic: it ends one command and starts another, so a root that lands on
+    # the second line is never searched. Only a recording stub can see that --
+    # the return values look identical either way.
+    printf '%s\n<<<END>>>\n' "$joined" >> "$dir/cmdlog"
     case "$joined" in
       *"ls -d"*)   cat "$dir/present" ;;
       *"grep -rl"*)
@@ -233,6 +238,62 @@ expect "outcome_3_empty_set_puts_the_searched_roots_in_the_annotation" 0 \
 configure yes "/data/data/com.android.localtransport/files" "" "" "" ""
 expect "outcome_3_empty_set_marks_an_absent_set_as_none" 0 \
   "mentioning this package = [(none)]"
+
+# --- Every present root is actually searched ----------------------------------
+#
+# THE FIFTH PINNED BUG, and the most serious one in this file's history: the
+# §5.3 halt grep could not have found wallet material sitting in the real backup
+# set, so the gate failed as a pass.
+#
+# `present` is built from `ls -d`, which emits ONE PATH PER LINE, and it was
+# interpolated raw into the command strings handed to `adb shell`. A newline
+# there does not separate arguments, it separates COMMANDS, so
+#     grep -rl 'MARKER' /data/backup /data/data/com.android.localtransport/files
+# was really sent as
+#     grep -rl 'MARKER' /data/backup
+#     /data/data/com.android.localtransport/files
+# — the first root only, plus a line the shell tried to run as a program, whose
+# failure `2>/dev/null` swallowed. On the emulator image both roots are present
+# and the sets live under the SECOND one, so the tree that mattered was never
+# read. Observed on the run for ecd2e5e, where `find` returned an unfiltered
+# recursive listing of /data/backup and not one path matching its own -name.
+#
+# Every case above configures a single root, which is why the suite could not
+# see this: with one root there is no newline and the bug is invisible. So this
+# case configures TWO, and asserts against what the stub was actually handed
+# rather than against the verdict -- the verdict is identical either way, which
+# is precisely what made this silent.
+two_roots="/data/backup
+/data/data/com.android.localtransport/files"
+configure yes "$two_roots" "" "" "" ""
+rm -f "$stub_dir/cmdlog"
+PATH="$stub_dir:$PATH" bash "$SCRIPT" >/dev/null 2>&1 || true
+
+halt_grep=$(awk '/<<<END>>>/{f=0} f{print} /grep -rl .BIT101-WALLET-MARKER-/{f=1; print}' \
+  "$stub_dir/cmdlog" 2>/dev/null | head -20)
+if printf '%s' "$halt_grep" | grep -q '^/data/data/com.android.localtransport/files'; then
+  echo "FAIL halt_grep_searches_every_present_root: the second root landed on its own"
+  echo "     line, so it was a separate command and was never searched:"
+  printf '%s\n' "$halt_grep" | sed 's/^/    /'
+  failures=$((failures + 1))
+else
+  echo "ok   halt_grep_searches_every_present_root"
+fi
+
+for probe in "BIT101-WALLET-MARKER-" "BIT101-CANARY-MARKER-" "find"; do
+  if grep -c "$probe" "$stub_dir/cmdlog" >/dev/null 2>&1 &&
+     awk -v p="$probe" '
+       /<<<END>>>/ {if (hit && n > 1) bad=1; hit=0; n=0; next}
+       $0 ~ p {hit=1}
+       hit {n++}
+       END {exit bad ? 1 : 0}' "$stub_dir/cmdlog"; then
+    echo "ok   ${probe}_is_sent_as_a_single_command"
+  else
+    echo "FAIL ${probe}_is_sent_as_a_single_command: spans more than one line, so"
+    echo "     everything after the first newline is a separate command"
+    failures=$((failures + 1))
+  fi
+done
 
 # --- A decoy is reported, and is never by itself a halt -----------------------
 #
