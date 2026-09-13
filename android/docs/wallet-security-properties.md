@@ -61,7 +61,7 @@ written.
 | The blob write is read back before success is reported | Ports `persistSecret`'s `writeVerificationFailed` (`CacheManager.swift:528–539`) | `BlobWriteVerifiedTest` | green |
 | The blob lives in credential-encrypted storage | A non-auth-bound key is usable during Direct Boot; CE storage is what reproduces `afterFirstUnlock` | `StateDirLocationTest` · `WalletKeystorePolicyGuardTest` | green |
 | Derivation is byte-identical to iOS | The backend verifies signatures from these keys | `IosDerivationVectorTest`, against the vector pinned at `BitcoinMessage.swift:363–367` | green |
-| A restore reproduces the same **addresses** as iOS, not just the same account | `Bip84Addresses` on bitcoin-kmp, anchored to the vectors BIP84 publishes; BDK peeks the same 20 receive + 20 change addresses on a device | `Bip84AddressVectorTest` (JVM, 11 cases) · `BdkAddressParityTest` (emulator, 5 cases) | green — see §6 |
+| A restore reproduces the same **addresses** as iOS, not just the same account | `Bip84Addresses` on bitcoin-kmp, anchored to the vectors BIP84 publishes; BDK peeks the same 20 receive + 20 change addresses on a device | `Bip84AddressVectorTest` (JVM, 11 cases) · `BdkAddressParityTest` (emulator, 5 cases) | JVM half **green**; parity half **written** — has never run. See §6 |
 
 ---
 
@@ -808,6 +808,25 @@ mnemonics must produce different addresses, receive and change must not collide,
 mainnet and signet must not share an address, and a change level outside {0,1}
 is rejected rather than derived — a real spendable address on a path no wallet
 scans is funds invisible to BDK's own recovery.
+
+**Status, stated the way this file's status key requires.** The JVM half is
+**green**: `Bip84AddressVectorTest` passes in `./gradlew test` (707 tests, 0
+failures, 0 skipped across the project). The parity half is **written and has
+never run** — `BdkAddressParityTest` was authored in `386aff5` and no CI run has
+yet executed it on the emulator.
+
+That distinction is the whole point of the status column, and it is worth being
+exact about what is and is not established. The address *derivation* is anchored:
+`Bip84Addresses` reproduces the vectors BIP84 publishes, and that is checked on
+every JVM run. What is **not** yet established is that **BDK agrees with it** —
+and BDK is the implementation that actually hands addresses to users, and the one
+that carries the argument to iOS. Until the emulator run reports, the row above
+is a claim about bitcoin-kmp and about the standard, not about the shipping path.
+The two have never been compared on a device even once.
+
+A first run was in flight when this was written and the result was not readable
+(the anonymous GitHub API quota was exhausted). "In flight" is not a status
+either; the row moves to green when a run reports, and not before.
 
 **Where it runs.** `Bip84AddressVectorTest` on every `./gradlew test` (11 cases,
 no device). `BdkAddressParityTest` in the `wallet-instrumented` job on the API 34
