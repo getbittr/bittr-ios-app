@@ -84,18 +84,6 @@ object LdkEventKey {
 }
 
 /**
- * The ldk-node `Node` inside whatever [ManagedNode] is current, or null.
- *
- * `NodeLifecycle` is written against [ManagedNode] so its custody rules can be
- * proved without a native library — `WalletLayeringGuardTest` — and
- * `LdkNodeFactory` is the only thing in the app that builds one. The cast is
- * therefore total in practice, and null when it is not: a lifecycle over some
- * other implementation has no ldk-node node to pump, and the pump reporting
- * `NodeGone` is the right answer rather than a crash.
- */
-private fun ManagedNode?.ldkNode(): Node? = (this as? LdkManagedNode)?.node
-
-/**
  * `EventPump` as a [NodeRunner], with its ledger bound to durable storage.
  *
  * This is the composition BIT-126 left as `runners = emptyList()`: the pump was

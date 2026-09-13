@@ -23,7 +23,7 @@ passed.
 | K2 — the seed is usable with the device locked | **written, not yet run** | — | `SeedReadableWhileLockedTest`, `wallet-instrumented` |
 | K2 — an FCM data message wakes the process | closed **unrun** | **BIT-133** | §1 below |
 | K2 — *force-stop* then wake | **withdrawn as specified** | **BIT-133** | §2 below |
-| K7 — interrupted payment resolves to one outcome | **unrun; its precondition and its kill window are now solved** | **BIT-132** | §3 below |
+| K7 — interrupted payment resolves to one outcome | **unrun; precondition, kill window and graph access all solved — the test and its host phase are what is left** | **BIT-132** | §3 below |
 | K8 — Doze and App Standby machinery | **unrun; its precondition is now solved** | **BIT-132** | §4 below |
 | K8 — channel-monitor freshness after wake | **unrun; needs the soak job** | **BIT-132** | §4 below |
 | The configured regtest build and the private network | **built, and one green leg deep** | — | §0 below |
@@ -287,6 +287,10 @@ hold invoice, in the counterparty.
 
 ### What K7 still needs, and it is no longer infrastructure
 
+Three of the four below are decided or built. **The one thing left is the test
+itself and its host phase** — item 1, which is the only item here that is still a
+description rather than a file.
+
 1. **A host phase.** The test cannot observe its own restart. `am kill` takes the
    instrumentation process with it, which is the lesson `BackupExclusionTest`
    learned from `bmgr restore` — it used to delete what it planted, restore, and
@@ -305,30 +309,56 @@ hold invoice, in the counterparty.
    rather than reading a file the kill may have caught mid-write. The first run
    asserts the two are equal, so if that ever stops being true the test says so
    instead of silently looking up nothing.
-4. **A way to reach the *shipping* wallet graph from the test, and the obvious
-   one does not work.** The test has to drive the `NodeBackedWalletService` the
-   app really composes, not a copy of `WalletModule`'s composition — a test
-   against a graph the app does not build would prove something about the test.
-   Measured on this branch rather than assumed:
+4. ~~**A way to reach the *shipping* wallet graph from the test.**~~ **Built.**
+   `com.bittr.android.di.WalletGraph`, a Hilt `@EntryPoint` in `:app`'s **main**
+   source set, handing out the two things K7 needs: the `WalletService` the app
+   composed and a `LightningNodePort` over the same `NodeLifecycle`.
 
-   - Declaring a Hilt `@EntryPoint` in the `androidTest` source set **compiles
-     and is not enough.** `kspDebugAndroidTestKotlin` produces the interface and
+   The test has to drive the `NodeBackedWalletService` the app really composes,
+   not a copy of `WalletModule`'s composition — a test against a graph the app
+   does not build would prove something about the test. The route there was
+   measured on this branch rather than assumed, in both directions:
+
+   - Declaring the `@EntryPoint` in the `androidTest` source set **compiles and
+     is not enough.** `kspDebugAndroidTestKotlin` produces the interface and
      produces no aggregating metadata for it — `build/generated/ksp/debug/java/dagger/hilt/`
      exists for the main variant and there is no `debugAndroidTest` equivalent —
      so `EntryPointAccessors.fromApplication` would fail at run time, after an
      emulator boot, in a job that compiled clean. Exactly the shape of trap this
      document keeps paying for.
-   - The two options that remain are `hilt-android-testing` with
-     `@HiltAndroidTest` and a `HiltAndroidRule` (a new test dependency, and it
-     builds a *test* component rather than the app's), or an `@EntryPoint`
-     declared in the **main** source set. The second looks better and is worth
-     saying why it is not the thing §3 rejected: a graph accessor has no
-     behaviour, no branch and nothing to do with funds, where a latch in the send
-     path is a code path that exists to be taken. It ships as one interface that
-     returns what the app already built.
+   - Declaring it in **main** produces the metadata, and that is checked rather
+     than inferred: `:app:assembleDebug` writes
+     `hilt_aggregated_deps/_com_bittr_android_di_WalletGraph.java` carrying
+     `entryPoints = "com.bittr.android.di.WalletGraph"`, and
+     `BittrApplication_HiltComponents.java` lists `WalletGraph` among the
+     interfaces `SingletonC` extends. That is the exact artefact whose absence
+     made the `androidTest` placement a run-time failure.
+   - The option not taken was `hilt-android-testing` with `@HiltAndroidTest` and
+     a `HiltAndroidRule`: a new test dependency, and — the reason it lost — it
+     builds a **test** component, which is a graph assembled for the test rather
+     than the one the app runs.
 
-**Risk accepted by not running it.** Real, and the largest of the three — see
-below. Unchanged by §0: a network the test can reach is not a test.
+   **Why this is not the seam §3 rejects.** A graph accessor has no behaviour, no
+   branch and nothing to do with funds; it returns objects the app has already
+   built for its own reasons, and what it can reach is what any code inside the
+   app can already reach. A latch in the send path is a code path that exists
+   only to be taken. `WalletNodeHost`, `NodeLifecycle` and `ManagedNode` are
+   deliberately **not** exposed — a test that could reach them could start and
+   stop a node behind `NodeBackedWalletService`'s back, violating the ordering
+   rules it claims to be measuring.
+
+   **What it cost, stated because it is a real change to production
+   composition.** `WalletModule` now binds a `LightningNodePort`, which it did
+   not before: `LdkNodeSurface` had no construction site anywhere outside its own
+   test, so BIT-122's port was unreachable code. Binding it means the module
+   builds the wallet once into a `WalletComposition` and hands out its two halves,
+   so the port and the wallet cannot end up over two different `NodeLifecycle`s —
+   a mistake that would read as "no node is running" forever. **Its only caller
+   today is `WalletGraph`**; the send and home screens that will use it do not
+   exist on Android yet. `LightningNodePortTest` proves the no-node half on the
+   JVM, including that an unconfigured build — the one CI assembles and Maestro
+   installs — still composes a graph, with reads answering empty and writes
+   throwing `NodeUnavailableException`.
 
 **Risk accepted by not running it.** Real, and the largest of the three. This is
 the claim BIT-6's notes are about — *"no path where a user can lose funds"* — and

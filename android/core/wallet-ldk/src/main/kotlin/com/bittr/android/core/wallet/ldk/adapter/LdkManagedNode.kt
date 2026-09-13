@@ -73,6 +73,23 @@ class LdkManagedNode(
 }
 
 /**
+ * The ldk-node `Node` inside whatever [ManagedNode] is current, or null.
+ *
+ * `NodeLifecycle` is written against [ManagedNode] so its custody rules can be
+ * proved without a native library — `WalletLayeringGuardTest` — and
+ * [LdkNodeFactory] is the only thing in the app that builds one. The cast is
+ * therefore total in practice, and null when it is not: a lifecycle over some
+ * other implementation has no ldk-node node to reach, and answering null is the
+ * right result rather than a crash.
+ *
+ * `internal` and shared, rather than private to one file: both live callers —
+ * the event pump's port and [lightningNodePort] — have to agree about what
+ * "the current node" means, and two copies of a cast are two places for that to
+ * stop being true.
+ */
+internal fun ManagedNode?.ldkNode(): Node? = (this as? LdkManagedNode)?.node
+
+/**
  * Builds a node from a plan and the device's mnemonic — iOS's `didStartLDK()`
  * down to `nodeBuilder.build()` (`BitcoinManager.swift:119–207`).
  *

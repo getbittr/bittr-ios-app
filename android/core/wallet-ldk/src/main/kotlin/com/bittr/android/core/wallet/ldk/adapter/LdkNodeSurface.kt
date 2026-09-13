@@ -15,6 +15,7 @@ import com.bittr.android.core.wallet.ldk.lightning.PaymentView
 import com.bittr.android.core.wallet.ldk.lightning.PeerView
 import com.bittr.android.core.wallet.ldk.lightning.PendingSweepView
 import com.bittr.android.core.wallet.ldk.lightning.RouteLimitsView
+import com.bittr.android.core.wallet.ldk.node.NodeLifecycle
 import com.bittr.android.core.wallet.ldk.onchain.TxOutpoint
 import org.lightningdevkit.ldknode.BalanceDetails
 import org.lightningdevkit.ldknode.BalanceSource
@@ -33,6 +34,39 @@ import org.lightningdevkit.ldknode.PaymentStatus
 import org.lightningdevkit.ldknode.PeerDetails
 import org.lightningdevkit.ldknode.PendingSweepBalance
 import org.lightningdevkit.ldknode.RouteParametersConfig
+
+/**
+ * [LightningNodePort] over whatever node [lifecycle] currently holds.
+ *
+ * The composition `:app` cannot write. `wallet-ldk` depends on
+ * `ldk-node-android` with `implementation`, so `Node` is not on the app's
+ * compile classpath and `di/WalletModule` could not name [LdkNodeSurface]'s
+ * constructor even if the layering allowed it — the same reason
+ * [LdkEventPumpRunner] is assembled here.
+ *
+ * ## A null [lifecycle] is a real case, not a defensive one
+ *
+ * It is the **unconfigured build**: `LdkEnvironmentConfig.fromBuildConfig()`
+ * returned null, the app composed `SeedWalletService`, and there is no
+ * `NodeLifecycle` anywhere in the process and never will be in this one. That
+ * build still has to produce a [LightningNodePort] for the graph, and
+ * [LightningNodePort]'s own contract already says what it should do: reads
+ * answer empty or null, writes throw [NodeUnavailableException]. So the
+ * unconfigured build gets a port that is permanently in the state a configured
+ * one is in between a stop and a start, rather than a second implementation or
+ * a nullable binding every caller has to check.
+ *
+ * That is not the same as hiding the difference. A caller that needs to know
+ * whether this build has a node asks `LdkEnvironmentConfig`, which is the one
+ * place that decides it; a caller that only wants to send a payment gets the
+ * same exception either way, because "no node" is the same answer.
+ *
+ * `LightningNodePortTest` proves the no-node half on the JVM, which is the half
+ * that does not need a native library; the forwarding half needs a device and
+ * belongs to BIT-132's regtest suite.
+ */
+fun lightningNodePort(lifecycle: NodeLifecycle?): LightningNodePort =
+    LdkNodeSurface { lifecycle?.current.ldkNode() }
 
 /**
  * ldk-node's channel, peer and payment surface as a [LightningNodePort].

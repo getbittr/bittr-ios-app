@@ -11,10 +11,12 @@ import com.bittr.android.core.wallet.ldk.adapter.BdkOnchainWalletHolder
 import com.bittr.android.core.wallet.ldk.adapter.LdkEventPumpRunner
 import com.bittr.android.core.wallet.ldk.adapter.LdkNodeFactory
 import com.bittr.android.core.wallet.ldk.adapter.LdkNodeStartErrors
+import com.bittr.android.core.wallet.ldk.adapter.lightningNodePort
 import com.bittr.android.core.wallet.ldk.cache.FileWalletCache
 import com.bittr.android.core.wallet.ldk.host.NodeBackedWalletService
 import com.bittr.android.core.wallet.ldk.host.ServiceForegroundPresence
 import com.bittr.android.core.wallet.ldk.host.WalletNodeHost
+import com.bittr.android.core.wallet.ldk.lightning.LightningNodePort
 import com.bittr.android.core.wallet.ldk.node.LdkEnvironment
 import com.bittr.android.core.wallet.ldk.node.NodeConfigPlan
 import com.bittr.android.core.wallet.ldk.node.NodeLifecycle
@@ -80,10 +82,33 @@ object WalletModule {
      */
     @Provides
     @Singleton
-    fun provideWalletService(
+    fun provideWalletService(composition: WalletComposition): WalletService = composition.wallet
+
+    /**
+     * The node's payment surface, bound to the wallet above.
+     *
+     * Split out of [provideWalletComposition] rather than built here, because
+     * the two must be the *same* composition: a second `lightningNodePort` over
+     * a second `NodeLifecycle` would be a port watching a node the wallet never
+     * starts, which reads as "no node is running" forever and is indisting-
+     * uishable from a broken network.
+     *
+     * **Its only caller today is [WalletGraph]**, which is where that is
+     * written down. Binding it is what makes `LightningNodePort` reachable at
+     * all — until now `LdkNodeSurface` had no construction site outside its own
+     * test.
+     */
+    @Provides
+    @Singleton
+    fun provideLightningNodePort(composition: WalletComposition): LightningNodePort =
+        composition.lightning
+
+    @Provides
+    @Singleton
+    fun provideWalletComposition(
         @ApplicationContext context: Context,
         store: SecureStore,
-    ): WalletService {
+    ): WalletComposition {
         val seed = SeedWalletService(store)
         val environment: LdkEnvironment? = LdkEnvironmentConfig.fromBuildConfig()
         if (environment == null) {
@@ -93,7 +118,10 @@ object WalletModule {
                     "Unset: ${LdkEnvironmentConfig.missingFields().joinToString(", ")}. " +
                     "See app/build.gradle.kts for how to supply them.",
             )
-            return seed
+            // A port over no lifecycle, which is what this build has: reads
+            // answer empty, writes throw. `lightningNodePort`'s comment is the
+            // argument for why that is the contract rather than a null binding.
+            return WalletComposition(wallet = seed, lightning = lightningNodePort(null))
         }
 
         // Everything ldk-node writes goes under no_backup — BIT-8 rule 4 /
@@ -217,7 +245,7 @@ object WalletModule {
             },
         )
 
-        return NodeBackedWalletService(
+        val wallet = NodeBackedWalletService(
             seed = seed,
             host = WalletNodeHost(
                 scope = scope,
@@ -291,5 +319,27 @@ object WalletModule {
             // instead of deleting force-close sweep material this issue has no
             // business deciding about.
         )
+
+        return WalletComposition(wallet = wallet, lightning = lightningNodePort(lifecycle))
     }
 }
+
+/**
+ * The two halves of one wallet, so two `@Provides` can name one composition.
+ *
+ * [WalletModule.provideWalletComposition] builds the node, its host, its
+ * runners and its scope in a single pass — they share a `NodeLifecycle` and a
+ * `CoroutineScope`, and every one of those relationships is load-bearing. This
+ * class is how the result is handed out in two pieces without the pieces coming
+ * from two passes.
+ *
+ * It exists because of Dagger rather than because of the design: a `@Provides`
+ * returns one type, and the alternative — a second provider that rebuilds the
+ * lifecycle to wrap it in a port — is the exact bug [WalletModule.provideLightningNodePort]
+ * describes. Nothing outside this file should inject it; inject [WalletService]
+ * or [LightningNodePort], which is what the graph is for.
+ */
+class WalletComposition(
+    val wallet: WalletService,
+    val lightning: LightningNodePort,
+)
