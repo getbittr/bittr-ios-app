@@ -90,6 +90,40 @@ build shows a real price rather than `N/A`.
 
 ---
 
+## If the build goes red
+
+BIT-32 routed all seven hard-coded `getbittr.com/api` call sites through an environment
+config. Two parts of it have **never been compiled** — there is no macOS toolchain in the
+agent environment — and both are reached by a Tier A capture, because the
+`BittrWidgetExtension` scheme builds `bittr.app` alongside the `.appex`. So if Xcode goes
+red, suspect these before the widget UI.
+
+Verified offline on 2026-09-13, so you do not need to re-check any of it:
+
+| Claim | How it was checked | Result |
+|---|---|---|
+| `project.pbxproj` still loads | 467/467 referenced UUIDs resolve to a definition; no dangling or duplicate object defs; braces and parens balanced | structurally sound |
+| `BittrAPIEnvironment.swift` reaches the **widget** | `BittrWidget/` is a `PBXFileSystemSynchronizedRootGroup`, so folder membership is implicit; its only exception is `Info.plist` | in the target |
+| …reaches the **app** | explicit `PBXFileReference` + `PBXBuildFile` in the `bittr` Sources phase, same `name`/`path`/`sourceTree = SOURCE_ROOT` shape as `SwapActivityAttributes.swift` | in the target |
+| The guard script passes | `sh ios/Scripts/check-hardcoded-api-urls.sh` from the repo root, then again with `SRCROOT=ios` under a scrubbed `/bin/sh` (how the build phase invokes it) | exit 0 both ways |
+| App and widget agree on backend | `SWIFT_ACTIVE_COMPILATION_CONDITIONS` — widget Debug sets `DEBUG $(inherited)`, app Debug inherits `DEBUG` from the project-level config | both staging in Debug |
+
+That leaves exactly two things only Xcode can settle: whether
+`BittrAPIEnvironment.swift` **compiles**, and whether the script phase behaves under
+Xcode's own shell.
+
+If it is the script phase that fails: it is the first phase on the `bittr` target, named
+`Check hard-coded API URLs`. It declares no `inputPaths` and does a recursive `grep` over
+the source tree, which is fine only because the `bittr` target leaves
+`ENABLE_USER_SCRIPT_SANDBOXING` unset. Do not be misled by the neighbouring "Set git hash"
+phase calling itself sandbox-safe — `YES` is set on **BittrWidgetExtension** only (all
+three of its configs), and that target has no script phases at all.
+
+Either way: paste the `xcodebuild` output onto **BIT-32** and reopen it. That agent owns
+the fix and it should not block the stills.
+
+---
+
 ## Provenance
 
 These are **manually captured stills, not Maestro output, and iOS-only.** Maestro cannot
