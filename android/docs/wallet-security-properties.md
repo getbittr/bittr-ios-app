@@ -40,7 +40,7 @@ written.
 | 2 | …and what the device actually produced | `KeyInfo` read back off a generated key | `KeystoreKeyInfoTest` | runs in CI — BIT-59, `wallet-instrumented` job, API 34 emulator |
 | 2 | …and it survives a lock-screen change | — | **BIT-18 / K1**, device matrix | separate issue |
 | 3 | The wrapped blob is a cache, never the only copy | Blob loss routes to the restore screen; terminal failures classify as "no usable mnemonic" | `BlobDestroyedRecoversTest` | green |
-| 4 | The blob is excluded from Auto Backup | `allowBackup="false"` + `dataExtractionRules` + siting under `getNoBackupFilesDir()` | `BackupExclusionRulesTest` + `StateDirLocationTest` (configuration, JVM) · `InstalledBackupConfigurationTest` (installed artefact, emulator) · `BackupExclusionTest` (behaviour, emulator) + `check-backup-set.sh` (the set itself) | configuration green; behaviour **partly proven on one device — run 107 inspected a real set and found no wallet material, but could not show the set was non-empty — and since BIT-59 the suite runs on every push (`wallet-instrumented` job); see §4** |
+| 4 | The blob is excluded from Auto Backup | `allowBackup="false"` + `dataExtractionRules` + siting under `getNoBackupFilesDir()` | `BackupExclusionRulesTest` + `StateDirLocationTest` (configuration, JVM) · `InstalledBackupConfigurationTest` (installed artefact, emulator) · `BackupExclusionTest` (behaviour, emulator) + `check-backup-set.sh` (the set itself) | configuration green; behaviour **partly proven on one device — run 107 inspected a real set and found no wallet material, but could not show the set was non-empty, and the device-transfer path has never produced an inspectable set from a run that survived making it (BIT-108) — and since BIT-59 the suite runs on every push (`wallet-instrumented` job); see §4** |
 | 5 | No PIN-derived wrapping | PIN stays a salted-SHA-256 verifier; the unwrap path takes no PIN argument | `WalletKeystorePolicyGuardTest` (bans `PBEKeySpec`/PBKDF2) · `BlobWriteVerifiedTest` (unwrap signature takes no PIN) | green |
 
 ### BIT-20 — the LDK state quarantine guard
@@ -146,10 +146,58 @@ nothing to check — and died exactly when there was a set worth checking. Run 1
 is that shape end to end: cloud passed, device-transfer died. So the restore is
 gone from both paths, not just from the one that crashed, and
 `BackupExclusionInstrumentationGuardTest` fails the build if it is reintroduced.
+
+**Removing the restore was necessary and not sufficient — run 133.** Run 133
+(`0dd62293` on `android-parity`) is the first run to carry the restore-free
+suite, and it reproduced run 107's signature exactly: `deviceTransfer…` with an
+empty `<failure>`, all four `InstalledBackupConfigurationTest` cases never
+reached. The restore was one of two things in that method that killed the
+process.
+
+The other is **`bmgr backupnow` itself, on the device-transfer path**. The
+framework binds a backup agent inside the target process to service a backup and
+kills that process when it tears the agent down; the instrumentation lives in
+that process. It is the same structural fault as the restore, one step earlier
+in the same method, and it is not fixable in-process either.
+
+The two paths discriminate the mechanism rather than leaving it a guess. On the
+cloud path `allowBackup="false"` makes the package ineligible, so no agent is
+ever bound and nothing is torn down — that case has passed on every run. On the
+device-transfer path `allowBackup="false"` does not apply, which is the entire
+reason the path is tested separately; the package is eligible, an agent is bound,
+and the process dies — that case has died on every run. Note what this says about
+the cloud path's green: it survives because nothing happens on it, by the same
+argument that made the restore worthless. It is not evidence that driving a
+backup from inside the suite is safe, and if `allowBackup` were ever set back to
+`true` that case would start dying too.
+
+So the device-transfer backup moved to the host as well. The suite plants the
+wallet material, the canary and the decoys, arms the `is_device_transfer` hook,
+clears the stale dataset, and writes a hand-off file into
+`getNoBackupFilesDir()`. `ci-wallet-instrumented.sh` reads that file with `adb
+root` and only then drives `bmgr backupnow`, after Gradle has exited and with no
+instrumentation process left to kill. `check-backup-set.sh` then greps the set it
+produced.
+
+The hand-off is a file rather than the adjacent `println` because instrumentation
+stdout reaches the host only if the runner files it into the JUnit XML's
+`<system-out>`, and run 133 recorded that it did not. A hand-off on that channel
+would go missing exactly when something had gone wrong.
+
+The host refuses to back up when the hand-off is absent, and that refusal is the
+point: backing up a package that was never planted writes an *empty* set, and an
+empty set reads identically to a clean one. Every way that phase can fail to run
+ends in a `::warning::` and no verdict, never in a green.
+`BackupExclusionInstrumentationGuardTest` fails the build if
+`deviceTransfer…` starts driving `backupnow` again, and separately if the
+hand-off strings on the two sides drift — that drift would otherwise be silent
+and green.
+
 The suite now creates the conditions and proves it created them — transport
-live and local, the `is_device_transfer` hook actually taken, `bmgr backupnow`
+live and local, the `is_device_transfer` hook actually taken, the plant on disk
+and the stale dataset cleared, and on the cloud path `bmgr backupnow`
 completing with a considered per-package result rather than a transport error —
-and the host script reads the set.
+and the host drives the device-transfer backup and reads the set.
 
 The same guard keeps the `bmgr wipe` out of the suite's `@After`. The host reads
 the transport after Gradle exits, so a wipe there deletes the only artefact the
@@ -175,7 +223,9 @@ finding it is not read as the halt) and the decoys carry a third. Once
 `check-backup-set.sh` requires the canary before reporting its evidence outcome,
 "the rules excluded our wallet files" and "the framework never offered this
 package to the transport" stop being the same green. That is the outstanding
-half, tracked on BIT-108.
+half, tracked on **BIT-109**, and it is what the host phase's "no hand-off, no
+backup" refusal is written to feed: with the canary required, a run that planted
+nothing reports as "did not look" on both sides rather than as a clean grep.
 
 **What runs, and where.** The `wallet-instrumented` job boots an API 34
 `aosp_atd` emulator and runs `android/scripts/ci-wallet-instrumented.sh`, which
@@ -227,7 +277,11 @@ cases.
 **The two hazards recorded before the first run, and where they stand.** The
 first — the instrumentation running inside the process whose data is being
 restored, with `bmgr restore`'s effect on it undocumented either way — is
-**settled**: it kills the process, and the restore is gone (BIT-108, above).
+**settled, and was broader than it was written**. It kills the process, and so
+does `bmgr backupnow` on the device-transfer path: the hazard is not the restore
+specifically but *any* bmgr operation that makes the framework bind a backup
+agent in the process the instrumentation is running in. Both are now driven from
+the host and neither can come back without failing the build (BIT-108, above).
 The second is open by design: `is_device_transfer` is a local-transport test
 hook rather than API, so the test asserts the setting was taken rather than
 assuming it, and a rename in a future platform release fails loudly instead of
