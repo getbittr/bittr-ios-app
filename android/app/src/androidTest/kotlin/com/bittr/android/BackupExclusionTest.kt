@@ -4,6 +4,7 @@ import android.content.Context
 import android.os.Build
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
+import com.bittr.android.core.wallet.ldk.cache.CachedEventLedger
 import com.bittr.android.core.wallet.ldk.state.LdkStateStore
 import com.bittr.android.core.wallet.ldk.state.WalletPaths
 import java.io.File
@@ -779,6 +780,16 @@ class BackupExclusionTest {
                 what = "The BDK wallet database",
                 file = paths.bdkDatabaseFile,
                 consequence = "On-chain descriptors and addresses leave the device with it.",
+            ),
+            Marker(
+                what = "The wallet's durable records",
+                file = File(paths.cacheDir, CachedEventLedger.KEY),
+                consequence = "The event ledger is every ldk-node event this wallet has " +
+                    "shown, rendered: amounts, payment hashes, counterparties, and — for " +
+                    "a successful payment — the preimage, which is the proof of payment " +
+                    "itself. It is a financial history and a set of secrets, and it is " +
+                    "the reason this store is a file under no_backup rather than " +
+                    "SharedPreferences, which has no no-backup variant.",
             ),
         ).onEach {
             it.file.parentFile?.mkdirs()

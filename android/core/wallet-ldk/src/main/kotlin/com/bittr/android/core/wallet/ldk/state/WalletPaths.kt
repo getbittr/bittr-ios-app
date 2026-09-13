@@ -81,6 +81,38 @@ class WalletPaths(
     val seedBlobFile: File = File(walletDir, "seed.bin")
 
     /**
+     * The wallet layer's durable records — Android's home for what iOS keeps in
+     * `UserDefaults` behind `CacheManager`. `WalletCache` is what writes here.
+     *
+     * **This is not `Context.getCacheDir()`, and the name is the only thing that
+     * suggests otherwise.** The OS deletes that directory under storage pressure
+     * without telling the app; the event ledger losing its contents there means
+     * every replayed event is shown to the user a second time, and the channel
+     * closure txids losing theirs means a force-close sweep the user can no
+     * longer see labelled. The full path — `no_backup/wallet/cache` — is the
+     * disambiguation that matters, and [forContext] is the only way to reach it.
+     *
+     * ## A sibling of the other two, not a child of either
+     *
+     * Both of its neighbours have destructive lifecycles, and this directory
+     * exists because it must survive both:
+     *
+     * - [ldkStateDir] is **moved** by the BIT-20 quarantine. A ledger that rode
+     *   along with it would forget every handled event the moment a foreign-seed
+     *   import fired — the issue's own words, and the reason this is not a file
+     *   inside the state directory.
+     * - [bdkStoreDir] is **deleted in full on every start** by `BdkStore.prepare`.
+     *   A ledger there would forget everything once per process, which on Android
+     *   is once per user session or oftener.
+     *
+     * So it sits directly under [walletDir], beside them, where nothing this
+     * module does removes it. Wallet removal does not either: `removeWallet`
+     * erases the seed and leaves the rest, and the closure txids are exactly the
+     * force-close sweep material BIT-20 says not to destroy.
+     */
+    val cacheDir: File = File(walletDir, CACHE_DIR)
+
+    /**
      * Parent of the uniquely-named quarantine subdirectories (BIT-20 rule 4).
      *
      * Under `no_backup`, so each new subdirectory inherits the backup exclusion
@@ -123,12 +155,16 @@ class WalletPaths(
         walletDir.mkdirs()
         ldkStateDir.mkdirs()
         bdkStoreDir.mkdirs()
+        cacheDir.mkdirs()
     }
 
     companion object {
         const val WALLET_DIR = "wallet"
         const val LDK_STATE_DIR = "ldk_state"
         const val QUARANTINE_DIR = "foreign_ldk_state"
+
+        /** iOS's `UserDefaults`, under a name that says it is not `Context.cacheDir`. */
+        const val CACHE_DIR = "cache"
 
         /** iOS's `wallet_data`, under a name that says which library owns it. */
         const val BDK_STORE_DIR = "bdk_store"

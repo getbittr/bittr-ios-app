@@ -125,13 +125,29 @@ That is `BackupExclusionTest` (`app/src/androidTest`, BIT-101), which has now
 run on a device once — run 107 of the wallet emulator job, API 34 `aosp_atd`.
 
 **What it does.** Plants a wallet-bearing install — wrapped blob, ldk-node
-state, discriminator, BDK database, and a quarantine subdirectory under the
-uniquely-generated name BIT-20 rule 4 gives it — then drives `bmgr` to produce
+state, discriminator, BDK database, the event ledger, and a quarantine
+subdirectory under the uniquely-generated name BIT-20 rule 4 gives it — then
+drives `bmgr` to produce
 a real set and leaves that set on the local transport. Once on the cloud-backup
 path and once with the local transport in device-transfer mode, because API 31+
 configures the two separately. The **verdict** comes from
 `android/scripts/check-backup-set.sh`, which greps the transport's own on-disk
 tree from the host in the same job.
+
+**The plant list grew after the recorded run — BIT-128.** The event ledger
+(`no_backup/wallet/cache/handled_events`, the port of
+`CacheManager.hasHandledEvent`) is the fifth wallet marker, and it was added
+after `d073424`. So the evidence in rule 4's cell covers four of the five; the
+fifth is proven by siting (`WalletPathsCreateDirectoriesTest`,
+`StateDirLocationTest`, which enumerate `WalletPaths` by reflection and so
+covered it the moment it was declared) and by
+`BackupExclusionInstrumentationGuardTest`, which is what forced it into the plant
+list at all. It is named here rather than left to the next reader to notice,
+because a marker planted after the run that produced the evidence is exactly the
+kind of thing that quietly turns "four of five" into "all of them". It carries
+the most sensitive non-key material the wallet stores — every ldk-node event the
+app has shown, which for a successful payment includes the preimage — so the
+next wallet-instrumented run is worth reading for it specifically.
 
 **Why the verdict is not in the test — BIT-108.** The first version deleted what
 it planted, ran `bmgr restore`, and asserted nothing came back. On run 107 the

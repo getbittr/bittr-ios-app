@@ -55,6 +55,14 @@ class WalletLayeringGuardTest {
          * lost. Every one of those is a claim that would otherwise need a
          * funded regtest node to check.
          *
+         * `cache/` is the durable store and its two bindings. It is listed for
+         * the reason that decided where its files live: what it remembers is
+         * whether an event has already been shown to the user, and getting that
+         * wrong shows a payment twice. A binding that reached for `Event` to ask
+         * "is this a payment failure" would move the exemption — the one rule in
+         * the ledger that is not deduplication — behind a native library, and
+         * `CachedEventLedgerTest` would need an emulator to run.
+         *
          * `host/` is the newest and the one whose membership is least obvious,
          * because it holds a `Service` and an `Intent` — Android types, which
          * this guard does not ban. It is listed because what it *decides* is
@@ -65,7 +73,7 @@ class WalletLayeringGuardTest {
          * `Node` to ask whether it is running.
          */
         val DECISION_PACKAGES =
-            listOf("seed", "state", "bip", "node", "onchain", "lightning", "host")
+            listOf("seed", "state", "bip", "node", "onchain", "lightning", "host", "cache")
 
         /** The only directory allowed to name a native binding. */
         const val ADAPTER_PACKAGE = "adapter"

@@ -14,11 +14,17 @@ interface ChannelClosureStore {
     /**
      * `CacheManager.storeChannelClosureTxIDs(txIDs: [txid])`.
      *
-     * A list of one, and iOS's call **replaces** whatever was there rather than
-     * appending — the same key `LoadWalletData.swift:49` writes the pending-sweep
-     * txids to. Ported as-is: the app is single-channel, the two writers never
-     * disagree in practice, and changing it would change which closure the user
-     * is shown.
+     * A list of one, and iOS's call **appends the txids it does not already
+     * have** rather than replacing the list (`CacheManager.swift:635–640`). That
+     * matters because `LoadWalletData.swift:49` writes the pending-sweep txids to
+     * the same key on every home-screen load: under replace semantics the two
+     * writers would erase each other's closure depending on which ran last, and
+     * under union semantics neither can.
+     *
+     * BIT-125 described this as a replace, on the strength of the call site
+     * rather than the implementation. It is corrected here rather than in a
+     * comment on the binding, because it is the contract an implementer reads —
+     * see `CachedChannelClosureStore`, which is the first one.
      */
     fun storeChannelClosureTxIds(txIds: List<String>)
 

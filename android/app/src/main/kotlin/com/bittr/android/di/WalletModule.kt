@@ -7,8 +7,10 @@ import com.bittr.android.BuildConfig
 import com.bittr.android.core.wallet.SecureStore
 import com.bittr.android.core.wallet.WalletService
 import com.bittr.android.core.wallet.keystore.KeystoreSecureStore
+import com.bittr.android.core.wallet.ldk.adapter.LdkEventPumpRunner
 import com.bittr.android.core.wallet.ldk.adapter.LdkNodeFactory
 import com.bittr.android.core.wallet.ldk.adapter.LdkNodeStartErrors
+import com.bittr.android.core.wallet.ldk.cache.FileWalletCache
 import com.bittr.android.core.wallet.ldk.host.NodeBackedWalletService
 import com.bittr.android.core.wallet.ldk.host.ServiceForegroundPresence
 import com.bittr.android.core.wallet.ldk.host.WalletNodeHost
@@ -99,6 +101,21 @@ object WalletModule {
         paths.createDirectories()
 
         /*
+         * The wallet layer's durable records — iOS's `CacheManager`, which on
+         * Android is a file store under `no_backup/wallet/cache` rather than
+         * SharedPreferences, because SharedPreferences is inside the backup set
+         * and there is no no-backup variant of it. `WalletCache` has the full
+         * argument, and `WalletPaths.cacheDir` has the siting one: it is a
+         * sibling of the LDK state directory and BDK's store, not a child of
+         * either, because a quarantine moves the first and every start deletes
+         * the second.
+         *
+         * One instance, because it holds the in-memory mirror of what is on
+         * disk. Two would be two answers to "has this event been shown".
+         */
+        val cache = FileWalletCache(paths.cacheDir)
+
+        /*
          * The wallet's scope: process-lifetime, and nothing above it.
          *
          * `NodeStartGate` and `ScanCoordinator` both say in their class comments
@@ -165,12 +182,39 @@ object WalletModule {
                     // true to say.
                     Log.w(TAG, "Foreground service refused; node runs unprotected", refused)
                 },
-                // No runners yet. `EventPump` is the first one and it needs an
-                // `EventLedger` and a `ChannelClosureStore`, both of which want
-                // CacheManager-shaped storage that does not exist on Android —
-                // BIT-125's closing note says so, and it is its own piece of
-                // work rather than something to improvise here.
-                runners = emptyList(),
+                /*
+                 * The event pump, which is what a `NodeRunner` was defined for:
+                 * cancelled on every stop, relaunched on every start, because
+                 * it is deliberately terminal on a read failure and the host is
+                 * what gives it another life.
+                 *
+                 * Its handler is a log line and nothing else — see
+                 * `LdkEventPumpRunner`, which says what that costs and what
+                 * replaces it. The variant name rather than the event: a
+                 * rendered `PaymentSuccessful` contains the payment preimage,
+                 * and logcat is not where that belongs.
+                 */
+                runners = listOf(
+                    LdkEventPumpRunner(
+                        lifecycle = lifecycle,
+                        cache = cache,
+                        onEvent = { event -> Log.i(TAG, "Node event handled: $event") },
+                        onLedgerFailure = { failure ->
+                            // The event was shown and the ledger did not record
+                            // it, so a replay will show it again. Not fatal to
+                            // the pump, by design.
+                            Log.w(TAG, "Event ledger write failed", failure)
+                        },
+                        onAcknowledgeFailure = { failure ->
+                            // Routine while the node is going down; the event
+                            // stays queued and is replayed. iOS's `try?`.
+                            Log.d(TAG, "eventHandled() failed; event stays queued", failure)
+                        },
+                        onStopped = { outcome ->
+                            Log.i(TAG, "Event pump stopped: ${outcome.stop}", outcome.cause)
+                        },
+                    ),
+                ),
             ),
             // Deliberately left as the no-op default. Removing a wallet erases
             // the seed and nothing else, which is `WalletService.removeWallet`'s
