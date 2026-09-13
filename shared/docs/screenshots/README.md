@@ -2,6 +2,12 @@
 
 Two different things land under this name. Keep them apart.
 
+> **Looking for the widget stills?** They are **not** here — see
+> `shared/docs/device-checks/widget/`. Four manually captured `BittrWidget` stills that no
+> flow can ever produce would be reported as `orphaned` by `screenshot_map.py --verify` and
+> their cropped size trips the single-size check. `device-checks/` is where frames that are
+> deliberately outside the canonical set live (with the per-device `iphone_se/` frames).
+
 **Flow evidence** — what Maestro writes. Each `takeScreenshot` step in
 `shared/flows/**` resolves to `shared/docs/screenshots/<flow_name>/<step>.png`
 (see `shared/flows/README.md` → *Conventions*). These are test artefacts: they are
