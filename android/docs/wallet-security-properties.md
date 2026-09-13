@@ -780,8 +780,8 @@ worth making to the product to satisfy a test.
       reason an Android user sees "no funds" on a wallet that has them, and
       `BdkStore` wiping the store on every start is what makes the scan
       mandatory rather than an optimisation. **That wipe is a port of iOS and
-      changing it is a deviation, so it is raised on BIT-122 and not taken in
-      code.**
+      changing it is a deviation, so it is **BIT-131**'s decision to take and
+      not one to make in code.**
     - **On-chain balance is still not read from BDK, deliberately.** Every
       on-chain figure iOS shows comes from `node.listBalances()`, never
       `bdkWallet.balance()`, because BDK does not know about the anchor-channel
@@ -861,7 +861,7 @@ worth making to the product to satisfy a test.
   *mitigation*; **K8 is what would say whether it works**, and it needs a
   device. **BIT-123.**
 - **K2 (background wake), K7 (interrupted payment) and K8 (Doze soak)** from
-  `wallet-core-spec` §6. **BIT-123**, blocked on BIT-122: all three need a node
+  `wallet-core-spec` §6. **BIT-123**, which BIT-122 has now cleared: all three need a node
   that starts, and all three need a device. K2 is the behavioural half of rule
   2 — the row above rests on the key's *spec*, and K2 is what shows the key is
   usable on a background wake with the device locked, which is the property

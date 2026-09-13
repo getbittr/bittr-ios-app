@@ -170,7 +170,7 @@ interface OnchainSyncPort<W : Any, F : Any, S : Any, U : Any> {
  *    anyway. [BdkStore] deletes the whole store on every start, ported from
  *    iOS, so nothing persisted here survives to be read back. It is kept
  *    because it is what iOS does and because the day that delete is
- *    reconsidered — it is raised on BIT-122, not settled — the persist has to
+ *    reconsidered — BIT-131 is the decision, still open — the persist has to
  *    already be in the right place.
  *
  * 2. **An `applyUpdate` failure does fail it.** BDK throws `CannotConnectException`
