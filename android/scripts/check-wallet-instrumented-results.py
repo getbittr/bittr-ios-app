@@ -406,7 +406,10 @@ def main(argv=None):
     # this is a diagnostics gap. Costly, not load-bearing.
     reported = "\n".join(evidence) if evidence else (
         "No BACKUP_EXCLUSION or KEYSTORE_KEY_INFO line reached <system-out>. "
-        "These lines are the per-path detail — which prefixes were planted, "
+        "Read the Keystore half of this run as UNPROVEN: these lines are the "
+        "only place the security level the device gave us is reported, so a "
+        "green KeystoreKeyInfoTest with no line says the test ran, not what it "
+        "saw. These lines are the per-path detail — which prefixes were planted, "
         "whether the set was left on the transport, the Keystore security level "
         "this device gave us — so without them you cannot check that the suite "
         "and the host phase were talking about the same run. Two causes, not "
@@ -491,28 +494,27 @@ def main(argv=None):
         )
 
     # Said on every run, green or red. A reader who sees two green backup tests
-    # should be told, in the run, which layer each of them exercised — because
-    # `allowBackup="false"` makes the package ineligible outright, and an
-    # ineligible package produces an empty set that satisfies "nothing of ours
-    # came back" without the <device-transfer> rules having been consulted at
-    # all. That is a pass for BIT-20 rule 5 and it is NOT a proof that the rules
-    # work.
+    # should be told, in the run, which layer each of them exercised — because an
+    # empty set satisfies "nothing of ours came back" without the rules having
+    # been consulted at all. That is a pass for BIT-20 rule 5 and it is NOT a
+    # proof that the rules work.
     #
-    # Which of the two a run got used to be read off `canaryReturned` in the
-    # BACKUP_EXCLUSION lines — the canary asserted back out of an in-process
-    # restore. BIT-108 removed the restore (it killed the process it asserted
-    # from), so that field no longer exists and nothing in this suite answers
-    # the question any more. The canary is still planted; it is
-    # check-backup-set.sh that looks for it, in the set itself, and its
-    # `Backup set inspection` annotation is the answer.
-    print("\nNOTE: a pass here is not by itself evidence for BIT-20 rule 5 — "
-          "read the 'Backup set inspection' annotation on this run before "
-          "quoting this suite. It reports the canary: no wallet marker WITH the "
-          "canary present means a real set that excluded our material, which is "
-          "the evidence outcome; no wallet marker and no canary means the set "
-          "was empty and the exclusion rules were never consulted. Both are "
-          "passes, only the first proves anything, and this suite cannot tell "
-          "them apart. wallet-security-properties.md §4 tracks the distinction.")
+    # Since BIT-108 the suite no longer restores, so it cannot report whether the
+    # canary came back and there is no canaryReturned field to read. The verdict
+    # moved to the host: check-backup-set.sh greps the transport's own tree and
+    # requires the canary prefix to be in it. The BACKUP_EXCLUSION lines still
+    # carry the framework's per-path result and the three prefixes, which is what
+    # lets a reader tie that host verdict to a path.
+    print("\nNOTE: read the 'Backup set inspection' annotation on this run "
+          "before quoting this suite. Whether the set was real is decided on the "
+          "HOST, not here: that annotation is a ::notice:: only when the canary "
+          "prefix was found in the transport's tree, and a ::warning:: saying the "
+          "set was empty otherwise. A green suite with that warning is a pass that "
+          "proves nothing about the rules. The per-path detail — the framework's "
+          "own result for the package and the three marker prefixes planted — is "
+          "in 'What the device reported', which ties the host verdict to a path "
+          "when it has lines to report; as of BIT-114 it usually does not. "
+          "wallet-security-properties.md \u00a74 is where that distinction is tracked.")
 
     if problems:
         print()
