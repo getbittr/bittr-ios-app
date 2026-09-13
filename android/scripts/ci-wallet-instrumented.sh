@@ -201,7 +201,7 @@ run_gradle "Keystore — what the platform gave us" \
 # relying on this.
 echo "--- Lock screen reset (BIT-123)"
 adb shell locksettings clear --old 2468 >/dev/null 2>&1 || true
-adb shell input keyevent WAKEUP >/dev/null 2>&1 || true
+adb shell input keyevent KEYCODE_WAKEUP >/dev/null 2>&1 || true
 adb shell wm dismiss-keyguard >/dev/null 2>&1 || true
 
 lock_state=$(adb shell dumpsys trust 2>/dev/null | grep -c 'deviceLocked=1' || true)

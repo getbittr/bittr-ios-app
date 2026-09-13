@@ -20,7 +20,7 @@ passed.
 
 | Leg | State | Carried on | Where |
 |---|---|---|---|
-| K2 — the seed is usable with the device locked | **passing** | — | `SeedReadableWhileLockedTest`, `wallet-instrumented` |
+| K2 — the seed is usable with the device locked | **written, not yet run** | — | `SeedReadableWhileLockedTest`, `wallet-instrumented` |
 | K2 — an FCM data message wakes the process | closed **unrun** | **BIT-133** | §1 below |
 | K2 — *force-stop* then wake | **withdrawn as specified** | **BIT-133** | §2 below |
 | K7 — interrupted payment resolves to one outcome | closed **unrun** | **BIT-132** | §3 below |
@@ -50,6 +50,15 @@ has the order wrong. **BIT-132** carries it.
 `SeedReadableWhileLockedTest` is unaffected by this, and that is why it is the
 leg that could be delivered: the Keystore is a device service and the seed vault
 is reachable from `:core:wallet-ldk` without any node at all.
+
+**Its status is *written*, not *green*, and the distinction is this repository's
+own.** It compiles and it is in `REQUIRED` by name, and it has not executed on
+any device — running it needs the `wallet-instrumented` job. Commit `dd50f457`
+on this branch exists because that difference was elided once before, and
+`KeystoreKeyInfoTest` is what it cost: that class carried an inverted assertion
+for its entire unrun life, demanding the plaintext BE present in the wrapped
+blob. This row moves to **passing** when a run shows it passing, and not
+before.
 
 ---
 

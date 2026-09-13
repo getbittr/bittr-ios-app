@@ -123,7 +123,13 @@ class SeedReadableWhileLockedTest {
         // KEYCODE_SLEEP rather than POWER: POWER toggles, so on a device whose
         // screen is already off it turns it back ON and the keyguard goes away.
         // BIT-18's matrix script made the same choice for the same reason.
-        WalletDeviceShell.run("input keyevent SLEEP")
+        //
+        // Spelled with the `KEYCODE_` prefix, which is also how k1-lockscreen-
+        // matrix.sh spells it. `input` resolves the bare name too — KeyEvent's
+        // keyCodeFromString strips the prefix if present rather than requiring
+        // its absence — but this test has never executed on any device, so the
+        // form that does not rely on that normalisation is the one to ship.
+        WalletDeviceShell.run("input keyevent KEYCODE_SLEEP")
 
         assertTrue(
             "The device did not report itself locked within ${LOCK_TIMEOUT_MS}ms " +
@@ -143,7 +149,7 @@ class SeedReadableWhileLockedTest {
         // device is `:app:connectedDebugAndroidTest` — the backup suite, whose
         // failure would then be blamed on the backup rules.
         runCatching { WalletDeviceShell.run("locksettings clear --old $pin") }
-        runCatching { WalletDeviceShell.run("input keyevent WAKEUP") }
+        runCatching { WalletDeviceShell.run("input keyevent KEYCODE_WAKEUP") }
         runCatching { WalletDeviceShell.run("wm dismiss-keyguard") }
         runCatching { removeTestKey() }
     }
