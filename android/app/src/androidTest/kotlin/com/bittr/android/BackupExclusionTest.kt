@@ -8,6 +8,7 @@ import java.io.File
 import java.security.SecureRandom
 import org.junit.After
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.FixMethodOrder
@@ -30,9 +31,97 @@ import org.junit.runners.MethodSorters
  * discriminator does not cover is the worse one, and it is closed at the
  * storage layer or not at all.
  *
- * So this test plants wallet-shaped files, drives `bmgr` to produce a real
- * backup set on both the cloud-backup and the device-transfer path, throws the
- * files away, restores, and asserts none of them came back.
+ * So this class plants wallet-shaped files, drives `bmgr` to produce a real
+ * backup set on both the cloud-backup and the device-transfer path, and leaves
+ * that set on the device for `android/scripts/check-backup-set.sh` to read.
+ *
+ * ### Why the assertion moved out of this process — BIT-108
+ *
+ * The first version deleted what it planted, ran `bmgr restore`, and asserted
+ * nothing came back. Run 107 (BIT-59, API 34 `aosp_atd`) is the first time that
+ * ran on a device, and it settled the first hazard the previous revision of
+ * this comment listed as undecided:
+ *
+ * - `backupManagerAndTheLocalTransportAreLiveOnThisDevice` — passed.
+ * - `cloudBackupOfAWalletBearingInstallCarriesNoWalletMaterial` — passed.
+ * - `deviceTransferOfAWalletBearingInstallCarriesNoWalletMaterial` — failed
+ *   with a completely empty `<failure>`, and every case of
+ *   `InstalledBackupConfigurationTest` after it never ran at all.
+ *
+ * An empty `<failure>` with nothing after it is not an assertion; every
+ * assertion here inlines `bmgr` output into its message. It is the runner
+ * recording that the instrumentation process died. **`bmgr restore` kills the
+ * target process**, which is this one, so a restore assertion cannot live in
+ * the process being restored. That is not fixable by writing the assertion
+ * more carefully.
+ *
+ * It is worth being precise about what the in-process restore could ever have
+ * proven, because the answer is "less than it looked". A restore only kills the
+ * process when the framework has something to restore. So the assertion passes
+ * exactly when the package was ineligible and nothing was backed up — which is
+ * the case where it had nothing to check — and dies exactly when there was a
+ * set worth checking. Run 107 is that shape end to end: cloud passed (nothing
+ * was backed up), device-transfer died (something was). The restore is dropped
+ * from both paths rather than from the one that crashed, because on the cloud
+ * path it was never evidence either.
+ *
+ * ### Where the verdict lives now
+ *
+ * `android/scripts/check-backup-set.sh`, from the host, in the same CI job:
+ * `adb root`, then grep the local transport's own on-disk tree for
+ * [MARKER_PREFIX]. It needs no restore and no surviving instrumentation
+ * process, which is exactly why it still answered on run 107 when this class
+ * could not — the set was reachable, it was searched, and no wallet marker was
+ * in it.
+ *
+ * The split is therefore: **this class creates the conditions and proves it
+ * created them; the host script reads the set and returns the verdict.** Each
+ * half is worthless alone, and both run in the same job. What this class still
+ * owns:
+ *
+ * - the transport is live and is the *local* one (an absent transport makes
+ *   every set empty and every exclusion claim vacuous);
+ * - the `is_device_transfer` hook was actually taken, so the second path is not
+ *   a second copy of the first;
+ * - `bmgr backupnow` ran to completion and the framework returned a considered
+ *   per-package result rather than a transport error — a failed backup leaves
+ *   no set, and a grep of no set is not evidence of anything;
+ * - the set is left on the transport, and is this path's.
+ *
+ * ### Only one set survives to be read, and it is the device-transfer one
+ *
+ * The local transport keeps one dataset per package, so a second `backupnow`
+ * replaces the first. [driveABackup] therefore wipes this package's dataset
+ * *before* each backup rather than after, which makes the surviving set
+ * deterministic instead of an accident of which test crashed:
+ * `NAME_ASCENDING` puts device-transfer last, so the set the host greps is
+ * always the device-transfer one.
+ *
+ * That is the right way round. `allowBackup="false"` is expected to keep the
+ * package out of a cloud set outright — there is nothing there to inspect —
+ * while API 31+ configures device transfer separately, and that is the half the
+ * flag may not cover and the half BIT-20 §5.3 turns on. The `BACKUP_EXCLUSION`
+ * lines below record each path's result so the difference between the two is
+ * stated by the run rather than inferred from which one crashed.
+ *
+ * ### Why the canary and the decoys are not padding
+ *
+ * An empty backup set excludes everything, so "no wallet marker in the set"
+ * means nothing unless the set was not empty. [CANARY] is an ordinary file in
+ * `files/` that no rule excludes, written with [CANARY_PREFIX] so the host-side
+ * grep can find it by the same mechanism it finds wallet material by. Canary
+ * present and no wallet marker is the strong result; neither present means the
+ * package was ineligible and the exclusion rules were never consulted, which is
+ * a different (and weaker) claim that has to be reported as one.
+ *
+ * The two decoys test the `dataExtractionRules` layer on its own terms. Those
+ * `<exclude>` entries name `wallet` and `no_backup` in `domain="file"`, whose
+ * root is `getFilesDir()` — a *sibling* of `getNoBackupFilesDir()`, not its
+ * parent. So the decoys sit where the rules literally point. A decoy in the set
+ * while the wallet markers are not is worth knowing: it means the rules layer
+ * is a no-op and the `no_backup` siting is carrying rule 5 alone. They carry
+ * [DECOY_PREFIX], distinct from [MARKER_PREFIX], so finding one is not reported
+ * as the §5.3 halt.
  *
  * ### Why this lives in `:app` and not in `:core:wallet-ldk`
  *
@@ -48,54 +137,19 @@ import org.junit.runners.MethodSorters
  * The cost is that the path names below are literals rather than references to
  * `WalletPaths` — `:app` deliberately does not depend on `:core:wallet-ldk`
  * yet, and a test-only dependency would drag the bdk/ldk-node native libraries
- * into the test APK for four strings. `BackupExclusionInstrumentationGuardTest`
+ * into the test APK for six strings. `BackupExclusionInstrumentationGuardTest`
  * (JVM, `:app`) fails the build if these literals stop matching `WalletPaths`,
- * so the duplication cannot rot silently.
+ * and fails it again if a `bmgr restore` is ever reintroduced here, so neither
+ * the duplication nor BIT-108's lesson can rot silently.
  *
- * ### Why the canary and the decoys are not padding
+ * ### The stop condition still stands
  *
- * An empty backup set excludes everything. Absence of wallet material means
- * nothing unless the run can also show that the set was *not* empty, or show
- * that the framework explicitly declined to back this package up. That is what
- * [CANARY] is for: an ordinary file in `files/`, which no rule excludes. If it
- * comes back, the set was real and the wallet material's absence is a result.
- * If it does not, the run has to be able to point at the framework saying so —
- * see [assertNoWalletMaterialSurvives]. Neither branch is allowed to be a
- * silent pass.
- *
- * The two decoys test the `dataExtractionRules` layer on its own terms. Those
- * `<exclude>` entries name `wallet` and `no_backup` in `domain="file"`, whose
- * root is `getFilesDir()` — a *sibling* of `getNoBackupFilesDir()`, not its
- * parent. So the decoys sit where the rules literally point. If a decoy comes
- * back while the wallet markers do not, that is worth knowing and the failure
- * message says exactly what it means: the rules layer is a no-op and the
- * `no_backup` siting is carrying rule 5 alone.
- *
- * ### Status, and the known hazards
- *
- * **Written, never run.** There is no device in the agent container, and no
- * `connectedAndroidTest` step in CI yet — BIT-59. Recording that here rather
- * than letting the file's existence imply a green result. Two things could make
- * the first real run red for reasons that are not a product defect, and both
- * are results to record rather than to design around:
- *
- * 1. **Restoring into a live process.** The instrumentation runs *inside*
- *    `com.bittr.android`, and whether `bmgr restore` kills the target process
- *    is not documented either way. If it does, the run dies mid-class rather
- *    than failing an assertion. The method order below puts the cheap
- *    observations first so their results are already streamed to the host when
- *    that happens.
- * 2. **`is_device_transfer`.** The local transport reads it from
- *    `Settings.Secure.BACKUP_LOCAL_TRANSPORT_PARAMETERS`; it is a test hook,
- *    not API, and [selectLocalTransport] asserts the value was actually taken
- *    rather than assuming it. A rename in a future platform release should fail
- *    loudly here, not quietly turn the device-transfer test into a second cloud
- *    test.
- *
- * If the device-transfer path turns out not to be excludable at all, that is
- * the **halt** recorded in `docs/wallet-security-properties.md` §4 — it goes
- * back to BIT-20 with the result attached, and the guard reverts to iOS
- * behaviour until it is re-decided. It is not a smaller test.
+ * If the device-transfer path turns out not to be excludable at all — the host
+ * grep finding [MARKER_PREFIX] in a real set — that is the **halt** recorded in
+ * `docs/wallet-security-properties.md` §4. It goes back to BIT-20 with the
+ * result attached, and the guard reverts to iOS behaviour until it is
+ * re-decided. It is not a smaller test. Run 107 did not produce it, and a
+ * crashed process is not it either.
  *
  * Nothing planted here is key material: the blob is a fixed ASCII marker.
  * Never mainnet keys, never real funds.
@@ -104,7 +158,8 @@ import org.junit.runners.MethodSorters
 // The three methods must run in the order they are written: `backup…` proves
 // the machinery is live, and the two that follow are only meaningful if it is.
 // NAME_ASCENDING sorts b < c < d, which is why the names begin as they do —
-// renaming one without checking that is how the ordering silently inverts.
+// renaming one without checking that is how the ordering silently inverts, and
+// it is also what decides which path's set survives for the host to read.
 @FixMethodOrder(MethodSorters.NAME_ASCENDING)
 class BackupExclusionTest {
 
@@ -124,35 +179,61 @@ class BackupExclusionTest {
         const val DISCRIMINATOR = "seed_discriminator"
         const val LDK_DATABASE = "ldk_node_data.sqlite"
 
-        /** An ordinary file no rule excludes. Its return is what makes the run non-vacuous. */
+        /** An ordinary file no rule excludes. Its presence is what makes the set non-empty. */
         const val CANARY = "backup_canary.txt"
 
         /**
-         * The prefix every planted file's contents start with, so the material
-         * this class writes is findable by a plain `grep` from outside the
-         * process.
+         * The prefix every planted **wallet** file's contents start with, so
+         * the material this class writes is findable by a plain `grep` from
+         * outside the process.
          *
-         * This class asserts from the inside: plant, back up, delete, restore,
-         * assert nothing came back. That is the strong test, and it is also a
-         * test whose green depends on `bmgr restore` having worked. A restore
-         * that silently did nothing produces "nothing came back" for the wrong
-         * reason — the canary assertion below is what catches that, and it
-         * catches it only when the framework said `Success`.
-         *
-         * So `android/scripts/check-backup-set.sh` reads the backup set itself,
-         * from the host, after this suite finishes: `adb root`, then grep the
-         * local transport's on-disk tree for this prefix. It needs no restore
-         * to work and no assertion here to be right — if wallet material is in
-         * the set, the bytes are on disk under the transport's directory and
-         * the grep finds them. That check exists because it fails independently
-         * of everything in this file.
+         * This is the string `android/scripts/check-backup-set.sh` searches the
+         * backup transport's on-disk tree for, and since BIT-108 it is the only
+         * thing that returns a verdict on rule 5: the in-process restore that
+         * used to do it killed the process it asserted from. If wallet material
+         * reached the set, these bytes are on disk under the transport's
+         * directory and the grep finds them, with no restore and no surviving
+         * instrumentation process required.
          *
          * **Changing this value without changing it there** turns that grep
          * into one that can never match, i.e. into a permanent silent pass.
          * `android/scripts/test_check_backup_set.sh` reads both files in the
-         * `build` job and goes red if they drift.
+         * `build` job and goes red if they drift. It finds this line by a
+         * textual grep for the constant's name followed by its assignment, and
+         * takes the *first* hit in the file — so the two prefixes below are
+         * deliberately not named `…MARKER_PREFIX`, and prose above this point
+         * must not spell that assignment out either, or the drift check reads
+         * a sentence instead of the value.
          */
         const val MARKER_PREFIX = "BIT101-WALLET-MARKER-"
+
+        /**
+         * The canary's prefix, deliberately *not* [MARKER_PREFIX].
+         *
+         * Absence of wallet material in a set proves nothing if the set was
+         * empty, and `allowBackup="false"` making the package ineligible
+         * produces exactly an empty set. The canary is the difference between
+         * "the rules excluded our wallet files" and "the framework never
+         * offered this package to the transport", and both are legitimate
+         * outcomes that have to be told apart rather than both read as green.
+         *
+         * It is a separate string because the host-side grep must be able to
+         * find the canary *without* that counting as the §5.3 halt.
+         */
+        const val CANARY_PREFIX = "BIT101-CANARY-MARKER-"
+
+        /**
+         * The decoys' prefix, also not [MARKER_PREFIX], for the same reason.
+         *
+         * A decoy in the set means `dataExtractionRules`' `domain="file"`
+         * entries are a no-op and the `no_backup` siting is carrying rule 5
+         * alone. That is a finding about the rules, not wallet material
+         * escaping, and it must not trip the halt.
+         */
+        const val DECOY_PREFIX = "BIT101-DECOY-MARKER-"
+
+        /** Results that mean the backup never completed, so no set exists to inspect. */
+        val TRANSPORT_FAILURE = Regex("""transport\s+error|transport\s+not\s+initial""", RegexOption.IGNORE_CASE)
     }
 
     private val instrumentation = InstrumentationRegistry.getInstrumentation()
@@ -178,11 +259,26 @@ class BackupExclusionTest {
             .orEmpty()
     }
 
+    /**
+     * Puts the device's backup settings back, and **deliberately leaves the
+     * backup set alone.**
+     *
+     * The previous revision ran `bmgr wipe` here, on the reasoning that a
+     * dataset should not outlive the test on a shared device. That is also what
+     * destroyed the only artefact the run produces: `check-backup-set.sh` reads
+     * the transport's tree from the host *after* Gradle exits, so a wipe here
+     * means it inspects a set this suite already deleted. On run 107 the one
+     * set it could read survived only because the device-transfer crash skipped
+     * this method — the evidence was an accident.
+     *
+     * So the wipe moved to [driveABackup], before each backup instead of after.
+     * A pre-wipe leaves a set behind, which is the point, and additionally
+     * guarantees that whatever the host finds was produced by this run rather
+     * than by the previous one. The planted files themselves are still removed:
+     * those are ours to clean up and nothing downstream reads them.
+     */
     @After
     fun putTheDeviceBack() {
-        // Order matters: drop our dataset from the transport before letting go
-        // of the transport, or the canary outlives the test on a shared device.
-        DeviceShell.bmgr("wipe $LOCAL_TRANSPORT $packageName")
         if (originalParameters.isEmpty()) {
             DeviceShell.run("settings delete secure $TRANSPORT_PARAMETERS")
         } else {
@@ -220,9 +316,9 @@ class BackupExclusionTest {
             "This device does not offer $LOCAL_TRANSPORT. Available transports:\n" +
                 transports +
                 "\nThe local transport is the only one that keeps the set on the device, " +
-                "and it is the only one these tests can restore from. A Play-image " +
-                "emulator offers the GMS transports instead, which cannot be restored " +
-                "from on demand — run this on an AOSP image.",
+                "and a set on the device is the only kind check-backup-set.sh can read. " +
+                "A Play-image emulator offers the GMS transports instead, which put the " +
+                "set in a Google account — run this on an AOSP image.",
             LOCAL_TRANSPORT in transports,
         )
     }
@@ -230,81 +326,130 @@ class BackupExclusionTest {
     /**
      * The cloud-backup path: `<cloud-backup>` in `data_extraction_rules.xml`,
      * plus `allowBackup="false"`, plus the `no_backup` siting.
+     *
+     * Its set is replaced by the device-transfer test that runs after it — see
+     * the class comment — so the verdict the host returns is that path's. What
+     * this run records for the cloud path is the framework's own answer to
+     * "would you back this package up at all", which under `allowBackup="false"`
+     * is expected to be no, and which is a *stronger* exclusion than a rule
+     * consulted and obeyed.
      */
     @Test
     fun cloudBackupOfAWalletBearingInstallCarriesNoWalletMaterial() {
-        assertNoWalletMaterialSurvives(deviceTransfer = false)
+        driveABackup(deviceTransfer = false)
     }
 
     /**
      * The device-transfer path, which is configured separately from API 31 and
      * is the half `allowBackup="false"` may not cover. This is the run that
      * decides whether `match → keep` is sound; see the class comment.
+     *
+     * It runs last, so its set is the one still on the transport when
+     * `check-backup-set.sh` greps from the host.
      */
     @Test
     fun deviceTransferOfAWalletBearingInstallCarriesNoWalletMaterial() {
-        assertNoWalletMaterialSurvives(deviceTransfer = true)
+        driveABackup(deviceTransfer = true)
     }
 
-    private fun assertNoWalletMaterialSurvives(deviceTransfer: Boolean) {
+    /**
+     * Plants a wallet-bearing install, produces a real backup set from it on
+     * [deviceTransfer]'s path, and leaves that set on the transport.
+     *
+     * Everything asserted here is observable without a restore, because a
+     * restore kills this process (BIT-108). What is asserted is that the run
+     * produced something worth inspecting; whether what it produced is clean is
+     * `check-backup-set.sh`'s answer, and the two run in the same job.
+     */
+    private fun driveABackup(deviceTransfer: Boolean) {
         val path = if (deviceTransfer) "device-transfer" else "cloud-backup"
         selectLocalTransport(deviceTransfer)
 
+        // Before, not after. The transport keeps one dataset per package, so
+        // this makes the set the host reads unambiguously this path's — and
+        // leaves it there, which @After no longer undoes.
+        DeviceShell.bmgr("wipe $LOCAL_TRANSPORT $packageName")
+
         val markers = plantWalletMaterial() + plantDecoys()
         val canary = File(context.filesDir, CANARY)
-            .also { it.parentFile?.mkdirs(); it.writeText(stamp("canary")) }
-        val canaryContents = canary.readText()
+            .also { it.parentFile?.mkdirs(); it.writeText(CANARY_PREFIX + stamp("canary")) }
 
         val backup = DeviceShell.bmgr("backupnow $packageName")
         val result = resultFor(packageName, backup)
+        val sets = DeviceShell.bmgr("list sets")
 
-        (markers.map { it.file } + canary).forEach { it.delete() }
-        File(context.noBackupFilesDir, WALLET_DIR).deleteRecursively()
-        File(context.filesDir, WALLET_DIR).deleteRecursively()
-
-        val restore = restoreLatestSet()
-        val canaryReturned = canary.isFile && canary.readText() == canaryContents
-
-        // The record BIT-59's first run should be read against. Printed before
-        // the assertions so it survives a failure.
+        // The record BIT-59 promotes into ::notice:: annotations, which on this
+        // public repo is the only channel a run's output is readable through.
+        // Printed before the assertions so it survives a failure — and, unlike
+        // the restore this replaced, it survives whatever the framework does to
+        // this process afterwards.
         println(
             "BACKUP_EXCLUSION path=$path api=${Build.VERSION.SDK_INT} package=$packageName " +
-                "result=${result ?: "<no result line>"} canaryReturned=$canaryReturned",
+                "result=${result ?: "<no result line>"} " +
+                "walletMarker=$MARKER_PREFIX canaryMarker=$CANARY_PREFIX " +
+                "decoyMarker=$DECOY_PREFIX setLeftOnTransport=${deviceTransfer}",
         )
-        println("BACKUP_EXCLUSION backupnow output:\n$backup")
-        println("BACKUP_EXCLUSION restore output:\n$restore")
-
+        println("BACKUP_EXCLUSION $path canary: ${canary.path}")
+        // The decoder ring for a halt. check-backup-set.sh can only report the
+        // transport files a marker was found in; the marker's own bytes name
+        // the file it was planted as, and these lines say what finding that
+        // particular one would mean. Emitted per path because that is the
+        // channel a red run is read through.
         for (marker in markers) {
-            assertFalse(
-                "${marker.what} came back from a $path set: ${marker.file}. " +
-                    marker.consequence +
-                    "\n\nbmgr backupnow said:\n$backup\nbmgr restore said:\n$restore",
-                marker.file.exists(),
+            println(
+                "BACKUP_EXCLUSION $path plant: ${marker.file.name} at ${marker.file.path} — " +
+                    "${marker.what}. If this one is in the set: ${marker.consequence}",
             )
         }
+        println("BACKUP_EXCLUSION $path backupnow output:\n$backup")
+        println("BACKUP_EXCLUSION $path list sets:\n$sets")
 
-        // Only now: was the absence above worth anything?
-        val declined = result == null || !result.equals("Success", ignoreCase = true)
-        assertTrue(
-            "The framework reported \"$result\" for $packageName on the $path path — a " +
-                "backup it considers successful — yet the canary written to " +
-                "${canary.path} did not come back. This run cannot tell whether the set " +
-                "excluded the wallet material or was empty for some unrelated reason, so " +
-                "the assertions above prove nothing. Investigate before reading this " +
-                "class as green.\n\nbmgr backupnow said:\n$backup\nbmgr restore said:\n" +
-                restore,
-            canaryReturned || declined,
+        // 1. The framework considered this package. A `backupnow` that never
+        //    names it did not produce a set, and a grep of no set is not
+        //    evidence — it is the vacuous green this whole file exists to
+        //    refuse.
+        assertNotNull(
+            "`bmgr backupnow $packageName` returned no per-package result line for " +
+                "$packageName on the $path path, so the framework never reported what it " +
+                "did with this package and no set can be assumed to exist. " +
+                "check-backup-set.sh's grep would then be searching a set that was never " +
+                "written, and would report \"clean\" for the wrong reason.\n\nOutput was:\n" +
+                backup,
+            result,
         )
-        if (!canaryReturned) {
-            // allowBackup="false" is expected to produce exactly this on the
-            // cloud path: the package is never offered to the transport, so
-            // nothing of ours is in the set — including the canary. Recorded
-            // rather than asserted, because which layer does the work is what
-            // the device-transfer run is here to find out.
+
+        // 2. It completed. A transport error is not an exclusion; it is a run
+        //    that produced nothing, and it must not be read as one that
+        //    produced an empty set on purpose.
+        assertFalse(
+            "The backup transport failed on the $path path — the framework reported " +
+                "\"$result\" for $packageName. Nothing was written, so nothing can be " +
+                "inspected, and the absence of wallet material from a set that does not " +
+                "exist says nothing about rule 5. This is an infrastructure failure to " +
+                "fix, not the BIT-20 §5.3 halt.\n\nbmgr backupnow said:\n$backup",
+            TRANSPORT_FAILURE.containsMatchIn(result.orEmpty()),
+        )
+
+        // 3. Say which of the two shapes this path produced, in the annotation
+        //    channel, because they carry different strengths of claim and run
+        //    107 left them to be inferred from which test crashed.
+        val backedUp = result.equals("Success", ignoreCase = true)
+        if (backedUp) {
             println(
-                "BACKUP_EXCLUSION $path: the framework declined to back up $packageName " +
-                    "(result=${result ?: "<no result line>"}). Exclusion was not exercised " +
-                    "on this path; the package was ineligible outright.",
+                "BACKUP_EXCLUSION $path: the framework backed $packageName up " +
+                    "(result=$result). The package WAS offered to the transport on this " +
+                    "path, so the exclusion rules were actually consulted and the set is " +
+                    "worth reading. check-backup-set.sh returns the verdict; it should " +
+                    "find $CANARY_PREFIX and must not find $MARKER_PREFIX.",
+            )
+        } else {
+            println(
+                "BACKUP_EXCLUSION $path: the framework declined to back $packageName up " +
+                    "(result=$result). Exclusion was not exercised on this path — the " +
+                    "package was ineligible outright, which is what allowBackup=\"false\" " +
+                    "is expected to do on the cloud path. The set is empty, so a host-side " +
+                    "grep finding no $MARKER_PREFIX is consistent with that and is not " +
+                    "independent evidence that the rules work.",
             )
         }
     }
@@ -336,17 +481,6 @@ class BackupExclusionTest {
             "Could not select $LOCAL_TRANSPORT: ${selected.trim()}",
             LOCAL_TRANSPORT in selected,
         )
-    }
-
-    /** `bmgr list sets` → newest token → `bmgr restore <token> <package>`. */
-    private fun restoreLatestSet(): String {
-        val sets = DeviceShell.bmgr("list sets")
-        val token = Regex("""^\s*([0-9a-fA-F]+)\s*:""", RegexOption.MULTILINE)
-            .findAll(sets)
-            .map { it.groupValues[1] }
-            .lastOrNull()
-        val command = if (token != null) "restore $token $packageName" else "restore $packageName"
-        return "$ bmgr $command\n(sets: ${sets.trim()})\n${DeviceShell.bmgr(command)}"
     }
 
     /**
@@ -403,7 +537,7 @@ class BackupExclusionTest {
                     "construction (BIT-20 rule 4), so an exclusion that matched only " +
                     "fixed paths would miss exactly this one.",
             ),
-        ).onEach { it.file.writeText(stamp(it.file.name)) }
+        ).onEach { it.file.writeText(MARKER_PREFIX + stamp(it.file.name)) }
     }
 
     /**
@@ -415,7 +549,7 @@ class BackupExclusionTest {
             what = "The <exclude domain=\"file\" path=\"wallet\"> decoy",
             file = File(File(context.filesDir, WALLET_DIR), "decoy.txt"),
             consequence = "Nothing the product writes lives here — the wallet directory " +
-                "is under no_backup. What its return means is that the " +
+                "is under no_backup. What its presence in a set means is that the " +
                 "dataExtractionRules layer is a no-op and the no_backup siting is " +
                 "carrying BIT-20 rule 5 on its own. Fix the rules; do not relax the rule.",
         ),
@@ -425,7 +559,10 @@ class BackupExclusionTest {
             consequence = "As above. getNoBackupFilesDir() is a sibling of getFilesDir(), " +
                 "so this entry never matched the real wallet directory either.",
         ),
-    ).onEach { it.file.parentFile?.mkdirs(); it.file.writeText(stamp(it.file.name)) }
+    ).onEach {
+        it.file.parentFile?.mkdirs()
+        it.file.writeText(DECOY_PREFIX + stamp(it.file.name))
+    }
 
     private fun removePlantedFiles() {
         File(context.noBackupFilesDir, WALLET_DIR).deleteRecursively()
@@ -438,13 +575,9 @@ class BackupExclusionTest {
     private fun quarantineName(): String =
         "%04d-%s".format(1, ByteArray(4).also(random::nextBytes).joinToString("") { "%02x".format(it) })
 
-    /**
-     * Distinct per file and per run, so a restored file cannot be mistaken for
-     * a leftover — and prefixed with [MARKER_PREFIX] so `check-backup-set.sh`
-     * can find these bytes in the transport's own tree without a restore.
-     */
+    /** Distinct per file and per run, so one run's bytes cannot be mistaken for another's. */
     private fun stamp(label: String): String =
-        MARKER_PREFIX + "$label ${ByteArray(8).also(random::nextBytes).joinToString("") { "%02x".format(it) }}"
+        "$label ${ByteArray(8).also(random::nextBytes).joinToString("") { "%02x".format(it) }}"
 
     /** The result the framework reported for [target] in `bmgr backupnow` output. */
     private fun resultFor(target: String, output: String): String? =

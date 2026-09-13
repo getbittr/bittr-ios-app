@@ -40,7 +40,7 @@ written.
 | 2 | …and what the device actually produced | `KeyInfo` read back off a generated key | `KeystoreKeyInfoTest` | runs in CI — BIT-59, `wallet-instrumented` job, API 34 emulator |
 | 2 | …and it survives a lock-screen change | — | **BIT-18 / K1**, device matrix | separate issue |
 | 3 | The wrapped blob is a cache, never the only copy | Blob loss routes to the restore screen; terminal failures classify as "no usable mnemonic" | `BlobDestroyedRecoversTest` | green |
-| 4 | The blob is excluded from Auto Backup | `allowBackup="false"` + `dataExtractionRules` + siting under `getNoBackupFilesDir()` | `BackupExclusionRulesTest` + `StateDirLocationTest` (configuration, JVM) · `InstalledBackupConfigurationTest` (installed artefact, emulator) · `BackupExclusionTest` (both backup paths + `bmgr`, emulator) | configuration green; behaviour **runs in CI on every push (BIT-59, `wallet-instrumented` job) — first result not yet recorded, see §4** |
+| 4 | The blob is excluded from Auto Backup | `allowBackup="false"` + `dataExtractionRules` + siting under `getNoBackupFilesDir()` | `BackupExclusionRulesTest` + `StateDirLocationTest` (configuration, JVM) · `InstalledBackupConfigurationTest` (installed artefact, emulator) · `BackupExclusionTest` (both backup paths + `bmgr`, emulator) + `check-backup-set.sh` (the set itself, host) | configuration green; behaviour **partly proven on one device — run 107 inspected a real set and found no wallet material, but could not show the set was non-empty. The canary gate that tells those two apart has landed and has not yet run; see §4** |
 | 5 | No PIN-derived wrapping | PIN stays a salted-SHA-256 verifier; the unwrap path takes no PIN argument | `WalletKeystorePolicyGuardTest` (bans `PBEKeySpec`/PBKDF2) · `BlobWriteVerifiedTest` (unwrap signature takes no PIN) | green |
 
 ### BIT-20 — the LDK state quarantine guard
@@ -51,7 +51,7 @@ written.
 | 7 | match → keep · mismatch → quarantine · absent → quarantine | `SeedImportGuard` | `BlobDestroyedRecoversTest` (match, mismatch) · `ForeignStateQuarantinedTest` (absent) | green |
 | 8 | Three-way blob classification; transient ≠ absence | Classification on exception type, no fallback branch meaning "absent" | `TransientKeystoreFailureAbortsTest` | green |
 | 9 | Quarantine never overwrites a prior quarantine | Uniquely-named subdirectory under `no_backup/foreign_ldk_state/` | `QuarantineDoesNotClobberTest` | green |
-| 10 | Exclusion widens to the LDK state directory, both backup paths | The three layers in rule 4, scoped to the whole wallet directory | as rule 4 | configuration green; behaviour **written, never run** |
+| 10 | Exclusion widens to the LDK state directory, both backup paths | The three layers in rule 4, scoped to the whole wallet directory | as rule 4 | configuration green; behaviour **partly proven on one device, see §4** |
 
 ### Port-faithfulness fixes carried without a separate ruling
 
@@ -120,8 +120,9 @@ configuration: `allowBackup="false"`, `dataExtractionRules` wired up, both
 path resolves under `no_backup`.
 
 None of that proves a backup set produced by a real device contains none of it.
-That is `BackupExclusionTest` (`app/src/androidTest`, BIT-101), and as of
-BIT-59 it runs on every push.
+That is `BackupExclusionTest` (`app/src/androidTest`, BIT-101), which since
+BIT-59 runs on every push, and has now run on a device once — run 107 of the
+wallet emulator job, API 34 `aosp_atd`.
 
 **What runs, and where.** The `wallet-instrumented` job boots an API 34
 `aosp_atd` emulator and runs `android/scripts/ci-wallet-instrumented.sh`, which
@@ -131,18 +132,67 @@ on are in different modules and a step scoped to the library alone would exit 0
 having never executed the one that touches funds-losing behaviour. The image is
 AOSP rather than Play-flavoured because the suite drives
 `com.android.localtransport/.LocalTransport`; a Play image offers the GMS
-transports instead, which cannot be restored from on demand.
+transports instead, which cannot be driven on demand.
 
-**What the tests do.**
+**What it does.** Plants a wallet-bearing install — wrapped blob, ldk-node
+state, discriminator, BDK database, and a quarantine subdirectory under the
+uniquely-generated name BIT-20 rule 4 gives it — then drives `bmgr` to produce
+a real set and leaves that set on the local transport. Once on the cloud-backup
+path and once with the local transport in device-transfer mode, because API 31+
+configures the two separately. The **verdict** comes from
+`android/scripts/check-backup-set.sh`, which greps the transport's own on-disk
+tree from the host in the same job.
 
-- `BackupExclusionTest` plants a wallet-bearing install — wrapped blob, ldk-node
-  state, discriminator, BDK database, and a quarantine subdirectory under the
-  uniquely-generated name BIT-20 rule 4 gives it — drives `bmgr` to produce a
-  real set, deletes everything it planted, restores, and asserts none of it came
-  back. Once on the cloud-backup path and once with the local transport in
-  device-transfer mode (`is_device_transfer=true`, asserted back out of the
-  settings provider so a renamed hook cannot degrade the second run into a
-  second copy of the first), because API 31+ configures the two separately.
+**Why the verdict is not in the test — BIT-108.** The first version deleted what
+it planted, ran `bmgr restore`, and asserted nothing came back. On run 107 the
+device-transfer case produced an empty `<failure>` and every case of
+`InstalledBackupConfigurationTest` after it never ran: `bmgr restore` kills the
+target process, and the instrumentation runs inside it. That is not fixable by
+writing the assertion more carefully.
+
+It was also worth less than it looked. A restore only kills the process when the
+framework has something to restore, so the assertion passed exactly when the
+package was ineligible and nothing had been backed up — the case where it had
+nothing to check — and died exactly when there was a set worth checking. Run 107
+is that shape end to end: cloud passed, device-transfer died. So the restore is
+gone from both paths, not just from the one that crashed, and
+`BackupExclusionInstrumentationGuardTest` fails the build if it is reintroduced.
+The suite now creates the conditions and proves it created them — transport
+live and local, the `is_device_transfer` hook actually taken, `bmgr backupnow`
+completing with a considered per-package result rather than a transport error —
+and the host script reads the set.
+
+The same guard keeps the `bmgr wipe` out of the suite's `@After`. The host reads
+the transport after Gradle exits, so a wipe there deletes the only artefact the
+run produces; on run 107 the one inspectable set survived purely because the
+crash skipped teardown. The wipe now runs before each backup, which also makes
+the surviving set deterministically the device-transfer one — `NAME_ASCENDING`
+puts that method last, and it is the path the flag may not cover.
+
+**What run 107 actually reported.** The transport was live and the set was real:
+`backupManagerAndTheLocalTransportAreLiveOnThisDevice` and the cloud case both
+passed. `check-backup-set.sh` ran, emitted neither its "could not gain root" nor
+its "no candidate directory" warning, and found no wallet marker — so on that
+device the backup set that survived to be inspected carried none of the planted
+wallet material. That is the strongest evidence rule 5 has so far, and it is
+still one device, one API level, and one set.
+
+It was not yet the full claim, for a reason this revision closes: the run could
+not show the set was non-empty. `allowBackup="false"` making the package
+ineligible produces an empty set, which satisfies every exclusion check while
+proving nothing about the rules. The canary now carries its own host-greppable
+prefix (`BIT101-CANARY-MARKER-`, deliberately distinct from the wallet marker so
+finding it is not read as the halt) and the decoys carry a third, and
+`check-backup-set.sh` now **requires the canary** before it will report its
+evidence outcome. "The rules excluded our wallet files" and "the framework never
+offered this package to the transport" are no longer the same green: the first
+is a `::notice::`, the second a `::warning::` that says in as many words that
+the set was empty and the rules were never consulted. What the next run has to
+show for rule 4/10 to move off *partly proven* is that notice — no wallet
+marker **and** the canary present in the transport's tree.
+
+**The other instrumented class in the same job.**
+
 - `InstalledBackupConfigurationTest` asserts the configuration against the
   *installed artefact* rather than the source tree: `FLAG_ALLOW_BACKUP` off the
   installed package, the `dataExtractionRules` attribute out of the merged
@@ -168,7 +218,7 @@ since `:app` does not depend on `:core:wallet-ldk` in the shipped
 configuration; `BackupExclusionInstrumentationGuardTest` (JVM, runs on every
 `check`) fails the build if those literals stop matching `WalletPaths`, and
 fails it again if the instrumented class is `@Ignore`d or drops below three
-cases.
+cases. A test that needs hardware is a test nobody watches rot.
 
 **Three ways a green run can still be worth less than it looks**, all of them
 checked rather than assumed:
@@ -183,29 +233,37 @@ checked rather than assumed:
   not merely to have not failed, because a skipped test and a green one look the
   same in an exit code.
 - **An empty set.** An empty set excludes everything trivially, so each path
-  writes a canary into `files/`, which no rule excludes, and asserts either that
-  the canary came back or that the framework is on record declining to back the
-  package up. A failure naming the canary is the suite refusing to certify an
-  empty set — not a backup-exclusion regression.
+  writes a canary into `files/`, which no rule excludes, stamped with
+  `CANARY_PREFIX`. Since BIT-109 the host-side check **requires** that prefix to
+  be present in the transport's tree before it will call a clean grep evidence.
+  No canary means the set was empty and the grep proved nothing, and the run
+  says so in a `::warning::` rather than in the notice.
 - **An ineligible package.** `allowBackup="false"` makes the package ineligible
   outright, and that is the expected cloud-path outcome. It is a pass for rule 5
   and it is *not* a proof that the `<device-transfer>` rules work, because they
-  were never consulted. The `BACKUP_EXCLUSION` lines printed on every run say
-  which of the two happened, per path: `canaryReturned=true` means a real set
-  that excluded our material; `canaryReturned=false` with a declining result
-  means the package was never offered to the transport.
+  were never consulted. This is exactly the case the canary requirement above
+  separates out: an ineligible package and an excluded one both produce "no
+  wallet marker", and only the second one also produces a canary. The
+  `BACKUP_EXCLUSION` lines printed on every run carry the three prefixes and the
+  framework's own per-package result line, so the log says which happened per
+  path even when the grep cannot.
 
-**The strongest check does not run inside the suite at all.** The in-test
-assertions depend on `bmgr restore` having done something, and a restore that
-silently no-ops produces "nothing came back" for the wrong reason.
-`BackupExclusionTest` therefore prefixes every planted file's contents with
-`MARKER_PREFIX`, and `android/scripts/check-backup-set.sh` greps the transport's
-own on-disk tree for it from the host after `adb root` — no restore involved. It
-cannot live inside the suite: the set is `0700` to another uid and
-`UiAutomation`'s shell runs as `shell`. It distinguishes three outcomes rather
-than two — marker found (the §5.3 halt), directories present and clean
-(evidence), and *could not look* (a `::warning::`, explicitly **not** evidence).
-Grep a run's log for `Backup set inspection` to see which one it got.
+**The only check that returns a verdict does not run inside the suite at all.**
+Since BIT-108 the suite creates the conditions and proves it created them;
+`android/scripts/check-backup-set.sh` is what decides. `BackupExclusionTest`
+prefixes every planted wallet file's contents with `MARKER_PREFIX`, the canary
+with `CANARY_PREFIX` and the two decoys with `DECOY_PREFIX`, and the script
+greps the transport's own on-disk tree for them from the host after `adb root` —
+no restore involved, and no surviving instrumentation process required, so it
+still answers on a red run. It cannot live inside the suite: the set is `0700`
+to another uid and `UiAutomation`'s shell runs as `shell`. It distinguishes four
+outcomes, of which exactly one is evidence — wallet marker found (the §5.3
+halt), clean **and** canary present (the evidence outcome), clean with **no**
+canary (an empty set: a `::warning::`, explicitly **not** evidence), and could
+not look at all (also a `::warning::`, also not evidence). A decoy found is
+reported alongside whichever of those it lands in and never trips the halt, as
+it is a finding about `dataExtractionRules`, not about wallet material escaping.
+Grep a run's annotations for `Backup set inspection` to see which one it got.
 
 **Also unresolved, and deliberately left to the device:** the root of
 `domain="file"` is `getFilesDir()`, while the wallet directory is under
@@ -215,14 +273,14 @@ siting is carrying rule 5 alone. `BackupExclusionTest` plants a decoy at each of
 the two paths those entries name. Whichever way it comes out, the answer is to
 fix the rules, never to relax the rule.
 
-**Two things that could make the first run red without the product being
-wrong**, recorded now so they are not diagnosed under pressure later: the
-instrumentation runs inside the process whose data is being restored, and
-whether `bmgr restore` kills that process is not documented either way (method
-order is `backupManager… → cloudBackup… → deviceTransfer…` so the cheap
-observations reach the log first); and `is_device_transfer` is a
-local-transport test hook rather than API. Both are results to record on BIT-101
-and BIT-20, not to design around.
+**The two hazards recorded before the first run, and where they stand.** The
+first — the instrumentation running inside the process whose data is being
+restored, with `bmgr restore`'s effect on it undocumented either way — is
+**settled**: it kills the process, and the restore is gone (BIT-108, above).
+The second is open by design: `is_device_transfer` is a local-transport test
+hook rather than API, so the test asserts the setting was taken rather than
+assuming it, and a rename in a future platform release fails loudly instead of
+quietly turning the device-transfer case into a second cloud case.
 
 This matters more than a normal missing test, because BIT-20 rule 5 makes it a
 **precondition** of the `match → keep` guard rather than a follow-up. A
@@ -239,45 +297,33 @@ that is a **halt**, not a smaller test. The finding goes back to BIT-20 with
 the empirical result attached, and the guard reverts to iOS behaviour
 (quarantine on anything but a live mnemonic) until it is re-decided.
 
-**First result, read and recorded — run 107 (`684791c`), 2026-09-12.** The
-cloud-backup path passed. The device-transfer path came back **red, with a
-completely empty `<failure>`** — no message, no stack trace — and the four
-`InstalledBackupConfigurationTest` cases did not run at all.
+A crashed process is not that halt, and run 107 is not it. It also is not a
+clean bill of health for the device-transfer path: what it shows is a set that
+was inspected and carried no wallet material, on one device, at one API level,
+without the run being able to say the set was non-empty.
 
-That shape is not an assertion failing. Every assertion in
-`BackupExclusionTest` carries a message, `@FixMethodOrder(NAME_ASCENDING)` puts
-`deviceTransfer…` last in the class, and an empty `<failure>` followed by every
-later class never starting is what the runner records when the instrumentation
-process **dies** mid-test. It is the first of the two hazards this section
-already predicted: *the instrumentation runs inside the process whose data is
-being restored.* The device-transfer restore appears to kill it.
+**How that much was readable at all**, recorded because it is a property of this
+repo rather than of this test. `check-backup-set.sh` needs no surviving process,
+so it still answered on exactly the kind of red run 107 was — but its evidential
+outcome was a bare `echo` into a job log that answers **403** on this public
+repo, while its two *non*-evidential outcomes emitted annotations. The one run
+that proved something was the one run nobody could read without credentials.
+`d94461c` moved that verdict and the `BACKUP_EXCLUSION`/`KEYSTORE_KEY_INFO`
+lines to `::notice::` annotations, which are the only channel this repo answers
+200 on without a token, and the gate now names the
+empty-`<failure>`-plus-missing-tests signature in its own annotation so the next
+reader does not re-derive it — or, worse, read it as the halt. Run 107 was read
+back through that list: neither non-evidence warning fired, so the script
+reached its evidence outcome on the device-transfer set. Any future verdict here
+is readable the same way and no other.
 
-So the honest reading is a finding about the harness, not about the product,
-and **it is not the §5.3 halt** — a halt needs the marker found in a real set,
-which is a different observation from an assertion that never got to run. It is
-also not a clean bill of health: the device-transfer path remains *unproven*,
-now for a demonstrated reason rather than an unexamined one. It goes to BIT-101
-as a test-design problem, because a restore assertion cannot live in the
-process being restored.
-
-What should have settled it in the same run could not be read.
-`check-backup-set.sh` greps the transport's own tree from the host, needs no
-surviving process, and therefore still answers on exactly this kind of red —
-but its evidential outcome was a bare `echo` into a job log that answers 403 on
-this public repo, while its two *non*-evidential outcomes emitted annotations.
-The one run that proved something was the one run nobody could read without
-credentials. Fixed in the same commit as this paragraph: that verdict and the
-`BACKUP_EXCLUSION`/`KEYSTORE_KEY_INFO` lines are now `::notice::` annotations,
-which are the only channel this repo answers 200 on without a token. The gate
-also now names the empty-`<failure>`-plus-missing-tests signature in its own
-annotation, so the next reader does not re-derive it — or, worse, read it as
-the halt.
-
-Until `BackupExclusionTest` is green on both paths, `match → keep` is shipping
-on a proven *configuration*, a **green cloud-backup path**, and a
-**device-transfer path that has run and not yet returned a readable verdict**.
-That is the honest status. This row does not move to green until a run reports
-the device-transfer path without the process dying under it.
+So `match → keep` is still shipping on a proven *configuration* and a *partly*
+proven behaviour, and the row above says so. The remaining step was small and
+named, and it has landed: the canary is now required before the host-side check
+reports its evidence outcome, so an ineligible package and an excluded one no
+longer produce the same green. What is outstanding is a **run**, not a change —
+this row moves off *partly proven* when a run emits the backup-set notice with
+the canary present, and not before.
 
 BIT-59 put both halves on a machine that can answer them. Whether the answer it
 gives is enough to release the `match → keep` guard is BIT-20's call, not this
