@@ -491,28 +491,26 @@ def main(argv=None):
         )
 
     # Said on every run, green or red. A reader who sees two green backup tests
-    # should be told, in the run, which layer each of them exercised — because
-    # `allowBackup="false"` makes the package ineligible outright, and an
-    # ineligible package produces an empty set that satisfies "nothing of ours
-    # came back" without the <device-transfer> rules having been consulted at
-    # all. That is a pass for BIT-20 rule 5 and it is NOT a proof that the rules
-    # work.
+    # should be told, in the run, which layer each of them exercised — because an
+    # empty set satisfies "nothing of ours came back" without the rules having
+    # been consulted at all. That is a pass for BIT-20 rule 5 and it is NOT a
+    # proof that the rules work.
     #
-    # Which of the two a run got used to be read off `canaryReturned` in the
-    # BACKUP_EXCLUSION lines — the canary asserted back out of an in-process
-    # restore. BIT-108 removed the restore (it killed the process it asserted
-    # from), so that field no longer exists and nothing in this suite answers
-    # the question any more. The canary is still planted; it is
-    # check-backup-set.sh that looks for it, in the set itself, and its
-    # `Backup set inspection` annotation is the answer.
-    print("\nNOTE: a pass here is not by itself evidence for BIT-20 rule 5 — "
-          "read the 'Backup set inspection' annotation on this run before "
-          "quoting this suite. It reports the canary: no wallet marker WITH the "
-          "canary present means a real set that excluded our material, which is "
-          "the evidence outcome; no wallet marker and no canary means the set "
-          "was empty and the exclusion rules were never consulted. Both are "
-          "passes, only the first proves anything, and this suite cannot tell "
-          "them apart. wallet-security-properties.md §4 tracks the distinction.")
+    # Since BIT-108 the suite no longer restores, so it cannot report whether the
+    # canary came back and there is no canaryReturned field to read. The verdict
+    # moved to the host: check-backup-set.sh greps the transport's own tree and
+    # requires the canary prefix to be in it. The BACKUP_EXCLUSION lines still
+    # carry the framework's per-path result and the three prefixes, which is what
+    # lets a reader tie that host verdict to a path.
+    print("\nNOTE: read the 'What the device reported' annotation on this run "
+          "before quoting this suite. Each path prints the framework's own result "
+          "for the package and the three marker prefixes it planted. Whether the "
+          "set was real is decided on the HOST, not here: the 'Backup set "
+          "inspection' annotation is a ::notice:: only when the canary prefix was "
+          "found in the transport's tree, and a ::warning:: saying the set was "
+          "empty otherwise. A green suite with that warning is a pass that proves "
+          "nothing about the rules. wallet-security-properties.md §4 is where that "
+          "distinction is tracked.")
 
     if problems:
         print()

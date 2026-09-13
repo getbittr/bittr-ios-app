@@ -162,20 +162,37 @@ expect "outcome_2_is_readable_without_a_token" 0 \
 # a ::notice:: saying the set was searched and clean. It is the same failure this
 # file's header refuses — "clean" indistinguishable from "did not look" — reached
 # from a different direction, and it is the LIKELY direction rather than an
-# exotic one, because `allowBackup="false"` is what we ship and an ineligible
-# package produces an empty set.
+# exotic one.
 #
-# It must exit 0: an ineligible package is the expected outcome of shipping that
-# flag, and failing the build for it reports the wrong thing. It must NOT be
-# readable as evidence.
+# It must exit 0: neither cause is one this script should fail the build for. It
+# must NOT be readable as evidence.
 configure yes "/data/data/com.android.localtransport/files" "" ""
 expect "outcome_3_empty_set_is_not_evidence" 0 "NOT evidence" \
   "::notice title=Backup set inspection::"
 
-# The two halves stated separately, so a rewrite cannot satisfy this by dropping
-# the annotation and leaving the misleading prose, or the reverse.
+# The halves stated separately, so a rewrite cannot satisfy this by dropping the
+# annotation and leaving the misleading prose, or the reverse.
 configure yes "/data/data/com.android.localtransport/files" "" ""
 expect "outcome_3_empty_set_says_why_it_is_empty" 0 "the package ineligible"
+
+# THE THIRD PINNED BUG. The first version of the warning above named the cloud
+# path's cause — `allowBackup="false"` making the package ineligible — as the
+# cause of ANY empty set, and run 136 was read through it. On the device-transfer
+# path `allowBackup` does not apply at all; that is why the path exists. The set
+# there was empty because the target process died mid-backup (BIT-108). Naming
+# one cause for a two-cause condition reads as "expected, nothing to see" on
+# exactly the run where something is wrong, so the warning must name both and
+# must say it cannot tell them apart from the tree alone.
+configure yes "/data/data/com.android.localtransport/files" "" ""
+expect "outcome_3_empty_set_says_allowBackup_does_not_cover_device_transfer" 0 \
+  "allowBackup does NOT apply"
+
+configure yes "/data/data/com.android.localtransport/files" "" ""
+expect "outcome_3_empty_set_names_the_incomplete_backup_cause" 0 \
+  "backup did not complete"
+
+configure yes "/data/data/com.android.localtransport/files" "" ""
+expect "outcome_3_empty_set_does_not_attribute_a_path" 0 "CANNOT say which"
 
 configure yes "/data/data/com.android.localtransport/files" "" ""
 expect "outcome_3_empty_set_is_not_a_failure" 0 "NOT a failure"

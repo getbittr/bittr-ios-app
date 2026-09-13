@@ -61,18 +61,37 @@
 #
 # Outcome 2 used to be reported for any run where the grep came back empty, and
 # that is the same failure this file's header already refuses, arrived at from a
-# different direction. `allowBackup="false"` makes the package ineligible, and an
-# ineligible package produces an EMPTY SET. An empty set excludes wallet material
-# trivially: no marker, no warning, and a ::notice:: claiming the set was
-# searched and clean. "The rules excluded our wallet files" and "the framework
-# never offered this package to the transport" are different facts, only one of
-# them is evidence for rule 5, and they were producing the same green.
+# different direction. An EMPTY SET excludes wallet material trivially: no
+# marker, no warning, and a ::notice:: claiming the set was searched and clean.
+# "The rules excluded our wallet files" and "there was nothing in the set to
+# exclude" are different facts, only one of them is evidence for rule 5, and they
+# were producing the same green.
 #
-# And it is the LIKELY case, not an exotic one — `allowBackup="false"` is
-# precisely what we ship. So BackupExclusionTest plants a canary in `files/`,
-# which no rule excludes, under its own prefix. Canary in the set means the
-# exclusion rules were actually consulted. No canary means there was nothing to
-# consult them about, and the grep proved nothing.
+# And it is the LIKELY case, not an exotic one. So BackupExclusionTest plants a
+# canary in `files/`, which no rule excludes, under its own prefix. Canary in the
+# set means the exclusion rules were actually consulted. No canary means there
+# was nothing to consult them about, and the grep proved nothing.
+#
+# WHAT AN EMPTY SET DOES *NOT* TELL YOU: WHICH PATH LEFT IT EMPTY
+#
+# This script runs once, from the host, after both backup paths have been driven,
+# and it reads one tree. It cannot attribute an empty set to a path, and the two
+# paths do not go empty for the same reason:
+#
+#   * CLOUD path — `allowBackup="false"` makes the package ineligible and the
+#     framework never offers it to the transport. Expected: that flag is what we
+#     ship.
+#   * DEVICE-TRANSFER path — `allowBackup` does NOT apply here. That is the whole
+#     reason the path exists, so ineligibility does not explain an empty set on
+#     it. What does is a backup that never completed: the framework binds a backup
+#     agent inside the TARGET process, and when that process dies mid-backup
+#     nothing is written (BIT-108 — the instrumentation lives in that same
+#     process, which is why the suite goes red with an empty <failure> in the same
+#     run).
+#
+# So the warning below names both and asserts neither. Naming only the first was
+# the bug corrected here: it reads as "expected, nothing to see" on a run whose
+# set was empty because the process died.
 #
 # THE DECOYS ARE REPORTED, NEVER A HALT
 #
@@ -181,23 +200,33 @@ if [ -n "$leaks" ]; then
 fi
 
 # Outcome 3: no wallet marker, but nothing of ours is in the set at all, so the
-# grep above searched a set that never had anything to exclude. Exit 0 — an
-# ineligible package is a legitimate and in fact EXPECTED result of shipping
-# `allowBackup="false"`, and failing the build for it would be reporting the
-# wrong thing, exactly as with "could not gain root" above. But it is not
-# evidence, and it must not be reported in the same words as outcome 2.
+# grep above searched a set that never had anything to exclude. Exit 0 — neither
+# cause is this script's to fail the build for. The cloud cause is the EXPECTED
+# result of shipping `allowBackup="false"`; the device-transfer cause is a dead
+# instrumentation process, which the suite's own red already reports. Failing
+# here would be reporting the wrong thing in both cases, exactly as with "could
+# not gain root" above. But it is not evidence, and it must not be reported in
+# the same words as outcome 2.
 if [ -z "$canaries" ]; then
   echo "::warning title=Backup set inspection::The set was searched and carried no"\
     " wallet marker ($MARKER_PREFIX) — but it carried no canary ($CANARY_PREFIX)"\
     " either, and BackupExclusionTest plants the canary in files/, which no rule"\
-    " excludes. So the set this run produced was EMPTY, almost certainly because"\
+    " excludes. So the set this run produced was EMPTY. This check reads one tree"\
+    " after both paths have been driven and CANNOT say which of them left it"\
+    " empty, and they go empty for different reasons. CLOUD path:"\
     " allowBackup=\"false\" made the package ineligible and the framework never"\
-    " offered it to the transport. An empty set excludes wallet material"\
-    " trivially. This is NOT evidence for BIT-20 rule 5: the exclusion rules were"\
-    " never consulted, so nothing was proven about whether they work. It is also"\
-    " NOT a failure — it is what shipping allowBackup=\"false\" is supposed to look"\
-    " like. To get the evidence outcome instead, the run needs a set the framework"\
-    " actually populated."
+    " offered it to the transport — expected, that flag is what we ship."\
+    " DEVICE-TRANSFER path:"\
+    " allowBackup does NOT apply there, which is the whole reason the path exists,"\
+    " so ineligibility does not explain it; an empty device-transfer set means the"\
+    " backup did not complete, the usual cause being the target process dying"\
+    " mid-backup with the framework's backup agent bound inside it (BIT-108), which"\
+    " also shows up as an empty <failure> on the suite side of the same run. Either"\
+    " way an empty set excludes wallet material trivially. This is NOT evidence for"\
+    " BIT-20 rule 5: the exclusion rules were never consulted, so nothing was proven"\
+    " about whether they work. It is also NOT a failure this check decides — read"\
+    " the suite result to tell the two causes apart. To get the evidence outcome"\
+    " instead, the run needs a set the framework actually populated."
   exit 0
 fi
 

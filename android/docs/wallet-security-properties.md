@@ -40,7 +40,7 @@ written.
 | 2 | …and what the device actually produced | `KeyInfo` read back off a generated key | `KeystoreKeyInfoTest` | runs in CI — BIT-59, `wallet-instrumented` job, API 34 emulator |
 | 2 | …and it survives a lock-screen change | — | **BIT-18 / K1**, device matrix | separate issue |
 | 3 | The wrapped blob is a cache, never the only copy | Blob loss routes to the restore screen; terminal failures classify as "no usable mnemonic" | `BlobDestroyedRecoversTest` | green |
-| 4 | The blob is excluded from Auto Backup | `allowBackup="false"` + `dataExtractionRules` + siting under `getNoBackupFilesDir()` | `BackupExclusionRulesTest` + `StateDirLocationTest` (configuration, JVM) · `InstalledBackupConfigurationTest` (installed artefact, emulator) · `BackupExclusionTest` (behaviour, emulator) + `check-backup-set.sh` (the set itself) | configuration green; behaviour **partly proven on one device — run 107 inspected a real set and found no wallet material, but could not show the set was non-empty, and the device-transfer path has never produced an inspectable set from a run that survived making it (BIT-108) — and since BIT-59 the suite runs on every push (`wallet-instrumented` job); see §4** |
+| 4 | The blob is excluded from Auto Backup | `allowBackup="false"` + `dataExtractionRules` + siting under `getNoBackupFilesDir()` | `BackupExclusionRulesTest` + `StateDirLocationTest` (configuration, JVM) · `InstalledBackupConfigurationTest` (installed artefact, emulator) · `BackupExclusionTest` (both backup paths + `bmgr`, emulator) + `check-backup-set.sh` (the set itself, host) | configuration green; behaviour **not yet proven. Run 107 inspected a real set and found no wallet material but could not show the set was non-empty. The canary gate that tells those apart, and the BIT-108 fix that keeps the device-transfer backup from killing the process, were built on separate branches and first met on one tree at the BIT-59/BIT-108 merge — so no run has yet carried both, and neither `partly proven` nor the §5.3 halt is earned. Since BIT-59 the suite runs on every push (`wallet-instrumented` job); see §4** |
 | 5 | No PIN-derived wrapping | PIN stays a salted-SHA-256 verifier; the unwrap path takes no PIN argument | `WalletKeystorePolicyGuardTest` (bans `PBEKeySpec`/PBKDF2) · `BlobWriteVerifiedTest` (unwrap signature takes no PIN) | green |
 
 ### BIT-20 — the LDK state quarantine guard
@@ -214,18 +214,48 @@ device the backup set that survived to be inspected carried none of the planted
 wallet material. That is the strongest evidence rule 5 has so far, and it is
 still one device, one API level, and one set.
 
-It is not yet the full claim, for a reason the current revision closes: the run
-could not show the set was non-empty. `allowBackup="false"` making the package
-ineligible produces an empty set, which satisfies every exclusion check while
-proving nothing about the rules. The canary now carries its own host-greppable
+It was not yet the full claim, for a reason this revision closes: the run could
+not show the set was non-empty, and an empty set satisfies every exclusion check
+while proving nothing about the rules. The canary now carries its own host-greppable
 prefix (`BIT101-CANARY-MARKER-`, deliberately distinct from the wallet marker so
-finding it is not read as the halt) and the decoys carry a third. Once
-`check-backup-set.sh` requires the canary before reporting its evidence outcome,
-"the rules excluded our wallet files" and "the framework never offered this
-package to the transport" stop being the same green. That is the outstanding
-half, tracked on **BIT-109**, and it is what the host phase's "no hand-off, no
-backup" refusal is written to feed: with the canary required, a run that planted
-nothing reports as "did not look" on both sides rather than as a clean grep.
+finding it is not read as the halt) and the decoys carry a third, and
+`check-backup-set.sh` now **requires the canary** before it will report its
+evidence outcome. "The rules excluded our wallet files" and "there was nothing in
+the set to exclude" are no longer the same green: the first is a `::notice::`,
+the second a `::warning::` that says in as many words that the set was empty and
+the rules were never consulted. What the next run has to show for rule 4/10 to
+move off *partly proven* is that notice — no wallet marker **and** the canary
+present in the transport's tree.
+
+**An empty set does not tell you which path left it empty**, and the two paths do
+not go empty for the same reason. The host check runs once, over one tree, after
+both paths have been driven, so it names both causes and asserts neither:
+
+- **Cloud path.** `allowBackup="false"` makes the package ineligible and the
+  framework never offers it to the transport. Expected — that flag is what we
+  ship.
+- **Device-transfer path.** `allowBackup` does **not** apply here; that is the
+  whole reason the path exists, and the reason BIT-6 declined to assert the
+  flag's reach from memory. So ineligibility does not explain an empty set on
+  this path. What does is a backup that never completed — the framework binds a
+  backup agent inside the *target* process, and the instrumentation lives in that
+  process, so a mid-backup death produces both an empty set and an empty
+  `<failure>` on the suite side of the same run. That is BIT-108, and it is why
+  runs 133 and 136 are not the §5.3 answer in either direction.
+
+**The two halves only met on one tree at the merge of BIT-108 into BIT-59.** They
+were built on separate branches and each branch was missing the other's half, so
+no run so far has carried both. BIT-108's fix is twice-green — runs 139 and 140
+both completed `deviceTransferOf…` and ran all four
+`InstalledBackupConfigurationTest` cases, the first runs ever to do so — but
+those runs predate the canary gate reaching that branch, and both reported
+`Backup set inspection` as the **evidence outcome on a set the host phase had
+just said it never drove a backup into**. That is the false green the canary
+requirement exists to refuse, observed in the wild rather than argued for. The
+canary-gated runs, in turn, were all on branches without the BIT-108 fix, so
+every one of them died mid-backup. **Neither `partly proven` nor the §5.3 halt
+has been earned yet**: the first run on a tree carrying both halves is what
+produces the answer, and until it reports, rule 4/10 stays where it is.
 
 **What runs, and where.** The `wallet-instrumented` job boots an API 34
 `aosp_atd` emulator and runs `android/scripts/ci-wallet-instrumented.sh`, which
@@ -322,13 +352,15 @@ quietly turning the device-transfer case into a second cloud case.
   warning. Nothing in the suite certifies an empty set because nothing in the
   suite certifies anything.
 - **An ineligible package.** `allowBackup="false"` makes the package ineligible
-  outright, and that is the expected cloud-path outcome. It is a pass for rule 5
-  and it is *not* a proof that the `<device-transfer>` rules work, because they
-  were never consulted. Which of the two a run got is the canary's answer, above,
-  and it is read off the `Backup set inspection` annotation. The
-  `BACKUP_EXCLUSION` lines the suite prints record the three prefixes it planted
-  and whether it left the set on the transport; they are how you check the two
-  halves were talking about the same run, not a verdict.
+  outright, and that is the expected **cloud-path** outcome — it does not reach
+  the device-transfer path at all. It is a pass for rule 5 and it is *not* a
+  proof that the `<device-transfer>` rules work, because they were never
+  consulted. This is exactly the case the canary requirement above separates out:
+  an ineligible package and an excluded one both produce "no wallet marker", and
+  only the second one also produces a canary. The `BACKUP_EXCLUSION` lines
+  printed on every run carry the three prefixes and the framework's own
+  per-package result line, so the log says which path each result belongs to even
+  when the grep cannot.
 
   As of run 139 those lines still do not reach `<system-out>` — the runner is not
   filing instrumentation stdout into the result XML (known since run 110). That

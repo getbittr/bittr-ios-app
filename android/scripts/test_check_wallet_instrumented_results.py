@@ -293,16 +293,26 @@ def test_a_truncated_result_file_fails():
 
 def test_a_green_run_says_how_to_tell_a_real_pass_from_an_ineligible_one():
     # The caveat must be stated on the runs people actually read, which are the
-    # green ones. `allowBackup="false"` makes the package ineligible outright,
-    # and an ineligible package produces an empty set that satisfies "nothing of
-    # ours came back" without the <device-transfer> rules being consulted. That
-    # is a pass for BIT-20 rule 5 and it is not a proof that the rules work, so
-    # a green run has to point the reader at the line that distinguishes them.
+    # green ones. An empty set satisfies "nothing of ours came back" without any
+    # rule being consulted. That is a pass for BIT-20 rule 5 and it is not a proof
+    # that the rules work, so a green run has to point the reader at what
+    # distinguishes them.
+    #
+    # This pin used to require the string `canaryReturned`, and it was itself
+    # stale: BIT-108 removed the restore, so the suite can no longer report
+    # whether the canary came back and emits no such field. The distinguishing
+    # verdict moved to the host — check-backup-set.sh's 'Backup set inspection'
+    # annotation — and that is what a green run must now point at.
     with tempfile.TemporaryDirectory() as tmp:
         code, out = run(both_modules(pathlib.Path(tmp)))
     check(
         "a green run points at the BACKUP_EXCLUSION lines",
         code == 0 and "setLeftOnTransport" in out and "BACKUP_EXCLUSION" in out,
+        out,
+    )
+    check(
+        "and at the host-side check that actually decides it",
+        "Backup set inspection" in out and "canaryReturned" not in out,
         out,
     )
     check("and points at where it is tracked",
@@ -394,7 +404,8 @@ def test_the_evidence_lines_are_lifted_into_the_log():
             out_file.read_text().replace(
                 "</testsuite>",
                 "<system-out>BACKUP_EXCLUSION path=device-transfer api=34 "
-                "package=com.bittr.android.regtest result=Success setLeftOnTransport=true\n"
+                "package=com.bittr.android.regtest result=Success "
+                "canaryMarker=BIT101-CANARY-MARKER- setLeftOnTransport=true\n"
                 "noise that is not evidence\n"
                 "KEYSTORE_KEY_INFO api=34 unlockedDeviceRequired=&lt;not exposed&gt;\n"
                 "</system-out>\n</testsuite>",
@@ -503,7 +514,7 @@ def test_a_normal_failure_with_missing_tests_is_not_called_process_death():
 
 def test_the_evidence_lines_reach_an_annotation_not_only_the_log():
     line = ("BACKUP_EXCLUSION path=device-transfer api=34 package=com.bittr.android "
-            "result=Success setLeftOnTransport=true")
+            "result=Success canaryMarker=BIT101-CANARY-MARKER- setLeftOnTransport=true")
     with tempfile.TemporaryDirectory() as tmp:
         tmp = pathlib.Path(tmp)
         ldk = write_results(tmp / "wallet-ldk",
