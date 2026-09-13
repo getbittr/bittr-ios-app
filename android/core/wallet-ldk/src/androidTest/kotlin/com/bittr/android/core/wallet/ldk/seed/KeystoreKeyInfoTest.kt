@@ -95,7 +95,7 @@ class KeystoreKeyInfoTest {
         } catch (_: NoSuchMethodException) {
             null
         }
-        println(
+        EvidenceLog.record(
             "KEYSTORE_KEY_INFO api=${Build.VERSION.SDK_INT} " +
                 "device=${Build.MANUFACTURER}/${Build.MODEL} " +
                 "userAuthenticationRequired=${info.isUserAuthenticationRequired} " +
@@ -176,7 +176,7 @@ class KeystoreKeyInfoTest {
         AndroidKeystoreBlobCodec(alias).wrap("x".toByteArray())
         val level = AndroidKeystoreBlobCodec(alias).observedSecurityLevel()
 
-        println(
+        EvidenceLog.record(
             "KEYSTORE_SECURITY_LEVEL api=${Build.VERSION.SDK_INT} " +
                 "device=${Build.MANUFACTURER}/${Build.MODEL} level=$level",
         )

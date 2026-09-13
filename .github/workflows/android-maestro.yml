@@ -327,6 +327,23 @@ jobs:
         # after a boot costs a run to learn something a grep knew.
         run: bash android/scripts/test_ci_wallet_host_phase.sh
 
+      - name: Test the instrumentation-evidence collector
+        # BIT-114. The wallet gate read the suites' per-run observations off
+        # <system-out> in the result XML; the writer AGP uses for connected tests
+        # has no <system-out> element at all, so nothing was ever there. Thirty
+        # runs reported the absence and none of them read as a bug, because the
+        # failure mode is a GREEN run saying it could not see.
+        #
+        # collect-wallet-evidence.sh is the replacement channel, and shipping a
+        # second unchecked channel would be the same mistake with a new file
+        # name. The seam is `adb`, so with a stub on PATH every branch runs here
+        # in milliseconds — including the ones a healthy device never reaches: a
+        # refused `adb root` falling back to logcat, and neither channel
+        # answering, which must leave an EMPTY file rather than no file. That
+        # distinction is what lets the gate tell "the device said nothing" from
+        # "nobody read the device".
+        run: bash android/scripts/test_collect_wallet_evidence.sh
+
       - name: Check every flow ID is registered
         # A flow selecting an ID that is in no registry entry fails at run time
         # with "element not found" — indistinguishable from a missing testTag in
@@ -1065,10 +1082,20 @@ jobs:
           # The XML is what the vacuity check reads. The HTML is what a person
           # opens to read a failure's assertion message, which for these tests
           # carries the whole diagnosis — including the BIT-20 halt condition.
+          #
+          # wallet-evidence/ is BIT-114's channel: the BACKUP_EXCLUSION and
+          # KEYSTORE_* lines the suites record and ci-wallet-instrumented.sh pulls
+          # off the device, one file per Gradle run. The gate lifts them into the
+          # `What the device reported` annotation, which is the copy a reader
+          # without a token gets; this is the full text, including the multi-line
+          # `bmgr` output the annotation cannot carry. An empty file here is the
+          # host saying it looked and found nothing, which is itself the answer to
+          # a run that reports no observations.
           path: |
             android/core/wallet-ldk/build/outputs/androidTest-results/**
             android/core/wallet-ldk/build/reports/androidTests/**
             android/app/build/outputs/androidTest-results/**
             android/app/build/reports/androidTests/**
+            android/build/wallet-evidence/**
           retention-days: 14
           if-no-files-found: warn

@@ -122,11 +122,13 @@ def both_modules(tmp, outcomes=None, drop=()):
     return [ldk, app]
 
 
-def run(results_dirs):
+def run(results_dirs, evidence_files=()):
     """Invoke main() with explicit --results-dir args; return (code, output)."""
     argv = []
     for path in results_dirs:
         argv += ["--results-dir", str(path)]
+    for path in evidence_files:
+        argv += ["--evidence-file", str(path)]
     out = io.StringIO()
     with contextlib.redirect_stdout(out):
         try:
@@ -545,9 +547,15 @@ def test_absent_evidence_is_reported_in_the_annotation_too():
     # passed, and so plainly reached its print, still produced no lines. An
     # annotation that explains an absence with the wrong cause is worse than one
     # that reports the absence, because it is read as a device finding.
+    #
+    # The causes changed with the channel in BIT-114 and this pin changed with
+    # them. "The runner did not file instrumentation stdout" is no longer one,
+    # because nothing depends on the runner filing stdout: the lines come off a
+    # file the host pulls. What is left is a test that did not reach the record
+    # and a host that could not read the file back.
     check("and offers both causes rather than asserting one",
-          notices and "did not reach the print" in notices[0]
-          and "did not file instrumentation stdout" in notices[0], out)
+          notices and "did not reach the record" in notices[0]
+          and "could not read the file back" in notices[0], out)
 
 
 def test_the_evidence_annotation_stays_one_line():
@@ -713,6 +721,175 @@ def test_the_reading_guide_quotes_fields_the_tests_actually_print():
         check(f"and BackupExclusionTest prints {field}", f"{field}=" in printed,
               f"{field} is quoted in the run output but no line of "
               f"BackupExclusionTest.kt prints {field}=")
+
+
+# --- The channel the evidence actually arrives on — BIT-114 ------------------
+#
+# Every run from 110 to 140 reported "no BACKUP_EXCLUSION or KEYSTORE_KEY_INFO
+# line reached <system-out>", including the green ones, and the cause was not on
+# the device: the XML for a connected test is written by ddmlib's
+# XmlTestRunListener, which has a `system-err` element and no `system-out`
+# element at all. The gate was reading for something the writer cannot produce.
+#
+# So the lines come off a file the tests write and ci-wallet-instrumented.sh
+# pulls with `adb root`, handed here with --evidence-file. These pin the new
+# channel, and the two "did the host even look" readings it has to keep apart.
+
+
+def evidence_file(tmp, name, text):
+    path = pathlib.Path(tmp) / name
+    path.write_text(text)
+    return path
+
+
+def test_evidence_from_a_file_reaches_the_log_and_the_annotation():
+    lines = (
+        "BACKUP_EXCLUSION path=device-transfer api=34 "
+        "package=com.bittr.android.regtest result=Success "
+        "canaryMarker=BIT101-CANARY-MARKER- setLeftOnTransport=true\n"
+        "a line with no prefix, which is not evidence\n"
+        "KEYSTORE_KEY_INFO api=34 userAuthenticationRequired=false\n"
+    )
+    with tempfile.TemporaryDirectory() as tmp:
+        tmp = pathlib.Path(tmp)
+        code, out = run(both_modules(tmp), [evidence_file(tmp, "app.txt", lines)])
+    check("a run with a file of evidence exits 0", code == 0, out)
+    check("the backup line is in the log", "setLeftOnTransport=true" in out, out)
+    notices = [l for l in out.splitlines()
+               if l.startswith("::notice title=What the device reported::")]
+    check("and reaches the annotation, which is the readable channel",
+          len(notices) == 1 and "setLeftOnTransport=true" in notices[0], out)
+    check("and the keystore line comes with it",
+          notices and "KEYSTORE_KEY_INFO" in notices[0], out)
+    check("and unprefixed lines are not dragged in",
+          "not evidence" not in out, out)
+
+
+def test_the_security_level_line_is_evidence():
+    # It was not, until BIT-114. recordTheObservedSecurityLevel prints
+    # KEYSTORE_SECURITY_LEVEL and EVIDENCE_PREFIXES did not list it, so the one
+    # test in the suite whose entire value is its output would have had that
+    # output dropped even on a run that had filed stdout. The BIT-18 device
+    # matrix is fed from this line.
+    line = "KEYSTORE_SECURITY_LEVEL api=34 device=Google/sdk_gphone64 level=TEE\n"
+    with tempfile.TemporaryDirectory() as tmp:
+        tmp = pathlib.Path(tmp)
+        code, out = run(both_modules(tmp), [evidence_file(tmp, "ldk.txt", line)])
+    notices = [l for l in out.splitlines()
+               if l.startswith("::notice title=What the device reported::")]
+    check("the security level line still exits 0", code == 0, out)
+    check("and is carried into the annotation", notices and "level=TEE" in notices[0],
+          out)
+
+
+def test_a_line_on_both_channels_is_reported_once():
+    # The file is the channel; <system-out> is still read in case a future AGP
+    # starts filling it, and the logcat fallback can overlap a file that was
+    # partially read. A reader counting BACKUP_EXCLUSION lines to see how many
+    # paths ran must not be handed the same path twice.
+    line = ("BACKUP_EXCLUSION path=cloud-backup api=34 result=Success "
+            "setLeftOnTransport=false")
+    with tempfile.TemporaryDirectory() as tmp:
+        tmp = pathlib.Path(tmp)
+        ldk = write_results(tmp / "wallet-ldk", [testcase(t) for t in LDK_REQUIRED],
+                            system_out=line)
+        app = write_results(tmp / "app", [testcase(t) for t in APP_REQUIRED])
+        code, out = run([ldk, app], [evidence_file(tmp, "app.txt", line + "\n")])
+    notices = [l for l in out.splitlines()
+               if l.startswith("::notice title=What the device reported::")]
+    check("a duplicated line still exits 0", code == 0, out)
+    check("and is carried once, not twice",
+          notices and notices[0].count("path=cloud-backup") == 1, notices)
+
+
+def test_the_evidence_keeps_the_order_the_run_produced_it_in():
+    # These lines are a narrative — transport selected, plants written, result
+    # reported — and a reader uses them to check that the two halves of the run
+    # were describing the same run. Sorting or set-ordering them would keep every
+    # line and destroy the only thing they are read for.
+    lines = "\n".join(
+        f"BACKUP_EXCLUSION device-transfer plant: step{n}" for n in range(6)
+    )
+    with tempfile.TemporaryDirectory() as tmp:
+        tmp = pathlib.Path(tmp)
+        _, out = run(both_modules(tmp), [evidence_file(tmp, "app.txt", lines + "\n")])
+    notices = [l for l in out.splitlines()
+               if l.startswith("::notice title=What the device reported::")]
+    positions = [notices[0].find(f"step{n}") for n in range(6)] if notices else []
+    check("every step is present", all(p >= 0 for p in positions), notices)
+    check("and they are in the order the run produced them",
+          positions == sorted(positions), positions)
+
+
+def test_an_evidence_file_that_cannot_be_read_is_a_problem_not_an_absence():
+    # "The device said nothing" and "nobody read the device" are different runs.
+    # A path the host named and this cannot open means the two sides disagree
+    # about where the observations went, which is BIT-114 wearing a new hat — so
+    # it fails rather than folding into the absence wording.
+    with tempfile.TemporaryDirectory() as tmp:
+        tmp = pathlib.Path(tmp)
+        code, out = run(both_modules(tmp), [tmp / "never-written.txt"])
+    check("an unreadable evidence file fails the gate", code == 1, out)
+    check("and says so in an annotation, not only the log",
+          any(l.startswith("::error::") and "evidence file" in l
+              for l in out.splitlines()), out)
+
+
+def test_an_empty_evidence_file_is_an_absence_not_a_problem():
+    # The host writes one file per Gradle run whether or not it found anything,
+    # so an empty file is it reporting that it looked. That is the absence case,
+    # which is reported and does not fail the gate — the verdict for this suite
+    # is the backup-set annotation, not this one.
+    with tempfile.TemporaryDirectory() as tmp:
+        tmp = pathlib.Path(tmp)
+        code, out = run(both_modules(tmp), [evidence_file(tmp, "app.txt", "")])
+    check("an empty evidence file still exits 0", code == 0, out)
+    check("and the absence is reported as an absence",
+          "UNPROVEN" in out and "did not reach the record" in out, out)
+    check("and the count of files the host passed is stated",
+          "1 evidence file(s)" in out, out)
+
+
+def test_every_prefixed_line_the_suites_emit_goes_through_the_recorder():
+    # THE REGRESSION THIS PINS, which is the whole of BIT-114 arriving again by
+    # the back door. A bare `println("BACKUP_EXCLUSION …")` compiles, runs,
+    # prints, and reaches nobody: instrumentation stdout has no route into the
+    # result XML, so the line is lost exactly as every line was between runs 110
+    # and 140 — silently, on a green run. EvidenceLog.record is the route, and
+    # the only way to keep it the route is to check that nothing bypasses it.
+    #
+    # Read from the Kotlin sources rather than from a run, because there is no
+    # device here and the defect is visible in the source: a prefixed string
+    # literal whose call is `println` rather than `EvidenceLog.record`.
+    sources = [
+        (MODULE.parent / ".." / "app" / "src" / "androidTest" / "kotlin" / "com"
+         / "bittr" / "android" / "BackupExclusionTest.kt"),
+        (MODULE.parent / ".." / "core" / "wallet-ldk" / "src" / "androidTest"
+         / "kotlin" / "com" / "bittr" / "android" / "core" / "wallet" / "ldk"
+         / "seed" / "KeystoreKeyInfoTest.kt"),
+    ]
+    for source in sources:
+        check(f"{source.name} is where this expects it", source.is_file(), source)
+        if not source.is_file():
+            continue
+        text = source.read_text()
+        lines = text.split("\n")
+        for number, line in enumerate(lines, start=1):
+            stripped = line.strip()
+            if not stripped.startswith("println("):
+                continue
+            # Either the prefix is on this line, or this opens a multi-line call
+            # whose first argument is on the next one.
+            argument = stripped[len("println("):].lstrip()
+            if not argument:
+                argument = lines[number].strip() if number < len(lines) else ""
+            check(
+                f"{source.name}:{number} records rather than prints its evidence",
+                not argument.lstrip('"').startswith(checker.EVIDENCE_PREFIXES),
+                f"{stripped}\n      A prefixed line printed with println() does "
+                f"not reach the host: the AGP result writer has no <system-out> "
+                f"element. Use EvidenceLog.record.",
+            )
 
 
 def main():
