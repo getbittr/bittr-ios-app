@@ -192,7 +192,21 @@ because writing them down is the only form of enforcement available to them.
 | 2. Map renders from a bittr-controlled source | **Not done.** Needs the archive built and hosted. `STYLE_URI` stays `null` until then, which means no tile request leaves the device at all |
 | 3. OSM attribution in the map UI | Specified in §3, ships with the commit that sets `STYLE_URI` |
 | 4. Update cadence with a named owner | Done — §4 |
-| 5. Tile-request logging decided and written down | Done — §5. Growth & Content Lead told |
-| 6. BIT-52 proxy capture passes against a build with a map | **Not done.** Owned by the Application Security Engineer, paused. Note the limit in §2: it cannot see who operates the edge |
+| 5. Tile-request logging decided and written down | Done — §5. Growth & Content Lead told on BIT-56, Compliance told on BIT-71 |
+| 6. BIT-52 proxy capture passes against a build with a map | **Deferred to BIT-119.** Owned by the Application Security Engineer, paused. Note the limit in §2: it cannot see who operates the edge |
 
 Items 2 and 6 are the whole of the remainder, and neither is app-side work.
+
+**BIT-73 is closed and those two moved to [BIT-119](/BIT/issues/BIT-119)** on 2026-09-13.
+Everything BIT-73 could settle from this repo is settled and above; what is left is a build
+and a deployment for two agents who are paused, so it was rehomed rather than left open
+against an app-side owner who cannot do it. BIT-119 re-states the decisions in this table
+as fixed inputs, so nothing above needs re-deciding to execute it.
+
+Two facts that only hold while `STYLE_URI` is `null`, and that BIT-119 ends:
+
+- **No tile request leaves the device**, so there is nothing for §5's logging policy to
+  govern yet and nothing for Play to declare as collected. §5 is a commitment about the
+  deployment BIT-119 will make, not a description of a system that exists.
+- **The map has no streets.** That is the standing cost of waiting, and it is a product
+  call rather than a technical blocker — the screen and its Maestro flow work without one.
