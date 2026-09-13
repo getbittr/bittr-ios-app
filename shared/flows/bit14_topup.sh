@@ -50,6 +50,18 @@ cd "${REPO_ROOT}" || { echo "cannot cd to ${REPO_ROOT}" >&2; exit 2; }
 
 SUITE="shared/flows/test_suite.sh"
 
+# Two passes below call `maestro test` directly rather than through
+# test_suite.sh, and a bare call is NOT equivalent: no flow names an app id —
+# every one declares `appId: ${APP_ID}` and the runner supplies it (see
+# shared/flows/README.md, "App id"). test_suite.sh passes `--env APP_ID`; a bare
+# call leaves the header unresolved and the flow dies at launchApp, seconds in.
+# APP_ID is the only variable either bare-run flow resolves — checked across the
+# transitive closure of both, which is wait_for_launch + happy_path_wallet
+# (+ happy_path_signup for fresh_install); fresh_install's ${EVIL_APP_ID} is in
+# a comment. Same default as test_suite.sh, and exported so the passes that DO
+# go through it agree with the two that do not.
+export APP_ID="${APP_ID:-com.bittr.bittr-regtest}"
+
 # Where this run's Maestro logs go — one file per flow, under a per-pass dir.
 # test_suite.sh defaults to a throwaway /tmp dir, which is the wrong default for
 # a 60–90 minute unattended pass: the 2026-09-10 attempt stopped part-way
@@ -155,7 +167,8 @@ fi
 if should_run 2; then
     run_pass 2 "buy_signup_no_notifications" 14 -- bash -c '
         set -e
-        maestro test shared/flows/onboarding/fresh_install_skip_signup.yaml
+        maestro test --env APP_ID="$APP_ID" \
+            shared/flows/onboarding/fresh_install_skip_signup.yaml
         '"${SUITE}"' features/buy_signup_no_notifications.yaml
     '
 fi
@@ -220,7 +233,8 @@ fi
 # path. Same build, so this is an equivalent re-capture, not a different one.
 if [[ ${VERIFY_ONLY} -eq 0 && ${ONLY_PASS} -eq 0 ]]; then
     banner "Re-capturing onboarding/ from the canonical fresh_install"
-    if maestro test shared/flows/onboarding/fresh_install.yaml; then
+    if maestro test --env APP_ID="${APP_ID}" \
+            shared/flows/onboarding/fresh_install.yaml; then
         ok "onboarding/ is coherent"
     else
         warn "fresh_install re-capture failed — onboarding/01–20 may be a mix"

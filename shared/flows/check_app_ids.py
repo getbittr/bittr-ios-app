@@ -23,7 +23,16 @@ What counts as acceptable in an `appId:` position:
   ${output.APP_ID}  a caller-injected override, resolved by an evalScript that
                     itself defaults to one of the two above
 
-Exit status: 0 if every appId is parameterised, 1 otherwise.
+The mirror-image failure is a runner that does not SUPPLY the variable. A bare
+`maestro test some_flow.yaml` leaves `appId: ${APP_ID}` unresolved and dies at
+`launchApp` — the same "package not installed" symptom, reached from the other
+end, and just as expensive when it lands twenty minutes into an unattended
+capture pass. `bit14_topup.sh` shipped with exactly that on two of its five
+invocations. So the second check below reads the shell scripts that drive
+Maestro and requires every `maestro test` naming a flow to pass `--env APP_ID`.
+
+Exit status: 0 if every appId is parameterised AND every runner supplies one,
+1 otherwise.
 
     ./shared/flows/check_app_ids.py
 """
@@ -55,6 +64,75 @@ LITERAL_ID = re.compile(r"com\.bittr\.[A-Za-z0-9._-]+")
 # Comments and prose may name the ids freely: explaining WHY the two platforms
 # differ is the point of several of these headers. Only code is checked.
 COMMENT = re.compile(r"^\s*#")
+
+# ── Runner-side check ────────────────────────────────────────────────────────
+
+# `maestro test` in *command* position. The leading group is what may precede a
+# command in shell — nothing, a pipeline/list operator, or `if`/`then`/`else`.
+# It is there to reject `maestro test` appearing inside a string, which is how
+# test_suite.sh echoes the line it is about to run:
+#     info "${BOLD}maestro test ${FLOW_PATH}${RESET}"
+# That is prose, not an invocation, and flagging it would be a false positive.
+MAESTRO_TEST = re.compile(
+    r"(?:^|[;&|(]|\b(?:if|then|else|do)\s+)\s*(maestro\s+test\b)"
+)
+
+# A `--env APP_ID=…` / `-e APP_ID=…` anywhere in the joined command line.
+SUPPLIES_APP_ID = re.compile(r"(?:--env|-e)[= ]\s*APP_ID=")
+
+# Only invocations that actually name a flow are checked: `maestro test --help`
+# and friends have no appId to resolve.
+NAMES_A_FLOW = re.compile(r"\S+\.yaml\b")
+
+# Shell scripts that drive Maestro. Kept to the two directories that hold
+# runners so a vendored or sample script elsewhere cannot fail the build.
+RUNNER_DIRS = ("shared/flows", "android/scripts")
+
+
+def join_continuations(text: str) -> list[tuple[int, str]]:
+    """Fold `\\`-continued shell lines into one, keeping the starting line no.
+
+    Every runner in this repo writes its Maestro call across several lines, so
+    checking line-at-a-time would see `maestro test \\` with no `--env` on it
+    and report every single one of them.
+    """
+    joined: list[tuple[int, str]] = []
+    buf, start = "", 0
+    for lineno, line in enumerate(text.splitlines(), start=1):
+        if not buf:
+            start = lineno
+        stripped = line.rstrip()
+        if stripped.endswith("\\"):
+            buf += stripped[:-1] + " "
+            continue
+        joined.append((start, buf + stripped))
+        buf = ""
+    if buf:
+        joined.append((start, buf))
+    return joined
+
+
+def check_runner(path: Path) -> list[str]:
+    problems = []
+    rel = path.relative_to(ROOT)
+
+    for lineno, line in join_continuations(path.read_text()):
+        if COMMENT.match(line):
+            continue
+        if not MAESTRO_TEST.search(line):
+            continue
+        if not NAMES_A_FLOW.search(line):
+            continue
+        if SUPPLIES_APP_ID.search(line):
+            continue
+        problems.append(
+            f"{rel}:{lineno}: `maestro test` runs a flow without "
+            f"`--env APP_ID=…`. Every flow declares `appId: ${{APP_ID}}` and "
+            f"the runner supplies it — a bare call dies at launchApp. See the "
+            f'"App id" section of shared/flows/README.md.'
+        )
+
+    return problems
 
 
 def check(path: Path) -> list[str]:
@@ -94,6 +172,14 @@ def main() -> int:
 
     problems = [p for flow in flows for p in check(flow)]
 
+    runners = sorted(
+        {p for d in RUNNER_DIRS for p in (ROOT / d).rglob("*.sh")}
+    )
+    if not runners:
+        print(f"No runner scripts found under {', '.join(RUNNER_DIRS)}.")
+        return 1
+    problems += [p for runner in runners for p in check_runner(runner)]
+
     if problems:
         # `::error::` renders in the run's annotation box on GitHub; locally it is
         # noise, so it is keyed off the CI variable rather than off isatty() —
@@ -102,10 +188,16 @@ def main() -> int:
         prefix = "::error::" if os.environ.get("GITHUB_ACTIONS") else ""
         for problem in problems:
             print(f"{prefix}{problem}")
-        print(f"\n{len(problems)} hardcoded app id(s) in {len(flows)} flow file(s).")
+        print(
+            f"\n{len(problems)} app-id problem(s) across {len(flows)} flow "
+            f"file(s) and {len(runners)} runner script(s)."
+        )
         return 1
 
-    print(f"All {len(flows)} flow files take their app id from the environment.")
+    print(
+        f"All {len(flows)} flow files take their app id from the environment, "
+        f"and all {len(runners)} runner scripts supply one."
+    )
     return 0
 
 
