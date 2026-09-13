@@ -40,7 +40,7 @@ written.
 | 2 | …and what the device actually produced | `KeyInfo` read back off a generated key | `KeystoreKeyInfoTest` | runs in CI — BIT-59, `wallet-instrumented` job, API 34 emulator |
 | 2 | …and it survives a lock-screen change | — | **BIT-18 / K1**, device matrix | separate issue |
 | 3 | The wrapped blob is a cache, never the only copy | Blob loss routes to the restore screen; terminal failures classify as "no usable mnemonic" | `BlobDestroyedRecoversTest` | green |
-| 4 | The blob is excluded from Auto Backup | `allowBackup="false"` + `dataExtractionRules` + siting under `getNoBackupFilesDir()` | `BackupExclusionRulesTest` + `StateDirLocationTest` (configuration, JVM) · `InstalledBackupConfigurationTest` (installed artefact, emulator) · `BackupExclusionTest` (both backup paths + `bmgr`, emulator) + `check-backup-set.sh` (the set itself, host) | configuration green; behaviour **not yet proven. The device-transfer set was found (`d823265`) and measured at 4608 bytes (`9dc0b64`), and none of the three marker prefixes was greppable in it — including the canary, which no rule excludes. That made the finding one about the *format*: a literal search cannot read this set, and the §5.3 halt grep was the same search over the same bytes, so it could not have fired either way. Since `d073424` the set is pulled and **decoded** (`decode-backup-set.py`) and the halt reads decoded members. No run has yet produced the evidence outcome, so neither `partly proven` nor the halt is earned. Since BIT-59 the suite runs on every push (`wallet-instrumented` job); see §4** |
+| 4 | The blob is excluded from Auto Backup | `allowBackup="false"` + `dataExtractionRules` + siting under `getNoBackupFilesDir()` | `BackupExclusionRulesTest` + `StateDirLocationTest` (configuration, JVM) · `InstalledBackupConfigurationTest` (installed artefact, emulator) · `BackupExclusionTest` (both backup paths + `bmgr`, emulator) + `check-backup-set.sh` (the set itself, host) | configuration green; behaviour **partly proven (device-transfer half only), earned on `d073424`.** The set is pulled and **decoded** (`decode-backup-set.py`), and that run enumerated a 4-member tar in which the canary — which no rule excludes — **is** present and no wallet marker is, so the §5.3 halt search ran over decoded members rather than opaque bytes. Every earlier "empty set" was this grep failing to see into a tar, not the transport. Limits: one device, one API level, one set; the **cloud** half is still green only because `allowBackup="false"` makes the package ineligible, which is not evidence; and the wallet absence is overdetermined across all three layers, since every wallet path sits under `getNoBackupFilesDir()`. Separately proven on the same run: the `dataExtractionRules` `<exclude domain="file">` entries **are** live (both decoys excluded while the canary in the same domain survived). Since BIT-59 the suite runs on every push (`wallet-instrumented` job); see §4** |
 | 5 | No PIN-derived wrapping | PIN stays a salted-SHA-256 verifier; the unwrap path takes no PIN argument | `WalletKeystorePolicyGuardTest` (bans `PBEKeySpec`/PBKDF2) · `BlobWriteVerifiedTest` (unwrap signature takes no PIN) | green |
 
 ### BIT-20 — the LDK state quarantine guard
@@ -51,7 +51,7 @@ written.
 | 7 | match → keep · mismatch → quarantine · absent → quarantine | `SeedImportGuard` | `BlobDestroyedRecoversTest` (match, mismatch) · `ForeignStateQuarantinedTest` (absent) | green |
 | 8 | Three-way blob classification; transient ≠ absence | Classification on exception type, no fallback branch meaning "absent" | `TransientKeystoreFailureAbortsTest` | green |
 | 9 | Quarantine never overwrites a prior quarantine | Uniquely-named subdirectory under `no_backup/foreign_ldk_state/` | `QuarantineDoesNotClobberTest` | green |
-| 10 | Exclusion widens to the LDK state directory, both backup paths | The three layers in rule 4, scoped to the whole wallet directory | as rule 4 | configuration green; behaviour **not yet proven — this row's evidence is rule 4's, so its status tracks rule 4's; see §4** |
+| 10 | Exclusion widens to the LDK state directory, both backup paths | The three layers in rule 4, scoped to the whole wallet directory | as rule 4 | configuration green; behaviour **partly proven (device-transfer half only) — this row's evidence is rule 4's, so its status tracks rule 4's, including its limits; see §4** |
 
 ### Port-faithfulness fixes carried without a separate ruling
 
@@ -410,7 +410,90 @@ resting on the plaintext grep alone is the weaker claim — it proves the set ho
 our file contents verbatim, and says nothing about parts of a set a literal
 search cannot reach.
 
-Pinned both ways and negative-controlled: 44 cases in `test_check_backup_set.sh`
+**The read answered it, and the set was never empty (BIT-116, closed).** The run
+for `d073424` is the first to inspect a set the framework populated, and it
+carries its own negative control:
+
+```
+decoder readable = yes
+containers       = [ …_full_com.bittr.android.regtest : tar ]
+4 member(s) enumerated:
+  apps/com.bittr.android.regtest/_manifest            (1527)
+  apps/com.bittr.android.regtest/r/app_dxmaker_cache     (0)
+  apps/com.bittr.android.regtest/f/backup_canary.txt    (44)
+  apps/com.bittr.android.regtest/f/profileInstalled     (24)
+
+canary in decoded members         = [ …/f/backup_canary.txt = BIT101-CANARY-MARKER-… ]
+canary in the on-device plaintext grep = (none)
+```
+
+Those last two lines are the finding. **The same canary, in the same set, on the
+same run: found by decoding, invisible to the grep.** That is the cause of every
+"empty" device-transfer set on record, and it is a fault in the instrument, not
+in the transport or the product. The set was a **tar container** sitting exactly
+where the check had been looking all along — `/data/data/com.android.localtransport/files`,
+one of the three roots it greps. So of the two candidate states BIT-116 was
+opened to distinguish, neither was right: the roots were never wrong, and the
+transport never streamed the set somewhere unreachable. The bytes were always
+there and always unreadable by a literal search.
+
+This closes out the chain the last four entries were walking: a malformed
+`adb shell` command hid the set (`ecd2e5e`), the set turned out to exist
+(`d823265`), it turned out to be 4608 bytes rather than empty (`9dc0b64`), and
+the bytes turn out to be a tar whose members the grep could never see
+(`d073424`). At no point was the transport misbehaving.
+
+**Rule 4/10's device-transfer half moves to `partly proven`.** The bar §4 set
+for it — "no wallet marker **and** the canary present in the transport's tree" —
+is met, and met in the strong form: the canary came from a decoded read, so the
+`BIT101-WALLET-MARKER-` search that decides §5.3 ran over enumerated members
+rather than over opaque bytes. A non-halt here is a marker that was genuinely
+looked for and not found. It is still one device, one API level, one set.
+
+Three limits on that, stated because the row is now making a positive claim:
+
+- **The cloud half is not evidence and does not become any.** It passes because
+  `allowBackup="false"` makes the package ineligible, so nothing is ever offered
+  to the transport — green by the same "nothing happened" argument that made the
+  original restore assertion worthless.
+- **This run cannot say which of the three layers kept the wallet material out.**
+  Every wallet path is sited under `getNoBackupFilesDir()`, which the framework
+  excludes categorically, so `allowBackup`, the `dataExtractionRules` entries and
+  the siting all predict the same absence. The absence is real and it is
+  overdetermined.
+- **What the run *does* separate is the rules layer**, via the decoys — below.
+
+**The `<exclude domain="file">` entries are live, and that was an open
+question.** `data_extraction_rules.xml` says in its own header that it will not
+assert from memory whether entries rooted at `getFilesDir()` match anything,
+given the wallet directory is under the sibling `getNoBackupFilesDir()`, and it
+plants a decoy at each of the two paths those entries name so a device answers
+instead. Read the member list above against that: `f/backup_canary.txt` is in the
+set, and `f/wallet/decoy.txt` and `f/no_backup/decoy.txt` are not. One file in,
+two out, same `files/` domain, same set, same run — the framework populated that
+domain and the rules kept exactly the two named paths out of it.
+
+So the entries are **not** a no-op and the `no_backup` siting is not carrying
+rule 5 alone. This is a finding about the *rules layer only* and is scoped that
+way everywhere it is reported; it does not by itself carry rule 5, for the
+overdetermination reason above.
+
+That verdict was reaching the job log and nowhere else. On this public repo the
+log answers 403 without a token, so the negative case — by far the more likely
+one — was a finding nobody could read; it had to be reconstructed by diffing the
+member list against the test source. Both polarities are now annotations.
+
+**And the negative case had to be conditioned before it could be published.** It
+had announced "the `<exclude domain="file">` entries excluded the paths they
+name" whenever no decoy was found — unconditionally. On runs 107, 133 and
+`7e4da43` no decoy was found because *nothing* was found, so the line claimed the
+rules worked on precisely the runs that demonstrated nothing. That is the same
+vacuity this whole file exists to refuse, one branch deeper. The claim is now
+gated on the canary having been found by a decoded read — the control that makes
+a decoy's absence mean something rather than nothing — and is withheld as
+explicitly **open** otherwise.
+
+Pinned both ways and negative-controlled: 50 cases in `test_check_backup_set.sh`
 (whose `adb` stub grew a `pull` verb, so those cases run end-to-end through the
 real decoder on real archives) and 42 in `test_decode_backup_set.py`. The
 load-bearing one is `a_wallet_marker_in_a_COMPRESSED_set_is_now_the_halt`:
@@ -600,16 +683,26 @@ that is a **halt**, not a smaller test. The finding goes back to BIT-20 with
 the empirical result attached, and the guard reverts to iOS behaviour
 (quarantine on anything but a live mnemonic) until it is re-decided.
 
-A crashed process is not that halt, and run 107 is not it. It also is not a
-clean bill of health for the device-transfer path: what it shows is a set that
-was inspected and carried no wallet material, on one device, at one API level,
-without the run being able to say the set was non-empty.
+A crashed process is not that halt, and run 107 is not it. Neither is an
+unreadable set: from `d073424` the halt search runs over **decoded** archive
+members, and before that it was a literal grep over tar bytes it could not see
+into — so no run before `d073424` could have fired the halt whatever was in the
+set. That is worth stating plainly, because a long row of non-halts reads like
+accumulating reassurance and until `d073424` it was not.
 
-So `match → keep` is still shipping on a proven *configuration* and a
-*partly* proven behaviour, and the row above says so. The remaining step is
-small and named: the canary has to be required by the host-side check before
-its evidence outcome is reported, so an ineligible package and an excluded one
-stop producing the same green.
+`d073424` is the first run that could have fired it and did not, on a set proven
+non-empty by a control planted in the same domain. So `match → keep` now ships
+on a proven *configuration* and a *partly* proven behaviour, and the row above
+says so.
+
+What is still owed is breadth rather than a missing instrument: one device, one
+API level, one set, and only the device-transfer half — the cloud half stays
+green by ineligibility, which demonstrates nothing and would start to
+demonstrate something only if `allowBackup` were ever set back to `true`. The
+per-run absence of wallet material also remains overdetermined across the three
+layers; separating them for the wallet paths would need the material sited
+somewhere the framework does not categorically exclude, which is not a change
+worth making to the product to satisfy a test.
 
 ---
 

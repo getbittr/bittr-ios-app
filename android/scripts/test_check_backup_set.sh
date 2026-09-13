@@ -576,6 +576,62 @@ configure yes "/data/data/com.android.localtransport/files" "" "$CANARY_IN_SET" 
   "/data/data/com.android.localtransport/files/1/com.bittr.android.regtest/d1"
 expect "decoy_without_wallet_marker_is_not_a_halt" 0 "A DECOY" "HALT"
 
+# --- The ABSENCE of a decoy, which is only evidence with a control ------------
+#
+# THE THIRD PINNED BUG, and the same shape as the first two: a branch that
+# announced a result on runs where it had none. The previous revision printed
+# "the <exclude domain=\"file\"> entries excluded the paths they name" whenever
+# no decoy was found -- unconditionally, into the job log. On runs 107, 133 and
+# 7e4da43 the set was EMPTY, so no decoy was found because nothing at all was
+# found, and the line claimed the rules worked on exactly the runs that
+# demonstrated nothing. An absence is only evidence against a control.
+#
+# The control is the canary: planted in files/ beside the two decoys, matched by
+# no exclude entry. Canary in, decoys out, same domain and same set = the rules
+# fired. No canary = the decoys' absence is trivial and must say so.
+configure yes "/data/data/com.android.localtransport/files" "" ""
+stage_set_file "$FULL_SET" \
+  "$(make_fixture clean none "$MANIFEST_MEMBER" "$CANARY_MEMBER")"
+expect "decoy_absent_from_a_decoded_set_WITH_a_canary_proves_the_rules_fired" 0 \
+  "ARE live on this path"
+
+# The same run must name the control rather than just asserting the conclusion,
+# because the conclusion is worthless without it.
+configure yes "/data/data/com.android.localtransport/files" "" ""
+stage_set_file "$FULL_SET" \
+  "$(make_fixture clean none "$MANIFEST_MEMBER" "$CANARY_MEMBER")"
+expect "the_live_rules_finding_names_its_positive_control" 0 \
+  "WAS found by decoding the set"
+
+# It is a finding about the RULES layer and must not be inflated into rule 5 --
+# the wallet material is under getNoBackupFilesDir(), which the framework
+# excludes on its own, and no run through this check separates the two layers.
+configure yes "/data/data/com.android.localtransport/files" "" ""
+stage_set_file "$FULL_SET" \
+  "$(make_fixture clean none "$MANIFEST_MEMBER" "$CANARY_MEMBER")"
+expect "the_live_rules_finding_does_not_claim_rule_5" 0 \
+  "does NOT by itself carry"
+
+# An EMPTY set: no decoy because nothing is there. The old false claim must be
+# gone, and the open question must be restated as open.
+configure yes "/data/data/com.android.localtransport/files" "" "" "" ""
+expect "decoy_absent_from_an_EMPTY_set_proves_nothing" 0 \
+  "remains OPEN" "ARE live on this path"
+
+# A non-empty set the decoder cannot read: same verdict, different reason. The
+# decoys could be sitting in those bytes unread, so their absence says nothing.
+configure yes "/data/data/com.android.localtransport/files" "" "" ""
+head -c 600 /dev/zero | tr '\0' 'Z' > "$fixture_dir/opaque_nodecoy"
+stage_set_file "$FULL_SET" "$fixture_dir/opaque_nodecoy"
+expect "decoy_absent_from_an_UNREADABLE_set_proves_nothing" 0 \
+  "CANNOT read that as" "ARE live on this path"
+
+# The retired wording itself, pinned so it cannot come back by a later edit that
+# only looks at the happy path.
+configure yes "/data/data/com.android.localtransport/files" "" "" "" ""
+expect "an_empty_set_never_claims_the_exclude_entries_worked" 0 \
+  "No decoy" "excluded the paths they name"
+
 # --- Outcome 4a: no root ------------------------------------------------------
 #
 # Must NOT claim the set was clean. `adb root` is refused on a production image

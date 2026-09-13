@@ -126,6 +126,28 @@
 # run got and never trips the halt. The three prefixes are deliberately distinct
 # strings so the canary and the decoys can be found without counting as outcome 1.
 #
+# THE DECOYS' ABSENCE IS ALSO REPORTED, BUT ONLY MEANS SOMETHING WITH A CONTROL
+#
+# Run d073424 answered the question above: the decoys were NOT in a set the
+# decoder read and the canary WAS, so those entries are live and the no_backup
+# siting is not carrying rule 5 alone. Both polarities are now ::notice::/
+# ::warning:: annotations rather than the bare echo the negative case used to
+# get — on this public repo the job log answers 403, so a finding that only
+# reaches the log does not reach anybody.
+#
+# The condition on that branch is the point. "No decoy found" is NOT by itself
+# the rules working: on an empty or undecodable set no decoy is found because
+# nothing is found, and the previous revision announced success on exactly those
+# runs. The canary is the control — same directory as the decoys, matched by no
+# exclude entry — so the claim is made only when the canary was found by
+# DECODING the set, and is explicitly withheld as OPEN otherwise.
+#
+# What that finding does NOT reach: rule 5 itself. The wallet material is sited
+# under getNoBackupFilesDir(), which the framework excludes categorically, so no
+# run through this check can separate that layer from these entries for the
+# wallet paths. The decoys are evidence about the RULES layer and are scoped
+# that way in the annotation.
+#
 # A backup-set DIRECTORY existing for the package is deliberately NOT a failure.
 # The platform creates and prunes those for its own reasons; only the wallet
 # marker means our bytes are in there. It is printed so a person can see it.
@@ -397,9 +419,51 @@ if [ -n "$decoys" ] || [ -n "$decoded_decoy" ]; then
     " the rules, never to relax the rule. Files containing it:"
   printf '%s\n' "  on-device grep: ${decoys:-(no plaintext hit)}"
   printf '%s\n' "  decoded set:    ${decoded_decoy:-(no hit in a decoded member)}"
+elif [ "$decoded_readable" = "yes" ] && [ -n "$decoded_canary" ]; then
+  # The decoys are absent AND the set provably carries this app's files/ domain,
+  # because the canary — planted in files/ alongside them, excluded by no rule —
+  # was found by DECODING it. That pairing is what makes the absence mean
+  # something: same domain, same set, same run, one file in and two out. Without
+  # the canary this branch cannot be reached, and that is deliberate; see below.
+  #
+  # This answers the question data_extraction_rules.xml poses in its own header
+  # comment and declines to answer from memory — whether <exclude domain="file">
+  # entries rooted at getFilesDir() match anything, given the wallet directory
+  # lives under the sibling getNoBackupFilesDir(). They do.
+  echo "::notice title=Backup rules::The <exclude domain=\"file\"> entries in"\
+    " dataExtractionRules ARE live on this path — they are not a no-op."\
+    " BackupExclusionTest plants a decoy ($DECOY_PREFIX) at each of the two paths"\
+    " those entries name, files/wallet/ and files/no_backup/, and NEITHER is in"\
+    " the set. The positive control that makes that absence evidence rather than"\
+    " a shrug: the canary ($CANARY_PREFIX) sits in files/ beside them, is matched"\
+    " by no exclude, and WAS found by decoding the set — so the framework did"\
+    " populate this app's files/ domain and the rules kept exactly the two paths"\
+    " they name out of it. One file in, two out, same domain and same run."\
+    " Decoded members = [$decoded_names]."\
+    " This is a finding about the RULES layer only. It does NOT by itself carry"\
+    " BIT-20 rule 5, because the wallet material is sited under"\
+    " getNoBackupFilesDir(), which the framework excludes categorically — no"\
+    " run through this check can separate that layer from these entries for the"\
+    " wallet paths themselves. What it does retire is the standing worry that"\
+    " the rules layer is dead weight."
 else
-  echo "No decoy ($DECOY_PREFIX) in the set: the <exclude domain=\"file\"> entries"\
-    " excluded the paths they name."
+  # Decoys absent, but nothing of ours is demonstrably in the set either, so
+  # their absence is the same trivial absence as everything else's. The previous
+  # revision of this branch announced that the entries "excluded the paths they
+  # name" unconditionally — which was false on precisely the runs that mattered:
+  # on an empty or undecodable set nothing was excluded BY A RULE, it simply was
+  # never there or was never readable. That is the unfalsifiable pass this whole
+  # check exists to not emit, in miniature.
+  echo "::notice title=Backup rules::No decoy ($DECOY_PREFIX) in the set — and"\
+    " this run CANNOT read that as the <exclude domain=\"file\"> entries working."\
+    " The canary ($CANARY_PREFIX) is planted in files/ beside the decoys and"\
+    " excluded by no rule, so it is the positive control for that domain, and it"\
+    " was not found by a decoded read either (decoder readable ="\
+    " $decoded_readable; canary in decoded members ="\
+    " [${decoded_canary:-(none)}]). With no control the decoys' absence is"\
+    " trivial: a set nothing of ours reached excludes the decoys for the same"\
+    " uninformative reason it excludes everything. Whether those entries are a"\
+    " no-op remains OPEN — see the header of data_extraction_rules.xml."
 fi
 
 if [ -n "$leaks" ] || [ -n "$decoded_wallet" ]; then
