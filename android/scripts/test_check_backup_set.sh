@@ -63,7 +63,7 @@ case "$1" in
             ;;
         esac
         ;;
-      *find*)      echo "/data/data/com.android.localtransport/files/1/com.bittr.android.regtest" ;;
+      *find*)      cat "$dir/sets" ;;
       *"bmgr list transports"*) echo "  com.android.localtransport/.LocalTransport" ;;
     esac
     exit 0
@@ -78,6 +78,9 @@ STUB
 # as "a normal populated set, plus/minus the thing under test".
 CANARY_IN_SET="/data/data/com.android.localtransport/files/1/com.bittr.android.regtest/c1"
 
+# The set directory `find` reports when the transport did write one.
+SET_PATH="/data/data/com.android.localtransport/files/1/com.bittr.android.regtest"
+
 # configure <root_ok> <present> <leaks> [canaries] [decoys]
 #
 # canaries defaults to CANARY_IN_SET — i.e. to a set the framework actually
@@ -89,6 +92,12 @@ configure() {
   printf '%s' "$3" > "$stub_dir/leaks"
   printf '%s' "${4-$CANARY_IN_SET}" > "$stub_dir/canaries"
   printf '%s' "${5-}" > "$stub_dir/decoys"
+  # $6 is what `find` returns: the set paths on disk. Defaults to a populated
+  # set, so every case that is not about set DISCOVERY reads unchanged. An empty
+  # value is the distinct, real state "the transport wrote nothing to these
+  # roots", which is not the same as "a set exists and holds none of our markers"
+  # and must not be stubbed as if it were.
+  printf '%s' "${6-$SET_PATH}" > "$stub_dir/sets"
 }
 
 # expect <name> <expected exit> <substring that must appear> <substring that must NOT appear>
@@ -196,6 +205,34 @@ expect "outcome_3_empty_set_does_not_attribute_a_path" 0 "CANNOT say which"
 
 configure yes "/data/data/com.android.localtransport/files" "" ""
 expect "outcome_3_empty_set_is_not_a_failure" 0 "NOT a failure"
+
+# THE FOURTH PINNED BUG, and the first run carrying both halves is what exposed
+# it. The warning named process death (BIT-108) as the device-transfer cause of
+# an empty set. That run reported the device-transfer backup as Success with the
+# process surviving — and the set was still empty, so the only device-transfer
+# cause the warning named was excluded by another annotation on the same run,
+# leaving a reader with no cause that fits. The condition has a third state and
+# the warning has to admit it: completed, survived, and still nothing here.
+configure yes "/data/data/com.android.localtransport/files" "" ""
+expect "outcome_3_empty_set_names_the_completed_but_empty_cause" 0 \
+  "DID report Success"
+
+# And the facts that tell the two apart must reach the ANNOTATION. They were
+# echoed to stdout only, which on this public repo means the job log, which
+# answers 403 without a token — the same inaccessibility every other verdict in
+# this script routes around. "Which directories exist" and "did anything land in
+# them" is the first question an empty set raises, and it was the one thing a
+# reader could not get at.
+configure yes "/data/data/com.android.localtransport/files" "" ""
+expect "outcome_3_empty_set_puts_the_searched_roots_in_the_annotation" 0 \
+  "transport directories present = [/data/data/com.android.localtransport/files]"
+
+# The no-set-at-all case must be legible as such rather than as a blank. The
+# stub's `find` returns nothing here, which is the shape that says the transport
+# never wrote a set to these roots -- a WHERE question, not an exclusion result.
+configure yes "/data/data/com.android.localtransport/files" "" "" "" ""
+expect "outcome_3_empty_set_marks_an_absent_set_as_none" 0 \
+  "mentioning this package = [(none)]"
 
 # --- A decoy is reported, and is never by itself a halt -----------------------
 #

@@ -167,6 +167,17 @@ sets=$(adb shell "find $present -maxdepth 3 -name '*bittr*' 2>/dev/null" | tr -d
 echo "Backup-set paths mentioning this package (recorded, not asserted):"
 printf '%s\n' "${sets:-  (none)}"
 
+# Flattened for the annotation. These two facts are the difference between "the
+# transport wrote a set and it had nothing in it" and "the transport never wrote
+# a set here at all", which is the first question anyone asks about an empty
+# result — and until now they existed only in the two echoes above, i.e. only in
+# the job log, which answers 403 on this public repo. Same reasoning as every
+# other verdict in this file: if it is not in an annotation it is not readable.
+# One line each: annotations are one line unless newlines are %0A-encoded.
+present_inline=$(printf '%s' "$present" | tr '\n' ' ' | tr -s ' ')
+sets_inline=$(printf '%s' "$sets" | tr '\n' ' ' | tr -s ' ')
+[ -n "${sets_inline// /}" ] || sets_inline="(none)"
+
 leaks=$(adb shell "grep -rl '$MARKER_PREFIX' $present 2>/dev/null" | tr -d '\r' || true)
 canaries=$(adb shell "grep -rl '$CANARY_PREFIX' $present 2>/dev/null" | tr -d '\r' || true)
 decoys=$(adb shell "grep -rl '$DECOY_PREFIX' $present 2>/dev/null" | tr -d '\r' || true)
@@ -218,15 +229,28 @@ if [ -z "$canaries" ]; then
     " offered it to the transport — expected, that flag is what we ship."\
     " DEVICE-TRANSFER path:"\
     " allowBackup does NOT apply there, which is the whole reason the path exists,"\
-    " so ineligibility does not explain it; an empty device-transfer set means the"\
-    " backup did not complete, the usual cause being the target process dying"\
-    " mid-backup with the framework's backup agent bound inside it (BIT-108), which"\
-    " also shows up as an empty <failure> on the suite side of the same run. Either"\
-    " way an empty set excludes wallet material trivially. This is NOT evidence for"\
+    " so ineligibility does not explain it. TWO device-transfer causes, and the"\
+    " 'Device-transfer backup' annotation on this run tells them apart. (a) The"\
+    " backup did not complete — the target process died mid-backup with the"\
+    " framework's backup agent bound inside it (BIT-108), which also shows up as an"\
+    " empty <failure> on the suite side of the same run."\
+    " (b) The backup DID report Success and the process survived,"\
+    " and nothing landed in the directories"\
+    " listed below anyway — in which case process death is excluded and the open"\
+    " question is whether the local transport persists a device-transfer set to"\
+    " these roots at all, or streams it somewhere this check never looks. Cause (b)"\
+    " is not hypothetical: it is what the first run carrying both halves reported."\
+    " Either way an empty set excludes wallet material trivially."\
+    " This is NOT evidence for"\
     " BIT-20 rule 5: the exclusion rules were never consulted, so nothing was proven"\
     " about whether they work. It is also NOT a failure this check decides — read"\
-    " the suite result to tell the two causes apart. To get the evidence outcome"\
-    " instead, the run needs a set the framework actually populated."
+    " the suite result to tell the causes apart. To get the evidence outcome"\
+    " instead, the run needs a set the framework actually populated."\
+    " OBSERVED THIS RUN, and otherwise only in the job log, which answers 403"\
+    " without a token: transport directories present = [$present_inline];"\
+    " paths under them mentioning this package = [$sets_inline]. If that second"\
+    " list is (none), no set was written to these roots and the question is WHERE,"\
+    " not what was excluded from it."
   exit 0
 fi
 

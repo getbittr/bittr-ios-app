@@ -257,6 +257,32 @@ every one of them died mid-backup. **Neither `partly proven` nor the §5.3 halt
 has been earned yet**: the first run on a tree carrying both halves is what
 produces the answer, and until it reports, rule 4/10 stays where it is.
 
+**That run has now reported, and the answer is neither.** On `7e4da43` all four
+jobs were green; the `wallet-instrumented` job passed in 328s with the vacuity
+check passed, so every required test ran. The host phase reported the
+device-transfer backup as **`Success` for `com.bittr.android.regtest`** with
+`is_device_transfer=true` and the wallet material planted — the process survived
+making the set, which is what BIT-108 fixed and what no earlier run achieved.
+And `Backup set inspection` was still the **empty-set `::warning::`**: no wallet
+marker, and no canary either.
+
+Read those two together, because the combination is new and it retires the
+explanation the warning itself was offering. The empty device-transfer set had
+been attributed to the target process dying mid-backup; on this run the process
+did not die and the framework reported success, so **that cause is excluded and
+the set was empty anyway**. What remains is a question the exclusion rules have
+no part in: whether the local transport persists a device-transfer set to
+`/data/data/com.android.localtransport/files`, `/data/system/backup` or
+`/data/backup` at all, or streams it somewhere this check never looks. Until a
+run produces a set the framework actually populated, rule 4/10 has no evidence
+either way and **stays `not yet proven`** — this is emphatically not the §5.3
+halt, which requires the wallet marker to be *found*, and nothing was found.
+
+Tracked as BIT-116. The next run is diagnostic rather than confirmatory: the
+warning now carries the searched roots and any set paths under them into the
+annotation itself, so whether the transport wrote nothing or wrote an empty set
+is answerable without the job log — which on this public repo answers 403.
+
 **What runs, and where.** The `wallet-instrumented` job boots an API 34
 `aosp_atd` emulator and runs `android/scripts/ci-wallet-instrumented.sh`, which
 drives `:core:wallet-ldk:connectedDebugAndroidTest` and
