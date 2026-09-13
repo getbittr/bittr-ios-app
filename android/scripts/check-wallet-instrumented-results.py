@@ -114,15 +114,27 @@ REQUIRED = {
     # --- :app — the installed application (BIT-8 rule 4 / BIT-20 rule 5) -------
     #
     # BackupExclusionTest (BIT-101) is the behavioural half: plant a
-    # wallet-bearing install, drive `bmgr`, delete what was planted, restore,
-    # assert none of it came back. Three methods, @FixMethodOrder NAME_ASCENDING.
+    # wallet-bearing install, drive `bmgr`, and leave a real set on the local
+    # transport. Three methods, @FixMethodOrder NAME_ASCENDING.
     #
-    # backupManagerAndTheLocalTransportAreLiveOnThisDevice is the canary: it is
-    # the reason the other two mean anything, because on an image with no local
-    # transport "the backup set excluded our files" and "no backup set was ever
-    # produced" are the same tick. It also names com.android.localtransport
-    # specifically, which is what makes a Play-image runner a legible red rather
-    # than a vacuous green.
+    # It does NOT assert the set's contents, and since BIT-108 it deliberately
+    # does not try. It used to delete what it planted, restore, and assert
+    # nothing came back; `bmgr restore` kills the target process and the
+    # instrumentation runs inside it, so that assertion died exactly when there
+    # was a set worth checking and passed exactly when there was not. These three
+    # methods passing therefore means THE CONDITIONS WERE CREATED, not that rule
+    # 5 holds. The verdict comes from android/scripts/check-backup-set.sh, which
+    # greps the transport's tree from the host in the same job — so a green here
+    # with no backup-set notice in the run's annotations is not a result yet.
+    #
+    # backupManagerAndTheLocalTransportAreLiveOnThisDevice is the canary in the
+    # sense CANARY below means it — not to be confused with the canary FILE the
+    # suite plants, which is what check-backup-set.sh requires before calling a
+    # clean grep evidence. This one is the reason the other two mean anything,
+    # because on an image with no local transport "the backup set excluded our
+    # files" and "no backup set was ever produced" are the same tick. It also
+    # names com.android.localtransport specifically, which is what makes a
+    # Play-image runner a legible red rather than a vacuous green.
     f"{APP_PACKAGE}.BackupExclusionTest#backupManagerAndTheLocalTransportAreLiveOnThisDevice",
     f"{APP_PACKAGE}.BackupExclusionTest#cloudBackupOfAWalletBearingInstallCarriesNoWalletMaterial",
     # The half `allowBackup="false"` may not cover, and the one BIT-20 §5.3
