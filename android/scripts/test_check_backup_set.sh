@@ -239,6 +239,21 @@ configure yes "/data/data/com.android.localtransport/files" "" "" "" ""
 expect "outcome_3_empty_set_marks_an_absent_set_as_none" 0 \
   "mentioning this package = [(none)]"
 
+# Once the roots are really searched, the set directory turns up (run d823265
+# found it at .../files/1/_full/<pkg>), so "was a set written here" is answered
+# and the next question is whether anything is IN it. A directory the framework
+# created and wrote nothing into is indistinguishable, from the canary grep
+# alone, from one whose contents were all excluded -- the first produced no data,
+# the second would be evidence. That fact has to be in the annotation for the
+# same reason as the roots: the job log answers 403.
+configure yes "/data/data/com.android.localtransport/files" "" "" "" ""
+expect "outcome_3_with_no_set_says_there_was_nothing_to_size" 0 \
+  "(no set paths to size)"
+
+configure yes "/data/data/com.android.localtransport/files" "" ""
+expect "outcome_3_with_a_set_reports_the_files_under_it" 0 \
+  "Regular files under those paths = ["
+
 # --- Every present root is actually searched ----------------------------------
 #
 # THE FIFTH PINNED BUG, and the most serious one in this file's history: the

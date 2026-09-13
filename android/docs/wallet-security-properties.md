@@ -307,9 +307,29 @@ root there is no newline and no bug; there is now a two-root case that asserts
 against what the stub was handed rather than against the verdict, which is
 identical either way.
 
-Tracked as BIT-116, which stays open: the fix restores the search, but no run
-has yet inspected a populated set, so rule 4/10 is still `not yet proven` and
-what it needs is still a run.
+**With the roots actually searched, the set turns up.** The run for `d823265` —
+the first in which the LocalTransport tree was really read — found it:
+
+```
+/data/data/com.android.localtransport/files/1/_full/com.bittr.android.regtest
+```
+
+So the device-transfer path **does** persist a set to a root this check already
+knew about; it had simply never been searched. That retires the "or streams it
+somewhere this check never looks" half of the question, and it is a directory no
+previous run could have seen.
+
+The canary still was not in it, so rule 4/10 does not move. But the remaining
+question is now much narrower, and it is the last one before the claim resolves:
+**the set directory exists — is anything in it?** A directory the framework
+created and wrote nothing into is a backup that produced no data; one whose
+contents were all excluded would be evidence. From the canary grep alone those
+are identical. The empty-set warning now reports the regular files under the
+discovered set paths, so the next run answers it.
+
+Tracked as BIT-116, which stays open. Rule 4/10 stays `not yet proven`, and what
+it still needs is a run — but the question left for that run has gone from
+"where is the set, if anywhere" to "is the set the framework wrote empty".
 
 **What runs, and where.** The `wallet-instrumented` job boots an API 34
 `aosp_atd` emulator and runs `android/scripts/ci-wallet-instrumented.sh`, which

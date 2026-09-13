@@ -201,6 +201,27 @@ printf '%s\n' "${sets:-  (none)}"
 sets_inline=$(printf '%s' "$sets" | tr '\n' ' ' | tr -s ' ')
 [ -n "${sets_inline// /}" ] || sets_inline="(none)"
 
+# With the roots actually searched, the run for d823265 found the set directory
+# at .../files/1/_full/<pkg> — so "did the transport write a set here" is
+# answered YES, and the next question is whether anything is IN it. A directory
+# the framework created and then wrote nothing into looks identical, from the
+# canary grep alone, to one whose contents were all excluded; the first is a
+# backup that produced no data, the second would be evidence. Sizes tell them
+# apart, and like everything else here they are useless in the job log.
+#
+# Guarded on $sets being non-empty: `find` with no starting path walks the
+# working directory, which on the device is / — an expensive way to report
+# nothing. Failure is non-fatal, hence the fallback: this is diagnostics hanging
+# off a verdict that has already been decided above.
+if [ -n "${sets_inline// /}" ] && [ "$sets_inline" != "(none)" ]; then
+  set_files=$(adb shell "find $sets_inline -type f -exec ls -l {} + 2>/dev/null" \
+    | tr -d '\r' | awk '{n++; print} END {if (!n) print "  (no regular files under the set paths)"}' \
+    | head -40 || true)
+else
+  set_files="  (no set paths to size)"
+fi
+set_files_inline=$(printf '%s' "$set_files" | tr '\n' ' ' | tr -s ' ')
+
 leaks=$(adb shell "grep -rl '$MARKER_PREFIX' $present_args 2>/dev/null" | tr -d '\r' || true)
 canaries=$(adb shell "grep -rl '$CANARY_PREFIX' $present_args 2>/dev/null" | tr -d '\r' || true)
 decoys=$(adb shell "grep -rl '$DECOY_PREFIX' $present_args 2>/dev/null" | tr -d '\r' || true)
@@ -273,7 +294,12 @@ if [ -z "$canaries" ]; then
     " without a token: transport directories present = [$present_args];"\
     " paths under them mentioning this package = [$sets_inline]. If that second"\
     " list is (none), no set was written to these roots and the question is WHERE,"\
-    " not what was excluded from it."
+    " not what was excluded from it; if it names a path, the set directory exists"\
+    " and the question is whether anything is IN it."\
+    " Regular files under those paths = [$set_files_inline]."\
+    " A set directory the framework created and wrote"\
+    " nothing into is a backup that produced no data, which is not the same as one"\
+    " whose contents were excluded, and only the second would be evidence."
   exit 0
 fi
 
