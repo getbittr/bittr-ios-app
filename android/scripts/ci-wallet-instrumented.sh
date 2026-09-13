@@ -120,6 +120,45 @@ if ! printf '%s' "$transports" | grep -q '\*'; then
   exit 1
 fi
 
+# --- Preflight: this image has to be able to hold a lock screen ---------------
+#
+# BIT-123, and the same shape as the transport check above: assert the
+# precondition here, where the failure is one legible line, rather than letting
+# it surface as three Keystore tests failing for a reason that is not about the
+# Keystore.
+#
+# SeedReadableWhileLockedTest sets a PIN and locks the device, because "the seed
+# is readable while the device is locked" cannot be asked of a device with no
+# keyguard. On a stripped image that question has no answer, and — this is the
+# part that makes it worth a preflight — `locksettings set-pin` does not say so.
+# K1 established on this runner that on aosp_atd API 34 it exits 0 and the device
+# then reports isDeviceSecure=false (k1-keystore-lockscreen.yml runs #1-#3), which
+# is why this job moved to `default` and why k1-lockscreen-matrix.sh's
+# lockscreen_preflight refuses such an image up front instead of reporting rows
+# about it.
+#
+# android.software.secure_lock_screen is the discriminator both use. It is API
+# 29+; this job is pinned to 34, so no version guard is needed here.
+echo "--- Lock screen preflight (BIT-123)"
+
+features=$(adb shell pm list features 2>/dev/null | tr -d '\r' || true)
+
+if ! printf '%s\n' "$features" | grep -qx 'feature:android.software.secure_lock_screen'; then
+  echo "::error::This emulator does not declare android.software.secure_lock_screen,"\
+    " so it has no secure lock screen and SeedReadableWhileLockedTest cannot reach the"\
+    " state it measures. Its @Before will fail on every method with"\
+    " 'locksettings set-pin did not give this device a lock screen' — a true message"\
+    " that reads as a Keystore problem and is not one. Cause: the job is booting a"\
+    " stripped image. Stripped ATD images remove the keyguard and 'locksettings"\
+    " set-pin' still exits 0 on them; K1 lost three runs to exactly this. Fix the"\
+    " image in .github/workflows/android-maestro.yml — 'default' or 'google_apis',"\
+    " never 'aosp_atd' — and remember the AVD cache key has to change with it, or"\
+    " the old snapshot is restored under the new config."
+  exit 1
+fi
+
+echo "android.software.secure_lock_screen: declared"
+
 # --- The runs -----------------------------------------------------------------
 #
 # `|| status=$?` rather than letting set -e kill the script: a red run must still

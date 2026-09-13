@@ -1047,14 +1047,22 @@ jobs:
           # a different image for a different reason. Sharing a key would hand
           # this suite a snapshot chosen for the WebView and the failure would
           # arrive as a vacuous green rather than as a cache-key mistake.
-          key: avd-api34-aosp-atd-x86_64-backup
+          #
+          # `-atd` -> `-default` in this key is NOT cosmetic (BIT-123). The key
+          # is what decides which snapshot gets restored, so leaving it alone
+          # while the image below changes would restore the old ATD snapshot
+          # under a `default` config and reintroduce exactly the failure the
+          # change is fixing — while the diff says it was fixed.
+          key: avd-api34-default-x86_64-backup
 
       - name: Create AVD snapshot
         if: steps.avd-cache.outputs.cache-hit != 'true'
         uses: reactivecircus/android-emulator-runner@v2
         with:
           api-level: 34
-          target: aosp_atd
+          # `default`, not `aosp_atd` — see the run step below for why. The two
+          # must not drift: this step is what the cached snapshot is made from.
+          target: default
           arch: x86_64
           profile: pixel_6
           force-avd-creation: false
@@ -1066,14 +1074,40 @@ jobs:
         uses: reactivecircus/android-emulator-runner@v2
         with:
           api-level: 34
-          # `aosp_atd`, matching the Maestro job and NOT the `instrumented` job's
-          # `default`. The component this suite depends on is
+          # `default`. This was `aosp_atd` until BIT-123, and the swap is the
+          # whole reason SeedReadableWhileLockedTest can run at all.
+          #
+          # What has not changed is why this job may not use a Play-flavoured
+          # image: the component the backup half depends on is
           # com.android.localtransport — the local backup transport — which is
-          # AOSP, present on ATD, and absent from Play-flavoured images where a
-          # GMS transport would try to talk to a real Google account instead.
-          # Neither test here constructs a WebView, so the reason `instrumented`
-          # needs a full image does not apply.
-          target: aosp_atd
+          # AOSP, and on google_apis a GMS transport would try to talk to a real
+          # Google account instead. `default` is an AOSP image too, so that
+          # constraint is still satisfied.
+          #
+          # What changed is that this suite now measures the LOCK SCREEN as well.
+          # ATD images are stripped by removing components an automated test is
+          # assumed not to need, and the keyguard is one of them: K1 established
+          # on THIS repo's runner that on aosp_atd API 34 `locksettings set-pin`
+          # exits 0 and the device still reports isDeviceSecure=false (runs #1-#3
+          # of k1-keystore-lockscreen.yml; see android/docs/k1-keystore-lockscreen.md
+          # and the same note in that workflow's image step). That is verbatim the
+          # precondition SeedReadableWhileLockedTest asserts in @Before, so on ATD
+          # all three of its methods fail before touching the Keystore.
+          #
+          # `default` is the full AOSP image and ATD is a stripped subset of it,
+          # so moving UP cannot remove an AOSP component: the local transport is
+          # still there, and the preflight in ci-wallet-instrumented.sh fails the
+          # job loudly rather than vacuously if it ever is not. K1 runs #7 and #8
+          # went five-for-five on API 34 `default` x86_64, and the `instrumented`
+          # job in this same workflow already boots that exact image.
+          #
+          # Cost: `default` boots slower than ATD. K1 took the same trade for the
+          # same reason — a row measured on a device that cannot hold a lock
+          # screen is not a cheap row, it is a wrong one.
+          #
+          # x86_64 is not negotiable here the way it is for K1's API 26 row: the
+          # ldk-node AAR ships x86_64 and no x86.
+          target: default
           arch: x86_64
           profile: pixel_6
           force-avd-creation: false

@@ -526,7 +526,7 @@ as clean again — which is the behaviour every run before `d073424` had, and th
 bug.
 
 **What runs, and where.** The `wallet-instrumented` job boots an API 34
-`aosp_atd` emulator and runs `android/scripts/ci-wallet-instrumented.sh`, which
+`default` emulator and runs `android/scripts/ci-wallet-instrumented.sh`, which
 drives `:core:wallet-ldk:connectedDebugAndroidTest` and
 `:app:connectedDebugAndroidTest`. Both, because the two tests this section turns
 on are in different modules and a step scoped to the library alone would exit 0
@@ -880,7 +880,7 @@ worth making to the product to satisfy a test.
     readable while locked" and "the device never locked" are the same green.
   - **K2's FCM half is closed unrun, and its force-stop half is withdrawn as
     specified.** There is no `FirebaseMessagingService` in this app, the
-    `aosp_atd` image the suite needs for the backup transport has no Play
+    AOSP image the suite needs for the backup transport has no Play
     services to deliver a message, and — separately from any of that — Android
     does not deliver FCM to a package in the *stopped state*, which is what
     `am force-stop` produces. The claim underneath is **process death**, a

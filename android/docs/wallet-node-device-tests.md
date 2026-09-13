@@ -60,6 +60,34 @@ for its entire unrun life, demanding the plaintext BE present in the wrapped
 blob. This row moves to **passing** when a run shows it passing, and not
 before.
 
+**And the first thing keeping *written* from becoming *green* was the image, not
+the claim.** The job ran `aosp_atd`. ATD images are stripped by removing what an
+automated test is assumed not to need, and the keyguard is one of those things —
+so `locksettings set-pin` exits 0 and the device still reports
+`isDeviceSecure=false`. That is verbatim the precondition this test asserts in
+`@Before`, which means all three of its methods would have failed there, before
+reaching the Keystore, on a device that simply cannot hold the state the test
+measures.
+
+This was **not a new discovery, and that is the uncomfortable part**: K1 lost
+runs #1–#3 to it on this same runner, at this same API level, and both
+`k1-keystore-lockscreen.yml`'s image step and `k1-lockscreen-matrix.sh`'s
+`lockscreen_preflight` were written to say so. The test was authored against a
+job whose image had already been ruled out for exactly this question, by this
+repository, in writing.
+
+The job now runs **`default`** — still AOSP, so the local backup transport the
+other half of the suite depends on is still present, and `default` is the full
+image ATD is a stripped subset of, so moving up cannot remove an AOSP component.
+K1 runs #7 and #8 went five-for-five on API 34 `default` x86_64, and the
+`instrumented` job in the same workflow already boots it. The AVD cache key
+changed with the image, because otherwise the old snapshot is restored under the
+new config and the fix is a no-op that reads as a fix.
+
+`ci-wallet-instrumented.sh` now asserts `android.software.secure_lock_screen`
+before either Gradle run, so a future image swap fails in one legible line rather
+than as three Keystore tests failing for a reason that is not about the Keystore.
+
 ---
 
 ## 1. K2 — the FCM leg
@@ -74,13 +102,18 @@ about CI at all:
    `firebase-messaging` dependency. `android/scripts/verify-fcm-service-account.sh`
    is a *backend* credential check; nothing on the client listens. A test for a
    wake path that does not exist would be a test of the test.
-2. **The image cannot deliver one.** `wallet-instrumented` runs `aosp_atd`, and
-   that choice is load-bearing for a different claim: the suite needs
+2. **The image cannot deliver one.** `wallet-instrumented` runs `default` — an
+   AOSP image, and that is load-bearing for a different claim: the suite needs
    `com.android.localtransport`, which is an AOSP component absent from
    Play-flavoured images. FCM needs exactly the Google Play services those images
-   have and this one does not. The two requirements are mutually exclusive on one
-   AVD, so this leg needs a **second emulator job on a `google_apis` image**, not
-   a change to this one.
+   have and an AOSP one does not. The two requirements are mutually exclusive on
+   one AVD, so this leg needs a **second emulator job on a `google_apis` image**,
+   not a change to this one.
+
+   (This job ran `aosp_atd` until BIT-123 moved it to `default` so the lock
+   screen would exist — see *The precondition that is upstream of three of these
+   rows*, above. That swap does not touch this argument: both are AOSP images,
+   and neither carries Play services.)
 3. **Sending one needs a project.** A data message has to come from somewhere,
    and the only FCM project this repository knows about is production. BIT-123
    forbids production node access; the same reasoning covers pushing through the
