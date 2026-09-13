@@ -293,6 +293,22 @@ jobs:
         # the emulator job only the branch that device happens to take ever runs.
         run: bash android/scripts/test_check_backup_set.sh
 
+      - name: Test the backup-set decoder
+        # decode-backup-set.py is what makes the BIT-20 §5.3 halt able to fire at
+        # all. The `grep` it backs up could not see inside the container: run
+        # 9dc0b64 measured a real set at 4608 bytes with NONE of the three
+        # BIT101 prefixes greppable in it, canary included — and the canary is
+        # planted in files/, which no rule excludes. A set holding real data and
+        # yielding no canary is not a clean set, it is an unreadable one, and the
+        # halt grep was the same search over the same bytes. A gate that cannot
+        # fail is not a gate.
+        #
+        # Replacing one unfalsifiable search with another would be worse than
+        # leaving it alone, because the new one reads like it looked. So every
+        # case builds a real archive — real tar, real gzip, real zlib — and the
+        # seam is a directory of bytes, which needs no emulator.
+        run: python3 android/scripts/test_decode_backup_set.py
+
       - name: Pin the wallet job's package name to what Gradle installs
         # BIT-108 put the device-transfer backup on the HOST, where the package
         # is a string handed to `adb` — `pm list packages`, /data/data/<pkg>/,

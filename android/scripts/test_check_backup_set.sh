@@ -47,6 +47,31 @@ case "$1" in
     exit 1
     ;;
   wait-for-device) exit 0 ;;
+  pull)
+    # BIT-116. The set is now PULLED to the host and decoded, so the stub has to
+    # serve real bytes: `$dir/device/<device path>` mirrors the device's
+    # filesystem, and a case that plants a file there is handing the real
+    # decode-backup-set.py a real archive. These cases are therefore end-to-end
+    # through the decoder rather than stubbed at it — which is the point, since
+    # the thing being pinned is whether a marker inside a container is found.
+    #
+    # Exits non-zero when the file was never planted, which is what `adb pull`
+    # does for a path that is not there.
+    src=$2
+    dst=$3
+    # `pull_lies` models the case the `[ -f ]` guard in the script exists for:
+    # `adb pull` exiting 0 with nothing landing on the host. It does that for a
+    # directory argument and for some permission failures, and trusting the exit
+    # code alone would report "pulled 1 file" beside a decode of an empty
+    # directory — a run that read nothing, reported as a run that read
+    # something.
+    if [ -f "$dir/pull_lies" ] && grep -qxF "$src" "$dir/pull_lies"; then
+      exit 0
+    fi
+    [ -f "$dir/device/$src" ] || exit 1
+    cp "$dir/device/$src" "$dst"
+    exit 0
+    ;;
   shell)
     shift
     joined="$*"
@@ -68,8 +93,13 @@ case "$1" in
             ;;
         esac
         ;;
-      *"-type f"*) cat "$dir/setfiles" ;;
-      *find*)      cat "$dir/sets" ;;
+      # Order matters and the two `find`s are told apart by `-exec ls -l`. The
+      # sizing one lists files; the pull one lists PATHS to hand to `adb pull`.
+      # Folding them would feed `ls -l` output to the pull loop, which is the
+      # bug the script's own comment refuses by running a second find.
+      *"-exec ls -l"*) cat "$dir/setfiles" ;;
+      *"-type f"*)     cat "$dir/setpaths" ;;
+      *find*)          cat "$dir/sets" ;;
       *"bmgr list transports"*) echo "  com.android.localtransport/.LocalTransport" ;;
     esac
     exit 0
@@ -109,7 +139,71 @@ configure() {
   # empty set or as a set this check could not read. Defaults to empty -- i.e.
   # zero bytes -- so every case written before sizes existed reads unchanged.
   printf '%s' "${7-}" > "$stub_dir/setfiles"
+  # $8 is what `find ... -type f` returns: the PATHS the script pulls to the
+  # host and decodes (BIT-116). Defaults to empty, so every case written before
+  # the decode existed pulls nothing, decodes an empty directory, and gets
+  # READABLE=no -- which is the same verdict those cases asserted when the only
+  # search was the on-device grep. Cases that want a decode plant one with
+  # `stage_set_file` below.
+  printf '%s' "${8-}" > "$stub_dir/setpaths"
+  rm -rf "$stub_dir/device"
+  rm -f "$stub_dir/pull_lies"
 }
+
+# stage_set_file <device path> <file containing the bytes>
+#
+# Plants real bytes at a device path and wires up the three things the script
+# reads about it: the set directory `find` reports, the `ls -l` line that decides
+# set_bytes, and the path the pull loop walks. Called after `configure`, which
+# clears the device tree.
+stage_set_file() {
+  local device_path=$1 source_file=$2 size
+  size=$(wc -c < "$source_file" | tr -d ' ')
+  mkdir -p "$stub_dir/device/$(dirname "$device_path")"
+  cp "$source_file" "$stub_dir/device/$device_path"
+  printf '%s' "$device_path" > "$stub_dir/setpaths"
+  # What `find -maxdepth 3 -name '*bittr*'` really returned on run d823265: the
+  # set file itself, named after the package, under _full/.
+  printf '%s' "$device_path" > "$stub_dir/sets"
+  printf -- '-rw------- 1 system system %s 2026-09-13 04:11 %s\n' \
+    "$size" "$device_path" > "$stub_dir/setfiles"
+}
+
+# Builds the archives the cases below decode. Real tar, real gzip -- the decoder
+# under test is the real one, so a fixture that only looked like an archive would
+# prove nothing.
+fixture_dir=$(mktemp -d)
+trap 'rm -rf "$stub_dir" "$fixture_dir"' EXIT
+
+make_fixture() {
+  # make_fixture <output> <compress:none|gzip> <member>=<content>...
+  local out=$1 compress=$2
+  shift 2
+  local work="$fixture_dir/work"
+  rm -rf "$work"
+  mkdir -p "$work"
+  local spec name content
+  for spec in "$@"; do
+    name=${spec%%=*}
+    content=${spec#*=}
+    mkdir -p "$work/$(dirname "$name")"
+    printf '%s' "$content" > "$work/$name"
+  done
+  tar -C "$work" -cf "$fixture_dir/$out.tar" .
+  if [ "$compress" = gzip ]; then
+    gzip -c "$fixture_dir/$out.tar" > "$fixture_dir/$out"
+  else
+    cp "$fixture_dir/$out.tar" "$fixture_dir/$out"
+  fi
+  printf '%s' "$fixture_dir/$out"
+}
+
+PKG_PATH="apps/com.bittr.android.regtest"
+MANIFEST_MEMBER="$PKG_PATH/_manifest=1
+com.bittr.android.regtest
+1"
+CANARY_MEMBER="$PKG_PATH/f/backup_canary.txt=BIT101-CANARY-MARKER-run-1757736000"
+WALLET_MEMBER="$PKG_PATH/f/ldk/manager=BIT101-WALLET-MARKER-ldk-channel-manager"
 
 # expect <name> <expected exit> <substring that must appear> <substring that must NOT appear>
 expect() {
@@ -298,6 +392,124 @@ expect "nonempty_unreadable_set_is_still_not_a_failure" 0 "NOT a clean bill of h
 configure yes "/data/data/com.android.localtransport/files" "" "" "" "$SET_PATH" ""
 expect "a_zero_byte_set_still_reads_as_empty" 0 \
   "So the set this run produced was EMPTY" "NOT empty and this check"
+
+# --- THE SEVENTH PINNED BUG: the halt grep could not read the set (BIT-116) ---
+#
+# Everything above searches the set as a literal string on the device. The run
+# for 9dc0b64 measured a real one: 4608 bytes under .../files/1/_full/<pkg>, with
+# NONE of the three prefixes greppable -- including the canary, which is planted
+# in files/ and which no rule excludes. A set holding real data and yielding no
+# canary is not a clean set, it is an unreadable one.
+#
+# The consequence is the reason these cases exist. The $MARKER_PREFIX grep that
+# decides the §5.3 halt is the SAME literal search over the SAME bytes. If the
+# container hides contents from it -- compression alone does -- then that grep
+# could not have found wallet material sitting in the set, and every run reported
+# "no marker" no matter what was in there. A gate that cannot fail is not a gate,
+# and a non-halt from one is not evidence of no leak.
+#
+# So the set is now pulled and DECODED, and these cases hand the real
+# decode-backup-set.py real archives through the stub's `pull`.
+FULL_SET="/data/data/com.android.localtransport/files/1/_full/com.bittr.android.regtest"
+
+# A decoded set with the canary in it is the evidence outcome -- and it says so
+# on the strength of a decode, not of a plaintext grep that happened to work.
+configure yes "/data/data/com.android.localtransport/files" "" ""
+stage_set_file "$FULL_SET" \
+  "$(make_fixture clean none "$MANIFEST_MEMBER" "$CANARY_MEMBER")"
+expect "a_decoded_set_with_a_canary_is_the_evidence_outcome" 0 \
+  "::notice title=Backup set inspection::"
+configure yes "/data/data/com.android.localtransport/files" "" ""
+stage_set_file "$FULL_SET" \
+  "$(make_fixture clean none "$MANIFEST_MEMBER" "$CANARY_MEMBER")"
+expect "the_evidence_outcome_states_the_set_was_really_read" 0 \
+  "decoder readable = yes"
+
+# THE CASE THIS WHOLE ISSUE IS ABOUT. A compressed set carrying wallet material,
+# with BOTH on-device greps returning nothing -- which is exactly what a literal
+# search does against a compressed container. Before the decode this was exit 0
+# and a warning about an unreadable set; the marker was there and the gate said
+# nothing. It must now be the halt.
+configure yes "/data/data/com.android.localtransport/files" "" "" ""
+stage_set_file "$FULL_SET" \
+  "$(make_fixture leaky gzip "$MANIFEST_MEMBER" "$CANARY_MEMBER" "$WALLET_MEMBER")"
+expect "a_wallet_marker_in_a_COMPRESSED_set_is_now_the_halt" 1 "HALT"
+
+# ...and the halt has to name the member, not just the blob. "A marker is
+# somewhere in this 4608-byte file" is not something BIT-20 can act on;
+# apps/<pkg>/f/ldk/manager names the file AND the backup domain, which is what
+# the exclusion rules operate on.
+configure yes "/data/data/com.android.localtransport/files" "" "" ""
+stage_set_file "$FULL_SET" \
+  "$(make_fixture leaky gzip "$MANIFEST_MEMBER" "$CANARY_MEMBER" "$WALLET_MEMBER")"
+expect "the_halt_names_the_archive_member_the_marker_was_in" 1 \
+  "f/ldk/manager"
+
+# The same set without the wallet material is the evidence outcome, reached
+# through a container no plaintext grep can see into. This is the pair that shows
+# the decode is doing the work: identical on-device greps (nothing), opposite
+# verdicts, decided entirely by what was inside.
+configure yes "/data/data/com.android.localtransport/files" "" "" ""
+stage_set_file "$FULL_SET" \
+  "$(make_fixture cleangz gzip "$MANIFEST_MEMBER" "$CANARY_MEMBER")"
+expect "a_compressed_clean_set_reaches_the_evidence_outcome" 0 \
+  "::notice title=Backup set inspection::" "could not read it"
+
+# A non-empty set the decoder genuinely cannot read keeps the old outcome, and
+# now carries the container identification and a byte sample -- which is what
+# turns "we could not read it" from a dead end into a one-function fix.
+configure yes "/data/data/com.android.localtransport/files" "" "" ""
+head -c 600 /dev/zero | tr '\0' 'Z' > "$fixture_dir/opaque"
+stage_set_file "$FULL_SET" "$fixture_dir/opaque"
+expect "an_undecodable_nonempty_set_still_says_it_could_not_read_it" 0 \
+  "The set is NOT empty and this check  could not read it"
+configure yes "/data/data/com.android.localtransport/files" "" "" ""
+stage_set_file "$FULL_SET" "$fixture_dir/opaque"
+expect "an_unreadable_set_reports_the_container" 0 ":unknown]"
+# ...and the SAMPLE, which is the part that makes it actionable: whoever reads
+# the next run can name the format from its magic number without the job log,
+# which answers 403 on this public repo.
+configure yes "/data/data/com.android.localtransport/files" "" "" ""
+stage_set_file "$FULL_SET" "$fixture_dir/opaque"
+expect "an_unreadable_set_reports_a_byte_sample" 0 "ZZZZZZZZZZZZZZZZ"
+
+# A set that DECODED and simply has none of our files in it is a different fact
+# from one that could not be read, and they used to print the same words. This
+# one is still not evidence -- the canary is planted in files/, which no rule
+# excludes, so a set without it is a set the rules were never consulted about --
+# but the halt search did run over decoded members, so it is a real negative.
+configure yes "/data/data/com.android.localtransport/files" "" "" ""
+stage_set_file "$FULL_SET" "$(make_fixture manifestonly none "$MANIFEST_MEMBER")"
+expect "a_decoded_set_without_our_files_is_not_the_unreadable_outcome" 0 \
+  "The set was DECODED and carried no  canary" "could not read it"
+configure yes "/data/data/com.android.localtransport/files" "" "" ""
+stage_set_file "$FULL_SET" "$(make_fixture manifestonly none "$MANIFEST_MEMBER")"
+expect "a_decoded_set_without_our_files_is_still_not_evidence" 0 \
+  "still NOT evidence for BIT-20"
+configure yes "/data/data/com.android.localtransport/files" "" "" ""
+stage_set_file "$FULL_SET" "$(make_fixture manifestonly none "$MANIFEST_MEMBER")"
+expect "a_decoded_set_lists_the_members_it_enumerated" 0 "_manifest"
+
+# A set file that cannot be PULLED must demote the whole set to unreadable. The
+# decoder's input is a directory, so a file that never arrived is invisible to
+# it -- it would report a clean decode of whatever did. Clearing a set on the
+# strength of the parts that arrived is this issue's bug in a new shape.
+configure yes "/data/data/com.android.localtransport/files" "" "" "" "$FULL_SET" \
+  "-rw------- 1 system system 4608 2026-09-13 04:11 $FULL_SET" "$FULL_SET"
+expect "a_set_file_that_could_not_be_pulled_is_not_a_readable_set" 0 \
+  "could NOT be pulled to the host"
+
+# ...and the same must hold when `adb pull` SUCCEEDS and nothing lands on the
+# host, which it does for a directory argument and for some permission failures.
+# Trusting the exit code alone reports "pulled 1 file" beside a decode of an
+# empty directory: a run that read nothing, described as a run that read
+# something, which is this issue's bug one layer down.
+configure yes "/data/data/com.android.localtransport/files" "" "" ""
+stage_set_file "$FULL_SET" \
+  "$(make_fixture clean none "$MANIFEST_MEMBER" "$CANARY_MEMBER")"
+printf '%s\n' "$FULL_SET" > "$stub_dir/pull_lies"
+expect "a_pull_that_exits_zero_without_a_file_is_not_a_readable_set" 0 \
+  "could NOT be pulled to the host" "::notice title=Backup set inspection::"
 
 # --- Every present root is actually searched ----------------------------------
 #
