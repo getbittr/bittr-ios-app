@@ -21,8 +21,34 @@ branch `feature/bit-62-instrumented-ci`.
 | 27 | `518cdd7` | **RED** | 179s · 9 required · vacuity check FAILED |
 | 68 | `3bb6e52` | **RED** | 202s · 9 required · 0 missing · 0 skipped · **2 failed** · canary passed |
 | 95 | `5956c29` | **green** | 203s · 9 required · 0 missing · 0 skipped · 0 failed · canary passed |
+| 97 | `52b0ffe` | **RED** | 233s · 11 required · 0 missing · 0 skipped · **1 failed** · canary passed |
+| 98 | `3b2392a` | *not reached* | build job red at `./gradlew test`; the emulator job was skipped |
 
 Run 95 is the first execution of `CrossOriginIframeIsolationTest` in the test's life.
+
+Run 97 is the first run carrying the two positive controls, and its single failure is one
+of them — `theIframeBridgeProbeReportsABridgeThatIsActuallyThere`, on its own `ran`
+check. It is a false red of exactly the kind [run 68](#run-68-the-red-was-the-tests-not-the-wallet) was, and the
+report it printed is the proof, because the probe it was doubting had in fact worked
+perfectly:
+
+```
+Report: "{\"ran\":true,\"bridges\":[\"bittrLnurl\",\"postMessage:bittrLnurl\"],
+          \"errors\":[],\"topNavigated\":false,
+          \"planted\":[\"lightning:lnurl1dp68…\"]}"
+```
+
+The frame ran, both halves of the probe found the planted bridge, and the catch-all
+posted to it. The assertion looked for the substring `{"ran":true}` in that text and
+could never have found it: `evaluateJavascript` hands back a JSON *encoding*, so the
+haystack holds `\"ran\":true` while the needle held `"ran":true`. `3b2392a` had already
+fixed it — by predicting it from re-reading the diff, before run 97 reported — and asks
+the question the way `theCrossOriginIframeActuallyRan` asks it, reducing to a bare
+boolean in JS and comparing the whole encoded value.
+
+So run 97 is evidence *for* the positive controls rather than against them: every
+substantive claim they make passed on the emulator, and the one assertion that failed
+was testing its own phrasing.
 
 Reproduce the table without credentials — the repository is public and the Actions REST
 API on a public repo is readable anonymously:
@@ -62,8 +88,14 @@ level, and a WebView provider is a plausible casualty. The Maestro flow drives C
 and would not notice; **every** test in this suite constructs a real
 `android.webkit.WebView` and would fail at construction. Sharing the AVD would make this
 suite's correctness depend on a choice made for a different test's speed, so this job
-uses a full AOSP `default` image and pays the slower boot. `ci-instrumented.sh` prints
-the WebView provider on every run so the assumption cannot rot silently either way.
+uses a full AOSP `default` image and pays the slower boot.
+
+`ci-instrumented.sh` does not take that on trust. It reads
+`dumpsys webviewupdate` before running anything, prints the provider on every run, and
+**fails the job outright** if the image ships none — because the alternative is nine
+tests failing at `WebView` construction with `MissingWebViewPackageException` and not one
+of the failures mentioning the system image. So the assumption cannot rot silently in
+either direction.
 
 ## Run 68: the red was the test's, not the wallet's
 
@@ -89,7 +121,7 @@ direction. Both now exclude by object identity rather than by name: a name list 
 exclude an alias it has not heard of, while the entire job of the catch-all is to admit a
 bridge under a name it has not heard of.
 
-## The positive controls (run 96)
+## The positive controls (runs 97–)
 
 After run 95 there was still one hole. Every bridge assertion in both classes is
 `assertEquals("[]", bridges)` — and an empty list is also exactly what a probe that has
