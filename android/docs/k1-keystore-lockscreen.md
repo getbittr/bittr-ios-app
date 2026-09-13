@@ -5,8 +5,8 @@ This test does not gate the storage design — it *verifies* one of its rules.
 
 ## Status
 
-**All five emulator rows are measured. The two OEM handset rows are not, and
-they are the rows this test was written for.**
+**Closed AOSP-only. Five emulator rows measured, the two OEM handset rows
+deliberately never run — Ruben's decision, 2026-09-13, card `a67670d3`.**
 
 Across API 26, 30, 33, 34 and 35: **21 cases PASS, 3 not reachable, 2 no-verdict,
 and zero FAIL.** No device in the emulator matrix contradicts BIT-8 rule 2. That
@@ -14,10 +14,17 @@ retires the *documentation* half of the doubt — the AOSP javadoc rule 2 rests 
 is now an observation on five AOSP builds spanning eight years rather than a
 quotation.
 
-It does not touch the *OEM* half. Emulators run AOSP, and K1 exists precisely
-because OEM builds diverge, so nothing here may yet be quoted as evidence that
-rule 2 holds *on a customer's phone*. What remains is a hardware gap on two rows
-— see [What is blocking the run](#what-is-blocking-the-run).
+It does not touch the *OEM* half, and now nothing will. Emulators run AOSP, and
+K1 exists precisely because OEM builds diverge, so **no row in this document may
+be quoted as evidence that rule 2 holds on a customer's Samsung or Xiaomi.** Asked
+how to obtain those two rows, Ruben chose *"accept AOSP-only: close BIT-18 at five
+rows, carry the OEM risk on BIT-8"*. That is a decision about what evidence is
+worth buying, not a claim that the missing rows would have been green — see
+[The two OEM rows](#the-two-oem-rows-closed-unrun-by-decision) for what the
+residual risk is and who now holds it.
+
+The harness is finished and stays in the tree. If a handset ever becomes
+available, one command produces the missing row and this document takes it.
 
 The harness itself is now tested, device-free, and gated in CI: see [Checking the
 harness without a device](#checking-the-harness-without-a-device). That is a
@@ -98,7 +105,7 @@ have to line up before a row reads PASS:
 
 **Every one of those four is read on the device side of `adb`, and that is
 recent.** Item 4 used to be `locksettings verify` on the host, and
-[run #6](#run-6--the-witness-is-what-is-broken-not-the-device) established that
+[run #6](#runs-so-far) established that
 on the API 34 image that call exits 0 for everything — the credential just set, a
 deliberately wrong one, and a bare `verify` with no argument at all. A witness
 that always says yes is how a false green gets made, so the question moved across
@@ -356,8 +363,9 @@ screen" on exit. Never point it at a device holding a real wallet.
 
 ## Results
 
-**Five of seven rows. Run #8 (`41a7d8f`, `k1-run/26-30-33-34-35`) swept every
-emulator level in the matrix.**
+**Five of seven rows, and the final table. Run #8 (`41a7d8f`,
+`k1-run/26-30-33-34-35`) swept every emulator level in the matrix; the two
+handset rows were closed unrun by decision on 2026-09-13.**
 
 | device | API | M1 | M2 | M3 | M4 | M5 | M6 |
 |---|---|---|---|---|---|---|---|
@@ -366,12 +374,13 @@ emulator level in the matrix.**
 | emulator | 33 | **PASS** | **PASS** | **PASS** | **PASS** | **PASS** | — |
 | emulator | 34 | **PASS** | **PASS** | **PASS** | **PASS** | **PASS** | — |
 | emulator | 35 | **PASS** | **PASS** | **PASS** | **PASS** | **PASS** | — |
-| physical Samsung | — | — | — | — | — | — | — |
-| physical Xiaomi | — | — | — | — | — | — | — |
+| physical Samsung | — | *n/a* | *n/a* | *n/a* | *n/a* | *n/a* | *n/a* |
+| physical Xiaomi | — | *n/a* | *n/a* | *n/a* | *n/a* | *n/a* | *n/a* |
 
 `—` = not run · `PASS` / `FAIL` = a real observation · `n/r` = not reachable, the
 mutation could not be witnessed on this device and the reason is recorded ·
-*no verdict* = the run could not produce a rule-2 answer, which is **not** a FAIL
+*no verdict* = the run could not produce a rule-2 answer, which is **not** a FAIL ·
+*n/a* = **not run and not going to be** — accepted unmeasured, not measured green
 
 **21 PASS · 3 not reachable · 2 no-verdict · 0 FAIL.** Every PASS carries its
 observed transition in the annotation — `secure:false->true+complexity:NONE->MEDIUM`
@@ -397,9 +406,9 @@ attempted. Read the rows with these four caveats, not off the grid:
   can witness a mutation that leaves it secure on both sides. API 30 and up carry
   all three.
 
-**This is not yet a verdict that rule 2 holds on a customer's phone.** The two
-rows that carry the most weight are the two that need handsets, and they are
-exactly the rows K1 was written for.
+**This is not a verdict that rule 2 holds on a customer's phone, and it never
+became one.** The two rows that carry the most weight are the two that need
+handsets — exactly the rows K1 was written for — and they were closed unrun.
 
 ### Runs so far
 
@@ -776,9 +785,9 @@ claim hardware backing at 26–27**, whatever the column says.
 
 ## Verdict on `wallet-core-spec`
 
-**Issued for the emulator matrix, withheld for the handsets.** One line, as
-BIT-18's definition of done asks, recorded in `wallet-core-spec` §6 and against
-the lock-screen row of its §3 risk table:
+**Final. Issued for the emulator matrix, and permanently withheld for the
+handsets.** One line, as BIT-18's definition of done asks, recorded in
+`wallet-core-spec` §6 and against the lock-screen row of its §3 risk table:
 
 > **K1 — AOSP confirmed, OEM unproven.** A non-auth-bound `AES/GCM` Keystore key
 > decrypted its blob after every witnessed lock-screen mutation on emulator API
@@ -790,36 +799,51 @@ The two halves of that line are deliberate, and §3's own words are the reason:
 *"Documentation is not a device, OEM builds diverge, and this is a funds path."*
 Run #8 answers the first clause. It cannot answer the second, and a verdict that
 blurred them would let the OEM risk be retired by evidence that never looked at
-an OEM.
+an OEM. **The decision to stop at five rows does not retire it either** — it
+accepts it, which is a different act and is recorded as one on BIT-8.
 
-## What is blocking the run
+## The two OEM rows: closed unrun, by decision
 
-The container this harness was built in has **no emulator, no `/dev/kvm`, and no
-attached device**, so no row can be produced from it directly. That was the whole
-blocker. It is now the blocker on two of the seven rows.
+The Samsung and Xiaomi rows **cannot be automated into CI at all** — they need
+physical handsets someone owns. Asked how to obtain them (card `a67670d3`, offered
+alongside *someone runs it on a spare phone*, *buy two used handsets*, and
+*investigate a device farm*), Ruben chose **accept AOSP-only: close BIT-18 at five
+rows, carry the OEM risk on BIT-8**, and separately that **BIT-6 proceeds now**
+rather than waiting.
 
-- **The five emulator rows are done.** They ran in CI on an ordinary GitHub-hosted
-  `ubuntu-latest` runner, which has `/dev/kvm` — see *Running the emulator rows in
-  CI* above. `ANDROID_EMULATOR_RUNNER` was never set; the self-hosted host is an
-  optional override, not a prerequisite. No new machine, no purchase, no new
-  access was needed for any of them, and none should be requested on this issue's
-  account.
-- **The Samsung and Xiaomi rows cannot be automated into CI at all.** They need
-  physical handsets someone owns, and they are the rows that actually matter:
-  emulators run AOSP, and K1 exists precisely because *OEM builds diverge*. Five
-  green emulator rows confirm the AOSP javadoc that rule 2 already rests on —
-  which is not the same as confirming rule 2.
+So this is where the evidence stops, and the stopping point should be read
+precisely:
 
-The honest reading of that split: CI has retired the *documentation* half of the
-doubt, cheaply and repeatably, and it cannot touch the *OEM* half. A physical
-Samsung and a physical Xiaomi, run once by hand with `k1-lockscreen-matrix.sh`,
-remain the only way to close this issue as specified.
+- **What was bought.** The *documentation* half of the doubt, retired cheaply and
+  repeatably: five AOSP builds spanning API 26 to 35, every mutation
+  independently witnessed on the device side, 21 PASS and 0 FAIL. Nothing in the
+  matrix contradicts BIT-8 rule 2, so the dual-wrap fallback is not triggered and
+  nothing is redesigned.
+- **What was not bought, and is now an accepted risk rather than an open task.**
+  Whether a Samsung or Xiaomi `LockSettingsService` invalidates a *non*-auth-bound
+  key on a credential change. Nothing here speaks to that, and the absence of a
+  red row is not evidence of a green one. That risk is carried on BIT-8 next to
+  rule 2.
+- **What it would cost if an OEM did diverge.** A re-entry of 12 words, not funds:
+  the blob is a cache and the mnemonic is the root of recovery (BIT-8 rule 3). The
+  customer-facing shape of that event is BIT-28's FM-3, *"the app is asking for my
+  12 words and I didn't do anything"*, which stays on its cautious wording
+  precisely because this row is unmeasured.
+- **What stays true regardless.** No production claim may say the lock-screen
+  scenario is handled on a customer's phone. The verdict line above is the
+  sanctioned wording.
 
-**This is not a CI-runner request and it must not be escalated as one.** The
-distinction has been mistaken twice on this issue's behalf. What is needed is two
-handsets someone can attach a USB cable to and hand over for an afternoon — a
-Samsung and a Xiaomi, any model on API 29+ so all six cases are reachable, with no
-real wallet on them. Running them is one command and no Android knowledge:
+**None of this was ever a CI-runner request, and it must not be revived as one.**
+The distinction was mistaken twice on this issue's behalf: every emulator row ran
+on a stock GitHub-hosted `ubuntu-latest` with `ANDROID_EMULATOR_RUNNER` unset —
+the self-hosted host is an optional override, not a prerequisite. No machine, no
+purchase and no access was needed for any of the five rows that exist.
+
+### Reopening this, if a handset ever turns up
+
+The harness stays in the tree and the rows remain cheap to produce: a Samsung or
+a Xiaomi, any model on API 29+ so all six cases are reachable, **never a device
+holding a real wallet**. One command, no Android knowledge:
 
 ```sh
 bash android/scripts/k1-lockscreen-matrix.sh --out ~/k1-samsung.md
@@ -831,9 +855,14 @@ row. **Never point it at a device holding a real wallet.**
 
 ## If a row comes back red
 
+**Still live, even though BIT-18 is closed.** No row ever came back red, but a
+handset run is the one thing that could still produce one, and the procedure it
+triggers does not lapse with the issue.
+
 Do **not** silently switch designs. Comment on BIT-18 **and** on BIT-8; the
 dual-wrap fallback (BIT-8 → `decision` §6) gets priced as its own issue for
-Ruben.
+Ruben. A red row on an OEM handset is also the event BIT-8's carried risk was
+written for, so it reopens that risk rather than merely annotating it.
 
 There is also a support consequence, tracked separately: BIT-28's playbook covers
 *"the app is asking for my 12 words and I didn't do anything"* (FM-3), and a red
