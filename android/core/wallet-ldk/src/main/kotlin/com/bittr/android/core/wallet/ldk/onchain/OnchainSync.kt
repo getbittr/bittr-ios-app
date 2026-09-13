@@ -201,6 +201,18 @@ interface OnchainSyncPort<W : Any, F : Any, S : Any, U : Any> {
 class OnchainSync<W : Any, F : Any, S : Any, U : Any>(
     private val port: OnchainSyncPort<W, F, S, U>,
     private val scans: ScanCoordinator,
+    /**
+     * The closure scan, run at the end of a sync that applied.
+     *
+     * iOS calls `storeChannelClosureTxIDIfFound()` from both paths and from
+     * nowhere else (`BDKManager.swift:301`, `:369`), immediately before
+     * reporting success — so the ordering is encoded here rather than left to a
+     * caller. It is nullable and defaulted because [ChannelClosureRecorder]
+     * needs a Lightning channel list this class has no way to obtain: BIT-125
+     * supplies it, BIT-126 wires it, and a sync with no recorder behaves exactly
+     * as it did before.
+     */
+    private val closures: ChannelClosureRecorder? = null,
 ) {
 
     /**
@@ -311,6 +323,10 @@ class OnchainSync<W : Any, F : Any, S : Any, U : Any>(
         } catch (failure: Exception) {
             failure
         }
+        // iOS's position exactly: after the persist, before success is reported,
+        // on both paths. It cannot fail the sync — see ChannelClosureRecorder.
+        closures?.record()
+
         return SyncOutcome.Applied(
             persisted = persistFailure == null,
             persistFailure = persistFailure,
