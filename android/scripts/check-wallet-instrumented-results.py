@@ -89,6 +89,7 @@ import xml.etree.ElementTree as ElementTree
 ANDROID_DIR = pathlib.Path(__file__).resolve().parents[1]
 
 LDK_PACKAGE = "com.bittr.android.core.wallet.ldk.seed"
+LDK_ONCHAIN_PACKAGE = "com.bittr.android.core.wallet.ldk.onchain"
 APP_PACKAGE = "com.bittr.android"
 
 # Every test that must have run and passed for BIT-59 to have done its job.
@@ -111,6 +112,26 @@ REQUIRED = {
     # BIT-18 device matrix is fed from its output and a silently dropped test
     # stops feeding it without anything going red.
     f"{LDK_PACKAGE}.KeystoreKeyInfoTest#recordTheObservedSecurityLevel",
+    # --- :core:wallet-ldk — BDK and bitcoin-kmp agree on the account xpub -----
+    #
+    # The two derivations feed different consumers, so a divergence is not a
+    # discriminator mismatch — that side agrees with itself. bitcoin-kmp's xpub
+    # is what the BIT-20 discriminator identifies the LDK state directory with;
+    # BDK's is what gets POSTed to the backend as `xpub_key` at signup
+    # (Transfer2ViewController.swift:344-362). If they disagree, the server and
+    # the device key the same wallet on different strings, and nothing on either
+    # side notices.
+    #
+    # It can only run here: BDK is native, so there is no JVM equivalent to fall
+    # back on. Required by name for the reason this whole list exists — the test
+    # was written in BIT-6 and was NOT in this list for its first two runs, which
+    # means the run that finally went green proved every REQUIRED test ran and
+    # said nothing whatever about this one. That is the same shape as the three
+    # Robolectric classes that stopped running inside a green build.
+    f"{LDK_ONCHAIN_PACKAGE}.BdkAccountXpubParityTest#bdkAndBitcoinKmpDeriveTheSameSignetAccountXpub",
+    f"{LDK_ONCHAIN_PACKAGE}.BdkAccountXpubParityTest#bdkAndBitcoinKmpDeriveTheSameMainnetAccountXpub",
+    f"{LDK_ONCHAIN_PACKAGE}.BdkAccountXpubParityTest#theDerivedSignetXpubCarriesTheBip32Prefix",
+    f"{LDK_ONCHAIN_PACKAGE}.BdkAccountXpubParityTest#differentMnemonicsProduceDifferentBdkAccounts",
     # --- :app — the installed application (BIT-8 rule 4 / BIT-20 rule 5) -------
     #
     # BackupExclusionTest (BIT-101) is the behavioural half: plant a
