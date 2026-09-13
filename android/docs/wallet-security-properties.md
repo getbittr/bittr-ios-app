@@ -714,20 +714,36 @@ worth making to the product to satisfy a test.
 ## 5. What this document does not cover yet
 
 - **Node lifecycle** — on-chain sync, channel and payment handling, process
-  death, Doze, background execution limits. Tracked separately; the storage
-  layer above is what it will be built on.
-- **K7 (interrupted payment) and K8 (Doze soak)** from `wallet-core-spec` §6.
-  Both need a device.
-- **K4's address half is now covered** — it was in this list until the section
-  below was written, and it is the one item that moved out of it rather than
-  being split off.
+  death, Doze, background execution limits. **BIT-122**; the storage layer above
+  is what it will be built on.
+
+  This line read "tracked separately" for as long as the document existed, and
+  **nothing tracked it** — there was no issue, so the sentence was doing the
+  reassuring work of a reference without being one. That is the same shape as a
+  named guarantee with no test behind it, in prose instead of code. BIT-122 and
+  BIT-123 now exist, and the state of the node layer is worth stating plainly:
+  `NodeConfigPlan`, `NodeStartGate`, `NodeStartRetryPolicy` and
+  `LdkNodeStartErrors` are decision logic with **no node behind them**. Nothing
+  in `main` constructs or starts an ldk-node `Node`, and nothing constructs a
+  BDK `Wallet`. `adapter/` — the only package `WalletLayeringGuardTest` permits
+  to name a native binding — holds error classification and nothing else.
+- **K2 (background wake), K7 (interrupted payment) and K8 (Doze soak)** from
+  `wallet-core-spec` §6. **BIT-123**, blocked on BIT-122: all three need a node
+  that starts, and all three need a device. K2 is the behavioural half of rule
+  2 — the row above rests on the key's *spec*, and K2 is what shows the key is
+  usable on a background wake with the device locked, which is the property
+  BIT-8 rule 2 chose a non-auth-bound key to get.
+- **K4's address half is now covered** — it was in this list until §6 was
+  written, and it is the one item that moved out of it rather than being split
+  off.
 - **`data_loss_protect` on channel re-establish.** A user who deliberately
   restores their mnemonic on a second device while the first still holds live
   channels is outside what backup exclusion closes, and what stands between
   them and a penalty is Lightning's own behaviour. Inherent to mnemonic-only
   recovery plus Lightning, already true on iOS
   (`LightningStorage.swift:21–23` accepts it in as many words), and to be
-  verified against ldk-node 0.7.0 rather than asserted from memory.
+  verified against ldk-node 0.7.0 rather than asserted from memory. Carried on
+  **BIT-123**.
 
 ---
 
