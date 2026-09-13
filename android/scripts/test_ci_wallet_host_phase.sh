@@ -272,6 +272,34 @@ else
   echo "PASS: the gate and the logcat fallback agree on [$gate_prefixes]"
 fi
 
+# EvidenceLog truncates its file once per instrumentation PROCESS, which is
+# right for one `am instrument` invocation per module and wrong under the Android
+# Test Orchestrator, which gives every test method its own invocation. Enabling
+# it would leave the file holding only the last test's lines — the earlier ones
+# clobbered, on a green run, with nothing to say so. That is BIT-114's failure
+# mode exactly, so the assumption is pinned rather than trusted.
+#
+# Not a ban. If the orchestrator is wanted, the fix is to drop the truncate and
+# rely on collect-wallet-evidence.sh --clear, which already runs before the first
+# Gradle task and is covered by test_collect_wallet_evidence.sh. This check is
+# what makes that a decision rather than an accident.
+orchestrator=$(grep -rlE 'ANDROIDX_TEST_ORCHESTRATOR|androidx\.test:orchestrator|execution[[:space:]]*=' \
+  "$REPO_ROOT/android/app/build.gradle.kts" \
+  "$REPO_ROOT/android/core/wallet-ldk/build.gradle.kts" \
+  "$REPO_ROOT/android/build.gradle.kts" 2>/dev/null)
+
+if [ -n "$orchestrator" ]; then
+  fail "the Android Test Orchestrator appears to be configured in:"\
+    "$(printf '%s' "$orchestrator" | tr '\n' ' ')."\
+    "It runs each test method in its own instrumentation process, and"\
+    "EvidenceLog truncates its file once per process — so every test but the last"\
+    "would have its BACKUP_EXCLUSION and KEYSTORE_* lines clobbered, silently, on"\
+    "a green run. Drop the truncate in both EvidenceLog copies and rely on"\
+    "collect-wallet-evidence.sh --clear instead, then delete this check."
+else
+  echo "PASS: no test orchestrator, so one instrumentation process per module run"
+fi
+
 echo
 if [ "$failures" -eq 0 ]; then
   echo "All host-phase pins hold."
