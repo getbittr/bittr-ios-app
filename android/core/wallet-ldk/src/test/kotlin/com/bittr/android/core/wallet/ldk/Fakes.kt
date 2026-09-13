@@ -100,13 +100,7 @@ fun seedStateDirectory(stateDir: File, marker: String = "channel-monitor") {
     File(stateDir, "ldk_node_data.sqlite-wal").writeText("$marker-wal")
 }
 
-/**
- * The two mnemonics the recovery tests turn on. Test vectors only — the first
- * is the one already pinned in the iOS source
- * (`BitcoinMessage.swift:363–367`), so the Android and iOS suites are reasoning
- * about the same wallet.
- */
-object Mnemonics {
-    const val IOS_VECTOR = "void super old faith primary cradle behave crucial vault minor walk random"
-    const val OTHER = "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about"
-}
+// The two mnemonics the recovery tests turn on now live in
+// `src/sharedTest/kotlin/.../Mnemonics.kt`, so the instrumented
+// `BdkAccountXpubParityTest` can derive from the same pinned iOS vector rather
+// than from a copy of it that could drift.

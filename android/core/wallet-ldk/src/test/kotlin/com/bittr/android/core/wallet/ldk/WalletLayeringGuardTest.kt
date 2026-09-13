@@ -40,8 +40,13 @@ class WalletLayeringGuardTest {
          * retry schedule and config plan are the difference between one node
          * and two over the same channel state, and none of that should need an
          * emulator to check.
+         *
+         * `onchain/` is the BDK half, and it is the clearest case for the rule:
+         * the drain clamp decides the largest amount that may leave the wallet,
+         * and `BdkStore` recursively deletes a directory. Neither belongs behind
+         * a native library that keeps its test off CI.
          */
-        val DECISION_PACKAGES = listOf("seed", "state", "bip", "node")
+        val DECISION_PACKAGES = listOf("seed", "state", "bip", "node", "onchain")
 
         /** The only directory allowed to name a native binding. */
         const val ADAPTER_PACKAGE = "adapter"

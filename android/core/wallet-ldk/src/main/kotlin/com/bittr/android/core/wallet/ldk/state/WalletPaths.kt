@@ -53,8 +53,29 @@ class WalletPaths(
      */
     val ldkStateDir: File = File(walletDir, LDK_STATE_DIR)
 
-    /** BDK's SQLite `Connection` path. Its own file, not inside the LDK state directory. */
-    val bdkDatabaseFile: File = File(walletDir, "bdk_wallet.sqlite")
+    /**
+     * BDK's store directory — the analogue of iOS's `Documents/wallet_data/`
+     * (`BitcoinManager.swift:836`), and a directory rather than a bare file for
+     * one load-bearing reason.
+     *
+     * `BdkStore.prepare` ports iOS's *delete the whole directory on every start*
+     * (`BitcoinManager.swift:838–840`). On iOS that directory holds nothing but
+     * `wallet.sqlite`, so the delete is safe. If BDK's database sat directly in
+     * [walletDir] — as it did until this was split out — the same ported delete
+     * would take [seedBlobFile], [ldkStateDir] and [quarantineRoot] with it: the
+     * seed blob and every channel state on the device, wiped on a routine start.
+     *
+     * That is the whole fund-loss path, reached by porting a safe iOS line into a
+     * directory layout that differs. The directory is the fix, and
+     * `BdkStoreTest` is the proof — it asserts the siblings survive a prepare.
+     *
+     * Not inside [ldkStateDir]: the BIT-20 quarantine moves that directory, and
+     * BDK's rebuildable cache must not ride along with it.
+     */
+    val bdkStoreDir: File = File(walletDir, BDK_STORE_DIR)
+
+    /** BDK's SQLite `Connection` path, inside its own wipeable directory. */
+    val bdkDatabaseFile: File = File(bdkStoreDir, "bdk_wallet.sqlite")
 
     /** The Keystore-wrapped mnemonic. A cache, never the only copy — BIT-8 rule 3. */
     val seedBlobFile: File = File(walletDir, "seed.bin")
@@ -88,6 +109,9 @@ class WalletPaths(
         const val WALLET_DIR = "wallet"
         const val LDK_STATE_DIR = "ldk_state"
         const val QUARANTINE_DIR = "foreign_ldk_state"
+
+        /** iOS's `wallet_data`, under a name that says which library owns it. */
+        const val BDK_STORE_DIR = "bdk_store"
 
         /**
          * The only supported way to build these paths in production code.
