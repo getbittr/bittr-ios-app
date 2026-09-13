@@ -34,6 +34,7 @@ import contextlib
 import importlib.util
 import io
 import pathlib
+import re
 import sys
 import tempfile
 
@@ -564,6 +565,47 @@ def test_the_evidence_annotation_stays_one_line():
     check("both evidence lines share one annotation line", len(notices) == 1, out)
     check("with the newline encoded rather than dropped",
           notices and "%0A" in notices[0] and "KEYSTORE_KEY_INFO" in notices[0], out)
+
+
+def test_the_reading_guide_quotes_fields_the_tests_actually_print():
+    # THE BUG THIS PINS, and it is the reason the two checks above are worded as
+    # string pins rather than as prose review.
+    #
+    # `test_a_green_run_says_how_to_tell_a_real_pass_from_an_ineligible_one` asks
+    # that a green run name the field distinguishing the two green outcomes. That
+    # pin was once `canaryReturned`; BIT-108 deleted the restore, so the field
+    # stopped existing, and the pin was moved to `setLeftOnTransport`. What it was
+    # NOT moved to was anything in this script: the guide had paraphrased the
+    # field as "whether the set was left on the transport", so the pin became
+    # unsatisfiable and the build-job step went red on a tree whose emulator half
+    # was fine.
+    #
+    # A paraphrase is the failure here, not a typo. On this public repo the
+    # annotation is the only channel that answers 200 without a token, so the
+    # guide is read by grep, and a field named only in prose cannot be found in
+    # the run that mentions it. So pin the direction that actually matters: every
+    # field name this script quotes must be one BackupExclusionTest prints.
+    # Read from the run's own output, not from this script's source: a field named
+    # in a source comment is history and may name something deleted on purpose,
+    # while a field named in the output is an instruction to the reader.
+    with tempfile.TemporaryDirectory() as tmp:
+        _, out = run(both_modules(pathlib.Path(tmp)))
+
+    emitter = (MODULE.parent / ".." / "app" / "src" / "androidTest" / "kotlin"
+               / "com" / "bittr" / "android" / "BackupExclusionTest.kt")
+    check("BackupExclusionTest.kt is where this expects it", emitter.is_file(), emitter)
+    printed = emitter.read_text() if emitter.is_file() else ""
+
+    # Identifier-shaped backticked tokens only. The guide also backticks phrases
+    # ("Backup set inspection") and filenames, which are not fields and are not
+    # printed as `name=value` by anything.
+    quoted = sorted(set(re.findall(r"`([a-z][A-Za-z0-9]+)`", out)))
+    check("the guide quotes at least one field by name", quoted, out)
+    check("and setLeftOnTransport is among them", "setLeftOnTransport" in quoted, quoted)
+    for field in quoted:
+        check(f"and BackupExclusionTest prints {field}", f"{field}=" in printed,
+              f"{field} is quoted in the run output but no line of "
+              f"BackupExclusionTest.kt prints {field}=")
 
 
 def main():

@@ -404,12 +404,20 @@ def main(argv=None):
     # green. The verdict is check-backup-set.sh's now — it greps the transport's
     # tree from the host and needs neither a surviving process nor stdout — so
     # this is a diagnostics gap. Costly, not load-bearing.
+    #
+    # It is still stated as UNPROVEN, with the scope named. Before BIT-108 the
+    # word covered the rule-5 verdict itself; it now covers the correlation only
+    # — that this suite and the host phase were reporting on the same run and the
+    # same path. Dropping the word entirely is what BIT-108 did, and it left
+    # nothing in the annotation to distinguish "we checked the tie" from "we
+    # could not", which is the shape of gap this whole file exists to refuse.
     reported = "\n".join(evidence) if evidence else (
         "No BACKUP_EXCLUSION or KEYSTORE_KEY_INFO line reached <system-out>. "
         "These lines are the per-path detail — which prefixes were planted, "
-        "whether the set was left on the transport, the Keystore security level "
-        "this device gave us — so without them you cannot check that the suite "
-        "and the host phase were talking about the same run. Two causes, not "
+        "`setLeftOnTransport`, the Keystore security level "
+        "this device gave us — so treat the tie between this suite and the host "
+        "phase as UNPROVEN on this run: without them you cannot check that the "
+        "two were reporting on the same run, or the same path. Two causes, not "
         "distinguishable from here: the tests did not reach the print, or the "
         "lines were printed and the runner did not file instrumentation stdout "
         "into the result XML. The latter is the known cause as of run 110 and is "
@@ -502,9 +510,17 @@ def main(argv=None):
     # requires the canary prefix to be in it. The BACKUP_EXCLUSION lines still
     # carry the framework's per-path result and the three prefixes, which is what
     # lets a reader tie that host verdict to a path.
+    #
+    # The field names below are spelled as the tests spell them, not paraphrased.
+    # This text is the only reading guide a maintainer without log access gets,
+    # and `setLeftOnTransport` is what they would grep the annotation for; the
+    # paraphrase "whether the set was left on the transport" is not greppable and
+    # is not what BackupExclusionTest prints.
     print("\nNOTE: read the 'What the device reported' annotation on this run "
           "before quoting this suite. Each path prints the framework's own result "
-          "for the package and the three marker prefixes it planted. Whether the "
+          "for the package, the three marker prefixes it planted, and "
+          "`setLeftOnTransport` for whether the set it produced was left on the "
+          "transport for the host to read. Whether the "
           "set was real is decided on the HOST, not here: the 'Backup set "
           "inspection' annotation is a ::notice:: only when the canary prefix was "
           "found in the transport's tree, and a ::warning:: saying the set was "
