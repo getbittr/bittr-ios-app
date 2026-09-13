@@ -476,21 +476,26 @@ def main(argv=None):
         )
 
     # Said on every run, green or red. A reader who sees two green backup tests
-    # should be told, in the run, which layer each of them exercised — because
-    # `allowBackup="false"` makes the package ineligible outright, and an
-    # ineligible package produces an empty set that satisfies "nothing of ours
-    # came back" without the <device-transfer> rules having been consulted at
-    # all. That is a pass for BIT-20 rule 5 and it is NOT a proof that the rules
-    # work; the BACKUP_EXCLUSION lines in the instrumentation output say which
-    # of the two happened, per path.
+    # should be told, in the run, which layer each of them exercised — because an
+    # empty set satisfies "nothing of ours came back" without the rules having
+    # been consulted at all. That is a pass for BIT-20 rule 5 and it is NOT a
+    # proof that the rules work.
+    #
+    # Since BIT-108 the suite no longer restores, so it cannot report whether the
+    # canary came back and there is no canaryReturned field to read. The verdict
+    # moved to the host: check-backup-set.sh greps the transport's own tree and
+    # requires the canary prefix to be in it. The BACKUP_EXCLUSION lines still
+    # carry the framework's per-path result and the three prefixes, which is what
+    # lets a reader tie that host verdict to a path.
     print("\nNOTE: read the 'What the device reported' annotation on this run "
           "before quoting this suite. Each path prints the framework's own result "
-          "for the package and whether the canary came back: canaryReturned=true "
-          "means the set was real and excluded our material, canaryReturned=false "
-          "with a declining result means the package was ineligible and exclusion "
-          "was never exercised on that path. Both are passes; only the first is "
-          "evidence about the rules. wallet-security-properties.md §4 is where "
-          "that distinction is tracked.")
+          "for the package and the three marker prefixes it planted. Whether the "
+          "set was real is decided on the HOST, not here: the 'Backup set "
+          "inspection' annotation is a ::notice:: only when the canary prefix was "
+          "found in the transport's tree, and a ::warning:: saying the set was "
+          "empty otherwise. A green suite with that warning is a pass that proves "
+          "nothing about the rules. wallet-security-properties.md §4 is where that "
+          "distinction is tracked.")
 
     if problems:
         print()
