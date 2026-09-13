@@ -154,7 +154,15 @@ def main(argv=None):
                 "before any test ran — a compile error in a test source set, or "
                 "a Gradle configuration failure. The step log has it; the log is "
                 "not readable without repository admin. Reproduce with "
-                "`./gradlew test --no-daemon` in android/."
+                "`./gradlew test --no-daemon` in android/. IF THAT PASSES "
+                "LOCALLY, treat the runner as the suspect rather than the diff "
+                "— this signature is also what a dependency-resolution or "
+                "Gradle-configuration failure on the runner looks like, and "
+                "nothing distinguishes the two from here. Get a second "
+                "observation before believing it: re-trigger with a commit that "
+                "touches android/**, because this workflow is paths-filtered "
+                "and an --allow-empty commit produces NO check runs at all, "
+                "which reads as a run that has not started yet."
             )
         )
         return 0
