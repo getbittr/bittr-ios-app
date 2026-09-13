@@ -295,11 +295,44 @@ description rather than a file.
    instrumentation process with it, which is the lesson `BackupExclusionTest`
    learned from `bmgr restore` — it used to delete what it planted, restore, and
    assert nothing came back, and that assertion died exactly when there was a set
-   worth checking. So K7 is three host-driven steps: an instrumented run that
-   funds the wallet, opens a channel and pays the hold invoice; `adb shell am kill`
-   once `lncli lookupinvoice` says `ACCEPTED`; and a second instrumented run that
-   asserts the restarted node resolves the payment to exactly one terminal
-   outcome.
+   worth checking. So K7 is host-driven: an instrumented run that pays the hold
+   invoice; `adb shell am kill` once `lncli lookupinvoice` says `ACCEPTED`; and a
+   second instrumented run that asserts the restarted node resolves the payment
+   to exactly one terminal outcome.
+
+   **It is more than three steps, because the device has to be funded first and
+   the host cannot do that behind its back.** `android/regtest/up.sh` funds
+   *LND* — it says why, and it is not the wallet under test. The wallet needs a
+   confirmed UTXO of its own before `openChannel` has anything to spend, and the
+   coins have to arrive at an address **ldk-node chose**, which means:
+
+   - **The host cannot derive it.** The obvious shortcut is to pick the mnemonic
+     on the host and derive the first receive address there, funding it before
+     the device ever boots. That needs ldk-node 0.7.0's exact derivation, and it
+     is not recoverable from the artefact: `strings` over `libldk_node.so` in all
+     three ABIs finds the descriptor and BIP-32 machinery and **no derivation-path
+     literal** to pin `84'/…` to. Guessing it would produce a test that funds an
+     address nothing is watching and then fails at `openChannel` with an
+     insufficient-funds error that says nothing about derivation.
+   - **So the device is asked, and that is a phase.** Run 1: unlock, which starts
+     the node, and print the on-chain address as an evidence line. Host: send,
+     mine to confirm, wait for the device's node to see it. Run 2: open the
+     channel to LND and wait for it to go active. Run 3 is the payment, run 4 the
+     assertion. Four `am instrument` invocations against one emulator boot —
+     which is the cheap part; wallet state lives under `no_backup` and survives
+     between them, since neither `am instrument` nor `adb install -r` clears app
+     data.
+
+   **A gap in what BIT-132 has already committed, said here rather than found at
+   03:20 UTC:** `WalletGraph` hands out a `WalletService` and a
+   `LightningNodePort`, and **neither can produce a receive address.**
+   `LightningNodePort` is channels, peers and payments by design; the on-chain
+   address comes from ldk-node's `onchainPayment()`, and — per BIT-126's finding
+   that the on-chain balance is ldk-node's rather than BDK's — it must be *that*
+   wallet's address and not `BdkOnchainWalletHolder`'s, or the funds land where
+   the channel opener is not looking. So run 1 above needs an on-chain seam that
+   does not exist yet. It belongs in `LightningNodePort`'s neighbourhood as a
+   port with its own view types, not as a widening of `ManagedNode`.
 2. **`am kill`, never `am force-stop`.** §2 above is the same correction for K2:
    force-stop puts the package in Android's *stopped state*, which is a different
    event from process death and one the platform treats differently.
