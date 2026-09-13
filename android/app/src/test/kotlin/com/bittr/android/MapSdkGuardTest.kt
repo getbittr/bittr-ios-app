@@ -132,8 +132,16 @@ class MapSdkGuardTest {
          * third guard ever states these rules, add it here rather than widening
          * [PLACES_SOURCE_MARKERS] or [VIEWPORT_QUERY_KEYS] — narrowing either one
          * is how the check stops catching the thing it exists for.
+         *
+         * [TileHostGuardTest] is that third guard (BIT-73). It holds the tile *host*
+         * where this file holds the renderer, and it trips both triggers for the same
+         * documentary reason: it has to explain that a tile request discloses the
+         * viewport, and it cross-references the approved BTCMap copy while doing so.
+         * It builds no request at all — it is a source scan — so excluding it costs
+         * this check nothing.
          */
-        val ALLOWED_FILES = setOf("MapSdkGuardTest.kt", "LocationEgressGuardTest.kt")
+        val ALLOWED_FILES =
+            setOf("MapSdkGuardTest.kt", "LocationEgressGuardTest.kt", "TileHostGuardTest.kt")
 
         const val COARSE = "android.permission.ACCESS_COARSE_LOCATION"
     }

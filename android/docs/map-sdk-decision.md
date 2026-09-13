@@ -154,6 +154,8 @@ covered; it is not evidence that anything is being checked today.
 | Google Maps / Mapbox / osmdroid / `play-services-location` off the dependency graph | `MapSdkGuardTest` |
 | MapLibre still *is* the renderer | `MapSdkGuardTest` — the shipped copy names no provider, so a swap is not a copy change and nothing outside the build would flag one; a renderer that also reports to its own vendor is a regression the wording would not reveal |
 | No bounding-box BTCMap request | `MapSdkGuardTest` — **latent**: nothing matches its places-source markers until the map screen lands, so a green run is not yet evidence here |
+| No tile or style host bittr ruled out, anywhere the app can read one | `TileHostGuardTest` (BIT-73) — the renderer checks above all pass on a build that fetches its basemap from MapTiler, because swapping the host is editing one string and not the dependency graph |
+| Every basemap-shaped URL is on a bittr host, and `MapBasemap.STYLE_URI` is `null` or bittr | `TileHostGuardTest` — the literal is read directly, because a style URL need not look like a tile URL and an unfamiliar hostname slips past a pattern scan |
 
 All of these run on the JVM in `./gradlew test`, which is the `Unit tests` step of
 `.github/workflows/android-maestro.yml` — it runs on every push and pull request touching
@@ -209,10 +211,18 @@ screen should be pointed at a vendor's tiles while that sentence is in the app.
 
 ### What it costs, and what is now implementation rather than choice
 
-MapLibre Native ships an `MBTilesFileSource` (confirmed present in the 11.11.0 native
-library), so a basemap can come from a file on the device or from a host bittr controls.
-The renderer already supports this; nothing about the SDK decision changes. The real work
-is the hosting pipeline, and it is not free:
+MapLibre Native can read a basemap from a file on the device or from a host bittr
+controls, so the renderer already supports this and nothing about the SDK decision
+changes. The real work is the hosting pipeline, and it is not free:
+
+**Corrected by BIT-73, which read the artefact.** This paragraph used to say MapLibre
+"ships an `MBTilesFileSource` (confirmed present in the 11.11.0 native library)" and to
+treat the two archive formats as interchangeable. `MBTilesFileSource` *is* in the native
+library, but it has no URI scheme and no binding in `classes.jar`, and the binary itself
+says it "only supports absolute path urls" — it is local-file only. `PMTilesFileSource`
+has the `pmtiles://` scheme and the range-request fetching, so the remote path is the one
+the pinned version actually exposes. `tile-pipeline.md` has the comparison and what it
+decided.
 
 | Piece | Why it is not trivial |
 |---|---|
@@ -224,6 +234,25 @@ is the hosting pipeline, and it is not free:
 None of this blocks the SDK work, and none of it is needed before the map screen is laid
 out. It does need to land before the map ships, which is why it is tracked as its own
 issue rather than left in this document as a footnote.
+
+### What BIT-73 chose, and where it is written
+
+The four open pieces above are settled in `android/docs/tile-pipeline.md`. In short, so
+that this document is not a dead end:
+
+| Piece | Choice |
+|---|---|
+| Region scope | Planet at z0–z5 for orientation, Switzerland plus a ~25 km cross-border buffer at z6–z14. Not planet-wide, and not Switzerland alone — the places sync is worldwide, so markers would land on blank background abroad |
+| Serving | One immutable PMTiles archive on bittr object storage under `tiles.getbittr.com`, read over HTTP range requests. No tile server process. In-app MBTiles rejected on app size and on the artefact reading above |
+| Cadence and owner | Quarterly, plus on-demand for a reported error. Backend & API Engineer owns it; Head of App (Android) holds it while that agent is paused |
+| Tile-request logging | **Not retained.** Access logging off; if an incident forces it on, IPs truncated at the edge, zoom level only, 24-hour cap, and never joined to an account. This is what makes retention bittr's decision rather than a vendor's, and the Growth & Content Lead has been told |
+
+One requirement in there cannot be enforced from this repo and is easy to undo by
+accident: if a vendor CDN terminates TLS for the tiles hostname, that vendor receives the
+viewport and the client IP on every pan, and **both** `TileHostGuardTest` and the BIT-52
+proxy capture still pass — each sees a bittr hostname and neither can see who operates the
+machine behind it. The edge has to be bittr-operated or a processor with logging
+configured as above.
 
 ### Still reversible, but the default has moved
 

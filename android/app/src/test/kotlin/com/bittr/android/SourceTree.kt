@@ -65,6 +65,27 @@ internal object SourceTree {
     }
 
     /**
+     * Everything the app can read a hostname out of at runtime: Kotlin, resources,
+     * assets, and the build scripts that can bake one in via `buildConfigField` or
+     * a manifest placeholder.
+     *
+     * Deliberately wider than [kotlinSources]. A map style URL is a string, and a
+     * string has no natural home — MapLibre reads one from `MapView`'s XML
+     * attributes, from a raw resource, from an asset, or from `BuildConfig`. A scan
+     * that only read Kotlin would be looking in one of four places.
+     *
+     * Markdown is **not** included, so `android/docs/` can name the hosts these
+     * rules exclude and the upstream archive the pipeline is built from.
+     */
+    fun runtimeConfigSources(vararg excludeFileNames: String): List<File> {
+        val excluded = excludeFileNames.toSet()
+        val extensions = setOf("kt", "xml", "json", "properties", "kts", "toml")
+        return sources("runtime configuration sources") {
+            it.extension in extensions && it.name !in excluded
+        }
+    }
+
+    /**
      * Files under [root] matching [predicate], skipping build output.
      *
      * Fails when nothing matches. A source-scan guard that walks an empty tree
