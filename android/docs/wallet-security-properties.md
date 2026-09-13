@@ -38,6 +38,7 @@ written.
 | 1 | The mnemonic is the single root of recovery | Nothing persisted that is not BIP32-derivable from the seed. Swap refund keys stay at `m/503'/0'/0'/0/<i>` | `SwapRefundKeyDerivationTest` | green |
 | 2 | The Keystore key is non-auth-bound | `KeyGenParameterSpec` with neither `setUserAuthenticationRequired(true)` nor `setUnlockedDeviceRequired(true)`; AES-256/GCM; `setRandomizedEncryptionRequired(true)` | `KeystoreKeySpecTest` (asked for) · `WalletKeystorePolicyGuardTest` (stays that way) | green |
 | 2 | …and what the device actually produced | `KeyInfo` read back off a generated key | `KeystoreKeyInfoTest` | runs in CI — BIT-59, `wallet-instrumented` job, API 34 emulator |
+| 2 | …and the key is usable with the device **locked** | Unwrap and key generation driven with a real lock-screen credential set and the keyguard up | `SeedReadableWhileLockedTest` (BIT-123 / K2) | runs in CI — `wallet-instrumented` job, API 34 emulator. This is the *behavioural* half of rule 2: the two rows above are what we asked for and what the flags report, and below API 37 `KeyInfo.isUnlockedDeviceRequired` does not exist, so this is the only row that shows the key is usable while locked rather than merely declared to be |
 | 2 | …and it survives a lock-screen change | — | **BIT-18 / K1**, device matrix | separate issue |
 | 3 | The wrapped blob is a cache, never the only copy | Blob loss routes to the restore screen; terminal failures classify as "no usable mnemonic" | `BlobDestroyedRecoversTest` | green |
 | 4 | The blob is excluded from Auto Backup | `allowBackup="false"` + `dataExtractionRules` + siting under `getNoBackupFilesDir()` | `BackupExclusionRulesTest` + `StateDirLocationTest` (configuration, JVM) · `InstalledBackupConfigurationTest` (installed artefact, emulator) · `BackupExclusionTest` (both backup paths + `bmgr`, emulator) + `check-backup-set.sh` (the set itself, host) | configuration green; behaviour **partly proven (device-transfer half only), earned on `d073424`.** The set is pulled and **decoded** (`decode-backup-set.py`), and that run enumerated a 4-member tar in which the canary — which no rule excludes — **is** present and no wallet marker is, so the §5.3 halt search ran over decoded members rather than opaque bytes. Every earlier "empty set" was this grep failing to see into a tar, not the transport. Limits: one device, one API level, one set; the **cloud** half is still green only because `allowBackup="false"` makes the package ineligible, which is not evidence; and the wallet absence is overdetermined across all three layers, since every wallet path sits under `getNoBackupFilesDir()`. Separately proven on the same run: the `dataExtractionRules` `<exclude domain="file">` entries **are** live (both decoys excluded while the canary in the same domain survived). Since BIT-59 the suite runs on every push (`wallet-instrumented` job); see §4** |
@@ -861,22 +862,96 @@ worth making to the product to satisfy a test.
   *mitigation*; **K8 is what would say whether it works**, and it needs a
   device. **BIT-123.**
 - **K2 (background wake), K7 (interrupted payment) and K8 (Doze soak)** from
-  `wallet-core-spec` §6. **BIT-123**, which BIT-122 has now cleared: all three need a node
-  that starts, and all three need a device. K2 is the behavioural half of rule
-  2 — the row above rests on the key's *spec*, and K2 is what shows the key is
-  usable on a background wake with the device locked, which is the property
-  BIT-8 rule 2 chose a non-auth-bound key to get.
+  `wallet-core-spec` §6. **BIT-123**, which BIT-122 has now cleared. Each is now
+  either running or closed unrun with its cost named, in
+  `android/docs/wallet-node-device-tests.md` — the BIT-18 precedent. The state of
+  each, because a pointer to a document is not a status:
+
+  - **K2's load-bearing half now runs**, and rule 2's row above no longer rests
+    on the key's spec alone. `SeedReadableWhileLockedTest` sets a real
+    lock-screen credential, locks the device, and unwraps the seed through the
+    Keystore with the keyguard up — the property BIT-8 rule 2 chose a
+    non-auth-bound key to get. It also closes the hole `KeystoreKeyInfoTest`
+    leaves on every API below 37, where `KeyInfo.isUnlockedDeviceRequired` does
+    not exist and the flag can only be checked on the spec side. All three of
+    its methods are in `check-wallet-instrumented-results.py`'s `REQUIRED` set by
+    name, including the negative control — without that one, "the seed was
+    readable while locked" and "the device never locked" are the same green.
+  - **K2's FCM half is closed unrun, and its force-stop half is withdrawn as
+    specified.** There is no `FirebaseMessagingService` in this app, the
+    `aosp_atd` image the suite needs for the backup transport has no Play
+    services to deliver a message, and — separately from any of that — Android
+    does not deliver FCM to a package in the *stopped state*, which is what
+    `am force-stop` produces. The claim underneath is **process death**, a
+    different event reproduced by `am kill`. That is a correction to
+    `wallet-core-spec` §6 rather than a hardware limit.
+  - **K7 and K8 are closed unrun**, and the reason is upstream of hardware: the
+    `wallet-instrumented` job builds an **unconfigured** APK, which composes
+    `SeedWalletService` and contains no node at all. Giving the runner a phone
+    would not make either runnable. Both also need a private Lightning network —
+    bitcoind, Esplora, Electrum and a peer — and K7 additionally needs a
+    deterministic interception point in the send path, without which a
+    fund-safety property gets reported as flaky. All of that is **BIT-132**;
+    K2's wake leg and the `wallet-core-spec` §6 correction are **BIT-133**.
 - **K4's address half is now covered** — it was in this list until §6 was
   written, and it is the one item that moved out of it rather than being split
   off.
-- **`data_loss_protect` on channel re-establish.** A user who deliberately
-  restores their mnemonic on a second device while the first still holds live
-  channels is outside what backup exclusion closes, and what stands between
-  them and a penalty is Lightning's own behaviour. Inherent to mnemonic-only
-  recovery plus Lightning, already true on iOS
-  (`LightningStorage.swift:21–23` accepts it in as many words), and to be
-  verified against ldk-node 0.7.0 rather than asserted from memory. Carried on
-  **BIT-123**.
+- **`data_loss_protect` on channel re-establish — verified, and no longer an
+  open item.** A user who deliberately restores their mnemonic on a second
+  device while the first still holds live channels is outside what backup
+  exclusion closes, and what stands between them and a penalty is Lightning's
+  own behaviour. Inherent to mnemonic-only recovery plus Lightning, and already
+  true on iOS (`LightningStorage.swift:21–23` accepts it in as many words).
+  BIT-123 required it to be **verified against ldk-node 0.7.0 rather than
+  asserted from memory**, and this is that verification.
+
+  **What was read, and out of what.** `android/scripts/check-ldk-data-loss-protect.py`
+  opens the `ldk-node-android` AAR the build actually resolved — not a copy it
+  fetched — and asserts five markers in each of the three shipped ABIs
+  (`arm64-v8a`, `armeabi-v7a`, `x86_64`). ldk-node 0.7.0 links rust-lightning
+  `lightning-0.2.0` and `lightning-types-0.3.0`. Four findings:
+
+  - **The stale-state branch is compiled in, and it refuses to broadcast.** The
+    binary carries rust-lightning's *"We have fallen behind — we have received
+    proof that if we broadcast our counterparty is going to claim all our
+    funds"*, which continues *"…you should restart with an empty ChannelManager
+    and no ChannelMonitors, reconnect to peer(s), ensure they've force-closed all
+    of your previous channels"*. That refusal **is** the protection: publishing a
+    revoked commitment is what hands the channel balance to the counterparty, and
+    this is the path that declines to.
+  - **The TLV fields exist in both directions.**
+    `your_last_per_commitment_secret` is what lets us discover we are behind;
+    `my_current_per_commitment_point` is what lets a *peer* recognise that a
+    restored device is behind. The second-device case depends on the second
+    direction, not the first.
+  - **LDK requires the feature rather than offering it.**
+    `set_data_loss_protect_required` is monomorphised into the binary and
+    `set_data_loss_protect_optional` is not, so `option_data_loss_protect` is a
+    compulsory init feature bit: a peer that does not implement it cannot
+    complete feature negotiation with us at all. The check asserts that absence
+    as well as the presence, because without it "required" would be an
+    assumption. `option_static_remotekey` is likewise required.
+  - **Peer storage is not a recovery path here.** bLIP-55
+    (`set_provide_storage_optional`) is offered, not required, so a restored node
+    cannot count on the LSP handing its state back. Recorded, not asserted.
+
+  **What this does not prove, stated plainly.** A string in a binary shows a
+  branch was compiled, not that it executes correctly against a real peer. The
+  behavioural half is K7's, and needs the private Lightning network
+  `android/docs/wallet-node-device-tests.md` §3 describes.
+
+  **And one thing the mechanism does not cover at all, which is worth saying
+  here rather than leaving to be rediscovered.** The two devices share a seed, so
+  they also share the BIP84 on-chain account. `data_loss_protect` is about
+  channel state; it says nothing about two wallets deriving the same addresses
+  and spending the same UTXOs. That is not a penalty-transaction risk — channel
+  funding outputs are 2-of-2 and outside the descriptor — but it is a real
+  same-seed-two-devices hazard and it belongs to the restore flow, not to
+  Lightning.
+
+  The check runs in the `build` job on every push, after the Gradle step that
+  resolves the artifact, so an ldk-node bump that drops any of this goes red in
+  seconds rather than being discovered from a user.
 
 ---
 

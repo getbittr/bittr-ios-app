@@ -270,6 +270,14 @@ jobs:
         # claim unchecked behind a job that stayed green.
         run: python3 android/scripts/test_check_wallet_instrumented_results.py
 
+      - name: Test the ldk-node data-loss-protect check
+        # BIT-123. The check it guards asserts a property of the ldk-node binary
+        # we ship, and every marker it looks for is currently present — so the
+        # only runs it will ever have are green ones, and a green run of a broken
+        # checker is indistinguishable from a green run of a working one. These
+        # fixtures are deliberately-wrong AARs that require a red.
+        run: python3 android/scripts/test_check_ldk_data_loss_protect.py
+
       - name: Test the unit-test failure reporter
         # report-test-failures.py is the only thing that says WHICH unit test
         # broke in a form anyone outside this runner can read — see its header,
@@ -434,6 +442,31 @@ jobs:
         # before its first assertion. ComposeRuleVariantGuardTest now fails that on
         # debug too, so it is caught locally, but the release task is the backstop.
         run: ./gradlew test --no-daemon
+
+      - name: ldk-node still refuses to broadcast stale channel state
+        # BIT-123, and wallet-security-properties.md §5's last open item.
+        #
+        # A user who restores their mnemonic on a second device while the first
+        # still holds live channels is outside what backup exclusion closes. What
+        # stands between them and a penalty transaction is Lightning's own
+        # `option_data_loss_protect` — which is not ours, which cannot be tested
+        # on the JVM because it lives in rust-lightning behind UniFFI, and which
+        # BIT-123 said explicitly was to be VERIFIED against ldk-node 0.7.0
+        # rather than asserted from memory.
+        #
+        # This is that verification kept as a recurring check rather than left as
+        # a one-off reading: it goes red the day an ldk-node bump drops the
+        # behaviour, which is otherwise a change we would discover from a user.
+        #
+        # AFTER the Gradle step above, deliberately. The script reads the AAR the
+        # build resolved and does NOT download its own copy — a check that
+        # fetched the artifact itself would be a statement about a binary this
+        # build never saw. Placed before `Unit tests` it would have found an
+        # empty module cache on a cold runner and gone red for the wrong reason.
+        #
+        # It needs no emulator, so a bad bump is caught here in seconds rather
+        # than behind an AVD boot in the `wallet-instrumented` job.
+        run: python3 android/scripts/check-ldk-data-loss-protect.py
 
       - name: Say which unit test failed
         # A red `Unit tests` step takes all three emulator jobs with it — they

@@ -112,6 +112,27 @@ REQUIRED = {
     # BIT-18 device matrix is fed from its output and a silently dropped test
     # stops feeding it without anything going red.
     f"{LDK_PACKAGE}.KeystoreKeyInfoTest#recordTheObservedSecurityLevel",
+    # --- :core:wallet-ldk — rule 2's behavioural half (BIT-123 / K2) ----------
+    #
+    # KeystoreKeyInfoTest reads the key's FLAGS back. This reads the key's
+    # BEHAVIOUR back, with the device really locked, and it is the only one of
+    # the three rule-2 tests that can catch a platform where the flags report
+    # correctly and the operation is refused anyway. It also closes the hole
+    # KeystoreKeyInfoTest leaves on every API below 37, where
+    # `KeyInfo.isUnlockedDeviceRequired` does not exist and the flag is checked
+    # on the spec side only.
+    #
+    # This is K2's emulator-runnable half and NOT all of K2. The FCM leg and the
+    # force-stop leg are closed unrun with their reasons in
+    # android/docs/wallet-node-device-tests.md — the BIT-18 precedent.
+    f"{LDK_PACKAGE}.SeedReadableWhileLockedTest#theSeedUnwrapsWhileTheDeviceIsLocked",
+    f"{LDK_PACKAGE}.SeedReadableWhileLockedTest#aWalletKeyCanBeGeneratedWhileTheDeviceIsLocked",
+    # The negative control, required by name for the reason this list exists at
+    # all: "the seed was readable while locked" and "the device never locked"
+    # are the same green, and this is the only method that tells them apart. A
+    # rename that dropped it would leave two assertions that pass on an unlocked
+    # device, which is worse than not having them.
+    f"{LDK_PACKAGE}.SeedReadableWhileLockedTest#recordTheLockStateTheseReadsHappenedIn",
     # --- :core:wallet-ldk — BDK and bitcoin-kmp agree on the account xpub -----
     #
     # The two derivations feed different consumers, so a divergence is not a
@@ -285,7 +306,14 @@ class Case:
 # artefact needs a token that reading a public run's annotations does not. A
 # result nobody can read without credentials is most of the way back to no
 # result, so the gate lifts these into the job log itself.
-EVIDENCE_PREFIXES = ("BACKUP_EXCLUSION", "KEYSTORE_KEY_INFO")
+#
+# SEED_WHILE_LOCKED joins them for the same reason and with a sharper edge: it
+# carries `isDeviceSecure` and `isDeviceLocked` as the device reported them
+# during the run, and those two booleans are the difference between "the seed is
+# reachable during a background wake" and "the emulator never locked". Both are
+# asserted as well as printed — see SeedReadableWhileLockedTest — so this line is
+# the reading, not the proof.
+EVIDENCE_PREFIXES = ("BACKUP_EXCLUSION", "KEYSTORE_KEY_INFO", "SEED_WHILE_LOCKED")
 
 
 def evidence_lines(root):

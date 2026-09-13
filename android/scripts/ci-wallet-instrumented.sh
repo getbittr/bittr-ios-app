@@ -178,6 +178,41 @@ run_gradle() {
 run_gradle "Keystore — what the platform gave us" \
   :core:wallet-ldk:connectedDebugAndroidTest || status=$?
 
+# --- Put the lock screen back, whatever the run above did to it ---------------
+#
+# BIT-123. SeedReadableWhileLockedTest sets a PIN and locks the device, because
+# "the seed is readable while the device is locked" cannot be asked of a device
+# with no keyguard. Its @After clears the credential and dismisses the keyguard,
+# and that is the normal path — but an @After is code that runs on the far side
+# of whatever failed, and a test that dies hard leaves the emulator locked with a
+# PIN set.
+#
+# The next thing to run on this device is :app:connectedDebugAndroidTest: the
+# backup suite, whose result is the BIT-20 §5.3 halt condition. A red there
+# caused by a leftover lock screen would be read as evidence about the backup
+# rules, which is the single most expensive misreading available in this job.
+# Two adb calls are cheap insurance against that.
+#
+# Unconditional and failure-tolerant. `locksettings clear` exits non-zero when
+# there was no credential to clear, which is the ordinary case and not news, so
+# this must not trip `set -e`. The PIN is the literal from
+# SeedReadableWhileLockedTest; if the two ever disagree the clear silently does
+# nothing, which is why the test clears its own credential first rather than
+# relying on this.
+echo "--- Lock screen reset (BIT-123)"
+adb shell locksettings clear --old 2468 >/dev/null 2>&1 || true
+adb shell input keyevent WAKEUP >/dev/null 2>&1 || true
+adb shell wm dismiss-keyguard >/dev/null 2>&1 || true
+
+lock_state=$(adb shell dumpsys trust 2>/dev/null | grep -c 'deviceLocked=1' || true)
+if [ "${lock_state:-0}" != "0" ]; then
+  echo "::warning title=Lock screen::The device still reports a locked user after"\
+    " the reset. :app:connectedDebugAndroidTest runs next and a failure there may"\
+    " be caused by the keyguard rather than by the backup rules — check"\
+    " SeedReadableWhileLockedTest's @After before reading the backup result as the"\
+    " BIT-20 §5.3 halt."
+fi
+
 # `leaveApksInstalledAfterRun` — the app has to still BE there afterwards.
 #
 # AGP uninstalls both APKs when connectedAndroidTest finishes. That was harmless
