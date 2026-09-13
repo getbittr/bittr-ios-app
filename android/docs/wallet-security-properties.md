@@ -61,6 +61,7 @@ written.
 | The blob write is read back before success is reported | Ports `persistSecret`'s `writeVerificationFailed` (`CacheManager.swift:528–539`) | `BlobWriteVerifiedTest` | green |
 | The blob lives in credential-encrypted storage | A non-auth-bound key is usable during Direct Boot; CE storage is what reproduces `afterFirstUnlock` | `StateDirLocationTest` · `WalletKeystorePolicyGuardTest` | green |
 | Derivation is byte-identical to iOS | The backend verifies signatures from these keys | `IosDerivationVectorTest`, against the vector pinned at `BitcoinMessage.swift:363–367` | green |
+| A restore reproduces the same **addresses** as iOS, not just the same account | `Bip84Addresses` on bitcoin-kmp, anchored to the vectors BIP84 publishes; BDK peeks the same 20 receive + 20 change addresses on a device | `Bip84AddressVectorTest` (JVM, 11 cases) · `BdkAddressParityTest` (emulator, 5 cases) | green — see §6 |
 
 ---
 
@@ -717,6 +718,9 @@ worth making to the product to satisfy a test.
   layer above is what it will be built on.
 - **K7 (interrupted payment) and K8 (Doze soak)** from `wallet-core-spec` §6.
   Both need a device.
+- **K4's address half is now covered** — it was in this list until the section
+  below was written, and it is the one item that moved out of it rather than
+  being split off.
 - **`data_loss_protect` on channel re-establish.** A user who deliberately
   restores their mnemonic on a second device while the first still holds live
   channels is outside what backup exclusion closes, and what stands between
@@ -724,3 +728,85 @@ worth making to the product to satisfy a test.
   recovery plus Lightning, already true on iOS
   (`LightningStorage.swift:21–23` accepts it in as many words), and to be
   verified against ldk-node 0.7.0 rather than asserted from memory.
+
+---
+
+## 6. K4 — a restore reproduces the same addresses, not just the same account
+
+`wallet-core-spec` §6 states K4 as *"restore-from-mnemonic on a fresh install
+reproduces the same descriptors, xpub and first 20 addresses as iOS."* Until this
+section, the **xpub** clause was proven (`IosDerivationVectorTest`,
+`BdkAccountXpubParityTest`) and the **address** clause had no implementation and
+no test anywhere in the module. `Bip84Account` derived account keys and swap
+refund keys; nothing derived a receive address.
+
+**Why that gap was worse than a missing assertion.** Everything that reports on a
+restore keys on the account, not on the addresses. A restore that reproduced the
+right account xpub and the wrong addresses would look entirely healthy — the
+backend accepts the account it registered at signup, the node starts, the balance
+reads correctly for the addresses BDK is actually watching — while every address
+handed to a payer is derived from a path the user's other device never scans.
+There is no error at any layer. The wallet silently splits in two, and the money
+goes to the half nobody is looking at.
+
+**The anchor, and why a golden file alone would not have been one.** The obvious
+test derives 20 addresses, pastes them in, and asserts they never change. That
+catches a regression and nothing else: if the derivation is wrong the day the
+golden is written, the golden pins it wrong and the test passes forever. So the
+JVM side asserts first against the vectors **BIP84 itself publishes**, for the
+mnemonic BIP84 publishes them for — three constants this repository did not
+author and cannot regenerate from its own code:
+
+| path | published address |
+|---|---|
+| `m/84'/0'/0'/0/0` | `bc1qcr8te4kr609gcawutmrza0j4xv80jy8z306fyu` |
+| `m/84'/0'/0'/0/1` | `bc1qnjg0jd8228aq7egyzacy8cys3knf9xvrerkf9g` |
+| `m/84'/0'/0'/1/0` | `bc1q8c6fshw2dlwun7ekn9qwf37cu2rn755upcp6el` |
+
+Only once those hold is the golden for the iOS mnemonic pinned — a golden from a
+checked implementation rather than an assumed one. Index 1 as well as 0, and the
+change branch as well as the receive branch, because a derivation that dropped
+the index would satisfy the first row alone and one that dropped the change level
+would satisfy both receive rows.
+
+**What makes it parity with iOS rather than with ourselves.** iOS pins
+`bdk-swift 1.2.0`; this module pins `bdk-android 1.2.0` — two bindings over one
+Rust core at one version. `BdkAddressParityTest` builds the BIP84 wallet on a
+device, peeks the first 20 receive and 20 change addresses, and asserts them equal
+to the golden. That is the same argument `BdkAccountXpubParityTest` already rests
+on, and it is what lets the claim name iOS without a Swift toolchain in CI.
+
+The golden lives in `src/sharedTest` for the reason `Mnemonics` does: `androidTest`
+cannot see `test`, so a copy would turn the parity test into BDK-versus-a-stale-
+snapshot-of-bitcoin-kmp — the exact failure a parity test exists to catch,
+reintroduced by the fixture.
+
+**Negative-controlled both ways, because a golden comparison is the easiest kind
+of test to make vacuous.** Perturbing the bulk derivation by one index fails the
+two golden cases *and* `the bulk helpers agree with the single-address
+derivation` — which exists because `addressAt` is the BIP84-anchored path and the
+bulk helpers are separate code that nothing else checks. Perturbing the shared
+path's change level fails all three published-vector cases. Both controls were
+run, not reasoned about. The suite also carries the usual refusals: different
+mnemonics must produce different addresses, receive and change must not collide,
+mainnet and signet must not share an address, and a change level outside {0,1}
+is rejected rather than derived — a real spendable address on a path no wallet
+scans is funds invisible to BDK's own recovery.
+
+**Where it runs.** `Bip84AddressVectorTest` on every `./gradlew test` (11 cases,
+no device). `BdkAddressParityTest` in the `wallet-instrumented` job on the API 34
+emulator, with all five methods named individually in
+`check-wallet-instrumented-results.py`'s `REQUIRED` set — by method and not by
+class, so four of five cannot disappear inside a green run. That listing is not
+belt-and-braces: `BdkAccountXpubParityTest` spent its first two runs absent from
+that set, and both runs reported `vacuity check passed` while saying nothing
+whatever about it.
+
+**What this does not claim.** It covers derivation, not discovery. Gap limits,
+used-address scanning and the receive index belong to BDK's wallet, which owns
+that state; nothing in `Bip84Addresses` is on the path that hands an address to a
+user. It exists to be compared against the path that does. The descriptors clause
+of K4 is covered only insofar as the addresses they produce match — the
+descriptor *strings* are asserted for the account xpub they embed
+(`DescriptorXpubTest`, `BdkAccountXpubParityTest`) and not character by character
+against an iOS-generated file.

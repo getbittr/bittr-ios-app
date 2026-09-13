@@ -25,6 +25,23 @@ object Mnemonics {
     /** `ios/bittr/Helpers/BitcoinMessage.swift:363–367`. */
     const val IOS_VECTOR = "void super old faith primary cradle behave crucial vault minor walk random"
 
-    /** The BIP39 all-`abandon` vector — a valid mnemonic that is not [IOS_VECTOR]. */
-    const val OTHER = "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about"
+    /**
+     * The mnemonic BIP84 publishes its own test vectors against.
+     *
+     * This is external ground truth: the addresses it produces are stated in the
+     * BIP itself, so a test against them checks our derivation against the
+     * standard rather than against another copy of ourselves.
+     * `Bip84AddressVectorTest` is what uses it that way.
+     */
+    const val BIP84_VECTOR =
+        "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about"
+
+    /**
+     * A valid mnemonic that is not [IOS_VECTOR], for negative controls.
+     *
+     * Same string as [BIP84_VECTOR] — kept as a separate name because the two
+     * roles are unrelated, and a test asserting "two mnemonics differ" should not
+     * read as though it were asserting something about the BIP84 vectors.
+     */
+    const val OTHER = BIP84_VECTOR
 }

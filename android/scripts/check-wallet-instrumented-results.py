@@ -132,6 +132,22 @@ REQUIRED = {
     f"{LDK_ONCHAIN_PACKAGE}.BdkAccountXpubParityTest#bdkAndBitcoinKmpDeriveTheSameMainnetAccountXpub",
     f"{LDK_ONCHAIN_PACKAGE}.BdkAccountXpubParityTest#theDerivedSignetXpubCarriesTheBip32Prefix",
     f"{LDK_ONCHAIN_PACKAGE}.BdkAccountXpubParityTest#differentMnemonicsProduceDifferentBdkAccounts",
+    # BdkAddressParityTest is the other half of K4: the account xpub above says
+    # the backend and the discriminator agree on which account this is, and says
+    # nothing about the addresses the user is handed. BDK peeks the first 20
+    # receive and change addresses and they must equal the golden that
+    # Bip84AddressVectorTest pins on the JVM — a golden itself anchored to the
+    # vectors BIP84 publishes, so neither side is merely agreeing with itself.
+    #
+    # Required by name, per method, for the same reason as the four above: naming
+    # the class would let four of five disappear without a word. The negative
+    # controls are listed too, because a golden comparison that stopped varying
+    # with its input would pass both of the assertions that matter.
+    f"{LDK_ONCHAIN_PACKAGE}.BdkAddressParityTest#bdkDerivesTheSameFirst20SignetReceiveAddresses",
+    f"{LDK_ONCHAIN_PACKAGE}.BdkAddressParityTest#bdkDerivesTheSameFirst20SignetChangeAddresses",
+    f"{LDK_ONCHAIN_PACKAGE}.BdkAddressParityTest#peekingIsStableAcrossWallets",
+    f"{LDK_ONCHAIN_PACKAGE}.BdkAddressParityTest#differentMnemonicsProduceDifferentBdkAddresses",
+    f"{LDK_ONCHAIN_PACKAGE}.BdkAddressParityTest#receiveAndChangeKeychainsDoNotCollide",
     # --- :app — the installed application (BIT-8 rule 4 / BIT-20 rule 5) -------
     #
     # BackupExclusionTest (BIT-101) is the behavioural half: plant a
