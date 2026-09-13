@@ -66,6 +66,14 @@ ldkNode = "0.7.0"      # iOS pins ldk-node 0.7.0
 bitcoinKmp = "0.31.0"
 secp256k1Kmp = "0.23.0"  # the version bitcoin-kmp-jvm 0.31.0 resolves; JNI half added explicitly
 
+# JSON. Arrived with the push envelope (BIT-41): an FCM data message is
+# string -> string, so the payload crosses as a JSON *string* and something has to
+# parse it. kotlinx.serialization rather than Moshi/Gson because it is the one that
+# needs no reflection and no codegen to read a JsonObject, which is all :core:push
+# does — see the note in core/push/build.gradle.kts about why the compiler plugin is
+# deliberately absent.
+kotlinxSerialization = "1.9.0"
+
 # Test
 junit = "4.13.2"
 androidxTestExt = "1.3.0"
@@ -114,6 +122,8 @@ hilt-compiler = { group = "com.google.dagger", name = "hilt-android-compiler", v
 
 kotlinx-coroutines-core = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-core", version.ref = "coroutines" }
 kotlinx-coroutines-test = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-test", version.ref = "coroutines" }
+
+kotlinx-serialization-json = { group = "org.jetbrains.kotlinx", name = "kotlinx-serialization-json", version.ref = "kotlinxSerialization" }
 
 # The OpenGL build. `android-sdk-vulkan` renders through Vulkan and needs a driver
 # the emulator images in CI do not reliably provide; `android-sdk` is the variant

@@ -73,6 +73,14 @@ include(":core:wallet-ldk")
 include(":core:wallet-seed")
 include(":core:wallet-keystore")
 
+// The push envelope (BIT-41 item 4). Pure Kotlin for the same reason :core:lnurl is,
+// and here the reason is sharper: the two things that would let this be tested any
+// other way — a Firebase project that can send (BIT-39) and a backend that accepts
+// Android tokens (BIT-9) — are both blocked. The FCM service in :app hands it
+// RemoteMessage.getData() and gets a PushEnvelope back; everything between those two
+// points runs as a JVM unit test.
+include(":core:push")
+
 // BIT-18/K1. An instrumented probe, not a shipped module — nothing depends on it. It proves on
 // real devices what BIT-8 rule 2 currently asserts from AOSP javadoc: that a non-auth-bound
 // Keystore key survives a lock-screen change. See android/docs/k1-keystore-lockscreen.md.
