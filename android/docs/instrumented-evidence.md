@@ -23,8 +23,12 @@ branch `feature/bit-62-instrumented-ci`.
 | 95 | `5956c29` | **green** | 203s · 9 required · 0 missing · 0 skipped · 0 failed · canary passed |
 | 97 | `52b0ffe` | **RED** | 233s · 11 required · 0 missing · 0 skipped · **1 failed** · canary passed |
 | 98 | `3b2392a` | *not reached* | build job red at `./gradlew test`; the emulator job was skipped |
+| 131 | `48c529d` | **green** | 186s · 11 required · 0 missing · 0 skipped · 0 failed · canary passed |
 
 Run 95 is the first execution of `CrossOriginIframeIsolationTest` in the test's life.
+**Run 131 is the one to cite**: the full eleven, including both positive controls, green on
+a real WebView. Run 95 proved the suite runs; run 131 proves the probe inside it still
+recognises a bridge while doing so.
 
 Run 97 is the first run carrying the two positive controls, and its single failure is one
 of them — `theIframeBridgeProbeReportsABridgeThatIsActuallyThere`, on its own `ran`
@@ -48,7 +52,16 @@ boolean in JS and comparing the whole encoded value.
 
 So run 97 is evidence *for* the positive controls rather than against them: every
 substantive claim they make passed on the emulator, and the one assertion that failed
-was testing its own phrasing.
+was testing its own phrasing. Run 131 confirms it — the same eleven tests, the fixed
+assertion, nothing failed.
+
+Run 98 carried that fix and never got to the emulator: the build job went red at
+`./gradlew test` and the `instrumented` job was skipped behind it. No unit test had
+failed. `./gradlew test --rerun-tasks` on the same commit executed all 226 tasks green
+locally, and run 131 — the same tree plus a reporter script — was green on the runner, so
+the failure was transient in the toolchain. Establishing *that* is what the run itself
+could not say, and it is why `annotate-unit-failures.py` now exists; see
+[Reading a red build job](#reading-a-red-build-job).
 
 Reproduce the table without credentials — the repository is public and the Actions REST
 API on a public repo is readable anonymously:
@@ -171,6 +184,39 @@ does: as an enumerable own property of `window` that is not the window.
 The guard's scan strips comments *and* string literals before searching, which is why
 both test files are free to name the banned API in prose and in assertion messages — and
 they have to, because the reason it is banned is the whole point.
+
+## Reading a red build job
+
+The emulator job sits behind `build`, so a red build job means the isolation suite did not
+run at all — and run 98 is the case where nobody could tell why. Job logs on this
+repository answer **403** without admin rights and artifacts answer **401**, so check-run
+annotations are the only part of a run readable from outside, and all run 98 offered was
+GitHub's own:
+
+```
+[failure] Process completed with exit code 1.
+```
+
+That single line cannot distinguish a unit test that genuinely failed — whose name and
+assertion message are sitting in XML on the runner — from a Gradle that died fetching a
+dependency or was OOM-killed. The two want opposite responses: read the assertion, or
+re-run. Telling them apart cost a full local `./gradlew test --rerun-tasks`.
+
+`android/scripts/annotate-unit-failures.py` closes that. It runs only on the red path
+(`if: failure()`), **always exits 0** — a reporter that could fail a build would be able to
+turn a green run red by mis-parsing XML — and emits one of two things:
+
+- `::error::` naming each failing test with its message, read from either the `message=`
+  attribute or the element body, because not every writer uses the attribute; or
+- `::notice::` saying no test failed, and how many result files it searched.
+
+The second is the one run 98 needed. The absence of a finding *is* the finding: it points
+at the toolchain rather than at the wallet, and saying so is a conclusion where silence was
+not. It reuses `check-instrumented-results.py`'s `failure_message`, `detail` and `annotate`
+rather than copying them — a second, subtly different copy of the escaping is how an
+annotation goes quiet again — and reads only `build/test-results/`, never
+`outputs/androidTest-results/`. That is the mirror of the care that file already takes in
+the other direction, so neither job can ever be satisfied by the other's evidence.
 
 ## What these tests are for
 
