@@ -40,7 +40,7 @@ written.
 | 2 | …and what the device actually produced | `KeyInfo` read back off a generated key | `KeystoreKeyInfoTest` | runs in CI — BIT-59, `wallet-instrumented` job, API 34 emulator |
 | 2 | …and it survives a lock-screen change | — | **BIT-18 / K1**, device matrix | separate issue |
 | 3 | The wrapped blob is a cache, never the only copy | Blob loss routes to the restore screen; terminal failures classify as "no usable mnemonic" | `BlobDestroyedRecoversTest` | green |
-| 4 | The blob is excluded from Auto Backup | `allowBackup="false"` + `dataExtractionRules` + siting under `getNoBackupFilesDir()` | `BackupExclusionRulesTest` + `StateDirLocationTest` (configuration, JVM) · `InstalledBackupConfigurationTest` (installed artefact, emulator) · `BackupExclusionTest` (both backup paths + `bmgr`, emulator) + `check-backup-set.sh` (the set itself, host) | configuration green; behaviour **not yet proven. Run 107 inspected a real set and found no wallet material but could not show the set was non-empty. The canary gate that tells those apart, and the BIT-108 fix that keeps the device-transfer backup from killing the process, were built on separate branches and first met on one tree at the BIT-59/BIT-108 merge — so no run has yet carried both, and neither `partly proven` nor the §5.3 halt is earned. Since BIT-59 the suite runs on every push (`wallet-instrumented` job); see §4** |
+| 4 | The blob is excluded from Auto Backup | `allowBackup="false"` + `dataExtractionRules` + siting under `getNoBackupFilesDir()` | `BackupExclusionRulesTest` + `StateDirLocationTest` (configuration, JVM) · `InstalledBackupConfigurationTest` (installed artefact, emulator) · `BackupExclusionTest` (both backup paths + `bmgr`, emulator) + `check-backup-set.sh` (the set itself, host) | configuration green; behaviour **not yet proven. The device-transfer set was found (`d823265`) and measured at 4608 bytes (`9dc0b64`), and none of the three marker prefixes was greppable in it — including the canary, which no rule excludes. That made the finding one about the *format*: a literal search cannot read this set, and the §5.3 halt grep was the same search over the same bytes, so it could not have fired either way. Since `d073424` the set is pulled and **decoded** (`decode-backup-set.py`) and the halt reads decoded members. No run has yet produced the evidence outcome, so neither `partly proven` nor the halt is earned. Since BIT-59 the suite runs on every push (`wallet-instrumented` job); see §4** |
 | 5 | No PIN-derived wrapping | PIN stays a salted-SHA-256 verifier; the unwrap path takes no PIN argument | `WalletKeystorePolicyGuardTest` (bans `PBEKeySpec`/PBKDF2) · `BlobWriteVerifiedTest` (unwrap signature takes no PIN) | green |
 
 ### BIT-20 — the LDK state quarantine guard
@@ -362,6 +362,64 @@ way to **read** the set — untar/inflate it on the host, or assert over the
 transport's own API — because no number of runs of a plaintext grep over a
 tar stream will answer rule 5 on this path.
 
+**The set is now read rather than grepped (`d073424`).** The first of those two
+options is built. `check-backup-set.sh` pulls every regular file under the
+discovered set paths to the host and hands them to
+`android/scripts/decode-backup-set.py`, which identifies the container — tar,
+gzip, zlib, or none of those — enumerates the archive members, and searches
+their **decoded** contents for the three BIT101 prefixes. The script still
+decides the outcome; the decoder only answers "what is actually in this".
+
+Three things about the shape of that change matter for what the result can be
+trusted to mean:
+
+- **Both searches are kept.** The on-device `grep` covers the whole transport
+  tree, including journals and pending directories that are not part of any set
+  and are not pulled; the decode covers only the set files, but can see inside
+  them. Neither subsumes the other, their blind spots differ, and **either one
+  finding the wallet marker is the halt**.
+- **Truncation is the expected case, not an error.** `LocalTransport` writes the
+  bytes it receives from the framework's socket, so what lands on disk is a
+  *prefix* of the stream and need not carry tar's end-of-archive blocks. Members
+  are read one at a time and whatever arrived is kept and reported, because the
+  members that did arrive are the ones a marker could be hiding in. A decoder
+  that called a truncated tar "not a tar" would report an unreadable set on every
+  real run while passing every well-formed test.
+- **Anything unread demotes the whole set.** If one pulled blob will not decode,
+  or one set file will not pull, the set is reported as unreadable rather than as
+  clean — the marker could be in the part that is missing. A pull is counted only
+  when the file actually lands on the host, because `adb pull` exits 0 in cases
+  where nothing arrives.
+
+Two states that previously printed the same words are now separate outcomes, and
+the distinction is the whole point of this issue:
+
+- **The set was decoded and holds none of our files.** A real negative: the halt
+  search ran over decoded members, so "no wallet marker" means one was looked for
+  and not found. Still *not* evidence for rule 5 — the canary sits in `files/`,
+  which no rule excludes, so a set without it is a set the exclusion rules were
+  never consulted about.
+- **The set could not be decoded.** The dead end it always was, but the
+  annotation now carries the container identification and a head-byte sample, so
+  an unhandled format is a one-function fix in the decoder rather than an open
+  question. The old wording is kept, including that it is *not* a clean bill of
+  health.
+
+The evidence outcome now also states **which** search found the canary, because
+resting on the plaintext grep alone is the weaker claim — it proves the set holds
+our file contents verbatim, and says nothing about parts of a set a literal
+search cannot reach.
+
+Pinned both ways and negative-controlled: 44 cases in `test_check_backup_set.sh`
+(whose `adb` stub grew a `pull` verb, so those cases run end-to-end through the
+real decoder on real archives) and 42 in `test_decode_backup_set.py`. The
+load-bearing one is `a_wallet_marker_in_a_COMPRESSED_set_is_now_the_halt`:
+a gzipped set carrying wallet material with **both** on-device greps returning
+nothing, which is exactly what a literal search does against a compressed
+container. Removing the decoded half of the halt condition makes that case pass
+as clean again — which is the behaviour every run before `d073424` had, and the
+bug.
+
 **What runs, and where.** The `wallet-instrumented` job boots an API 34
 `aosp_atd` emulator and runs `android/scripts/ci-wallet-instrumented.sh`, which
 drives `:core:wallet-ldk:connectedDebugAndroidTest` and
@@ -490,14 +548,25 @@ instrumentation process, so it still answers on a run that went red. It cannot
 live inside the suite either way: the set is `0700` to another uid and
 `UiAutomation`'s shell runs as `shell`.
 
-It distinguishes four outcomes, and only one is evidence — wallet marker found
-(the §5.3 halt), no marker *and the canary present* (evidence: the set was
-reachable, searched, provably non-empty, and clean), no marker and no canary (a
-`::warning::` at exit 0 — an empty set, the expected `allowBackup="false"`
-shape, and **not** evidence), and *could not look* (also a `::warning::`, also
-not evidence). Decoy findings are reported alongside whichever outcome the run
-got and never trip the halt. Read the `Backup set inspection` annotation to see
-which one it was.
+Since BIT-116 it does not only grep. It also **pulls the set and decodes it**
+(`decode-backup-set.py`), and searches the decoded archive members — because a
+literal search cannot see into a compressed container, and a halt grep that
+cannot fail is not a gate. Both searches run; either one finding the wallet
+marker is the halt.
+
+It distinguishes five outcomes, and only one is evidence:
+
+| outcome | exit | evidence? |
+|---|---|---|
+| wallet marker found, by either search | 1 | the §5.3 **halt** |
+| no marker, **and the canary present** | 0 `::notice::` | **yes** — reachable, searched, provably non-empty, clean. The annotation says whether the canary came from the decode (strong) or the plaintext grep alone (weaker) |
+| no marker, no canary, set measurably **empty** | 0 `::warning::` | no — nothing was in the set to exclude |
+| no marker, no canary, non-empty set **that decoded** | 0 `::warning::` | no — but a real negative: the halt search did run over decoded members |
+| no marker, no canary, non-empty set that **would not decode**, or *could not look* at all | 0 `::warning::` | no — and **not** a clean bill of health either |
+
+Decoy findings are reported alongside whichever outcome the run got and never
+trip the halt. Read the `Backup set inspection` annotation to see which one it
+was.
 
 **Also unresolved, and deliberately left to the device:** the root of
 `domain="file"` is `getFilesDir()`, while the wallet directory is under
