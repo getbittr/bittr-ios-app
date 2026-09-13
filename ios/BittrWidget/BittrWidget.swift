@@ -213,9 +213,21 @@ struct BittrWidget: Widget {
     }
 }
 
+// The four states of shared/docs/widget-spec.md §3.2, in the order the capture runbook
+// (shared/docs/widget-capture-runbook.md) refers to them. The preview harness takes these
+// entries directly, so `N/A` needs no airplane mode and no cache clearing — scrub the
+// canvas timeline and toggle the canvas appearance to get all four stills BIT-76 asks for.
 #Preview(as: .systemSmall) {
     BittrWidget()
 } timeline: {
-    SimpleEntry(date: .now, configuration: ConfigurationAppIntent(), eurValue: "100.000", chfValue: "101.000", currency: "€")
-    SimpleEntry(date: .now, configuration: ConfigurationAppIntent(), eurValue: "90.000", chfValue: "91.000", currency: "CHF")
+    // 1 — populated, the spec's canonical price (also what `snapshot(for:in:)` hard-codes).
+    SimpleEntry(date: .now, configuration: ConfigurationAppIntent(), eurValue: "94.250", chfValue: "91.000", currency: "€")
+    // 2 — widest realistic string: the CHF prefix is 3 glyphs, so this is the worst case
+    //     for minimumScaleFactor(0.5). See §6.2.
+    SimpleEntry(date: .now, configuration: ConfigurationAppIntent(), eurValue: "100.000", chfValue: "100.000", currency: "CHF")
+    // 3 — no cache and the fetch failed (§3.2 state 2), visually identical to placeholder().
+    SimpleEntry(date: .now, configuration: ConfigurationAppIntent(), eurValue: "N/A", chfValue: "N/A", currency: "€")
+    // 4 — malformed payload: formatEuroValue's "0" fallback (§3.2 state 5). Looks like a
+    //     real price rather than an error, which is the point of keeping it visible here.
+    SimpleEntry(date: .now, configuration: ConfigurationAppIntent(), eurValue: "0", chfValue: "0", currency: "€")
 }

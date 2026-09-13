@@ -133,6 +133,18 @@ Net effect: the currency glyph appears **twice** — once as a prefix on the big
 (`€ 94.250`) and once alone in the bottom-right corner. That is intentional in the current
 design; mirror it.
 
+**The price gets more width than the tile has.** The `.padding(-20)` proposes `tile + 40`
+to the content, and the price's own insets take 19 per side (`.padding(.horizontal)` = 16,
+then leading/trailing 3), leaving it **`tile + 2`pt** of layout width — about 1pt bleeding
+past each visible edge, clipped by the container. So the price is effectively full-bleed
+horizontally with no side margin, and `minimumScaleFactor` is fitting to `tile + 2`, not to
+`tile − 38`.
+
+> **Porting trap.** An Android widget that reads §4.1 literally and applies a 19dp
+> horizontal inset gives the price **40dp less** width than iOS does, so Glance's autosize
+> lands several points smaller and the tile looks visibly different at the same price. Give
+> the price the full cell width. See §6.2 for the numbers this changes.
+
 ### 4.2 The negative padding
 
 `.padding(-20)` expands the content 20pt beyond the widget bounds on every side, so the
@@ -252,25 +264,115 @@ Match that.
 
 ## 6. What source cannot settle
 
-Three things need eyes on a real device. None blocks starting the Android implementation; all
-three are cheap to answer with the manual stills described in §1.
+Three things need eyes on a real device. None blocks starting the Android implementation.
+Capture procedure: **`shared/docs/widget-capture-runbook.md`** (BIT-76), batched into the
+single Mac sitting ordered on BIT-14.
 
-1. **Does the "bitcoin value" label actually render in Gilroy?** Both small labels apply
-   `.font(.custom("Gilroy-Bold", size:))` and then a second `.font(.title3)` later in the modifier
-   chain (`BittrWidget.swift`, the label and the corner glyph). The later modifier likely wins,
-   which would render them in the **system** font at title3 size rather than Gilroy at 16/18pt.
-   The big 42pt number has no such conflict and is definitely Gilroy.
-2. **Where the 42pt number actually lands** once `minimumScaleFactor(0.5)` kicks in. A
-   five-digit price plus the currency prefix at 42pt will not fit a small tile; the real rendered
-   size is somewhere in 21–42pt and is what Android should match.
-3. **The dark-mode background in context** — `#446590` slate blue behind a yellow label is an
-   unusual combination and worth one confirming glance that it is intended, since the token name
-   suggests otherwise.
+Two of the three are no longer judgement calls. §6.4 predicts what each one should measure,
+so the still is read rather than eyeballed. What §6.1–6.3 record is the state after the
+2026-09-13 source pass; the *Answer* rows are what the stills fill in.
 
-**Ask of the founder (non-blocking):** four stills from the Mac — light + dark, populated +
-airplane-mode `N/A` — dropped into `shared/docs/screenshots/widget/` and labelled as manually
-captured. If they never arrive, the Android implementation proceeds on this document and items
-1–3 get settled at design-review time instead.
+### 6.1 Item 1 — does the "bitcoin value" label render in Gilroy-Bold 16, or system title3?
+
+Both small labels apply `.font(.custom("Gilroy-Bold", size:))` and then a second
+`.font(.title3)` later in the same chain — the label (16) at `BittrWidget.swift:158`/`161`
+and the corner glyph (18) at `:186`/`:189`. Note every intervening modifier
+(`.fontWeight`, `.foregroundColor`) returns `Text`, so both `.font()` calls are the
+`Text`-specific overload, not the environment one — which is why the usual
+"innermost wins" rule for `.font()` on a container does not settle it.
+
+**Settled from source: the font is available, so this is purely a modifier-precedence
+question, not a silent-fallback one.** `Font.custom` falls back to the system font without
+error when the family is not registered, which would have been a second, indistinguishable
+cause. It is ruled out:
+
+- `Gilroy-Bold.ttf` is in the **BittrWidgetExtension** target's own Resources build phase
+  (`ios/bittr.xcodeproj/project.pbxproj` — that phase contains exactly one file, this one).
+- The **widget's own** `Info.plist` declares `UIAppFonts = [Gilroy-Bold.ttf]`. An extension
+  does not inherit the app's font registration, so this matters.
+
+So `.font(.custom("Gilroy-Bold", size: 16))` resolves. Whether the later `.font(.title3)`
+overrides it is what the still answers.
+
+**Answer:** _pending the stills._
+
+### 6.2 Item 2 — where the 42pt price lands under `minimumScaleFactor(0.5)`
+
+Narrowed from "somewhere in 21–42pt" to a predicted value per device, from the Gilroy-Bold
+advance widths and the layout arithmetic. **The 0.5 floor is never reached** — not even by
+the worst case — so Android must not assume 21pt.
+
+Available width for the price `Text` is **`tileWidth + 2pt`**, not tile-minus-padding:
+`.padding(-20)` on the outer `ZStack` proposes `tile + 40` to the content, and the price
+carries `.padding(.horizontal)` (16) plus `.padding(.leading/.trailing, 3)` = 19 per side.
+See §4.1 — this is the single most consequential number for porting item 2.
+
+Predicted rendered size (Gilroy-Bold advances, ±2% for kerning — the font has a `GPOS`
+table):
+
+| Tile | Device | `€ 94.250` | `€ 100.000` | `CHF 100.000` | `€ N/A` |
+|---|---|---|---|---|---|
+| 141pt | SE (320pt screen) | 36.0pt | 30.6pt | 24.0pt | 42pt |
+| 155pt | iPhone 8 / SE2–3 (375pt) | 39.5pt | 33.6pt | 26.3pt | 42pt |
+| 158pt | iPhone 14/15/16 (393pt) | 40.3pt | 34.3pt | 26.8pt | 42pt |
+| 170pt | Pro Max (430pt) | 42.0pt (no scaling) | 36.9pt | 28.8pt | 42pt |
+
+Two consequences for the capture, both in the runbook:
+
+- **The `N/A` stills cannot answer item 2.** `€ N/A` is 114.5pt wide at 42pt, so it fits
+  unscaled on every tile. Only a *populated* still measures the scale factor, and **which
+  price it shows changes the answer** — `€ 94.250` and `€ 100.000` differ by 6pt.
+- Which simulator was used must be recorded, since the answer is per-device.
+
+**Answer:** _pending the stills._
+
+### 6.3 Item 3 — is the dark-mode slate-blue background intended?
+
+`YellowOrDark2` dark is `#4B648D` P3 / `#446591` sRGB — a slate blue behind a yellow label,
+under a token name that reads as "yellow or dark *yellow*". Nothing in source can settle
+intent; this is one confirming glance. Unlike items 1 and 2 it needs no measurement.
+
+**Answer:** _pending the stills._
+
+### 6.4 How to read the answers off a still
+
+Both measurements are **ratios against the tile width**, so canvas zoom and capture scale
+do not matter — only that all four tile corners are in frame. Gilroy-Bold is 1000 units/em,
+cap height 700, x-height 500.
+
+**Item 1** — measure the ink width of the string `bitcoin value`, and the tile width, in the
+same pixels:
+
+- `labelWidth / tileWidth ≈ 0.61` on a 158pt tile (96.4pt advance at 16pt) → **Gilroy-Bold
+  16 won**; the chain is fine as written.
+- materially larger, ≈0.7+ → **`.font(.title3)` won** and the label is the system font at
+  ~20pt. Cross-check on height: the lowercase x-height is 8.0pt at Gilroy 16 versus ~10pt at
+  title3 — a 25% difference, unmistakable at @2x or better. (`bitcoin value` has no
+  capitals, so measure x-height off `v`/`u`, and ascender off `b`/`l`/`t`.)
+
+The corner glyph `€` is the same question: 11.0pt advance and 13.1pt ink height at Gilroy
+18, versus 12.2pt / 14.6pt if it renders at title3's 20pt.
+
+**Item 2** — the digit glyphs are 0.714em of ink tall, so:
+
+```
+renderedPointSize = (digitInkHeight / tileWidth) × tileWidthInPoints / 0.714
+```
+
+At @3x on a 158pt tile (474px), a `9` measuring 86px of ink is 40.3pt; 73px is 34.3pt; 45px
+would be the 21pt floor.
+
+### 6.5 Provenance of the stills
+
+They land in **`shared/docs/device-checks/widget/`**, not `shared/docs/screenshots/widget/`
+as BIT-76 originally asked. `screenshots/` is the canonical BIT-3 reference set indexed from
+the flow YAML; four stills no flow declares are reported there as `orphaned` and their
+cropped size trips the single-size check (measured: `orphaned=4` there versus `orphaned=0`
+under `device-checks/`). That directory's `README.md` records the manual, non-Maestro,
+iOS-only provenance next to the files.
+
+If the stills never arrive, the Android implementation proceeds on this document: items 1
+and 2 have predicted values to build against, and item 3 is a design-review question.
 
 ---
 
@@ -298,7 +400,19 @@ Fixing it on iOS needs an App Group shared between both targets. **For Android, 
 store from the start** (DataStore in a shared module, read by both the app and the Glance
 provider) so the currency preference actually reaches the widget.
 
-### 7.2 The widget ignores `EnvironmentConfig`
+### 7.2 The widget ignores `EnvironmentConfig` — ~~open~~ **fixed on iOS since this was written**
+
+> **Corrected 2026-09-13 (BIT-76).** This defect no longer exists in the source. The spec
+> was written against `c297ed1`; on `ios-parity` the widget builds its URL from
+> `BittrAPIEnvironment.baseURL` (`BittrWidget.swift:58`), a Foundation-only type compiled
+> into **both** targets (`ios/BittrWidget/BittrAPIEnvironment.swift`), with a
+> "Check hard-coded API URLs" build phase failing the build if a literal reappears. A
+> Debug build now reads `https://staging.getbittr.com/api`.
+>
+> Consequence for BIT-76's capture: a Debug build is **not** a route to the `N/A` state —
+> staging serves `/price/btc` (verified HTTP 200 on 2026-09-13), so it shows a real price.
+>
+> The original text, kept because the Android guidance still stands:
 
 The price URL is a hard-coded production string. Every other price call in the app goes through
 `EnvironmentConfig.bittrAPIBaseURL`. Low impact — it is public price data — but a staging build's
