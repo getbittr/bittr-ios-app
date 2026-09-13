@@ -721,12 +721,27 @@ worth making to the product to satisfy a test.
   **nothing tracked it** — there was no issue, so the sentence was doing the
   reassuring work of a reference without being one. That is the same shape as a
   named guarantee with no test behind it, in prose instead of code. BIT-122 and
-  BIT-123 now exist, and the state of the node layer is worth stating plainly:
-  `NodeConfigPlan`, `NodeStartGate`, `NodeStartRetryPolicy` and
-  `LdkNodeStartErrors` are decision logic with **no node behind them**. Nothing
-  in `main` constructs or starts an ldk-node `Node`, and nothing constructs a
-  BDK `Wallet`. `adapter/` — the only package `WalletLayeringGuardTest` permits
-  to name a native binding — holds error classification and nothing else.
+  BIT-123 now exist, and the state of the node layer is worth stating plainly
+  and keeping current:
+
+  **Start and stop now have a node behind them.** `LdkNodeFactory` builds an
+  ldk-node `Node` from `NodeConfigPlan` and `NodeLifecycle` owns it — one at a
+  time, published only once it is up, and explicitly closed when it is not.
+  Two claims there carry tests that run on the JVM, which is further than an
+  adapter normally gets and is worth saying why: UniFFI generates ldk-node's
+  records as plain Kotlin data classes and its `Builder` as a plain Kotlin
+  interface, so `LdkNodeConfigTest` asserts the whole configuration against
+  `BitcoinManager.swift` field by field with a recording fake, and
+  `NodeLifecycleTest` proves the object-custody rules against a fake node.
+  Neither loads a native library. What they do **not** prove is that ldk-node
+  honours any of it — that needs a running node, and it is BIT-123's.
+
+  **Still absent, and not yet written anywhere:** on-chain sync and balance
+  (nothing in `main` constructs a BDK `Wallet`), Lightning channel and payment
+  handling, and the wiring of node start/stop to the Android process and
+  service lifecycle. Process death, Doze and background execution limits are
+  untouched by the above — `NodeConfigPlan`'s sync intervals are still a
+  request rather than a guarantee, for the reasons that data class states.
 - **K2 (background wake), K7 (interrupted payment) and K8 (Doze soak)** from
   `wallet-core-spec` §6. **BIT-123**, blocked on BIT-122: all three need a node
   that starts, and all three need a device. K2 is the behavioural half of rule
