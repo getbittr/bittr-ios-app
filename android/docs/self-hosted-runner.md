@@ -8,17 +8,23 @@ Only the **emulator jobs** move. `build` stays on GitHub-hosted runners: it need
 special hardware, and keeping it there means a compile error still fails in about a
 minute without waiting for the self-hosted host to be free.
 
-**There are three of them now, and they boot three separate emulators:**
+**There are four of them now, and they boot four separate emulators:**
 
-| Job | What it runs | Image, and why |
-|---|---|---|
-| `maestro` | the Maestro smoke flow | `aosp_atd` — stripped for boot speed; the flow drives the app's own Compose UI and needs nothing ATD removes |
-| `instrumented` | `:feature:website` S-36 isolation tests (BIT-62) | `default` — every test builds a real `WebView`, and ATD may ship no WebView provider |
-| `wallet-instrumented` | `:core:wallet-ldk` + `:app` wallet security tests (BIT-59) | needs a working **backup transport** for `bmgr`; see `android/scripts/ci-wallet-instrumented.sh`, which checks for one before running anything |
+| Job | Workflow | What it runs | Image, and why |
+|---|---|---|---|
+| `maestro` | `android-maestro.yml` | the Maestro smoke flow | `aosp_atd` — stripped for boot speed; the flow drives the app's own Compose UI and needs nothing ATD removes |
+| `instrumented` | `android-maestro.yml` | `:feature:website` S-36 isolation tests (BIT-62) | `default` — every test builds a real `WebView`, and ATD may ship no WebView provider |
+| `wallet-instrumented` | `android-maestro.yml` | `:core:wallet-ldk` + `:app` wallet security tests (BIT-59) | needs a working **backup transport** for `bmgr`; see `android/scripts/ci-wallet-instrumented.sh`, which checks for one before running anything |
+| `regtest` | `wallet-regtest-nightly.yml` | `:app` K7/K8 node suite against a private Lightning network (BIT-132) | `default` x86_64 — the ldk-node AAR ships x86_64 and no x86, so on any other ABI the node does not start at all |
 
 They each keep their own AVD cache key, deliberately — sharing one would hand a
 suite a snapshot chosen for a different suite's needs, and at least one of those
 mistakes surfaces as a *vacuous green* rather than as a cache-key error.
+
+The fourth is **nightly and in a workflow of its own**, and it is the only one
+with a host requirement the other three do not have — see *Docker* below. The
+first three read the same `ANDROID_EMULATOR_RUNNER` variable, so the switch-over
+and the rollback below cover all four at once.
 
 ## Switching the job over
 
@@ -104,12 +110,51 @@ sudo chown "$(id -un)" /opt/android-sdk         # the runner user must be able t
 The workflow preflights this on non-GitHub-hosted runners and names the variable, so a
 missing value costs seconds rather than a debugging session.
 
-### 4. Disk
+### 4. Docker — only for the nightly regtest job
+
+```sh
+docker compose version    # must print v2.x; `docker-compose` v1 is not enough
+```
+
+`.github/workflows/wallet-regtest-nightly.yml` brings up a private Bitcoin and
+Lightning network beside the AVD — bitcoind, electrs and LND, see
+`android/regtest/README.md` — because BIT-132's finding was that K7 and K8 were
+never blocked on hardware but on the wallet having no node in it, and a node needs
+something to talk to.
+
+**None of the three jobs in `android-maestro.yml` needs this.** Docker missing
+costs you the nightly job and nothing else, which is why it is listed after disk
+rather than beside KVM.
+
+Two things to get right:
+
+- **The compose *plugin*, v2.** `docker compose up`, not `docker-compose up`. The
+  scripts use the v2 subcommand form and a host with only v1 fails at the first
+  line with `docker: 'compose' is not a docker command`.
+- **The runner user must be in the `docker` group**, and — exactly as with `kvm`
+  above — group membership is picked up at process start, so the **runner service
+  must be restarted**, not just the shell you tested in:
+
+  ```sh
+  sudo usermod -aG docker "$(id -un)"    # then restart the runner service
+  ```
+
+`android/regtest/up.sh` preflights both and names this document, so a missing
+plugin fails in one line rather than forty lines into a nightly job.
+
+### 5. Disk
 
 Budget **~25 GB**: system image (~8 GB), SDK and platform tools (~5 GB), AVD
 snapshot (~3 GB), Gradle caches, plus artefacts. A self-hosted runner does **not**
 get a clean disk per job the way a GitHub-hosted one does, so this fills up quietly
 until jobs start failing for unrelated-looking reasons. Prune or monitor it.
+
+**Add ~8 GB if this host runs the nightly regtest job.** Building electrs from
+source is a full cargo release build (~2 GB of intermediates, cached as an image
+layer), the three service images are ~1.5 GB together, and the regtest chain and
+electrs index are small but are recreated nightly. `down.sh` removes the volumes
+every run; what accumulates is Docker's build cache, so `docker builder prune`
+belongs in whatever prunes the rest of this disk.
 
 ## Things that behave differently from GitHub-hosted
 

@@ -23,9 +23,10 @@ passed.
 | K2 — the seed is usable with the device locked | **written, not yet run** | — | `SeedReadableWhileLockedTest`, `wallet-instrumented` |
 | K2 — an FCM data message wakes the process | closed **unrun** | **BIT-133** | §1 below |
 | K2 — *force-stop* then wake | **withdrawn as specified** | **BIT-133** | §2 below |
-| K7 — interrupted payment resolves to one outcome | closed **unrun** | **BIT-132** | §3 below |
-| K8 — Doze and App Standby machinery | closed **unrun** | **BIT-132** | §4 below |
-| K8 — channel-monitor freshness after wake | closed **unrun** | **BIT-132** | §4 below |
+| K7 — interrupted payment resolves to one outcome | **unrun; its precondition and its kill window are now solved** | **BIT-132** | §3 below |
+| K8 — Doze and App Standby machinery | **unrun; its precondition is now solved** | **BIT-132** | §4 below |
+| K8 — channel-monitor freshness after wake | **unrun; needs the soak job** | **BIT-132** | §4 below |
+| The configured regtest build and the private network | **built, and one green leg deep** | — | §0 below |
 | `data_loss_protect` on channel re-establish | **verified, as far as a binary can be** | — | §5 below |
 
 ## The precondition that is upstream of three of these rows
@@ -45,7 +46,9 @@ is the app as it was before BIT-126: no `WalletNodeHost`, no
 So "give the runner a phone" does not make K7 runnable. The job would also have
 to build a **configured regtest** APK, which means the infrastructure in §3 has
 to exist before the build is even meaningful. Any plan that starts with hardware
-has the order wrong. **BIT-132** carries it.
+has the order wrong. **BIT-132** carries it, and **§0 below is what it has
+built** — the paragraph above is now a description of `wallet-instrumented`
+rather than of every job in the repository.
 
 `SeedReadableWhileLockedTest` is unaffected by this, and that is why it is the
 leg that could be delivered: the Keystore is a device service and the seed vault
@@ -87,6 +90,53 @@ new config and the fix is a no-op that reads as a fix.
 `ci-wallet-instrumented.sh` now asserts `android.software.secure_lock_screen`
 before either Gradle run, so a future image swap fails in one legible line rather
 than as three Keystore tests failing for a reason that is not about the Keystore.
+
+---
+
+## 0. The configured build and the private network — built
+
+**BIT-132's first two scope items, and they are done rather than described.**
+
+- **The network.** `android/regtest/` — bitcoind in regtest, Blockstream's
+  electrs serving *both* chain endpoints (Esplora over HTTP for ldk-node,
+  Electrum over TCP for BDK), and LND as the counterparty. `up.sh` brings it up,
+  mines to a spendable height and writes down what came up; `down.sh` removes the
+  chain as well as the containers, because a chain inherited by the next run fails
+  late and quietly. `android/regtest/README.md` is the document to read.
+- **The configured APK.** `android/scripts/regtest-ldk-env.py` turns the
+  network's published ports into the four required `BITTR_LDK_*` values, from the
+  device's point of view — 10.0.2.2 is the emulator's alias for the host that
+  published them. Verified locally rather than asserted: with those `-P`
+  arguments, `:app:generateDebugBuildConfig` writes real values into
+  `LDK_CHAIN_SOURCE_URL`, `LDK_ELECTRUM_URL`, `LDK_LIGHTNING_NODE_ID` and
+  `LDK_LIGHTNING_NODE_ADDRESS`, and `missingFields()` is empty. **The six
+  committed defaults are untouched and must stay that way.**
+- **The job.** `.github/workflows/wallet-regtest-nightly.yml`. Nightly and not
+  per-push: K8's useful form is a soak, a cold run builds electrs from source, and
+  `wallet-instrumented` already sits inside a 45-minute timeout that one
+  self-hosted runner serialises against two other emulator jobs.
+- **One green leg, and it is the vacuity guard for the rest.**
+  `RegtestEnvironmentTest` asserts on the device that this APK is on the
+  node-backed side of the `fromBuildConfig()` branch, that every endpoint names
+  the emulator's own host, and that all four of them answer. Six methods, all in
+  `check-wallet-regtest-results.py`'s `REQUIRED` set by name.
+
+**What it cost the repository, stated because a future reader will hit it:**
+
+- **Docker is a new host requirement.** `android/docs/self-hosted-runner.md` did
+  not ask for it before BIT-132.
+- **A source set that nothing normally compiles.**
+  `android/app/src/androidTestRegtest/` is added to `androidTest` only when a
+  `BITTR_LDK_*` value was supplied. That is a build-time switch rather than a
+  JUnit `@Assume`, because `check-wallet-instrumented-results.py` treats **any**
+  `<skipped/>` as a failed run — so an assumption would have turned that green job
+  red for behaving correctly. The `build` job compiles the directory with
+  throwaway `.invalid` values on every push, since a nightly-only suite otherwise
+  rots into a suite that is broken at night.
+
+**None of this is a K7 or a K8 result.** It is the precondition those two were
+blocked on, and it is now measured rather than argued. §3 and §4 say what each
+still needs.
 
 ---
 
@@ -159,7 +209,51 @@ people read. **BIT-133** owns the correction.
 and no lost claim: on restart, LDK's payment state resolves to exactly **one**
 terminal outcome.
 
-**Carried on BIT-132**, together with the configured build above and K8.
+**Carried on BIT-132**, together with the configured build above and K8. **Two of
+the three things it was waiting for now exist**; what is left is the test itself
+and its host phase.
+
+### The kill window — decided, and the decision is not the one this section expected
+
+The paragraph below this one says the infrastructure is not the hard part, and
+that is still true. What has changed is the answer.
+
+> "Kill the process mid-`send`" needs a *deterministic* interception point […]
+> either a seam in the send path that the test can block on, or N repetitions with
+> a stated confidence.
+
+**It is neither. The interception point goes in the counterparty.** LND's
+`addholdinvoice` withholds the preimage, so the HTLC arrives at the peer, is
+accepted, and *stays* accepted until the test settles or cancels it. The window is
+not milliseconds wide — it is as wide as the test wants; it is observable from the
+host, because `lncli lookupinvoice` reports `state: ACCEPTED` exactly when the
+HTLC is in flight; and reaching it needs **no test-only code anywhere near the
+money**. That is why the network in §0 runs LND and not Core Lightning or Eclair:
+`invoicesrpc` is compiled into every released LND, where the other two need a
+plugin.
+
+**Why not the seam.** A latch inside `LdkNodeSurface.sendBolt11` is a branch in
+the fund-handling path that exists only to be taken by a test. It either ships in
+the release APK — a way to wedge a real payment — or it does not, in which case
+the thing under test is not the thing that ships. It would also prove *less*: a
+seam can only pause where **we** are, before the FFI call or after it returns, and
+never inside `ChannelManager::send_payment`. The interesting window is the one
+where the HTLC is on the wire and our record of it may or may not be durable, and
+a hold invoice puts us squarely in it.
+
+**What the hold invoice does not cover, said now rather than discovered later.**
+There is a second window — inside `send`, between `ChannelManager` committing the
+outbound payment and that state being persisted — and it is genuinely not
+reachable this way, because for part of it no HTLC exists for any counterparty to
+hold. Two things about it. It is a **smaller** claim than the one K7 states: with
+nothing on the wire there is nothing to double-spend and nothing to lose, so the
+worst it could expose is a forgotten payment that never went out, which costs a
+retry rather than money. And if it is ever worth measuring, the honest instrument
+is N repetitions with a stated confidence — not a seam, and **not silence**,
+because one run that happened to miss the window is the false green this whole
+document exists to refuse. `K7InterruptedPaymentTest` will say which of the two
+windows each run entered, in its evidence line; a run reporting the narrow one is
+not a K7 result.
 
 **Why CI cannot supply it.** This needs a funded Lightning channel, which needs a
 private network, which is four services rather than one:
@@ -179,14 +273,41 @@ not exist, on top of the configured-build precondition above, inside a 45-minute
 timeout that a single self-hosted runner already serialises against two other
 emulator jobs.
 
+**All four now exist** (`android/regtest/docker-compose.yml`), in a job with a
+90-minute budget of its own (`wallet-regtest-nightly.yml`). Four services, three
+containers: Esplora and Electrum are two listeners on one `electrs`, because
+Blockstream's electrs *is* the implementation of both.
+
 **And the infrastructure is not the hard part.** "Kill the process
 mid-`send`" needs a *deterministic* interception point. Without one the kill
 window is milliseconds wide, and a test that lands inside it sometimes is a test
 that reports a fund-safety property as flaky — the worst possible reading, since
-the expected result and a missed window look identical. Making this honest needs
-either a seam in the send path that the test can block on, or N repetitions with
-a stated confidence, and that is a design decision about production code rather
-than a testing one.
+the expected result and a missed window look identical. That is decided above: the
+hold invoice, in the counterparty.
+
+### What K7 still needs, and it is no longer infrastructure
+
+1. **A host phase.** The test cannot observe its own restart. `am kill` takes the
+   instrumentation process with it, which is the lesson `BackupExclusionTest`
+   learned from `bmgr restore` — it used to delete what it planted, restore, and
+   assert nothing came back, and that assertion died exactly when there was a set
+   worth checking. So K7 is three host-driven steps: an instrumented run that
+   funds the wallet, opens a channel and pays the hold invoice; `adb shell am kill`
+   once `lncli lookupinvoice` says `ACCEPTED`; and a second instrumented run that
+   asserts the restarted node resolves the payment to exactly one terminal
+   outcome.
+2. **`am kill`, never `am force-stop`.** §2 above is the same correction for K2:
+   force-stop puts the package in Android's *stopped state*, which is a different
+   event from process death and one the platform treats differently.
+3. **The payment id needs no cross-process channel.** The host chooses the hold
+   invoice's payment hash, and ldk-node's BOLT11 `PaymentId` is that hash — so the
+   second run can be handed the id it must look up as an instrumentation argument
+   rather than reading a file the kill may have caught mid-write. The first run
+   asserts the two are equal, so if that ever stops being true the test says so
+   instead of silently looking up nothing.
+
+**Risk accepted by not running it.** Real, and the largest of the three — see
+below. Unchanged by §0: a network the test can reach is not a test.
 
 **Risk accepted by not running it.** Real, and the largest of the three. This is
 the claim BIT-6's notes are about — *"no path where a user can lose funds"* — and
@@ -218,6 +339,24 @@ of this test is a soak, not a step. A 45-minute job cannot hold it.
 **What it would need.** The configured regtest build, §3's four services, and a
 job with a soak budget — realistically a nightly rather than a per-push job.
 **Carried on BIT-132.**
+
+**Three of those four now exist** (§0): the configured build, the four services,
+and a nightly job. What is left for K8 is the soak itself, and one thing §0 does
+not solve:
+
+- **The budget is 90 minutes, and App Standby buckets move on the order of
+  hours.** So the soak has to *drive* the buckets rather than wait for them:
+  `am set-standby-bucket <pkg> rare` and `dumpsys deviceidle force-idle` put the
+  device in the state, and `dumpsys deviceidle unforce` takes it out. That is a
+  weaker claim than elapsed wall-clock and it must be labelled as one — a forced
+  bucket is the platform being told what to believe, not the platform having
+  decided.
+- **The Doze half is emulator-capable today** and now has a foreground service to
+  observe, which is the half that was missing. `dumpsys battery unplug` first, or
+  `force-idle` refuses.
+- `WalletForegroundServiceTest` still covers the JVM contract — promoted before a
+  start begins, demoted only on a definite failure — without proving the platform
+  honours it. That remains the gap.
 
 **Risk accepted by not running it.** Moderate and asymmetric. Doze suspends
 network and defers alarms; for a Lightning node the cost of being wrong is a

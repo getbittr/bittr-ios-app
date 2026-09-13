@@ -162,6 +162,49 @@ android {
         targetCompatibility = JavaVersion.VERSION_17
     }
 
+    /*
+     * K7 and K8's instrumented sources, compiled in only when this build has an
+     * environment for them to measure (BIT-132).
+     *
+     * `src/androidTestRegtest/` holds the tests that require a running node and a
+     * live private network — RegtestEnvironmentTest and what BIT-132 builds on it.
+     * They are worth nothing on an unconfigured build, which is the normal state
+     * of this repository: a clone, the `build` job, every Maestro run and the
+     * existing `wallet-instrumented` job all produce one on purpose.
+     *
+     * WHY A SOURCE SET AND NOT A JUNIT ASSUMPTION
+     *
+     * An `@Assume` would leave those classes in every test APK and skip them at
+     * run time, and `check-wallet-instrumented-results.py` treats ANY
+     * `<skipped/>` as a failed run — deliberately, because a skipped test does
+     * not fail a build and is therefore the quietest way for a suite to stop
+     * measuring anything. So the assumption route makes BIT-132's first commit
+     * turn a green job red for behaving correctly.
+     *
+     * WHY THE CONDITION IS `any` AND NOT `all`
+     *
+     * "Somebody supplied at least one value", not "the environment is complete".
+     * A build that supplied four of the five compiles these tests IN and then
+     * fails their `@Before`, naming the blank fields — which is the
+     * "partially configured is not configured" case from LdkEnvironmentConfig.
+     * Gate on completeness here and that build would instead compile the tests
+     * out and go green having measured nothing, which is the failure mode the
+     * whole of BIT-132 is about.
+     *
+     * WHAT PAYS FOR THE ROT RISK
+     *
+     * Sources nothing normally compiles break silently. The `build` job runs
+     * `:app:compileDebugAndroidTestKotlin` with throwaway values specifically to
+     * typecheck this directory on every push — see "Compile the regtest
+     * instrumented sources" in .github/workflows/android-maestro.yml. Without
+     * that step a nightly-only suite becomes a suite that is broken at night.
+     */
+    sourceSets.getByName("androidTest") {
+        if (ldkEnvironment.values.any { it.isNotBlank() }) {
+            kotlin.srcDir("src/androidTestRegtest/kotlin")
+        }
+    }
+
     buildFeatures {
         compose = true
         // Required for the buildConfigField calls above — AGP does not generate

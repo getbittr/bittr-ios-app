@@ -278,6 +278,31 @@ jobs:
         # fixtures are deliberately-wrong AARs that require a red.
         run: python3 android/scripts/test_check_ldk_data_loss_protect.py
 
+      - name: Test the regtest environment deriver
+        # BIT-132. regtest-ldk-env.py decides what a configured APK is allowed to
+        # reach, and it has exactly one green path that will be taken every night —
+        # so its only runs will be successful ones, which is the same argument the
+        # step above makes about a checker whose markers are all present.
+        #
+        # The two ways it can be wrong are both silent. A wrong PORT produces a
+        # wallet that starts, syncs nothing and reports zero balance, which looks
+        # like a chain with no coins on it. A wrong HOST produces a build that
+        # reaches somewhere it should not, which is the one failure in this
+        # repository that could spend real money. Both refusals get negative
+        # controls here, and the port numbers get compared against
+        # android/regtest/docker-compose.yml rather than against a copy of
+        # themselves.
+        run: python3 android/scripts/test_regtest_ldk_env.py
+
+      - name: Test the regtest results gate
+        # BIT-132. The twin of the wallet-instrumented gate's self-test, and it
+        # needs one more than that gate does: its job runs NIGHTLY, so a bug in it
+        # survives until someone looks rather than until the next push. It also
+        # cross-checks that every REQUIRED entry names a class and a method that
+        # exist in the source — the rename trap, caught in seconds instead of after
+        # an AVD boot in a job nobody is watching.
+        run: python3 android/scripts/test_check_wallet_regtest_results.py
+
       - name: Test the unit-test failure reporter
         # report-test-failures.py is the only thing that says WHICH unit test
         # broke in a form anyone outside this runner can read — see its header,
@@ -585,6 +610,40 @@ jobs:
           path: android/app/build/outputs/apk/debug/*.apk
           retention-days: 7
           if-no-files-found: error
+
+      - name: Compile the regtest instrumented sources
+        working-directory: android
+        # BIT-132. android/app/src/androidTestRegtest/ holds the tests that need a
+        # running node and a live private Lightning network, and
+        # app/build.gradle.kts adds that directory to the androidTest source set
+        # ONLY when a BITTR_LDK_* value was supplied. So on every push — and in
+        # the step above — those files are compiled by nothing.
+        #
+        # A source set nothing compiles rots, and a nightly-only suite rots into a
+        # suite that is broken at night: the failure arrives at 03:20 UTC, in a job
+        # nobody is watching, as a Kotlin error rather than as a result. This step
+        # is what keeps a missing import in K7's test a normal red on the push that
+        # wrote it.
+        #
+        # LAST IN THE JOB, not next to the other compile step, and that is
+        # load-bearing rather than tidy. Supplying these properties changes
+        # BuildConfig, so a build with them in front of `Assemble debug APK` would
+        # upload a CONFIGURED app-debug-apk — an artefact that composes
+        # NodeBackedWalletService and tries to reach 10.0.2.2, which is not the APK
+        # Maestro or any other consumer of that artifact is expecting.
+        #
+        # The values are throwaway and deliberately unreachable. `.invalid` is
+        # reserved by RFC 6761 and can never resolve, so nothing here can touch a
+        # real node even by accident; nothing connects in a compile anyway, and a
+        # future refactor that made this step run something would fail closed.
+        # They are NOT produced by regtest-ldk-env.py, which would refuse them —
+        # its whole job is to emit only values naming the emulator's host.
+        run: |
+          ./gradlew --no-daemon :app:assembleDebugAndroidTest \
+            -Pbittr.ldk.chainSourceUrl=http://compile-only.invalid:3002 \
+            -Pbittr.ldk.electrumUrl=tcp://compile-only.invalid:60401 \
+            -Pbittr.ldk.lightningNodeId=020000000000000000000000000000000000000000000000000000000000000000 \
+            -Pbittr.ldk.lightningNodeAddress=compile-only.invalid:9735
 
   maestro:
     name: Maestro smoke (emulator)
