@@ -100,9 +100,29 @@ class WalletPaths(
      */
     val discriminatorFile: File = File(ldkStateDir, "seed_discriminator")
 
+    /**
+     * Creates every directory a caller may write into without first asking.
+     *
+     * [bdkStoreDir] is in this list even though `BdkStore.prepare` creates it
+     * too, and that is not redundancy — it is the contract. When the store
+     * directory was split out of [walletDir], this method was not updated, so
+     * `File(bdkDatabaseFile).writeText(…)` started throwing `ENOENT` for any
+     * caller that had reasonably taken "the directories exist now" at its word.
+     * It survived the JVM suite and failed on a device, because the caller it
+     * broke was instrumented.
+     *
+     * [quarantineRoot] is deliberately **not** here. It is allocated by
+     * `LdkStateStore` at the moment it quarantines, and an empty quarantine
+     * root that exists from first launch would be indistinguishable from one
+     * whose quarantines had been removed.
+     *
+     * `WalletPathsCreateDirectoriesTest` fails if a directory property is added
+     * to this class and not to this method.
+     */
     fun createDirectories() {
         walletDir.mkdirs()
         ldkStateDir.mkdirs()
+        bdkStoreDir.mkdirs()
     }
 
     companion object {
