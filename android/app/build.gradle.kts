@@ -152,6 +152,59 @@ kotlin {
     }
 }
 
+// **What the guard tests read, said out loud to Gradle (BIT-113).**
+//
+// The `*GuardTest` classes in src/test run on the JVM and reach for their
+// subject at runtime through `SourceTree`, which walks the whole `android/`
+// tree: every Kotlin file in every module, the manifests, the build scripts and
+// the version catalog, `app/src/main/res/xml/data_extraction_rules.xml`, the two
+// `google-services.json`, and `scripts/ci-wallet-instrumented.sh`. None of that
+// reaches this task's input set on its own. androidTest is a different source
+// set; another module arrives here as compiled classes, not as source; a shell
+// script is not an input to anything.
+//
+// So Gradle saw identical inputs across a commit that changed a guarded file,
+// called `testDebugUnitTest` up-to-date, and the assertion never executed.
+// Measured: edit `BackupExclusionTest.kt`'s HANDOFF to the exact drift
+// `BackupExclusionInstrumentationGuardTest` exists to catch, run the unfiltered
+// task, get `UP-TO-DATE / BUILD SUCCESSFUL`; the same tree under `--rerun` is
+// red. It is not local-only either — the `build` job restores a Gradle build
+// cache through `gradle/actions/setup-gradle@v4`, and a fresh checkout at a
+// different path took the stale green entry `FROM-CACHE`.
+//
+// A guard that did not run and a guard that passed are the same exit code and
+// the same green check mark, and this lands hardest on exactly the commit that
+// most needed the guard — the one whose change Gradle cannot see.
+//
+// Declared as the tree `SourceTree` actually walks, rather than as a list of the
+// paths today's guards happen to open. A narrower list is a second thing that
+// can drift out of step with the scan, and it would drift silently and green:
+// the same failure, one level up. The excludes are the generated and
+// machine-local directories from .gitignore — get that list wrong and the cost
+// is an unnecessary re-run, which is the safe direction to be wrong in.
+//
+// RELATIVE, because the whole point of the CI cache is that it is shared between
+// checkouts, and ABSOLUTE would make every entry unusable rather than wrong.
+val sourcesReadAtRuntime: FileTree = fileTree(rootDir) {
+    exclude(
+        "**/build", "**/build/**",
+        "**/.gradle", "**/.gradle/**",
+        "**/.kotlin", "**/.kotlin/**",
+        "**/.idea", "**/.idea/**",
+        "**/.cxx", "**/.cxx/**",
+        "**/__pycache__", "**/__pycache__/**",
+        "captures/**",
+        "**/*.iml",
+        "local.properties",
+    )
+}
+
+tasks.withType<Test>().configureEach {
+    inputs.files(sourcesReadAtRuntime)
+        .withPathSensitivity(PathSensitivity.RELATIVE)
+        .withPropertyName("sourcesReadAtRuntime")
+}
+
 dependencies {
     implementation(project(":core:common"))
     implementation(project(":core:designsystem"))

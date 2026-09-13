@@ -46,6 +46,26 @@ kotlin {
     }
 }
 
+// **What this module's guards read, said out loud to Gradle (BIT-113).**
+//
+// `WalletSourceTree` opens `src/main` and `src/test` by path at runtime, and
+// `DiscriminatorSpecTest` reads `SeedDiscriminator.kt` the same way. Unlike
+// `:app`'s guards — which reach outside this task's world entirely and were
+// measurably being skipped — these files do reach the test task already, as
+// compiled classes on its classpath, so most edits to them do invalidate it.
+//
+// That is not the same as being declared, and the difference is the whole
+// subject of BIT-113. "The bytecode changes too" is a property of the Kotlin
+// compiler, it holds for some edits and not others (a comment or a reformat
+// changes the source these guards read and nothing on the classpath), and it is
+// not a thing the next person adding a guard here will re-derive before
+// trusting a green run. One line makes it a fact about the build instead.
+tasks.withType<Test>().configureEach {
+    inputs.dir(layout.projectDirectory.dir("src"))
+        .withPathSensitivity(PathSensitivity.RELATIVE)
+        .withPropertyName("sourcesReadAtRuntime")
+}
+
 dependencies {
     api(project(":core:wallet"))
 
