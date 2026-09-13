@@ -155,6 +155,60 @@ Send consumes the parser when it is built on BIT-6's wave; until then the
 scanner route returns a parsed `Destination` on the caller's back stack entry,
 and `ScannerRouteWiringTest` fails the build if that regresses to a bare pop.
 
+#### What Send must ask the engine for — two corrections, recorded early
+
+From the Wallet Engineer on BIT-7, 2026-09-12, read out of the unpacked
+`ldk-node-android` 0.7.0 binding rather than inferred from the iOS source.
+**There is no Send issue on the board** (all 105 checked), so BIT-100's pointer
+comment had nowhere to be read from. It lives here until Send gets an issue, at
+which point both notes travel with it.
+
+- **`outboundCapacityMsat` is the wrong field, and it over-reports.** It is net
+  of the counterparty reserve but not of the dust limit or the on-chain fee
+  buffer. `nextOutboundHtlcLimitMsat` is the one that answers "how big an HTLC
+  can go out right now". Both are on `ChannelDetails` in 0.7.0. So what BIT-6
+  exposes as spendable outbound is `max(nextOutboundHtlcLimitMsat)` over
+  channels where `isUsable` — **not summed**, because a non-MPP BOLT-11 payment
+  goes down one channel. Send compares the invoice amount against that and
+  treats it as an upper bound; routing fees come off the top.
+- **Picking the channel by `isUsable` is a deliberate divergence from iOS, and
+  it is a bug fix.** iOS selects on `isChannelReady`
+  (`QuestionViewController.swift:131-139`, reached from `AddressParsing.swift:42`).
+  Ready means funding confirmed; usable additionally means the peer is
+  connected — so iOS quotes capacity on an offline peer's channel. Same
+  category as the LNURL-auth case-sensitivity divergence above: named in a
+  test, and it belongs in the deviation log (BIT-7 deliverable 6), not in a
+  parity-preserving port.
+- **LNURL-auth `k1` signing is engine-side, not Send-side.** The linking key
+  has to derive from the mnemonic; an independently generated LNURL-auth
+  identity would be a second irreplaceable secret, which BIT-8 rule 1 forbids.
+
+Neither is built. This is a pointer for whoever builds Send, not a handoff.
+
+#### The backup-exclusion test does not gate the ported screens
+
+Recorded 2026-09-13 so this stops being re-asked on every board sweep.
+`BackupExclusionTest` is unproven — it has never passed on a device (BIT-59 has
+no `connectedAndroidTest` step; BIT-108 is the device-transfer case killing its
+own instrumentation process). That is a real precondition for **BIT-20 rule 5**
+and therefore for BIT-6, and it is correctly holding the engine.
+
+It does not reach the feature port, and the reason is mechanical rather than a
+judgement call. Everything the test constrains lives in three places:
+
+- `android/app/src/main/AndroidManifest.xml` (`allowBackup="false"`),
+- `android/app/src/main/res/xml/data_extraction_rules.xml`,
+- the `no_backup` siting in `core/wallet-ldk/…/state/WalletPaths.kt`.
+
+No `:feature:*` module carries a backup attribute — checked across every module
+manifest. So whichever way the test comes out, the fix is in `:app` config or
+the seed layer; `data_extraction_rules.xml` says so in its own header ("the
+answer is to fix these entries, never to relax the rule"). **No Wave 1 screen
+is at risk of rework from its outcome**, so Wave 1 porting continues while it
+is unproven. What the unproven test genuinely gates is shipping a
+wallet-bearing build — the sign-off package, BIT-7 deliverable 6 — not the
+building of screens.
+
 ### Wave 2 — the engine (BIT-6), the critical path
 
 `ldk-node-android` 0.7.0 + `bdk-android` 1.2.0 behind the `WalletService` seam
