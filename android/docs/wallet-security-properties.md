@@ -315,17 +315,25 @@ quietly turning the device-transfer case into a second cloud case.
   not merely to have not failed, because a skipped test and a green one look the
   same in an exit code.
 - **An empty set.** An empty set excludes everything trivially, so each path
-  writes a canary into `files/`, which no rule excludes, and asserts either that
-  the canary came back or that the framework is on record declining to back the
-  package up. A failure naming the canary is the suite refusing to certify an
-  empty set — not a backup-exclusion regression.
+  writes a canary into `files/`, which no rule excludes. The canary used to be
+  asserted back out of a restore; since BIT-108 there is no restore, so it is
+  `check-backup-set.sh` that looks for it, in the set itself. No canary means no
+  set, and the script says so instead of reporting a clean grep — the outcome-3
+  warning. Nothing in the suite certifies an empty set because nothing in the
+  suite certifies anything.
 - **An ineligible package.** `allowBackup="false"` makes the package ineligible
   outright, and that is the expected cloud-path outcome. It is a pass for rule 5
   and it is *not* a proof that the `<device-transfer>` rules work, because they
-  were never consulted. The `BACKUP_EXCLUSION` lines printed on every run say
-  which of the two happened, per path: `canaryReturned=true` means a real set
-  that excluded our material; `canaryReturned=false` with a declining result
-  means the package was never offered to the transport.
+  were never consulted. Which of the two a run got is the canary's answer, above,
+  and it is read off the `Backup set inspection` annotation. The
+  `BACKUP_EXCLUSION` lines the suite prints record the three prefixes it planted
+  and whether it left the set on the transport; they are how you check the two
+  halves were talking about the same run, not a verdict.
+
+  As of run 139 those lines still do not reach `<system-out>` — the runner is not
+  filing instrumentation stdout into the result XML (known since run 110). That
+  is a gap in the *diagnostics*, not in the verdict, and it is only survivable
+  because the verdict moved to the host. It was not before. Tracked on BIT-114.
 
 **Since BIT-108 the verdict does not come from the suite at all.** The check that
 decides rule 5 is `android/scripts/check-backup-set.sh`: `BackupExclusionTest`

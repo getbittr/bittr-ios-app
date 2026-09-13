@@ -390,17 +390,32 @@ def main(argv=None):
     # lines. So the lines are printed and do not land in <system-out>: AGP does
     # not file instrumentation stdout there, which is a wrong assumption in THIS
     # script about where to look, not an observation about the device. Known
-    # cause as of run 110; tracked on BIT-108, since the fix (get the
-    # observation to the host) is the same one the assertion needs.
+    # cause as of run 110; tracked on BIT-114.
+    #
+    # Runs 139 and 140 removed the remaining ambiguity. Both are green with the
+    # vacuity check passed, so every test ran to completion and every print was
+    # reached — and both still reported no lines. The wording below keeps naming
+    # both causes anyway, because it has to be true on a RED run too, where "the
+    # tests did not reach the print" is live again.
+    #
+    # What changed with BIT-108 is the stakes, not the cause. While the rule-5
+    # verdict lived in the suite, these lines were how a reader told an excluded
+    # set from a set that was never written, and losing them silently was a false
+    # green. The verdict is check-backup-set.sh's now — it greps the transport's
+    # tree from the host and needs neither a surviving process nor stdout — so
+    # this is a diagnostics gap. Costly, not load-bearing.
     reported = "\n".join(evidence) if evidence else (
-        "No BACKUP_EXCLUSION or KEYSTORE_KEY_INFO line reached <system-out>. Read "
-        "any pass in this run as UNPROVEN either way: these lines are what say "
-        "which of the two green outcomes a run got. Two causes, and they are not "
-        "distinguishable from here — the tests did not reach the print, or the "
+        "No BACKUP_EXCLUSION or KEYSTORE_KEY_INFO line reached <system-out>. "
+        "These lines are the per-path detail — which prefixes were planted, "
+        "whether the set was left on the transport, the Keystore security level "
+        "this device gave us — so without them you cannot check that the suite "
+        "and the host phase were talking about the same run. Two causes, not "
+        "distinguishable from here: the tests did not reach the print, or the "
         "lines were printed and the runner did not file instrumentation stdout "
         "into the result XML. The latter is the known cause as of run 110 and is "
-        "tracked on BIT-108; do not read this as a device finding without "
-        "checking which one it was."
+        "tracked on BIT-114; runs 139 and 140 were green with every test run and "
+        "still reported none. This does NOT undercut the rule-5 verdict, which "
+        "comes from the `Backup set inspection` annotation and needs no stdout."
     )
     print(f"::notice title=What the device reported::{annotate(reported)}")
 
@@ -481,16 +496,23 @@ def main(argv=None):
     # ineligible package produces an empty set that satisfies "nothing of ours
     # came back" without the <device-transfer> rules having been consulted at
     # all. That is a pass for BIT-20 rule 5 and it is NOT a proof that the rules
-    # work; the BACKUP_EXCLUSION lines in the instrumentation output say which
-    # of the two happened, per path.
-    print("\nNOTE: read the 'What the device reported' annotation on this run "
-          "before quoting this suite. Each path prints the framework's own result "
-          "for the package and whether the canary came back: canaryReturned=true "
-          "means the set was real and excluded our material, canaryReturned=false "
-          "with a declining result means the package was ineligible and exclusion "
-          "was never exercised on that path. Both are passes; only the first is "
-          "evidence about the rules. wallet-security-properties.md §4 is where "
-          "that distinction is tracked.")
+    # work.
+    #
+    # Which of the two a run got used to be read off `canaryReturned` in the
+    # BACKUP_EXCLUSION lines — the canary asserted back out of an in-process
+    # restore. BIT-108 removed the restore (it killed the process it asserted
+    # from), so that field no longer exists and nothing in this suite answers
+    # the question any more. The canary is still planted; it is
+    # check-backup-set.sh that looks for it, in the set itself, and its
+    # `Backup set inspection` annotation is the answer.
+    print("\nNOTE: a pass here is not by itself evidence for BIT-20 rule 5 — "
+          "read the 'Backup set inspection' annotation on this run before "
+          "quoting this suite. It reports the canary: no wallet marker WITH the "
+          "canary present means a real set that excluded our material, which is "
+          "the evidence outcome; no wallet marker and no canary means the set "
+          "was empty and the exclusion rules were never consulted. Both are "
+          "passes, only the first proves anything, and this suite cannot tell "
+          "them apart. wallet-security-properties.md §4 tracks the distinction.")
 
     if problems:
         print()

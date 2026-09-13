@@ -263,8 +263,9 @@ if ! printf '%s\n' "$installed_packages" | grep -q "^package:$APP_PACKAGE$"; the
   # those call for opposite fixes — so the warning quotes what the device
   # actually has rather than asserting the cause. `(none)` is the uninstall;
   # anything listed is a naming drift this script lost a run to once already.
-  bittr_packages=$(printf '%s\n' "$installed_packages" | grep -i 'bittr' || true)
-  bittr_packages=$(printf '%s' "${bittr_packages:-  (none)}" | tr '\n' ' ')
+  bittr_packages=$(printf '%s\n' "$installed_packages" | grep -i 'bittr' \
+    | tr '\n' ' ' | sed 's/[[:space:]]*$//' || true)
+  bittr_packages=" ${bittr_packages:-(none)}"
 
   echo "::warning title=Device-transfer backup::$APP_PACKAGE is not installed after"\
     " connectedAndroidTest, so there is nothing to back up on the device-transfer"\
@@ -429,10 +430,14 @@ fi
   echo "**A pass is not automatically evidence that the rules were exercised.**"
   echo "\`allowBackup=\"false\"\` can make the package ineligible outright, and an"
   echo "ineligible package produces an empty set that satisfies every exclusion"
-  echo "assertion without the \`<device-transfer>\` rules being consulted. The"
-  echo "\`BACKUP_EXCLUSION\` lines say which happened, per path —"
-  echo "\`canaryReturned=true\` is a real set that excluded our material. The"
-  echo "vacuity check reprints them into the job log; see"
+  echo "assertion without the \`<device-transfer>\` rules being consulted."
+  echo
+  echo "The canary is what tells those apart, and \`Backup set inspection\` is"
+  echo "where to read it: no wallet marker **with the canary present** is the"
+  echo "evidence outcome, and no wallet marker with no canary means the set was"
+  echo "empty. The suite plants the canary but no longer asserts it — that was"
+  echo "\`canaryReturned\`, read back out of the in-process restore BIT-108"
+  echo "removed — so nothing in the test results answers this. See"
   echo "\`wallet-security-properties.md\` §4."
 } >> "${GITHUB_STEP_SUMMARY:-/dev/null}" || echo "::warning::Could not write the summary. The test result itself is unaffected."
 

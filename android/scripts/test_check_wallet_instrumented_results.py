@@ -302,7 +302,7 @@ def test_a_green_run_says_how_to_tell_a_real_pass_from_an_ineligible_one():
         code, out = run(both_modules(pathlib.Path(tmp)))
     check(
         "a green run points at the BACKUP_EXCLUSION lines",
-        code == 0 and "canaryReturned" in out and "BACKUP_EXCLUSION" in out,
+        code == 0 and "setLeftOnTransport" in out and "BACKUP_EXCLUSION" in out,
         out,
     )
     check("and points at where it is tracked",
@@ -394,7 +394,7 @@ def test_the_evidence_lines_are_lifted_into_the_log():
             out_file.read_text().replace(
                 "</testsuite>",
                 "<system-out>BACKUP_EXCLUSION path=device-transfer api=34 "
-                "package=com.bittr.android.regtest result=Success canaryReturned=true\n"
+                "package=com.bittr.android.regtest result=Success setLeftOnTransport=true\n"
                 "noise that is not evidence\n"
                 "KEYSTORE_KEY_INFO api=34 unlockedDeviceRequired=&lt;not exposed&gt;\n"
                 "</system-out>\n</testsuite>",
@@ -402,7 +402,7 @@ def test_the_evidence_lines_are_lifted_into_the_log():
         )
         code, out = run(dirs)
     check("a run with evidence lines still exits 0", code == 0, out)
-    check("the backup evidence line is in the log", "canaryReturned=true" in out, out)
+    check("the backup evidence line is in the log", "setLeftOnTransport=true" in out, out)
     check("the keystore evidence line is in the log", "KEYSTORE_KEY_INFO" in out, out)
     check(
         "and unprefixed stdout is not dragged in with it",
@@ -503,7 +503,7 @@ def test_a_normal_failure_with_missing_tests_is_not_called_process_death():
 
 def test_the_evidence_lines_reach_an_annotation_not_only_the_log():
     line = ("BACKUP_EXCLUSION path=device-transfer api=34 package=com.bittr.android "
-            "result=Success canaryReturned=true")
+            "result=Success setLeftOnTransport=true")
     with tempfile.TemporaryDirectory() as tmp:
         tmp = pathlib.Path(tmp)
         ldk = write_results(tmp / "wallet-ldk",
@@ -515,7 +515,7 @@ def test_the_evidence_lines_reach_an_annotation_not_only_the_log():
     notices = [l for l in out.splitlines() if l.startswith("::notice title=What the device reported::")]
     check("the evidence is emitted as a notice annotation", len(notices) == 1, out)
     check("and the annotation carries the line itself",
-          notices and "canaryReturned=true" in notices[0], out)
+          notices and "setLeftOnTransport=true" in notices[0], out)
 
 
 def test_absent_evidence_is_reported_in_the_annotation_too():
@@ -541,7 +541,7 @@ def test_absent_evidence_is_reported_in_the_annotation_too():
 def test_the_evidence_annotation_stays_one_line():
     # Two evidence lines must not become two log lines, or the second is
     # ordinary output and falls out of the annotation.
-    out_lines = "BACKUP_EXCLUSION path=cloud-backup canaryReturned=false\nKEYSTORE_KEY_INFO securityLevel=TEE"
+    out_lines = "BACKUP_EXCLUSION path=cloud-backup setLeftOnTransport=false\nKEYSTORE_KEY_INFO securityLevel=TEE"
     with tempfile.TemporaryDirectory() as tmp:
         tmp = pathlib.Path(tmp)
         ldk = write_results(tmp / "wallet-ldk",
