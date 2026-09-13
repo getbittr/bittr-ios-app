@@ -567,6 +567,76 @@ def test_the_evidence_annotation_stays_one_line():
           notices and "%0A" in notices[0] and "KEYSTORE_KEY_INFO" in notices[0], out)
 
 
+def test_rule_10_claims_no_more_than_rule_4_does():
+    # THE BUG THIS PINS, found on this branch after the BIT-108 merge. Rule 10's
+    # evidence column is the literal string "as rule 4" — it has no evidence of
+    # its own — so its status is rule 4's status or it is a fiction. They had
+    # drifted apart: the merge updated rule 4 to `not yet proven` and §4's
+    # conclusion to "neither `partly proven` nor the §5.3 halt has been earned",
+    # and left rule 10 reading `partly proven on one device`. A reader checking
+    # the wallet-directory claim got a different answer depending on which row
+    # they landed on, and the more permissive one was the stale one.
+    #
+    # That matters more than a normal doc nit: this table is what BIT-20 rule 5
+    # consults to decide whether `match -> keep` may proceed, and a row reading
+    # `partly proven` where the evidence says `not yet proven` is precisely the
+    # proven-and-wrong failure this file's docstring exists to refuse.
+    #
+    # Asserted as a relation between the two rows, not as either row's literal
+    # text, so the pin survives the status legitimately changing: when a run
+    # finally carries both halves, rule 4 moves and rule 10 must move with it.
+    doc = MODULE.parent / ".." / "docs" / "wallet-security-properties.md"
+    check("wallet-security-properties.md is where this expects it", doc.is_file(), doc)
+    text = doc.read_text() if doc.is_file() else ""
+
+    def status_of(rule):
+        for line in text.splitlines():
+            if line.startswith(f"| {rule} |"):
+                return line.rsplit("|", 2)[-2]
+        return None
+
+    four, ten = status_of("4"), status_of("10")
+    check("rule 4 has a status cell", four, text[:200])
+    check("rule 10 has a status cell", ten, text[:200])
+
+    # The ladder, weakest first. Compared by rung, not by wording, because the
+    # two cells legitimately differ in prose length -- rule 4 carries the
+    # history, rule 10 points at it.
+    #
+    # Matched most-specific-first, and the FIRST hit wins rather than the
+    # highest. Two overlaps make the naive version wrong, and both are live in
+    # this table today: "proven" is a substring of "not yet proven", and rule 4's
+    # cell recites the phrase "partly proven" inside a sentence DENYING it
+    # ("neither `partly proven` nor the §5.3 halt is earned"). Scanning for the
+    # strongest match found anywhere reads both rows as claiming more than they
+    # do -- which is the same over-claim this test exists to catch, so getting it
+    # wrong here would have been a gate that fails as a pass.
+    LADDER = ["not yet proven", "partly proven", "proven"]
+
+    def rung(cell):
+        for i, word in enumerate(LADDER):
+            if word in (cell or ""):
+                return i
+        return None
+
+    check("rule 4 states one of the known statuses", rung(four) is not None, four)
+    check("rule 10 states one of the known statuses", rung(ten) is not None, ten)
+    check("and rule 10 claims no more than rule 4, whose evidence it shares",
+          (rung(ten) or 0) <= (rung(four) or 0),
+          f"rule 4: {four}\nrule 10: {ten}")
+
+    # And the table must not contradict §4's own conclusion. While that sentence
+    # stands, no row may claim to have reached `partly proven`. Whitespace is
+    # normalised because the sentence is wrapped across lines in the source.
+    conclusion = "neither `partly proven` nor the §5.3 halt has been earned yet"
+    if conclusion in " ".join(text.split()).lower():
+        for rule, cell in (("4", four), ("10", ten)):
+            check(f"rule {rule} does not claim a rung §4 says is unearned",
+                  (rung(cell) or 0) < LADDER.index("partly proven"),
+                  f"§4 says neither partly proven nor the halt is earned, "
+                  f"but rule {rule} reads: {cell}")
+
+
 def test_the_reading_guide_sends_the_reader_to_the_verdict_first():
     # THE BUG THIS PINS. The guide used to open with "read 'What the device
     # reported' first". That annotation has never carried a per-path line: the

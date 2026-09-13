@@ -51,7 +51,7 @@ written.
 | 7 | match → keep · mismatch → quarantine · absent → quarantine | `SeedImportGuard` | `BlobDestroyedRecoversTest` (match, mismatch) · `ForeignStateQuarantinedTest` (absent) | green |
 | 8 | Three-way blob classification; transient ≠ absence | Classification on exception type, no fallback branch meaning "absent" | `TransientKeystoreFailureAbortsTest` | green |
 | 9 | Quarantine never overwrites a prior quarantine | Uniquely-named subdirectory under `no_backup/foreign_ldk_state/` | `QuarantineDoesNotClobberTest` | green |
-| 10 | Exclusion widens to the LDK state directory, both backup paths | The three layers in rule 4, scoped to the whole wallet directory | as rule 4 | configuration green; behaviour **partly proven on one device, see §4** |
+| 10 | Exclusion widens to the LDK state directory, both backup paths | The three layers in rule 4, scoped to the whole wallet directory | as rule 4 | configuration green; behaviour **not yet proven — this row's evidence is rule 4's, so its status tracks rule 4's; see §4** |
 
 ### Port-faithfulness fixes carried without a separate ruling
 
@@ -224,7 +224,7 @@ evidence outcome. "The rules excluded our wallet files" and "there was nothing i
 the set to exclude" are no longer the same green: the first is a `::notice::`,
 the second a `::warning::` that says in as many words that the set was empty and
 the rules were never consulted. What the next run has to show for rule 4/10 to
-move off *partly proven* is that notice — no wallet marker **and** the canary
+reach *partly proven* is that notice — no wallet marker **and** the canary
 present in the transport's tree.
 
 **An empty set does not tell you which path left it empty**, and the two paths do
