@@ -45,8 +45,17 @@ class WalletLayeringGuardTest {
          * the drain clamp decides the largest amount that may leave the wallet,
          * and `BdkStore` recursively deletes a directory. Neither belongs behind
          * a native library that keeps its test off CI.
+         *
+         * `lightning/` is the ldk-node half and it is the largest of them. It
+         * holds the arithmetic that turns `BalanceDetails` into the number on
+         * the home screen, the guard that decides whether the wallet may be
+         * deleted from the device — which is a decision about whether
+         * force-close sweep material still matters — and the event pump's
+         * acknowledgement order, which decides whether an event is replayed or
+         * lost. Every one of those is a claim that would otherwise need a
+         * funded regtest node to check.
          */
-        val DECISION_PACKAGES = listOf("seed", "state", "bip", "node", "onchain")
+        val DECISION_PACKAGES = listOf("seed", "state", "bip", "node", "onchain", "lightning")
 
         /** The only directory allowed to name a native binding. */
         const val ADAPTER_PACKAGE = "adapter"

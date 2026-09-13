@@ -743,7 +743,24 @@ worth making to the product to satisfy a test.
     `BdkStore`, `ScanCoordinator` and `OnchainDrain` are decisions with no
     wallet behind them. **BIT-124.**
   - Lightning channel and payment handling, and the ldk-node event loop.
-    **BIT-125.**
+    **BIT-125** — the decisions have landed, the wiring has not. `lightning/`
+    now holds the balance arithmetic that turns ldk-node's `BalanceDetails`
+    into the figure beside the on-chain balance, the guard that decides whether
+    the wallet may be deleted from the device, the LSP reconnect, the BOLT12
+    fee ceiling and the event pump's acknowledgement order; `LdkNodeSurface` is
+    the binding, and its record-to-view mapping is asserted on the JVM for the
+    same reason `LdkNodeConfigTest` can be. Three things to be plain about:
+    **nothing calls any of it** (that is BIT-126's wiring), **no test here runs
+    against a node** (BIT-123), and the pump's survival across backgrounding is
+    a property of the service that will host it, not of the loop.
+
+    Two deliberate divergences from iOS are recorded in code and repeated here
+    because they are the kind that get "tidied" back: the channel-balance
+    subtraction is floored at zero rather than being allowed to wrap a `ULong`
+    — Swift traps where Kotlin would show the user 184 billion bitcoin — and an
+    event whose handler threw is **not** acknowledged, where iOS acknowledges
+    unconditionally. The first is a display figure, the second trades a replay
+    for a loss. Neither touches key handling or signing.
   - Wiring node start/stop to the Android process and service lifecycle.
     `NodeLifecycle` starts and stops a node; **nothing calls it**, and
     `WalletService.start`/`stop` are still the stub's no-ops. **BIT-126.**
