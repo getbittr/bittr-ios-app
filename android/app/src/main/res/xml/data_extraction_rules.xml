@@ -30,17 +30,36 @@
   The static half of this is asserted by BackupExclusionRulesTest, which reads
   this file and the merged manifest. The empirical half — that a real backup
   set produced by bmgr contains none of it — is BackupExclusionTest in
-  app/src/androidTest. It is written and has never run: it needs a device
-  (BIT-59).
+  app/src/androidTest, which creates the conditions, plus
+  android/scripts/check-backup-set.sh, which returns the verdict by decoding the
+  set from the host. Both run on every push since BIT-59.
 
-  One thing that test is also there to settle, and which is deliberately not
+  One thing that test was also there to settle, and which was deliberately not
   asserted here from memory: the root of domain="file" is getFilesDir(), while
   the wallet directory is under getNoBackupFilesDir() — a sibling, not a child.
-  If that is right, the two entries below match nothing the product writes and
-  the no_backup siting is carrying rule 5 by itself. BackupExclusionTest plants
-  a decoy at each of the two paths these entries name, so the question is
-  answered by a device rather than by reading. Whichever way it comes out, the
-  answer is to fix these entries, never to relax the rule.
+  If those entries matched nothing the product writes, the no_backup siting
+  would be carrying rule 5 by itself. BackupExclusionTest plants a decoy at each
+  of the two paths these entries name, so a device answers rather than a reading
+  of the docs.
+
+  ANSWERED on d073424 (BIT-116): these entries are LIVE, not a no-op. The
+  device-transfer set was decoded on the host and the canary — planted in files/
+  beside the decoys, matched by no exclude entry — was in it, while BOTH decoys
+  were absent. One file in, two out, same files/ domain and same set, so the
+  framework did populate that domain and these entries kept exactly the two
+  paths they name out of it.
+
+  Two things that finding does NOT mean, because the temptation is to read it as
+  more than it is:
+
+    * It does not on its own carry rule 5. Every wallet path is under
+      getNoBackupFilesDir(), which the framework excludes categorically, so all
+      three layers predict the same absence and no run through the host check
+      separates them for the wallet paths themselves.
+    * It does not make the other two layers redundant. Belt and braces was the
+      reason for three, and one of them being confirmed live is not a reason to
+      drop any. If a future run ever finds a decoy IN a set, the answer is still
+      to fix these entries and never to relax the rule.
 -->
 <data-extraction-rules>
     <cloud-backup>

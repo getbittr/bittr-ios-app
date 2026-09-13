@@ -114,15 +114,27 @@ REQUIRED = {
     # --- :app — the installed application (BIT-8 rule 4 / BIT-20 rule 5) -------
     #
     # BackupExclusionTest (BIT-101) is the behavioural half: plant a
-    # wallet-bearing install, drive `bmgr`, delete what was planted, restore,
-    # assert none of it came back. Three methods, @FixMethodOrder NAME_ASCENDING.
+    # wallet-bearing install, drive `bmgr`, and leave a real set on the local
+    # transport. Three methods, @FixMethodOrder NAME_ASCENDING.
     #
-    # backupManagerAndTheLocalTransportAreLiveOnThisDevice is the canary: it is
-    # the reason the other two mean anything, because on an image with no local
-    # transport "the backup set excluded our files" and "no backup set was ever
-    # produced" are the same tick. It also names com.android.localtransport
-    # specifically, which is what makes a Play-image runner a legible red rather
-    # than a vacuous green.
+    # It does NOT assert the set's contents, and since BIT-108 it deliberately
+    # does not try. It used to delete what it planted, restore, and assert
+    # nothing came back; `bmgr restore` kills the target process and the
+    # instrumentation runs inside it, so that assertion died exactly when there
+    # was a set worth checking and passed exactly when there was not. These three
+    # methods passing therefore means THE CONDITIONS WERE CREATED, not that rule
+    # 5 holds. The verdict comes from android/scripts/check-backup-set.sh, which
+    # greps the transport's tree from the host in the same job — so a green here
+    # with no backup-set notice in the run's annotations is not a result yet.
+    #
+    # backupManagerAndTheLocalTransportAreLiveOnThisDevice is the canary in the
+    # sense CANARY below means it — not to be confused with the canary FILE the
+    # suite plants, which is what check-backup-set.sh requires before calling a
+    # clean grep evidence. This one is the reason the other two mean anything,
+    # because on an image with no local transport "the backup set excluded our
+    # files" and "no backup set was ever produced" are the same tick. It also
+    # names com.android.localtransport specifically, which is what makes a
+    # Play-image runner a legible red rather than a vacuous green.
     f"{APP_PACKAGE}.BackupExclusionTest#backupManagerAndTheLocalTransportAreLiveOnThisDevice",
     f"{APP_PACKAGE}.BackupExclusionTest#cloudBackupOfAWalletBearingInstallCarriesNoWalletMaterial",
     # The half `allowBackup="false"` may not cover, and the one BIT-20 §5.3
@@ -378,17 +390,40 @@ def main(argv=None):
     # lines. So the lines are printed and do not land in <system-out>: AGP does
     # not file instrumentation stdout there, which is a wrong assumption in THIS
     # script about where to look, not an observation about the device. Known
-    # cause as of run 110; tracked on BIT-108, since the fix (get the
-    # observation to the host) is the same one the assertion needs.
+    # cause as of run 110; tracked on BIT-114.
+    #
+    # Runs 139 and 140 removed the remaining ambiguity. Both are green with the
+    # vacuity check passed, so every test ran to completion and every print was
+    # reached — and both still reported no lines. The wording below keeps naming
+    # both causes anyway, because it has to be true on a RED run too, where "the
+    # tests did not reach the print" is live again.
+    #
+    # What changed with BIT-108 is the stakes, not the cause. While the rule-5
+    # verdict lived in the suite, these lines were how a reader told an excluded
+    # set from a set that was never written, and losing them silently was a false
+    # green. The verdict is check-backup-set.sh's now — it greps the transport's
+    # tree from the host and needs neither a surviving process nor stdout — so
+    # this is a diagnostics gap. Costly, not load-bearing.
+    #
+    # It is still stated as UNPROVEN, with the scope named. Before BIT-108 the
+    # word covered the rule-5 verdict itself; it now covers the correlation only
+    # — that this suite and the host phase were reporting on the same run and the
+    # same path. Dropping the word entirely is what BIT-108 did, and it left
+    # nothing in the annotation to distinguish "we checked the tie" from "we
+    # could not", which is the shape of gap this whole file exists to refuse.
     reported = "\n".join(evidence) if evidence else (
-        "No BACKUP_EXCLUSION or KEYSTORE_KEY_INFO line reached <system-out>. Read "
-        "any pass in this run as UNPROVEN either way: these lines are what say "
-        "which of the two green outcomes a run got. Two causes, and they are not "
-        "distinguishable from here — the tests did not reach the print, or the "
+        "No BACKUP_EXCLUSION or KEYSTORE_KEY_INFO line reached <system-out>. "
+        "These lines are the per-path detail — which prefixes were planted, "
+        "`setLeftOnTransport`, the Keystore security level "
+        "this device gave us — so treat the tie between this suite and the host "
+        "phase as UNPROVEN on this run: without them you cannot check that the "
+        "two were reporting on the same run, or the same path. Two causes, not "
+        "distinguishable from here: the tests did not reach the print, or the "
         "lines were printed and the runner did not file instrumentation stdout "
         "into the result XML. The latter is the known cause as of run 110 and is "
-        "tracked on BIT-108; do not read this as a device finding without "
-        "checking which one it was."
+        "tracked on BIT-114; runs 139 and 140 were green with every test run and "
+        "still reported none. This does NOT undercut the rule-5 verdict, which "
+        "comes from the `Backup set inspection` annotation and needs no stdout."
     )
     print(f"::notice title=What the device reported::{annotate(reported)}")
 
@@ -464,21 +499,50 @@ def main(argv=None):
         )
 
     # Said on every run, green or red. A reader who sees two green backup tests
-    # should be told, in the run, which layer each of them exercised — because
-    # `allowBackup="false"` makes the package ineligible outright, and an
-    # ineligible package produces an empty set that satisfies "nothing of ours
-    # came back" without the <device-transfer> rules having been consulted at
-    # all. That is a pass for BIT-20 rule 5 and it is NOT a proof that the rules
-    # work; the BACKUP_EXCLUSION lines in the instrumentation output say which
-    # of the two happened, per path.
-    print("\nNOTE: read the 'What the device reported' annotation on this run "
-          "before quoting this suite. Each path prints the framework's own result "
-          "for the package and whether the canary came back: canaryReturned=true "
-          "means the set was real and excluded our material, canaryReturned=false "
-          "with a declining result means the package was ineligible and exclusion "
-          "was never exercised on that path. Both are passes; only the first is "
-          "evidence about the rules. wallet-security-properties.md §4 is where "
-          "that distinction is tracked.")
+    # should be told, in the run, which layer each of them exercised — because an
+    # empty set satisfies "nothing of ours came back" without the rules having
+    # been consulted at all. That is a pass for BIT-20 rule 5 and it is NOT a
+    # proof that the rules work.
+    #
+    # Since BIT-108 the suite no longer restores, so it cannot report whether the
+    # canary came back and there is no canaryReturned field to read. The verdict
+    # moved to the host: check-backup-set.sh greps the transport's own tree and
+    # requires the canary prefix to be in it. The BACKUP_EXCLUSION lines still
+    # carry the framework's per-path result and the three prefixes, which is what
+    # lets a reader tie that host verdict to a path.
+    #
+    # The field names below are spelled as the tests spell them, not paraphrased.
+    # This text is the only reading guide a maintainer without log access gets,
+    # and `setLeftOnTransport` is what they would grep the annotation for; the
+    # paraphrase "whether the set was left on the transport" is not greppable and
+    # is not what BackupExclusionTest prints.
+    #
+    # Ordering, which BIT-108 raised and is right about: this used to open with
+    # "read 'What the device reported' first". That annotation has carried the
+    # gap wording and no per-path lines on every run to date — run 110 onward,
+    # and runs 139/140 were green with every test run and still reported none —
+    # so a reader who followed the first sentence landed on the annotation that
+    # cannot answer them, and reached the one that can only afterwards. The
+    # verdict goes first now and the per-path detail is described as conditional,
+    # which is what it is. It is still described rather than dropped: when the
+    # runner does file instrumentation stdout (BIT-114), those lines are how the
+    # host verdict gets tied to a path, and the guide should already name them.
+    print("\nNOTE: the verdict for this suite is the 'Backup set inspection' "
+          "annotation, not this one — read that one first. Whether the set was "
+          "real is decided on the HOST: it is a ::notice:: only when the canary "
+          "prefix was found in the transport's own tree, and a ::warning:: saying "
+          "the set was empty otherwise. A green suite with that warning is a pass "
+          "that proves nothing about the rules. The 'What the device reported' "
+          "annotation carries the per-path detail behind that verdict — the "
+          "BACKUP_EXCLUSION lines, one per path, each with the framework's own "
+          "result for the package, the three marker prefixes it planted, and "
+          "`setLeftOnTransport` for whether the set it produced was left on the "
+          "transport for the host to read — on any run that captured them. No run "
+          "has yet: instrumentation stdout is not reaching <system-out>, known "
+          "since run 110 and tracked on BIT-114, so expect the gap wording there "
+          "instead. That annotation is the tie between this suite and the host "
+          "phase; it is not the verdict. wallet-security-properties.md §4 is "
+          "where the distinction is tracked.")
 
     if problems:
         print()

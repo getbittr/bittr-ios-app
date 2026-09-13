@@ -34,6 +34,7 @@ import contextlib
 import importlib.util
 import io
 import pathlib
+import re
 import sys
 import tempfile
 
@@ -293,16 +294,26 @@ def test_a_truncated_result_file_fails():
 
 def test_a_green_run_says_how_to_tell_a_real_pass_from_an_ineligible_one():
     # The caveat must be stated on the runs people actually read, which are the
-    # green ones. `allowBackup="false"` makes the package ineligible outright,
-    # and an ineligible package produces an empty set that satisfies "nothing of
-    # ours came back" without the <device-transfer> rules being consulted. That
-    # is a pass for BIT-20 rule 5 and it is not a proof that the rules work, so
-    # a green run has to point the reader at the line that distinguishes them.
+    # green ones. An empty set satisfies "nothing of ours came back" without any
+    # rule being consulted. That is a pass for BIT-20 rule 5 and it is not a proof
+    # that the rules work, so a green run has to point the reader at what
+    # distinguishes them.
+    #
+    # This pin used to require the string `canaryReturned`, and it was itself
+    # stale: BIT-108 removed the restore, so the suite can no longer report
+    # whether the canary came back and emits no such field. The distinguishing
+    # verdict moved to the host — check-backup-set.sh's 'Backup set inspection'
+    # annotation — and that is what a green run must now point at.
     with tempfile.TemporaryDirectory() as tmp:
         code, out = run(both_modules(pathlib.Path(tmp)))
     check(
         "a green run points at the BACKUP_EXCLUSION lines",
-        code == 0 and "canaryReturned" in out and "BACKUP_EXCLUSION" in out,
+        code == 0 and "setLeftOnTransport" in out and "BACKUP_EXCLUSION" in out,
+        out,
+    )
+    check(
+        "and at the host-side check that actually decides it",
+        "Backup set inspection" in out and "canaryReturned" not in out,
         out,
     )
     check("and points at where it is tracked",
@@ -394,7 +405,8 @@ def test_the_evidence_lines_are_lifted_into_the_log():
             out_file.read_text().replace(
                 "</testsuite>",
                 "<system-out>BACKUP_EXCLUSION path=device-transfer api=34 "
-                "package=com.bittr.android.regtest result=Success canaryReturned=true\n"
+                "package=com.bittr.android.regtest result=Success "
+                "canaryMarker=BIT101-CANARY-MARKER- setLeftOnTransport=true\n"
                 "noise that is not evidence\n"
                 "KEYSTORE_KEY_INFO api=34 unlockedDeviceRequired=&lt;not exposed&gt;\n"
                 "</system-out>\n</testsuite>",
@@ -402,7 +414,7 @@ def test_the_evidence_lines_are_lifted_into_the_log():
         )
         code, out = run(dirs)
     check("a run with evidence lines still exits 0", code == 0, out)
-    check("the backup evidence line is in the log", "canaryReturned=true" in out, out)
+    check("the backup evidence line is in the log", "setLeftOnTransport=true" in out, out)
     check("the keystore evidence line is in the log", "KEYSTORE_KEY_INFO" in out, out)
     check(
         "and unprefixed stdout is not dragged in with it",
@@ -503,7 +515,7 @@ def test_a_normal_failure_with_missing_tests_is_not_called_process_death():
 
 def test_the_evidence_lines_reach_an_annotation_not_only_the_log():
     line = ("BACKUP_EXCLUSION path=device-transfer api=34 package=com.bittr.android "
-            "result=Success canaryReturned=true")
+            "result=Success canaryMarker=BIT101-CANARY-MARKER- setLeftOnTransport=true")
     with tempfile.TemporaryDirectory() as tmp:
         tmp = pathlib.Path(tmp)
         ldk = write_results(tmp / "wallet-ldk",
@@ -515,7 +527,7 @@ def test_the_evidence_lines_reach_an_annotation_not_only_the_log():
     notices = [l for l in out.splitlines() if l.startswith("::notice title=What the device reported::")]
     check("the evidence is emitted as a notice annotation", len(notices) == 1, out)
     check("and the annotation carries the line itself",
-          notices and "canaryReturned=true" in notices[0], out)
+          notices and "setLeftOnTransport=true" in notices[0], out)
 
 
 def test_absent_evidence_is_reported_in_the_annotation_too():
@@ -541,7 +553,7 @@ def test_absent_evidence_is_reported_in_the_annotation_too():
 def test_the_evidence_annotation_stays_one_line():
     # Two evidence lines must not become two log lines, or the second is
     # ordinary output and falls out of the annotation.
-    out_lines = "BACKUP_EXCLUSION path=cloud-backup canaryReturned=false\nKEYSTORE_KEY_INFO securityLevel=TEE"
+    out_lines = "BACKUP_EXCLUSION path=cloud-backup setLeftOnTransport=false\nKEYSTORE_KEY_INFO securityLevel=TEE"
     with tempfile.TemporaryDirectory() as tmp:
         tmp = pathlib.Path(tmp)
         ldk = write_results(tmp / "wallet-ldk",
@@ -553,6 +565,154 @@ def test_the_evidence_annotation_stays_one_line():
     check("both evidence lines share one annotation line", len(notices) == 1, out)
     check("with the newline encoded rather than dropped",
           notices and "%0A" in notices[0] and "KEYSTORE_KEY_INFO" in notices[0], out)
+
+
+def test_rule_10_claims_no_more_than_rule_4_does():
+    # THE BUG THIS PINS, found on this branch after the BIT-108 merge. Rule 10's
+    # evidence column is the literal string "as rule 4" — it has no evidence of
+    # its own — so its status is rule 4's status or it is a fiction. They had
+    # drifted apart: the merge updated rule 4 to `not yet proven` and §4's
+    # conclusion to "neither `partly proven` nor the §5.3 halt has been earned",
+    # and left rule 10 reading `partly proven on one device`. A reader checking
+    # the wallet-directory claim got a different answer depending on which row
+    # they landed on, and the more permissive one was the stale one.
+    #
+    # That matters more than a normal doc nit: this table is what BIT-20 rule 5
+    # consults to decide whether `match -> keep` may proceed, and a row reading
+    # `partly proven` where the evidence says `not yet proven` is precisely the
+    # proven-and-wrong failure this file's docstring exists to refuse.
+    #
+    # Asserted as a relation between the two rows, not as either row's literal
+    # text, so the pin survives the status legitimately changing: when a run
+    # finally carries both halves, rule 4 moves and rule 10 must move with it.
+    doc = MODULE.parent / ".." / "docs" / "wallet-security-properties.md"
+    check("wallet-security-properties.md is where this expects it", doc.is_file(), doc)
+    text = doc.read_text() if doc.is_file() else ""
+
+    def status_of(rule):
+        for line in text.splitlines():
+            if line.startswith(f"| {rule} |"):
+                return line.rsplit("|", 2)[-2]
+        return None
+
+    four, ten = status_of("4"), status_of("10")
+    check("rule 4 has a status cell", four, text[:200])
+    check("rule 10 has a status cell", ten, text[:200])
+
+    # The ladder, weakest first. Compared by rung, not by wording, because the
+    # two cells legitimately differ in prose length -- rule 4 carries the
+    # history, rule 10 points at it.
+    #
+    # Matched most-specific-first, and the FIRST hit wins rather than the
+    # highest. Two overlaps make the naive version wrong, and both are live in
+    # this table today: "proven" is a substring of "not yet proven", and rule 4's
+    # cell recites the phrase "partly proven" inside a sentence DENYING it
+    # ("neither `partly proven` nor the §5.3 halt is earned"). Scanning for the
+    # strongest match found anywhere reads both rows as claiming more than they
+    # do -- which is the same over-claim this test exists to catch, so getting it
+    # wrong here would have been a gate that fails as a pass.
+    LADDER = ["not yet proven", "partly proven", "proven"]
+
+    def rung(cell):
+        for i, word in enumerate(LADDER):
+            if word in (cell or ""):
+                return i
+        return None
+
+    check("rule 4 states one of the known statuses", rung(four) is not None, four)
+    check("rule 10 states one of the known statuses", rung(ten) is not None, ten)
+    check("and rule 10 claims no more than rule 4, whose evidence it shares",
+          (rung(ten) or 0) <= (rung(four) or 0),
+          f"rule 4: {four}\nrule 10: {ten}")
+
+    # And the table must not contradict §4's own conclusion. While that sentence
+    # stands, no row may claim to have reached `partly proven`. Whitespace is
+    # normalised because the sentence is wrapped across lines in the source.
+    conclusion = "neither `partly proven` nor the §5.3 halt has been earned yet"
+    if conclusion in " ".join(text.split()).lower():
+        for rule, cell in (("4", four), ("10", ten)):
+            check(f"rule {rule} does not claim a rung §4 says is unearned",
+                  (rung(cell) or 0) < LADDER.index("partly proven"),
+                  f"§4 says neither partly proven nor the halt is earned, "
+                  f"but rule {rule} reads: {cell}")
+
+
+def test_the_reading_guide_sends_the_reader_to_the_verdict_first():
+    # THE BUG THIS PINS. The guide used to open with "read 'What the device
+    # reported' first". That annotation has never carried a per-path line: the
+    # runner does not file instrumentation stdout into <system-out> (run 110
+    # onward, BIT-114), and runs 139/140 were green with the vacuity check passed
+    # — every test run, every print reached — and still reported none. So the
+    # first thing the guide told a reader to open was the one annotation that
+    # could not answer them, and the verdict came second.
+    #
+    # This is pinned by ORDER, not by presence, because both names appear in the
+    # text either way and the three checks in
+    # `test_a_green_run_says_how_to_tell_a_real_pass_from_an_ineligible_one`
+    # stay satisfied under the broken ordering. Order is the whole content of
+    # the fix, so order is what has to be asserted, or it drifts back silently
+    # the next time this paragraph is rewritten.
+    #
+    # Scoped to the NOTE line rather than the whole run: 'What the device
+    # reported' is legitimately printed earlier as a section heading and as its
+    # own annotation, and neither is the guide.
+    with tempfile.TemporaryDirectory() as tmp:
+        _, out = run(both_modules(pathlib.Path(tmp)))
+
+    note = [l for l in out.splitlines() if l.startswith("NOTE:")]
+    check("the reading guide is emitted as one NOTE line", len(note) == 1, out)
+    guide = note[0] if note else ""
+    verdict = guide.find("Backup set inspection")
+    detail = guide.find("What the device reported")
+    check("the guide names both annotations", verdict >= 0 and detail >= 0, guide)
+    check("and names the deciding one before the per-path one",
+          0 <= verdict < detail, guide)
+    # The per-path detail must stay described as conditional. Stating it flatly
+    # is how the reader ends up treating an absent annotation as a red flag
+    # about the device rather than the known runner gap.
+    check("and does not promise per-path detail every run",
+          "BIT-114" in guide, guide)
+
+
+def test_the_reading_guide_quotes_fields_the_tests_actually_print():
+    # THE BUG THIS PINS, and it is the reason the two checks above are worded as
+    # string pins rather than as prose review.
+    #
+    # `test_a_green_run_says_how_to_tell_a_real_pass_from_an_ineligible_one` asks
+    # that a green run name the field distinguishing the two green outcomes. That
+    # pin was once `canaryReturned`; BIT-108 deleted the restore, so the field
+    # stopped existing, and the pin was moved to `setLeftOnTransport`. What it was
+    # NOT moved to was anything in this script: the guide had paraphrased the
+    # field as "whether the set was left on the transport", so the pin became
+    # unsatisfiable and the build-job step went red on a tree whose emulator half
+    # was fine.
+    #
+    # A paraphrase is the failure here, not a typo. On this public repo the
+    # annotation is the only channel that answers 200 without a token, so the
+    # guide is read by grep, and a field named only in prose cannot be found in
+    # the run that mentions it. So pin the direction that actually matters: every
+    # field name this script quotes must be one BackupExclusionTest prints.
+    # Read from the run's own output, not from this script's source: a field named
+    # in a source comment is history and may name something deleted on purpose,
+    # while a field named in the output is an instruction to the reader.
+    with tempfile.TemporaryDirectory() as tmp:
+        _, out = run(both_modules(pathlib.Path(tmp)))
+
+    emitter = (MODULE.parent / ".." / "app" / "src" / "androidTest" / "kotlin"
+               / "com" / "bittr" / "android" / "BackupExclusionTest.kt")
+    check("BackupExclusionTest.kt is where this expects it", emitter.is_file(), emitter)
+    printed = emitter.read_text() if emitter.is_file() else ""
+
+    # Identifier-shaped backticked tokens only. The guide also backticks phrases
+    # ("Backup set inspection") and filenames, which are not fields and are not
+    # printed as `name=value` by anything.
+    quoted = sorted(set(re.findall(r"`([a-z][A-Za-z0-9]+)`", out)))
+    check("the guide quotes at least one field by name", quoted, out)
+    check("and setLeftOnTransport is among them", "setLeftOnTransport" in quoted, quoted)
+    for field in quoted:
+        check(f"and BackupExclusionTest prints {field}", f"{field}=" in printed,
+              f"{field} is quoted in the run output but no line of "
+              f"BackupExclusionTest.kt prints {field}=")
 
 
 def main():
