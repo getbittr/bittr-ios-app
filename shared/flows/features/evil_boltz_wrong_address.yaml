@@ -23,7 +23,7 @@
 #
 # Run: maestro test shared/flows/features/evil_boltz_wrong_address.yaml
 
-appId: com.bittr.bittr-evil
+appId: ${EVIL_APP_ID}
 ---
 # 1) Provision: wipe → create wallet → bittr signup → fund lightning channel,
 #    then a second deposit with onchain payout for the submarine leg's UTXO.
@@ -119,11 +119,9 @@ appId: com.bittr.bittr-evil
       id: "alert.button.0"
     timeout: 30000
 - takeScreenshot: shared/docs/screenshots/evil_boltz_wrong_address/02_fixed_aborted
-# Confirm the fix's rejection (swapvalidationfailed — no funds sent). Maestro
-# matches `text` as a regex against the element's WHOLE text, so wrap the
-# distinctive substring in .* to match within the long message label.
+# Confirm the fix's rejection (swapvalidationfailed — no funds sent).
 - assertVisible:
-    text: ".*could not verify the swap details.*"
+    id: "alert.swapValidationFailed"
 - tapOn:
     id: "alert.button.0"
 # The swap status screen must never have appeared; we're back on SwapVC.

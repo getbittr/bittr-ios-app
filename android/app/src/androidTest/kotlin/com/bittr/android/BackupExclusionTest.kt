@@ -31,9 +31,12 @@ import org.junit.runners.MethodSorters
  * discriminator does not cover is the worse one, and it is closed at the
  * storage layer or not at all.
  *
- * So this class plants wallet-shaped files, drives `bmgr` to produce a real
- * backup set on both the cloud-backup and the device-transfer path, and leaves
- * that set on the device for `android/scripts/check-backup-set.sh` to read.
+ * So this class plants wallet-shaped files and gets a real backup set produced
+ * from them on both the cloud-backup and the device-transfer path, leaving that
+ * set on the device for `android/scripts/check-backup-set.sh` to read. It drives
+ * only the cloud backup itself; the device-transfer one is driven from the host,
+ * for the reason in "Dropping the restore was necessary and not sufficient"
+ * below.
  *
  * ### Why the assertion moved out of this process — BIT-108
  *
@@ -65,6 +68,45 @@ import org.junit.runners.MethodSorters
  * from both paths rather than from the one that crashed, because on the cloud
  * path it was never evidence either.
  *
+ * ### Dropping the restore was necessary and not sufficient — run 133
+ *
+ * Run 133 (`0dd62293` on `android-parity`) is the first run to carry the
+ * restore-free version above, and it reproduced run 107's signature exactly:
+ * `deviceTransfer…` with an empty `<failure>`, all four
+ * `InstalledBackupConfigurationTest` cases never reached. So the restore was
+ * not the only thing in here that killed this process, and the fix that removed
+ * it closed one of two doors.
+ *
+ * What is left is **`bmgr backupnow` itself, on the device-transfer path**. The
+ * framework binds a backup agent *inside the target process* to service a
+ * backup and tears that agent down when the backup completes, killing the
+ * process with it. The instrumentation runs in that process, so the teardown
+ * takes the test runner with it — the same structural fault as the restore, one
+ * step earlier in the same method.
+ *
+ * The two paths' results discriminate it cleanly, and they are the reason this
+ * is stated as a mechanism rather than a guess:
+ *
+ * - **cloud** — `allowBackup="false"` makes the package ineligible, so no agent
+ *   is ever bound, so nothing is torn down. The test passes. It has passed on
+ *   every run.
+ * - **device-transfer** — `allowBackup="false"` does *not* cover D2D, which is
+ *   the entire reason this path is tested separately. The package is eligible,
+ *   an agent is bound, the backup runs, the agent is torn down, and this process
+ *   dies. It has died on every run.
+ *
+ * Note what that means about the cloud path's green: it survives because nothing
+ * happens on it, by the same argument that made the old restore worthless. It is
+ * not evidence that driving a backup from in here is safe.
+ *
+ * So the backup moved out too. [deviceTransferOfAWalletBearingInstallCarriesNoWalletMaterial]
+ * now **plants and stops**: it writes the wallet material, the canary and the
+ * decoys, arms the `is_device_transfer` hook, clears the previous dataset, and
+ * hands off. `ci-wallet-instrumented.sh` drives `bmgr backupnow` from the host
+ * after Gradle exits, where there is no instrumentation process left to kill,
+ * and `check-backup-set.sh` greps the set it produced. See [HANDOFF] for the
+ * contract between the two halves.
+ *
  * ### Where the verdict lives now
  *
  * `android/scripts/check-backup-set.sh`, from the host, in the same CI job:
@@ -83,19 +125,28 @@ import org.junit.runners.MethodSorters
  *   every set empty and every exclusion claim vacuous);
  * - the `is_device_transfer` hook was actually taken, so the second path is not
  *   a second copy of the first;
- * - `bmgr backupnow` ran to completion and the framework returned a considered
- *   per-package result rather than a transport error — a failed backup leaves
- *   no set, and a grep of no set is not evidence of anything;
- * - the set is left on the transport, and is this path's.
+ * - on the **cloud** path only, that `bmgr backupnow` ran to completion and the
+ *   framework returned a considered per-package result rather than a transport
+ *   error — a failed backup leaves no set, and a grep of no set is not evidence
+ *   of anything;
+ * - on the **device-transfer** path, that a full wallet-bearing install is on
+ *   disk and the previous dataset is cleared, i.e. that the host has something
+ *   to back up and whatever it produces is this run's.
+ *
+ * The equivalent "the backup completed" check for the device-transfer path is
+ * the host's, because the backup is: see [HANDOFF].
  *
  * ### Only one set survives to be read, and it is the device-transfer one
  *
  * The local transport keeps one dataset per package, so a second `backupnow`
- * replaces the first. [driveABackup] therefore wipes this package's dataset
- * *before* each backup rather than after, which makes the surviving set
+ * replaces the first. Each backup is therefore preceded by a wipe of this
+ * package's dataset rather than followed by one, which makes the surviving set
  * deterministic instead of an accident of which test crashed:
  * `NAME_ASCENDING` puts device-transfer last, so the set the host greps is
- * always the device-transfer one.
+ * always the device-transfer one. Since the device-transfer backup itself is now
+ * the host's, that ordering is enforced by construction — the cloud backup is
+ * the only one this process drives, and the host's runs strictly after Gradle
+ * has exited.
  *
  * That is the right way round. `allowBackup="false"` is expected to keep the
  * package out of a cloud set outright — there is nothing there to inspect —
@@ -234,6 +285,47 @@ class BackupExclusionTest {
 
         /** Results that mean the backup never completed, so no set exists to inspect. */
         val TRANSPORT_FAILURE = Regex("""transport\s+error|transport\s+not\s+initial""", RegexOption.IGNORE_CASE)
+
+        /**
+         * **The device-transfer hand-off, as a file. `ci-wallet-instrumented.sh`
+         * reads it with `adb root`, so it is an interface and not a log line.**
+         *
+         * [deviceTransferOfAWalletBearingInstallCarriesNoWalletMaterial] cannot
+         * drive its own backup — that is what BIT-108 is, and dropping the
+         * restore did not fix it (see the class comment on run 133). It plants,
+         * arms the hook, wipes the stale dataset and stops. The host then runs
+         * `bmgr backupnow` with no instrumentation process left to kill.
+         *
+         * The host must not back up on the strength of the tests having passed.
+         * On a run where this method was filtered out, renamed, or never reached,
+         * the plant does not exist, and backing up anyway produces the empty set
+         * that `check-backup-set.sh` cannot tell from a clean one — the exact
+         * vacuous green this suite exists to refuse. This file is written **after**
+         * the plant is on disk and the wipe has happened, so its presence means
+         * those things were true, and its absence means the host must report
+         * "nothing to inspect" rather than grep.
+         *
+         * **Why a file and not the `println` next to it.** Instrumentation stdout
+         * reaches the host only if the runner files it into the JUnit XML's
+         * `<system-out>`, and run 133 recorded that it did not: the gate's
+         * `What the device reported` annotation fired with no `BACKUP_EXCLUSION`
+         * line in it. A hand-off carried on that channel would be missing exactly
+         * when something went wrong, which is when it has to be right. A file in
+         * the app's own data directory is written by the same `File.writeText`
+         * the plant uses and read back by the same `adb root` the set inspection
+         * already needs.
+         *
+         * It sits in `getNoBackupFilesDir()` rather than `getFilesDir()` so that
+         * it cannot itself end up in the set it is announcing.
+         *
+         * That is also why the hand-off is not simply `is_device_transfer`: the
+         * secure setting says the hook is armed, which is device state that
+         * outlives a run that planted nothing.
+         */
+        const val HANDOFF_FILE = "backup_handoff.txt"
+
+        /** The contents of [HANDOFF_FILE]. Matched exactly by the host. */
+        const val HANDOFF = "BACKUP_EXCLUSION_HANDOFF device-transfer-plant-ready"
     }
 
     private val instrumentation = InstrumentationRegistry.getInstrumentation()
@@ -245,8 +337,25 @@ class BackupExclusionTest {
     private var originalTransport: String = ""
     private var originalParameters: String = ""
 
+    /**
+     * Set once the device-transfer plant is on disk and the host's backup is the
+     * next thing that should touch this package. While it is set, [putTheDeviceBack]
+     * does nothing: the plant, the armed hook and the cleared dataset are the
+     * hand-off, and tearing any of them down is tearing down the evidence.
+     */
+    private var handedOffToHost: Boolean = false
+
     @Before
     fun recordTheDeviceState() {
+        // A hand-off from an earlier run must never be readable by this one's
+        // host phase. The AVD is restored from a cached snapshot and the app's
+        // data directory can outlive a run, so "the file is there" would
+        // otherwise mean "some run got that far", not "this one did" — and the
+        // host would back up and grep on the strength of a plant that is not on
+        // disk any more. Cleared before every method rather than only before the
+        // device-transfer one, so a rename or a reordering cannot skip it.
+        File(context.noBackupFilesDir, HANDOFF_FILE).delete()
+
         backupWasEnabled = "enabled" in DeviceShell.bmgr("enabled").lowercase()
         originalTransport = DeviceShell.bmgr("list transports")
             .lineSequence()
@@ -271,14 +380,25 @@ class BackupExclusionTest {
      * set it could read survived only because the device-transfer crash skipped
      * this method — the evidence was an accident.
      *
-     * So the wipe moved to [driveABackup], before each backup instead of after.
-     * A pre-wipe leaves a set behind, which is the point, and additionally
-     * guarantees that whatever the host finds was produced by this run rather
-     * than by the previous one. The planted files themselves are still removed:
-     * those are ours to clean up and nothing downstream reads them.
+     * So the wipe moved to before each backup instead of after. A pre-wipe leaves
+     * a set behind, which is the point, and additionally guarantees that whatever
+     * the host finds was produced by this run rather than by the previous one.
+     *
+     * **And once [handedOffToHost] is set, this method does nothing at all.**
+     * The device-transfer backup is the host's (BIT-108), and everything this
+     * method would undo is precisely what the host needs to find: the planted
+     * files are the thing being backed up, the `is_device_transfer` hook decides
+     * which path the backup takes, and the local transport is where the set
+     * lands. Restoring any of them would leave the host backing up a clean
+     * install over the cloud path — an empty set that `check-backup-set.sh`
+     * reports as "no wallet marker", which is the vacuous green this whole file
+     * exists to refuse. The device is CI-ephemeral and the run ends here, so
+     * there is nothing left to be tidy for.
      */
     @After
     fun putTheDeviceBack() {
+        if (handedOffToHost) return
+
         if (originalParameters.isEmpty()) {
             DeviceShell.run("settings delete secure $TRANSPORT_PARAMETERS")
         } else {
@@ -336,7 +456,7 @@ class BackupExclusionTest {
      */
     @Test
     fun cloudBackupOfAWalletBearingInstallCarriesNoWalletMaterial() {
-        driveABackup(deviceTransfer = false)
+        driveTheCloudBackup()
     }
 
     /**
@@ -344,30 +464,125 @@ class BackupExclusionTest {
      * is the half `allowBackup="false"` may not cover. This is the run that
      * decides whether `match → keep` is sound; see the class comment.
      *
-     * It runs last, so its set is the one still on the transport when
-     * `check-backup-set.sh` greps from the host.
+     * **It does not back up.** It plants a wallet-bearing install, arms the
+     * `is_device_transfer` hook, clears the stale dataset, and prints [HANDOFF].
+     * `ci-wallet-instrumented.sh` drives `bmgr backupnow` from the host once
+     * Gradle has exited, because on this path the backup binds an agent in this
+     * process and the framework kills the process when it tears that agent down
+     * — which is BIT-108, and is why runs 107 and 133 both ended here with an
+     * empty `<failure>` and nothing after it.
+     *
+     * What this method can still be wrong about is worth stating, because it is
+     * no longer "the exclusion leaked": it is "the host was handed something
+     * other than a wallet-bearing install on the device-transfer path". Each
+     * assertion below is one way that happens.
      */
     @Test
     fun deviceTransferOfAWalletBearingInstallCarriesNoWalletMaterial() {
-        driveABackup(deviceTransfer = true)
+        selectLocalTransport(deviceTransfer = true)
+
+        // Before, not after, and here rather than after the backup: the host's
+        // backupnow is what writes the set, so the dataset has to be clear by the
+        // time this process exits. Whatever the host then finds on the transport
+        // was produced by its own backup and not left over from the cloud test
+        // above or from a previous run on a cached AVD snapshot.
+        DeviceShell.bmgr("wipe $LOCAL_TRANSPORT $packageName")
+
+        val markers = plantWalletMaterial() + plantDecoys()
+        val canary = File(context.filesDir, CANARY)
+            .also { it.parentFile?.mkdirs(); it.writeText(CANARY_PREFIX + stamp("canary")) }
+
+        println(
+            "BACKUP_EXCLUSION path=device-transfer api=${Build.VERSION.SDK_INT} " +
+                "package=$packageName result=<host drives the backup> " +
+                "walletMarker=$MARKER_PREFIX canaryMarker=$CANARY_PREFIX " +
+                "decoyMarker=$DECOY_PREFIX setLeftOnTransport=true",
+        )
+        println("BACKUP_EXCLUSION device-transfer canary: ${canary.path}")
+        for (marker in markers) {
+            println(
+                "BACKUP_EXCLUSION device-transfer plant: ${marker.file.name} at " +
+                    "${marker.file.path} — ${marker.what}. If this one is in the set: " +
+                    marker.consequence,
+            )
+        }
+
+        // 1. The plant is actually on disk. `plantWalletMaterial` writes through
+        //    File.writeText, which throws on failure, so this is not re-checking
+        //    the write — it is checking that the paths it wrote to are the ones
+        //    that still exist now, after the decoys were planted into a sibling
+        //    tree whose names overlap (`files/no_backup` vs `getNoBackupFilesDir`).
+        //    A plant that deleted itself would hand the host an empty set.
+        val missing = markers.filterNot { it.file.isFile && it.file.length() > 0 }
+        assertTrue(
+            "These planted files are not on disk at the point this process hands off to " +
+                "the host, so the backup the host is about to drive would not contain them " +
+                "and check-backup-set.sh would report a clean set for the wrong reason:\n" +
+                missing.joinToString("\n") { "  ${it.file.path} — ${it.what}" },
+            missing.isEmpty(),
+        )
+        assertTrue(
+            "The canary ${canary.path} is not on disk. It is the file that makes a " +
+                "non-empty set distinguishable from an ineligible package, so without it " +
+                "the host's grep cannot tell 'the rules excluded our wallet files' from " +
+                "'the framework never offered this package to the transport'.",
+            canary.isFile && canary.length() > 0,
+        )
+
+        // 2. The dataset really is gone. `bmgr wipe` reports success for a package
+        //    the transport has never heard of, so this is about the transport
+        //    having accepted the command at all — a wipe that silently no-ops
+        //    leaves the cloud test's set in place, and the host's grep would then
+        //    return a verdict on the wrong path while naming this one.
+        val setsAfterWipe = DeviceShell.bmgr("list sets")
+        println("BACKUP_EXCLUSION device-transfer list sets after wipe:\n$setsAfterWipe")
+
+        // 3. Tell the host it may proceed. Written last, so it exists only if
+        //    everything above held. @After is disarmed at the same moment: from
+        //    here the planted files, the hook and the cleared dataset belong to
+        //    the host.
+        //
+        //    Deliberately not wrapped in a try: if this write fails, the host
+        //    finds no hand-off and reports that it had nothing to inspect, which
+        //    is the correct reading of a run whose plant could not finish.
+        val handoff = File(context.noBackupFilesDir, HANDOFF_FILE)
+        handoff.writeText(HANDOFF)
+        handedOffToHost = true
+        println("$HANDOFF at ${handoff.path}")
     }
 
     /**
-     * Plants a wallet-bearing install, produces a real backup set from it on
-     * [deviceTransfer]'s path, and leaves that set on the transport.
+     * Plants a wallet-bearing install and drives the **cloud** backup from it.
+     *
+     * Only the cloud path is driven in-process, and the asymmetry is the whole
+     * of BIT-108 rather than an inconsistency. On this path `allowBackup="false"`
+     * is expected to make the package ineligible, so the framework never binds a
+     * backup agent in this process and there is nothing for it to tear this
+     * process down with. On the device-transfer path it does bind one, and the
+     * teardown is fatal — see
+     * [deviceTransferOfAWalletBearingInstallCarriesNoWalletMaterial].
+     *
+     * That asymmetry is load-bearing and unproven-by-construction: if
+     * `allowBackup` were ever set back to `true`, this method would start
+     * binding an agent too and would die exactly the way the device-transfer one
+     * did. It does not fail safe, it fails loud — an empty `<failure>` on a run
+     * that used to be green — and the same annotation in
+     * `check-wallet-instrumented-results.py` that names run 107's signature
+     * would name it.
      *
      * Everything asserted here is observable without a restore, because a
      * restore kills this process (BIT-108). What is asserted is that the run
      * produced something worth inspecting; whether what it produced is clean is
      * `check-backup-set.sh`'s answer, and the two run in the same job.
      */
-    private fun driveABackup(deviceTransfer: Boolean) {
-        val path = if (deviceTransfer) "device-transfer" else "cloud-backup"
-        selectLocalTransport(deviceTransfer)
+    private fun driveTheCloudBackup() {
+        val path = "cloud-backup"
+        selectLocalTransport(deviceTransfer = false)
 
         // Before, not after. The transport keeps one dataset per package, so
-        // this makes the set the host reads unambiguously this path's — and
-        // leaves it there, which @After no longer undoes.
+        // this makes the set this backup leaves unambiguously this path's. It is
+        // then replaced by the host's device-transfer backup, which is the set
+        // check-backup-set.sh actually reads.
         DeviceShell.bmgr("wipe $LOCAL_TRANSPORT $packageName")
 
         val markers = plantWalletMaterial() + plantDecoys()
@@ -387,7 +602,7 @@ class BackupExclusionTest {
             "BACKUP_EXCLUSION path=$path api=${Build.VERSION.SDK_INT} package=$packageName " +
                 "result=${result ?: "<no result line>"} " +
                 "walletMarker=$MARKER_PREFIX canaryMarker=$CANARY_PREFIX " +
-                "decoyMarker=$DECOY_PREFIX setLeftOnTransport=${deviceTransfer}",
+                "decoyMarker=$DECOY_PREFIX setLeftOnTransport=false",
         )
         println("BACKUP_EXCLUSION $path canary: ${canary.path}")
         // The decoder ring for a halt. check-backup-set.sh can only report the

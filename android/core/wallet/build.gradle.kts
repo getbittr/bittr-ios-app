@@ -18,4 +18,9 @@ kotlin {
 
 dependencies {
     api(libs.kotlinx.coroutines.core)
+
+    // Interfaces cannot be tested, but PinLockout is not an interface: it is the pair
+    // of numbers that decide when a wrong PIN erases someone's wallet, and it lives
+    // here because both the implementation and the UI have to agree on them.
+    testImplementation(libs.junit)
 }

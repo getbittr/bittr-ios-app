@@ -18,9 +18,14 @@ android {
         //
         // Changing this value or the debug applicationIdSuffix below also requires
         // updating APP_ID in .github/workflows/android-maestro.yml, the `appId:` in
-        // shared/flows/android/scaffold_smoke.yaml, and BiometricUnlockFlagTest,
+        // the workflow's APP_ID (which Maestro receives as --env APP_ID), and BiometricUnlockFlagTest,
         // which keys the regtest assertion off the applicationId rather than the
         // build type.
+        //
+        // It also requires re-registering the app in Firebase (BIT-39). The two
+        // google-services.json files in src/debug/ and src/release/ are keyed by
+        // package name and cannot simply be edited — the mobilesdk_app_id is issued
+        // against the name. GoogleServicesConfigTest fails on the mismatch.
         applicationId = "com.bittr.android"
         minSdk = libs.versions.minSdk.get().toInt()
         targetSdk = libs.versions.targetSdk.get().toInt()
@@ -33,6 +38,12 @@ android {
         // On by default — the shipped app follows Android convention. The debug
         // build overrides it to false; see below.
         buildConfigField("boolean", "BIOMETRIC_UNLOCK_ENABLED", "true")
+
+        // Which chain this build accepts addresses and invoices on, consumed via
+        // core.common.destination.BitcoinNetwork. Mainnet by default; the debug
+        // build overrides it below, exactly as iOS does
+        // (`isDevelopment ? .regtest : .bitcoin`).
+        buildConfigField("String", "BITCOIN_NETWORK", "\"MAINNET\"")
     }
 
     buildTypes {
@@ -52,6 +63,10 @@ android {
             // independently broken. Enforced by BiometricUnlockFlagTest and
             // BiometricApiGuardTest; consumed via core.common.AuthCapabilities.
             buildConfigField("boolean", "BIOMETRIC_UNLOCK_ENABLED", "false")
+
+            // Debug == regtest, so a mainnet address pasted into the Maestro build
+            // is rejected at parse time rather than at broadcast time.
+            buildConfigField("String", "BITCOIN_NETWORK", "\"REGTEST\"")
         }
         release {
             isMinifyEnabled = true
@@ -140,10 +155,35 @@ kotlin {
 dependencies {
     implementation(project(":core:common"))
     implementation(project(":core:designsystem"))
+    // BIT-98: the dark-mode choice, read at the root before the first frame.
+    implementation(project(":core:preferences"))
+    implementation(project(":core:permissions"))
     implementation(project(":core:wallet"))
     // The only place the wallet implementation is named. BIT-6 swaps this line
     // (and the binding in di/WalletModule.kt) for :core:wallet-ldk.
     implementation(project(":core:wallet-stub"))
+    // BIT-93: the seed half of the wallet — real BIP-39 key material behind a PIN,
+    // no funds. :core:wallet-seed is the pure-Kotlin logic, :core:wallet-keystore
+    // the Android Keystore storage it is bound to in di/WalletModule.kt.
+    implementation(project(":core:wallet-seed"))
+    implementation(project(":core:wallet-keystore"))
+    implementation(project(":feature:signup"))
+    // BIT-98 — the navigational skeleton: Home in its no-funds state, and the
+    // Settings tree hanging off its bottom bar.
+    implementation(project(":feature:home"))
+    implementation(project(":feature:settings"))
+    implementation(project(":feature:scanner"))
+    // The three Wave 1 read-only screens (BIT-99).
+    implementation(project(":feature:value"))
+    implementation(project(":feature:map"))
+    implementation(project(":feature:academy"))
+
+    // The map renderer moved to :feature:map with the map screen, as the note here
+    // said it should when that screen landed (BIT-53 -> BIT-99). It still reaches
+    // :app's manifest merge through that module, which is what keeps
+    // LocationPrecisionGuardTest asserting something real: MapLibre's own AAR
+    // declares ACCESS_FINE_LOCATION, and the `tools:node="remove"` line below is the
+    // only reason the shipped APK does not ask for it.
     implementation(project(":core:lnurl"))
     implementation(project(":feature:signup"))
     implementation(project(":feature:website"))
@@ -173,6 +213,26 @@ dependencies {
     testImplementation(libs.androidx.test.ext.junit)
     testImplementation(platform(libs.androidx.compose.bom))
     testImplementation(libs.androidx.compose.ui.test.junit4)
+    // Deliberately NOT `testImplementation(ui-test-manifest)`, and the reason is
+    // worth keeping because it is the obvious fix and it does not work (BIT-106).
+    //
+    // `ui-test-manifest` is what declares `androidx.activity.ComponentActivity`,
+    // the bare activity a `createComposeRule()` launches. Adding it to
+    // `testImplementation` does put that activity into
+    // `packaged_manifests/releaseUnitTest/`, so the change looks correct — but
+    // Robolectric never reads that file. `test_config.properties` also gives it
+    // `android_resource_apk`, and with `isIncludeAndroidResources = true` set above
+    // that APK wins. Its manifest comes from the MAIN variant
+    // (`processReleaseManifestForPackage`), which no test-only configuration can
+    // reach. Verified: with the dependency added, the release
+    // `apk-for-local-test.ap_` still has no `ComponentActivity` in its string pool
+    // and all 16 tests still failed identically.
+    //
+    // The two configurations that WOULD reach it — `releaseImplementation` or
+    // `src/release/AndroidManifest.xml` — both put a bare exported activity in the
+    // shipped APK, to fix a test. So `:app` tests go through `MainActivity`
+    // instead; see ComposeRuleVariantGuardTest, which enforces that.
+    // Line 193 stays: androidTest is debug-only and resolves through it correctly.
 
     // BackupExclusionTest is plain JUnit4 over `bmgr` — no Compose, no Espresso.
     // Declared explicitly rather than leant on transitively through ext-junit,

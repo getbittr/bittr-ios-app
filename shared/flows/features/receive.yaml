@@ -5,7 +5,7 @@
 #
 # Run: maestro test shared/flows/features/receive.yaml
 
-appId: com.bittr.bittr-regtest
+appId: ${APP_ID}
 ---
 # Launch without clearState so existing wallet state is preserved across runs.
 - launchApp

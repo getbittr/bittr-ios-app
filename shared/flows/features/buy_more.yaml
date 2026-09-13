@@ -18,7 +18,7 @@
 #
 # Run: maestro test shared/flows/features/buy_more.yaml
 
-appId: com.bittr.bittr-regtest
+appId: ${APP_ID}
 ---
 - launchApp
 - runFlow: ../helpers/wait_for_launch.yaml
@@ -186,6 +186,8 @@ appId: com.bittr.bittr-regtest
 # focus it (tapOn also waits out the alert's slide-up), type the note, tap Save.
 - tapOn:
     id: "transaction.addNoteButton"
+- assertVisible:
+    id: "alert.addNote"
 - tapOn:
     id: "alert.textField"
 # Capture the note alert once the keyboard has finished popping up.
@@ -194,7 +196,7 @@ appId: com.bittr.bittr-regtest
 - takeScreenshot: shared/docs/screenshots/buy_more/12a_note_alert
 - inputText: "buy_more test"
 - tapOn:
-    text: "Save"
+    id: "alert.button.1"
 
 # The note now shows in the transaction's note stack.
 - assertVisible:

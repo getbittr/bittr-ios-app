@@ -155,11 +155,12 @@ RUNNER_TEMP_DIR=${RUNNER_TEMP:-${TMPDIR:-/tmp}}
 run_gradle() {
   label=$1
   task=$2
+  shift 2
   log="$RUNNER_TEMP_DIR/$(echo "$task" | tr ':' '_').log"
 
   echo "--- $task ($label)"
   # `set -o pipefail` is on, so this takes Gradle's status and not tee's.
-  if (cd android && ./gradlew "$task" --no-daemon 2>&1) | tee "$log"; then
+  if (cd android && ./gradlew "$task" "$@" --no-daemon 2>&1) | tee "$log"; then
     return 0
   fi
 
@@ -177,11 +178,180 @@ run_gradle() {
 run_gradle "Keystore — what the platform gave us" \
   :core:wallet-ldk:connectedDebugAndroidTest || status=$?
 
+# `leaveApksInstalledAfterRun` — the app has to still BE there afterwards.
+#
+# AGP uninstalls both APKs when connectedAndroidTest finishes. That was harmless
+# while the suite drove its own backup, and it is fatal now that the
+# device-transfer backup is driven below: an uninstall takes the planted wallet
+# material with it, and `bmgr backupnow` on a package that is not installed
+# produces nothing. The host phase would then inspect an empty set and
+# check-backup-set.sh would report "no wallet marker" — true, meaningless, and
+# indistinguishable from the real result.
+#
+# If this option is ever dropped or renamed by AGP, the phase below says so out
+# loud rather than grepping an empty set: it checks `pm list packages` first.
 run_gradle "installed app — backup exclusion under bmgr" \
-  :app:connectedDebugAndroidTest || status=$?
+  :app:connectedDebugAndroidTest \
+  -Pandroid.injected.androidTest.leaveApksInstalledAfterRun=true || status=$?
 
 test_end=$(date +%s)
 duration=$((test_end - test_start))
+
+# --- The device-transfer backup, driven from HERE and not from the test -------
+#
+# BIT-108. `bmgr backupnow` on the device-transfer path binds a backup agent
+# inside the target process and the framework kills that process when it tears
+# the agent down. The instrumentation runs in that process, so a test that drives
+# this backup kills itself: runs 107 and 133 both ended at exactly this point
+# with an empty <failure> and every subsequent test unrun.
+#
+# Dropping the in-process `bmgr restore` (a1fbe36) was necessary and not
+# sufficient — run 133 carried that fix and died identically. The backup is the
+# other half, and it has the same shape as the restore did: it cannot be driven
+# from the process it acts on, and writing it more carefully does not change
+# that. Here there is no instrumentation process left to kill.
+#
+# The division of labour, which the test's class comment states from the other
+# side: BackupExclusionTest plants the wallet material, the canary and the
+# decoys, arms the transport's is_device_transfer hook, clears the stale dataset
+# and writes a hand-off file. This drives the backup. check-backup-set.sh reads
+# the set. None of the three is evidence alone.
+echo "--- Device-transfer backup (host-driven — see BIT-108)"
+
+# The INSTALLED package, which is not the namespace. build.gradle.kts sets
+# `applicationId = "com.bittr.android"` and the debug build type adds
+# `applicationIdSuffix = ".regtest"`, and connectedDebugAndroidTest installs the
+# debug variant — so everything below has to address `com.bittr.android.regtest`.
+#
+# Getting this wrong is silent in the worst available direction, and the first
+# draft of this phase got it wrong: `pm list packages` does not match, the phase
+# reports the app as not installed, the backup is skipped, and
+# check-backup-set.sh greps a set nothing ever wrote. The run is green with one
+# warning, and that warning blames AGP for an uninstall that never happened.
+#
+# $APP_ID is the workflow's copy of the same value (see its `env:` block, which
+# carries the same "must match build.gradle.kts" note) and is preferred when the
+# step exported it; the literal is the fallback for a local invocation.
+# test_ci_wallet_host_phase.sh pins both against build.gradle.kts, so a rename
+# there fails in the build job rather than here, where the failure is a warning
+# nobody reads as a bug.
+APP_PACKAGE="${APP_ID:-com.bittr.android.regtest}"
+HANDOFF_MARKER="BACKUP_EXCLUSION_HANDOFF device-transfer-plant-ready"
+HANDOFF_PATH="/data/data/$APP_PACKAGE/no_backup/backup_handoff.txt"
+
+echo "Target package: $APP_PACKAGE (APP_ID is ${APP_ID:-unset in this step})"
+
+# `|| true` throughout this phase, and no `status=$?` anywhere in it: a host
+# phase that cannot run is a "did not look", not a wallet finding. Every exit
+# from it that is not a completed backup ends in a ::warning:: and leaves
+# check-backup-set.sh to report that it has nothing to stand on. Turning any of
+# these into a red would be claiming a result this job did not get.
+device_transfer_backed_up=no
+
+# `tr -d '\r'` on every `adb shell` capture in this phase, not decoration.
+# adbd puts the device's line discipline on the wire, so output arrives CRLF.
+# An anchored match like `^package:…$` then never matches — the line ends in a
+# carriage return, not at the package name — and the failure is the worst kind
+# available here: it reads as "the app is not installed", skips the backup, and
+# leaves check-backup-set.sh grepping an empty set. Silent, and green apart from
+# a warning that would be blaming the wrong thing.
+installed_packages=$(adb shell pm list packages 2>/dev/null | tr -d '\r' || true)
+
+if ! printf '%s\n' "$installed_packages" | grep -q "^package:$APP_PACKAGE$"; then
+  # Which of the two causes it was. The anchored match fails identically whether
+  # AGP uninstalled the app or this script is addressing the wrong name, and
+  # those call for opposite fixes — so the warning quotes what the device
+  # actually has rather than asserting the cause. `(none)` is the uninstall;
+  # anything listed is a naming drift this script lost a run to once already.
+  bittr_packages=$(printf '%s\n' "$installed_packages" | grep -i 'bittr' \
+    | tr '\n' ' ' | sed 's/[[:space:]]*$//' || true)
+  bittr_packages=" ${bittr_packages:-(none)}"
+
+  echo "::warning title=Device-transfer backup::$APP_PACKAGE is not installed after"\
+    " connectedAndroidTest, so there is nothing to back up on the device-transfer"\
+    " path and no set for check-backup-set.sh to read. The bittr packages this device"\
+    " DOES have are:$bittr_packages. If that is (none), the cause is that"\
+    " -Pandroid.injected.androidTest.leaveApksInstalledAfterRun stopped being honoured"\
+    " by this AGP version, which would mean AGP uninstalled the app and the planted"\
+    " wallet material with it. If a package IS listed, this script is addressing the"\
+    " wrong name and test_ci_wallet_host_phase.sh should have caught it. Either way this"\
+    " is a harness failure, NOT evidence about rule 5: any 'no wallet marker' below is"\
+    " a grep of an empty set."
+else
+  # `adb root` is what makes the app's data directory readable from here. It is
+  # also what check-backup-set.sh needs, and the same caveat applies: a userdebug
+  # image grants it, a user build does not, and a refusal is a "cannot look".
+  adb root >/dev/null 2>&1 || true
+  adb wait-for-device >/dev/null 2>&1 || true
+
+  handoff=$(adb shell cat "$HANDOFF_PATH" 2>/dev/null | tr -d '\r' || true)
+
+  if ! printf '%s' "$handoff" | grep -qF "$HANDOFF_MARKER"; then
+    echo "::warning title=Device-transfer backup::No hand-off from"\
+      " BackupExclusionTest#deviceTransferOfAWalletBearingInstallCarriesNoWalletMaterial"\
+      " at $HANDOFF_PATH, so the wallet material was never planted on this run and the"\
+      " backup below is NOT being driven. Backing up anyway would write an empty set,"\
+      " and an empty set reads identically to a clean one — the vacuous green this job"\
+      " exists to refuse. Read any 'no wallet marker' result from this run as 'did not"\
+      " look'. Causes: the test was filtered out, renamed, or failed before it finished"\
+      " planting; or 'adb root' was refused on this image so the file cannot be read."
+  else
+    echo "Hand-off found. The plant is on disk and the stale dataset is cleared."
+
+    # Re-assert rather than trust. The test armed the hook and selected the
+    # transport before it exited, and @After deliberately leaves both alone once
+    # it has handed off — but "deliberately left alone" is a claim about code
+    # that ran on the other side of a Gradle exit. The cost of setting them again
+    # is two adb calls; the cost of being wrong is a cloud backup reported as a
+    # device-transfer one, which is the single failure mode this whole second
+    # path exists to rule out.
+    adb shell settings put secure backup_local_transport_parameters is_device_transfer=true || true
+    adb shell bmgr transport com.android.localtransport/.LocalTransport >/dev/null 2>&1 || true
+
+    parameters=$(adb shell settings get secure backup_local_transport_parameters 2>/dev/null | tr -d '\r' || true)
+    echo "Transport parameters: $parameters"
+
+    if ! printf '%s' "$parameters" | grep -qF 'is_device_transfer=true'; then
+      echo "::warning title=Device-transfer backup::The local transport's"\
+        " is_device_transfer hook did not take — the settings provider reports"\
+        " \"$parameters\". A backup driven now would take the CLOUD path while being"\
+        " reported as the device-transfer one, which is the one confusion that would"\
+        " make a green here meaningless: allowBackup=\"false\" is expected to cover the"\
+        " cloud path, and the whole point of this path is that it may not cover D2D."\
+        " Not backing up."
+    else
+      backup_output=$(adb shell bmgr backupnow "$APP_PACKAGE" 2>&1 | tr -d '\r' || true)
+      printf '%s\n' "$backup_output"
+
+      # The same per-package result line BackupExclusionTest parses on the cloud
+      # path, checked here for the same reason: a transport error leaves no set,
+      # and a grep of no set is not evidence of anything.
+      result=$(printf '%s' "$backup_output" \
+        | sed -n "s/.*Package $APP_PACKAGE with result:[[:space:]]*//p" | head -1)
+
+      if [ -z "$result" ]; then
+        echo "::warning title=Device-transfer backup::\`bmgr backupnow $APP_PACKAGE\`"\
+          " returned no per-package result line, so the framework never reported what it"\
+          " did with this package and no set can be assumed to exist. check-backup-set.sh"\
+          " would be grepping a set that was never written."
+      elif printf '%s' "$result" | grep -Eqi 'transport error|transport not initial'; then
+        echo "::warning title=Device-transfer backup::The backup transport failed —"\
+          " the framework reported \"$result\". Nothing was written, so nothing can be"\
+          " inspected. This is an infrastructure failure to fix, not the BIT-20 §5.3 halt."
+      else
+        device_transfer_backed_up=yes
+        echo "::notice title=Device-transfer backup::Driven from the host (BIT-108)."\
+          " The framework reported \"$result\" for $APP_PACKAGE on the device-transfer"\
+          " path, with is_device_transfer=true and the wallet material planted. The set"\
+          " this produced is what the backup-set inspection below reads. This is the"\
+          " first run shape in which the device-transfer path produces an inspectable"\
+          " set without killing the test process that made it."
+      fi
+    fi
+  fi
+fi
+
+echo "Device-transfer backup completed: $device_transfer_backed_up"
 
 # --- The set itself, not bmgr's report of it ----------------------------------
 #
@@ -238,26 +408,36 @@ fi
   echo "back to BIT-20 rather than being worked around here."
   echo
   echo "Both backup paths are driven: cloud-backup, and device-transfer via the"
-  echo "local transport's \`is_device_transfer\` hook, which the test asserts back"
-  echo "out of the settings provider so a renamed hook cannot turn the second"
-  echo "into a second copy of the first."
+  echo "local transport's \`is_device_transfer\` hook, which is asserted back out"
+  echo "of the settings provider on both sides so a renamed hook cannot turn the"
+  echo "second into a second copy of the first."
   echo
-  echo "The suite creates the conditions and proves it created them: it plants"
-  echo "the wallet markers, a canary in \`files/\` that no rule excludes, and a"
-  echo "decoy at each path the \`<exclude domain=\"file\">\` entries name. The"
-  echo "verdict is host-side — since BIT-108 the suite does not restore, because"
-  echo "the restore killed the process the assertion ran in. When \`adb root\`"
-  echo "succeeds, \`check-backup-set.sh\` greps the backup transport's own on-disk"
-  echo "tree. Grep the log for \`Backup set inspection\` to see what this run got."
+  echo "**The two paths are driven from different places, and that is BIT-108.**"
+  echo "The cloud backup runs inside the suite. The device-transfer backup runs"
+  echo "from the host, after Gradle exits — on that path the framework binds a"
+  echo "backup agent inside the app process and kills the process when it tears"
+  echo "the agent down, and the instrumentation lives in that process. Runs 107"
+  echo "and 133 both died there, the second one after the in-process \`bmgr"
+  echo "restore\` had already been removed. Device-transfer backup completed:"
+  echo "\`$device_transfer_backed_up\`."
+  echo
+  echo "So the suite plants and proves it planted; the host backs up and greps"
+  echo "the backup transport's own on-disk tree for the planted marker, after"
+  echo "\`adb root\`. Only the grep reads the backup set itself. Grep the log for"
+  echo "\`Backup set inspection\` to see which outcome this run got, and for"
+  echo "\`Device-transfer backup\` to see whether there was a set to read."
   echo
   echo "**A pass is not automatically evidence that the rules were exercised.**"
-  echo "An empty set satisfies every exclusion assertion without any rule being"
-  echo "consulted, so the host check calls a clean grep evidence **only** when the"
-  echo "canary prefix is in the tree too. Without it the run gets a \`::warning::\`"
-  echo "saying the set was empty — which has two causes that the check cannot tell"
-  echo "apart from the tree alone. On the cloud path \`allowBackup=\"false\"\` makes"
-  echo "the package ineligible. On the device-transfer path \`allowBackup\` does not"
-  echo "apply at all, so an empty set there means the backup did not complete. See"
+  echo "\`allowBackup=\"false\"\` can make the package ineligible outright, and an"
+  echo "ineligible package produces an empty set that satisfies every exclusion"
+  echo "assertion without the \`<device-transfer>\` rules being consulted."
+  echo
+  echo "The canary is what tells those apart, and \`Backup set inspection\` is"
+  echo "where to read it: no wallet marker **with the canary present** is the"
+  echo "evidence outcome, and no wallet marker with no canary means the set was"
+  echo "empty. The suite plants the canary but no longer asserts it — that was"
+  echo "\`canaryReturned\`, read back out of the in-process restore BIT-108"
+  echo "removed — so nothing in the test results answers this. See"
   echo "\`wallet-security-properties.md\` §4."
 } >> "${GITHUB_STEP_SUMMARY:-/dev/null}" || echo "::warning::Could not write the summary. The test result itself is unaffected."
 

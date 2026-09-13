@@ -1,0 +1,60 @@
+# Reusable subflow: reads all 12 words off the mnemonic screen (Signup3) into
+# `output.words`, keyed 1..12 by the on-screen position.
+#
+# Assumes Signup3 is already on screen and scrolled to the top (word1 visible).
+# Leaves the scroll position alone — the caller scrolls to the Next button.
+#
+# `output` is shared for the whole test run, so the words stay readable in the
+# calling flow after this returns.
+#
+# The verify screen (Signup4) asks for three of the words by 1-based index, so
+# `output.words[idx]` is exactly what it wants. Note the keys are 1-based to
+# match the on-screen numbering, NOT 0-based like the testTag helper's argument.
+#
+# happy_path_wallet.yaml and fresh_install_unhappy.yaml still carry their own
+# inline copies of this block. They are proven against the simulator and are on
+# the critical path of nearly every flow in the suite, so they are deliberately
+# left alone rather than migrated blind — worth consolidating on a run where
+# they can be re-run.
+
+appId: ${APP_ID}
+---
+- assertVisible:
+    id: "signup.create.mnemonic.mnemonicStack"
+- evalScript: ${output.words = {}}
+- copyTextFrom:
+    id: "signup.create.mnemonic.word1"
+- evalScript: ${output.words[1] = maestro.copiedText}
+- copyTextFrom:
+    id: "signup.create.mnemonic.word2"
+- evalScript: ${output.words[2] = maestro.copiedText}
+- copyTextFrom:
+    id: "signup.create.mnemonic.word3"
+- evalScript: ${output.words[3] = maestro.copiedText}
+- copyTextFrom:
+    id: "signup.create.mnemonic.word4"
+- evalScript: ${output.words[4] = maestro.copiedText}
+- copyTextFrom:
+    id: "signup.create.mnemonic.word5"
+- evalScript: ${output.words[5] = maestro.copiedText}
+- copyTextFrom:
+    id: "signup.create.mnemonic.word6"
+- evalScript: ${output.words[6] = maestro.copiedText}
+- copyTextFrom:
+    id: "signup.create.mnemonic.word7"
+- evalScript: ${output.words[7] = maestro.copiedText}
+- copyTextFrom:
+    id: "signup.create.mnemonic.word8"
+- evalScript: ${output.words[8] = maestro.copiedText}
+- copyTextFrom:
+    id: "signup.create.mnemonic.word9"
+- evalScript: ${output.words[9] = maestro.copiedText}
+- copyTextFrom:
+    id: "signup.create.mnemonic.word10"
+- evalScript: ${output.words[10] = maestro.copiedText}
+- copyTextFrom:
+    id: "signup.create.mnemonic.word11"
+- evalScript: ${output.words[11] = maestro.copiedText}
+- copyTextFrom:
+    id: "signup.create.mnemonic.word12"
+- evalScript: ${output.words[12] = maestro.copiedText}

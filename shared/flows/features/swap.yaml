@@ -31,7 +31,7 @@
 #
 # Run: maestro test shared/flows/features/swap.yaml
 
-appId: com.bittr.bittr-regtest
+appId: ${APP_ID}
 ---
 # Swaps require notifications (the app blocks swapping with a "notifications
 # required" alert otherwise). Explicitly allow them at launch so this test is
@@ -86,10 +86,10 @@ appId: com.bittr.bittr-regtest
 - runFlow:
     when:
       visible:
-        text: ".*To process swaps.*"
+        id: "alert.notificationsRequired"
     commands:
       - tapOn:
-          text: "Okay"
+          id: "alert.button.0"
       - runFlow: ../helpers/reprovision_for_swap.yaml
       - runFlow: ../helpers/swap_leg1.yaml
       - extendedWaitUntil:
@@ -100,7 +100,7 @@ appId: com.bittr.bittr-regtest
 # Fail loudly if still blocked (e.g. clearState didn't reset the notification
 # permission) rather than silently skipping the swap below.
 - assertNotVisible:
-    text: ".*To process swaps.*"
+    id: "alert.notificationsRequired"
 
 # Now it's the fees alert: [Cancel, Proceed]. Proceed is index 1.
 - assertVisible:
@@ -377,7 +377,7 @@ appId: com.bittr.bittr-regtest
 - tapOn:
     id: "transaction.copyIdButton"
 - assertVisible:
-    id: "alert.button.0"
+    id: "alert.copied"
 - takeScreenshot: shared/docs/screenshots/swap/19_onchain_id_copied
 - tapOn:
     id: "alert.button.0"
@@ -398,7 +398,7 @@ appId: com.bittr.bittr-regtest
 - tapOn:
     id: "transaction.copyBottomIdButton"
 - assertVisible:
-    id: "alert.button.0"
+    id: "alert.copied"
 - takeScreenshot: shared/docs/screenshots/swap/21_lightning_id_copied
 - tapOn:
     id: "alert.button.0"
@@ -407,11 +407,13 @@ appId: com.bittr.bittr-regtest
 # focus it (tapOn also waits out the alert's slide-up), type the note, tap Save.
 - tapOn:
     id: "transaction.addNoteButton"
+- assertVisible:
+    id: "alert.addNote"
 - tapOn:
     id: "alert.textField"
 - inputText: "swap.yaml test"
 - tapOn:
-    text: "Save"
+    id: "alert.button.1"
 
 # The note now shows in the transaction's note stack.
 - assertVisible:

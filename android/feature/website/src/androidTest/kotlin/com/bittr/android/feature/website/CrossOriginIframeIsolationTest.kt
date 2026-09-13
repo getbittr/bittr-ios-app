@@ -79,6 +79,28 @@ class CrossOriginIframeIsolationTest {
         const val PARENT_PATH = "/parent.html"
         const val IFRAME_PATH = "/iframe.html"
 
+        /** The same pair, but with a bridge deliberately planted in the iframe. */
+        const val PLANTED_PARENT_PATH = "/planted-parent.html"
+        const val PLANTED_IFRAME_PATH = "/planted-iframe.html"
+
+        /**
+         * A bridge-shaped object, planted from JavaScript before the probe runs.
+         *
+         * **Not** `addJavascriptInterface`: that API is banned repo-wide by
+         * `JavascriptInterfaceGuardTest`, which scans every Kotlin file under
+         * `android/` with no allowlist. See the twin of this constant in
+         * [ThirdPartyIsolationTest] for why planting it in the page is also the
+         * more honest thing to do — nothing native is exposed, so this stays a
+         * test of the probe rather than a hole in the wallet.
+         */
+        const val PLANTED_BRIDGE = """
+            window.bittrLnurl = {
+              postMessage: function (m) {
+                (window.__bittrPlanted = window.__bittrPlanted || []).push(String(m));
+              }
+            };
+        """
+
         const val LOAD_TIMEOUT_SECONDS = 20L
 
         /** Time given to the iframe to misbehave after the parent has loaded. */
@@ -95,7 +117,7 @@ class CrossOriginIframeIsolationTest {
      * because `evaluateJavascript` runs in the main frame and cannot read the
      * iframe's variables directly.
      */
-    private fun parentPage(iframeOrigin: String) = """
+    private fun parentPage(iframeOrigin: String, iframePath: String = IFRAME_PATH) = """
         <!doctype html><html><body>
         <h1>first-party page</h1>
         <script>
@@ -105,7 +127,7 @@ class CrossOriginIframeIsolationTest {
             window.__bittrIframe = e.data;
           });
         </script>
-        <iframe id="child" src="$iframeOrigin$IFRAME_PATH"></iframe>
+        <iframe id="child" src="$iframeOrigin$iframePath"></iframe>
         </body></html>
     """.trimIndent()
 
@@ -117,8 +139,8 @@ class CrossOriginIframeIsolationTest {
      * - the names an `addJavascriptInterface` port would plausibly have used.
      * - **any** own property of `window` carrying a `postMessage` — the catch-all
      *   for a bridge injected under a name this test does not know. `parent`,
-     *   `top` and friends are excluded by name because `postMessage` on a
-     *   cross-origin `Window` is legitimately reachable and is not a bridge.
+     *   `top` and the window's other aliases are excluded by identity, because
+     *   `postMessage` on a `Window` is the DOM API and is not a bridge.
      * - a `lightning:` navigation of its own frame, which reaches
      *   `shouldOverrideUrlLoading` with `isForMainFrame = false`.
      * - a `lightning:` navigation of **top**, which is the escalation an iframe
@@ -128,9 +150,10 @@ class CrossOriginIframeIsolationTest {
      * request log is the evidence that *the wallet* made no call, and a fetch
      * from the page would poison it.
      */
-    private fun iframePage() = """
+    private fun iframePage(plant: String = "") = """
         <!doctype html><html><body>
         <script>
+          $plant
           var report = { ran: true, bridges: [], errors: [], topNavigated: false };
 
           function note(name, present) { if (present) report.bridges.push(name); }
@@ -145,12 +168,28 @@ class CrossOriginIframeIsolationTest {
                 note(n, typeof window[n] === 'object' || typeof window[n] === 'function');
               });
 
-            var skip = { parent: 1, top: 1, self: 1, window: 1, frames: 1, opener: 1 };
+            // By identity, not by name — see the same block in
+            // ThirdPartyIsolationTest. That version listed these by name, missed
+            // `frames`, and reported the window itself as a bridge on the first
+            // run it ever got. A name list also cannot exclude an alias it has
+            // not heard of, while still needing to admit a bridge under a name
+            // it has not heard of, which is the wrong way round.
+            var selfAliases = [];
+            ['self', 'frames', 'parent', 'top', 'opener'].forEach(function (n) {
+              try { if (window[n]) selfAliases.push(window[n]); } catch (e) {}
+            });
+            selfAliases.push(window);
+            function isSelfAlias(v) {
+              for (var i = 0; i < selfAliases.length; i++) {
+                try { if (v === selfAliases[i]) return true; } catch (e) {}
+              }
+              return false;
+            }
+
             for (var key in window) {
-              if (skip[key]) continue;
               try {
                 var v = window[key];
-                if (v && typeof v.postMessage === 'function') {
+                if (v && typeof v.postMessage === 'function' && !isSelfAlias(v)) {
                   report.bridges.push('postMessage:' + key);
                   // Use it, so that a bridge which exists but is never called
                   // cannot be argued to be harmless.
@@ -162,7 +201,12 @@ class CrossOriginIframeIsolationTest {
 
           // Report before navigating: a navigation that did succeed would tear
           // this frame down, and the report would never be sent.
-          try { window.parent.postMessage(report, '*'); } catch (e) {}
+          try {
+            // Only ever non-empty on the planted page; the probe's positive
+            // control reads it back through the same channel as everything else.
+            report.planted = window.__bittrPlanted || [];
+            window.parent.postMessage(report, '*');
+          } catch (e) {}
 
           setTimeout(function () {
             // This frame.
@@ -178,12 +222,19 @@ class CrossOriginIframeIsolationTest {
     @Before
     fun startServers() {
         iframeServer = LocalTestServer()
-        iframeServer.start(mapOf(IFRAME_PATH to iframePage()))
+        iframeServer.start(
+            mapOf(
+                IFRAME_PATH to iframePage(),
+                PLANTED_IFRAME_PATH to iframePage(PLANTED_BRIDGE),
+            ),
+        )
 
         parentServer = LocalTestServer()
         parentServer.start(
             mapOf(
                 PARENT_PATH to parentPage(iframeServer.origin),
+                PLANTED_PARENT_PATH to
+                    parentPage(iframeServer.origin, PLANTED_IFRAME_PATH),
                 // Present so a request would succeed. The assertion is that it is
                 // never asked for, and a 404 would muddy that.
                 LNURL_ENDPOINT_PATH to
@@ -200,7 +251,7 @@ class CrossOriginIframeIsolationTest {
     }
 
     /** Builds the real hardened WebView, loads the parent page, waits, returns it. */
-    private fun loadParentPage(): WebView {
+    private fun loadParentPage(path: String = PARENT_PATH): WebView {
         val loaded = CountDownLatch(1)
         lateinit var webView: WebView
 
@@ -211,7 +262,7 @@ class CrossOriginIframeIsolationTest {
                 onPageUrlChanged = { },
                 lnurlSlot = LnurlRequestSlot(),
             )
-            webView.loadUrl(parentServer.origin + PARENT_PATH)
+            webView.loadUrl(parentServer.origin + path)
         }
 
         assertTrue(
@@ -222,6 +273,23 @@ class CrossOriginIframeIsolationTest {
 
         Thread.sleep(MISBEHAVE_MILLIS)
         instrumentation.waitForIdleSync()
+
+        // [theCrossOriginIframeActuallyRan] states this as a named control, and it
+        // is repeated here so that it holds for every test rather than for one of
+        // them. JUnit gives no ordering guarantee between methods, so on a broken
+        // fixture the named control is a single red among four greens — which
+        // reads like one flaky test, not like "none of this ran". Asserted in the
+        // shared helper, the whole class goes red together and says why.
+        val ran = evaluate(webView, "JSON.stringify(!!(window.__bittrIframe || {}).ran)")
+        assertEquals(
+            "The cross-origin iframe did not report in, so nothing below was " +
+                "exercised. Both fixtures are served over http on 127.0.0.1, which " +
+                "only src/androidTest/res/xml/network_security_config_test.xml " +
+                "permits; without it the WebView renders an error page that still " +
+                "reports 100% progress and finds no bridge for the wrong reason.",
+            "\"true\"",
+            ran,
+        )
         return webView
     }
 
@@ -281,6 +349,74 @@ class CrossOriginIframeIsolationTest {
                 "bridge object exists in any frame. Found: $bridges",
             "\"[]\"",
             bridges,
+        )
+    }
+
+    /**
+     * The iframe's probe reports a bridge when one is there.
+     *
+     * The positive control for [aCrossOriginIframeFindsNoBridgeToPostTo], and the
+     * companion to [theCrossOriginIframeActuallyRan]. Those two together say "the
+     * iframe ran and found nothing"; this one says the finding-nothing was a
+     * result rather than a silence. Without it, a probe that had stopped working
+     * and a wallet that is safe are still the same green tick — the canary only
+     * moves the vacuity one level down, from "did the frame load" to "did the
+     * probe inside it look".
+     *
+     * This frame is where identity-based exclusion is actually load-bearing. In
+     * the main frame `parent`, `top` and `self` are all the window itself, so
+     * `v === window` would have covered them. Here the frame is cross-origin to
+     * its parent, so `parent` and `top` are genuinely *different* objects —
+     * cross-origin `Window` proxies, each with a real `postMessage`. The probe
+     * has to exclude those and still report the planted object sitting alongside
+     * them. An exclusion written slightly too wide passes every other test in
+     * this file and fails only here.
+     */
+    @Test
+    fun theIframeBridgeProbeReportsABridgeThatIsActuallyThere() {
+        val webView = loadParentPage(PLANTED_PARENT_PATH)
+
+        // Asked the way theCrossOriginIframeActuallyRan asks it, and for the same
+        // reason: evaluateJavascript hands back a JSON *encoding* of the result,
+        // so a stringified object arrives with its quotes escaped and a substring
+        // test for {"ran":true} would never match its own subject. Reducing the
+        // question to a bare boolean first keeps the comparison exact.
+        val ran = evaluate(webView, "JSON.stringify(!!(window.__bittrIframe || {}).ran)")
+
+        assertEquals(
+            "The iframe carrying a planted bridge never reported in at all, so this " +
+                "control proved nothing about the probe. Check the second " +
+                "LocalTestServer and the planted iframe document before reading any " +
+                "other result in this file.",
+            "\"true\"",
+            ran,
+        )
+
+        val report = evaluate(webView, "JSON.stringify(window.__bittrIframe)")
+
+        assertTrue(
+            "The iframe's probe did not report a planted window.bittrLnurl by name. " +
+                "While that half is broken, aCrossOriginIframeFindsNoBridgeToPostTo " +
+                "is not evidence that no bridge exists. Report: $report",
+            "bittrLnurl" in report,
+        )
+
+        assertTrue(
+            "The iframe's for…in catch-all did not report the planted bridge. This is " +
+                "the half that would catch a bridge added under a name nobody " +
+                "predicted — which is precisely the regression BIT-58 exists to gate, " +
+                "because addJavascriptInterface has no frame scoping and a " +
+                "webView.url origin check waves this frame through. It excludes the " +
+                "frame-tree aliases by identity; if that exclusion is too wide, this " +
+                "is the only test in the file that notices. Report: $report",
+            "postMessage:bittrLnurl" in report,
+        )
+
+        assertTrue(
+            "The probe found the planted bridge but never posted to it, so the claim " +
+                "that a discovered bridge is also exercised no longer holds. " +
+                "Report: $report",
+            "lightning:" in report,
         )
     }
 

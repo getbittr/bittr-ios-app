@@ -21,7 +21,7 @@
 #
 # Run: maestro test shared/flows/onboarding/restore_wallet.yaml
 
-appId: com.bittr.bittr-regtest
+appId: ${APP_ID}
 ---
 - launchApp:
     clearState: true

@@ -37,7 +37,7 @@
 #
 # Run: maestro test shared/flows/features/notification_htlcincoming.yaml
 
-appId: com.bittr.bittr-regtest
+appId: ${APP_ID}
 ---
 # Launch without clearState so existing wallet state is preserved. Allow
 # notifications so the foreground push is delivered.
@@ -94,14 +94,14 @@ appId: com.bittr.bittr-regtest
 # payment" alert below is the real proof the deferred .htlcIncoming flow ran.
 - runFlow: ../helpers/unlock.yaml
 - assertVisible:
-    text: ".*[Ss]yncing wallet.*"
+    id: "loading.syncingWallet"
     optional: true
 - takeScreenshot: shared/docs/screenshots/notification_htlcincoming/02_syncing
 
 # Once synced, finalizeSync re-runs the handler → triggerHTLCReady shows the
 # "receiving payment" loading card.
 - assertVisible:
-    text: ".*receiving payment.*"
+    id: "loading.receivingPayment"
     optional: true
 - takeScreenshot: shared/docs/screenshots/notification_htlcincoming/03_receiving
 
@@ -111,7 +111,7 @@ appId: com.bittr.bittr-regtest
 # screenshot, assert, dismiss.
 - extendedWaitUntil:
     visible:
-      text: ".*Incoming payment.*"
+      id: "alert.incomingPayment"
     timeout: 60000
 - waitForAnimationToEnd:
     timeout: 3000

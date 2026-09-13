@@ -26,7 +26,7 @@
 #
 # Run: maestro test shared/flows/features/bitcoin_value.yaml
 
-appId: com.bittr.bittr-regtest
+appId: ${APP_ID}
 ---
 - launchApp
 - runFlow: ../helpers/wait_for_launch.yaml
@@ -84,6 +84,13 @@ appId: com.bittr.bittr-regtest
 # tracks the finger and updates as it moves; it is visible live during the run
 # but is torn down on finger-lift (touchesEnded), so it cannot be asserted or
 # screenshotted after the gesture completes.
+#
+# CONSEQUENCE FOR THE REFERENCE SET: 05_after_scrub is therefore byte-identical
+# to 04_value_loaded, and always will be — `swipe` is atomic, so no screenshot
+# can interleave with the gesture, and GraphView tears the card down twice over
+# (touchesEnded removes it; showGraphValue rebuilds nothing once state == .ended).
+# This is not a mis-aimed swipe and should not be re-chased as one. The card is
+# fully specified from source in shared/docs/reference_set_duplicate_audit.md §2.
 - swipe:
     from:
       id: "value.graphView"

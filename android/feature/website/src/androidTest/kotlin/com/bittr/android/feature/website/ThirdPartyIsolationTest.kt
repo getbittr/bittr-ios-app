@@ -55,6 +55,33 @@ class ThirdPartyIsolationTest {
         const val AUTH_PATH = "/auth"
         const val PAGE_PATH = "/hostile.html"
 
+        /** The same hostile page, but with a bridge deliberately planted in it. */
+        const val PLANTED_PAGE_PATH = "/planted.html"
+
+        /**
+         * A bridge-shaped object, planted from JavaScript before the probe runs.
+         *
+         * **It must not be planted with `addJavascriptInterface`.** That API is
+         * banned repo-wide by `JavascriptInterfaceGuardTest`, which scans every
+         * Kotlin file under `android/` — this one included — and has deliberately
+         * no allowlist. The scan strips string literals, so a bridge built *in
+         * the page* is both invisible to it and, more to the point, not actually
+         * a bridge: nothing native is exposed and the wallet is not modified.
+         *
+         * That makes this a test of the probe, not of the app, which is exactly
+         * what it is for. The probe's rule is
+         * `typeof v.postMessage === 'function' && !isSelfAlias(v)`, and a real
+         * `addJavascriptInterface` object reaches that rule the same way this one
+         * does: as an enumerable own property of `window` that is not the window.
+         */
+        const val PLANTED_BRIDGE = """
+            window.bittrLnurl = {
+              postMessage: function (m) {
+                (window.__bittrPlanted = window.__bittrPlanted || []).push(String(m));
+              }
+            };
+        """
+
         val LOAD_TIMEOUT_SECONDS = 20L
 
         /** Time given to the page to misbehave after it has loaded. */
@@ -77,12 +104,13 @@ class ThirdPartyIsolationTest {
      * whether any bridge object was present, rather than inferring it from the
      * absence of an effect.
      */
-    private fun hostilePage(origin: String) = """
+    private fun hostilePage(origin: String, plant: String = "") = """
         <!doctype html><html><body>
         <a id="lnurlLink" href="lightning:$LNURL">pay</a>
         <a id="substringLink" href="https://example.invalid/?utm=lnurl">not an lnurl</a>
         <a id="authLink" href="$origin$AUTH_PATH?tag=login&k1=${"ab".repeat(32)}">log in</a>
         <script>
+          $plant
           window.__bittrProbe = { bridges: [], errors: [] };
           function note(name, present) { if (present) window.__bittrProbe.bridges.push(name); }
 
@@ -95,11 +123,31 @@ class ThirdPartyIsolationTest {
                                              typeof window[n] === 'function'); });
 
             // Try to use them anyway, in case one exists under a name not listed.
+            //
+            // `postMessage` is a DOM method on every Window, and `for…in` walks
+            // Window.prototype, so the window turns up here under each of its own
+            // aliases — `window`, `self`, `frames`, `parent`, `top`. None is a
+            // bridge. They are excluded by *identity* rather than by name: a name
+            // list is what broke this test the first time it ever ran (it listed
+            // four of the five and `frames` walked straight through), and a name
+            // list is also the thing a bridge injected under an unexpected name
+            // would slip past — which is the entire reason for this catch-all.
+            var selfAliases = [];
+            ['self', 'frames', 'parent', 'top', 'opener'].forEach(function (n) {
+              try { if (window[n]) selfAliases.push(window[n]); } catch (e) {}
+            });
+            selfAliases.push(window);
+            function isSelfAlias(v) {
+              for (var i = 0; i < selfAliases.length; i++) {
+                try { if (v === selfAliases[i]) return true; } catch (e) {}
+              }
+              return false;
+            }
+
             for (var key in window) {
               try {
                 var v = window[key];
-                if (v && typeof v.postMessage === 'function' && key !== 'parent' &&
-                    key !== 'top' && key !== 'self' && key !== 'window') {
+                if (v && typeof v.postMessage === 'function' && !isSelfAlias(v)) {
                   window.__bittrProbe.bridges.push('postMessage:' + key);
                   v.postMessage('lightning:$LNURL');
                 }
@@ -129,6 +177,7 @@ class ThirdPartyIsolationTest {
         server.start(
             mapOf(
                 PAGE_PATH to hostilePage(server.origin),
+                PLANTED_PAGE_PATH to hostilePage(server.origin, PLANTED_BRIDGE),
                 // Present so that a request to them would succeed — the assertion
                 // is that they are never asked for, and a 404 would muddy that.
                 LNURL_ENDPOINT_PATH to
@@ -145,7 +194,7 @@ class ThirdPartyIsolationTest {
     }
 
     /** Builds the real hardened WebView, loads the hostile page, waits, returns it. */
-    private fun loadHostilePage(): WebView {
+    private fun loadHostilePage(path: String = PAGE_PATH): WebView {
         val loaded = CountDownLatch(1)
         lateinit var webView: WebView
 
@@ -156,7 +205,7 @@ class ThirdPartyIsolationTest {
                 onPageUrlChanged = { },
                 lnurlSlot = LnurlRequestSlot(),
             )
-            webView.loadUrl(server.origin + PAGE_PATH)
+            webView.loadUrl(server.origin + path)
         }
 
         assertTrue(
@@ -167,7 +216,47 @@ class ThirdPartyIsolationTest {
 
         Thread.sleep(MISBEHAVE_MILLIS)
         instrumentation.waitForIdleSync()
+        assertFixtureRan(webView)
         return webView
+    }
+
+    /**
+     * Fails unless the fixture's own script actually executed.
+     *
+     * Progress reaching 100 is not that assertion, which is the point of this
+     * one. A WebView that refuses a URL — `ERR_CLEARTEXT_NOT_PERMITTED` being the
+     * one this suite is most likely to hit, since the fixtures are served over
+     * http on loopback — renders an *error page*, and an error page finishes
+     * loading and reports 100% just as a real page does.
+     *
+     * Every assertion in this class is of the form "the hostile page did not
+     * manage to X". A page that never ran did not manage to X either, so without
+     * this the whole class goes green while testing nothing at all — the precise
+     * failure mode that makes a security test worse than no test, because it also
+     * reports success. `window.__bittrProbe` is set on the fixture's first script
+     * line and exists nowhere else, so its presence is proof the page is the one
+     * that was asked for and that its JavaScript ran.
+     */
+    private fun assertFixtureRan(webView: WebView) {
+        val marker = evaluate(webView, "typeof window.__bittrProbe")
+
+        assertEquals(
+            "The hostile fixture's script did not run, so every assertion in this " +
+                "class would pass without exercising anything. The usual cause is the " +
+                "page not actually loading — cleartext to 127.0.0.1 is permitted only " +
+                "by src/androidTest/res/xml/network_security_config_test.xml, and " +
+                "without it the WebView shows an error page that still reports 100% " +
+                "progress. Current URL: ${urlOf(webView)}",
+            "\"object\"",
+            marker,
+        )
+    }
+
+    /** [WebView.getUrl] read on the main thread, for failure messages. */
+    private fun urlOf(webView: WebView): String? {
+        var url: String? = null
+        instrumentation.runOnMainSync { url = webView.url }
+        return url
     }
 
     /** Runs [script] in the page and returns its result as a JSON string. */
@@ -236,6 +325,69 @@ class ThirdPartyIsolationTest {
                 "${server.requestedPaths}",
             emptyList<String>(),
             lnurlRequests,
+        )
+    }
+
+    // --- The probe's own positive control ----------------------------------------
+
+    /**
+     * The probe reports a bridge when one is there.
+     *
+     * Every other bridge assertion in this file and in
+     * [CrossOriginIframeIsolationTest] is an assertion that a list came back
+     * **empty**, and an empty list is what a probe that has quietly stopped
+     * working returns too. `theCrossOriginIframeActuallyRan` closes half of that
+     * hole — it proves the iframe loaded and reported in. It does not prove the
+     * probe inside it can still recognise a bridge.
+     *
+     * This closes the other half, and it guards a specific, recent near-miss.
+     * The catch-all used to exclude the window's frame-tree aliases *by name*,
+     * missed `frames`, and reported the page's own DOM API as a wallet bridge on
+     * the first run it was ever given (run 68). The fix swapped the name list for
+     * exclusion by identity — which is the right shape, and is also one `!` away
+     * from excluding everything and passing forever. Nothing in the suite would
+     * have noticed. This test would.
+     *
+     * Both halves of the probe are checked, because they fail independently: the
+     * name list (`bittrLnurl`) and the `for…in` catch-all
+     * (`postMessage:bittrLnurl`). The catch-all is the one that matters, since it
+     * is the only half that can catch a bridge added under a name nobody
+     * predicted, and it is the half the identity change rewrote.
+     */
+    @Test
+    fun theBridgeProbeReportsABridgeThatIsActuallyThere() {
+        val webView = loadHostilePage(PLANTED_PAGE_PATH)
+
+        val bridges = evaluate(webView, "JSON.stringify(window.__bittrProbe.bridges)")
+
+        assertTrue(
+            "The probe's name list did not report a planted window.bittrLnurl. That " +
+                "list is the half of the probe that checks for the names an " +
+                "addJavascriptInterface port would plausibly have used, so the other " +
+                "tests in this file are not evidence of anything while it is broken. " +
+                "Found: $bridges",
+            "bittrLnurl" in bridges,
+        )
+
+        assertTrue(
+            "The probe's for…in catch-all did not report a planted bridge. This is " +
+                "the half that finds a bridge injected under a name this test does " +
+                "not know, which is the whole reason it exists — a name list cannot " +
+                "catch what it has not heard of. It excludes the window's own aliases " +
+                "by identity; if that exclusion has widened to cover everything, every " +
+                "other bridge assertion here passes vacuously and this is the only " +
+                "test that fails. Found: $bridges",
+            "postMessage:bittrLnurl" in bridges,
+        )
+
+        val delivered = evaluate(webView, "JSON.stringify(window.__bittrPlanted || [])")
+
+        assertTrue(
+            "The probe found the planted bridge but never posted to it. The catch-all " +
+                "calls postMessage on what it finds, so that a bridge which exists but " +
+                "is never exercised cannot be argued to be harmless — and the other " +
+                "tests rely on that call having been attempted. Delivered: $delivered",
+            "lightning:" in delivered,
         )
     }
 

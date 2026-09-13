@@ -22,34 +22,87 @@ class WebsiteViewController: UIViewController, WKUIDelegate, WKNavigationDelegat
     var webView = WKWebView()
     var pendingLnurlAuth:LNURLAuthRequest?
     var isHandlingLnurlAuth = false
-    
+
+    /// The only origin whose pages may start a Lightning flow from inside this WebView.
+    ///
+    /// Two of this controller's five call sites open pages bittr does not control:
+    /// `OnePlaceViewController` opens a merchant's website straight from BTCMap data, and
+    /// `TransactionViewController` opens the block explorer. The LNURL bridge below is
+    /// therefore opt-in per origin, not global — otherwise any such page could hand the
+    /// wallet an LNURL-auth request and get it signed with the user's stable identity.
+    private static let lnurlBridgeHost = "getbittr.com"
+
+    /// Requires https as well as the host: `Info.plist` sets `NSAllowsArbitraryLoads`, with an
+    /// exception dict that only covers `localhost`, so plain http loads are permitted app-wide
+    /// and there is no in-app HSTS to lean on. Without the scheme check, anyone able to answer
+    /// for `http://getbittr.com` — hostile Wi-Fi, a spoofed DNS reply — gets the whole bridge.
+    /// All five call sites already pass https URLs, so this costs nothing.
+    private static func isFirstParty(_ url:URL?) -> Bool {
+        guard let url, url.scheme?.lowercased() == "https",
+              let host = url.host?.lowercased() else { return false }
+        return host == lnurlBridgeHost || host.hasSuffix(".\(lnurlBridgeHost)")
+    }
+
+    private var initialUrl:URL? {
+        self.tappedUrl.flatMap { URL(string: $0) }
+    }
+
+    /// Whether the page *currently on screen* is one bittr controls.
+    ///
+    /// `webView.url` is what matters here, not `tappedUrl`: a first-party page is free to
+    /// navigate somewhere else, and a `WKUserScript` stays installed for every page the
+    /// WebView loads afterwards. Falls back to the requested URL for the first load,
+    /// before `webView.url` is populated.
+    private var isShowingFirstPartyPage:Bool {
+        Self.isFirstParty(self.webView.url ?? self.initialUrl)
+    }
+
     override func loadView() {
         super.loadView()
-        
+
         let webConfiguration = WKWebViewConfiguration()
         let contentController = WKUserContentController()
-        
-        let script = """
-            const observer = new MutationObserver(() => {
-                const links = Array.from(document.querySelectorAll('a'))
-                    .map(a => a.href)
-                    .filter(h => h.toLowerCase().includes('lnurl') || h.toLowerCase().startsWith('lightning:'));
-                
-                if (links.length > 0) {
-                    window.webkit.messageHandlers.lnurl.postMessage(links[0]);
-                }
-            });
 
-            observer.observe(document.body, { childList: true, subtree: true });
-            """
-        
-        let userScript = WKUserScript(
-            source: script,
-            injectionTime: .atDocumentEnd,
-            forMainFrameOnly: true
-        )
-        contentController.addUserScript(userScript)
-        contentController.add(self, name: "lnurl")
+        // Install the bridge only when we were asked to open a first-party page. For any
+        // other URL this stays a plain browser: no injected script, no `lnurl` handler.
+        if Self.isFirstParty(self.initialUrl) {
+            let script = """
+                const BECH32_LNURL = /^lnurl1[02-9ac-hj-np-z]{6,}$/;
+
+                // Match the lightning scheme, or a bech32 LNURL in the raw attribute —
+                // not any href that happens to contain the substring "lnurl".
+                const lnurlFrom = (anchor) => {
+                    const resolved = (anchor.href || '');
+                    const lowered = resolved.toLowerCase();
+                    if (lowered.startsWith('lightning:') || lowered.startsWith('lnurl:')) {
+                        return resolved;
+                    }
+                    const raw = (anchor.getAttribute('href') || '').trim().toLowerCase();
+                    return BECH32_LNURL.test(raw) ? raw : null;
+                };
+
+                const observer = new MutationObserver(() => {
+                    const links = Array.from(document.querySelectorAll('a'))
+                        .map(lnurlFrom)
+                        .filter(Boolean);
+
+                    if (links.length > 0) {
+                        window.webkit.messageHandlers.lnurl.postMessage(links[0]);
+                    }
+                });
+
+                observer.observe(document.body, { childList: true, subtree: true });
+                """
+
+            let userScript = WKUserScript(
+                source: script,
+                injectionTime: .atDocumentEnd,
+                forMainFrameOnly: true
+            )
+            contentController.addUserScript(userScript)
+            contentController.add(self, name: "lnurl")
+        }
+
         webConfiguration.userContentController = contentController
         
         webView = WKWebView(frame: .zero, configuration: webConfiguration)
@@ -120,24 +173,97 @@ class WebsiteViewController: UIViewController, WKUIDelegate, WKNavigationDelegat
             return
         }
         
-        let absolute = url.absoluteString.lowercased()
-        if absolute.hasPrefix("lightning:") || absolute.hasPrefix("lnurl") || absolute.contains("tag=login") {
+        // Match on the scheme, and on a properly parsed `tag=login` query item — not on a
+        // substring of the whole URL, which made every https link carrying `tag=login`
+        // anywhere in it an auth attempt against that host.
+        let scheme = url.scheme?.lowercased()
+        let hasLoginTag = URLComponents(url: url, resolvingAgainstBaseURL: false)?
+            .queryItems?
+            .contains { $0.name.lowercased() == "tag" && $0.value?.lowercased() == "login" } ?? false
+        let isLnurlNavigation = scheme == "lightning"
+            || scheme == "lnurl"
+            || url.absoluteString.lowercased().hasPrefix("lnurl1")
+            || (scheme == "https" && hasLoginTag)
+
+        if isLnurlNavigation {
+            // This delegate method fires for *every* frame, but `isShowingFirstPartyPage`
+            // reads `webView.url`, which is the *main frame's* URL. Without the frame check
+            // a cross-origin iframe on a first-party page could navigate itself to
+            // `lightning:…` and be treated as first-party.
+            //
+            // `targetFrame` is nil for a new-window navigation (`target="_blank"`), which
+            // says nothing about who asked for it, so fall back to the frame that did. That
+            // keeps a first-party `target="_blank"` LNURL link working — it reaches us here
+            // and is handled without ever opening a window — while still denying a subframe
+            // that tries to launder itself through one.
+            let isMainFrameNavigation = navigationAction.targetFrame?.isMainFrame
+                ?? navigationAction.sourceFrame.isMainFrame
+
+            // Only a page bittr controls may drive the wallet. A third-party page reached
+            // from the map or the block explorer gets the navigation cancelled, nothing more.
+            guard isMainFrameNavigation, self.isShowingFirstPartyPage else {
+                Log.info("Ignoring an LNURL navigation from a subframe or a third-party page.")
+                decisionHandler(.cancel)
+                return
+            }
+
             self.isHandlingLnurlAuth = true
-            self.handleLNURL(code: absolute.replacingOccurrences(of: "lightning:", with: ""))
+            self.handleLNURL(code: url.lnurlCode)
             decisionHandler(.cancel)
             return
         }
-        
+
         decisionHandler(.allow)
     }
-    
+
     func userContentController(_ userContentController: WKUserContentController, didReceive message: WKScriptMessage) {
-        
+
+        // The script is installed only for first-party pages, but such a page can navigate
+        // to a third-party one and the script goes with it — so re-check what is actually
+        // on screen before acting on anything it posts.
+        //
+        // `forMainFrameOnly: true` constrains the *user script*, not the handler:
+        // `add(_:name:)` has no frame scope, so `messageHandlers.lnurl` exists in every
+        // frame, including cross-origin ones, whether or not the script ran there. And
+        // `isShowingFirstPartyPage` reads the *main frame's* URL, so an iframe embedded on
+        // a first-party page would otherwise pass this check by posting to the handler
+        // directly.
+        guard message.frameInfo.isMainFrame, self.isShowingFirstPartyPage else {
+            Log.info("Ignoring an LNURL message from a subframe or a third-party page.")
+            return
+        }
+
         if !self.isHandlingLnurlAuth, message.name == "lnurl", let url = message.body as? String {
             Log.debug("Did find URL: \(url)")
             self.isHandlingLnurlAuth = true
-            self.handleLNURL(code: url.replacingOccurrences(of: "lightning:", with: ""))
+            self.handleLNURL(code: URL(string: url)?.lnurlCode ?? url)
         }
     }
-    
+
+}
+
+private extension URL {
+
+    /// The payload to hand to `handleLNURL`: this URL with any `lightning:` prefix removed.
+    ///
+    /// Case is only flattened for a bech32 LNURL, and then only to lowercase. Bech32 is
+    /// case-insensitive but must be uniform, so lowercasing an all-uppercase `LNURL1…` is
+    /// the canonical form and always decodes. An https `tag=login` callback is *not*
+    /// case-insensitive — lowercasing the whole URL, as this code used to, corrupts its
+    /// path and its k1, so that case is passed through untouched.
+    var lnurlCode:String {
+        let stripped = self.absoluteString.replacingOccurrences(
+            of: "lightning:",
+            with: "",
+            options: [.caseInsensitive, .anchored]
+        )
+
+        let lowered = stripped.lowercased()
+        let isBech32Lnurl = lowered.range(
+            of: "^lnurl1[02-9ac-hj-np-z]{6,}$",
+            options: .regularExpression
+        ) != nil
+
+        return isBech32Lnurl ? lowered : stripped
+    }
 }

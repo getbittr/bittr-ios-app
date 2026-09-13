@@ -31,7 +31,7 @@ Canonical accessibility/test ID constants used by Maestro flows. Defined here on
 → Swift: `TestID.Signup.Create.Start.createWalletButton == "signup.create.start.createWalletButton"`
 → Kotlin: `TestID.Signup.Create.Start.createWalletButton == "signup.create.start.createWalletButton"`
 
-JSON keys are camelCase. Branches get PascalCased in code (`Signup`, `Create`); leaves stay camelCase (`createWalletButton`). The string ID — what Maestro matches — is the lowercased dot path.
+JSON keys are camelCase. Branches get PascalCased in code (`Signup`, `Create`); leaves stay camelCase (`createWalletButton`). The string ID — what Maestro matches — is the dot path verbatim, case included: the flow selects `id: "alert.lowFee"`, not `alert.lowfee`.
 
 ### Runtime-indexed IDs
 
@@ -57,6 +57,32 @@ fun wordAt(position: Int) = "signup.create.mnemonic.word${position + 1}"        
 ```
 
 Always pass the **0-based position** — the loop index, the `indexPath.row` — and let the helper apply the offset. This mirrors iOS, where `Signup3ViewController` writes `"\(TestID.Signup.Create.Mnemonic.word)\(index + 1)"` for a 0-based `index`.
+
+### Alerts
+
+`alert.button.0` says *a* button on *an* alert was tapped. It does not say which alert — and an alert that is up when it should not be still has a `button.0`. Until BIT-78 the suite closed that gap by matching the alert's wording, which made a copy edit look like a test failure and made the wrong alert with the right words look like a pass.
+
+Each alert now carries its own id on the card:
+
+```swift
+self.showAlert(id: TestID.Alert.lowFee, title: …, message: …, buttons: […])
+self.showLoading(id: TestID.Loading.syncingWallet, message: …)
+```
+
+```yaml
+- assertVisible:
+    id: "alert.lowFee"        # not: text: ".*very low fees.*"
+- tapOn:
+    id: "alert.button.1"      # the button, once you know it is the right alert
+```
+
+- **`id` is optional.** An alert no flow touches does not need one. Add it when a flow starts asserting on that alert — that is the moment the identity matters.
+- **Name it for the alert, not the copy key.** `alert.lowFee` survives `lowfee2` being renamed or reworded; `alert.lowfee2` does not. Where the title is generic (`oops`, `error`) the message is what makes the alert distinct, so name from that.
+- **Two alerts that differ only in their buttons are two alerts.** The notification gate is the worked example: the same title and near-identical message, one with a Continue button and one without, so `alert.receiveNotificationsPrompt` and `alert.receiveNotificationsDenied` are separate ids. Telling them apart by "does a Continue button exist" is what this replaces.
+- **The id goes on the card, not the overlay.** Replacing a live alert reuses the overlay and rebuilds only the card, so an id on the overlay would outlive the alert that earned it.
+- **Alerts raised through a helper take the id as a parameter.** `SwapViewController.cancelSwap(alertID:…)` — every caller cancels for a different reason, so every caller raises a different alert.
+
+The loading card (`showLoading`) is the same surface with its own `loading.*` branch: it is non-dismissable and has no buttons, so `alert.button.N` never applies to it.
 
 ## Checking flows against the registry
 

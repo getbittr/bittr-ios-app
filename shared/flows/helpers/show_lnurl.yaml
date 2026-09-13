@@ -1,0 +1,55 @@
+# Reusable subflow: from a freshly-opened ReceiveViewController, switch the
+# transaction type to the user's own Lightning address (the "LNURL" type).
+#
+# Like helpers/show_invoice.yaml this needs the More button — the type picker is
+# only rendered when a lightning channel is active (updateCards), so LNURL is
+# unreachable on a channel-less wallet.
+#
+# Note that when a channel AND a lightning address both exist, Receive already
+# OPENS on this type (ReceiveViewController.viewDidLoad: no channel → .onchain,
+# else LNURL present → .lnurl, else → .bitcoinqr). The picker tap below is
+# therefore often a re-render of the current type rather than a switch; it is
+# done unconditionally so the subflow works from whichever type the screen
+# happens to be showing.
+
+appId: ${APP_ID}
+---
+# Wait for the initial QR to render before touching the type picker.
+- extendedWaitUntil:
+    notVisible:
+      id: "receive.qrSpinner"
+    timeout: 30000
+
+# Open the type picker and choose the lightning address.
+- tapOn:
+    id: "receive.moreButton"
+# Type-picker alert buttons: [Cancel, Address, Bitcoin QR, Create invoice,
+# Show LNURL]. "Show LNURL" — labelled "Lightning address" — is index 4.
+- tapOn:
+    id: "alert.button.4"
+
+# Switching type re-renders the QR; wait for the spinner to settle. Unlike the
+# invoice type this needs no network round-trip (setLabels skips invoice
+# generation for .lnurl), so it settles as soon as the 0.7s switch delay is up.
+- extendedWaitUntil:
+    notVisible:
+      id: "receive.qrSpinner"
+    timeout: 30000
+
+# Confirm we are on LNURL — structurally, not by title. The title is NOT usable
+# to tell the modes apart: the "url" word renders as "Address", the exact same
+# string as the onchain type's "address" word (Language.swift).
+#
+# The card row is the discriminator (updateCards):
+#   .onchain   → renew + add-amount, More only when a channel exists
+#   .lightning → add-amount + More
+#   .bitcoinqr → add-amount + More
+#   .lnurl     → More only — the ONLY type with no add-amount (edit) card
+# and .lnurl is the only lightning-ish type that fills the upper addressLabel
+# (the lower invoiceLabel is emptied and collapsed by hideLowerAddress).
+- assertVisible:
+    id: "receive.addressLabel"
+- assertNotVisible:
+    id: "receive.editButton"
+- assertNotVisible:
+    id: "receive.refreshButton"

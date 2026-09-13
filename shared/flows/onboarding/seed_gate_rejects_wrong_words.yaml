@@ -1,0 +1,249 @@
+# The onboarding seed-confirmation gate (Signup4) must REJECT wrong input.
+#
+# Why this flow exists (BIT-19, out of the BIT-8 recovery decision): recovery is
+# mnemonic-only. There is no second copy of the seed anywhere — Keystore holds a
+# cache, device backup is excluded, cloud was rejected. So this gate is the
+# entire recovery guarantee: a user who gets past it without genuinely having
+# the 12 words has an unrecoverable wallet. A port that accepted any input, or
+# auto-advanced on blur regardless of match, would still pass every other flow
+# in the suite, because every other flow types the RIGHT words.
+#
+# So this one types wrong ones, and asserts each rejection branch of
+# Signup4ViewController.nextButtonTapped in the order the source checks them:
+#
+#   1. valid BIP39 words that are not the requested ones → "incorrect phrase"
+#   2. a non-BIP39 string                                → "invalid words"
+#   3. an empty field                                    → "missing words"
+#
+# and after each, that the flow is STILL on Signup4 — the alert alone is not
+# enough, an implementation could show it and advance anyway. Then it enters the
+# right words and asserts it does advance, both to prove the gate isn't simply
+# stuck and to leave the app on the wallet-ready screen like happy_path_wallet.
+#
+# The three alerts are told apart by test ID, not by their message text. All
+# alerts share one chrome, so before BIT-19 the only thing separating them was
+# the localized string — and shared/strings/ consolidation (BIT-12) is about to
+# move those. Signup4 passes `id:` to showAlert, which sets it on the alert
+# card (BIT-78 convention: `alert.*`); see shared/test-ids.
+#
+# Decoys are derived from the captured mnemonic rather than hardcoded, so a
+# decoy can never coincidentally BE the requested word and turn a rejection
+# assertion into a silent pass.
+#
+# iOS is the oracle here: it enforces the gate properly today, so this flow
+# passing on iOS is what makes it a valid parity target. It then runs unchanged
+# against Android.
+#
+# Run: maestro test shared/flows/onboarding/seed_gate_rejects_wrong_words.yaml
+
+appId: ${APP_ID}
+---
+# Clean slate — no wallet, so this walks the real first-run gate.
+- launchApp:
+    clearState: true
+    clearKeychain: true
+- runFlow: ../helpers/wait_for_launch.yaml
+
+# Signup1 → Signup2 (both statements) → Signup3 (mnemonic).
+- assertVisible:
+    id: "signup.create.start.createWalletButton"
+- tapOn:
+    id: "signup.create.start.createWalletButton"
+- assertVisible:
+    id: "signup.create.confirm.topLabel"
+- tapOn:
+    id: "signup.create.confirm.switchOne"
+- tapOn:
+    id: "signup.create.confirm.switchTwo"
+- tapOn:
+    id: "signup.create.confirm.nextButton"
+
+# Read the 12 words, then continue to the verify screen (Signup4).
+- runFlow: ../helpers/capture_mnemonic_words.yaml
+- scrollUntilVisible:
+    element:
+      id: "signup.create.mnemonic.nextButton"
+- tapOn:
+    id: "signup.create.mnemonic.nextButton"
+
+# Signup4 asks for three of the words by 1-based index.
+- assertVisible:
+    id: "signup.create.verify.topLabel"
+- copyTextFrom:
+    id: "signup.create.verify.label1"
+- evalScript: ${output.idx1 = parseInt(maestro.copiedText)}
+- copyTextFrom:
+    id: "signup.create.verify.label2"
+- evalScript: ${output.idx2 = parseInt(maestro.copiedText)}
+- copyTextFrom:
+    id: "signup.create.verify.label3"
+- evalScript: ${output.idx3 = parseInt(maestro.copiedText)}
+- takeScreenshot: shared/docs/screenshots/seed_gate/01_verify_initial
+
+# Pick a decoy per field: a real BIP39 word that is guaranteed NOT the requested
+# one. "abandon"/"ability"/"able" are the first three words of the English list
+# and "zoo" the last, so the fallback can never collide either. Hardcoding a
+# decoy outright would risk it happening to equal the requested word, which
+# would flip the test into asserting the gate REJECTS a correct answer.
+#
+# Quoted because the ternary's ": " would otherwise read as a YAML mapping —
+# same reason fresh_install.yaml quotes its APP_ID default.
+- evalScript: "${output.decoy1 = (output.words[output.idx1] == 'abandon' ? 'zoo' : 'abandon')}"
+- evalScript: "${output.decoy2 = (output.words[output.idx2] == 'ability' ? 'zoo' : 'ability')}"
+- evalScript: "${output.decoy3 = (output.words[output.idx3] == 'able' ? 'zoo' : 'able')}"
+
+# --- 1. Valid BIP39 words, all three wrong → "incorrect phrase" ---------------
+#
+# The keyboard covers the Confirm button, so dismiss it first. Tapping the
+# topLabel (a UILabel, non-interactive) falls through to the VC's
+# backgroundButtonTapped → endEditing(true); `- hideKeyboard` is unreliable
+# across simulator keyboard-mode changes. This is also the blur that
+# textFieldDidEndEditing hooks — it must NOT auto-advance here, since the words
+# don't match.
+- tapOn:
+    id: "signup.create.verify.field1"
+- inputText: ${output.decoy1}
+- tapOn:
+    id: "signup.create.verify.field2"
+- inputText: ${output.decoy2}
+- tapOn:
+    id: "signup.create.verify.field3"
+- inputText: ${output.decoy3}
+- tapOn:
+    id: "signup.create.verify.topLabel"
+# The blur on its own must not have advanced anything — "auto-advances on blur
+# regardless of match" is one of the two ways a port silently loses this gate.
+- assertVisible:
+    id: "signup.create.verify.topLabel"
+- tapOn:
+    id: "signup.create.verify.nextButton"
+- assertVisible:
+    id: "alert.incorrectPhrase"
+- waitForAnimationToEnd:
+    timeout: 3000
+- takeScreenshot: shared/docs/screenshots/seed_gate/02_incorrect_phrase_alert
+- tapOn:
+    id: "alert.button.0"
+- extendedWaitUntil:
+    notVisible:
+      id: "alert.incorrectPhrase"
+    timeout: 5000
+# Still on Signup4 — rejected, not advanced.
+- assertVisible:
+    id: "signup.create.verify.topLabel"
+- assertVisible:
+    id: "signup.create.verify.nextButton"
+
+# --- 2. A non-BIP39 string → "invalid words" ---------------------------------
+#
+# A distinct branch in the source, checked BEFORE the match, so it fires however
+# wrong the other two fields are. "zzzzzz" is not a prefix of any word in the
+# list, so MnemonicTextField shows no inline suggestion to complicate the field.
+# Tap near the right edge so the caret lands at the end of the existing text,
+# then erase it.
+- tapOn:
+    id: "signup.create.verify.field1"
+    point: "95%,50%"
+- eraseText
+- inputText: "zzzzzz"
+- tapOn:
+    id: "signup.create.verify.topLabel"
+- tapOn:
+    id: "signup.create.verify.nextButton"
+- assertVisible:
+    id: "alert.invalidWords"
+- waitForAnimationToEnd:
+    timeout: 3000
+- takeScreenshot: shared/docs/screenshots/seed_gate/03_invalid_words_alert
+- tapOn:
+    id: "alert.button.0"
+- extendedWaitUntil:
+    notVisible:
+      id: "alert.invalidWords"
+    timeout: 5000
+- assertVisible:
+    id: "signup.create.verify.topLabel"
+- assertVisible:
+    id: "signup.create.verify.nextButton"
+
+# --- 3. One field left empty → "missing words" -------------------------------
+#
+# Checked first of the three in the source, so it wins even though fields 2 and
+# 3 still hold decoys.
+- tapOn:
+    id: "signup.create.verify.field1"
+    point: "95%,50%"
+- eraseText
+- tapOn:
+    id: "signup.create.verify.topLabel"
+- tapOn:
+    id: "signup.create.verify.nextButton"
+- assertVisible:
+    id: "alert.missingWords"
+- waitForAnimationToEnd:
+    timeout: 3000
+- takeScreenshot: shared/docs/screenshots/seed_gate/04_missing_words_alert
+- tapOn:
+    id: "alert.button.0"
+- extendedWaitUntil:
+    notVisible:
+      id: "alert.missingWords"
+    timeout: 5000
+- assertVisible:
+    id: "signup.create.verify.topLabel"
+- assertVisible:
+    id: "signup.create.verify.nextButton"
+
+# --- 4. The right words → advances -------------------------------------------
+#
+# Proves the gate is discriminating rather than simply stuck rejecting. field1
+# is empty after step 3; fields 2 and 3 still hold decoys and need clearing.
+# Blurring field3 with all three matching auto-triggers Confirm (see
+# textFieldDidEndEditing), same as happy_path_wallet.yaml.
+- tapOn:
+    id: "signup.create.verify.field1"
+- inputText: ${output.words[output.idx1]}
+- tapOn:
+    id: "signup.create.verify.field2"
+    point: "95%,50%"
+- eraseText
+- inputText: ${output.words[output.idx2]}
+- tapOn:
+    id: "signup.create.verify.field3"
+    point: "95%,50%"
+- eraseText
+- inputText: ${output.words[output.idx3]}
+- takeScreenshot: shared/docs/screenshots/seed_gate/05_verify_correct
+- tapOn:
+    id: "signup.create.verify.topLabel"
+- assertVisible:
+    id: "signup.create.pinSet.topLabel"
+- takeScreenshot: shared/docs/screenshots/seed_gate/06_advanced_to_pin
+
+# Finish onboarding so the app is left in the same usable state as
+# happy_path_wallet.yaml (wallet-ready, Signup7) rather than stranded mid-signup.
+- tapOn:
+    id: "pin.button1"
+- tapOn:
+    id: "pin.button2"
+- tapOn:
+    id: "pin.button3"
+- tapOn:
+    id: "pin.button4"
+- tapOn:
+    id: "pin.confirmButton"
+- assertVisible:
+    id: "signup.create.pinConfirm.topLabel"
+- tapOn:
+    id: "pin.button1"
+- tapOn:
+    id: "pin.button2"
+- tapOn:
+    id: "pin.button3"
+- tapOn:
+    id: "pin.button4"
+- tapOn:
+    id: "pin.confirmButton"
+- assertVisible:
+    id: "signup.create.ready.topLabelOne"
+- takeScreenshot: shared/docs/screenshots/seed_gate/07_wallet_ready

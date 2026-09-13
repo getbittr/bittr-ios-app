@@ -1,0 +1,108 @@
+# Device diagnostic (BIT-82): does the "Powered by BTCMap.org" alert render in
+# full on the smallest supported iPhone?
+#
+# WHAT THIS PROVES, AND WHY IT IS ITS OWN FILE
+#
+# `mapvcpoweredbyalert` is the longest message in the app — 565 characters, four
+# paragraphs. It is presented by `AlertManager.showAlert`, which puts the message
+# in ONE `UILabel` (`numberOfLines = 0`) inside a card capped at
+# `card.heightAnchor <= host.view.bounds.height`, with NO scroll view. Past that
+# cap the label has nowhere to go, so it compresses — and the paragraph that goes
+# first is the last one, which is the location disclosure ("Drawing the map is the
+# part that leaves your phone… the area around you."). A clipped render does not
+# ship a worse version of BIT-56; it ships the unqualified claim BIT-45 was raised
+# about. That is why this is worth a device check rather than a follow-up.
+#
+# The scroll-view treatment DOES exist in the codebase, but only on
+# `showConfirmationSheet` (`messageScrollView`, hugging at priority 999 under a
+# `bounds.height * 0.45` cap). `showAlert` does not use it. If this diagnostic
+# comes back clipped, lifting that pattern into `showAlert` is the fix — the
+# container, not the copy. The wording is approved and re-cutting it would need
+# both reviews repeated (`shared/strings/README.md`).
+#
+# `features/bitcoin_map.yaml` cannot answer this, for two reasons:
+#   1. Its gate is `assertVisible: alert.button.0`. Close is pinned to the card,
+#      so that assertion passes with the disclosure paragraph clipped.
+#   2. It returns from Apple Maps with `tapOn: point: "13%,4%"`, pinned to fixed
+#      iPhone 15 geometry and flagged as a known liability in the flow-authoring
+#      skill. On a 375x667 SE that tap lands somewhere else, so the flow is
+#      likely to die at that step — after having already overwritten
+#      `screenshots/bitcoin_map/01`–`08` with SE-sized frames.
+#
+# WHY IT IS NOT IN suite.yaml
+#
+# Every other flow is device-agnostic. This one is only meaningful on a 375x667
+# simulator, and the canonical screenshot set is captured on one device only
+# (iPhone 16 Pro — mixed resolutions are one of the three reasons BIT-3 had to
+# re-capture all 336 shots). Running this in suite order on the canonical device
+# would write a 402dp frame to a path that claims to be an SE. So it is invoked
+# by hand, on purpose, and it writes OUTSIDE `shared/docs/screenshots/` to keep
+# that set single-device and its resolution check at exactly one line.
+#
+# PRECONDITION: a wallet already exists on the simulator and the PIN is 1234, so
+# launch lands on the unlock screen. Run `onboarding/restore_wallet.yaml` (or any
+# flow that leaves a wallet) first on this simulator. Non-destructive and
+# repeatable: it opens the alert, captures it, closes it, and leaves the map open.
+#
+# NOT YET RUN ON iOS. It reuses only selectors that `features/bitcoin_map.yaml`
+# already exercises green, and adds no new test ids, but it has not itself been
+# executed — no Mac in the authoring environment (BIT-82). Treat a red result as
+# "check the flow" before "check the app".
+#
+# Run, on a booted iPhone SE (2nd or 3rd gen) simulator:
+#   maestro test shared/flows/diagnostics/btcmap_alert_iphone_se.yaml
+#
+# Then confirm in the PNG, by eye:
+#   - four paragraphs are present;
+#   - the last one ends "…the area around you." with the full stop visible;
+#   - the Close button is fully on screen, inside the card.
+
+appId: ${APP_ID}
+---
+- launchApp:
+    permissions:
+      location: inuse
+- runFlow: ../helpers/wait_for_launch.yaml
+
+# Existing wallet → launch lands on the PIN unlock screen.
+- runFlow: ../helpers/unlock.yaml
+
+- assertVisible:
+    id: "home.headerLabel"
+
+# Home → MapViewController (HomeToMap segue).
+- tapOn:
+    id: "home.mapButton"
+
+# The map asks for location in viewDidAppear. launchApp's grant is honoured on
+# some iOS versions but not all, so tap through the system dialog if it appears.
+- runFlow:
+    when:
+      visible: "Allow While Using App"
+    commands:
+      - tapOn: "Allow While Using App"
+
+- assertVisible:
+    id: "map.mapView"
+
+# Open the BTCMap.org credit. Done on arrival, before the places sync, so the
+# alert is not sitting over a spinner and the frame is quiet.
+- tapOn:
+    id: "map.poweredByButton"
+- assertVisible:
+    id: "alert.button.0"
+
+# The capture IS the assertion here. Whether the last paragraph survived is a
+# question about glyphs inside a label, and no Maestro assertion can see that:
+# a compressed UILabel still reports its full text to the accessibility tree, so
+# an `assertVisible` on the closing sentence would pass on a clipped render. Read
+# the PNG.
+- takeScreenshot: shared/docs/device-checks/iphone_se/01_powered_by_alert
+
+# Close, and confirm the alert is actually gone (not merely off-screen).
+- tapOn:
+    id: "alert.button.0"
+- assertNotVisible:
+    id: "alert.button.0"
+- assertVisible:
+    id: "map.mapView"

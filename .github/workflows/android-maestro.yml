@@ -18,12 +18,16 @@ on:
       - 'android/**'
       - 'shared/flows/**'
       - 'shared/test-ids/**'
+      - 'shared/strings/**'
+      - 'ios/bittr/Language.swift'
       - '.github/workflows/android-maestro.yml'
   pull_request:
     paths:
       - 'android/**'
       - 'shared/flows/**'
       - 'shared/test-ids/**'
+      - 'shared/strings/**'
+      - 'ios/bittr/Language.swift'
       - '.github/workflows/android-maestro.yml'
   workflow_dispatch:
 
@@ -102,6 +106,12 @@ env:
   # Bump this on purpose, in its own commit, and re-run the three runs.
   MAESTRO_VERSION: '2.10.0'
   # Must match android/app/build.gradle.kts: applicationId + debug applicationIdSuffix.
+  #
+  # Load-bearing, not informational. android/scripts/ci-smoke.sh passes this to
+  # Maestro as `--env APP_ID`, and every shared flow reads its `appId:` from it
+  # (BIT-102) — so this single line is what makes the iOS flow files run here.
+  # The emulator step fails fast if it is unset rather than discovering it as a
+  # failed launch after a boot.
   APP_ID: com.bittr.android.regtest
 
 jobs:
@@ -209,6 +219,34 @@ jobs:
         # they run here. No network: the tests stub the transport.
         run: python3 android/scripts/test_ci_runs.py
 
+      - name: Test the K1 harness
+        # K1 (BIT-18) is the measurement BIT-8 rule 2 rests on: does a
+        # non-auth-bound Keystore key survive a lock-screen change. Its result
+        # table can only be produced by android/scripts/k1-lockscreen-matrix.sh
+        # against real devices, which this workflow cannot do — but the driver
+        # that decides whether a row reads PASS is plain bash, and it can be
+        # tested here.
+        #
+        # That is the part worth gating. K1's failure mode is not a red row, it
+        # is a green row from a run where the mutation silently did not happen,
+        # quoted afterwards in a security statement. test-k1-driver.sh runs the
+        # real driver against a stub adb and asserts it comes out ERROR for each
+        # shape of that: a mutation command that exits 0 and changes nothing, a
+        # mutation that lands on the wrong credential, an open phase with no
+        # verdict line. None of these suites needs a device or the SDK.
+        #
+        # test-k1-annotation.sh covers how the table gets OUT. On this repository
+        # job logs (403), artefact zips (401) and the job summary (not in the API)
+        # are all unreadable without admin, so the annotation k1-ci.sh emits is
+        # the only copy most readers can get — and an unescaped newline truncates
+        # it to one line without erroring. Same shape of silent defect as a row
+        # that measured nothing.
+        run: |
+          set -euo pipefail
+          bash android/scripts/test-k1-verdict.sh
+          bash android/scripts/test-k1-annotation.sh
+          python3 android/scripts/test_k1_result.py
+          bash android/scripts/test-k1-driver.sh
       - name: Test the instrumented-results reader
         # Same argument, one job over. check-instrumented-results.py is what decides
         # whether the `instrumented` job's green means anything, and its whole
@@ -255,11 +293,53 @@ jobs:
         # the emulator job only the branch that device happens to take ever runs.
         run: bash android/scripts/test_check_backup_set.sh
 
+      - name: Pin the wallet job's package name to what Gradle installs
+        # BIT-108 put the device-transfer backup on the HOST, where the package
+        # is a string handed to `adb` — `pm list packages`, /data/data/<pkg>/,
+        # `bmgr backupnow <pkg>`. Nothing compiles that string against the app.
+        #
+        # The first version of that phase used the `namespace`,
+        # com.bittr.android, rather than what is installed: applicationId plus
+        # the debug `applicationIdSuffix`, com.bittr.android.regtest. The phase
+        # then found no such package, reported the app as uninstalled, skipped
+        # the backup, and left check-backup-set.sh grepping a set nothing wrote
+        # — which is a warning at exit 0. A run that measured nothing, reading
+        # as a run that looked and found nothing.
+        #
+        # Here rather than in the emulator job for the usual reason: the drift
+        # is visible in three files with no device involved, and catching it
+        # after a boot costs a run to learn something a grep knew.
+        run: bash android/scripts/test_ci_wallet_host_phase.sh
+
       - name: Check every flow ID is registered
         # A flow selecting an ID that is in no registry entry fails at run time
         # with "element not found" — indistinguishable from a missing testTag in
         # the app, and it costs an emulator boot to find out. Fail here instead.
         run: python3 shared/test-ids/check_flow_ids.py
+
+      - name: Check the suite's copy dependencies still hold
+        # The flows assert *which* alert is on screen by matching its wording —
+        # alert.button._index and alert.textField are the only ids on that surface.
+        # 39 matchers across 24 flows depend on 37 keys in Language.swift plus 7
+        # strings hardcoded outside it. The *Language.swift -> shared/strings/ move
+        # touches every one of them, and a rewording in transit fails silently (a
+        # copy change is not a behaviour change, so nobody looks for a test result)
+        # and on both platforms at once (both apps will read the same source).
+        #
+        # The self-test runs first: this guard is the only thing standing between
+        # that migration and those 24 flows, so "it passed" has to mean something.
+        # Two of its cases are the migration itself — the same lock re-checked
+        # against a generated en.json, verbatim and reworded.
+        run: |
+          python3 shared/strings/test_check_flow_copy.py
+          python3 shared/strings/check_flow_copy.py
+      - name: Check no flow hardcodes an app id
+        # The twin of the check above, for the other thing a flow names that can
+        # be wrong for one platform only. A shared flow that says
+        # `appId: com.bittr.bittr-regtest` parses fine and runs fine on iOS; on
+        # Android it boots an emulator, installs the APK and then fails to launch
+        # a package that was never installed. Seconds here, ~20 minutes there.
+        run: python3 shared/flows/check_app_ids.py
 
       - name: Check generated test IDs are in sync
         # The generated TestIDs.swift/.kt are committed for diff visibility. If
@@ -326,6 +406,17 @@ jobs:
         #
         # None of this depends on the emulator image's fingerprint enrolment. It is
         # a property of the APK, so it holds on any runner.
+        #
+        # `test` also covers :app:testReleaseUnitTest, and that is load-bearing
+        # rather than incidental — do not narrow this step to the debug task.
+        # :app is the only module with a release unit-test component (see the
+        # androidComponents block in app/build.gradle.kts), and it is where every
+        # assertion about the SHIPPED build lives: BiometricUnlockFlagTest's
+        # biometrics-on branch is only exercised there. It is also the only variant
+        # that catches the Robolectric trap in BIT-106, where a test written with
+        # `createComposeRule()` cannot resolve its activity on release and dies
+        # before its first assertion. ComposeRuleVariantGuardTest now fails that on
+        # debug too, so it is caught locally, but the release task is the backstop.
         run: ./gradlew test --no-daemon
 
       - name: Say which unit test failed
@@ -405,6 +496,15 @@ jobs:
         # after an AVD has come up. It also still guards the case where the
         # emulator job is skipped or unavailable: the source set is never left with
         # nothing looking at it.
+        # That matters most for CrossOriginIframeIsolationTest, which is BIT-58's
+        # definition of done: the test that drives a real cross-origin iframe at a
+        # real WebView and asserts the wallet does not react. A requirement whose
+        # only evidence is a file that no longer compiles is a comment.
+        #
+        # Compiling is genuinely less than running. The `instrumented` job below
+        # now runs them on an emulator, which is what BIT-33 §Acceptance 3 and 4
+        # actually ask for; this step is kept anyway because it fails in about a
+        # minute where that job fails after a boot.
         #
         # ALL THREE MODULES, not just :feature:website. This step covered one of
         # the three androidTest source sets the emulator jobs run, so a Kotlin
@@ -631,7 +731,7 @@ jobs:
             maestro-debug/**
             maestro-video/**
             maestro-report.xml
-            shared/docs/screenshots/android_scaffold_smoke/**
+            shared/docs/screenshots/signup_create_smoke/**
           retention-days: 14
           if-no-files-found: warn
 

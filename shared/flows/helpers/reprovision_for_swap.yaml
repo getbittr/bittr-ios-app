@@ -19,7 +19,7 @@
 # If it ever doesn't, the swap stays blocked and swap.yaml's assertNotVisible
 # guard fails loudly rather than silently passing.
 
-appId: com.bittr.bittr-regtest
+appId: ${APP_ID}
 ---
 - launchApp:
     clearState: true

@@ -18,7 +18,7 @@
 #   - buy_incoming is one-shot (fails if a channel already exists); it only runs
 #     here because the caller already confirmed there is no channel.
 
-appId: com.bittr.bittr-regtest
+appId: ${APP_ID}
 ---
 - launchApp
 - runFlow: wait_for_launch.yaml

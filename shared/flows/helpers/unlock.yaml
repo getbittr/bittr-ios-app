@@ -2,7 +2,7 @@
 # screen is visible (PinViewController in its .core embedding). Uses PIN 1234
 # matching what onboarding/happy_path_wallet.yaml sets.
 
-appId: com.bittr.bittr-regtest
+appId: ${APP_ID}
 ---
 - assertVisible:
     id: "unlock.topLabel"

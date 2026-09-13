@@ -167,6 +167,14 @@ class Language: NSObject {
             "enteremail": "Enter email",
             "verify": "Verify",
             "noiban": "I don't have an IBAN",
+            // The exclusive-initiative confirmation published T&C §2.5 requires before
+            // Bittr provides any Service. Wording is taken from §2.5 and from the
+            // getbittr.com interstitial — see shared/docs/exclusive-initiative-copy.md
+            // for the sources and for the two words that had to change. Do not reword
+            // without the Compliance & Regulatory Officer (BIT-27 Tier 1 trigger).
+            "initiativetitle": "Your own exclusive initiative",
+            "initiativemessage": "Bittr AG operates in compliance with Swiss regulations. The products and services offered by Bittr AG are authorized for promotion and sale within Switzerland. Without express authorization from the regulatory authority of a given country, Bittr AG is not permitted to actively promote its products and services in that territory.\n\nIf you are located in the European Union, Bittr AG will not be authorized to provide services to you unless you request the service on your exclusive initiative.\n\nBefore we can provide any Services to you, we'll need you to confirm that your request is made solely on your own exclusive initiative, without any encouragement or solicitation from us.",
+            "initiativeconfirm": "I confirm my request is made solely on my own exclusive initiative, without any encouragement or solicitation from Bittr",
             "walletisready": "Your wallet is ready!",
             "firstbitcoin": "Get your first bitcoin, hassle-free, here with one of our partners.",
             "skip": "Skip",
@@ -293,7 +301,7 @@ class Language: NSObject {
             "screenshot2": "We've added the screenshot to your Photo Library.",
             "screenshot3": "We couldn't save your screenshot. Try taking a screenshot manually.",
             "receivenotifications": "Receive notifications",
-            "receivenotifications2": "To receive instant bitcoin payments, you must allow notifications.\n\nWithout notifications, you cannot receive payments to your wallet.",
+            "receivenotifications2": "To receive instant bitcoin payments, you must allow notifications.\n\nWithout them, your purchases are paid into the regular (on-chain) part of your wallet instead.",
             "receivenotifications3": "To receive instant bitcoin payments, you must allow notifications.\n\nOn your device, go to Settings > Notifications > bittr to authorize our notifications.\n\nYou're free to continue without notifications, but then all your purchases will be paid into the regular (on-chain) part of your wallet.",
             "lightningneedsnotifications": "Lightning payouts are delivered via push notifications, so you must allow notifications to switch to lightning.\n\nOn your device, go to Settings > Notifications > bittr to authorize our notifications, then try again.",
             "verificationfail": "Please enter the correct verification code.",
@@ -312,6 +320,7 @@ class Language: NSObject {
             "syncwallet": "Sync wallet",
             "finalcalculations": "Final calculations",
             "payrequest": "Pay request",
+            "payrequest1": "Are you sure you'd like to pay <payable> satoshis?",
             "withdrawrequest": "Withdraw request",
             "withdrawrequest1": "You can withdraw between <minwithdrawable> and <maxwithdrawable> satoshis. How many satoshis would you like to withdraw?",
             "withdrawrequest3": "Are you sure you'd like to withdraw <withdrawable> satoshis?",
@@ -592,7 +601,7 @@ class Language: NSObject {
             "channelclosuretransaction": "These are the funds from your closed lightning connection, returning to your regular wallet.",
             "mapvctoplabel": "Find spots in your area that accept bitcoin payments.",
             "mapvcpoweredby": "Powered by BTCMap.org",
-            "mapvcpoweredbyalert": "<b>BTCMap.org</b> uses OpenStreetMap to tag places that accept bitcoin, and display those merchants in their beautiful apps.<br><br>Their apps and the underlying data are free and open-source.<br><br>Bittr does not save your location or share your location with third parties."
+            "mapvcpoweredbyalert": "<b>BTCMap.org</b> uses OpenStreetMap to tag places that accept bitcoin, and display those merchants in their beautiful apps.<br><br>Their apps and the underlying data are free and open-source.<br><br>Your phone downloads the whole list of places and picks out the nearby ones itself, so your location is never sent to bittr or to BTCMap.org.<br><br>Drawing the map is the part that leaves your phone: it fetches map images a screen at a time, so whoever serves them sees the area you are looking at — and if you allow location, that starts with the area around you."
             
         ]
         

@@ -3,10 +3,13 @@ package com.bittr.android
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
@@ -14,8 +17,11 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.testTagsAsResourceId
 import com.bittr.android.core.common.TestID
 import com.bittr.android.core.designsystem.BittrTheme
+import com.bittr.android.core.preferences.AppPreferences
+import com.bittr.android.core.preferences.DarkModeSetting
 import com.bittr.android.navigation.BittrNavHost
 import dagger.hilt.android.AndroidEntryPoint
+import javax.inject.Inject
 
 /**
  * The single Activity. Navigation is Compose Navigation inside it — see
@@ -23,14 +29,40 @@ import dagger.hilt.android.AndroidEntryPoint
  */
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
+
+    /**
+     * Read here, at the root, because the dark-mode choice has to be known before the
+     * first frame — [BittrTheme] takes it as a parameter and deliberately does not
+     * read it itself, so that the theme stays a pure function of its arguments and
+     * every preview and screenshot can force either mode.
+     */
+    @Inject
+    lateinit var preferences: AppPreferences
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
-            BittrTheme {
+            val setting by preferences.darkMode.collectAsState()
+            BittrTheme(darkTheme = setting.isDark()) {
                 BittrApp()
             }
         }
     }
+}
+
+/**
+ * The Device screen's three-way choice resolved against the system.
+ *
+ * iOS's `UIViewController.darkModeIsOn()`, and the same three branches — with the
+ * difference DEV-03 records: `Device` really does follow the system here, where iOS
+ * treats its `.device` case as a read of the trait collection only at the moment a
+ * screen recolours. Recomposition does the rest.
+ */
+@Composable
+private fun DarkModeSetting.isDark(): Boolean = when (this) {
+    DarkModeSetting.Light -> false
+    DarkModeSetting.Dark -> true
+    DarkModeSetting.Device -> isSystemInDarkTheme()
 }
 
 /**

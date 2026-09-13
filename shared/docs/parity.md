@@ -2,7 +2,27 @@
 
 Per-feature status of iOS vs Android implementation. Updated as Maestro flows go green on each platform.
 
-Every flow under `shared/flows/` is listed below. iOS is the source of truth and is implemented; Android isn't scaffolded yet, so it reads `not started` across the board until the port begins.
+For the *order* the Android side should be built in — which flows need the
+wallet engine, which don't, and what is holding each wave up — see
+[`android-parity-roadmap.md`](android-parity-roadmap.md). This file stays the
+per-flow status tracker.
+
+Every flow under `shared/flows/` is listed below. iOS is the source of truth and is
+implemented.
+
+The Android column takes three values, and the middle one exists because the
+Android Maestro runner is not stood up yet:
+
+- **`not started`** — nothing built.
+- **`screens built`** — every step of the flow is reachable in the app and is
+  covered by a JVM test that walks the flow's ids in the flow's order. That is
+  as far as a claim can honestly go without the runner: Robolectric reads the
+  Compose semantics tree directly, so it cannot prove `testTagsAsResourceId`
+  bridges those ids onto the accessibility tree Maestro queries.
+- **`done`** — the flow passes under Maestro in CI on Android. **Only this
+  counts** for BIT-7's definition of done. Nothing reads `done` yet.
+
+**Assertion fragility — the alert surface is matched by copy.** `alert.button._index` and `alert.textField` are the only accessibility ids on the alert surface, so *which* alert is on screen is asserted by matching its wording: 220 alert interactions across 33 flow files, and 147 `text:` matchers of which 39 depend on app copy. Reword one of those strings and the flow fails silently, on both platforms at once once they share `shared/strings/`. The dependency is pinned in `shared/strings/copy-lock.json` and checked in CI — the measurement, the seven strings hardcoded outside the copy table, and the verbatim rule for the `*Language.swift` → `shared/strings/` move are in `shared/strings/README.md`.
 
 ## Onboarding & wallet setup
 
@@ -14,6 +34,7 @@ Every flow under `shared/flows/` is listed below. iOS is the source of truth and
 | Fresh install (full onboarding) | done | not started | `onboarding/fresh_install.yaml` | Top-level orchestrator: clearState + clearKeychain, then runs `happy_path_wallet` + `happy_path_signup`. |
 | Fresh install, skip bittr signup | done | not started | `onboarding/fresh_install_skip_signup.yaml` | Creates a wallet from scratch then taps Skip on Signup7 → Home with no bittr account. |
 | Fresh install, unhappy path | done | not started | `onboarding/fresh_install_unhappy.yaml` | Wallet creation through every validation gate: Cancel back to Signup1, the confirm-statements alert, the seed-phrase screenshot warning (fires a real Simulator screenshot via `scripts/screenshot_server.js` since Maestro's own capture doesn't post the iOS notification; best-effort), an invalid non-BIP39 word (`invalidwords`) then a valid-but-wrong recovery phrase (`incorrectphrase`), and the PIN too-short / too-long / mismatch alerts, before creating the wallet, then continuing into the bittr signup (Transfer1) and exiting via "I don't have an IBAN" → "Go to wallet" to reach Home. |
+| Seed gate rejects wrong words | done | not started | `onboarding/seed_gate_rejects_wrong_words.yaml` | **Parity-critical (BIT-19).** Recovery is mnemonic-only (BIT-8), so Signup4 is the entire recovery guarantee: past it without the real 12 words and the wallet is unrecoverable. Asserts all three rejection branches of `Signup4ViewController.nextButtonTapped` — valid-but-wrong BIP39 words (`alert.incorrectPhrase`), a non-BIP39 string (`alert.invalidWords`), an empty field (`alert.missingWords`) — and that each leaves the flow **still on Signup4**, then that the right words do advance. Decoys are derived from the captured mnemonic so one can never coincidentally be the requested word. Android must pass this unchanged; an implementation that accepts any input, or auto-advances on blur, passes every other flow in the suite. |
 | Restore wallet | done | not started | `onboarding/restore_wallet.yaml` | clearState + clearKeychain, restores from a fixed test mnemonic, sets PIN 1234 → Home. |
 
 ## Buy & bittr account
@@ -36,6 +57,7 @@ Every flow under `shared/flows/` is listed below. iOS is the source of truth and
 | Receive | done | not started | `features/receive.yaml` | Auto-recovers via `happy_path_wallet` + `happy_path_signup` if launched on a clean install. |
 | Receive onchain → Send round-trip | done | not started | `features/receive_onchain.yaml` | Taps the header spinner right after unlock: while syncing this opens the sync status view (waits for it to auto-dismiss), or — if the sync already finished — the balance/Move screen, which it closes. Shows the onchain address, copies it via the QR long-press context menu (exercises Share + Copy), pastes into Send asserting Regular/onchain with and without a 5000 sat amount, then renews until the address pool is exhausted. Uses `helpers/show_onchain_address.yaml`. |
 | Receive invoice → Send round-trip | done | not started | `features/receive_invoice.yaml` | Switches the type to a lightning invoice, copies it, pastes into Send asserting lightning with and without a 2000 sat amount. Requires an active channel. Uses `helpers/show_invoice.yaml`. |
+| Receive LNURL / Lightning address | done | not started | `features/receive_lnurl.yaml` | The user's own lightning address — the fourth Receive type. Parks on the onchain address first so the More → "Show LNURL" switch is a real type change (with a channel *and* an address, Receive already opens on LNURL), then reads the info alert and copies the address. Branches on whether the bittr account carries an address: captures either the populated state (label + QR) or the "Unavailable" state (QR hidden). Identifies the mode structurally — the title renders as "Address" for both onchain and LNURL — via the card row: LNURL is the only type with no add-amount card, so there is no amount/description state to capture. Read-only; requires an active channel. Uses `helpers/show_onchain_address.yaml` + `helpers/show_lnurl.yaml`. |
 
 ## Send
 
@@ -52,9 +74,9 @@ Every flow under `shared/flows/` is listed below. iOS is the source of truth and
 | Feature | iOS | Android | Maestro flow | Notes |
 |---|---|---|---|---|
 | Swap (lightning ↔ onchain, both directions) | done | not started | `features/swap.yaml` | Re-uses the existing channel + onchain balance from a prior buy flow. Also walks a swap TransactionViewController (Swap status screen, onchain/lightning ID copy, explorer WebsiteViewController, add note). |
-| Bitcoin value chart | done | not started | `features/bitcoin_value.yaml` | Opens from Home's currency icon; waits for price data, scrubs the graph, switches span m/y/5y. Needs an existing wallet (unlocks with PIN). |
-| Bitcoin map | done | not started | `features/bitcoin_map.yaml` | Opens from Home's map icon; waits for the btcmap sync, opens a place, optionally opens/closes its website in the in-app browser (WebsiteViewController), taps "Open in Maps" → Apple Maps and returns to Bittr via a coordinate tap on the "‹ bittr regtest" status-bar breadcrumb (fixed iPhone 15 geometry), closes the place, moves the map, recentres on user. Grants location via launchApp; needs an existing wallet (unlocks with PIN). |
-| Academy | done | not started | `features/academy.yaml` | Opens the Academy tab, plays the latest available lesson to completion (paging Next → Complete, waiting on image-download spinners; on page 2 it also taps Back to page 1 and forward again to exercise the Back button), then opens the next unlocked lesson. Needs an existing wallet (unlocks with PIN). |
+| Bitcoin value chart | done | screens built (BIT-99) | `features/bitcoin_value.yaml` | Opens from Home's currency icon; waits for price data, scrubs the graph, switches span m/y/5y. Needs an existing wallet (unlocks with PIN). |
+| Bitcoin map | done | screens built (BIT-99) | `features/bitcoin_map.yaml` | Opens from Home's map icon; waits for the btcmap sync, opens a place, optionally opens/closes its website in the in-app browser (WebsiteViewController), taps "Open in Maps" → Apple Maps and returns to Bittr via a coordinate tap on the "‹ bittr regtest" status-bar breadcrumb (fixed iPhone 15 geometry), closes the place, moves the map, recentres on user. Grants location via launchApp; needs an existing wallet (unlocks with PIN). **Two steps of this flow are iOS-only and need an Android rewrite before the runner sees it**: the "Open in Maps" hand-off returns to the app through a fixed-coordinate tap on the iOS status-bar breadcrumb, which has no Android counterpart (the back gesture does that job), and Android's `geo:` intent is answered by the system chooser rather than by Apple Maps. The Android map also draws no basemap until BIT-73 — every step the flow drives works; the streets under the markers do not. |
+| Academy | done | screens built (BIT-99) | `features/academy.yaml` | Opens the Academy tab, plays the latest available lesson to completion (paging Next → Complete, waiting on image-download spinners; on page 2 it also taps Back to page 1 and forward again to exercise the Back button), then opens the next unlocked lesson. Needs an existing wallet (unlocks with PIN). |
 | Profit screen | done | not started | _within_ `features/buy_incoming.yaml`, `features/buy_more.yaml` | No dedicated flow; the ProfitViewController is opened and asserted before and after each buy to prove the profit recalculated. |
 
 ## Settings & wallet management
@@ -68,12 +90,12 @@ Every flow under `shared/flows/` is listed below. iOS is the source of truth and
 
 | Feature | iOS | Android | Maestro flow | Notes |
 |---|---|---|---|---|
-| Pin unlock (subflow) | done | not started | `helpers/unlock.yaml` | Called by feature tests when the app launches into the unlock screen. |
-| Forgot PIN (non-destructive) | done | not started | `features/forgot_pin.yaml` | Forgot PIN → confirm Reset → mnemonic in RestoreVC → new PIN back to 1234 → Home with the same wallet. Needs the `MNEMONIC` env var. |
-| Wrong-PIN warning → Forgot PIN | done | not started | `features/pin_warning.yaml` | 3 wrong entries surface the warning alert (Okay + Forgot PIN); Forgot PIN jumps straight to the mnemonic reset. Self-contained (runs `restore_wallet` first). Non-destructive. |
-| Forgot PIN → remove wallet | done | not started | `features/forgot_pin_remove_wallet.yaml` | Removes the wallet via the Forgot-PIN path → Signup1; both channel/no-channel branches. Self-provisions a channel via `helpers/create_wallet_with_channel.yaml`. Destructive. |
-| Wrong-PIN lockout (no channel) | done | not started | `features/wrong_pin.yaml` | 10 wrong PINs → immediate wipe → Signup1. Self-provisions via `restore_wallet`. Shares `helpers/wrong_pin_until_lockout.yaml`. Destructive. |
-| Wrong-PIN lockout (with channel) | done | not started | `features/wrong_pin_with_channel.yaml` | 10 wrong PINs → cooperative channel close + "Try again" retry loop → wipe → Signup1. Self-provisions via `helpers/ensure_bittr_channel.yaml`. Channel detection is best-effort (unverified). Destructive. |
+| Pin unlock (subflow) | done | screens built (BIT-97) | `helpers/unlock.yaml` | Called by feature tests when the app launches into the unlock screen. |
+| Forgot PIN (non-destructive) | done | screens built (BIT-97) | `features/forgot_pin.yaml` | Forgot PIN → confirm Reset → mnemonic in RestoreVC → new PIN back to 1234 → Home with the same wallet. Needs the `MNEMONIC` env var. |
+| Wrong-PIN warning → Forgot PIN | done | screens built (BIT-97) | `features/pin_warning.yaml` | 3 wrong entries surface the warning alert (Okay + Forgot PIN); Forgot PIN jumps straight to the mnemonic reset. Self-contained (runs `restore_wallet` first). Non-destructive. |
+| Forgot PIN → remove wallet | done | not started — needs BIT-6 | `features/forgot_pin_remove_wallet.yaml` | Removes the wallet via the Forgot-PIN path → Signup1; both channel/no-channel branches. Self-provisions a channel via `helpers/create_wallet_with_channel.yaml`. Destructive. |
+| Wrong-PIN lockout (no channel) | done | screens built (BIT-97) | `features/wrong_pin.yaml` | 10 wrong PINs → immediate wipe → Signup1. Self-provisions via `restore_wallet`. Shares `helpers/wrong_pin_until_lockout.yaml`. Destructive. |
+| Wrong-PIN lockout (with channel) | done | not started — needs BIT-6 | `features/wrong_pin_with_channel.yaml` | 10 wrong PINs → cooperative channel close + "Try again" retry loop → wipe → Signup1. Self-provisions via `helpers/ensure_bittr_channel.yaml`. Channel detection is best-effort (unverified). Destructive. |
 
 ## Helper subflows & orchestration
 
@@ -84,6 +106,7 @@ Reusable building blocks (not standalone features) and the full-suite runner.
 | `helpers/unlock.yaml` | Enter PIN 1234 on the unlock screen (also listed above). |
 | `helpers/show_onchain_address.yaml` | From a freshly-opened Receive screen, make sure the onchain address is the one shown. |
 | `helpers/show_invoice.yaml` | From a freshly-opened Receive screen, switch the type to a lightning invoice. |
+| `helpers/show_lnurl.yaml` | From a freshly-opened Receive screen, switch the type to the user's own lightning address, asserting the LNURL card row. Needs a channel (no More button without one). |
 | `helpers/wrong_pin_until_lockout.yaml` | Enter the wrong PIN ten times to trigger the lockout/wipe; shared by `wrong_pin` and `wrong_pin_with_channel`. |
 | `helpers/create_wallet_with_channel.yaml` | Provision a fresh wallet *with* an open channel (onboarding + `buy_incoming`); used by `forgot_pin_remove_wallet`. |
 | `helpers/ensure_bittr_channel.yaml` | Ensure an open channel exists, building the bittr account/channel as needed; used by `wrong_pin_with_channel`. **Unverified** — not yet run against Maestro. |
@@ -93,14 +116,13 @@ Reusable building blocks (not standalone features) and the full-suite runner.
 
 The gaps below come from a full iOS-code audit (every view controller, app target and notification path cross-referenced against the flow suite). Each item exists in the iOS app but has no flow exercising it. Grouped by priority for the Android parity effort.
 
-Previously listed here and now covered: Restore wallet (`onboarding/restore_wallet.yaml`), Settings (`features/settings.yaml`), Profits (within the buy flows), the QR scanner (within `features/send_onchain.yaml`), and the article reader (within `onboarding/happy_path_wallet.yaml`). Send end-to-end is covered onchain (`features/send_onchain.yaml`) and lightning LNURL-**pay** (`features/send_lightning.yaml`).
+Previously listed here and now covered: Restore wallet (`onboarding/restore_wallet.yaml`), Settings (`features/settings.yaml`), Profits (within the buy flows), the QR scanner (within `features/send_onchain.yaml`), the article reader (within `onboarding/happy_path_wallet.yaml`), and the Receive "LNURL" type (`features/receive_lnurl.yaml`). Send end-to-end is covered onchain (`features/send_onchain.yaml`) and lightning LNURL-**pay** (`features/send_lightning.yaml`).
 
 ### Production-scope features needing a flow (high priority)
 
 | Feature | Where (iOS) | Notes |
 |---|---|---|
 | LNURL-withdraw | `SendVC/SendLNURL.swift` (`handleWithdrawAmountCompletion`, `sendWithdrawRequest`, k1) | In active production scope. Only LNURL-pay is covered today; the withdraw path has no flow. |
-| Receive "LNURL" type | `ReceiveViewController.swift` (`tappedLnurl`, More-picker option 4) | The user's own Lightning-address receive screen is never opened (onchain / invoice / Bitcoin QR are covered). |
 | External deep links | `SceneDelegate.swift`, `Core/URIs.swift`, `Info.plist` (`bitcoin:` / `lightning:` schemes) | Opening the app / Send screen from an external URI. Send flows only use the in-app Paste button. |
 | Swap-file export / share | `SwapStatusViewController.swift:350` (`downloadSwapFileTapped`) | No flow taps the swap-file download/share. |
 
@@ -141,7 +163,8 @@ Mostly defensive alerts on the onboarding/auth screens, with no flow:
 ### Not parity-tracked
 
 - **LNURL-auth (login)** — `SendLNURL.swift`, in-app-browser path in `WebsiteViewController.swift`. Not in product scope; intentionally untracked.
-- **Widget** — `BittrWidget/*` price widget + `widget-deeplink://` → "openvalue". Can't be driven by Maestro (home-screen widget); the deeplink→Value path could be tested if desired.
+- **Widget** — `BittrWidget/*` price widget + `widget-deeplink://` → "openvalue". Can't be driven by Maestro (home-screen widget); the deeplink→Value path could be tested if desired. **In scope for the port but not for the v1 Maestro gate** (it can't be in a gate it can't be tested by); specified from source in [`widget-spec.md`](widget-spec.md) instead of from a screenshot, and scheduled as Phase 4 item 11. Decision: BIT-11.
+- **Swap Live Activity** — `BittrWidget/SwapLiveActivity.swift` + `SwapActivityAttributes.swift`, rendered in the Dynamic Island / Lock Screen and driven by remote pushes. Maestro can't drive either surface, so it's absent from the screenshot catalog for the same reason the price widget is. Five `SwapPhase` states, each with its own copy/icon/tint. **Not yet scoped for Android** (the equivalent is an ongoing notification, not a widget) and has no spec — see `widget-spec.md` §8.
 - **QR scanner (live scan)** — camera not available in the simulator; `ScannerViewController` is exercised via the "scanning not supported" path only (`send_onchain.yaml`).
 
 ### Confirmed absent in iOS (not parity gaps — do not build for parity)

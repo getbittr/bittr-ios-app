@@ -36,7 +36,7 @@
 #
 # Run: maestro test shared/flows/features/notification_lnurl.yaml
 
-appId: com.bittr.bittr-regtest
+appId: ${APP_ID}
 ---
 # Launch without clearState so existing wallet state is preserved. Allow
 # notifications so the foreground push is delivered.
@@ -98,13 +98,13 @@ appId: com.bittr.bittr-regtest
 - repeat:
     while:
       notVisible:
-        text: ".*Please sign in to accept the payment.*"
+        id: "alert.paymentRequest"
     commands:
       - runScript: ../scripts/push_notification.js
       - waitForAnimationToEnd:
           timeout: 3000
 - assertVisible:
-    text: ".*Please sign in to accept the payment.*"
+    id: "alert.paymentRequest"
 - takeScreenshot: shared/docs/screenshots/notification_lnurl/02_please_sign_in
 - tapOn:
     id: "alert.button.0"
@@ -122,7 +122,7 @@ appId: com.bittr.bittr-regtest
 # it documents the intermediate state when it's catchable, but the terminal
 # "Payment Request Failed" alert below is the real proof of the deferred path.
 - assertVisible:
-    text: ".*[Ss]yncing wallet.*"
+    id: "loading.syncingWallet"
     optional: true
 - takeScreenshot: shared/docs/screenshots/notification_lnurl/03_syncing
 
@@ -134,7 +134,7 @@ appId: com.bittr.bittr-regtest
 # then assert + dismiss.
 - extendedWaitUntil:
     visible:
-      text: ".*couldn't process this payment request.*"
+      id: "alert.paymentRequestFailed"
     timeout: 60000
 - waitForAnimationToEnd:
     timeout: 3000

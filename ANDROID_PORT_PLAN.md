@@ -145,13 +145,13 @@ Order matters — each layer unblocks the next:
 8. Buy + IBAN.
 9. Notifications + payout flow.
 10. Map (Google Maps Compose), Academy, Profits, Settings, Transaction history.
-11. Glance widget (mirrors `BittrWidget`).
+11. Glance widget (mirrors `BittrWidget`) — spec in `shared/docs/widget-spec.md` (no screenshot exists; Maestro can't reach the widget surface). One `.systemSmall`-equivalent size, two data states, no signed-out state. Not part of the v1 Maestro gate. The swap Live Activity ships in the same iOS extension but is **not** in this item and isn't scoped yet.
 
 For each feature: build screen(s), wire managers, extend Maestro flow, mark green in `parity.md`.
 
 #### Suite ordering — do not copy `shared/flows/suite.yaml` as-is
 
-When the Android suite grows past `shared/flows/android/scaffold_smoke.yaml`, the ordering is a decision to re-make, not an artefact to inherit. `suite.yaml` runs `features/remove_wallet.yaml` last, directly after `onboarding/restore_wallet.yaml` re-creates the wallet. A freshly restored wallet has no channel, so `output.hasChannel` (line 73) is always false and the flow's entire active-channel arc — lines 100–267, including seven `takeScreenshot` steps — has never executed on iOS.
+When the Android suite grows past the smoke flow (`shared/flows/onboarding/smoke.yaml`, shared with iOS since BIT-102), the ordering is a decision to re-make, not an artefact to inherit. `suite.yaml` runs `features/remove_wallet.yaml` last, directly after `onboarding/restore_wallet.yaml` re-creates the wallet. A freshly restored wallet has no channel, so `output.hasChannel` (line 73) is always false and the flow's entire active-channel arc — lines 100–267, including seven `takeScreenshot` steps — has never executed on iOS.
 
 Two things follow for the port:
 

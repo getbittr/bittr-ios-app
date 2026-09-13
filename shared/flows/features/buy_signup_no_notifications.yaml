@@ -55,7 +55,7 @@
 #
 # Run: maestro test shared/flows/features/buy_signup_no_notifications.yaml
 
-appId: com.bittr.bittr-regtest
+appId: ${APP_ID}
 ---
 # Auto-deny the iOS notification system dialog. This permissions config does
 # NOT pre-set the OS permission — the app's notification state stays
@@ -151,6 +151,45 @@ appId: com.bittr.bittr-regtest
 - tapOn:
     id: "signup.bittr.start.nextButton"
 
+# The T&C §2.5 exclusive-initiative confirmation. Both fields are non-empty and
+# the email is valid, so this is the first Verify that would reach Bittr, and it
+# is where the confirmation is asked for. It is asked once per registration: the
+# later Verify taps in this flow — including the one after the resend detour,
+# where moveToPage re-instantiates Transfer1 — read it back off the IBAN entity
+# and go straight through.
+- assertVisible:
+    id: "signup.bittr.initiative.confirmButton"
+
+# Decline first. §2.5 makes the confirmation a precondition of Bittr providing
+# any Service, so declining has to leave the customer where they were with
+# nothing sent and nothing recorded — the property that matters more than the
+# confirm path, and the only one that fails silently if it regresses.
+- tapOn:
+    id: "signup.bittr.initiative.cancelButton"
+
+# Still on Transfer1, sheet gone, fields as they were.
+- assertNotVisible:
+    id: "signup.bittr.initiative.confirmButton"
+- assertVisible:
+    id: "signup.bittr.start.ibanTextField"
+
+# The IBAN here is deliberately malformed, so had the declined tap reached
+# Bittr the "Oops" alert would be on its way. Absence right after the tap is
+# suggestive rather than conclusive — the re-prompt below is the real proof.
+- assertNotVisible:
+    id: "alert.button.0"
+
+# Verify again. The sheet comes back, which only happens when the decline
+# recorded nothing: a stored initiativeConfirmedAt would send this straight
+# through to the IBAN check.
+- tapOn:
+    id: "signup.bittr.start.nextButton"
+- assertVisible:
+    id: "signup.bittr.initiative.confirmButton"
+- takeScreenshot: shared/docs/screenshots/buy_signup_no_notifications/02a_initiative_confirmation
+- tapOn:
+    id: "signup.bittr.initiative.confirmButton"
+
 # Async IBAN check → "Oops" invalid-IBAN alert.
 - extendedWaitUntil:
     visible:
@@ -241,7 +280,7 @@ appId: com.bittr.bittr-regtest
 - tapOn:
     id: "signup.bittr.otp.resendButton"
 - assertVisible:
-    text: ".*wait 30 seconds.*"
+    id: "alert.resendCode"
 - waitForAnimationToEnd:
     timeout: 3000
 - takeScreenshot: shared/docs/screenshots/buy_signup_no_notifications/04b_resend_cooldown
@@ -286,15 +325,17 @@ appId: com.bittr.bittr-regtest
       id: "alert.button.0"
     timeout: 20000
 
-# Distinguish the two cases by the presence of a "Continue" button (Alert B
-# has one; Alert A doesn't). If it's Alert A (no Continue), tap Okay to fire
-# the system dialog (auto-denied). When notifications were already denied this
-# block is skipped, because Alert B is shown directly.
+# Distinguish the two cases by which alert is up. If Alert B (the denied gate)
+# is not on screen it must be Alert A, so tap Okay to fire the system dialog
+# (auto-denied). When notifications were already denied this block is skipped,
+# because Alert B is shown directly.
 - runFlow:
     when:
       notVisible:
-        text: "Continue"
+        id: "alert.receiveNotificationsDenied"
     commands:
+      - assertVisible:
+          id: "alert.receiveNotificationsPrompt"
       - takeScreenshot: shared/docs/screenshots/buy_signup_no_notifications/05_notifications_prompt
       - tapOn:
           id: "alert.button.0"
@@ -360,7 +401,7 @@ appId: com.bittr.bittr-regtest
 - tapOn:
     id: "signup.bittr.success.ibanButton"
 - assertVisible:
-    text: ".*[Cc]opied.*"
+    id: "alert.copied"
 - waitForAnimationToEnd:
     timeout: 3000
 - takeScreenshot: shared/docs/screenshots/buy_signup_no_notifications/10_iban_copied
@@ -369,7 +410,7 @@ appId: com.bittr.bittr-regtest
 - tapOn:
     id: "signup.bittr.success.nameButton"
 - assertVisible:
-    text: ".*[Cc]opied.*"
+    id: "alert.copied"
 - waitForAnimationToEnd:
     timeout: 3000
 - takeScreenshot: shared/docs/screenshots/buy_signup_no_notifications/11_name_copied
@@ -378,7 +419,7 @@ appId: com.bittr.bittr-regtest
 - tapOn:
     id: "signup.bittr.success.codeButton"
 - assertVisible:
-    text: ".*[Cc]opied.*"
+    id: "alert.copied"
 - waitForAnimationToEnd:
     timeout: 3000
 - takeScreenshot: shared/docs/screenshots/buy_signup_no_notifications/12_code_copied

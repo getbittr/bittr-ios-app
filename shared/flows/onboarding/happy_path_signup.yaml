@@ -14,7 +14,7 @@
 # responsibility, so this subflow doesn't disturb existing app state when
 # called conditionally.
 
-appId: com.bittr.bittr-regtest
+appId: ${APP_ID}
 ---
 - assertVisible:
     id: "signup.create.ready.topLabelOne"
@@ -33,6 +33,14 @@ appId: com.bittr.bittr-regtest
 # Press Return — Transfer1's textFieldShouldReturn auto-triggers nextButtonTapped
 # when the email field is focused and both fields are valid.
 - pressKey: Enter
+
+# The T&C §2.5 exclusive-initiative confirmation. It is asked once per
+# registration and nothing reaches Bittr until it is given, so this sits
+# between Verify and the IBAN/email call.
+- assertVisible:
+    id: "signup.bittr.initiative.confirmButton"
+- tapOn:
+    id: "signup.bittr.initiative.confirmButton"
 
 # Transfer2: OTP entry. Test-mode fixed code 123456. Auto-submits at 6 digits.
 - assertVisible:

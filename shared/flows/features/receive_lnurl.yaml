@@ -1,0 +1,160 @@
+# Feature test: the Receive screen's LNURL / Lightning-Address mode.
+#
+# This is the user's OWN lightning address — the fourth transaction type in the
+# Receive More picker ("Show LNURL", labelled "Lightning address"). It is the
+# one Receive type with no flow, so it has never been screenshotted. Note this
+# is NOT features/notification_lnurl.yaml: that one covers an INBOUND `.lnUrl`
+# push landing on the PIN screen (someone paying our address), a different
+# screen entirely. Nor is it features/send_lightning.yaml, which pays SOMEONE
+# ELSE'S lightning address from Send.
+#
+# What the mode is (ReceiveViewController.setLabels, case .lnurl):
+#   - addressTitle = the "url" word, which renders as "Address" — the SAME
+#     string as the onchain type. The title cannot identify the mode.
+#   - addressLabel = the lightning address from the first IBAN entity with a
+#     non-empty lightningAddressUsername (userLNURL()), or "Unavailable".
+#   - the lower invoiceLabel is emptied and collapsed (hideLowerAddress).
+#   - the QR encodes the address — and is hidden entirely (alpha 0) when there
+#     is no address, so it doesn't encode the literal word "Unavailable".
+#   - cards: Copy + More only. No renew and, uniquely among the four types, no
+#     add-amount card — so there is no amount/description state to capture here
+#     the way receive_onchain/receive_invoice capture theirs.
+#
+# The flow deliberately starts on the onchain Address type and switches from
+# there, so the More → "Show LNURL" transition is genuinely exercised. Without
+# that, this flow would often assert nothing: when a channel and a lightning
+# address both exist, Receive already opens on LNURL by default (viewDidLoad),
+# which also means features/receive.yaml's 02_receive_screen is usually this
+# screen already — unlabelled, and asserted only as "some address + QR".
+#
+# Requires an active lightning channel: the More button — and therefore the
+# LNURL type — is not rendered without one. It does NOT require the lightning
+# address itself to exist; if the bittr account has none, the "Unavailable"
+# state is captured instead and is just as valid a reference for the port.
+#
+# Entirely read-only: no amount is entered, no address is renewed, nothing is
+# sent. Safe to run anywhere in the suite once a channel is open.
+#
+# Run: maestro test shared/flows/features/receive_lnurl.yaml
+
+appId: ${APP_ID}
+---
+# Launch without clearState so existing wallet state is preserved across runs.
+- launchApp
+- runFlow: ../helpers/wait_for_launch.yaml
+
+# Auto-recover if no wallet exists yet (full onboarding lands on Home).
+- runFlow:
+    when:
+      visible:
+        id: "signup.create.start.createWalletButton"
+    file: ../onboarding/happy_path_wallet.yaml
+- runFlow:
+    when:
+      visible:
+        id: "signup.create.ready.topLabelOne"
+    file: ../onboarding/happy_path_signup.yaml
+
+# If the app launched into the PIN unlock screen (existing wallet), enter PIN.
+- runFlow:
+    when:
+      visible:
+        id: "unlock.topLabel"
+    file: ../helpers/unlock.yaml
+
+# Should be on Home now.
+- assertVisible:
+    id: "home.headerLabel"
+
+# On a fresh launch the wallet syncs first — the header spinner spins until the
+# sync finishes. Wait for it to stop before opening Receive, so lightning
+# availability (and therefore the More button) has settled.
+- extendedWaitUntil:
+    notVisible:
+      id: "home.headerSpinner"
+    timeout: 60000
+- takeScreenshot: shared/docs/screenshots/receive_lnurl/01_home
+
+# Open Receive and park on the onchain address first, so the switch to LNURL
+# below is a real type change rather than a no-op re-render of the default.
+- tapOn:
+    id: "home.receiveButton"
+- runFlow:
+    file: ../helpers/show_onchain_address.yaml
+- takeScreenshot: shared/docs/screenshots/receive_lnurl/02_onchain_start
+
+# Switch to the lightning address via More → "Show LNURL" (picker index 4). The
+# helper also asserts the LNURL card row (Copy + More, no renew, no add-amount).
+- runFlow:
+    file: ../helpers/show_lnurl.yaml
+- takeScreenshot: shared/docs/screenshots/receive_lnurl/03_lnurl
+
+# Two valid terminal states, depending on whether the bittr account carries a
+# lightning address. Capture whichever one this wallet is in — both are
+# reference states the Android port has to reproduce.
+#
+# Maestro matches `text` as a full-string regex, so "Unavailable" is exact.
+#
+#   (a) No lightning address → the label reads "Unavailable" and the QR view is
+#       hidden (setLabels leaves qrImageView.alpha at 0 rather than encoding the
+#       word itself).
+- runFlow:
+    when:
+      visible:
+        id: "receive.addressLabel"
+        text: "Unavailable"
+    commands:
+      - assertNotVisible:
+          id: "receive.qrImageView"
+      - takeScreenshot: shared/docs/screenshots/receive_lnurl/03a_lnurl_unavailable
+#   (b) A lightning address exists → the label carries it and the QR encodes it.
+#       The exact rendering is left unasserted on purpose: the value comes
+#       straight from the backend's `lightning_address_username` field, and
+#       whether that is a bare username or a full user@host address is not
+#       decidable from the iOS source (IbanEntity just stores the string). The
+#       screenshot is the reference; pin the format here once a real capture
+#       settles it.
+- runFlow:
+    when:
+      notVisible:
+        id: "receive.addressLabel"
+        text: "Unavailable"
+    commands:
+      - assertVisible:
+          id: "receive.qrImageView"
+      - takeScreenshot: shared/docs/screenshots/receive_lnurl/03b_lnurl_address
+
+# Tap the question mark to read the LNURL info alert ("Lightning address" —
+# "Share your lightning address, to receive instant payments…"), then close it.
+# This is the only place that copy is reachable in the app.
+- tapOn:
+    id: "receive.questionButton"
+- assertVisible:
+    id: "alert.button.0"
+- takeScreenshot: shared/docs/screenshots/receive_lnurl/04_lnurl_info
+- tapOn:
+    id: "alert.button.0"
+
+# Copy the address. copyTapped puts currentCopyableText — for .lnurl the raw
+# address, with no "lightning:" prefix and no amount — on the clipboard and
+# shows the "Copied" alert with the copied string as its message.
+- tapOn:
+    id: "receive.copyButton"
+- assertVisible:
+    id: "alert.button.0"
+- takeScreenshot: shared/docs/screenshots/receive_lnurl/05_copied
+- tapOn:
+    id: "alert.button.0"
+
+# Still on LNURL after the copy round-trip — the card row is unchanged.
+- assertVisible:
+    id: "receive.addressLabel"
+- assertNotVisible:
+    id: "receive.editButton"
+
+# Close Receive via the shared header down button (added by addHeader).
+- tapOn:
+    id: "header.downButton"
+- assertVisible:
+    id: "home.headerLabel"
+- takeScreenshot: shared/docs/screenshots/receive_lnurl/06_done
