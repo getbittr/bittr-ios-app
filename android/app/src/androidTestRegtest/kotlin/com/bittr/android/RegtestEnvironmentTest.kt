@@ -81,11 +81,12 @@ import org.junit.runner.RunWith
  *
  * ## What it deliberately does not do
  *
- * It does not start a node, open a channel or pay anything. Those are
- * `K7InterruptedPaymentTest`'s and `K8DozeSoakTest`'s, they need a host phase
- * because a `SIGKILL` takes the instrumentation with it (the lesson
- * `BackupExclusionTest` learned from `bmgr restore`), and they are worth nothing
- * until this class is green.
+ * It does not start a node, open a channel or pay anything. Those belong to
+ * `K7InterruptedPaymentTest` and `K8DozeSoakTest`, **neither of which is written
+ * yet** — `android/docs/wallet-node-device-tests.md` §3 and §4 say what each still
+ * needs. Both will need a host phase, because a `SIGKILL` takes the
+ * instrumentation with it (the lesson `BackupExclusionTest` learned from
+ * `bmgr restore`), and both are worth nothing until this class is green.
  *
  * Every method here is in `check-wallet-regtest-results.py`'s `REQUIRED` set by
  * name.

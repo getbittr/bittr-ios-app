@@ -305,6 +305,27 @@ hold invoice, in the counterparty.
    rather than reading a file the kill may have caught mid-write. The first run
    asserts the two are equal, so if that ever stops being true the test says so
    instead of silently looking up nothing.
+4. **A way to reach the *shipping* wallet graph from the test, and the obvious
+   one does not work.** The test has to drive the `NodeBackedWalletService` the
+   app really composes, not a copy of `WalletModule`'s composition — a test
+   against a graph the app does not build would prove something about the test.
+   Measured on this branch rather than assumed:
+
+   - Declaring a Hilt `@EntryPoint` in the `androidTest` source set **compiles
+     and is not enough.** `kspDebugAndroidTestKotlin` produces the interface and
+     produces no aggregating metadata for it — `build/generated/ksp/debug/java/dagger/hilt/`
+     exists for the main variant and there is no `debugAndroidTest` equivalent —
+     so `EntryPointAccessors.fromApplication` would fail at run time, after an
+     emulator boot, in a job that compiled clean. Exactly the shape of trap this
+     document keeps paying for.
+   - The two options that remain are `hilt-android-testing` with
+     `@HiltAndroidTest` and a `HiltAndroidRule` (a new test dependency, and it
+     builds a *test* component rather than the app's), or an `@EntryPoint`
+     declared in the **main** source set. The second looks better and is worth
+     saying why it is not the thing §3 rejected: a graph accessor has no
+     behaviour, no branch and nothing to do with funds, where a latch in the send
+     path is a code path that exists to be taken. It ships as one interface that
+     returns what the app already built.
 
 **Risk accepted by not running it.** Real, and the largest of the three — see
 below. Unchanged by §0: a network the test can reach is not a test.

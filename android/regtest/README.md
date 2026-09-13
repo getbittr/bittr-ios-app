@@ -99,8 +99,11 @@ instrument is N repetitions with a stated confidence — *not* a seam, and **not
 silence, because a single run that happened to miss the window is the exact
 false-green this whole document is about.
 
-`K7InterruptedPaymentTest` says which of the two windows it entered, per run, in
-its evidence line. A run that reports the narrow window is not a K7 result.
+`K7InterruptedPaymentTest` — **not written yet**; see
+`android/docs/wallet-node-device-tests.md` §3 — has to say which of the two
+windows it entered, per run, in its evidence line. A run that reports the narrow
+window is not a K7 result, and a test that cannot tell you which one it got is
+not a K7 test.
 
 ## Costs, so nobody is surprised by them
 
