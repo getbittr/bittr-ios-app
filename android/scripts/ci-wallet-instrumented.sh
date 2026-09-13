@@ -229,7 +229,14 @@ HANDOFF_PATH="/data/data/$APP_PACKAGE/no_backup/backup_handoff.txt"
 # these into a red would be claiming a result this job did not get.
 device_transfer_backed_up=no
 
-if ! adb shell pm list packages 2>/dev/null | grep -q "^package:$APP_PACKAGE$"; then
+# `tr -d '\r'` on every `adb shell` capture in this phase, not decoration.
+# adbd puts the device's line discipline on the wire, so output arrives CRLF.
+# An anchored match like `^package:…$` then never matches — the line ends in a
+# carriage return, not at the package name — and the failure is the worst kind
+# available here: it reads as "the app is not installed", skips the backup, and
+# leaves check-backup-set.sh grepping an empty set. Silent, and green apart from
+# a warning that would be blaming the wrong thing.
+if ! adb shell pm list packages 2>/dev/null | tr -d '\r' | grep -q "^package:$APP_PACKAGE$"; then
   echo "::warning title=Device-transfer backup::$APP_PACKAGE is not installed after"\
     " connectedAndroidTest, so there is nothing to back up on the device-transfer"\
     " path and no set for check-backup-set.sh to read. The most likely cause is that"\
@@ -244,7 +251,7 @@ else
   adb root >/dev/null 2>&1 || true
   adb wait-for-device >/dev/null 2>&1 || true
 
-  handoff=$(adb shell cat "$HANDOFF_PATH" 2>/dev/null || true)
+  handoff=$(adb shell cat "$HANDOFF_PATH" 2>/dev/null | tr -d '\r' || true)
 
   if ! printf '%s' "$handoff" | grep -qF "$HANDOFF_MARKER"; then
     echo "::warning title=Device-transfer backup::No hand-off from"\
@@ -268,7 +275,7 @@ else
     adb shell settings put secure backup_local_transport_parameters is_device_transfer=true || true
     adb shell bmgr transport com.android.localtransport/.LocalTransport >/dev/null 2>&1 || true
 
-    parameters=$(adb shell settings get secure backup_local_transport_parameters 2>/dev/null || true)
+    parameters=$(adb shell settings get secure backup_local_transport_parameters 2>/dev/null | tr -d '\r' || true)
     echo "Transport parameters: $parameters"
 
     if ! printf '%s' "$parameters" | grep -qF 'is_device_transfer=true'; then
@@ -280,7 +287,7 @@ else
         " cloud path, and the whole point of this path is that it may not cover D2D."\
         " Not backing up."
     else
-      backup_output=$(adb shell bmgr backupnow "$APP_PACKAGE" 2>&1 || true)
+      backup_output=$(adb shell bmgr backupnow "$APP_PACKAGE" 2>&1 | tr -d '\r' || true)
       printf '%s\n' "$backup_output"
 
       # The same per-package result line BackupExclusionTest parses on the cloud
