@@ -58,6 +58,18 @@ class LdkNodeConfigTest {
          * invites the copy that lands in `src/main`.
          */
         const val CHAIN_SOURCE = "chain.example:50002"
+
+        /**
+         * Deliberately different from [CHAIN_SOURCE].
+         *
+         * `LdkEnvironment.electrumUrl` is the on-chain wallet's server and is
+         * only the same value as the node's chain source on mainnet. Nothing in
+         * the node configuration may read it, and these tests assert
+         * `setChainSourceElectrum`/`Esplora` got [CHAIN_SOURCE] — so a future
+         * change that reached for the wrong field fails here rather than on a
+         * device.
+         */
+        const val ELECTRUM = "tcp://electrum.example:60402"
         const val RGS = "rgs.example/snapshot"
 
         fun plan(
@@ -69,6 +81,7 @@ class LdkNodeConfigTest {
             environment = LdkEnvironment(
                 network = network,
                 chainSourceUrl = CHAIN_SOURCE,
+                electrumUrl = ELECTRUM,
                 rapidGossipSyncUrl = RGS,
                 lightningNodeId = NODE_ID,
                 lightningNodeAddress = NODE_ADDRESS,

@@ -5,7 +5,10 @@ import com.bittr.android.core.wallet.ldk.onchain.BdkStore
 import com.bittr.android.core.wallet.ldk.onchain.DescriptorXpub
 import com.bittr.android.core.wallet.ldk.onchain.FullScanParameters
 import com.bittr.android.core.wallet.ldk.onchain.LightSyncParameters
+import com.bittr.android.core.wallet.ldk.onchain.OnchainSync
 import com.bittr.android.core.wallet.ldk.onchain.OnchainSyncPort
+import com.bittr.android.core.wallet.ldk.onchain.OnchainWalletPort
+import com.bittr.android.core.wallet.ldk.onchain.ScanCoordinator
 import org.bitcoindevkit.Connection
 import org.bitcoindevkit.Descriptor
 import org.bitcoindevkit.DescriptorSecretKey
@@ -208,5 +211,130 @@ object BdkWalletFactory {
             runCatching { connection?.close() }
             throw failure
         }
+    }
+}
+
+/**
+ * The three references iOS keeps as fields, as the one object that owns them.
+ *
+ * `BitcoinManager` holds `bdkWallet`, `connection`, `electrumClient` and `xpub`
+ * as properties of a singleton, sets them in `didStartBDK()` and nils them in
+ * `clearBdkWalletReferences()` / the node-teardown block
+ * (`BDKManager.swift:178–183`, `BitcoinManager.swift:678–692`). This is that,
+ * scoped to a node's lifetime instead of the process's, because
+ * `OnchainSyncLoop` is a `NodeRunner` and a wallet outliving its node is exactly
+ * what [OnchainSync]'s identity re-check exists to catch.
+ *
+ * ## Why it is a class here and four fields there
+ *
+ * [OnchainSyncLoop] has to be able to say "open the wallet" and "let it go"
+ * without naming a BDK type, or the loop would live in `adapter/` and its
+ * sequence would stop being JVM-provable. [OnchainWalletPort] is that pair of
+ * calls; this is the only implementation, and everything in it is a field
+ * assignment around [BdkWalletFactory.open].
+ *
+ * ## The locking is iOS's `bdkStartLock`, plus one Android-only read
+ *
+ * [open] and [close] are `synchronized` for the reason `didStartBDK` takes a
+ * lock: two starts racing would build two wallets over one SQLite file. The
+ * extra piece is [current] being `@Volatile` — it is read from a *third* place,
+ * the full scan running in `ScanCoordinator`'s own scope, and that read is
+ * `OnchainSync`'s `===` check on whether the wallet was replaced mid-scan. A
+ * non-volatile field could hand that check a stale reference and turn a genuine
+ * replacement into a silent pass.
+ *
+ * @param mnemonic read on every [open] and never cached. iOS's
+ *   `CacheManager.getMnemonic()` with its `guard ... else` — a null is *not* an
+ *   error, it is a wallet being torn down, and it reports `false` for the same
+ *   reason.
+ * @param electrumUrl `EnvironmentConfig.electrumURL`. **Not the node's chain
+ *   source**: on every network but mainnet iOS points ldk-node at Esplora and
+ *   BDK at Electrum, so reusing `LdkEnvironment.chainSourceUrl` here would hand
+ *   `ElectrumClient` an HTTP Esplora endpoint on every development build and
+ *   fail as "sync failed" with nothing naming the cause.
+ */
+class BdkOnchainWalletHolder(
+    private val mnemonic: () -> String?,
+    private val network: WalletNetwork,
+    private val databaseFile: File,
+    private val electrumUrl: String,
+    /** A start that failed, with the exception iOS hands `handleError`. */
+    private val onOpenFailure: (Throwable) -> Unit = {},
+) : OnchainWalletPort {
+
+    private val lock = Any()
+
+    @Volatile
+    private var current: BdkWallet? = null
+
+    @Volatile
+    private var electrum: ElectrumClient? = null
+
+    /** The BIP84 account xpub of the open wallet, or null. iOS's `self.xpub`. */
+    val accountXpub: String? get() = current?.accountXpub
+
+    override fun open(): Boolean = synchronized(lock) {
+        // `guard self.bdkWallet == nil else { return true }`. Idempotent, and the
+        // loop relies on it: a node restart within one process re-runs `open`.
+        if (current != null) return true
+
+        return try {
+            // Inside the `try`, not above it. `SeedVault.read` returns null for
+            // "there is no seed" and *throws* for "the Keystore could not answer
+            // right now" — a distinction iOS does not have, because
+            // `CacheManager.getMnemonic()` only ever returns nil. A throw
+            // escaping here would leave `OnchainSyncLoop.run` via its `finally`
+            // and reach `WalletNodeHost.onRunnerStopped`, so a transient unlock
+            // failure would end the sync loop for the life of the node rather
+            // than failing one open.
+            val words = mnemonic() ?: return false
+
+            current = BdkWalletFactory.open(words, network, databaseFile)
+            // Built here as well as lazily below, because iOS builds it inside
+            // `didStartBDK` (`BDKManager.swift:166`) and treats a failure there
+            // as a failed start rather than as a failed sync. A wallet that
+            // cannot reach its Electrum server is not a wallet that opened.
+            electrum = ElectrumClient(electrumUrl)
+            true
+        } catch (failure: Exception) {
+            onOpenFailure(failure)
+            closeLocked()
+            false
+        }
+    }
+
+    override fun close() = synchronized(lock) { closeLocked() }
+
+    /**
+     * The sync sequence for whatever wallet is open, bound to [scans].
+     *
+     * Returned star-projected so `di/WalletModule` can hold one: `:app` cannot
+     * name `org.bitcoindevkit.Wallet`, because `:core:wallet-ldk` depends on
+     * bdk-android with `implementation`. Nothing is lost — `fullScan` and
+     * `lightSync` both return `Boolean`.
+     *
+     * Built once and valid across opens: every lambda in [BdkSyncPort] re-reads
+     * the field, which is the property its own KDoc says the identity check
+     * depends on.
+     */
+    fun sync(scans: ScanCoordinator): OnchainSync<*, *, *, *> = OnchainSync(
+        port = BdkSyncPort(
+            wallet = { current?.wallet },
+            connection = { requireNotNull(current).connection },
+            // iOS's `if self.electrumClient == nil` inside `didSyncBdkWallet`
+            // (`BDKManager.swift:232–239`): rebuilt on demand when a teardown
+            // cleared it, rather than failing the sync.
+            electrum = { electrum ?: ElectrumClient(electrumUrl).also { electrum = it } },
+        ),
+        scans = scans,
+    )
+
+    private fun closeLocked() {
+        // Wallet first, for the ordering `BdkWallet.close` states; the Electrum
+        // client holds no reference to either and goes last.
+        runCatching { current?.close() }
+        current = null
+        runCatching { electrum?.close() }
+        electrum = null
     }
 }

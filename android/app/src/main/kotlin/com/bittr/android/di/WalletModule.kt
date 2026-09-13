@@ -7,6 +7,7 @@ import com.bittr.android.BuildConfig
 import com.bittr.android.core.wallet.SecureStore
 import com.bittr.android.core.wallet.WalletService
 import com.bittr.android.core.wallet.keystore.KeystoreSecureStore
+import com.bittr.android.core.wallet.ldk.adapter.BdkOnchainWalletHolder
 import com.bittr.android.core.wallet.ldk.adapter.LdkEventPumpRunner
 import com.bittr.android.core.wallet.ldk.adapter.LdkNodeFactory
 import com.bittr.android.core.wallet.ldk.adapter.LdkNodeStartErrors
@@ -17,6 +18,8 @@ import com.bittr.android.core.wallet.ldk.host.WalletNodeHost
 import com.bittr.android.core.wallet.ldk.node.LdkEnvironment
 import com.bittr.android.core.wallet.ldk.node.NodeConfigPlan
 import com.bittr.android.core.wallet.ldk.node.NodeLifecycle
+import com.bittr.android.core.wallet.ldk.onchain.OnchainSyncLoop
+import com.bittr.android.core.wallet.ldk.onchain.ScanCoordinator
 import com.bittr.android.core.wallet.ldk.seed.SecureStoreSeedVault
 import com.bittr.android.core.wallet.ldk.state.WalletPaths
 import com.bittr.android.core.wallet.seed.SeedWalletService
@@ -139,6 +142,18 @@ object WalletModule {
          */
         val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
+        /*
+         * The seed, read fresh on every use rather than held.
+         *
+         * One instance shared by the node factory and the on-chain wallet, and
+         * they must agree: BDK derives the receive addresses and ldk-node the
+         * node's keys, both from these twelve words, and two readers that could
+         * disagree is a wallet whose two halves belong to different seeds. See
+         * `BdkWalletFactory` on the passphrase, which is the other half of the
+         * same requirement.
+         */
+        val vault = SecureStoreSeedVault(store, SeedWalletService.KEY_SEED)
+
         val lifecycle = NodeLifecycle(
             scope = scope,
             factory = LdkNodeFactory(
@@ -159,13 +174,47 @@ object WalletModule {
                 // The seed the app actually writes, not the BIT-8 blob nothing
                 // writes yet. SecureStoreSeedVault's class comment is the one to
                 // read before changing this line.
-                vault = SecureStoreSeedVault(store, SeedWalletService.KEY_SEED),
+                vault = vault,
             ),
             classifier = LdkNodeStartErrors,
             // Monotonic and deep-sleep-inclusive. `System.currentTimeMillis` here
             // would let an NTP correction mid-start expire the retry budget; the
             // reasoning is in NodeStartRetryPolicy.
             elapsedRealtimeMillis = SystemClock::elapsedRealtime,
+        )
+
+        /*
+         * The on-chain half: BDK's wallet, and the loop that scans it.
+         *
+         * Composed here rather than lazily at a screen — which is what iOS does,
+         * `didStartBDK()` being called from Send, Swap and Home as well as from
+         * the start path — because Android has none of those screens yet and the
+         * node start is the only trigger there is. `OnchainSyncLoop` says what
+         * that costs and what revives a failed scan.
+         *
+         * One `ScanCoordinator` for the process, deliberately outliving any one
+         * node: `hasBeenScanned` is what stops a second node start inside the
+         * same process paying for a second full scan, and two coordinators would
+         * be two answers to "has this wallet been scanned" — the flag four iOS
+         * call sites read to decide whether the user may open the send screen.
+         */
+        val scans = ScanCoordinator(scope)
+        val onchainWallet = BdkOnchainWalletHolder(
+            // Re-read per open, never captured: the seed can be erased while the
+            // app runs, and iOS's `guard let cachedMnemonic` treats that as a
+            // teardown rather than as an error.
+            mnemonic = vault::read,
+            network = environment.network,
+            databaseFile = paths.bdkDatabaseFile,
+            // Not `environment.chainSourceUrl` — LdkEnvironment.electrumUrl says
+            // why those are two fields.
+            electrumUrl = environment.electrumUrl,
+            onOpenFailure = { failure ->
+                // iOS's `handleError(error:row:)`. The wallet still opens, shows
+                // a zero on-chain balance and refuses to build a drain; what it
+                // must not do is do that silently.
+                Log.w(TAG, "BDK wallet failed to open; on-chain balance will read zero", failure)
+            },
         )
 
         return NodeBackedWalletService(
@@ -213,6 +262,23 @@ object WalletModule {
                         onStopped = { outcome ->
                             Log.i(TAG, "Event pump stopped: ${outcome.stop}", outcome.cause)
                         },
+                    ),
+                    /*
+                     * The on-chain scan loop — `startBDK()` plus
+                     * `BackgroundSync`. Second in the list and not first, which
+                     * is the order iOS starts them in: `startLightning()` and
+                     * the event listener come up with the node, and `startBDK()`
+                     * runs afterwards off `continueStartWallet`
+                     * (`StartLightning.swift:144`). The host launches all
+                     * runners concurrently, so the order is documentation rather
+                     * than sequencing — but a reader comparing the two files
+                     * should not have to wonder.
+                     */
+                    OnchainSyncLoop(
+                        wallet = onchainWallet,
+                        sync = onchainWallet.sync(scans),
+                        scans = scans,
+                        report = { event -> Log.i(TAG, "On-chain sync: $event") },
                     ),
                 ),
             ),

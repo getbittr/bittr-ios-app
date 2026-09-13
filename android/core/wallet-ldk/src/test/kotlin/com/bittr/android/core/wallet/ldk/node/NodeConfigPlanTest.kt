@@ -25,6 +25,7 @@ class NodeConfigPlanTest {
     private val signet = LdkEnvironment(
         network = WalletNetwork.Signet,
         chainSourceUrl = "https://esplora.example.test/api",
+        electrumUrl = "tcp://electrum.example.test:60402",
         rapidGossipSyncUrl = "https://rgs.example.test/snapshot",
         lightningNodeId = "02".repeat(33),
         lightningNodeAddress = "203.0.113.10:39735",

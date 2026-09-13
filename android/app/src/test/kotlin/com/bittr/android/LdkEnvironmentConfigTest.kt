@@ -57,6 +57,12 @@ class LdkEnvironmentConfigTest {
             "",
             BuildConfig.LDK_CHAIN_SOURCE_URL,
         )
+        assertEquals(
+            "An Electrum server was compiled into this build without anyone supplying " +
+                "one. It is a separate field from the chain source and gets the same rule.",
+            "",
+            BuildConfig.LDK_ELECTRUM_URL,
+        )
         assertEquals("", BuildConfig.LDK_RAPID_GOSSIP_SYNC_URL)
         assertEquals(
             "A Lightning node id was compiled into this build without anyone supplying " +
@@ -75,6 +81,7 @@ class LdkEnvironmentConfigTest {
         assertEquals(
             listOf(
                 "LDK_CHAIN_SOURCE_URL",
+                "LDK_ELECTRUM_URL",
                 "LDK_LIGHTNING_NODE_ID",
                 "LDK_LIGHTNING_NODE_ADDRESS",
             ),
@@ -130,6 +137,7 @@ class LdkEnvironmentConfigTest {
             environment = com.bittr.android.core.wallet.ldk.node.LdkEnvironment(
                 network = WalletNetwork.Regtest,
                 chainSourceUrl = "http://example.invalid",
+                electrumUrl = "tcp://example.invalid:60402",
                 rapidGossipSyncUrl = null,
                 lightningNodeId = "",
                 lightningNodeAddress = "",

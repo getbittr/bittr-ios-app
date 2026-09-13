@@ -178,8 +178,21 @@ data class NodeConfigPlan(
  */
 data class LdkEnvironment(
     val network: WalletNetwork,
-    /** Electrum URL on mainnet, Esplora URL otherwise. */
+    /** The **node's** chain source: Electrum URL on mainnet, Esplora URL otherwise. */
     val chainSourceUrl: String,
+    /**
+     * The **on-chain wallet's** Electrum server (`EnvironmentConfig.electrumURL`).
+     *
+     * A second field rather than a reuse of [chainSourceUrl], because iOS only
+     * makes them the same value on mainnet (`BitcoinManager.swift:179` passes
+     * `electrumURL` to `setChainSourceElectrum`). Everywhere else ldk-node gets
+     * Esplora over HTTP and BDK still gets Electrum over TCP — two protocols on
+     * two ports — so collapsing them would hand `ElectrumClient` an Esplora URL
+     * on every development build. Nothing in [NodeConfigPlan] reads it; it is
+     * here because this is the type the app fills in, and `BdkOnchainWalletHolder`
+     * is the only consumer.
+     */
+    val electrumUrl: String,
     val rapidGossipSyncUrl: String?,
     val lightningNodeId: String,
     val lightningNodeAddress: String,

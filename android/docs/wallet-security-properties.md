@@ -752,12 +752,48 @@ worth making to the product to satisfy a test.
   Neither loads a native library. What they do **not** prove is that ldk-node
   honours any of it — that needs a running node, and it is BIT-123's.
 
-  **Still absent, each behind an issue that exists** — this list is written
-  with issue numbers for the same reason the paragraph above it was rewritten:
+  **What each piece of the node layer now is** — this list is written with
+  issue numbers for the same reason the paragraph above it was rewritten. It
+  began as a list of absences and is no longer one; what is still missing is
+  said in place rather than by leaving a delivered item on it.
 
-  - On-chain sync and balance. Nothing in `main` constructs a BDK `Wallet`;
-    `BdkStore`, `ScanCoordinator` and `OnchainDrain` are decisions with no
-    wallet behind them. **BIT-124.**
+  - **On-chain sync now runs, on the node's lifetime.** **BIT-124** built the
+    BDK half — `BdkWalletFactory.open` is `didStartBDK()` from the mnemonic
+    down to a `Wallet`, and `OnchainSync` is the scan sequence, generic over
+    its four BDK types so the whole of it is asserted on the JVM. Both had **no
+    caller in `main`** until `OnchainSyncLoop`, which is `startBDK()` plus
+    `BackgroundSync` as a `NodeRunner`: open the wallet, full-scan unless a
+    scan has already succeeded in this process, and only then start the
+    30-second light-sync timer. It is in the host's runner list beside the
+    event pump, so it is cancelled on every node stop and relaunched on every
+    start.
+
+    Three things to be plain about:
+
+    - **A failed full scan presents an empty wallet, and nothing here retries
+      it.** iOS's retry is the user reopening a screen that calls
+      `didSyncBdkWallet` again; Android has no such screen yet, so the only
+      thing that revives it is `WalletNodeHost.start()` relaunching a runner
+      that is no longer live — the unlock path. It fails closed (balance zero,
+      and a drain that refuses rather than offering a wrong number), which is
+      why this is a cost rather than a fund risk. It is still the most likely
+      reason an Android user sees "no funds" on a wallet that has them, and
+      `BdkStore` wiping the store on every start is what makes the scan
+      mandatory rather than an optimisation. **That wipe is a port of iOS and
+      changing it is a deviation, so it is raised on BIT-122 and not taken in
+      code.**
+    - **On-chain balance is still not read from BDK, deliberately.** Every
+      on-chain figure iOS shows comes from `node.listBalances()`, never
+      `bdkWallet.balance()`, because BDK does not know about the anchor-channel
+      reserve and would show a spendable amount ldk-node refuses to release.
+      What BDK is for here is the scan, the UTXO set and the drain.
+    - **The Electrum server is a second endpoint, not the node's.**
+      `LdkEnvironment.electrumUrl` is its own field: iOS only points both at
+      the same URL on mainnet, and everywhere else ldk-node gets Esplora over
+      HTTP while BDK gets Electrum over TCP. Collapsing them would fail as
+      "sync failed" on every development build with nothing naming the cause.
+      It is a required field, so a build that omits it composes the seed-only
+      wallet rather than a node with a permanently zero on-chain balance.
   - Lightning channel and payment handling, and the ldk-node event loop.
     **BIT-125** — the decisions have landed, the wiring has not. `lightning/`
     now holds the balance arithmetic that turns ldk-node's `BalanceDetails`
@@ -765,13 +801,23 @@ worth making to the product to satisfy a test.
     the wallet may be deleted from the device, the LSP reconnect, the BOLT12
     fee ceiling and the event pump's acknowledgement order; `LdkNodeSurface` is
     the binding, and its record-to-view mapping is asserted on the JVM for the
-    same reason `LdkNodeConfigTest` can be. Three things to be plain about:
-    **the event pump still has no caller** — BIT-126 built the host that will
-    run it (`NodeRunner`, restarted with every node start) and passed it an
-    empty list, because `EventLedger` and `ChannelClosureStore` both want
-    `CacheManager`-shaped storage Android does not have yet — **no test here
-    runs against a node** (BIT-123), and the pump's survival across
-    backgrounding is a property of the service hosting it, not of the loop.
+    same reason `LdkNodeConfigTest` can be. Two things to be plain about:
+    **no test here runs against a node** (BIT-123), and the pump's survival
+    across backgrounding is a property of the service hosting it, not of the
+    loop.
+
+    **The pump does now have a caller.** BIT-126 built the host and passed it
+    `runners = emptyList()`, because `EventLedger` and `ChannelClosureStore`
+    both wanted `CacheManager`-shaped storage Android did not have. That
+    storage is `WalletCache`, a file store under `no_backup/wallet/cache` — a
+    sibling of `ldk_state/` and `bdk_store/` and a child of neither, because
+    the BIT-20 quarantine *moves* the first and `BdkStore.prepare` *deletes*
+    the second, and a ledger inside either forgets everything without
+    reporting an error. `CacheSurvivesStateLifecyclesTest` runs a real
+    quarantine and a real prepare over a populated cache. The pump's handler is
+    a log line and nothing else, because Android has no payment screen yet —
+    the *variant name* rather than the rendering, since a rendered
+    `PaymentSuccessful` carries the payment preimage.
 
     Two deliberate divergences from iOS are recorded in code and repeated here
     because they are the kind that get "tidied" back: the channel-balance

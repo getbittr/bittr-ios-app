@@ -57,6 +57,7 @@ object LdkEnvironmentConfig {
         return LdkEnvironment(
             network = walletNetwork(BitcoinNetwork.fromBuildConfig(BuildConfig.BITCOIN_NETWORK)),
             chainSourceUrl = BuildConfig.LDK_CHAIN_SOURCE_URL,
+            electrumUrl = BuildConfig.LDK_ELECTRUM_URL,
             // Optional, and genuinely so: `NodeConfigPlan.forEnvironment` drops it
             // on regtest and signet because iOS has no RGS server there, so a
             // blank one is a configuration that matches iOS rather than one that
@@ -79,6 +80,11 @@ object LdkEnvironmentConfig {
      */
     fun missingFields(): List<String> = buildList {
         if (BuildConfig.LDK_CHAIN_SOURCE_URL.isBlank()) add("LDK_CHAIN_SOURCE_URL")
+        // Required, and for the same reason as the chain source rather than by
+        // analogy with it: without it the node starts, the Lightning half works,
+        // and the on-chain balance is permanently zero — the failure mode this
+        // object's "partially configured is not configured" paragraph is about.
+        if (BuildConfig.LDK_ELECTRUM_URL.isBlank()) add("LDK_ELECTRUM_URL")
         if (BuildConfig.LDK_LIGHTNING_NODE_ID.isBlank()) add("LDK_LIGHTNING_NODE_ID")
         if (BuildConfig.LDK_LIGHTNING_NODE_ADDRESS.isBlank()) add("LDK_LIGHTNING_NODE_ADDRESS")
     }

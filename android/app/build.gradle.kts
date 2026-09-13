@@ -20,6 +20,9 @@ plugins {
  */
 val ldkEnvironment: Map<String, String> = listOf(
     Triple("LDK_CHAIN_SOURCE_URL", "bittr.ldk.chainSourceUrl", "BITTR_LDK_CHAIN_SOURCE_URL"),
+    // The on-chain wallet's Electrum server, which is a different value from the
+    // node's chain source on every network but mainnet — see LdkEnvironment.
+    Triple("LDK_ELECTRUM_URL", "bittr.ldk.electrumUrl", "BITTR_LDK_ELECTRUM_URL"),
     Triple(
         "LDK_RAPID_GOSSIP_SYNC_URL",
         "bittr.ldk.rapidGossipSyncUrl",
