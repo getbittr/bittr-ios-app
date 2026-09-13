@@ -145,7 +145,8 @@ Order matters — each layer unblocks the next:
 8. Buy + IBAN.
 9. Notifications + payout flow.
 10. Map (Google Maps Compose), Academy, Profits, Settings, Transaction history.
-11. Glance widget (mirrors `BittrWidget`) — spec in `shared/docs/widget-spec.md` (no screenshot exists; Maestro can't reach the widget surface). One `.systemSmall`-equivalent size, two data states, no signed-out state. Not part of the v1 Maestro gate. The swap Live Activity ships in the same iOS extension but is **not** in this item and isn't scoped yet.
+11. Glance widget (mirrors `BittrWidget`) — spec in `shared/docs/widget-spec.md` (no screenshot exists; Maestro can't reach the widget surface). One `.systemSmall`-equivalent size, two data states, no signed-out state. Not part of the v1 Maestro gate. The swap Live Activity ships in the same iOS extension but is **not** in this item — it is item 12.
+12. Swap Live Activity → **Android 16 Live Update** (mirrors `SwapLiveActivity`) — spec in `shared/docs/swap-live-activity-spec.md`. `NotificationCompat.ProgressStyle` + promoted ongoing; no new dependency (`androidx.core` 1.19.0 already has it), no Glance, **no foreground service**. Five phases, degrades to a plain ongoing notification below API 36. Not part of the v1 Maestro gate. Depends on items 7 and 9 — it reports on a swap and is driven by an FCM data message. Copy/icons are open designer items (spec §6).
 
 For each feature: build screen(s), wire managers, extend Maestro flow, mark green in `parity.md`.
 

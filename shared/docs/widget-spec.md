@@ -440,6 +440,14 @@ but unlike the price widget it has real state (five `SwapPhase` values, each wit
 subtitle, icon and tint), it is driven by remote pushes, and its Android equivalent is an ongoing
 notification, which is a different construct rather than a direct port.
 
-The BIT-3 audit that produced BIT-11 flagged only the price widget and missed this one. It is not
-in `parity.md` at all. It needs its own scoping decision and its own spec; this document
-deliberately does not cover it.
+The BIT-3 audit that produced BIT-11 flagged only the price widget and missed this one. It needs
+its own scoping decision and its own spec; this document deliberately does not cover it.
+
+**Both now exist: [`swap-live-activity-spec.md`](swap-live-activity-spec.md) (BIT-75).** It reached
+the same decision as §1 here — in scope for the port, out of the v1 Maestro gate — but two of the
+premises above turned out to be wrong, and anyone reading this section should not carry them
+forward. The Android counterpart is **not** "an ongoing notification, which is a different
+construct": Android 16 ships Live Updates (`NotificationCompat.ProgressStyle` + promoted ongoing),
+which is a real counterpart, and the status-bar chip is the counterpart to the Dynamic Island's
+compact presentation. And it is not a hand-checked surface — unlike this widget, most of it is
+assertable in a JVM unit test. See that document's §1 and §7.
