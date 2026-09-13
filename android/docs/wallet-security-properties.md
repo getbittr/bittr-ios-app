@@ -327,9 +327,40 @@ contents were all excluded would be evidence. From the canary grep alone those
 are identical. The empty-set warning now reports the regular files under the
 discovered set paths, so the next run answers it.
 
-Tracked as BIT-116, which stays open. Rule 4/10 stays `not yet proven`, and what
-it still needs is a run — but the question left for that run has gone from
-"where is the set, if anywhere" to "is the set the framework wrote empty".
+**And the set is not empty.** The run for `9dc0b64` measured it:
+
+```
+-rw------- 1 system system 4608 …/files/1/_full/com.bittr.android.regtest
+```
+
+4608 bytes. The framework wrote real data on the device-transfer path — and
+**none of the three prefixes was greppable in it**, not the wallet marker, not
+the canary, not the decoys. The canary sits in `files/`, which no rule excludes,
+so it would be in any set that stored file contents verbatim.
+
+That moves the finding from the transport to the **format**, and it invalidates
+an inference this check had been making since it was written: *no canary* was
+being reported as *empty set*, which was sound only while the set could not be
+measured. It can be measured now, and it is false. A full backup reaches the
+transport as a tar stream, and the bytes on disk need not hold contents as
+plaintext; compression alone defeats a literal-string search.
+
+**The serious half is what this says about the halt.** The `BIT101-WALLET-MARKER-`
+grep that decides §5.3 is the same kind of literal search over the same
+unreadable bytes. So wallet material could be sitting in that 4608-byte set and
+this check would report exactly what it reported. *A non-halt on the
+device-transfer path is not evidence of no leak* — it is a search that could not
+have succeeded either way. The check now says so in as many words rather than
+filing the result under "the set was empty", which reads as benign.
+
+This is not a §5.3 halt: the halt requires the marker to be **found**, and
+nothing was found. It is a gap in the instrument, and rule 4/10 stays
+`not yet proven` — now for a sharper reason than before.
+
+Tracked as BIT-116, which stays open. What it needs is no longer a run: it is a
+way to **read** the set — untar/inflate it on the host, or assert over the
+transport's own API — because no number of runs of a plaintext grep over a
+tar stream will answer rule 5 on this path.
 
 **What runs, and where.** The `wallet-instrumented` job boots an API 34
 `aosp_atd` emulator and runs `android/scripts/ci-wallet-instrumented.sh`, which

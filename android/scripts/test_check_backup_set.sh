@@ -68,6 +68,7 @@ case "$1" in
             ;;
         esac
         ;;
+      *"-type f"*) cat "$dir/setfiles" ;;
       *find*)      cat "$dir/sets" ;;
       *"bmgr list transports"*) echo "  com.android.localtransport/.LocalTransport" ;;
     esac
@@ -103,6 +104,11 @@ configure() {
   # roots", which is not the same as "a set exists and holds none of our markers"
   # and must not be stubbed as if it were.
   printf '%s' "${6-$SET_PATH}" > "$stub_dir/sets"
+  # $7 is what `ls -l` reports for the regular files under those set paths. It
+  # decides set_bytes, and therefore whether a no-canary run is reported as an
+  # empty set or as a set this check could not read. Defaults to empty -- i.e.
+  # zero bytes -- so every case written before sizes existed reads unchanged.
+  printf '%s' "${7-}" > "$stub_dir/setfiles"
 }
 
 # expect <name> <expected exit> <substring that must appear> <substring that must NOT appear>
@@ -253,6 +259,45 @@ expect "outcome_3_with_no_set_says_there_was_nothing_to_size" 0 \
 configure yes "/data/data/com.android.localtransport/files" "" ""
 expect "outcome_3_with_a_set_reports_the_files_under_it" 0 \
   "Regular files under those paths = ["
+
+# --- THE SIXTH PINNED BUG: "no canary" is not "empty set" ---------------------
+#
+# Once the roots were searched properly the set could be measured for the first
+# time, and the run for 9dc0b64 measured it: 4608 bytes under
+# .../files/1/_full/<pkg>, with NONE of the three prefixes greppable. So the
+# framework wrote real data and the script was calling that an EMPTY SET --
+# an inference that was sound only while the set could not be measured.
+#
+# It points at the FORMAT: a full backup reaches the transport as a tar stream
+# and the bytes on disk need not hold contents as plaintext. The serious part is
+# that this applies to the $MARKER_PREFIX grep too -- the one that decides the
+# §5.3 halt -- so wallet material could be in the set and this check would report
+# exactly what it reported. A non-halt here must not read as "no leak".
+NONEMPTY_SET_FILES="-rw------- 1 system system 4608 2026-09-13 04:11 $SET_PATH"
+
+configure yes "/data/data/com.android.localtransport/files" "" "" "" "$SET_PATH" \
+  "$NONEMPTY_SET_FILES"
+expect "nonempty_set_without_a_canary_is_not_called_empty" 0 \
+  "The set is NOT empty and this check  could not read it" "produced was EMPTY"
+
+configure yes "/data/data/com.android.localtransport/files" "" "" "" "$SET_PATH" \
+  "$NONEMPTY_SET_FILES"
+expect "nonempty_unreadable_set_says_the_halt_grep_is_blind_too" 0 \
+  "Do not read a non-halt here as 'no leak'"
+
+configure yes "/data/data/com.android.localtransport/files" "" "" "" "$SET_PATH" \
+  "$NONEMPTY_SET_FILES"
+expect "nonempty_unreadable_set_reports_the_byte_count" 0 "total 4608 bytes"
+
+# ...and it is still not the halt, which requires the marker to be FOUND.
+configure yes "/data/data/com.android.localtransport/files" "" "" "" "$SET_PATH" \
+  "$NONEMPTY_SET_FILES"
+expect "nonempty_unreadable_set_is_still_not_a_failure" 0 "NOT a clean bill of health"
+
+# A genuinely empty set must still get the empty-set wording, not the new one.
+configure yes "/data/data/com.android.localtransport/files" "" "" "" "$SET_PATH" ""
+expect "a_zero_byte_set_still_reads_as_empty" 0 \
+  "So the set this run produced was EMPTY" "NOT empty and this check"
 
 # --- Every present root is actually searched ----------------------------------
 #

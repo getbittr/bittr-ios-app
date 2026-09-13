@@ -222,6 +222,19 @@ else
 fi
 set_files_inline=$(printf '%s' "$set_files" | tr '\n' ' ' | tr -s ' ')
 
+# Total bytes of the regular files under the set paths. Field 5 of `ls -l`, and
+# the guard on it being all digits is what keeps the "(no regular files...)"
+# placeholder and any stray line out of the sum.
+#
+# This decides whether the no-canary result may be called an EMPTY SET. Until
+# the roots were searched properly there was no way to ask, and "no canary"
+# was treated as "nothing in the set" -- a sound inference only while the set
+# could not be measured. The run for 9dc0b64 measured it: 4608 bytes under
+# .../files/1/_full/<pkg>. The framework wrote real data and the canary was
+# still not greppable, so the inference is false and this script must stop
+# making it.
+set_bytes=$(printf '%s\n' "$set_files" | awk '$5 ~ /^[0-9]+$/ {t+=$5} END {print t+0}')
+
 leaks=$(adb shell "grep -rl '$MARKER_PREFIX' $present_args 2>/dev/null" | tr -d '\r' || true)
 canaries=$(adb shell "grep -rl '$CANARY_PREFIX' $present_args 2>/dev/null" | tr -d '\r' || true)
 decoys=$(adb shell "grep -rl '$DECOY_PREFIX' $present_args 2>/dev/null" | tr -d '\r' || true)
@@ -262,6 +275,47 @@ fi
 # here would be reporting the wrong thing in both cases, exactly as with "could
 # not gain root" above. But it is not evidence, and it must not be reported in
 # the same words as outcome 2.
+if [ -z "$canaries" ] && [ "${set_bytes:-0}" -gt 0 ]; then
+  # No canary, but the set is measurably NOT empty. These are different facts and
+  # the empty-set wording below is simply false here — the run for 9dc0b64 wrote
+  # 4608 bytes and none of the three prefixes was greppable in them.
+  #
+  # The honest reading is that a plaintext grep cannot read this set. A full
+  # backup reaches the transport as a tar stream, and nothing guarantees the
+  # bytes on disk hold file contents verbatim; compression alone defeats a
+  # literal-string search. That applies to ALL THREE greps, so this run is not
+  # evidence for rule 5 — and, far more importantly, it is NOT a clean bill of
+  # health either: the $MARKER_PREFIX grep that decides the §5.3 halt is the same
+  # kind of search over the same unreadable bytes, so wallet material could be in
+  # this set and this check would report exactly what it just reported.
+  #
+  # Deliberately still exit 0 and still not the halt: the halt requires the
+  # marker to be FOUND. But this must not be filed alongside "the set was empty",
+  # which reads as a benign expected outcome, because the two have opposite
+  # implications for whether the check can be trusted at all.
+  echo "::warning title=Backup set inspection::The set is NOT empty and this check"\
+    " could not read it. Regular files under the set paths total $set_bytes bytes,"\
+    " so the framework wrote real data — and NONE of the three prefixes"\
+    " ($MARKER_PREFIX, $CANARY_PREFIX, $DECOY_PREFIX) was greppable in it. The"\
+    " canary is planted in files/, which no rule excludes, so it should be in any"\
+    " set that carries file contents verbatim. It is not, which points at the"\
+    " FORMAT rather than at the rules: a full backup reaches the transport as a"\
+    " tar stream and the bytes on disk need not hold contents as plaintext —"\
+    " compression alone defeats a literal-string search."\
+    " Two consequences, and the second is the serious one."\
+    " (1) This run is NOT evidence for BIT-20 rule 5: nothing was demonstrated"\
+    " about whether the exclusion rules work."\
+    " (2) It is NOT a clean bill of health either. The $MARKER_PREFIX grep that"\
+    " decides the §5.3 halt is the same kind of search over the same unreadable"\
+    " bytes, so wallet material could be sitting in this set and this check would"\
+    " report what it just reported. Do not read a non-halt here as 'no leak'."\
+    " Until the set can be decoded — untar/inflate it on the host, or have the"\
+    " suite assert over the transport's own API — this check cannot answer rule 5"\
+    " on the device-transfer path. Tracked on BIT-116."\
+    " Set paths = [$sets_inline]. Files = [$set_files_inline]."
+  exit 0
+fi
+
 if [ -z "$canaries" ]; then
   echo "::warning title=Backup set inspection::The set was searched and carried no"\
     " wallet marker ($MARKER_PREFIX) — but it carried no canary ($CANARY_PREFIX)"\
