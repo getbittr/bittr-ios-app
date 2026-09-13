@@ -111,7 +111,7 @@ true on iOS, the non-custodial model rather than a regression.
 
 ---
 
-## 4. The one claim not yet proven, and the stop condition attached to it
+## 4. The one claim only partly proven, and the stop condition attached to it
 
 **Rule 4/10's behavioural half.** `BackupExclusionRulesTest` proves the
 configuration: `allowBackup="false"`, `dataExtractionRules` wired up, both
@@ -253,9 +253,13 @@ those runs predate the canary gate reaching that branch, and both reported
 just said it never drove a backup into**. That is the false green the canary
 requirement exists to refuse, observed in the wild rather than argued for. The
 canary-gated runs, in turn, were all on branches without the BIT-108 fix, so
-every one of them died mid-backup. **Neither `partly proven` nor the §5.3 halt
-has been earned yet**: the first run on a tree carrying both halves is what
-produces the answer, and until it reports, rule 4/10 stays where it is.
+every one of them died mid-backup. **As of that merge neither `partly proven`
+nor the §5.3 halt had been earned**: the first run on a tree carrying both
+halves is what produces the answer, and until it reported, rule 4/10 stayed
+where it was. (Four runs later it did — see the `d073424` entry below, which is
+what moved rule 4/10 to `partly proven` and what the table now reflects. This
+paragraph is the state at the merge, kept because the next four entries only
+make sense as a sequence.)
 
 **That run has now reported, and the answer is neither.** On `7e4da43` all four
 jobs were green; the `wallet-instrumented` job passed in 328s with the vacuity
