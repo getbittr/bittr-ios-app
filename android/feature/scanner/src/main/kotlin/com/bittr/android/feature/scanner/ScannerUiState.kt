@@ -60,6 +60,17 @@ internal sealed interface ScannerUiState : java.io.Serializable {
 internal object ScannerPermissionFlow {
 
     /**
+     * Whether there is a camera to scan with.
+     *
+     * The feature flag alone is not enough: a device can declare `camera.any` and still
+     * have no camera the system can open — the CI emulator does exactly that with
+     * `-camera-back none`, and so can hardware with a failed camera service. Trusting
+     * the flag there opened a black viewfinder with no way forward, where iOS shows its
+     * "scanning not supported" alert.
+     */
+    fun hasCamera(declaresFeature: Boolean, cameraCount: Int): Boolean = declaresFeature && cameraCount > 0
+
+    /**
      * The state to open in.
      *
      * Hardware first: a device with no camera cannot be helped by a permission, and

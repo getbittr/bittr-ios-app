@@ -81,7 +81,13 @@ fun ScannerScreen(
     val activity = LocalActivity.current
 
     val hasCamera = remember(context) {
-        context.packageManager.hasSystemFeature(PackageManager.FEATURE_CAMERA_ANY)
+        val cameraCount = runCatching {
+            context.getSystemService(android.hardware.camera2.CameraManager::class.java)?.cameraIdList?.size ?: 0
+        }.getOrDefault(0)
+        ScannerPermissionFlow.hasCamera(
+            declaresFeature = context.packageManager.hasSystemFeature(PackageManager.FEATURE_CAMERA_ANY),
+            cameraCount = cameraCount,
+        )
     }
     val granted = remember(context) {
         ContextCompat.checkSelfPermission(context, BittrPermissions.CAMERA) ==
