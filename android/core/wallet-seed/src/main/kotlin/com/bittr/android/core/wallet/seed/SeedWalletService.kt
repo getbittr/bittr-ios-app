@@ -10,9 +10,12 @@ import java.security.MessageDigest
 import java.security.SecureRandom
 import javax.crypto.SecretKeyFactory
 import javax.crypto.spec.PBEKeySpec
+import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.withContext
 
 /**
  * A [WalletService] with a real seed and no funds.
@@ -41,10 +44,16 @@ import kotlinx.coroutines.flow.asStateFlow
  * until [setPin] succeeds, so a user who force-quits halfway through the arc comes
  * back to the start of signup rather than to a PIN screen for a phrase they never
  * finished writing down. Running the arc again replaces the unfinished seed.
+ *
+ * @param derivation where the PBKDF2 verifier is computed. Never the caller's
+ *   dispatcher: every caller is a view model on the main thread, and 120k rounds is a
+ *   quarter of a second on good hardware and many seconds on a loaded device — long
+ *   enough to trip Android's five-second input ANR on the PIN pad's Confirm tap.
  */
 class SeedWalletService(
     private val store: SecureStore,
     private val random: SecureRandom = SecureRandom(),
+    private val derivation: CoroutineDispatcher = Dispatchers.Default,
 ) : WalletService {
 
     private val _state = MutableStateFlow(storedState())
@@ -180,9 +189,10 @@ class SeedWalletService(
             WalletState.Uninitialized
         }
 
-    private fun derive(pin: String, salt: ByteArray): ByteArray {
+    /** The PBKDF2 verifier, computed on [derivation] — see the class's `@param`. */
+    private suspend fun derive(pin: String, salt: ByteArray): ByteArray = withContext(derivation) {
         val spec = PBEKeySpec(pin.toCharArray(), salt, PBKDF2_ITERATIONS, KEY_BYTES * 8)
-        return try {
+        try {
             SecretKeyFactory.getInstance(PBKDF2_ALGORITHM).generateSecret(spec).encoded
         } finally {
             spec.clearPassword()

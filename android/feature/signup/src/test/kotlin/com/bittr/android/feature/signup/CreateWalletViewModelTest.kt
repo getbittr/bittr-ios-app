@@ -50,7 +50,7 @@ class CreateWalletViewModelTest {
     @After fun tearDown() = Dispatchers.resetMain()
 
     private fun viewModel(store: SecureStore = FakeStore()) =
-        CreateWalletViewModel(SeedWalletService(store)) to store
+        CreateWalletViewModel(SeedWalletService(store, derivation = Dispatchers.Unconfined)) to store
 
     /** Answers for the three words the challenge happens to have picked. */
     private fun correctAnswers(state: CreateWalletUiState): List<String> {
@@ -90,7 +90,7 @@ class CreateWalletViewModelTest {
     @Test
     fun `the whole arc reaches Ready and leaves a locked wallet behind`() = runTest {
         val store = FakeStore()
-        val wallet = SeedWalletService(store)
+        val wallet = SeedWalletService(store, derivation = Dispatchers.Unconfined)
         val vm = CreateWalletViewModel(wallet)
 
         vm.createWallet()
@@ -178,7 +178,7 @@ class CreateWalletViewModelTest {
     @Test
     fun `a mismatched confirmation PIN does not complete setup`() = runTest {
         val store = FakeStore()
-        val wallet = SeedWalletService(store)
+        val wallet = SeedWalletService(store, derivation = Dispatchers.Unconfined)
         val vm = CreateWalletViewModel(wallet)
         vm.createWallet()
         advanceUntilIdle()

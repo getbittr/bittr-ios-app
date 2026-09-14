@@ -58,7 +58,7 @@ class RestoreWalletViewModelTest {
     )
 
     private fun viewModel(store: SecureStore = RestoreFakeStore()) =
-        RestoreWalletViewModel(SeedWalletService(store)) to store
+        RestoreWalletViewModel(SeedWalletService(store, derivation = Dispatchers.Unconfined)) to store
 
     // --- Rejection path 1: a word that is not BIP-39 -------------------------
 
@@ -153,7 +153,7 @@ class RestoreWalletViewModelTest {
     @Test
     fun `the arc ends on Home only after the PIN is set`() = runTest(dispatcher) {
         val store = RestoreFakeStore()
-        val wallet = SeedWalletService(store)
+        val wallet = SeedWalletService(store, derivation = Dispatchers.Unconfined)
         val vm = RestoreWalletViewModel(wallet)
         var finished = false
 

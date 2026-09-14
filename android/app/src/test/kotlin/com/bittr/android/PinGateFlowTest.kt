@@ -1,5 +1,6 @@
 package com.bittr.android
 
+import kotlinx.coroutines.Dispatchers
 import androidx.activity.compose.setContent
 import androidx.compose.ui.test.assertContentDescriptionEquals
 import androidx.compose.ui.test.assertIsDisplayed
@@ -75,7 +76,7 @@ class PinGateFlowTest {
     )
 
     private val store = GateStore()
-    private val wallet = SeedWalletService(store)
+    private val wallet = SeedWalletService(store, derivation = Dispatchers.Unconfined)
 
     /** The wallet the flows start from: restored, PIN 1234, no failed attempts. */
     private fun aWalletWithPin1234() = runBlocking {
@@ -249,7 +250,7 @@ class PinGateFlowTest {
         // Still on the fields, and the old PIN still works.
         composeRule.onNodeWithTag(TestID.Signup.Restore.topLabel).assertExists()
         composeRule.onNodeWithTag(TestID.Signup.Restore.PinSet.topLabel).assertDoesNotExist()
-        assertTrue(runBlocking { SeedWalletService(store).unlock(CORRECT_PIN) })
+        assertTrue(runBlocking { SeedWalletService(store, derivation = Dispatchers.Unconfined).unlock(CORRECT_PIN) })
     }
 
     // -----------------------------------------------------------------------
@@ -357,7 +358,7 @@ class PinGateFlowTest {
         aWalletWithPin1234()
         runBlocking { repeat(PinLockout.WIPE_AT) { wallet.unlock(WRONG_PIN) } }
         // A fresh service over the same storage is the relaunch.
-        val afterRelaunch = SeedWalletService(store)
+        val afterRelaunch = SeedWalletService(store, derivation = Dispatchers.Unconfined)
         assertEquals(WalletState.Locked, afterRelaunch.state.value)
 
         var wiped = false

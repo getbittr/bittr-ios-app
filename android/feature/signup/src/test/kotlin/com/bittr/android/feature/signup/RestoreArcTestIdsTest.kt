@@ -1,5 +1,6 @@
 package com.bittr.android.feature.signup
 
+import kotlinx.coroutines.Dispatchers
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
@@ -85,7 +86,7 @@ class RestoreArcTestIdsTest {
     @Test
     fun restoresAndLandsOnTheHandOffToHome() {
         var finished = false
-        val viewModel = RestoreWalletViewModel(SeedWalletService(ArcStore()))
+        val viewModel = RestoreWalletViewModel(SeedWalletService(ArcStore(), derivation = Dispatchers.Unconfined))
 
         composeRule.setContent {
             BittrTheme {
@@ -124,7 +125,7 @@ class RestoreArcTestIdsTest {
     /** The rejection the user sees: the flow's screen, with one word mistyped. */
     @Test
     fun aBadWordKeepsTheUserOnTheFieldsWithTheAlertUp() {
-        val viewModel = RestoreWalletViewModel(SeedWalletService(ArcStore()))
+        val viewModel = RestoreWalletViewModel(SeedWalletService(ArcStore(), derivation = Dispatchers.Unconfined))
 
         composeRule.setContent {
             BittrTheme {
