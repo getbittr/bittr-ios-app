@@ -53,11 +53,64 @@ class WalletPaths(
      */
     val ldkStateDir: File = File(walletDir, LDK_STATE_DIR)
 
-    /** BDK's SQLite `Connection` path. Its own file, not inside the LDK state directory. */
-    val bdkDatabaseFile: File = File(walletDir, "bdk_wallet.sqlite")
+    /**
+     * BDK's store directory — the analogue of iOS's `Documents/wallet_data/`
+     * (`BitcoinManager.swift:836`), and a directory rather than a bare file for
+     * one load-bearing reason.
+     *
+     * `BdkStore.prepare` ports iOS's *delete the whole directory on every start*
+     * (`BitcoinManager.swift:838–840`). On iOS that directory holds nothing but
+     * `wallet.sqlite`, so the delete is safe. If BDK's database sat directly in
+     * [walletDir] — as it did until this was split out — the same ported delete
+     * would take [seedBlobFile], [ldkStateDir] and [quarantineRoot] with it: the
+     * seed blob and every channel state on the device, wiped on a routine start.
+     *
+     * That is the whole fund-loss path, reached by porting a safe iOS line into a
+     * directory layout that differs. The directory is the fix, and
+     * `BdkStoreTest` is the proof — it asserts the siblings survive a prepare.
+     *
+     * Not inside [ldkStateDir]: the BIT-20 quarantine moves that directory, and
+     * BDK's rebuildable cache must not ride along with it.
+     */
+    val bdkStoreDir: File = File(walletDir, BDK_STORE_DIR)
+
+    /** BDK's SQLite `Connection` path, inside its own wipeable directory. */
+    val bdkDatabaseFile: File = File(bdkStoreDir, "bdk_wallet.sqlite")
 
     /** The Keystore-wrapped mnemonic. A cache, never the only copy — BIT-8 rule 3. */
     val seedBlobFile: File = File(walletDir, "seed.bin")
+
+    /**
+     * The wallet layer's durable records — Android's home for what iOS keeps in
+     * `UserDefaults` behind `CacheManager`. `WalletCache` is what writes here.
+     *
+     * **This is not `Context.getCacheDir()`, and the name is the only thing that
+     * suggests otherwise.** The OS deletes that directory under storage pressure
+     * without telling the app; the event ledger losing its contents there means
+     * every replayed event is shown to the user a second time, and the channel
+     * closure txids losing theirs means a force-close sweep the user can no
+     * longer see labelled. The full path — `no_backup/wallet/cache` — is the
+     * disambiguation that matters, and [forContext] is the only way to reach it.
+     *
+     * ## A sibling of the other two, not a child of either
+     *
+     * Both of its neighbours have destructive lifecycles, and this directory
+     * exists because it must survive both:
+     *
+     * - [ldkStateDir] is **moved** by the BIT-20 quarantine. A ledger that rode
+     *   along with it would forget every handled event the moment a foreign-seed
+     *   import fired — the issue's own words, and the reason this is not a file
+     *   inside the state directory.
+     * - [bdkStoreDir] is **deleted in full on every start** by `BdkStore.prepare`.
+     *   A ledger there would forget everything once per process, which on Android
+     *   is once per user session or oftener.
+     *
+     * So it sits directly under [walletDir], beside them, where nothing this
+     * module does removes it. Wallet removal does not either: `removeWallet`
+     * erases the seed and leaves the rest, and the closure txids are exactly the
+     * force-close sweep material BIT-20 says not to destroy.
+     */
+    val cacheDir: File = File(walletDir, CACHE_DIR)
 
     /**
      * Parent of the uniquely-named quarantine subdirectories (BIT-20 rule 4).
@@ -79,15 +132,42 @@ class WalletPaths(
      */
     val discriminatorFile: File = File(ldkStateDir, "seed_discriminator")
 
+    /**
+     * Creates every directory a caller may write into without first asking.
+     *
+     * [bdkStoreDir] is in this list even though `BdkStore.prepare` creates it
+     * too, and that is not redundancy — it is the contract. When the store
+     * directory was split out of [walletDir], this method was not updated, so
+     * `File(bdkDatabaseFile).writeText(…)` started throwing `ENOENT` for any
+     * caller that had reasonably taken "the directories exist now" at its word.
+     * It survived the JVM suite and failed on a device, because the caller it
+     * broke was instrumented.
+     *
+     * [quarantineRoot] is deliberately **not** here. It is allocated by
+     * `LdkStateStore` at the moment it quarantines, and an empty quarantine
+     * root that exists from first launch would be indistinguishable from one
+     * whose quarantines had been removed.
+     *
+     * `WalletPathsCreateDirectoriesTest` fails if a directory property is added
+     * to this class and not to this method.
+     */
     fun createDirectories() {
         walletDir.mkdirs()
         ldkStateDir.mkdirs()
+        bdkStoreDir.mkdirs()
+        cacheDir.mkdirs()
     }
 
     companion object {
         const val WALLET_DIR = "wallet"
         const val LDK_STATE_DIR = "ldk_state"
         const val QUARANTINE_DIR = "foreign_ldk_state"
+
+        /** iOS's `UserDefaults`, under a name that says it is not `Context.cacheDir`. */
+        const val CACHE_DIR = "cache"
+
+        /** iOS's `wallet_data`, under a name that says which library owns it. */
+        const val BDK_STORE_DIR = "bdk_store"
 
         /**
          * The only supported way to build these paths in production code.

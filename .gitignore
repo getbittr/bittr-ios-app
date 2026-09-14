@@ -144,3 +144,12 @@ shared/flows/logs/
 # and importing one (test_ci_runs.py imports ci-runs.py) leaves this behind.
 __pycache__/
 *.pyc
+
+# The regtest network's identity, written by android/regtest/up.sh.
+#
+# Committing it would be worse than useless: LND's node id is generated per
+# bring-up by --noseedbackup, so a committed file names a node that does not
+# exist, and regtest-ldk-env.py would happily compile an APK pointing at it. The
+# failure then arrives as a peer that never connects, on a run whose facts file
+# looked present and correct. down.sh deletes it for the same reason.
+android/regtest/regtest-facts.json

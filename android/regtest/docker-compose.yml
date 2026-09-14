@@ -1,0 +1,235 @@
+# The private Bitcoin and Lightning network K7 and K8 need (BIT-132).
+#
+# Three containers, four endpoints, and the arithmetic is worth stating because
+# BIT-132 asks for "four services" and this file has three:
+#
+#   bitcoind          regtest chain, RPC + ZMQ                       — 1 service
+#   electrs           Esplora HTTP  +  Electrum TCP                  — 2 endpoints
+#   lnd               the channel counterparty                       — 1 service
+#
+# Esplora and Electrum are two endpoints of ONE process on purpose. Blockstream's
+# electrs is the implementation of both, and they are separate *fields* in
+# LdkEnvironment because they are separate protocols on separate ports that
+# different libraries speak — ldk-node gets Esplora over HTTP, BDK gets Electrum
+# over TCP — not because they must come from separate daemons. Running two
+# indexers over one regtest chain would double the index for nothing.
+#
+# WHY 10.0.2.2 IS EVERYWHERE AND NOWHERE
+#
+# Nothing in this file mentions 10.0.2.2. Every service publishes to the runner's
+# loopback, and 10.0.2.2 is what the *emulator* calls that host — so the
+# translation belongs at the one place that builds the APK's BuildConfig values,
+# android/scripts/regtest-ldk-env.py, which is a Python file with a test rather
+# than a string repeated in four YAML fields.
+#
+# EVERY PORT IS PUBLISHED TO 127.0.0.1, INCLUDING THE LIGHTNING ONE
+#
+# That looks like it should not work, and it does: the emulator's user-mode
+# network stack forwards 10.0.2.2 to the *host's loopback interface*, so a
+# service bound to 127.0.0.1 is reachable from the device and from nothing else
+# on the network. The tempting alternative — publish 9735 on all interfaces so
+# "the emulator can definitely reach it" — would put a Lightning port belonging
+# to an auto-unlocked, seedless wallet on whatever network the runner is on, to
+# buy nothing. If a future layout does break this (an emulator on another host,
+# a Docker-in-Docker runner), the fix is a named host in regtest-ldk-env.py,
+# where check_emitted() will make it argue its case.
+#
+# NEVER MAINNET, AND WHAT ENFORCES IT
+#
+# Every service is pinned to regtest by its own command line, and
+# regtest-ldk-env.py refuses to emit a BuildConfig value whose host is not the
+# emulator's loopback alias. A regtest APK that reached a real node would be the
+# one failure in this repository that spends real money; it is guarded twice
+# because once is a convention.
+#
+# Up:    bash android/regtest/up.sh
+# Down:  bash android/regtest/down.sh
+# Local: the same two commands. This file is not CI-specific.
+
+name: bittr-regtest
+
+services:
+
+  bitcoind:
+    image: polarlightning/bitcoind:27.0
+    # Polar's images rather than an official Core one, and that is a
+    # deliberate trade. `bitcoin/bitcoin` exists but its tag history has moved;
+    # Polar publishes bitcoind, lnd and clightning as a MATCHED SET built for
+    # exactly this — a throwaway regtest Lightning network — and the LND image
+    # below is from the same publisher, so "these two versions work together"
+    # is the publisher's problem rather than ours.
+    restart: no
+    command:
+      - bitcoind
+      - -regtest
+      - -server
+      - -rpcbind=0.0.0.0
+      - -rpcallowip=0.0.0.0/0
+      - -rpcuser=bittr
+      - -rpcpassword=bittr
+      # Container-local credentials on a container-local network carrying a chain
+      # whose coins are mined out of nothing. They are in the file rather than in
+      # a secret because there is nothing here to protect, and a secret would
+      # suggest otherwise.
+      - -zmqpubrawblock=tcp://0.0.0.0:28334
+      - -zmqpubrawtx=tcp://0.0.0.0:28335
+      # LND's bitcoind backend requires both ZMQ topics. Without them it starts,
+      # reports itself healthy, and never learns about a block.
+      - -txindex
+      # electrs reads the daemon's block files directly and its RPC for the rest.
+      # -txindex is what makes the RPC half answer for an arbitrary txid.
+      - -fallbackfee=0.0002
+      # regtest has no fee estimates at all, so every wallet call that needs one
+      # fails with "Fee estimation failed" until this is set. It is the single
+      # most common reason a regtest bring-up dies at the funding step.
+      - -listen
+      - -listenonion=0
+    ports:
+      - "127.0.0.1:18443:18443"
+    volumes:
+      - bitcoind-data:/home/bitcoin/.bitcoin
+    healthcheck:
+      # `getblockchaininfo`, not a TCP probe: the RPC port is open a moment
+      # before the chain state is loadable, and every dependent below would then
+      # start into a daemon that answers "Loading block index".
+      test:
+        - CMD-SHELL
+        - >-
+          bitcoin-cli -regtest -rpcuser=bittr -rpcpassword=bittr getblockchaininfo
+          > /dev/null 2>&1
+      interval: 2s
+      timeout: 5s
+      retries: 45
+      start_period: 5s
+
+  electrs:
+    build:
+      context: ./electrs
+    # Built here rather than pulled. There is no first-party published image for
+    # Blockstream's electrs, and the third-party ones that exist are either the
+    # OTHER electrs (romanz's, which serves Electrum and has no Esplora HTTP API
+    # at all — half of what this file needs) or unpinnable. A Dockerfile with a
+    # git tag in it is slower on a cold runner and is the same bytes every night.
+    restart: no
+    depends_on:
+      bitcoind:
+        condition: service_healthy
+    command:
+      - electrs
+      - --network=regtest
+      - --daemon-dir=/bitcoin/.bitcoin
+      - --daemon-rpc-addr=bitcoind:18443
+      - --cookie=bittr:bittr
+      - --db-dir=/electrs/db
+      # Explicit, though the Dockerfile also sets ELECTRS_DB_DIR. electrs reads
+      # its configuration from flags, a config file and ELECTRS_* environment
+      # variables alike, and a value that only exists in the image is a value
+      # nobody reading this file can see.
+      - --http-addr=0.0.0.0:3002
+      # The Esplora REST API. ldk-node's chain source on every network but
+      # mainnet — see NodeConfigPlan.forEnvironment.
+      - --electrum-rpc-addr=0.0.0.0:60401
+      # BDK's. A different protocol on a different port, which is why
+      # LdkEnvironment.electrumUrl is its own field.
+      - --cors=*
+      - --jsonrpc-import
+      # Import via RPC rather than by parsing blk*.dat. Slower per block and
+      # irrelevant at regtest heights, and it removes the requirement that
+      # electrs and bitcoind agree on the on-disk block format — which is the
+      # coupling that breaks first when either image is bumped.
+      - -vv
+    ports:
+      - "127.0.0.1:3002:3002"
+      - "127.0.0.1:60401:60401"
+    volumes:
+      - bitcoind-data:/bitcoin/.bitcoin:ro
+      - electrs-data:/electrs/db
+    healthcheck:
+      # The tip height endpoint, which is the exact call ldk-node makes first.
+      # A healthcheck that proved only "the port is open" would let the bring-up
+      # proceed into an index that has not caught up, and the symptom of that is
+      # a node that syncs to height 0 and reports no funds.
+      test:
+        - CMD-SHELL
+        - "curl -sf http://127.0.0.1:3002/blocks/tip/height > /dev/null"
+      interval: 3s
+      timeout: 5s
+      retries: 60
+      start_period: 10s
+
+  lnd:
+    image: polarlightning/lnd:0.18.3-beta
+    # The channel counterparty, and specifically the one that can HOLD an
+    # in-flight HTLC on demand. That is why LND and not another implementation:
+    # `addholdinvoice` is a first-class RPC here (invoicesrpc is compiled into
+    # every released LND), where on Core Lightning it needs a plugin and on
+    # Eclair it needs a plugin too. See android/regtest/README.md — the hold
+    # invoice is what makes K7's kill window wide enough to be a test rather
+    # than a coin flip.
+    restart: no
+    depends_on:
+      bitcoind:
+        condition: service_healthy
+    command:
+      - lnd
+      - --noseedbackup
+      # Deterministic throwaway wallet, auto-unlocked at start. The alternative
+      # is a seed and a passphrase in the repository, which is the thing BIT-132
+      # says never to have.
+      - --alias=bittr-regtest-peer
+      - --trickledelay=5000
+      - --bitcoin.active
+      - --bitcoin.regtest
+      - --bitcoin.node=bitcoind
+      - --bitcoin.defaultchanconfs=1
+      # One confirmation, not six. A regtest block is free and immediate, but
+      # every extra confirmation is another mine-and-wait round in up.sh and
+      # another place for the bring-up to time out.
+      - --bitcoind.rpchost=bitcoind:18443
+      - --bitcoind.rpcuser=bittr
+      - --bitcoind.rpcpass=bittr
+      - --bitcoind.zmqpubrawblock=tcp://bitcoind:28334
+      - --bitcoind.zmqpubrawtx=tcp://bitcoind:28335
+      - --rpclisten=0.0.0.0:10009
+      - --restlisten=0.0.0.0:8080
+      - --listen=0.0.0.0:9735
+      - --tlsextradomain=lnd
+      - --tlsextraip=127.0.0.1
+      # The emulator dials this node at 10.0.2.2:9735 over plain Lightning
+      # transport (Noise, not TLS), so the TLS SANs here are only for lncli and
+      # the REST port. They are listed so a host-side tool can talk to it without
+      # --no-macaroons style workarounds that would then also work in anger.
+      - --accept-keysend
+      - --protocol.wumbo-channels
+      - --maxpendingchannels=5
+      # The app opens the channel, not LND — see README.md. LND has to be willing
+      # to accept more than one inbound pending channel because a failed K7
+      # attempt can leave one behind and the next run must not queue behind it.
+    ports:
+      - "127.0.0.1:10009:10009"
+      - "127.0.0.1:8080:8080"
+      - "127.0.0.1:9735:9735"
+    volumes:
+      - lnd-data:/home/lnd/.lnd
+    healthcheck:
+      # `getinfo` answering at all means the wallet is unlocked and the RPC
+      # server is up. Chain sync is checked separately in up.sh, because it is a
+      # state this probe would have to wait on rather than assert.
+      test:
+        - CMD-SHELL
+        - >-
+          lncli --network=regtest
+          --rpcserver=localhost:10009 getinfo > /dev/null 2>&1
+      interval: 3s
+      timeout: 10s
+      retries: 60
+      start_period: 10s
+
+volumes:
+  # Named rather than bind-mounted. `down.sh` removes them, and a bind mount
+  # would leave a root-owned chain directory in the working tree that the next
+  # checkout cannot clean — which on a self-hosted runner is a problem that
+  # outlives the job.
+  bitcoind-data:
+  electrs-data:
+  lnd-data:

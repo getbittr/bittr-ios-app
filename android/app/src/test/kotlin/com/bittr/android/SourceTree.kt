@@ -26,6 +26,32 @@ internal object SourceTree {
         candidate
     }
 
+    /**
+     * The repository root — one level above [root], where `.github/` lives.
+     *
+     * Almost every guard here asks a question about `android/` and should use
+     * [root]. This exists for the few rules that span the boundary, where the
+     * Gradle side and the CI side have to agree about the same value and either
+     * one alone is only half the rule: `AbiPackagingGuardTest` is the case, since
+     * "one APK per ABI" in `app/build.gradle.kts` and "install the x86_64 one" in
+     * the workflow are the same decision written in two files.
+     *
+     * Checked the same way [root] is, and for the same reason: a guard that reads
+     * a path that has moved finds nothing and passes.
+     */
+    val repoRoot: File by lazy {
+        val candidate = checkNotNull(root.parentFile) {
+            "$root has no parent directory, so the repository root cannot be reached from it."
+        }.canonicalFile
+        assertTrue(
+            "Expected the repository root at $candidate (the parent of $root), but it has " +
+                "no .github/workflows directory. A guard that reads a workflow from there " +
+                "would read nothing and pass without checking anything.",
+            File(candidate, ".github/workflows").isDirectory,
+        )
+        candidate
+    }
+
     /** Every non-generated Kotlin source file under `android/`, excluding [excludeFileNames]. */
     fun kotlinSources(vararg excludeFileNames: String): List<File> {
         val excluded = excludeFileNames.toSet()

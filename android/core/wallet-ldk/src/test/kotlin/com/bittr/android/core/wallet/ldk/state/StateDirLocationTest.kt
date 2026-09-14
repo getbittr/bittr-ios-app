@@ -51,6 +51,7 @@ class StateDirLocationTest {
         val everyPath = mapOf(
             "wallet directory" to paths.walletDir,
             "ldk-node state directory" to paths.ldkStateDir,
+            "BDK store directory" to paths.bdkStoreDir,
             "BDK database" to paths.bdkDatabaseFile,
             "wrapped seed blob" to paths.seedBlobFile,
             "quarantine root" to paths.quarantineRoot,

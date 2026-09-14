@@ -120,6 +120,45 @@ if ! printf '%s' "$transports" | grep -q '\*'; then
   exit 1
 fi
 
+# --- Preflight: this image has to be able to hold a lock screen ---------------
+#
+# BIT-123, and the same shape as the transport check above: assert the
+# precondition here, where the failure is one legible line, rather than letting
+# it surface as three Keystore tests failing for a reason that is not about the
+# Keystore.
+#
+# SeedReadableWhileLockedTest sets a PIN and locks the device, because "the seed
+# is readable while the device is locked" cannot be asked of a device with no
+# keyguard. On a stripped image that question has no answer, and — this is the
+# part that makes it worth a preflight — `locksettings set-pin` does not say so.
+# K1 established on this runner that on aosp_atd API 34 it exits 0 and the device
+# then reports isDeviceSecure=false (k1-keystore-lockscreen.yml runs #1-#3), which
+# is why this job moved to `default` and why k1-lockscreen-matrix.sh's
+# lockscreen_preflight refuses such an image up front instead of reporting rows
+# about it.
+#
+# android.software.secure_lock_screen is the discriminator both use. It is API
+# 29+; this job is pinned to 34, so no version guard is needed here.
+echo "--- Lock screen preflight (BIT-123)"
+
+features=$(adb shell pm list features 2>/dev/null | tr -d '\r' || true)
+
+if ! printf '%s\n' "$features" | grep -qx 'feature:android.software.secure_lock_screen'; then
+  echo "::error::This emulator does not declare android.software.secure_lock_screen,"\
+    " so it has no secure lock screen and SeedReadableWhileLockedTest cannot reach the"\
+    " state it measures. Its @Before will fail on every method with"\
+    " 'locksettings set-pin did not give this device a lock screen' — a true message"\
+    " that reads as a Keystore problem and is not one. Cause: the job is booting a"\
+    " stripped image. Stripped ATD images remove the keyguard and 'locksettings"\
+    " set-pin' still exits 0 on them; K1 lost three runs to exactly this. Fix the"\
+    " image in .github/workflows/android-maestro.yml — 'default' or 'google_apis',"\
+    " never 'aosp_atd' — and remember the AVD cache key has to change with it, or"\
+    " the old snapshot is restored under the new config."
+  exit 1
+fi
+
+echo "android.software.secure_lock_screen: declared"
+
 # --- The runs -----------------------------------------------------------------
 #
 # `|| status=$?` rather than letting set -e kill the script: a red run must still
@@ -214,6 +253,41 @@ run_gradle "Keystore — what the platform gave us" \
   -Pandroid.injected.androidTest.leaveApksInstalledAfterRun=true || status=$?
 
 bash "$COLLECT_EVIDENCE" wallet-ldk "$EVIDENCE_DIR"
+
+# --- Put the lock screen back, whatever the run above did to it ---------------
+#
+# BIT-123. SeedReadableWhileLockedTest sets a PIN and locks the device, because
+# "the seed is readable while the device is locked" cannot be asked of a device
+# with no keyguard. Its @After clears the credential and dismisses the keyguard,
+# and that is the normal path — but an @After is code that runs on the far side
+# of whatever failed, and a test that dies hard leaves the emulator locked with a
+# PIN set.
+#
+# The next thing to run on this device is :app:connectedDebugAndroidTest: the
+# backup suite, whose result is the BIT-20 §5.3 halt condition. A red there
+# caused by a leftover lock screen would be read as evidence about the backup
+# rules, which is the single most expensive misreading available in this job.
+# Two adb calls are cheap insurance against that.
+#
+# Unconditional and failure-tolerant. `locksettings clear` exits non-zero when
+# there was no credential to clear, which is the ordinary case and not news, so
+# this must not trip `set -e`. The PIN is the literal from
+# SeedReadableWhileLockedTest; if the two ever disagree the clear silently does
+# nothing, which is why the test clears its own credential first rather than
+# relying on this.
+echo "--- Lock screen reset (BIT-123)"
+adb shell locksettings clear --old 2468 >/dev/null 2>&1 || true
+adb shell input keyevent KEYCODE_WAKEUP >/dev/null 2>&1 || true
+adb shell wm dismiss-keyguard >/dev/null 2>&1 || true
+
+lock_state=$(adb shell dumpsys trust 2>/dev/null | grep -c 'deviceLocked=1' || true)
+if [ "${lock_state:-0}" != "0" ]; then
+  echo "::warning title=Lock screen::The device still reports a locked user after"\
+    " the reset. :app:connectedDebugAndroidTest runs next and a failure there may"\
+    " be caused by the keyguard rather than by the backup rules — check"\
+    " SeedReadableWhileLockedTest's @After before reading the backup result as the"\
+    " BIT-20 §5.3 halt."
+fi
 
 # `leaveApksInstalledAfterRun` — the app has to still BE there afterwards.
 #

@@ -38,6 +38,18 @@ android {
             isReturnDefaultValues = false
         }
     }
+
+    // Fixtures both test source sets need. `androidTest` cannot see `test`, and
+    // the pinned iOS derivation vector is used on both sides — by the JVM tests
+    // through bitcoin-kmp, and by `BdkAccountXpubParityTest` through BDK's native
+    // binding. Copying it into androidTest would make the parity test compare an
+    // implementation against a stale expectation of itself, so the constant is
+    // shared instead. Keep this directory to fixtures only; tests belong in the
+    // source set that can run them.
+    sourceSets {
+        getByName("test").kotlin.srcDir("src/sharedTest/kotlin")
+        getByName("androidTest").kotlin.srcDir("src/sharedTest/kotlin")
+    }
 }
 
 kotlin {

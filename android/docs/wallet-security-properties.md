@@ -38,6 +38,7 @@ written.
 | 1 | The mnemonic is the single root of recovery | Nothing persisted that is not BIP32-derivable from the seed. Swap refund keys stay at `m/503'/0'/0'/0/<i>` | `SwapRefundKeyDerivationTest` | green |
 | 2 | The Keystore key is non-auth-bound | `KeyGenParameterSpec` with neither `setUserAuthenticationRequired(true)` nor `setUnlockedDeviceRequired(true)`; AES-256/GCM; `setRandomizedEncryptionRequired(true)` | `KeystoreKeySpecTest` (asked for) · `WalletKeystorePolicyGuardTest` (stays that way) | green |
 | 2 | …and what the device actually produced | `KeyInfo` read back off a generated key | `KeystoreKeyInfoTest` | runs in CI — BIT-59, `wallet-instrumented` job, API 34 emulator |
+| 2 | …and the key is usable with the device **locked** | Unwrap and key generation driven with a real lock-screen credential set and the keyguard up | `SeedReadableWhileLockedTest` (BIT-123 / K2) | **written** — compiles, is in `REQUIRED` by name, and has never executed; it is wired into the `wallet-instrumented` job and awaits its first run. This is the *behavioural* half of rule 2: the two rows above are what we asked for and what the flags report, and below API 37 `KeyInfo.isUnlockedDeviceRequired` does not exist, so this is the only row that shows the key is usable while locked rather than merely declared to be |
 | 2 | …and it survives a lock-screen change | — | **BIT-18 / K1**, device matrix | separate issue |
 | 3 | The wrapped blob is a cache, never the only copy | Blob loss routes to the restore screen; terminal failures classify as "no usable mnemonic" | `BlobDestroyedRecoversTest` | green |
 | 4 | The blob is excluded from Auto Backup | `allowBackup="false"` + `dataExtractionRules` + siting under `getNoBackupFilesDir()` | `BackupExclusionRulesTest` + `StateDirLocationTest` (configuration, JVM) · `InstalledBackupConfigurationTest` (installed artefact, emulator) · `BackupExclusionTest` (both backup paths + `bmgr`, emulator) + `check-backup-set.sh` (the set itself, host) | configuration green; behaviour **partly proven (device-transfer half only), earned on `d073424`.** The set is pulled and **decoded** (`decode-backup-set.py`), and that run enumerated a 4-member tar in which the canary — which no rule excludes — **is** present and no wallet marker is, so the §5.3 halt search ran over decoded members rather than opaque bytes. Every earlier "empty set" was this grep failing to see into a tar, not the transport. Limits: one device, one API level, one set; the **cloud** half is still green only because `allowBackup="false"` makes the package ineligible, which is not evidence; and the wallet absence is overdetermined across all three layers, since every wallet path sits under `getNoBackupFilesDir()`. Separately proven on the same run: the `dataExtractionRules` `<exclude domain="file">` entries **are** live (both decoys excluded while the canary in the same domain survived). Since BIT-59 the suite runs on every push (`wallet-instrumented` job); see §4** |
@@ -61,6 +62,7 @@ written.
 | The blob write is read back before success is reported | Ports `persistSecret`'s `writeVerificationFailed` (`CacheManager.swift:528–539`) | `BlobWriteVerifiedTest` | green |
 | The blob lives in credential-encrypted storage | A non-auth-bound key is usable during Direct Boot; CE storage is what reproduces `afterFirstUnlock` | `StateDirLocationTest` · `WalletKeystorePolicyGuardTest` | green |
 | Derivation is byte-identical to iOS | The backend verifies signatures from these keys | `IosDerivationVectorTest`, against the vector pinned at `BitcoinMessage.swift:363–367` | green |
+| A restore reproduces the same **addresses** as iOS, not just the same account | `Bip84Addresses` on bitcoin-kmp, anchored to the vectors BIP84 publishes; BDK peeks the same 20 receive + 20 change addresses on a device | `Bip84AddressVectorTest` (JVM, 11 cases) · `BdkAddressParityTest` (emulator, 5 cases) | JVM half **green**; parity half **written** — has never run. See §6 |
 
 ---
 
@@ -124,13 +126,29 @@ That is `BackupExclusionTest` (`app/src/androidTest`, BIT-101), which has now
 run on a device once — run 107 of the wallet emulator job, API 34 `aosp_atd`.
 
 **What it does.** Plants a wallet-bearing install — wrapped blob, ldk-node
-state, discriminator, BDK database, and a quarantine subdirectory under the
-uniquely-generated name BIT-20 rule 4 gives it — then drives `bmgr` to produce
+state, discriminator, BDK database, the event ledger, and a quarantine
+subdirectory under the uniquely-generated name BIT-20 rule 4 gives it — then
+drives `bmgr` to produce
 a real set and leaves that set on the local transport. Once on the cloud-backup
 path and once with the local transport in device-transfer mode, because API 31+
 configures the two separately. The **verdict** comes from
 `android/scripts/check-backup-set.sh`, which greps the transport's own on-disk
 tree from the host in the same job.
+
+**The plant list grew after the recorded run — BIT-128.** The event ledger
+(`no_backup/wallet/cache/handled_events`, the port of
+`CacheManager.hasHandledEvent`) is the fifth wallet marker, and it was added
+after `d073424`. So the evidence in rule 4's cell covers four of the five; the
+fifth is proven by siting (`WalletPathsCreateDirectoriesTest`,
+`StateDirLocationTest`, which enumerate `WalletPaths` by reflection and so
+covered it the moment it was declared) and by
+`BackupExclusionInstrumentationGuardTest`, which is what forced it into the plant
+list at all. It is named here rather than left to the next reader to notice,
+because a marker planted after the run that produced the evidence is exactly the
+kind of thing that quietly turns "four of five" into "all of them". It carries
+the most sensitive non-key material the wallet stores — every ldk-node event the
+app has shown, which for a successful payment includes the preimage — so the
+next wallet-instrumented run is worth reading for it specifically.
 
 **Why the verdict is not in the test — BIT-108.** The first version deleted what
 it planted, ran `bmgr restore`, and asserted nothing came back. On run 107 the
@@ -513,7 +531,7 @@ as clean again — which is the behaviour every run before `d073424` had, and th
 bug.
 
 **What runs, and where.** The `wallet-instrumented` job boots an API 34
-`aosp_atd` emulator and runs `android/scripts/ci-wallet-instrumented.sh`, which
+`default` emulator and runs `android/scripts/ci-wallet-instrumented.sh`, which
 drives `:core:wallet-ldk:connectedDebugAndroidTest` and
 `:app:connectedDebugAndroidTest`. Both, because the two tests this section turns
 on are in different modules and a step scoped to the library alone would exit 0
@@ -732,14 +750,409 @@ worth making to the product to satisfy a test.
 ## 5. What this document does not cover yet
 
 - **Node lifecycle** — on-chain sync, channel and payment handling, process
-  death, Doze, background execution limits. Tracked separately; the storage
-  layer above is what it will be built on.
-- **K7 (interrupted payment) and K8 (Doze soak)** from `wallet-core-spec` §6.
-  Both need a device.
-- **`data_loss_protect` on channel re-establish.** A user who deliberately
-  restores their mnemonic on a second device while the first still holds live
-  channels is outside what backup exclusion closes, and what stands between
-  them and a penalty is Lightning's own behaviour. Inherent to mnemonic-only
-  recovery plus Lightning, already true on iOS
-  (`LightningStorage.swift:21–23` accepts it in as many words), and to be
-  verified against ldk-node 0.7.0 rather than asserted from memory.
+  death, Doze, background execution limits. **BIT-122**; the storage layer above
+  is what it will be built on.
+
+  This line read "tracked separately" for as long as the document existed, and
+  **nothing tracked it** — there was no issue, so the sentence was doing the
+  reassuring work of a reference without being one. That is the same shape as a
+  named guarantee with no test behind it, in prose instead of code. BIT-122 and
+  BIT-123 now exist, and the state of the node layer is worth stating plainly
+  and keeping current:
+
+  **Start and stop now have a node behind them.** `LdkNodeFactory` builds an
+  ldk-node `Node` from `NodeConfigPlan` and `NodeLifecycle` owns it — one at a
+  time, published only once it is up, and explicitly closed when it is not.
+  Two claims there carry tests that run on the JVM, which is further than an
+  adapter normally gets and is worth saying why: UniFFI generates ldk-node's
+  records as plain Kotlin data classes and its `Builder` as a plain Kotlin
+  interface, so `LdkNodeConfigTest` asserts the whole configuration against
+  `BitcoinManager.swift` field by field with a recording fake, and
+  `NodeLifecycleTest` proves the object-custody rules against a fake node.
+  Neither loads a native library. What they do **not** prove is that ldk-node
+  honours any of it — that needs a running node, and it is BIT-123's.
+
+  **What each piece of the node layer now is** — this list is written with
+  issue numbers for the same reason the paragraph above it was rewritten. It
+  began as a list of absences and is no longer one; what is still missing is
+  said in place rather than by leaving a delivered item on it.
+
+  - **On-chain sync now runs, on the node's lifetime.** **BIT-124** built the
+    BDK half — `BdkWalletFactory.open` is `didStartBDK()` from the mnemonic
+    down to a `Wallet`, and `OnchainSync` is the scan sequence, generic over
+    its four BDK types so the whole of it is asserted on the JVM. Both had **no
+    caller in `main`** until `OnchainSyncLoop`, which is `startBDK()` plus
+    `BackgroundSync` as a `NodeRunner`: open the wallet, full-scan unless a
+    scan has already succeeded in this process, and only then start the
+    30-second light-sync timer. It is in the host's runner list beside the
+    event pump, so it is cancelled on every node stop and relaunched on every
+    start.
+
+    Three things to be plain about:
+
+    - **A failed full scan presents an empty wallet, and nothing here retries
+      it.** iOS's retry is the user reopening a screen that calls
+      `didSyncBdkWallet` again; Android has no such screen yet, so the only
+      thing that revives it is `WalletNodeHost.start()` relaunching a runner
+      that is no longer live — the unlock path. It fails closed (balance zero,
+      and a drain that refuses rather than offering a wrong number), which is
+      why this is a cost rather than a fund risk. It is still the most likely
+      reason an Android user sees "no funds" on a wallet that has them, and
+      `BdkStore` wiping the store on every start is what makes the scan
+      mandatory rather than an optimisation. **That wipe is a port of iOS and
+      changing it is a deviation, so it is **BIT-131**'s decision to take and
+      not one to make in code.**
+    - **On-chain balance is still not read from BDK, deliberately.** Every
+      on-chain figure iOS shows comes from `node.listBalances()`, never
+      `bdkWallet.balance()`, because BDK does not know about the anchor-channel
+      reserve and would show a spendable amount ldk-node refuses to release.
+      What BDK is for here is the scan, the UTXO set and the drain.
+    - **The Electrum server is a second endpoint, not the node's.**
+      `LdkEnvironment.electrumUrl` is its own field: iOS only points both at
+      the same URL on mainnet, and everywhere else ldk-node gets Esplora over
+      HTTP while BDK gets Electrum over TCP. Collapsing them would fail as
+      "sync failed" on every development build with nothing naming the cause.
+      It is a required field, so a build that omits it composes the seed-only
+      wallet rather than a node with a permanently zero on-chain balance.
+  - Lightning channel and payment handling, and the ldk-node event loop.
+    **BIT-125** — the decisions have landed; the wiring has, in part. `lightning/`
+    now holds the balance arithmetic that turns ldk-node's `BalanceDetails`
+    into the figure beside the on-chain balance, the guard that decides whether
+    the wallet may be deleted from the device, the LSP reconnect, the BOLT12
+    fee ceiling and the event pump's acknowledgement order; `LdkNodeSurface` is
+    the binding, and its record-to-view mapping is asserted on the JVM for the
+    same reason `LdkNodeConfigTest` can be. Three things to be plain about:
+    **no test here runs against a node** (BIT-123); the pump's survival
+    across backgrounding is a property of the service hosting it, not of the
+    loop; and the balance arithmetic now *runs* on a running app (BIT-144,
+    below) but its **figures** still have no consumer — there is no home screen
+    and no caller for `OnchainDrainClamp`, so what the snapshot is read for
+    today is the three cache writes and nothing else.
+
+    **The pump does now have a caller.** BIT-126 built the host and passed it
+    `runners = emptyList()`, because `EventLedger` and `ChannelClosureStore`
+    both wanted `CacheManager`-shaped storage Android did not have. That
+    storage is `WalletCache`, a file store under `no_backup/wallet/cache` — a
+    sibling of `ldk_state/` and `bdk_store/` and a child of neither, because
+    the BIT-20 quarantine *moves* the first and `BdkStore.prepare` *deletes*
+    the second, and a ledger inside either forgets everything without
+    reporting an error. `CacheSurvivesStateLifecyclesTest` runs a real
+    quarantine and a real prepare over a populated cache. The pump's handler is
+    a log line and nothing else, because Android has no payment screen yet —
+    the *variant name* rather than the rendering, since a rendered
+    `PaymentSuccessful` carries the payment preimage.
+
+    **The closure scan does now have a caller too, and it was the last thing on
+    this list with none.** BIT-130 wired `ChannelClosureRecorder` into
+    `OnchainSync`'s `closures` parameter — the argument BIT-128 could only
+    leave defaulted, because the recorder needs a Lightning channel list and
+    nothing then had one to give it. It is assembled in `di/WalletModule` out of
+    three layers at once: the store is `CachedChannelClosureStore` over the same
+    `WalletCache` the event ledger uses, the transactions are the open BDK
+    wallet's, and the channel list is `listChannels().openChannelFundingTxIds()`
+    read through the *same* `LightningNodePort` the graph hands out. So a closed
+    channel's closing txid is now recorded on a running app, at iOS's position —
+    after the persist, on both sync paths, before success is reported.
+
+    **And the outpoint it watches now has a writer.** BIT-144 was the half
+    BIT-130 left open: `ChannelClosureRecorder`'s first step reads the funding
+    outpoint out of the cache, and nothing in `main` wrote one, so on a running
+    app the scan short-circuited on every sync and recorded nothing.
+    `WalletBalanceReader` is the production caller `WalletBalanceSnapshot.of`
+    did not have — iOS's `loadWalletData()` — and it performs the three cache
+    writes the snapshot names: the funding outpoint when there is an active
+    channel, the closure spending txids unconditionally, and the clear when a
+    closure is pending. Four things decided there rather than ported, because
+    Android has no home screen to port from:
+
+    - **Its trigger is `OnchainSyncLoop`'s tick, not a timer of its own.** iOS
+      reads on home-screen load and on the light-sync comparison
+      (`BitcoinManager.swift:496`); the second has a counterpart here, because
+      the sync loop's 30-second `BackgroundSync` timer is already running for
+      as long as a node is up. A second timer would have the same period and
+      the same lifetime and would only cost a wakeup while the app is
+      backgrounded.
+    - **The read runs *after* each sync, never before.** `OnchainSync` runs the
+      closure scan at the end of a sync that applied, and the read's third write
+      clears the very outpoint that scan needs. Reading first would clear it in
+      the same tick the scan was about to use it, and the closing transaction
+      would never be recorded. `OnchainSyncLoopTest` carries that as a negative
+      control.
+    - **What that costs is that a failed full scan takes the balance read with
+      it**, because the read has no clock of its own. The two are otherwise
+      unrelated — the read goes to the *node*, not to BDK — so this is
+      acceptable only while the read's sole consumer is the closure scan, which
+      also only runs off an applied sync. The day the drain clamp or a balance
+      screen reads the snapshot, the answer is a runner of its own.
+    - **The node is read through one handle.**
+      `LightningNodePort.readWalletState()` takes the `Node` up front and makes
+      the three FFI calls against the local, which is iOS's "take the node
+      handle up front" and matters more here: `NodeLifecycle.current` goes null
+      between two statements routinely, and two thirds of a wallet plus an empty
+      list is indistinguishable from a wallet with no channels. Null means no
+      node, and nothing is written on it.
+
+    **Still to be plain about: on a wallet that has never opened a channel there
+    is nothing to write.** `listChannels()` is empty, so
+    `channelFundingOutpointToStore` is null and the scan finds no outpoint to
+    watch — which is the correct behaviour for a wallet with no channels rather
+    than the broken wiring it was. The channel-open path is BIT-122's remaining
+    half, and when it lands it writes through the same
+    `CachedChannelClosureStore.store`.
+
+    Three more things to be plain about:
+
+    - **`OnchainSync.closures` is no longer defaulted.** A defaulted parameter is
+      a wiring step that can be forgotten in silence: `OnchainSync(port, scans)`
+      compiles, syncs correctly, and never records a closure. Every construction
+      site now says which it wants, and null is still a legitimate answer.
+    - **The channel list is read during the scan, not before the sync**, and an
+      empty answer is the safe direction rather than a bug. A torn-down node
+      answers `listChannels()` with an empty list, which makes `shouldScan` say
+      yes about a channel that may still be open — and that costs a walk of the
+      transaction list and nothing else, because the match is on the funding
+      **outpoint** and an open channel's funding output is unspent.
+      `ClosureScanWiringTest` drives that case with a transaction spending the
+      funding transaction's *other* output and asserts nothing is recorded;
+      matching on the txid alone reddens it.
+    - **`BdkWalletTransactions` has no JVM test and is the reason the wiring
+      test stops where it does.** Every call on that path crosses into Rust and
+      returns a concrete BDK type, so there is no seam to fake below
+      `WalletTransactions` — the join above it is asserted on the JVM with a
+      real `FileWalletCache` and the real channel-list expression, and the
+      mapping itself belongs to the regtest suite.
+
+    Two deliberate divergences from iOS are recorded in code and repeated here
+    because they are the kind that get "tidied" back: the channel-balance
+    subtraction is floored at zero rather than being allowed to wrap a `ULong`
+    — Swift traps where Kotlin would show the user 184 billion bitcoin — and an
+    event whose handler threw is **not** acknowledged, where iOS acknowledges
+    unconditionally. The first is a display figure, the second trades a replay
+    for a loss. Neither touches key handling or signing.
+  **Start and stop now have a caller — in a build that was given a node.**
+  BIT-126 landed the host: `WalletNodeHost` owns the wallet's process-lifetime
+  `CoroutineScope`, `NodeBackedWalletService` binds `WalletService.start`/`stop`
+  to `NodeLifecycle.startOnce`/`stop`, and `WalletForegroundService` is what
+  keeps the process out of the frozen state while a node runs. `UnlockViewModel`
+  already called `wallet.start()` after a correct PIN; that call now reaches a
+  node. Four ordering rules carry JVM tests in `WalletNodeHostTest` — the
+  process is held up *before* a start begins, a cancelled caller does not
+  release it, a new node gets new runners, and `removeWallet` erases nothing
+  until the node is down.
+
+  Three things about that are worth stating rather than discovering:
+
+  - **Whether it is on is a property of the build, not of the source.** The node
+    needs an `LdkEnvironment`, every field of which is empty in a clone — this
+    issue's note, as a build rule, asserted by `LdkEnvironmentConfigTest` against
+    the compiled `BuildConfig` and by `NoCommittedNodeCredentialsTest` against
+    the sources. An unconfigured build composes `SeedWalletService`, which is
+    what the app was before. **CI and Maestro run the unconfigured build, so
+    nothing below has been exercised against a running node.**
+  - **The foreground service notification is unapproved placeholder copy.** It
+    is permanently on the user's screen while the wallet runs and has no iOS
+    string to port. It must go through the copy process before it ships.
+  - **The scope is the host's, not the service's**, which is a deliberate
+    divergence from how BIT-126 was written. A scope inside the service would
+    make `ForegroundServiceStartNotAllowedException` — routine on Android 12+ for
+    a backgrounded app — fatal to the node start. The reasoning is in
+    `WalletNodeHost`'s class comment.
+
+  Process death, Doze and background execution limits remain unmeasured —
+  `NodeConfigPlan`'s sync intervals are still a request rather than a guarantee,
+  for the reasons that data class states. The foreground service is the
+  *mitigation*; **K8 is what would say whether it works**, and it needs a
+  device. **BIT-123.**
+- **K2 (background wake), K7 (interrupted payment) and K8 (Doze soak)** from
+  `wallet-core-spec` §6. **BIT-123**, which BIT-122 has now cleared. Each is now
+  either running or closed unrun with its cost named, in
+  `android/docs/wallet-node-device-tests.md` — the BIT-18 precedent. The state of
+  each, because a pointer to a document is not a status:
+
+  - **K2's load-bearing half is now written**, so rule 2's row above stops
+    resting on the key's spec alone once it runs — *written*, not *green*, until
+    a `wallet-instrumented` run says otherwise. `SeedReadableWhileLockedTest` sets a real
+    lock-screen credential, locks the device, and unwraps the seed through the
+    Keystore with the keyguard up — the property BIT-8 rule 2 chose a
+    non-auth-bound key to get. It also closes the hole `KeystoreKeyInfoTest`
+    leaves on every API below 37, where `KeyInfo.isUnlockedDeviceRequired` does
+    not exist and the flag can only be checked on the spec side. All three of
+    its methods are in `check-wallet-instrumented-results.py`'s `REQUIRED` set by
+    name, including the negative control — without that one, "the seed was
+    readable while locked" and "the device never locked" are the same green.
+  - **K2's FCM half is closed unrun, and its force-stop half is withdrawn as
+    specified.** There is no `FirebaseMessagingService` in this app, the
+    AOSP image the suite needs for the backup transport has no Play
+    services to deliver a message, and — separately from any of that — Android
+    does not deliver FCM to a package in the *stopped state*, which is what
+    `am force-stop` produces. The claim underneath is **process death**, a
+    different event reproduced by `am kill`. That is a correction to
+    `wallet-core-spec` §6 rather than a hardware limit.
+  - **K7 and K8 are closed unrun**, and the reason is upstream of hardware: the
+    `wallet-instrumented` job builds an **unconfigured** APK, which composes
+    `SeedWalletService` and contains no node at all. Giving the runner a phone
+    would not make either runnable. Both also need a private Lightning network —
+    bitcoind, Esplora, Electrum and a peer — and K7 additionally needs a
+    deterministic interception point in the send path, without which a
+    fund-safety property gets reported as flaky. All of that is **BIT-132**;
+    K2's wake leg and the `wallet-core-spec` §6 correction are **BIT-133**.
+- **K4's address half is now covered** — it was in this list until §6 was
+  written, and it is the one item that moved out of it rather than being split
+  off.
+- **`data_loss_protect` on channel re-establish — verified, and no longer an
+  open item.** A user who deliberately restores their mnemonic on a second
+  device while the first still holds live channels is outside what backup
+  exclusion closes, and what stands between them and a penalty is Lightning's
+  own behaviour. Inherent to mnemonic-only recovery plus Lightning, and already
+  true on iOS (`LightningStorage.swift:21–23` accepts it in as many words).
+  BIT-123 required it to be **verified against ldk-node 0.7.0 rather than
+  asserted from memory**, and this is that verification.
+
+  **What was read, and out of what.** `android/scripts/check-ldk-data-loss-protect.py`
+  opens the `ldk-node-android` AAR the build actually resolved — not a copy it
+  fetched — and asserts five markers in each of the three shipped ABIs
+  (`arm64-v8a`, `armeabi-v7a`, `x86_64`). ldk-node 0.7.0 links rust-lightning
+  `lightning-0.2.0` and `lightning-types-0.3.0`. Four findings:
+
+  - **The stale-state branch is compiled in, and it refuses to broadcast.** The
+    binary carries rust-lightning's *"We have fallen behind — we have received
+    proof that if we broadcast our counterparty is going to claim all our
+    funds"*, which continues *"…you should restart with an empty ChannelManager
+    and no ChannelMonitors, reconnect to peer(s), ensure they've force-closed all
+    of your previous channels"*. That refusal **is** the protection: publishing a
+    revoked commitment is what hands the channel balance to the counterparty, and
+    this is the path that declines to.
+  - **The TLV fields exist in both directions.**
+    `your_last_per_commitment_secret` is what lets us discover we are behind;
+    `my_current_per_commitment_point` is what lets a *peer* recognise that a
+    restored device is behind. The second-device case depends on the second
+    direction, not the first.
+  - **LDK requires the feature rather than offering it.**
+    `set_data_loss_protect_required` is monomorphised into the binary and
+    `set_data_loss_protect_optional` is not, so `option_data_loss_protect` is a
+    compulsory init feature bit: a peer that does not implement it cannot
+    complete feature negotiation with us at all. The check asserts that absence
+    as well as the presence, because without it "required" would be an
+    assumption. `option_static_remotekey` is likewise required.
+  - **Peer storage is not a recovery path here.** bLIP-55
+    (`set_provide_storage_optional`) is offered, not required, so a restored node
+    cannot count on the LSP handing its state back. Recorded, not asserted.
+
+  **What this does not prove, stated plainly.** A string in a binary shows a
+  branch was compiled, not that it executes correctly against a real peer. The
+  behavioural half is K7's, and needs the private Lightning network
+  `android/docs/wallet-node-device-tests.md` §3 describes.
+
+  **And one thing the mechanism does not cover at all, which is worth saying
+  here rather than leaving to be rediscovered.** The two devices share a seed, so
+  they also share the BIP84 on-chain account. `data_loss_protect` is about
+  channel state; it says nothing about two wallets deriving the same addresses
+  and spending the same UTXOs. That is not a penalty-transaction risk — channel
+  funding outputs are 2-of-2 and outside the descriptor — but it is a real
+  same-seed-two-devices hazard and it belongs to the restore flow, not to
+  Lightning.
+
+  The check runs in the `build` job on every push, after the Gradle step that
+  resolves the artifact, so an ldk-node bump that drops any of this goes red in
+  seconds rather than being discovered from a user.
+
+---
+
+## 6. K4 — a restore reproduces the same addresses, not just the same account
+
+`wallet-core-spec` §6 states K4 as *"restore-from-mnemonic on a fresh install
+reproduces the same descriptors, xpub and first 20 addresses as iOS."* Until this
+section, the **xpub** clause was proven (`IosDerivationVectorTest`,
+`BdkAccountXpubParityTest`) and the **address** clause had no implementation and
+no test anywhere in the module. `Bip84Account` derived account keys and swap
+refund keys; nothing derived a receive address.
+
+**Why that gap was worse than a missing assertion.** Everything that reports on a
+restore keys on the account, not on the addresses. A restore that reproduced the
+right account xpub and the wrong addresses would look entirely healthy — the
+backend accepts the account it registered at signup, the node starts, the balance
+reads correctly for the addresses BDK is actually watching — while every address
+handed to a payer is derived from a path the user's other device never scans.
+There is no error at any layer. The wallet silently splits in two, and the money
+goes to the half nobody is looking at.
+
+**The anchor, and why a golden file alone would not have been one.** The obvious
+test derives 20 addresses, pastes them in, and asserts they never change. That
+catches a regression and nothing else: if the derivation is wrong the day the
+golden is written, the golden pins it wrong and the test passes forever. So the
+JVM side asserts first against the vectors **BIP84 itself publishes**, for the
+mnemonic BIP84 publishes them for — three constants this repository did not
+author and cannot regenerate from its own code:
+
+| path | published address |
+|---|---|
+| `m/84'/0'/0'/0/0` | `bc1qcr8te4kr609gcawutmrza0j4xv80jy8z306fyu` |
+| `m/84'/0'/0'/0/1` | `bc1qnjg0jd8228aq7egyzacy8cys3knf9xvrerkf9g` |
+| `m/84'/0'/0'/1/0` | `bc1q8c6fshw2dlwun7ekn9qwf37cu2rn755upcp6el` |
+
+Only once those hold is the golden for the iOS mnemonic pinned — a golden from a
+checked implementation rather than an assumed one. Index 1 as well as 0, and the
+change branch as well as the receive branch, because a derivation that dropped
+the index would satisfy the first row alone and one that dropped the change level
+would satisfy both receive rows.
+
+**What makes it parity with iOS rather than with ourselves.** iOS pins
+`bdk-swift 1.2.0`; this module pins `bdk-android 1.2.0` — two bindings over one
+Rust core at one version. `BdkAddressParityTest` builds the BIP84 wallet on a
+device, peeks the first 20 receive and 20 change addresses, and asserts them equal
+to the golden. That is the same argument `BdkAccountXpubParityTest` already rests
+on, and it is what lets the claim name iOS without a Swift toolchain in CI.
+
+The golden lives in `src/sharedTest` for the reason `Mnemonics` does: `androidTest`
+cannot see `test`, so a copy would turn the parity test into BDK-versus-a-stale-
+snapshot-of-bitcoin-kmp — the exact failure a parity test exists to catch,
+reintroduced by the fixture.
+
+**Negative-controlled both ways, because a golden comparison is the easiest kind
+of test to make vacuous.** Perturbing the bulk derivation by one index fails the
+two golden cases *and* `the bulk helpers agree with the single-address
+derivation` — which exists because `addressAt` is the BIP84-anchored path and the
+bulk helpers are separate code that nothing else checks. Perturbing the shared
+path's change level fails all three published-vector cases. Both controls were
+run, not reasoned about. The suite also carries the usual refusals: different
+mnemonics must produce different addresses, receive and change must not collide,
+mainnet and signet must not share an address, and a change level outside {0,1}
+is rejected rather than derived — a real spendable address on a path no wallet
+scans is funds invisible to BDK's own recovery.
+
+**Status, stated the way this file's status key requires.** The JVM half is
+**green**: `Bip84AddressVectorTest` passes in `./gradlew test` (707 tests, 0
+failures, 0 skipped across the project). The parity half is **written and has
+never run** — `BdkAddressParityTest` was authored in `386aff5` and no CI run has
+yet executed it on the emulator.
+
+That distinction is the whole point of the status column, and it is worth being
+exact about what is and is not established. The address *derivation* is anchored:
+`Bip84Addresses` reproduces the vectors BIP84 publishes, and that is checked on
+every JVM run. What is **not** yet established is that **BDK agrees with it** —
+and BDK is the implementation that actually hands addresses to users, and the one
+that carries the argument to iOS. Until the emulator run reports, the row above
+is a claim about bitcoin-kmp and about the standard, not about the shipping path.
+The two have never been compared on a device even once.
+
+A first run was in flight when this was written and the result was not readable
+(the anonymous GitHub API quota was exhausted). "In flight" is not a status
+either; the row moves to green when a run reports, and not before.
+
+**Where it runs.** `Bip84AddressVectorTest` on every `./gradlew test` (11 cases,
+no device). `BdkAddressParityTest` in the `wallet-instrumented` job on the API 34
+emulator, with all five methods named individually in
+`check-wallet-instrumented-results.py`'s `REQUIRED` set — by method and not by
+class, so four of five cannot disappear inside a green run. That listing is not
+belt-and-braces: `BdkAccountXpubParityTest` spent its first two runs absent from
+that set, and both runs reported `vacuity check passed` while saying nothing
+whatever about it.
+
+**What this does not claim.** It covers derivation, not discovery. Gap limits,
+used-address scanning and the receive index belong to BDK's wallet, which owns
+that state; nothing in `Bip84Addresses` is on the path that hands an address to a
+user. It exists to be compared against the path that does. The descriptors clause
+of K4 is covered only insofar as the addresses they produce match — the
+descriptor *strings* are asserted for the account xpub they embed
+(`DescriptorXpubTest`, `BdkAccountXpubParityTest`) and not character by character
+against an iOS-generated file.

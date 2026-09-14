@@ -4,6 +4,9 @@ import android.content.Context
 import android.os.Build
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
+import com.bittr.android.core.wallet.ldk.cache.CachedEventLedger
+import com.bittr.android.core.wallet.ldk.state.LdkStateStore
+import com.bittr.android.core.wallet.ldk.state.WalletPaths
 import java.io.File
 import java.security.SecureRandom
 import org.junit.After
@@ -185,13 +188,26 @@ import org.junit.runners.MethodSorters
  * package whose backup configuration is the product's, so the test has to run
  * against it.
  *
- * The cost is that the path names below are literals rather than references to
- * `WalletPaths` — `:app` deliberately does not depend on `:core:wallet-ldk`
- * yet, and a test-only dependency would drag the bdk/ldk-node native libraries
- * into the test APK for six strings. `BackupExclusionInstrumentationGuardTest`
- * (JVM, `:app`) fails the build if these literals stop matching `WalletPaths`,
- * and fails it again if a `bmgr restore` is ever reintroduced here, so neither
- * the duplication nor BIT-108's lesson can rot silently.
+ * ### Why it plants through [WalletPaths] and not through path literals
+ *
+ * It used to hold its own copy of the six path names, on the reasoning that
+ * `:app` did not depend on `:core:wallet-ldk`. That reasoning expired when
+ * BIT-59 added `androidTestImplementation(project(":core:wallet-ldk"))` for
+ * exactly this test, and [InstalledBackupConfigurationTest] in this same source
+ * set has been using `WalletPaths` directly ever since. The comment outlived
+ * the constraint, and the copy it justified went stale underneath it: when
+ * BIT-6 split `bdk_store` out of the wallet directory — because the ported
+ * iOS wipe would otherwise have taken the seed blob with it — this file went on
+ * planting BDK's database at `wallet/bdk_wallet.sqlite`, a path the product no
+ * longer writes. A marker planted where the app does not write proves the
+ * exclusion of a path nobody uses.
+ *
+ * So the paths come from the object the product uses, and the quarantine comes
+ * from [LdkStateStore]'s own allocator rather than from a name reproduced here.
+ * `BackupExclusionInstrumentationGuardTest` (JVM, `:app`) now fails the build
+ * if a path `WalletPaths` defines is not named here at all, and fails it again
+ * if a `bmgr restore` is ever reintroduced, so neither a new path nor BIT-108's
+ * lesson can rot silently.
  *
  * ### The stop condition still stands
  *
@@ -220,15 +236,31 @@ class BackupExclusionTest {
         /** The test hook the local transport reads its operation type from. */
         const val TRANSPORT_PARAMETERS = "backup_local_transport_parameters"
 
-        // Mirrors WalletPaths in :core:wallet-ldk. Kept in step by
-        // BackupExclusionInstrumentationGuardTest, which runs on the JVM.
-        const val WALLET_DIR = "wallet"
-        const val LDK_STATE_DIR = "ldk_state"
-        const val QUARANTINE_DIR = "foreign_ldk_state"
-        const val SEED_BLOB = "seed.bin"
-        const val BDK_DATABASE = "bdk_wallet.sqlite"
-        const val DISCRIMINATOR = "seed_discriminator"
+        /**
+         * ldk-node's own state file name, which is the one path here that
+         * `WalletPaths` does not define: it names the *directory*, and the
+         * library names what goes in it. A stand-in rather than a real sqlite
+         * file, because the claim is about the directory, and booting ldk-node
+         * to obtain one would prove nothing extra about where it landed.
+         */
         const val LDK_DATABASE = "ldk_node_data.sqlite"
+
+        /**
+         * The two decoy directories, which mirror `data_extraction_rules.xml`
+         * and **not** `WalletPaths`.
+         *
+         * They are literals on purpose, and they are the only path literals
+         * this file is allowed to carry. Their job is to sit exactly where
+         * those `<exclude domain="file">` entries point — under
+         * `getFilesDir()`, a sibling of `getNoBackupFilesDir()` — so that if
+         * the rules layer is a no-op, a run says so. Resolving them through
+         * `WalletPaths` would move them to where the product writes and destroy
+         * the thing they measure. `BackupExclusionInstrumentationGuardTest`
+         * derives its literal ban from the rules file, so these stay legal for
+         * exactly as long as the XML names them.
+         */
+        const val DECOY_WALLET_DIR = "wallet"
+        const val DECOY_NO_BACKUP_DIR = "no_backup"
 
         /** An ordinary file no rule excludes. Its presence is what makes the set non-empty. */
         const val CANARY = "backup_canary.txt"
@@ -282,6 +314,13 @@ class BackupExclusionTest {
          * escaping, and it must not trip the halt.
          */
         const val DECOY_PREFIX = "BIT101-DECOY-MARKER-"
+
+        /** What finding ldk-node state in a real backup set would mean. */
+        const val STATE_CONSEQUENCE =
+            "That is ldk-node state on a second device under the same seed. The " +
+                "discriminator matches, so the guard keeps it, and stale channel state " +
+                "that signs publishes a revoked commitment — the counterparty takes the " +
+                "channel balance. See seed-storage-security §5.1."
 
         /** Results that mean the backup never completed, so no set exists to inspect. */
         val TRANSPORT_FAILURE = Regex("""transport\s+error|transport\s+not\s+initial""", RegexOption.IGNORE_CASE)
@@ -340,6 +379,13 @@ class BackupExclusionTest {
     private val instrumentation = InstrumentationRegistry.getInstrumentation()
     private val context: Context = instrumentation.targetContext
     private val packageName: String = context.packageName
+
+    /**
+     * The paths the product writes, from the class the product writes them
+     * with. Every wallet marker below is planted through this, so a path that
+     * moves in `WalletPaths` moves here in the same commit or does not compile.
+     */
+    private val paths = WalletPaths.forContext(context)
     private val random = SecureRandom()
 
     private var backupWasEnabled: Boolean = false
@@ -708,60 +754,131 @@ class BackupExclusionTest {
     }
 
     /**
-     * A wallet-bearing install, in the shape `WalletPaths` produces.
+     * A wallet-bearing install, at the paths [WalletPaths] resolves.
      *
-     * The quarantine subdirectory gets the same `<index>-<random>` name
-     * `LdkStateStore` allocates (BIT-20 rule 4 — quarantines never clobber, so
-     * their names cannot be fixed). It is here precisely because it is not
-     * matchable by a fixed path: an exclusion that only covered the paths this
-     * test could name would pass and still leak the one directory holding the
-     * state a user needs to sweep a force-closed channel.
+     * The quarantine is planted first, because [plantAQuarantine] works by
+     * quarantining the state directory and that empties it. Everything after it
+     * is the live install.
      */
     private fun plantWalletMaterial(): List<Marker> {
-        val walletDir = File(context.noBackupFilesDir, WALLET_DIR)
-        val stateDir = File(walletDir, LDK_STATE_DIR)
-        val quarantine = File(File(walletDir, QUARANTINE_DIR), quarantineName())
-        stateDir.mkdirs()
-        quarantine.mkdirs()
+        paths.createDirectories()
+        assertTheBdkDatabaseIsStillInItsOwnDirectory()
 
-        val stateConsequence =
-            "That is ldk-node state on a second device under the same seed. The " +
-                "discriminator matches, so the guard keeps it, and stale channel state " +
-                "that signs publishes a revoked commitment — the counterparty takes the " +
-                "channel balance. See seed-storage-security §5.1."
+        val quarantined = plantAQuarantine()
 
         return listOf(
             Marker(
                 what = "The wrapped seed blob",
-                file = File(walletDir, SEED_BLOB),
+                file = paths.seedBlobFile,
                 consequence = "A wrapped seed off this device is the one artefact BIT-8 " +
                     "rule 4 exists to keep on it. (The blob planted here is a fixed " +
                     "ASCII marker, not key material.)",
             ),
             Marker(
                 what = "The ldk-node state database",
-                file = File(stateDir, LDK_DATABASE),
-                consequence = stateConsequence,
+                file = File(paths.ldkStateDir, LDK_DATABASE),
+                consequence = STATE_CONSEQUENCE,
             ),
             Marker(
                 what = "The seed discriminator",
-                file = File(stateDir, DISCRIMINATOR),
+                file = paths.discriminatorFile,
                 consequence = "The discriminator is what makes arriving state look like " +
                     "*yours*. Backing it up is what lets stale state pass the guard.",
             ),
             Marker(
                 what = "The BDK wallet database",
-                file = File(walletDir, BDK_DATABASE),
+                file = paths.bdkDatabaseFile,
                 consequence = "On-chain descriptors and addresses leave the device with it.",
             ),
             Marker(
-                what = "A quarantined ldk-node state file",
-                file = File(quarantine, LDK_DATABASE),
-                consequence = "$stateConsequence Quarantine names are unique by " +
-                    "construction (BIT-20 rule 4), so an exclusion that matched only " +
-                    "fixed paths would miss exactly this one.",
+                what = "The wallet's durable records",
+                file = File(paths.cacheDir, CachedEventLedger.KEY),
+                consequence = "The event ledger is every ldk-node event this wallet has " +
+                    "shown, rendered: amounts, payment hashes, counterparties, and — for " +
+                    "a successful payment — the preimage, which is the proof of payment " +
+                    "itself. It is a financial history and a set of secrets, and it is " +
+                    "the reason this store is a file under no_backup rather than " +
+                    "SharedPreferences, which has no no-backup variant.",
             ),
-        ).onEach { it.file.writeText(MARKER_PREFIX + stamp(it.file.name)) }
+        ).onEach {
+            it.file.parentFile?.mkdirs()
+            it.file.writeText(MARKER_PREFIX + stamp(it.file.name))
+        } + quarantined
+    }
+
+    /**
+     * The split this suite was planting on the wrong side of.
+     *
+     * Until BIT-6 separated `bdk_store`, BDK's database sat directly in the
+     * wallet directory — and `BdkStore.prepare` ports an iOS line that deletes
+     * its whole store directory on every start, which in that layout would have
+     * taken the seed blob and every channel state with it. The database moved;
+     * this file did not, and went on planting a marker at a path the product
+     * stopped writing.
+     *
+     * Planting through [WalletPaths] is what stops that recurring. This says why
+     * the nesting matters, so that a future change which flattens it back fails
+     * here with the reason attached rather than only in `BdkStoreTest`.
+     */
+    private fun assertTheBdkDatabaseIsStillInItsOwnDirectory() {
+        assertTrue(
+            "${paths.bdkDatabaseFile} is not under ${paths.bdkStoreDir}. BdkStore.prepare " +
+                "recursively deletes its store directory on every start (the port of " +
+                "BitcoinManager.swift:838–840), so a database sited outside that directory " +
+                "means the wipe is aimed at a directory holding something else — the seed " +
+                "blob and the LDK state are its siblings. See WalletPaths.bdkStoreDir.",
+            paths.bdkDatabaseFile.canonicalFile.startsWith(paths.bdkStoreDir.canonicalFile),
+        )
+    }
+
+    /**
+     * Plants a quarantine by making the product produce one.
+     *
+     * BIT-20 rule 4 names each quarantine `<index>-<random>` precisely so that
+     * quarantines cannot clobber each other, which means the directory is **not
+     * matchable by a fixed path** — and that is the reason it is in this suite
+     * at all. An exclusion covering only the paths that can be written down
+     * would pass while leaking the one directory holding the state a user needs
+     * to sweep a force-closed channel.
+     *
+     * So the name is not reproduced here. This writes a state file and calls
+     * [LdkStateStore.quarantineLightningState], which allocates the name the
+     * way the product does. A test that reimplemented the scheme would keep
+     * planting at the old shape after the scheme changed, and go green doing it.
+     */
+    private fun plantAQuarantine(): Marker {
+        val state = File(paths.ldkStateDir, LDK_DATABASE)
+        state.parentFile?.mkdirs()
+        state.writeText(MARKER_PREFIX + stamp("quarantined-$LDK_DATABASE"))
+
+        val quarantine = LdkStateStore(paths).quarantineLightningState()
+        assertNotNull(
+            "LdkStateStore.quarantineLightningState() reported nothing to quarantine, " +
+                "immediately after $state was written into ${paths.ldkStateDir}. Without a " +
+                "quarantine on disk the set the host greps contains no quarantined state, " +
+                "and rule 5's coverage of the one directory that cannot be named by a " +
+                "fixed path goes untested while this suite stays green.",
+            quarantine,
+        )
+        assertTrue(
+            "Expected the quarantine at $quarantine to be under ${paths.quarantineRoot}.",
+            quarantine!!.canonicalFile.startsWith(paths.quarantineRoot.canonicalFile),
+        )
+
+        val quarantined = File(quarantine, LDK_DATABASE)
+        assertTrue(
+            "The quarantine at $quarantine does not contain $LDK_DATABASE after the state " +
+                "directory was quarantined, so there is no quarantined marker to look for.",
+            quarantined.isFile && quarantined.length() > 0,
+        )
+
+        return Marker(
+            what = "A quarantined ldk-node state file",
+            file = quarantined,
+            consequence = "$STATE_CONSEQUENCE Quarantine names are unique by " +
+                "construction (BIT-20 rule 4), so an exclusion that matched only " +
+                "fixed paths would miss exactly this one.",
+        )
     }
 
     /**
@@ -771,7 +888,7 @@ class BackupExclusionTest {
     private fun plantDecoys(): List<Marker> = listOf(
         Marker(
             what = "The <exclude domain=\"file\" path=\"wallet\"> decoy",
-            file = File(File(context.filesDir, WALLET_DIR), "decoy.txt"),
+            file = File(File(context.filesDir, DECOY_WALLET_DIR), "decoy.txt"),
             consequence = "Nothing the product writes lives here — the wallet directory " +
                 "is under no_backup. What its presence in a set means is that the " +
                 "dataExtractionRules layer is a no-op and the no_backup siting is " +
@@ -779,7 +896,7 @@ class BackupExclusionTest {
         ),
         Marker(
             what = "The <exclude domain=\"file\" path=\"no_backup\"> decoy",
-            file = File(File(context.filesDir, "no_backup"), "decoy.txt"),
+            file = File(File(context.filesDir, DECOY_NO_BACKUP_DIR), "decoy.txt"),
             consequence = "As above. getNoBackupFilesDir() is a sibling of getFilesDir(), " +
                 "so this entry never matched the real wallet directory either.",
         ),
@@ -789,15 +906,11 @@ class BackupExclusionTest {
     }
 
     private fun removePlantedFiles() {
-        File(context.noBackupFilesDir, WALLET_DIR).deleteRecursively()
-        File(context.filesDir, WALLET_DIR).deleteRecursively()
-        File(context.filesDir, "no_backup").deleteRecursively()
+        paths.walletDir.deleteRecursively()
+        File(context.filesDir, DECOY_WALLET_DIR).deleteRecursively()
+        File(context.filesDir, DECOY_NO_BACKUP_DIR).deleteRecursively()
         File(context.filesDir, CANARY).delete()
     }
-
-    /** `<index>-<8 hex chars>`, the scheme `LdkStateStore.allocateQuarantineDirectory` uses. */
-    private fun quarantineName(): String =
-        "%04d-%s".format(1, ByteArray(4).also(random::nextBytes).joinToString("") { "%02x".format(it) })
 
     /** Distinct per file and per run, so one run's bytes cannot be mistaken for another's. */
     private fun stamp(label: String): String =

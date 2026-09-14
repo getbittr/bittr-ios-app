@@ -157,6 +157,54 @@ def test_the_required_set_spans_both_modules():
     )
 
 
+def test_every_required_name_resolves_to_a_real_test_method():
+    """REQUIRED is a list of literals, and literals can name nothing at all.
+
+    Both directions are checked, and they fail differently.
+
+    A REQUIRED entry with no method behind it makes the job permanently red,
+    which is loud and gets fixed. The other direction is the one this repo has
+    already paid for: `BdkAccountXpubParityTest` existed, ran, and was absent
+    from REQUIRED for its first two runs, so the run that finally went green
+    proved every required test ran and said nothing whatever about that one. The
+    class list below is what the wallet suite is made of; a method added to one
+    of them without a line in REQUIRED is that bug again.
+
+    Parsed with a regex rather than by asking Gradle, because this runs in the
+    `build` job seconds in, alongside the other script tests, and the whole point
+    is to catch the omission before an emulator boots.
+    """
+    android = pathlib.Path(__file__).resolve().parents[1]
+    declared = {}
+    for source in android.rglob("src/androidTest/**/*.kt"):
+        text = source.read_text(encoding="utf-8")
+        names = re.findall(r"^class (\w+)", text, re.MULTILINE)
+        methods = set(re.findall(r"@Test\s+fun (\w+)", text))
+        for name in names:
+            declared[name] = methods
+
+    dangling = []
+    for entry in sorted(checker.REQUIRED):
+        class_name = entry.split("#")[0].rsplit(".", 1)[-1]
+        method = entry.split("#")[1]
+        if class_name not in declared:
+            dangling.append(f"{entry} — no such class in any androidTest source")
+        elif method not in declared[class_name]:
+            dangling.append(f"{entry} — {class_name} has no @Test named {method}")
+    check("every REQUIRED name resolves to a real @Test", not dangling, dangling)
+
+    unlisted = []
+    for class_name in sorted({e.split("#")[0].rsplit(".", 1)[-1] for e in checker.REQUIRED}):
+        for method in sorted(declared.get(class_name, ())):
+            if not any(e.endswith(f".{class_name}#{method}") for e in checker.REQUIRED):
+                unlisted.append(f"{class_name}#{method}")
+    check(
+        "no @Test in a required class is missing from REQUIRED",
+        not unlisted,
+        unlisted,
+    )
+
+
 def test_the_app_half_missing_entirely_fails():
     # The headline case for this suite. :core:wallet-ldk runs, :app does not, and
     # the backup claim — the whole reason BIT-59 exists — goes unchecked while

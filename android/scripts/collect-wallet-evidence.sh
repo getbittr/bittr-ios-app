@@ -61,7 +61,7 @@ EVIDENCE_FILE_NAME="instrumentation_evidence.txt"
 # Pinned against EVIDENCE_PREFIXES in check-wallet-instrumented-results.py by the
 # same test. A prefix added there and not here is dropped by the logcat fallback
 # silently, and only on the runs that need the fallback.
-EVIDENCE_PREFIXES='^(BACKUP_EXCLUSION|KEYSTORE_KEY_INFO|KEYSTORE_SECURITY_LEVEL)'
+EVIDENCE_PREFIXES='^(BACKUP_EXCLUSION|KEYSTORE_KEY_INFO|KEYSTORE_SECURITY_LEVEL|SEED_WHILE_LOCKED)'
 
 # One glob rather than two package names. :app's suite writes into the INSTALLED
 # app, com.bittr.android.regtest — applicationId plus the debug

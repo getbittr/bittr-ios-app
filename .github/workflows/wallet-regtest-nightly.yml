@@ -1,0 +1,325 @@
+name: Wallet — regtest node suite (nightly)
+
+# THE JOB K7 AND K8 NEED, AND WHY IT IS NOT A STEP IN android-maestro.yml.
+#
+# BIT-132, split out of BIT-123 which closed K7 and K8 *unrun*. The reason those
+# two could not run was never hardware:
+#
+#   The `wallet-instrumented` job builds a wallet with NO NODE IN IT.
+#   LdkEnvironmentConfig.fromBuildConfig() returns null unless all six
+#   BuildConfig fields are supplied at build time, their committed defaults are
+#   the empty string, and a build with no environment composes SeedWalletService.
+#
+# So this workflow does three things that one cannot: it brings up a private
+# Bitcoin and Lightning network, it builds an APK configured to reach it, and it
+# gives the result a soak budget.
+#
+# WHY A SEPARATE WORKFLOW RATHER THAN A FOURTH JOB IN android-maestro.yml
+#
+# Three reasons, and the third is the one that settles it.
+#
+#   1. **Cadence.** android-maestro.yml runs on every push that touches
+#      android/**. K8's useful form is a soak across App Standby buckets, which
+#      move on the order of hours. A per-push job cannot hold that and a nightly
+#      one can.
+#
+#   2. **Blast radius.** That workflow's three emulator jobs all `needs: build`
+#      and serialise on one self-hosted runner (android/docs/self-hosted-runner.md).
+#      Adding a job that brings up three containers and builds electrs from source
+#      would put a cold ~12-minute Rust build in front of every push's wallet
+#      tests.
+#
+#   3. **A red here means something different.** "The Maestro suite broke" and
+#      "an interrupted payment did not resolve to one outcome" are not the same
+#      news and one workflow cannot report them as different news. That is the
+#      same argument `wallet-instrumented` makes for not being a step in
+#      `instrumented`, one level up.
+#
+# NEVER MAINNET. This workflow never has, and never needs, a secret. The four
+# BITTR_LDK_* values it builds with are derived from containers it started
+# seconds earlier — see android/scripts/regtest-ldk-env.py, which refuses to emit
+# an environment for any network but regtest and re-checks that every URL it
+# produced names the emulator's own host. The six committed defaults stay empty.
+
+on:
+  schedule:
+    # 03:20 UTC. Off the hour on purpose: GitHub's scheduler queues everything
+    # filed at :00 together and delays it under load, and this run wants a
+    # self-hosted runner that is idle rather than a place in a queue.
+    - cron: '20 3 * * *'
+  workflow_dispatch:
+    inputs:
+      keep_network:
+        description: 'Leave the regtest containers running after the job (for debugging)'
+        type: boolean
+        default: false
+
+  # THE ESCAPE HATCH. Not convenience — without it this workflow cannot run at all.
+  #
+  # Both triggers above are dead off the default branch. `schedule:` only ever
+  # fires from the default branch, and `workflow_dispatch:` does not offer a
+  # button until the file reaches it either — GitHub does not list a workflow it
+  # has never seen there, so there is nothing to dispatch and no ref picker to
+  # point at this branch. The API agrees: asking for this workflow's runs by
+  # filename returns 404, not an empty list.
+  #
+  # The default branch here is `master`, and Android work merges to
+  # `android-parity`, which is not it. So "wait for the merge" does not end this
+  # wait; it is the wrong door. Until one of those two facts changes, pushing a
+  # `regtest-run/**` branch is the ONLY way to produce a K7/K8 verdict.
+  #
+  # This is the same hatch k1-keystore-lockscreen.yml opens, for the same reason
+  # and in the same words — BIT-18 would otherwise have traded "no device" for
+  # "no button". android/docs/ci-evidence.md documents the pattern for BIT-5.
+  push:
+    branches:
+      - 'regtest-run/**'
+
+# Note what this does NOT add, because the distinction is the whole design.
+#
+# There is still no trigger that fires on ordinary wallet work — nothing keyed on
+# `android/**` or on this file. That version of the idea stays rejected: it would
+# put a ~35-minute emulator job with a Rust build in front of it on the one runner
+# that also serves three other emulator jobs, so every wallet push would queue
+# behind it, to catch a regression a few hours earlier than the nightly does.
+#
+# The hatch above cannot do that. It fires only when someone pushes a branch
+# named to ask for it, which is a deliberate request and never an ordinary
+# branch. Feature branches never pay for it.
+#
+# `regtest-run/**` carries no inputs, so `keep_network` reads as empty and the
+# containers are torn down — the right default for a requested evidence run.
+
+permissions:
+  contents: read
+
+concurrency:
+  # One run at a time, and a queued one is NOT cancelled. Same rule as
+  # workflow-lint.yml, for a sharper reason: this job's whole output is evidence
+  # about a fund-safety property, and a cancelled run is no evidence. Two runs at
+  # once would be worse than either — they would fight over the published ports
+  # in android/regtest/docker-compose.yml and both fail in a way that reads like
+  # a broken network.
+  group: wallet-regtest-nightly
+  cancel-in-progress: false
+
+env:
+  JAVA_VERSION: '17'
+
+jobs:
+  regtest:
+    name: K7/K8 regtest suite (emulator + private Lightning network)
+    # The same runner variable the three emulator jobs in android-maestro.yml
+    # read, so the switch-over is the same one-line `gh variable set` and the
+    # rollback is unsetting it. Unset, this runs on ubuntu-latest — which works,
+    # and pays the cold electrs build every night.
+    runs-on: ${{ fromJSON(vars.ANDROID_EMULATOR_RUNNER || '["ubuntu-latest"]') }}
+    # 90, where the three emulator jobs in android-maestro.yml get 45. With K7
+    # and both halves of K8 written, this is now SIX `connectedDebugAndroidTest`
+    # invocations, and the budget is roughly:
+    #
+    #   8-12  cold electrs build, before anything Android happens
+    #    ~3   emulator boot from the cached snapshot
+    #   ~10   the undirected suite — RegtestEnvironmentTest, plus K8's machinery
+    #         half, which starts a node and holds a 2-minute forced idle window
+    #   ~20   K7's four host-sequenced phases, each waiting on a chain sync, a
+    #         channel, or an HTLC
+    #   ~12   K8's freshness half: a node start, K7's channel coming back ready,
+    #         a 5-minute soak, and the catch-up after it
+    #
+    # Call it 55-60 on a cold runner, which leaves real headroom and not much
+    # more. Still a hard ceiling rather than a hope: a job that hangs on a
+    # container healthcheck must die, because a hung nightly holds the
+    # self-hosted runner away from the push jobs until someone notices.
+    #
+    # If this starts timing out, the thing to cut is the per-phase Gradle
+    # overhead, or K8's two window constants — they are named
+    # (K8DozeMachineryTest.IDLE_WINDOW_MS, K8ChannelFreshnessTest.SOAK_WINDOW_MS)
+    # and each is overridable by an instrumentation argument. Do NOT cut K7's
+    # waits: every one of those is a chain or a channel, and shortening them is
+    # how a suite starts reporting infrastructure as a fund-safety failure.
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Mark job start
+        run: echo "JOB_START_EPOCH=$(date +%s)" >> "$GITHUB_ENV"
+
+      - name: Set up JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: ${{ env.JAVA_VERSION }}
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          build-scan-publish: false
+
+      - name: Preflight — Docker with the compose plugin
+        # A host requirement this repository did not have before BIT-132, so it is
+        # the most likely way a newly-labelled runner fails this job. Named here
+        # as well as in up.sh because failing before the 40-minute part of the job
+        # is worth a duplicated four lines.
+        run: |
+          set -euo pipefail
+          if ! command -v docker > /dev/null 2>&1; then
+            echo "::error::No docker on runner '${{ runner.name }}'. The regtest network needs Docker with the v2 compose plugin. See android/docs/self-hosted-runner.md."
+            exit 1
+          fi
+          if ! docker compose version > /dev/null 2>&1; then
+            echo "::error::\`docker compose\` is unavailable on runner '${{ runner.name }}' (the v2 plugin, not docker-compose v1). See android/docs/self-hosted-runner.md."
+            exit 1
+          fi
+          docker compose version
+
+      - name: Bring up the private regtest network
+        # bitcoind + electrs (Esplora HTTP and Electrum TCP) + LND, and a facts
+        # file naming what came up. Cold runs build electrs from source; see
+        # android/regtest/electrs/Dockerfile for why it is built and not pulled.
+        run: bash android/regtest/up.sh
+
+      - name: Derive the six BITTR_LDK_* values
+        # The only step that decides what the APK may reach. It refuses any
+        # network but regtest and any host but the emulator's own — and it is a
+        # Python file with a test (android/scripts/test_regtest_ldk_env.py) rather
+        # than four strings in an `env:` block, because that is the guard's home.
+        #
+        # Into $GITHUB_ENV rather than into -P arguments: two Gradle invocations
+        # downstream need them (the APK and the test APK), and
+        # app/build.gradle.kts reads BITTR_LDK_* through
+        # `providers.environmentVariable`, which is a configuration-cache input —
+        # so a changed value re-runs configuration instead of baking yesterday's
+        # URL into today's APK.
+        run: python3 android/scripts/regtest-ldk-env.py >> "$GITHUB_ENV"
+
+      - name: Enable KVM
+        if: runner.environment == 'github-hosted'
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' \
+            | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      - name: Preflight — hardware acceleration is actually available
+        # Same check and same wording as the three jobs in android-maestro.yml.
+        # Without KVM the emulator does not fail, it crawls, and the job dies on
+        # its timeout looking like a flaky emulator.
+        run: |
+          set -euo pipefail
+          if [ ! -e /dev/kvm ]; then
+            echo "::error::No /dev/kvm on runner '${{ runner.name }}'. Without hardware acceleration the emulator does not fail, it crawls, and this job dies on its timeout looking like a flaky emulator. See android/docs/self-hosted-runner.md."
+            exit 1
+          fi
+          if [ ! -r /dev/kvm ] || [ ! -w /dev/kvm ]; then
+            echo "::error::/dev/kvm exists but is not read/write for user '$(id -un)'. Add the runner user to the 'kvm' group. See android/docs/self-hosted-runner.md."
+            ls -l /dev/kvm
+            exit 1
+          fi
+          echo "KVM OK on ${{ runner.environment }} runner '${{ runner.name }}' as $(id -un)."
+
+      - name: Cache AVD
+        uses: actions/cache@v4
+        id: avd-cache
+        with:
+          path: |
+            ~/.android/avd/*
+            ~/.android/adb*
+          # Its own key, like every other emulator job here. `-regtest` in the
+          # name is not decoration: if this job ever needs a different image,
+          # sharing a key with `wallet-instrumented` would restore a snapshot made
+          # for a different config and the failure would arrive as a vacuous green
+          # rather than as a cache-key mistake.
+          key: avd-api34-default-x86_64-regtest
+
+      - name: Create AVD snapshot
+        if: steps.avd-cache.outputs.cache-hit != 'true'
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 34
+          target: default
+          arch: x86_64
+          profile: pixel_6
+          force-avd-creation: false
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
+          disable-animations: false
+          script: echo "AVD created and snapshotted"
+
+      - name: Run the regtest node suite, K7 and K8
+        # ci-wallet-regtest.sh runs three things in one emulator session:
+        #
+        #   1. the undirected regtest suite — RegtestEnvironmentTest, the vacuity
+        #      guard, plus K8's machinery half, which needs a node and no channel;
+        #   2. android/scripts/k7-interrupted-payment.sh, which sequences K7's
+        #      four phases with the funding, the mining, the held HTLC and the
+        #      kill in between;
+        #   3. android/scripts/k8-doze-soak.sh, which holds the device in a
+        #      forced deep-idle window and mines while it cannot see.
+        #
+        # They share a boot because each stage needs the last one's state. K7's
+        # phases share an installed app — its wallet lives under no_backup and
+        # has to survive from phase 1 to phase 4 — and K8's freshness half runs
+        # over the channel K7 opened and never closed, rather than paying for a
+        # second funding and a second open on a job with a ceiling.
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 34
+          # `default`, matching `wallet-instrumented`, and for one of the same
+          # reasons plus one of its own.
+          #
+          # Shared: ATD images are stripped of components an automated test is
+          # assumed not to need, and K8 needs several of them — the keyguard, and
+          # the Doze/App Standby machinery `dumpsys deviceidle` drives.
+          #
+          # Its own: x86_64 is not negotiable here at all. The ldk-node AAR ships
+          # x86_64 and no x86, so on any other ABI the node does not start and the
+          # whole suite fails at `Node.start()` with a linker error.
+          target: default
+          arch: x86_64
+          profile: pixel_6
+          force-avd-creation: false
+          emulator-options: -no-snapshot-save -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
+          disable-animations: true
+          # `bash <file>`, not an inline block: the action runs this input under
+          # /usr/bin/sh (dash), and a bashism here fails AFTER the emulator has
+          # booted. android/scripts/check-action-scripts.sh enforces the shape.
+          script: bash android/scripts/ci-wallet-regtest.sh
+
+      - name: Regtest network logs
+        # always(), and before the teardown step. On a red run these logs are
+        # most of the diagnosis — an HTLC that was never accepted, a channel that
+        # stalled at pending, an electrs that fell behind — and down.sh removes
+        # the containers that hold them.
+        if: always()
+        run: |
+          docker compose --project-directory android/regtest ps || true
+          docker compose --project-directory android/regtest logs --tail=400 || true
+
+      - name: Tear down the regtest network
+        if: always()
+        # Volumes included, which is what down.sh does by default and why it is
+        # called without --keep here: a chain, an electrs index and an LND wallet
+        # inherited by tomorrow's run all fail late and quietly. The dispatch
+        # input is for a human debugging a specific failure.
+        run: |
+          if [ "${{ inputs.keep_network }}" = "true" ]; then
+            bash android/regtest/down.sh --keep
+          else
+            bash android/regtest/down.sh
+          fi
+
+      - name: Upload the regtest test report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: wallet-regtest-test-report
+          path: |
+            android/app/build/outputs/androidTest-results/**
+            android/app/build/reports/androidTests/**
+          retention-days: 14
+          if-no-files-found: warn
+          # warn, not error. An absent report is a real outcome here — it is what
+          # a job that failed at the network bring-up produces — and
+          # check-wallet-regtest-results.py has already failed the run for it with
+          # a message that says which of the two happened. A second failure from
+          # the uploader would replace that message with a worse one.

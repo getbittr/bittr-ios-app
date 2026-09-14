@@ -89,6 +89,7 @@ import xml.etree.ElementTree as ElementTree
 ANDROID_DIR = pathlib.Path(__file__).resolve().parents[1]
 
 LDK_PACKAGE = "com.bittr.android.core.wallet.ldk.seed"
+LDK_ONCHAIN_PACKAGE = "com.bittr.android.core.wallet.ldk.onchain"
 APP_PACKAGE = "com.bittr.android"
 
 # Every test that must have run and passed for BIT-59 to have done its job.
@@ -111,6 +112,63 @@ REQUIRED = {
     # BIT-18 device matrix is fed from its output and a silently dropped test
     # stops feeding it without anything going red.
     f"{LDK_PACKAGE}.KeystoreKeyInfoTest#recordTheObservedSecurityLevel",
+    # --- :core:wallet-ldk — rule 2's behavioural half (BIT-123 / K2) ----------
+    #
+    # KeystoreKeyInfoTest reads the key's FLAGS back. This reads the key's
+    # BEHAVIOUR back, with the device really locked, and it is the only one of
+    # the three rule-2 tests that can catch a platform where the flags report
+    # correctly and the operation is refused anyway. It also closes the hole
+    # KeystoreKeyInfoTest leaves on every API below 37, where
+    # `KeyInfo.isUnlockedDeviceRequired` does not exist and the flag is checked
+    # on the spec side only.
+    #
+    # This is K2's emulator-runnable half and NOT all of K2. The FCM leg and the
+    # force-stop leg are closed unrun with their reasons in
+    # android/docs/wallet-node-device-tests.md — the BIT-18 precedent.
+    f"{LDK_PACKAGE}.SeedReadableWhileLockedTest#theSeedUnwrapsWhileTheDeviceIsLocked",
+    f"{LDK_PACKAGE}.SeedReadableWhileLockedTest#aWalletKeyCanBeGeneratedWhileTheDeviceIsLocked",
+    # The negative control, required by name for the reason this list exists at
+    # all: "the seed was readable while locked" and "the device never locked"
+    # are the same green, and this is the only method that tells them apart. A
+    # rename that dropped it would leave two assertions that pass on an unlocked
+    # device, which is worse than not having them.
+    f"{LDK_PACKAGE}.SeedReadableWhileLockedTest#recordTheLockStateTheseReadsHappenedIn",
+    # --- :core:wallet-ldk — BDK and bitcoin-kmp agree on the account xpub -----
+    #
+    # The two derivations feed different consumers, so a divergence is not a
+    # discriminator mismatch — that side agrees with itself. bitcoin-kmp's xpub
+    # is what the BIT-20 discriminator identifies the LDK state directory with;
+    # BDK's is what gets POSTed to the backend as `xpub_key` at signup
+    # (Transfer2ViewController.swift:344-362). If they disagree, the server and
+    # the device key the same wallet on different strings, and nothing on either
+    # side notices.
+    #
+    # It can only run here: BDK is native, so there is no JVM equivalent to fall
+    # back on. Required by name for the reason this whole list exists — the test
+    # was written in BIT-6 and was NOT in this list for its first two runs, which
+    # means the run that finally went green proved every REQUIRED test ran and
+    # said nothing whatever about this one. That is the same shape as the three
+    # Robolectric classes that stopped running inside a green build.
+    f"{LDK_ONCHAIN_PACKAGE}.BdkAccountXpubParityTest#bdkAndBitcoinKmpDeriveTheSameSignetAccountXpub",
+    f"{LDK_ONCHAIN_PACKAGE}.BdkAccountXpubParityTest#bdkAndBitcoinKmpDeriveTheSameMainnetAccountXpub",
+    f"{LDK_ONCHAIN_PACKAGE}.BdkAccountXpubParityTest#theDerivedSignetXpubCarriesTheBip32Prefix",
+    f"{LDK_ONCHAIN_PACKAGE}.BdkAccountXpubParityTest#differentMnemonicsProduceDifferentBdkAccounts",
+    # BdkAddressParityTest is the other half of K4: the account xpub above says
+    # the backend and the discriminator agree on which account this is, and says
+    # nothing about the addresses the user is handed. BDK peeks the first 20
+    # receive and change addresses and they must equal the golden that
+    # Bip84AddressVectorTest pins on the JVM — a golden itself anchored to the
+    # vectors BIP84 publishes, so neither side is merely agreeing with itself.
+    #
+    # Required by name, per method, for the same reason as the four above: naming
+    # the class would let four of five disappear without a word. The negative
+    # controls are listed too, because a golden comparison that stopped varying
+    # with its input would pass both of the assertions that matter.
+    f"{LDK_ONCHAIN_PACKAGE}.BdkAddressParityTest#bdkDerivesTheSameFirst20SignetReceiveAddresses",
+    f"{LDK_ONCHAIN_PACKAGE}.BdkAddressParityTest#bdkDerivesTheSameFirst20SignetChangeAddresses",
+    f"{LDK_ONCHAIN_PACKAGE}.BdkAddressParityTest#peekingIsStableAcrossWallets",
+    f"{LDK_ONCHAIN_PACKAGE}.BdkAddressParityTest#differentMnemonicsProduceDifferentBdkAddresses",
+    f"{LDK_ONCHAIN_PACKAGE}.BdkAddressParityTest#receiveAndChangeKeychainsDoNotCollide",
     # --- :app — the installed application (BIT-8 rule 4 / BIT-20 rule 5) -------
     #
     # BackupExclusionTest (BIT-101) is the behavioural half: plant a
@@ -250,10 +308,17 @@ class Case:
 # KEYSTORE_SECURITY_LEVEL is here because recordTheObservedSecurityLevel prints
 # it and the BIT-18 device matrix is fed from it — it was omitted from this tuple
 # until BIT-114, so even a run that had filed stdout would have dropped it.
+#
+# SEED_WHILE_LOCKED joins them with a sharper edge: it carries `isDeviceSecure`
+# and `isDeviceLocked` as the device reported them during the run, and those two
+# booleans are the difference between "the seed is reachable during a background
+# wake" and "the emulator never locked". Both are asserted as well as recorded —
+# see SeedReadableWhileLockedTest — so this line is the reading, not the proof.
 EVIDENCE_PREFIXES = (
     "BACKUP_EXCLUSION",
     "KEYSTORE_KEY_INFO",
     "KEYSTORE_SECURITY_LEVEL",
+    "SEED_WHILE_LOCKED",
 )
 
 # WHERE THE EVIDENCE COMES FROM, AND WHY IT IS NOT <system-out> — BIT-114

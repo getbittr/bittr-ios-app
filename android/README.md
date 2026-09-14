@@ -111,6 +111,13 @@ Use `test`, **not** `testDebugUnitTest`. `:core:common`, `:core:wallet` and
 `testDebugUnitTest` reports `NO-SOURCE` for them and goes green having run a
 fraction of the suite.
 
+`assembleDebug` produces **one APK per ABI and no universal APK** —
+`app-arm64-v8a-debug.apk`, `app-armeabi-v7a-debug.apk`, `app-x86_64-debug.apk`,
+~56–71 MB each. Install the one matching your device; `:app:installDebug` picks
+for you. Why there are three, and why they are that size, is
+`docs/abi-packaging.md` (BIT-129) — `libldk_node.so` and `libbdkffi.so` are most
+of it, and this is a Lightning wallet.
+
 `test` also covers **`:app:testReleaseUnitTest`**, and that is the half most
 easily lost. `:app` is the only module with a release unit-test component
 (`androidComponents` in `app/build.gradle.kts`), and it is where the assertions
