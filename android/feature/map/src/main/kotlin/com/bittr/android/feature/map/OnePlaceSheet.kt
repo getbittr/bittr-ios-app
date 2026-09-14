@@ -94,9 +94,12 @@ internal fun OnePlaceSheet(
                             style = MaterialTheme.typography.titleMedium,
                             modifier = Modifier.testTag(TestID.Map.OnePlace.nameLabel),
                         )
+                        // `typeLabel` is Gilroy-Bold 16 on iOS (`UqK-Av-YNJ`, wired
+                        // at `Main.storyboard:3097`) — the same slot as a row title,
+                        // not a caption. BIT-151.
                         Text(
                             text = categoryDescription(place.icon),
-                            style = MaterialTheme.typography.bodySmall,
+                            style = MaterialTheme.typography.labelLarge,
                         )
                     }
                     Box(

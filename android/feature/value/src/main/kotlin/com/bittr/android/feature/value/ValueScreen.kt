@@ -108,9 +108,14 @@ internal fun ValueScreen(
                 .fillMaxWidth()
                 .padding(horizontal = BittrTokens.Spacing.gutter),
         ) {
+            // `displaySmall` is the scale's hero-amount slot and is Gilroy-Bold 36,
+            // which is what `currentValueLabel` is on iOS (`rwD-dr-40A`). It read
+            // `headlineMedium` until BIT-151 — a slot the scale does not fill, so
+            // the headline figure on this screen was drawing in the platform
+            // sans-serif at M3's 28. Found by the guard, not by the issue.
             Text(
                 text = state.currentValue.orEmpty(),
-                style = MaterialTheme.typography.headlineMedium,
+                style = MaterialTheme.typography.displaySmall,
                 modifier = Modifier
                     .weight(1f)
                     .testTag(TestID.Value.currentValueLabel),

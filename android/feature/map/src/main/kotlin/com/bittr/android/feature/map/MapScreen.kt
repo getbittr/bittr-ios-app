@@ -32,6 +32,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -231,9 +232,13 @@ internal fun MapScreen(
         // The BTCMap credit. Reading it is the only way the approved alert is seen,
         // which is why `shared/strings/README.md` is emphatic that it is good
         // practice rather than disclosure.
+        //
+        // Bold 14, which is what `poweredByLabel` is on iOS — the storyboard sets
+        // Gilroy-Bold 14 on `Maz-HE-siC` and no code in `ios/bittr/Map/` overrides a
+        // font, so the storyboard is the whole story here. BIT-151.
         Text(
             text = MapCopy.POWERED_BY,
-            style = MaterialTheme.typography.bodySmall,
+            style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
             modifier = Modifier
                 .padding(horizontal = BittrTokens.Spacing.gutter)
                 .clickable(role = Role.Button) {
@@ -360,9 +365,16 @@ private fun PlaceRow(place: BitcoinPlace, onOpen: (BitcoinPlace) -> Unit) {
                 .fillMaxWidth()
                 .padding(horizontal = BittrTokens.Spacing.md, vertical = BittrTokens.Spacing.sm),
         ) {
+            // `PlaceTableViewCell`'s two labels: `placeName` is Gilroy-Bold 16
+            // (`gYc-Qy-tZC`) and `placeAddress` Gilroy-Regular 15 (`r0k-xV-iLu`).
+            // Bold 16 is the workhorse slot; 15 merges into 16 under DEV-05, so the
+            // pair separates by weight here where iOS separates by weight and one
+            // point. Both were wrong before BIT-151 — the name by weight, the
+            // address by family — and they have to move together: fixing only the
+            // address would have set it in the same style as the name above it.
             Text(
                 text = place.name ?: MapCopy.PLACE_FALLBACK_NAME,
-                style = MaterialTheme.typography.bodyLarge,
+                style = MaterialTheme.typography.labelLarge,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
                 modifier = Modifier.testTag(TestID.Map.placeName),
@@ -372,7 +384,7 @@ private fun PlaceRow(place: BitcoinPlace, onOpen: (BitcoinPlace) -> Unit) {
             place.address?.let { address ->
                 Text(
                     text = address,
-                    style = MaterialTheme.typography.bodySmall,
+                    style = MaterialTheme.typography.bodyLarge,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )

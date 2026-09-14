@@ -20,6 +20,14 @@ import androidx.compose.ui.unit.sp
  *
  * **Every size in the app comes from this scale.** A hard-coded `.sp` at a call site
  * breaks dynamic type, which is in scope for this port.
+ *
+ * **And only the slots below exist.** `Typography` has fifteen; [BittrTypography]
+ * fills nine. Reading one of the other six compiles, lints clean, and renders — in
+ * `FontFamily.SansSerif` at a size nothing here chose, because that is what M3's
+ * default for an unfilled slot is. Five call sites were doing it before BIT-151, and
+ * the one that got noticed was noticed by measuring pixels. `TypographySlotGuardTest`
+ * in `:app` now fails the build on a read of an unfilled slot; it derives the filled
+ * set from this file, so growing the scale needs no edit there.
  */
 
 /** The only font family in the app. */

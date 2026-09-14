@@ -562,6 +562,37 @@ It belongs in this section because it is load-bearing for the decision above: an
 budget for this line is a property of a face nobody chose, and it moves the day that slot is
 corrected. A fix that survives that change was worth a guard edit.
 
+#### Fixed (BIT-151), and the budget moved without moving the answer
+
+That day came. `bodySmall` is gone from the tree: `POWERED_BY` is now
+`bodyMedium.copy(fontWeight = FontWeight.Bold)` — Gilroy-**Bold 14**, which is what
+`poweredByLabel` is on iOS (`Maz-HE-siC`, and no code under `ios/bittr/Map/` sets a font, so
+the storyboard is the whole story). The other three moved to the slots their own iOS labels
+use, and `TypographySlotGuardTest` now fails the build on a read of any slot
+`BittrTypography` does not fill.
+
+So the numbers in the table above describe a face the app no longer renders anywhere, and
+the line they were measuring is still not in the tree. Re-measured by the same method —
+`TextLayoutResult` under `NATIVE` graphics, the settled literal with both non-breaking
+spaces, in the slot `POWERED_BY` now uses:
+
+| | old: M3 `bodySmall` | new: Gilroy-Bold 14 | overflow |
+|---|---|---|---|
+| 411 dp, fontScale 1.0 | 2 lines, 32 dp | 2 lines, 36 dp | none |
+| 320 dp, fontScale 1.0 | 2 lines | 2 lines, 36 dp | none |
+| 320 dp, fontScale 1.3 | 3 lines, 63 dp | 3 lines, 76 dp | none |
+
+**The line counts do not change and nothing overflows.** The block grows by about 4 dp at
+the ordinary size and 13 dp at fontScale 1.3, and `© OpenMapTiles.org` stays intact on one
+line in all three — the non-breaking space is doing its job in the new face as it did in the
+old one. The break still falls after `design` at 411 dp and after `contributors,` at 320 dp.
+
+That is the outcome "a fix that survives that change" was chosen for, now observed rather
+than predicted. The shorter-line alternative the section above rejects would have been
+re-opened by this: a 47-character budget measured at platform-sans 12 buys fewer characters
+at Gilroy-Bold 14, so the orphan it was meant to prevent would have come back here. The
+non-breaking space cost a guard change and held.
+
 ### Measured: the SDK's own overlays sit clear of ours
 
 The other half of the same question. `BasemapController` never touches `uiSettings`, so

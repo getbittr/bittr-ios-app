@@ -130,9 +130,15 @@ internal fun GraphView(
                     .background(colors.scrim1, BittrCanvasShapes.wordRow)
                     .padding(vertical = 6.dp),
             ) {
+                // The scale's floor, and the one BIT-151 call site where iOS is not
+                // simply reproducible: `dateLabel` is Gilroy-Regular
+                // **10** (`GraphView.swift:128`), and `Type.kt` defines nothing below
+                // `labelMedium`'s 13. That floor is the port's, from DEV-06 and the
+                // A11Y line the shrink-to-fit balance also respects, so the date
+                // takes it rather than reintroducing a 10 sp one-off.
                 Text(
                     text = CardDateFormat.format(scrub.point.at.atZone(ZoneId.systemDefault())),
-                    style = MaterialTheme.typography.bodySmall,
+                    style = MaterialTheme.typography.labelMedium,
                 )
                 Text(
                     text = "$currencySymbol ${formatPrice(scrub.point.price)}",
