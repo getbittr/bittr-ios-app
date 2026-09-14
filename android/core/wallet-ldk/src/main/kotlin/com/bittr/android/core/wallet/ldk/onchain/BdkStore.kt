@@ -49,6 +49,37 @@ import java.io.File
  * iOS behaviour**, and this issue's notes put that decision with the founder, not
  * in this file. It is raised on the issue rather than taken here.
  *
+ * ## If that decision ever goes the other way, this delete is not the only line
+ *
+ * Stated here because this is the file a reader would come to first, and the
+ * change looks like a deletion when it is not one. `BdkWalletFactory.open`
+ * opens the wallet with bdk-android's *create* constructor, and the binding
+ * declares `CreateWithPersistException.DataAlreadyExists` for a store that
+ * already holds a changeset — so a store that survives a start makes the *next*
+ * start throw. Persisting means construction goes through
+ * `Wallet.load(external, internal, connection)` first, falling back to create on
+ * `LoadWithPersistException.CouldNotLoad` (the genuinely-empty store).
+ *
+ * Two consequences worth having written down before anyone starts:
+ *
+ * - **`load` takes no `Network`.** The persisted changeset carries network and
+ *   genesis, and BDK checks them itself — reported as `InvalidChangeSet`, which
+ *   carries one flattened message string. A seed change, a network flip and a
+ *   corrupt store are the same bucket, indistinguishable without parsing Rust
+ *   `Display` text. So a persisted store needs *our* guard, keyed on the BIT-20
+ *   [SeedDiscriminator], checked before the store is opened — not BDK's.
+ * - **Wallet removal does not currently delete anything.** `removeWallet`
+ *   erases the seed, the PIN and the attempt counter from the keystore-backed
+ *   store and touches no file; `wipeNodeState` is bound to its no-op default in
+ *   `di/WalletModule`, deliberately, so BIT-20 keeps force-close sweep material.
+ *   That is harmless only *because* this delete runs. Persist without adding a
+ *   removal-time wipe and the previous wallet's whole address and transaction
+ *   history outlives its own seed, on disk, with nothing left that can open or
+ *   clear it. Not a fund risk — no key material is here — but a privacy one, and
+ *   it is a precondition of the change rather than a follow-up to it.
+ *
+ * Recorded on BIT-131.
+ *
  * ## Where the store lives, and why the delete is fenced
  *
  * iOS puts it at `Documents/wallet_data/wallet.sqlite`. On Android it is

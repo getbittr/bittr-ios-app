@@ -173,6 +173,23 @@ interface OnchainSyncPort<W : Any, F : Any, S : Any, U : Any> {
  *    reconsidered — BIT-131 is the decision, still open — the persist has to
  *    already be in the right place.
  *
+ *    **Necessary, but not sufficient — do not read this as "delete the delete
+ *    and persistence works".** `BdkWalletFactory.open` builds the wallet with
+ *    bdk-android's *create* constructor, `Wallet(external, internal, network,
+ *    connection)`, and the binding declares `CreateWithPersistException`
+ *    `.DataAlreadyExists` for exactly the case of a store that already holds a
+ *    changeset. Removing the wipe on its own therefore yields a wallet that
+ *    opens once and throws on every start after it — and that failure is
+ *    *quieter* than the one it was meant to cure, because
+ *    `OnchainWalletPort.open` returns false and [OnchainSyncLoop] reports
+ *    `WalletUnavailable` and returns without attempting a scan at all. Keeping
+ *    the store means also routing construction through
+ *    `Wallet.load(external, internal, connection)` — which takes no `Network`,
+ *    so the network assertion moves out of our code and into an opaque
+ *    `LoadWithPersistException.InvalidChangeSet(errorMessage: String)` — and
+ *    falling back to create on `CouldNotLoad`, the empty-store case. Recorded
+ *    on BIT-131.
+ *
  * 2. **An `applyUpdate` failure does fail it.** BDK throws `CannotConnectException`
  *    when the update does not attach to the chain the wallet already knows. The
  *    wallet's view is then unchanged, so reporting success would report a
