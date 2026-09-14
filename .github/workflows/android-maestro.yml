@@ -381,6 +381,26 @@ jobs:
         # costs a 90-minute emulator run to be told something a grep knew.
         run: bash android/scripts/test_k7_host_phase.sh
 
+      - name: Check K8's soak harness still reaches its device halves
+        # BIT-132. The third guard of this class, and it pins two joins the other
+        # two do not have.
+        #
+        # A LOGCAT TAG. K8's freshness half signals device -> host over logcat,
+        # because UiAutomation.executeShellCommand hands its string to
+        # Runtime.exec — there is no shell on the device side, so a redirect
+        # there would pass `>` to echo as a literal argument and write no file.
+        # The tag and the marker the host greps for are therefore a contract with
+        # nothing but this step behind it, and a drift costs the host its whole
+        # ten-minute wait before it exits 2.
+        #
+        # AN ANNOTATION THAT MUST BE PRESENT ON ONE CLASS AND ABSENT ON THE
+        # OTHER, which is the one that fails toward a wrong conclusion. The
+        # freshness half without @HostDriven also runs inside the undirected
+        # suite — before K7, with no channel — and its red reads as "the node did
+        # not survive Doze". The machinery half WITH @HostDriven runs nowhere at
+        # all, because the suite filters it out and no host script names it.
+        run: bash android/scripts/test_k8_doze_soak.sh
+
       - name: Check every flow ID is registered
         # A flow selecting an ID that is in no registry entry fails at run time
         # with "element not found" — indistinguishable from a missing testTag in

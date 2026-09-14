@@ -194,6 +194,40 @@ if [ "$k7_outcome" = 2 ]; then
     " will report its four phases as not run, which is the accurate verdict."
 fi
 
+# --- K8's freshness half, which runs over the channel K7 left ------------------
+#
+# AFTER K7, and that ordering is the whole reason this is a separate invocation
+# rather than another method in the undirected suite. K8ChannelFreshnessTest
+# needs a funded, open channel, and on this network one exists only once K7's
+# phase 2 has opened it and phase 3 has mined it active. The alternative — a
+# second funding and a second channel open for K8's own use — costs two more
+# mined-and-waited phases for a channel identical to the one already there, on a
+# job with a 90-minute ceiling. android/docs/wallet-node-device-tests.md §4
+# settled that trade and named its price:
+#
+#   a red K7 phase 2 makes the freshness half UNRUNNABLE rather than merely
+#   unreadable, and the gate reports it as "did not run at all".
+#
+# Run whatever K7 did, for the same reason K7 runs whatever the suite did: a
+# skipped run leaves the gate reporting a required test that never ran, which is
+# a worse verdict than the true one. The script's own preflight fails fast when
+# there is no channel to measure, and says so as a SETUP failure.
+#
+# K8's MACHINERY half is not here. It needs no channel and no host, so it is an
+# ordinary member of the undirected suite above — and keeping it there is what
+# makes it survive a K7 that never got off the ground.
+#
+# Exit 2 is the same contract as K7's: the harness could not set the experiment
+# up. Not a claim about the wallet, so it becomes a warning and the gate then
+# fails the job for the required test that did not run.
+k8_outcome=0
+bash android/scripts/k8-doze-soak.sh || k8_outcome=$?
+if [ "$k8_outcome" = 2 ]; then
+  echo "::warning title=K8::The K8 soak harness could not set its experiment up (exit 2)."\
+    " No claim about node lifecycle across Doze was measured on this run. The gate"\
+    " below will report its freshness half as not run, which is the accurate verdict."
+fi
+
 # --- The verdict ----------------------------------------------------------------
 #
 # Run whatever Gradle said, and this is the important half. `connectedAndroidTest`
@@ -220,6 +254,14 @@ for phase in 1 2 3 4; do
     results_args="$results_args --results-dir $phase_dir"
   fi
 done
+# K8's freshness half, preserved by k8-doze-soak.sh for the same reason: it is
+# one more `connectedDebugAndroidTest` invocation, and that overwrites
+# .../connected along with every other one. Its machinery half needs no entry
+# here — it ran inside the undirected suite, so it is already in $suite_results.
+k8_freshness_dir="android/app/build/outputs/androidTest-results/k8/freshness"
+if [ -d "$k8_freshness_dir" ]; then
+  results_args="$results_args --results-dir $k8_freshness_dir"
+fi
 
 verdict=0
 # shellcheck disable=SC2086 # deliberate word splitting: one --results-dir per path.
@@ -242,6 +284,15 @@ fi
 # A job that exits 0 on that would be reporting a fund-safety pass it did not get.
 if [ "$k7_outcome" = 1 ]; then
   echo "::error::K7 reported a failure (exit 1). Its own message above says which phase."
+  exit 1
+fi
+
+# K8's, for the same reason and with the same caveat.
+if [ "$k8_outcome" = 1 ]; then
+  echo "::error::K8's freshness half reported a failure (exit 1). Read its assertion text"\
+    " before rerunning: 'the node did not catch up' is a finding about Doze and the"\
+    " foreground service, and 'K7's channel was not usable before the window' is not a"\
+    " K8 result at all."
   exit 1
 fi
 exit "$verdict"

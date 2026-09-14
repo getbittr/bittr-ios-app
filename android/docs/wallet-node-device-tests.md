@@ -24,8 +24,8 @@ passed.
 | K2 — an FCM data message wakes the process | closed **unrun** | **BIT-133** | §1 below |
 | K2 — *force-stop* then wake | **withdrawn as specified** | **BIT-133** | §2 below |
 | K7 — interrupted payment resolves to one outcome | **written, not yet run** | **BIT-132** | §3 below |
-| K8 — Doze and App Standby machinery | **unrun; its precondition is now solved** | **BIT-132** | §4 below |
-| K8 — channel-monitor freshness after wake | **unrun; needs the soak job** | **BIT-132** | §4 below |
+| K8 — Doze and App Standby machinery | **written, not yet run** | **BIT-132** | §4 below |
+| K8 — channel-monitor freshness after wake | **written, not yet run — and the claim is narrowed** | **BIT-132** | §4 below |
 | The configured regtest build and the private network | **built, and one green leg deep** | — | §0 below |
 | `data_loss_protect` on channel re-establish | **verified, as far as a binary can be** | — | §5 below |
 
@@ -546,9 +546,10 @@ of this test is a soak, not a step. A 45-minute job cannot hold it.
 job with a soak budget — realistically a nightly rather than a per-push job.
 **Carried on BIT-132.**
 
-**Three of those four now exist** (§0): the configured build, the four services,
-and a nightly job. What is left for K8 is the soak itself, and one thing §0 does
-not solve:
+**All four now exist.** Three came from §0 — the configured build, the four
+services and a nightly job — and the soak itself is written; see *State* below
+for where and what it is allowed to claim. What follows are the constraints that
+shaped it, kept in the present tense because they are still true of every run:
 
 - **The budget is 90 minutes, and App Standby buckets move on the order of
   hours.** So the soak has to *drive* the buckets rather than wait for them:
@@ -564,11 +565,12 @@ not solve:
   start begins, demoted only on a definite failure — without proving the platform
   honours it. That remains the gap.
 
-### Two decisions K8 needs before it is written, settled here
+### The two decisions K8 needed before it was written — settled here, then built
 
-Recorded now for the reason BIT-132 gives about K7's kill window: these are
+Recorded for the reason BIT-132 gives about K7's kill window: these are
 decisions, and a decision discovered once the infrastructure is green is a
-decision made under pressure to keep it green.
+decision made under pressure to keep it green. Both are now implemented exactly
+as written below; *State* afterwards says where.
 
 **1. K8 is two tests, not one, because the two halves need different set-ups.**
 
@@ -605,6 +607,78 @@ So K8's freshness row will land as *passing with a narrowed claim*, with the
 narrowing written into the test and into this table — not as *passing*. The row
 that would be dishonest is the one that keeps the spec's wording over a test that
 measures the proxies.
+
+### State: written, not green — and one of the two rows is narrower than the spec
+
+Both halves are now built, on the design settled above. As with K7 and for the
+same reason (`dd50f457` on this branch, and what eliding it cost
+`KeystoreKeyInfoTest`), the summary rows say **written, not yet run**: these
+classes compile and have never touched a device.
+
+| What | Where | In the gate |
+|---|---|---|
+| The machinery half | `K8DozeMachineryTest`, three methods, undirected suite | `REQUIRED`, per method |
+| The freshness half | `K8ChannelFreshnessTest`, one method, `@HostDriven` | `REQUIRED`, by name |
+| The host between | `android/scripts/k8-doze-soak.sh` | invoked by `ci-wallet-regtest.sh` after K7 |
+| The joins, pinned | `android/scripts/test_k8_doze_soak.sh` | the `build` job, every push |
+
+**What the freshness row is allowed to say.** Not §6's sentence. `ChannelView`
+carries no monitor update id and ldk-node 0.7.0 offers none, so *"channel-monitor
+freshness"* is not observable through `LightningNodePort` and inventing an FFI
+surface for a test to read is the deviation BIT-6 says to flag rather than write.
+What the test measures is three proxies, each real and each named in its own
+assertion:
+
+1. the **same** channel — matched on `userChannelId`, not "a channel exists" —
+   is still `isChannelReady` and `isUsable`;
+2. the peer is **connected again** after the wake;
+3. the node's **chain view advanced** past blocks mined while it was idle.
+
+The third one is the interesting one, because there was a tempting cheap version
+and it is host-asserted. The host is the only thing that can mine on this
+network, so letting it state the heights in its hand-off would make the whole
+claim the host's. Instead the device reads Esplora itself on both sides of the
+window — raw sockets, for the cleartext reason `RegtestEnvironmentTest` gives —
+and the host's hand-off is only the *signal* that it is worth looking. Same
+principle K7 applied to its kill window: the load-bearing fact is a device-side
+one.
+
+**App Standby is recorded, never asserted, and that is a decision rather than an
+omission.** An app with a live foreground service is one the platform re-derives
+as `ACTIVE`, so `am set-standby-bucket … rare` followed by a read-back of `10` is
+the mitigation under test *working*. Asserting `RARE` would turn that into a red,
+and a red that says "the wallet was protected" is the most misleading verdict
+this suite could produce. Both the request and the read-back go into the evidence
+line, so a reader can see which happened. `Doze.setStandbyBucket` carries the
+argument.
+
+**Three things a first nightly run is the first thing to test**, in the order
+they would fail:
+
+1. **That this emulator can be forced into deep idle at all.**
+   `K8DozeMachineryTest#theDeviceCanBeForcedIntoDeepIdleAtAll` exists to make
+   that a separate red, because it is a verdict about the **image** rather than
+   about the wallet, and the two call for opposite investigations. It is also the
+   negative control without which a green survival test could be a device that
+   was never in Doze.
+2. **That an instrumentation can sit inside the window.** The soak blocks for
+   minutes in one method; a runner that reports *"Test failed to run to
+   completion"* on a silent test would look like a K8 failure and be a harness
+   one. `Doze.holdWindow` announces every 30s partly for that and partly because
+   a state sampled only at the window's two ends cannot tell a five-minute doze
+   from a thirty-second one.
+3. **That the host's logcat marker arrives.** `k8-doze-soak.sh` waits ten minutes
+   for it and then exits 2 — a setup failure, not a K8 result. The
+   device → host direction has to be logcat because
+   `UiAutomation.executeShellCommand` hands its string to `Runtime.exec` with no
+   shell, so a device-side `echo > file` would write nothing.
+
+**Why one method and not four.** K7 is four instrumented runs because it has to
+observe its own restart. This is the opposite constraint: the node must be
+**alive for the whole window**, and the framework tears the instrumented process
+down when a method returns — which is exactly the mechanism K7 uses as its kill.
+Split into phases there would be no node in the window at all, and the test would
+measure a dead process dozing.
 
 **Risk accepted by not running it.** Moderate and asymmetric. Doze suspends
 network and defers alarms; for a Lightning node the cost of being wrong is a

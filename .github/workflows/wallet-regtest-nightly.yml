@@ -87,19 +87,30 @@ jobs:
     # rollback is unsetting it. Unset, this runs on ubuntu-latest — which works,
     # and pays the cold electrs build every night.
     runs-on: ${{ fromJSON(vars.ANDROID_EMULATOR_RUNNER || '["ubuntu-latest"]') }}
-    # 90, where the three emulator jobs in android-maestro.yml get 45. A cold
-    # electrs build is 8-12 minutes of that before anything Android happens, K7
-    # is five `connectedDebugAndroidTest` invocations rather than one — the
-    # undirected suite plus its four host-sequenced phases, each waiting on chain
-    # sync or a channel — and this suite grows a Doze soak. Still a hard ceiling
-    # rather than a hope: a job that hangs on a container healthcheck must die,
-    # because a hung nightly holds the self-hosted runner away from the push jobs
-    # until someone notices.
+    # 90, where the three emulator jobs in android-maestro.yml get 45. With K7
+    # and both halves of K8 written, this is now SIX `connectedDebugAndroidTest`
+    # invocations, and the budget is roughly:
     #
-    # If this starts timing out before K8 is written, the thing to cut is the
-    # per-phase Gradle overhead rather than K7's own waits: every one of those
-    # waits is a chain or a channel, and shortening them is how a suite starts
-    # reporting infrastructure as a fund-safety failure.
+    #   8-12  cold electrs build, before anything Android happens
+    #    ~3   emulator boot from the cached snapshot
+    #   ~10   the undirected suite — RegtestEnvironmentTest, plus K8's machinery
+    #         half, which starts a node and holds a 2-minute forced idle window
+    #   ~20   K7's four host-sequenced phases, each waiting on a chain sync, a
+    #         channel, or an HTLC
+    #   ~12   K8's freshness half: a node start, K7's channel coming back ready,
+    #         a 5-minute soak, and the catch-up after it
+    #
+    # Call it 55-60 on a cold runner, which leaves real headroom and not much
+    # more. Still a hard ceiling rather than a hope: a job that hangs on a
+    # container healthcheck must die, because a hung nightly holds the
+    # self-hosted runner away from the push jobs until someone notices.
+    #
+    # If this starts timing out, the thing to cut is the per-phase Gradle
+    # overhead, or K8's two window constants — they are named
+    # (K8DozeMachineryTest.IDLE_WINDOW_MS, K8ChannelFreshnessTest.SOAK_WINDOW_MS)
+    # and each is overridable by an instrumentation argument. Do NOT cut K7's
+    # waits: every one of those is a chain or a channel, and shortening them is
+    # how a suite starts reporting infrastructure as a fund-safety failure.
     timeout-minutes: 90
     steps:
       - uses: actions/checkout@v4
@@ -207,14 +218,22 @@ jobs:
           disable-animations: false
           script: echo "AVD created and snapshotted"
 
-      - name: Run the regtest node suite and K7
-        # ci-wallet-regtest.sh runs two things in one emulator session: the
-        # undirected regtest suite (RegtestEnvironmentTest, the vacuity guard),
-        # and then android/scripts/k7-interrupted-payment.sh, which sequences
-        # K7's four phases with the funding, the mining, the held HTLC and the
-        # kill in between. They share a boot because K7's phases share an
-        # installed app: its wallet lives under no_backup and has to survive from
-        # phase 1 to phase 4.
+      - name: Run the regtest node suite, K7 and K8
+        # ci-wallet-regtest.sh runs three things in one emulator session:
+        #
+        #   1. the undirected regtest suite — RegtestEnvironmentTest, the vacuity
+        #      guard, plus K8's machinery half, which needs a node and no channel;
+        #   2. android/scripts/k7-interrupted-payment.sh, which sequences K7's
+        #      four phases with the funding, the mining, the held HTLC and the
+        #      kill in between;
+        #   3. android/scripts/k8-doze-soak.sh, which holds the device in a
+        #      forced deep-idle window and mines while it cannot see.
+        #
+        # They share a boot because each stage needs the last one's state. K7's
+        # phases share an installed app — its wallet lives under no_backup and
+        # has to survive from phase 1 to phase 4 — and K8's freshness half runs
+        # over the channel K7 opened and never closed, rather than paying for a
+        # second funding and a second open on a job with a ceiling.
         uses: reactivecircus/android-emulator-runner@v2
         with:
           api-level: 34

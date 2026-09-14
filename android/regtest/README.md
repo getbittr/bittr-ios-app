@@ -115,6 +115,40 @@ refused rather than labelled: `android/scripts/k7-interrupted-payment.sh` polls
 that hand-off and asserts on its contents, and a run where the HTLC never reaches
 LND fails in phase 3 and never reaches the kill at all.
 
+## What K8 uses this network for, which is not what K7 uses it for
+
+K7 needs a **counterparty that will hold**. K8's freshness half needs a **chain
+that keeps moving while the device cannot see it** — so its use of this directory
+is `bitcoind` and nothing else: `android/scripts/k8-doze-soak.sh` sends to the
+node's own on-chain address and mines, *during* the forced deep-idle window, and
+the wake then has something to catch up to. A node that "caught up" to a chain
+that never moved is a pass that measured nothing, which is why the device fails
+rather than passes when the host's hand-off never arrives.
+
+It runs **after** K7 and over the channel K7 opened and never closed. That is a
+deliberate trade with a stated price — `wallet-node-device-tests.md` §4 — and the
+price is that a red K7 phase 2 makes K8's freshness half unrunnable rather than
+merely unreadable. The gate reports it as *"did not run at all"*, which is the
+accurate verdict.
+
+### The two hand-off directions are different mechanisms, and that is not a style choice
+
+K7's hand-off goes host → device: `adb shell` writes a file under
+`/data/local/tmp` and the device reads it with `cat`. K8 needs that direction too
+— *"I have mined"* — and it uses the same one.
+
+K8 also needs **device → host**: *"I am inside the idle window, and here is the
+address to fund."* That one cannot be a file. `UiAutomation.executeShellCommand`
+hands its string to `Runtime.exec`, which splits on whitespace and executes the
+binary directly — there is no shell, so a device-side `echo … > /data/local/tmp/x`
+passes `>` to `echo` as a literal argument and writes nothing. So that direction
+is `Log.i` under the `K8_DOZE_SOAK` tag, which the host polls with
+`adb logcat -d -s`.
+
+Neither end has a compiler behind it. `android/scripts/test_k8_doze_soak.sh` pins
+the tag, both markers, the hand-off path and the address token against the test in
+the `build` job, on a machine with no emulator.
+
 ## Costs, so nobody is surprised by them
 
 - **electrs is built from source.** There is no first-party Blockstream electrs

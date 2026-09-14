@@ -137,19 +137,61 @@ REQUIRED = {
     f"{APP_PACKAGE}.K7InterruptedPaymentTest#phase4TheInterruptedPaymentResolvedToExactlyOneOutcome",
     # --- K8 — node lifecycle across Doze and App Standby ------------------------
     #
-    # NOT YET HERE, AND THAT IS THE CURRENT STATE OF BIT-132 RATHER THAN AN
-    # OVERSIGHT.
+    # TWO CLASSES, AND THE SPLIT IS THE DESIGN RATHER THAN AN ACCIDENT OF SIZE.
+    # android/docs/wallet-node-device-tests.md §4 settled it before either was
+    # written: the two halves need different set-ups, and only one of them needs
+    # a channel.
     #
-    # The infrastructure K8 needs now exists — android/regtest/, the six
-    # BuildConfig values, and a nightly job with a soak budget — and the test does
-    # not. android/docs/wallet-node-device-tests.md §4 says what is left: the soak
-    # has to DRIVE the App Standby buckets rather than wait for them, because they
-    # move on the order of hours and this job has 90 minutes, and a forced bucket
-    # is a weaker claim than elapsed wall-clock that has to be labelled as one.
+    # The MACHINERY half runs in the undirected suite, beside
+    # RegtestEnvironmentTest — a node, no channel, a forced deep-idle window.
     #
-    # Named here, unwritten, on purpose — the counterpart of BIT-132's "every
-    # method added goes into the REQUIRED set by name, per method, in the commit
-    # that writes it" is that a reader of this file can see what is missing.
+    #   theDeviceCanBeForcedIntoDeepIdleAtAll        — the emulator IMAGE
+    #   theNodeAndItsForegroundServiceSurvive…       — THE CLAIM
+    #   recordTheIdleMachineryThisRunSaw             — which machinery this was
+    #
+    # Required separately because the first one is not a claim about the wallet
+    # at all. `dumpsys deviceidle force-idle` refuses on an image without the
+    # idle machinery — one of the components ATD images are stripped of — and a
+    # red there is a verdict about the AVD, where a red on the second is a
+    # verdict about the foreground service. Those call for opposite
+    # investigations, and a nightly job at 03:20 UTC should not make a reader
+    # guess which one they have.
+    f"{APP_PACKAGE}.K8DozeMachineryTest#theDeviceCanBeForcedIntoDeepIdleAtAll",
+    f"{APP_PACKAGE}.K8DozeMachineryTest#theNodeAndItsForegroundServiceSurviveAForcedIdleWindow",
+    # Records rather than asserts, and required by name for the reason
+    # RegtestEnvironmentTest#recordTheEnvironmentThisRunSaw is: a green K8 row is
+    # worth what the run's machinery was worth. The API level, the two idle-state
+    # readings and the observed App Standby bucket are what separate "the node
+    # survived Doze" from "this image has no Doze" — and the bucket in
+    # particular is K8's own narrowing, because an app with a live foreground
+    # service is one the platform re-derives as ACTIVE. See Doze.setStandbyBucket
+    # for why that is recorded and never asserted.
+    f"{APP_PACKAGE}.K8DozeMachineryTest#recordTheIdleMachineryThisRunSaw",
+    #
+    # The FRESHNESS half is @HostDriven and runs AFTER K7, over the channel K7
+    # phase 2 opened and never closed. android/scripts/k8-doze-soak.sh sends to
+    # the node's on-chain wallet and mines WHILE the device is inside its idle
+    # window, and preserves the XML under androidTest-results/k8/freshness, which
+    # ci-wallet-regtest.sh passes to this file with --results-dir.
+    #
+    # ONE METHOD, AND THAT IS A PLATFORM FACT. K7 is four instrumented runs
+    # because it has to observe its own restart; this is the opposite constraint
+    # — the node has to be ALIVE for the whole window, and the framework tears
+    # the instrumented process down when a method returns. Split into phases
+    # there would be no node in the window at all.
+    #
+    # ITS CLAIM IS NARROWED, and the narrowing is in the test, in the evidence
+    # line and in wallet-node-device-tests.md §4's table. ChannelView carries no
+    # monitor update id and ldk-node offers none, so "channel-monitor freshness"
+    # as `wallet-core-spec` §6 words it is not observable through
+    # LightningNodePort. What this measures is three proxies: the same channel
+    # still ready and usable, the peer connected again, and the node's chain view
+    # advanced past blocks mined while it was idle. A row that kept the spec's
+    # wording over a test measuring proxies would be the dishonest one.
+    #
+    # A red K7 phase 2 makes this unrunnable rather than merely unreadable, and
+    # this line is what turns that into "did not run at all" instead of silence.
+    f"{APP_PACKAGE}.K8ChannelFreshnessTest#theChannelSurvivesAForcedIdleWindowAndTheNodeCatchesUp",
 }
 
 CANARY = f"{APP_PACKAGE}.RegtestEnvironmentTest#recordTheEnvironmentThisRunSaw"
