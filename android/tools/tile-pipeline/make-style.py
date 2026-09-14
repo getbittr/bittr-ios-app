@@ -56,6 +56,16 @@ LABEL_HALO = "#F2EFE9"
 FONT_REGULAR = ["Noto Sans Regular"]
 FONT_EMPHASIS = ["Noto Sans Bold"]
 
+# Values from OpenMapTilesSchema$Transportation$FieldValues in the pinned
+# planetiler jar, read rather than remembered. There is no "residential" — the
+# schema folds residential, unclassified and living_street into "minor", so a
+# filter naming it matches nothing and quietly narrows the map. `pedestrian` is
+# named on purpose: the Zurich Niederdorf and the Bern old town are pedestrian
+# streets, and those are exactly the addresses this map is asked about.
+MAJOR_ROAD_CLASSES = ["motorway", "trunk", "primary", "secondary"]
+MINOR_ROAD_CLASSES = ["minor", "service", "pedestrian"]
+ROAD_CLASSES = MAJOR_ROAD_CLASSES + MINOR_ROAD_CLASSES
+
 
 def style(version):
     base = f"{HOST}/basemap/{version}"
@@ -147,13 +157,18 @@ def layers():
         },
         # Roads in two passes, casing under fill, so junctions read as junctions
         # rather than as overlapping strokes.
+        #
+        # The casing names the same classes the two fill layers below do, rather
+        # than excluding a few. `transportation` also carries rail, tram, subway,
+        # funicular, ferry and footways, and an exclusion list drew a casing under
+        # all of them with no fill on top — a railway rendered as a fat grey road.
         {
             "id": "road-casing",
             "type": "line",
             "source": "basemap",
             "source-layer": "transportation",
             "minzoom": 9,
-            "filter": ["!in", "class", "ferry", "path", "track"],
+            "filter": ["in", "class"] + ROAD_CLASSES,
             "layout": {"line-cap": "round", "line-join": "round"},
             "paint": {
                 "line-color": ROAD_CASING,
@@ -166,7 +181,7 @@ def layers():
             "source": "basemap",
             "source-layer": "transportation",
             "minzoom": 12,
-            "filter": ["in", "class", "minor", "service", "residential"],
+            "filter": ["in", "class"] + MINOR_ROAD_CLASSES,
             "layout": {"line-cap": "round", "line-join": "round"},
             "paint": {
                 "line-color": ROAD_MINOR,
@@ -179,7 +194,7 @@ def layers():
             "source": "basemap",
             "source-layer": "transportation",
             "minzoom": 6,
-            "filter": ["in", "class", "motorway", "trunk", "primary", "secondary"],
+            "filter": ["in", "class"] + MAJOR_ROAD_CLASSES,
             "layout": {"line-cap": "round", "line-join": "round"},
             "paint": {
                 "line-color": ROAD_MAJOR,
