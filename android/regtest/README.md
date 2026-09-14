@@ -99,11 +99,21 @@ instrument is N repetitions with a stated confidence — *not* a seam, and **not
 silence, because a single run that happened to miss the window is the exact
 false-green this whole document is about.
 
-`K7InterruptedPaymentTest` — **not written yet**; see
-`android/docs/wallet-node-device-tests.md` §3 — has to say which of the two
-windows it entered, per run, in its evidence line. A run that reports the narrow
-window is not a K7 result, and a test that cannot tell you which one it got is
-not a K7 test.
+`K7InterruptedPaymentTest` — **written, not yet run**; see
+`android/docs/wallet-node-device-tests.md` §3 — says which of the two windows it
+entered, per run, in its evidence line. A run that reports the narrow window is
+not a K7 result, and a test that cannot tell you which one it got is not a K7
+test.
+
+**It goes further than reporting, because reporting alone is not enough.** A
+phase that returns straight after `send` would be torn down *somewhere*, most
+likely in the narrow window, and would then honestly report a result that is not
+a K7 result — which is a truthful evidence line under a green row, and that is
+the shape of false green this file exists to refuse. So the narrow window is
+refused rather than labelled: `android/scripts/k7-interrupted-payment.sh` polls
+`lncli lookupinvoice` and writes a hand-off only on `ACCEPTED`, phase 3 blocks on
+that hand-off and asserts on its contents, and a run where the HTLC never reaches
+LND fails in phase 3 and never reaches the kill at all.
 
 ## Costs, so nobody is surprised by them
 
