@@ -54,14 +54,41 @@ on:
         type: boolean
         default: false
 
-# NOT on: push. Deliberate, and it is the difference between this file and every
-# other workflow here.
+  # THE ESCAPE HATCH. Not convenience — without it this workflow cannot run at all.
+  #
+  # Both triggers above are dead off the default branch. `schedule:` only ever
+  # fires from the default branch, and `workflow_dispatch:` does not offer a
+  # button until the file reaches it either — GitHub does not list a workflow it
+  # has never seen there, so there is nothing to dispatch and no ref picker to
+  # point at this branch. The API agrees: asking for this workflow's runs by
+  # filename returns 404, not an empty list.
+  #
+  # The default branch here is `master`, and Android work merges to
+  # `android-parity`, which is not it. So "wait for the merge" does not end this
+  # wait; it is the wrong door. Until one of those two facts changes, pushing a
+  # `regtest-run/**` branch is the ONLY way to produce a K7/K8 verdict.
+  #
+  # This is the same hatch k1-keystore-lockscreen.yml opens, for the same reason
+  # and in the same words — BIT-18 would otherwise have traded "no device" for
+  # "no button". android/docs/ci-evidence.md documents the pattern for BIT-5.
+  push:
+    branches:
+      - 'regtest-run/**'
+
+# Note what this does NOT add, because the distinction is the whole design.
 #
-# A push-triggered version of this job would be a ~35-minute emulator job with a
-# Rust build in front of it, on the one runner that also serves three other
-# emulator jobs. What it would buy is catching a regression a few hours earlier
-# than the nightly does. What it would cost is every wallet push waiting behind
-# it. Use workflow_dispatch while iterating on the suite itself.
+# There is still no trigger that fires on ordinary wallet work — nothing keyed on
+# `android/**` or on this file. That version of the idea stays rejected: it would
+# put a ~35-minute emulator job with a Rust build in front of it on the one runner
+# that also serves three other emulator jobs, so every wallet push would queue
+# behind it, to catch a regression a few hours earlier than the nightly does.
+#
+# The hatch above cannot do that. It fires only when someone pushes a branch
+# named to ask for it, which is a deliberate request and never an ordinary
+# branch. Feature branches never pay for it.
+#
+# `regtest-run/**` carries no inputs, so `keep_network` reads as empty and the
+# containers are torn down — the right default for a requested evidence run.
 
 permissions:
   contents: read
