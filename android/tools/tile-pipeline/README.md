@@ -9,6 +9,7 @@ The pipeline behind `android/docs/tile-pipeline.md`. That document decides *what
 | `make-buffer.py` | Switzerland + 25 km, in metres, as GeoJSON (for osmium) and `.poly` (for planetiler) |
 | `merge-mbtiles.py` | Joins the z0–z5 planet pass to the z6–z14 Switzerland pass |
 | `inspect-tile.py` | Reads layer names and feature counts out of given tiles — how the claims in §1 were checked rather than assumed |
+| `make-world-places.py` | The z0–z5 world city labels planetiler will not emit. `--selftest` decodes its own output and checks each label's position |
 | `make-style.py` | Generates the style document `MapBasemap.STYLE_URI` points at |
 | `check-style-hosts.py` | Fails if the built style would send the client to a non-bittr host. Run by both scripts below; `--selftest` proves it both ways |
 | `verify-deploy.sh` | Client-side checks against a deployed version, before its URL is handed to the app |
@@ -47,12 +48,34 @@ python3 inspect-tile.py combined.mbtiles 14 8590 5745
 python3 inspect-tile.py combined.mbtiles 4 3 6 4 14 6 3 7 4
 ```
 
-What the world band contains is worth knowing before someone reports it as a bug:
-coastlines, water and landcover everywhere; country boundaries everywhere through
-z4, and from z5 only where the OSM extract reaches; city names only where the OSM
-extract reaches. That last one is a property of the schema, not of this pipeline —
-the profile derives `place` from OSM and uses Natural Earth only to rank it. §1 of
-the document records the same thing.
+What the world band contains, and where it comes from, because two of these arrive
+from different places than you would guess:
+
+| At world zooms | Source | Coverage |
+|---|---|---|
+| Coastlines, water, landcover | Natural Earth, via planetiler | Everywhere |
+| Country boundaries | Natural Earth through z4, OSM from z5 | Everywhere to z4; from z5 only where the extract reaches |
+| City names, `place` layer | OSM, via planetiler | **Only where the extract reaches** — i.e. Switzerland |
+| City names, `place_world` layer | Natural Earth, via `make-world-places.py` | Everywhere, z0–z5 |
+
+The third row is the one that surprises. planetiler's `Place` layer handles
+`ne_10m_populated_places` with a single `PointIndex.put` — Natural Earth is a lookup
+table for *ranking* cities that came from OSM, and never becomes a tile feature. So a
+`place` layer built from a Swiss extract names Switzerland and nothing else, however
+much of the world the band covers. Measured, not inferred: before the fourth row
+existed, a z2 tile over the Americas had zero place strings and a z2 tile over the
+Atlantic had 118, every one of them Switzerland, Liechtenstein, Aosta or Vorarlberg in
+a different language.
+
+That is why the fourth row exists. §1 specifies the low band as "coastlines, borders,
+major cities", and the first three rows deliver two of those three.
+
+Checking it after a build:
+
+```sh
+# The Americas at z2: place_world present, place absent. Both are correct.
+python3 inspect-tile.py combined.mbtiles 2 0 1
+```
 
 ## Deploy
 

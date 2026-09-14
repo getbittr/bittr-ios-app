@@ -385,6 +385,26 @@ jobs:
           python3 android/tools/tile-pipeline/make-style.py 0000-00 "$RUNNER_TEMP/style.json"
           python3 android/tools/tile-pipeline/check-style-hosts.py "$RUNNER_TEMP/style.json"
 
+      - name: Check the world city labels land where the cities are
+        # make-world-places.py hand-rolls an MVT writer, because planetiler will not
+        # emit Natural Earth's populated places and the low band is built from a Swiss
+        # extract — so without it the world band names Switzerland and nothing else.
+        #
+        # Hand-rolled protobuf is the reason this has a CI step of its own. A tile
+        # that decodes, reports the right layer name and holds the right feature count
+        # can still put every label in the wrong place, and nothing downstream looks:
+        # verify-deploy.sh would pass, the style would render, and the defect would be
+        # "the map looks subtly wrong" — found by a person, or not at all.
+        #
+        # The self-test encodes six cities on five continents, decodes its own output
+        # and fails if any label is further from its city than that zoom's
+        # quantisation step. Verified against four injected defects — a flipped
+        # Mercator sign, swapped x/y, an unflipped TMS row, and a 2% scale error on
+        # the pixel offset, which is the one an eyeball would not catch.
+        #
+        # No Natural Earth download needed: the cases are synthetic coordinates.
+        run: python3 android/tools/tile-pipeline/make-world-places.py --selftest
+
       - name: Check generated test IDs are in sync
         # The generated TestIDs.swift/.kt are committed for diff visibility. If
         # someone edits test-ids.json without regenerating, iOS and Android drift

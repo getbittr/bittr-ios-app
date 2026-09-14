@@ -254,11 +254,44 @@ def layers():
                 "text-halo-width": 1.2,
             },
         },
+        # World cities, z0-z5 only. A separate layer from `label-place` below because
+        # it is a separate source layer: planetiler's OpenMapTiles profile never emits
+        # Natural Earth populated places as features -- it indexes them to *rank* OSM
+        # cities -- so a `place` layer built from a Swiss extract names Switzerland and
+        # nothing else at world zooms. make-world-places.py fills that in as
+        # `place_world`. See section 1 on why the low band exists at all.
+        {
+            "id": "label-place-world",
+            "type": "symbol",
+            "source": "basemap",
+            "source-layer": "place_world",
+            "maxzoom": 6,
+            "layout": {
+                "text-field": ["get", "name"],
+                "text-font": FONT_EMPHASIS,
+                # Natural Earth's own scalerank, so the biggest cities are also the
+                # largest labels rather than every city sharing one size.
+                "text-size": [
+                    "interpolate", ["linear"], ["zoom"],
+                    1, ["case", ["<=", ["get", "rank"], 1], 12, 10],
+                    5, ["case", ["<=", ["get", "rank"], 3], 14, 11],
+                ],
+            },
+            "paint": {
+                "text-color": LABEL,
+                "text-halo-color": LABEL_HALO,
+                "text-halo-width": 1.4,
+            },
+        },
         {
             "id": "label-place",
             "type": "symbol",
             "source": "basemap",
             "source-layer": "place",
+            # z6 up, where the OSM extract actually has data. Without this the band
+            # below would label Zurich twice between z0 and z5, once from each source,
+            # and MapLibre has no reason to collide-suppress across two layers.
+            "minzoom": 6,
             "filter": ["in", "class", "country", "state", "city", "town", "village"],
             "layout": {
                 "text-field": ["get", "name"],

@@ -120,12 +120,18 @@ step "render z0-z5 (planet)"
 # Natural Earth and the global water-polygon shapefile carry the planet-wide part
 # of this band: coastlines, water, landcover, and country boundaries through z4.
 #
-# The same merged extract is fed in here rather than a token one, and that is not
-# arbitrary. The openmaptiles profile takes the `place` layer from OSM and uses
-# Natural Earth's populated places only to *rank* what OSM already gave it, so
-# "no OSM here" means "no city name here". Built against a token input, the world
-# band came out with no city labels anywhere at all. Feeding it the real extract
-# costs nothing and puts names on the part of the world these users pan around.
+# The same merged extract is fed in here rather than a token one. The openmaptiles
+# profile takes the `place` layer from OSM and uses Natural Earth's populated places
+# only to *rank* what OSM already gave it, so "no OSM here" means "no city name here",
+# and a token input produced a world band with no city labels anywhere at all.
+#
+# The real extract does NOT fix that, which is worth stating plainly because the
+# feature count says otherwise. It raises the world band from nine place features to a
+# few hundred, and every one of them is still inside the extract: Switzerland,
+# Liechtenstein, Aosta and Vorarlberg, in forty languages. Measured by reading the
+# string pool of the `place` layer -- z2 over the Americas has zero. The world city
+# labels section 1 asks for come from make-world-places.py below, which is the only
+# way to get them without a planet-sized OSM input.
 #
 # What that still does not buy, measured rather than assumed: country boundaries
 # outside the extract stop at z4, because the profile switches the boundary layer
@@ -137,9 +143,34 @@ java -Xmx3g -jar "$BIN_DIR/planetiler.jar" \
   --minzoom=0 --maxzoom=5 \
   --download --force
 
+step "world city labels (z0-z5)"
+# Section 1 specifies the low band as "coastlines, borders, major cities". The pass
+# above delivers the first two worldwide from Natural Earth; it cannot deliver the
+# third, for the reason in make-world-places.py -- planetiler indexes NE populated
+# places to rank OSM cities and never emits them as features.
+#
+# So they are built here, straight from the Natural Earth table planetiler has already
+# downloaded as a build dependency. 7,342 cities, ~230 KB of tiles for the whole world.
+NE_ZIP="$WORKDIR/data/sources/natural_earth_vector.sqlite.zip"
+if [ ! -f "$NE_ZIP" ]; then
+  echo "missing $NE_ZIP — planetiler downloads it; run the render steps first" >&2
+  exit 1
+fi
+# Unpacked to 850 MB, used, and removed in the same step: this runs on a box where
+# the extracts and the two planetiler temp directories are already the constraint.
+unzip -o -q -j "$NE_ZIP" 'packages/natural_earth_vector.sqlite' -d "$WORKDIR/ne"
+python3 "$SCRIPT_DIR/make-world-places.py" \
+  "$WORKDIR/ne/natural_earth_vector.sqlite" "$WORKDIR/world-places.mbtiles"
+rm -rf "$WORKDIR/ne"
+
 step "combine and convert"
-python3 "$SCRIPT_DIR/merge-mbtiles.py" \
-  "$WORKDIR/combined.mbtiles" "$WORKDIR/low.mbtiles" "$WORKDIR/high.mbtiles"
+# --union, not the default replace. make-world-places.py writes `place_world` into the
+# same z0-z5 tiles the low pass filled with coastlines and landcover, so replacing
+# would hand back a world with city names and nothing under them. The two passes below
+# it are still disjoint by zoom, so --union changes nothing for them.
+python3 "$SCRIPT_DIR/merge-mbtiles.py" --union \
+  "$WORKDIR/combined.mbtiles" \
+  "$WORKDIR/low.mbtiles" "$WORKDIR/world-places.mbtiles" "$WORKDIR/high.mbtiles"
 "$BIN_DIR/pmtiles" convert "$WORKDIR/combined.mbtiles" "$WORKDIR/ch.pmtiles"
 
 step "style and glyphs"
