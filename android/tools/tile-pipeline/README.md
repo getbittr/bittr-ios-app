@@ -120,6 +120,45 @@ A rebuild writes a new directory and `MapBasemap.STYLE_URI` moves in one commit.
 old archive stays cacheable, a refresh cannot half-land, and a bad build is a one-line
 rollback — §2 again.
 
+### Keeping the old directories
+
+§2 "Bucket retention" decides this; the operational form is three rules:
+
+- **No lifecycle expiration rule on `/basemap/`.** Deleting a superseded prefix costs a
+  2h15m rebuild to undo, so deletion is manual or it does not happen.
+- **Keep the pinned version and the two before it.** A refresh only adds; version N−3
+  becomes eligible for deletion when N lands. Three versions is under 2 GiB.
+- **The deploy identity cannot delete or overwrite.** Create-only on `/basemap/*`;
+  deletion needs a separate human-held credential. The rebuild is unattended and runs
+  for over two hours, and "it cannot destroy what is currently served" should not rest
+  on the script being right.
+
+On local disk behind the nginx config below, that is `chattr +i` or simply a `/srv/tiles`
+the deploy user can create in but not unlink from. On object storage it is a bucket
+policy denying `DeleteObject` and `PutObject` overwrite to the deploy key.
+
+**Re-running a build in the same month is the thing this protects against.**
+`BASEMAP_VERSION` defaults to `$(date -u +%Y-%m)`, and an out-of-band rebuild fixing a
+bad build lands in the same calendar month as the build it is fixing — so the default
+aims it at the prefix currently being served. Set the version explicitly:
+
+```sh
+BASEMAP_VERSION=2026-09-14 ./build-basemap.sh /var/tmp/basemap-build
+```
+
+`build-basemap.sh` refuses to start when the prefix is already live, which needs to be
+told where "live" is:
+
+```sh
+BASEMAP_SERVE_BASE=https://tiles.getbittr.com ./build-basemap.sh /var/tmp/basemap-build
+```
+
+It checks before downloading anything, because a collision discovered after the render
+has already cost the two hours. Unreachable, or any status that is neither the archive
+nor a clean 404, also stops the build — you asked for the check, so a check that could
+not run is not a cleared one. Leave `BASEMAP_SERVE_BASE` unset for the first build,
+when there is nothing live to collide with.
+
 ### nginx
 
 This is the whole configuration. `access_log off` is not a tidiness preference, it is

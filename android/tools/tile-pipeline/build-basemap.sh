@@ -62,6 +62,66 @@ need unzip         # for the glyph set
 
 step() { printf '\n=== %s\n' "$1"; }
 
+# Resolved here rather than at the staging step below, because the check under it
+# is worthless once the render has already run. §2 "Bucket retention": the version
+# prefix is immutable and the previous ones are the rollback target, so a build
+# that would land on a prefix already being served is a build that destroys the
+# thing §2 promises — and the default below walks straight into it. An out-of-band
+# rebuild fixing a bad build happens in the same calendar month as the build it is
+# fixing, so `date +%Y-%m` hands it the live prefix. Such a rebuild sets
+# BASEMAP_VERSION=<yyyy-mm-dd> explicitly.
+VERSION="${BASEMAP_VERSION:-$(date -u +%Y-%m)}"
+echo "version prefix: $VERSION"
+
+# Only checkable if we are told where "served" is; unset is the normal case for a
+# first build, when nothing is live to collide with. Deliberately not defaulted to
+# the production host: a script that reaches for tiles.getbittr.com on its own is
+# one that behaves differently on a machine that can resolve it.
+if [ -n "${BASEMAP_SERVE_BASE:-}" ]; then
+  probe="${BASEMAP_SERVE_BASE%/}/basemap/$VERSION/ch.pmtiles"
+  # Status and transport failure kept apart. `|| echo 000` on the substitution
+  # concatenates curl's own "000" with the fallback and yields "000\n000", which
+  # matches no arm and falls through to the "not already being served" one — i.e.
+  # a host that could not be reached at all reads as a cleared check. Tested.
+  code="$(curl -sS -o /dev/null -w '%{http_code}' -I "$probe" 2>/dev/null)" || code=""
+  case "$code" in
+    200|206)
+      cat >&2 <<EOF
+refusing to build version '$VERSION': $probe already exists.
+
+That prefix is immutable and may be the rollback target for whatever is pinned in
+MapBasemap.STYLE_URI. Overwriting it is the one deletion tile-pipeline.md §2 does
+not permit, and with the create-only deploy credential §2 asks for, the write would
+fail after this build has already run for two hours.
+
+Pick a new prefix and rerun:  BASEMAP_VERSION=$(date -u +%Y-%m-%d) $0 $*
+EOF
+      exit 1 ;;
+    ""|000)
+      cat >&2 <<EOF
+refusing to build: $probe could not be reached, so the collision check did not run.
+
+You set BASEMAP_SERVE_BASE, which says something is live there — either it is down,
+which is worth knowing before spending 2h15m producing something to deploy to it, or
+the URL is wrong, in which case this check was never going to fire. Neither is a
+state to start an unattended build in.
+
+Unset BASEMAP_SERVE_BASE to build without the check.
+EOF
+      exit 1 ;;
+    404|403|410)
+      echo "  ok    $VERSION is not already being served (HTTP $code)" ;;
+    *)
+      # A 5xx, a redirect to a login page, anything else: the prefix may or may not
+      # be there and this cannot tell. Same reasoning as the unreachable arm.
+      echo "refusing to build: $probe answered HTTP $code, which is neither 'served' nor 'absent'." >&2
+      echo "Resolve that before building, or unset BASEMAP_SERVE_BASE to build without the check." >&2
+      exit 1 ;;
+  esac
+else
+  echo "  note  BASEMAP_SERVE_BASE unset; not checking whether '$VERSION' is already served"
+fi
+
 step "tools"
 if [ ! -f "$BIN_DIR/planetiler.jar" ]; then
   curl -fsSL -o "$BIN_DIR/planetiler.jar" \
@@ -176,8 +236,7 @@ python3 "$SCRIPT_DIR/merge-mbtiles.py" --union \
 step "style and glyphs"
 # The app is pointed at the style, not at the archive, so the deployable set is
 # three things and the archive is only one of them.
-VERSION="${BASEMAP_VERSION:-$(date -u +%Y-%m)}"
-STAGE="$WORKDIR/stage/basemap/$VERSION"
+STAGE="$WORKDIR/stage/basemap/$VERSION"   # VERSION resolved and collision-checked at the top
 mkdir -p "$STAGE"
 python3 "$SCRIPT_DIR/make-style.py" "$VERSION" "$STAGE/style.json"
 

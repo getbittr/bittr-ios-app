@@ -105,6 +105,58 @@ The new object is *produced* by a rebuild on the serving side, not uploaded from
 §4. That is why the rollback is worth having: re-pointing `STYLE_URI` at the previous
 version prefix is instant, whereas re-obtaining a superseded archive is another two hours.
 
+### Bucket retention: keep the rollback target, and never on a timer
+
+**Decided by the Backend & API Engineer, 2026-09-14.** The line above promises a one-line
+rollback, and that promise is only true while the object it rolls back *to* still exists.
+Once a deploy is a 2h15m rebuild rather than an upload, a superseded prefix is not
+cheaply regenerable, so deleting one converts the rollback from a commit into an
+afternoon. The policy follows from that and from nothing else:
+
+- **No object-lifecycle expiration rule on `/basemap/`, ever.** Not a long one either. A
+  lifecycle rule is the specific mechanism that deletes the rollback target silently, on a
+  day nobody is looking, and its whole appeal is that it needs no operator — which is the
+  property that makes it wrong here. Deletion is a manual step or it does not happen.
+- **Retain the pinned version and the two before it** — about 1.7 GiB, roughly a year of
+  history at §4's quarterly cadence. Nothing is deleted *by* a refresh; a refresh only
+  adds. Version N−3 becomes eligible for deletion when version N lands, so the eligible
+  prefix has been superseded for three quarters before anyone touches it.
+- **The pinned version is not deletable by the thing that deploys.** The credential
+  `build-basemap.sh` writes with gets create-only access to `/basemap/*` and no delete and
+  no overwrite; deletion needs a separate human-held credential. This is the one rule worth
+  spending a bucket policy on rather than a checklist: the rebuild is unattended and runs
+  for over two hours, so "the script cannot destroy what is currently being served" should
+  not depend on the script being correct.
+
+Why three versions and not two, which is what "keep the previous one" would give. Rollback
+exists for a bad build that the gates did not catch — `check-archive-coverage.py` and
+`verify-deploy.sh` run before the URL is handed over, so anything that survives them is by
+construction something only a user panning the map would see, and that arrives weeks late.
+By then an out-of-band rebuild (§4) may itself have landed and been pinned. With two
+versions retained, that fix occupies the rollback slot and the last *known-good* archive is
+the one that just aged out. Three keeps a known-good prefix behind the fix, which is the
+situation the rollback is for.
+
+**Size is not the constraint and should not be argued as one.** Three versions is under
+2 GiB of static objects against a rebuild that occupies a machine for 2h15m; no storage
+rate makes that trade close. The reason to bound retention at all is that an unbounded set
+of prefixes nobody reviews is its own small mess, not that the bytes matter.
+
+**A same-month rebuild is the first thing that would delete a rollback target**, before any
+retention rule gets a say. `build-basemap.sh` defaults `BASEMAP_VERSION` to
+`$(date -u +%Y-%m)`, and an out-of-band rebuild fixing a bad build happens, almost by
+definition, in the same calendar month as the build it is fixing — so the default sends it
+straight at the prefix currently being served. **An out-of-band rebuild sets
+`BASEMAP_VERSION=<yyyy-mm-dd>` explicitly**, and the script now refuses to start a build
+whose version prefix is already live (`BASEMAP_SERVE_BASE`), because the create-only
+credential above would otherwise turn that collision into a failure discovered 2h15m in.
+
+**This does not contradict §5.** What is retained here is map geometry — the same OSM
+extract everyone else can download — and nothing about who fetched it. §5's "retain
+nothing" is about the access log, and the two sections stay consistent because the objects
+hold no user-derived data at all. Keeping four copies of a map of Switzerland discloses
+nothing about anybody.
+
 ### The edge is where this decision can be silently undone
 
 A CDN in front of the bucket is the obvious way to serve this, and it is the one step that
