@@ -212,6 +212,26 @@ build instead of quietly disarming the guard:
 Kotlin is read with comments stripped and string literals kept, so this document and the
 guard's own KDoc can name the hosts the rules exclude.
 
+"Basemap-shaped" in the second row means the tiles **and the assets the style pulls in
+behind them** — the glyph ranges and the sprite sheet. The glyphs were missing from that
+list until the BIT-139 owner pointed it out, and the omission mattered more than its size
+suggests: a style with text labels fetches `{fontstack}/{range}.pbf` once per label, so a
+foreign font host is a stream of requests carrying the client IP for as long as the map is
+on screen — the same disclosure §2 exists to prevent — and it contained no `{z}`, no
+`style.json` and no archive extension, so every check in the table passed it. `{fontstack}`
+and `{range}` are safe markers rather than lucky ones: the MapLibre style spec requires
+both tokens in a `glyphs` value, so no spelling of a glyphs URL avoids them. `sprite` has
+no required token and is matched on the path segment, which is convention rather than a
+closed set.
+
+One gap is left, and it is not closeable from here. These checks read the `android/` tree,
+and the style document the app fetches is **generated** by `android/tools/tile-pipeline/`
+and uploaded — it never exists in this repo, so no source scan can see its `glyphs` value.
+That check belongs in the pipeline, against the generated file rather than against a
+pattern: every `https?://` in the built `style.json` must be on a bittr host. It is three
+lines and it runs on the artefact, which is stronger than anything a regex over a build
+script could claim.
+
 `BasemapAttributionGuardTest` sits beside it and holds the *licence* rather than the host —
 the §3 credit, and specifically its "same commit" sequencing. The two are independent on
 purpose: every check in the table above passes on a basemap that is correctly hosted and

@@ -117,10 +117,39 @@ class TileHostGuardTest {
          *
          * Matching on "is it a URL" would drag in the BTCMap API, the bittr backend
          * and every documentation link. These markers are what a tile source looks
-         * like and nothing else does: an XYZ template, a style descriptor, or one of
-         * the two archive formats MapLibre can read directly.
+         * like and nothing else does.
+         *
+         * Two groups, because a basemap is not only its tiles:
+         *
+         * - **The imagery** — an XYZ template, a style descriptor, or one of the two
+         *   archive formats MapLibre can read directly.
+         * - **The assets the style pulls in behind it** — the glyph ranges and the
+         *   sprite sheet. These were missing until the BIT-139 owner pointed out that
+         *   the list above is one URL shape short of the claim this file makes, and
+         *   the gap mattered: a style with text labels fetches
+         *   `{fontstack}/{range}.pbf` *once per label*, so a foreign font host is not
+         *   an occasional request, it is a stream of them carrying the client IP —
+         *   the same disclosure the tile-host decision exists to prevent — and it
+         *   would have passed every scan below, because a glyphs URL contains no
+         *   `{z}`, no `style.json` and no archive extension.
+         *
+         * `{fontstack}` and `{range}` are safe markers rather than lucky ones: the
+         * MapLibre style spec *requires* both tokens in a `glyphs` value, so there is
+         * no spelling of a glyphs URL that avoids them. `sprite` has no required
+         * token — it is a base URL the renderer appends `.json` and `.png` to — so
+         * that one is matched on the path segment and is convention, not a closed set.
          */
-        val TILE_URL_MARKERS = listOf("{z}", "{x}", "{y}", "style.json", ".pmtiles", ".mbtiles")
+        val TILE_URL_MARKERS = listOf(
+            "{z}",
+            "{x}",
+            "{y}",
+            "style.json",
+            ".pmtiles",
+            ".mbtiles",
+            "{fontstack}",
+            "{range}",
+            "/sprite",
+        )
 
         /** `https://host/...` — group 1 is the host. */
         val URL: Pattern = Pattern.compile("""https?://([A-Za-z0-9._-]+)(/[^\s"'<>)]*)?""")
@@ -315,6 +344,33 @@ class TileHostGuardTest {
                 "documentation link in the tree becomes an offender.",
             emptyList<String>(),
             foreignBasemapUrls("""val api = "https://api.btcmap.org/v4/places""""),
+        )
+
+        assertEquals(
+            "The foreign-basemap detector no longer flags a foreign glyphs URL. This is the " +
+                "case the marker list missed until BIT-139 raised it, and it is the worst one " +
+                "to miss: the renderer fetches a glyph range per label, so this host would " +
+                "receive the client IP continuously while the map is on screen, and the " +
+                "hostname is the only thing any check here reads.",
+            listOf("https://fonts.example.net/{fontstack}/{range}.pbf"),
+            foreignBasemapUrls("""val g = "https://fonts.example.net/{fontstack}/{range}.pbf""""),
+        )
+
+        assertEquals(
+            "The foreign-basemap detector flags the glyphs URL the pipeline actually " +
+                "generates, which is on the bittr host. Widening the markers must not make " +
+                "the correct style fail its own guard.",
+            emptyList<String>(),
+            foreignBasemapUrls(
+                """val g = "https://tiles.getbittr.com/basemap/2026-09/glyphs/{fontstack}/{range}.pbf"""",
+            ),
+        )
+
+        assertEquals(
+            "The foreign-basemap detector no longer flags a foreign sprite sheet — the other " +
+                "asset a style pulls in that carries no tile-shaped marker.",
+            listOf("https://cdn.example.net/basemap/sprite"),
+            foreignBasemapUrls("""val s = "https://cdn.example.net/basemap/sprite""""),
         )
 
         assertEquals(

@@ -32,7 +32,21 @@ package com.bittr.android.feature.map
  */
 internal object MapBasemap {
 
-    /** Set by BIT-73, to a host bittr operates. Null means [offlineStyleJson]. */
+    /**
+     * Set by BIT-119, to a host bittr operates. Null means [offlineStyleJson].
+     *
+     * **A style document, not the archive.** MapLibre is handed a style and the style
+     * names the archive as one of its sources, so the value here is
+     * `https://tiles.getbittr.com/basemap/<yyyy-mm>/style.json` — not the
+     * `ch.pmtiles` sitting next to it, which is the plausible wrong paste because the
+     * archive is the thing the pipeline spends hours building. The version in the
+     * path is pinned deliberately: a refresh publishes a new folder, so it cannot
+     * half-land over a running app.
+     *
+     * `android/tools/tile-pipeline/build-basemap.sh` prints the exact line to paste
+     * as its last step. The credit in [MapCopy] must land in the same commit —
+     * `BasemapAttributionGuardTest` fails the build otherwise.
+     */
     val STYLE_URI: String? = null
 
     /**
