@@ -173,13 +173,18 @@ internal fun MapScreen(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(280.dp)
-                .padding(horizontal = BittrTokens.Spacing.gutter),
+                .padding(horizontal = BittrTokens.Spacing.gutter)
+                // On the frame, not on the basemap. MapLibre is an AndroidView, and an
+                // embedded View takes over the accessibility of its node — a testTag on
+                // that modifier never reached Maestro, so `map.mapView` was not found on
+                // a device while every JVM test (with a stub basemap) found it.
+                .testTag(TestID.Map.mapView),
         ) {
             basemap(
                 state.region,
                 state.visiblePlaces,
                 { moved -> state = state.copy(region = moved).withPlacesForRegion() },
-                Modifier.fillMaxSize().testTag(TestID.Map.mapView),
+                Modifier.fillMaxSize(),
             )
 
             if (state.isSyncing) {

@@ -48,6 +48,14 @@ class HistoryRowsTest {
     }
 
     @Test
+    fun `the balance conversion puts the symbol first and rounds to whole units`() {
+        // settings.yaml switches to CHF and then looks for "CHF" on Home — this label.
+        assertEquals("CHF 190", balanceFiat(294_424, FiatPrice(64_625.2, "CHF")))
+        assertEquals("€ 1 000", balanceFiat(100_000_000, FiatPrice(1_000.0, "€")))
+        assertNull(balanceFiat(294_424, price = null))
+    }
+
+    @Test
     fun `an on-chain transaction without a height is unconfirmed, a lightning payment never is`() {
         val rows = historyRows(listOf(activity(height = null), activity(lightning = true, height = null), activity(height = 90)), null, 100, utc)
         assertTrue(rows[0].unconfirmed)

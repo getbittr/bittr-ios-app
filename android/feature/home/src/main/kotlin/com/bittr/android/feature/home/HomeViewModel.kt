@@ -16,6 +16,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.merge
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
@@ -38,6 +39,8 @@ data class HomeUiState(
     val walletHasSynced: Boolean = false,
     val showSyncSpinner: Boolean = false,
     val balanceSats: Long? = null,
+    /** `conversionLabel` — the balance in the display currency, e.g. "CHF 190". */
+    val balanceFiat: String? = null,
     val history: List<HistoryRow> = emptyList(),
 )
 
@@ -60,11 +63,16 @@ class HomeViewModel @Inject constructor(
     private val price = MutableStateFlow<FiatPrice?>(null)
 
     init {
+        // Refetched when the history changes and when Settings switches the currency —
+        // Home stays on the back stack under Settings, so without the second trigger it
+        // would keep showing the old currency until the next transaction.
         viewModelScope.launch {
-            overview.overview
-                .map { it.hasSynced to it.transactions }
-                .distinctUntilChanged()
-                .collect { (synced, _) -> if (synced) prices.current()?.let { price.value = it } }
+            merge(
+                overview.overview.map { it.hasSynced to it.transactions }.distinctUntilChanged(),
+                prices.currencyChanges,
+            ).collect {
+                if (overview.overview.value.hasSynced) prices.current()?.let { price.value = it }
+            }
         }
     }
 
@@ -74,6 +82,7 @@ class HomeViewModel @Inject constructor(
             walletHasSynced = wallet.hasSynced,
             showSyncSpinner = wallet.hasNode && !wallet.hasSynced,
             balanceSats = if (wallet.hasSynced) wallet.totalSatoshis else null,
+            balanceFiat = if (wallet.hasSynced) balanceFiat(wallet.totalSatoshis, price) else null,
             history = if (wallet.hasSynced) historyRows(wallet.transactions, price, wallet.currentHeight) else emptyList(),
         )
     }.stateIn(

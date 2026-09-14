@@ -177,6 +177,7 @@ internal fun HomeScreen(
         HomeHeader(
             showSyncSpinner = state.showSyncSpinner,
             balanceSats = state.balanceSats,
+            balanceFiat = state.balanceFiat,
             onMap = onMap,
             onCurrency = onCurrency,
             onSend = guarded(onSend),
@@ -242,6 +243,7 @@ internal fun HomeScreen(
 private fun HomeHeader(
     showSyncSpinner: Boolean,
     balanceSats: Long?,
+    balanceFiat: String? = null,
     onMap: () -> Unit,
     onCurrency: () -> Unit,
     onSend: () -> Unit,
@@ -343,6 +345,16 @@ private fun HomeHeader(
                                 .testTag(TestID.Home.balanceCardButton),
                         )
                         BalanceLabel(balance = balanceText(balanceSats), dimmedColor = colors.balanceDimmed)
+                    }
+                    // `conversionLabel`, under the balance: "CHF 190".
+                    balanceFiat?.let {
+                        Text(
+                            text = it,
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = colors.mutedOnCanvas,
+                            textAlign = TextAlign.Center,
+                            modifier = Modifier.fillMaxWidth(),
+                        )
                     }
                 }
 

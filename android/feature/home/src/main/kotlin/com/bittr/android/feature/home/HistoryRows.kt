@@ -55,6 +55,13 @@ internal fun historyRows(
     }
 }
 
+/**
+ * `updateConversionLabel(btcValue:)` (`LoadWalletData.swift:375`): the whole balance in the
+ * display currency, symbol first and rounded to whole units — "CHF 190". Null with no price.
+ */
+internal fun balanceFiat(totalSats: Long, price: FiatPrice?): String? =
+    price?.let { "${it.symbol} ${groupThousands((totalSats / SATS_PER_BITCOIN * it.pricePerBitcoin).roundToLong())}" }
+
 /** `addSpaces()`: thousands grouped with a space. */
 internal fun groupThousands(value: Long): String =
     value.toString().reversed().chunked(3).joinToString(" ").reversed()
