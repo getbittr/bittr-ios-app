@@ -24,7 +24,14 @@ import com.bittr.android.core.network.okhttp.OkHttpBittrHttpClient
 import com.bittr.android.core.wallet.WalletState
 import com.bittr.android.feature.academy.AcademyScreen
 import com.bittr.android.receive.ReceiveViewModel
+import com.bittr.android.core.common.destination.Destination
+import com.bittr.android.feature.send.SendQuestionScreen
+import com.bittr.android.feature.send.SendRoute
+import com.bittr.android.send.SendViewModel
 import com.bittr.android.feature.home.HomeScreen
+import com.bittr.android.feature.home.MoveScreen
+import com.bittr.android.feature.home.TransactionScreen
+import com.bittr.android.feature.home.TransactionViewModel
 import com.bittr.android.feature.map.MapScreen
 import com.bittr.android.feature.scanner.ScannerScreen
 import com.bittr.android.feature.settings.DeviceScreen
@@ -79,6 +86,34 @@ object Routes {
 
     /** Receive (`HomeToReceive`). Reached from Home once the wallet has synced. */
     const val RECEIVE = "receive"
+
+    /** Send (`HomeToSend`), and the "why a limit for instant payments?" card behind it. */
+    const val SEND = "send"
+    const val SEND_QUESTION = "send/question"
+
+    /** The balance screen (`MoveViewController`), from Home's balance card. */
+    const val MOVE = "move"
+
+    /** A transaction (`TransactionViewController`), by id — from Home's history and after a send. */
+    const val TRANSACTION = "transaction/{${TransactionViewModel.ID_ARG}}"
+
+    fun transaction(id: String) = "transaction/$id"
+
+    /** The block explorer page for an on-chain transaction (`TransactionToWebsite`). */
+    const val EXPLORER_ARG = "txid"
+    const val EXPLORER = "explorer/{$EXPLORER_ARG}"
+
+    fun explorer(txId: String) = "explorer/$txId"
+}
+
+/**
+ * `EnvironmentConfig.explorerURL`: the regtest Esplora in development, mempool.space in
+ * production. The development host is the node's own chain source without its `/api`, so
+ * it is not written down twice.
+ */
+private fun explorerUrl(txId: String): String {
+    val base = if (BuildConfig.DEBUG) BuildConfig.LDK_CHAIN_SOURCE_URL.removeSuffix("/api") else "https://mempool.space"
+    return "$base/tx/$txId?mode=details"
 }
 
 /**
@@ -197,13 +232,14 @@ fun BittrNavHost(
                 onMap = { navController.navigate(Routes.MAP) },
                 onCurrency = { navController.navigate(Routes.VALUE) },
                 onAcademy = { navController.navigate(Routes.ACADEMY) },
+                onTransaction = { id -> navController.navigate(Routes.transaction(id)) },
                 // Wave 2, behind BIT-6. Reached only once `walletHasSynced` is true,
                 // so today Home's own guard answers first and these are unreachable —
                 // they are wired anyway so that flipping that flag does not leave a
                 // dead button behind it.
-                onSend = { notPorted = "Sending bitcoin" },
+                onSend = { navController.navigate(Routes.SEND) },
                 onReceive = { navController.navigate(Routes.RECEIVE) },
-                onBalanceDetails = { notPorted = "Your balance" },
+                onBalanceDetails = { navController.navigate(Routes.MOVE) },
                 // Wave 3. Not guarded by the sync on iOS either — see HomeScreen.
                 onBuy = { notPorted = "Buying bitcoin" },
             )
@@ -228,6 +264,53 @@ fun BittrNavHost(
         composable(Routes.RECEIVE) {
             val receive: ReceiveViewModel = hiltViewModel()
             ReceiveRoute(source = receive.source, onDown = { navController.popBackStack() })
+        }
+
+        composable(Routes.SEND) { entry ->
+            val send: SendViewModel = hiltViewModel()
+            // What the scanner put on this entry's saved state on its way out.
+            val scanned by entry.savedStateHandle.getStateFlow<Destination?>(ScannerResult.KEY, null).collectAsState()
+            SendRoute(
+                source = send.source,
+                onDown = { navController.popBackStack() },
+                onOpenScanner = { navController.navigate(Routes.SCANNER) },
+                onOpenTransaction = { id -> navController.navigate(Routes.transaction(id)) },
+                onOpenLightningQuestion = { navController.navigate(Routes.SEND_QUESTION) },
+                scanned = scanned,
+                onScannedConsumed = { ScannerResult.consume(entry.savedStateHandle) },
+            )
+        }
+
+        composable(Routes.MOVE) {
+            MoveScreen(
+                onDown = { navController.popBackStack() },
+                onSend = { navController.navigate(Routes.SEND) },
+                onReceive = { navController.navigate(Routes.RECEIVE) },
+                // The same lightning-connections card Device details opens.
+                onLightningQuestion = { navController.navigate(Routes.LIGHTNING_QUESTION) },
+            )
+        }
+
+        composable(Routes.SEND_QUESTION) {
+            SendQuestionScreen(onDown = { navController.popBackStack() })
+        }
+
+        composable(
+            route = Routes.TRANSACTION,
+            arguments = listOf(navArgument(TransactionViewModel.ID_ARG) { type = NavType.StringType }),
+        ) {
+            TransactionScreen(
+                onDown = { navController.popBackStack() },
+                onOpenExplorer = { txId -> navController.navigate(Routes.explorer(txId)) },
+            )
+        }
+
+        composable(
+            route = Routes.EXPLORER,
+            arguments = listOf(navArgument(Routes.EXPLORER_ARG) { type = NavType.StringType }),
+        ) { entry ->
+            val txId = entry.arguments?.getString(Routes.EXPLORER_ARG).orEmpty()
+            WebsiteScreen(url = explorerUrl(txId), onClose = { navController.popBackStack() })
         }
 
         composable(Routes.SCANNER) {

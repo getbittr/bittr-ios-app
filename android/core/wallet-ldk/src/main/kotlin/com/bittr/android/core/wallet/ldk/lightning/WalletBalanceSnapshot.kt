@@ -25,6 +25,12 @@ data class WalletNodeReading(
     val balances: BalanceView,
     /** `listPayments()`. */
     val payments: List<PaymentView>,
+    /**
+     * `status().currentBestBlock.height` — iOS's `bittrWallet.currentHeight`, which the
+     * history and the transaction screen count confirmations from. Null when the status
+     * read failed; nothing about the balance depends on it.
+     */
+    val bestBlockHeight: Int? = null,
 )
 
 /**

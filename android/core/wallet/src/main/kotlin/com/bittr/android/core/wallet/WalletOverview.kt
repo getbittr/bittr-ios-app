@@ -26,6 +26,17 @@ data class WalletOverview(
     val satoshisLightning: Long = 0L,
     val pendingClosureSatoshis: Long = 0L,
     val transactions: List<WalletActivity> = emptyList(),
+    /** The chain tip the node last saw — `bittrWallet.currentHeight`. Null before a reading. */
+    val currentHeight: Int? = null,
+    /**
+     * `satoshisOnchainSpendable` — what ldk-node will let leave on-chain, which excludes the
+     * anchor-channel reserve. Send checks amounts and clamps drains against it.
+     */
+    val satoshisOnchainSpendable: Long = 0L,
+    /** The active channel's outbound capacity, in sats — what Send can pay over Lightning. */
+    val lightningSendableSats: Long = 0L,
+    /** `lightningChannels.count` — Move explains channels differently when there is none. */
+    val channelCount: Int = 0,
 ) {
 
     /**

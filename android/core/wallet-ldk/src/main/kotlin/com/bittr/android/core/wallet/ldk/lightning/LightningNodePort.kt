@@ -103,6 +103,15 @@ interface LightningNodePort {
      */
     fun readWalletState(): WalletNodeReading?
 
+    /**
+     * `syncWallets()` (`BitcoinManager.swift`) — sync the node's on-chain and Lightning
+     * wallets now, so a payment just sent shows up in [listPayments] without waiting for
+     * the background sync.
+     *
+     * @throws NodeUnavailableException when no node is running.
+     */
+    fun syncWallets()
+
     // ---- Peers. ----
 
     /** `connect(nodeId:address:persist:)` (`BitcoinManager.swift:457–463`). */

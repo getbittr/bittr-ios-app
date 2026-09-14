@@ -34,4 +34,49 @@ internal object HomeStrings {
     const val SYNCING_WALLET_2 = "Please wait a moment while we're syncing your wallet."
 
     const val OKAY = "Okay"
+
+    // The transaction screen — `TransactionVCLanguage.swift`.
+    /** `transaction`. */
+    const val TRANSACTION = "transaction"
+    const val AMOUNT = "Amount"
+    const val TYPE = "Type"
+    const val REGULAR = "Regular"
+    const val INSTANT = "Instant"
+    /** `feespaid`. */
+    const val FEES_PAID = "Fees paid"
+    const val CONFIRMATIONS = "Confirmations"
+    const val UNCONFIRMED = "Unconfirmed"
+    const val ID = "ID"
+    /** `currentvalue`. */
+    const val CURRENT_VALUE = "Current value"
+    const val COPIED = "Copied"
+
+    // The balance screen — `MoveVCLanguage.swift` and `MoveViewController`'s alerts.
+    const val BALANCE = "balance"
+    /** `walletsubtitle`. */
+    const val WALLET_SUBTITLE = "These are the funds in your bittr wallet and lightning connection."
+    /** `total`. Lower case in the dictionary. */
+    const val TOTAL = "total"
+    const val CLOSE = "Close"
+    /** `lightningchannel` / `lightningchannels`. */
+    const val LIGHTNING_CONNECTIONS = "lightning connections"
+    /** `lightningexplanation1`. */
+    const val LIGHTNING_EXPLANATION_1 =
+        "To send and receive instant bitcoin payments, you need to have at least one lightning connection.\n\n" +
+            "To open a connection with bittr, buy bitcoin worth up to 100 CHF/EUR to receive a lightning connection. " +
+            "Check your wallet's Buy section or getbittr.com for all information."
+    const val INSTANT_PAYMENTS = "Instant payments"
+    /** `questionvc13`. */
+    const val QUESTION_VC_13 =
+        "Your bittr wallet consists of a bitcoin wallet (for regular payments) and a bitcoin lightning connection " +
+            "(for instant payments).\n\nYou don't currently have a lightning connection.\n\nTo open a connection with " +
+            "bittr, buy bitcoin worth between 20 and 100 €. Check your wallet's Buy section or getbittr.com for all information."
+    const val CONNECTION_CLOSED = "Connection closed"
+    const val PENDING_CLOSURE =
+        "Your lightning connection was recently closed. These funds (<pendingfunds> satoshis) will be deposited into your regular wallet."
+    const val VIEW_ACTIVE_CONNECTION = "View active connection"
+    const val SWAP = "Swap"
+
+    /** Not iOS copy: swaps (`SwapViewController`) are not ported yet. */
+    const val SWAP_NOT_ON_ANDROID = "Swapping between regular and instant isn't available on Android yet."
 }

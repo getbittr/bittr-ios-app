@@ -153,8 +153,11 @@ class LdkNodeSurface(
             channels = node.listChannels().map(LdkNodeMapping::toView),
             balances = LdkNodeMapping.toView(node.listBalances()),
             payments = node.listPayments().map(LdkNodeMapping::toView),
+            bestBlockHeight = runCatching { node.status().currentBestBlock.height.toInt() }.getOrNull(),
         )
     }
+
+    override fun syncWallets() = require("sync the wallets").syncWallets()
 
     // ---- Peers. ----
 

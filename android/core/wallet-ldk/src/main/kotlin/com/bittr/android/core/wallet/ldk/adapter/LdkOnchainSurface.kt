@@ -4,6 +4,7 @@ import com.bittr.android.core.wallet.ldk.lightning.NodeOnchainPort
 import com.bittr.android.core.wallet.ldk.lightning.NodeUnavailableException
 import com.bittr.android.core.wallet.ldk.lightning.OnchainAddressView
 import com.bittr.android.core.wallet.ldk.node.NodeLifecycle
+import org.lightningdevkit.ldknode.FeeRate
 import org.lightningdevkit.ldknode.OnchainPaymentInterface
 
 /**
@@ -77,4 +78,20 @@ class LdkOnchainSurface(
             )
         return OnchainAddressView(payment.newAddress())
     }
+
+    override fun sendToAddress(address: String, amountSats: Long, feeRateSatPerVb: ULong): String =
+        feeRate(feeRateSatPerVb).use { rate ->
+            payment("send on-chain").sendToAddress(address, amountSats.toULong(), rate)
+        }
+
+    override fun sendAllToAddress(address: String, feeRateSatPerVb: ULong): String =
+        feeRate(feeRateSatPerVb).use { rate ->
+            payment("send on-chain").sendAllToAddress(address, true, rate)
+        }
+
+    private fun payment(action: String): OnchainPaymentInterface =
+        onchain() ?: throw NodeUnavailableException("Cannot $action: no Lightning node is running.")
+
+    /** `FeeRate.fromSatPerVbUnchecked(satVb: max(rate, 1))` — never below 1 sat/vB. */
+    private fun feeRate(satPerVb: ULong): FeeRate = FeeRate.fromSatPerVbUnchecked(maxOf(satPerVb, 1uL))
 }

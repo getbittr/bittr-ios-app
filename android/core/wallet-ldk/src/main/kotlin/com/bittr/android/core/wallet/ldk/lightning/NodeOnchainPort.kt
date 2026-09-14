@@ -65,15 +65,12 @@ value class OnchainAddressView(val address: String)
  * through one object are still two things, and a caller that needs a receive
  * address should not be handed `forceCloseChannel`.
  *
- * ## Why there is no send
+ * ## Send
  *
- * ldk-node's on-chain surface also offers `sendToAddress` and
- * `sendAllToAddress`, and neither is here. Nothing in the app sends on-chain
- * today — `OnchainDrain` is BDK's, for the sweep — and K7 does not need to: the
- * host holds bitcoind and does all the sending. An unused method that moves
- * funds is a liability with no caller to justify it, and adding one later when
- * a screen needs it is a smaller change than explaining why this one shipped
- * untested. [newReceiveAddress] cannot move money.
+ * [sendToAddress] and [sendAllToAddress] are the Send screen's broadcast —
+ * `BitcoinManager.sendOnchainPayment` / `sendAllOnchainPayment`. BDK builds the
+ * previews the screen quotes from; ldk-node's wallet is the one that spends,
+ * because it is the one that knows which outputs back a channel reserve.
  *
  * ## Read or write
  *
@@ -95,4 +92,19 @@ interface NodeOnchainPort {
      *   one CI assembles and Maestro installs.
      */
     fun newReceiveAddress(): OnchainAddressView
+
+    /**
+     * Broadcast [amountSats] to [address] at [feeRateSatPerVb] (at least 1). Returns the txid.
+     *
+     * @throws NodeUnavailableException when no node is running.
+     */
+    fun sendToAddress(address: String, amountSats: Long, feeRateSatPerVb: ULong): String
+
+    /**
+     * Send everything spendable to [address], keeping the anchor-channel reserve
+     * (`retainReserve: true`, as iOS does). Returns the txid.
+     *
+     * @throws NodeUnavailableException when no node is running.
+     */
+    fun sendAllToAddress(address: String, feeRateSatPerVb: ULong): String
 }

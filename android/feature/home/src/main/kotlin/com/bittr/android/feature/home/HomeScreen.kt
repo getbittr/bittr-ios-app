@@ -6,6 +6,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -14,6 +15,8 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.LocalContentColor
@@ -100,6 +103,7 @@ fun HomeScreen(
     onBuy: () -> Unit = {},
     onBalanceDetails: () -> Unit = {},
     onAcademy: () -> Unit = {},
+    onTransaction: (String) -> Unit = {},
     viewModel: HomeViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsState()
@@ -118,6 +122,7 @@ fun HomeScreen(
         onBuy = onBuy,
         onBalanceDetails = onBalanceDetails,
         onAcademy = onAcademy,
+        onTransaction = onTransaction,
         modifier = modifier,
     )
 }
@@ -145,6 +150,7 @@ internal fun HomeScreen(
     onBalanceDetails: () -> Unit,
     onAcademy: () -> Unit,
     modifier: Modifier = Modifier,
+    onTransaction: (String) -> Unit = {},
 ) {
     alert?.let {
         BittrAlertDialog(
@@ -177,11 +183,19 @@ internal fun HomeScreen(
             onReceive = guarded(onReceive),
             onBuy = onBuy,
             onSyncStatus = guarded(onBalanceDetails),
+            onBalanceCard = guarded(onBalanceDetails),
         )
 
-        // The transaction list's empty state. The list itself is BIT-6's — this is
-        // `noTransactionsLabel`, which iOS shows in exactly this situation.
-        Box(
+        if (state.history.isNotEmpty()) {
+            HistoryList(
+                rows = state.history,
+                onTransaction = onTransaction,
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxWidth(),
+            )
+        } else Box(
+            // `noTransactionsLabel`, which iOS shows when the history is empty.
             contentAlignment = Alignment.TopCenter,
             modifier = Modifier
                 .weight(1f)
@@ -234,6 +248,7 @@ private fun HomeHeader(
     onReceive: () -> Unit,
     onBuy: () -> Unit,
     onSyncStatus: () -> Unit,
+    onBalanceCard: () -> Unit = onSyncStatus,
 ) {
     val colors = BittrTheme.colors
     CompositionLocalProvider(LocalContentColor provides colors.onCanvas) {
@@ -317,7 +332,18 @@ private fun HomeHeader(
                 // profit pill follow it on iOS and are still to be ported.
                 if (balanceSats != null) {
                     CanvasSpacer(BittrTokens.Spacing.xl)
-                    BalanceLabel(balance = balanceText(balanceSats), dimmedColor = colors.balanceDimmed)
+                    // `balanceCardButton` — a transparent layer under the balance, so the
+                    // label keeps its own `home.balanceLabel` id (see HistoryCard on why
+                    // under and not over). Opens the balance screen.
+                    Box {
+                        Box(
+                            modifier = Modifier
+                                .matchParentSize()
+                                .clickable(onClick = onBalanceCard)
+                                .testTag(TestID.Home.balanceCardButton),
+                        )
+                        BalanceLabel(balance = balanceText(balanceSats), dimmedColor = colors.balanceDimmed)
+                    }
                 }
 
                 CanvasSpacer(BittrTokens.Spacing.xxl)
@@ -451,6 +477,93 @@ private fun ActionButton(
             style = MaterialTheme.typography.labelLarge,
             color = colors.onTonalFill,
         )
+    }
+}
+
+/**
+ * The history table — `HistoryTable.swift`. Each row is a card with the day in a chip,
+ * the bolt for Lightning, and the sats and fiat figures on the right; the year sits above
+ * the first row of a new year.
+ *
+ * The tap target is a transparent layer over the card rather than a clickable card, the
+ * same arrangement iOS has (`transactionButton` over the cell). A clickable parent merges
+ * its children's semantics, which would swallow `history.transactionAmountN` — the label
+ * the flows copy the top row's amount from.
+ */
+@Composable
+private fun HistoryList(rows: List<HistoryRow>, onTransaction: (String) -> Unit, modifier: Modifier = Modifier) {
+    LazyColumn(
+        modifier = modifier,
+        contentPadding = PaddingValues(horizontal = BittrTokens.Spacing.md, vertical = BittrTokens.Spacing.md),
+        verticalArrangement = Arrangement.spacedBy(BittrTokens.Spacing.sm),
+    ) {
+        itemsIndexed(rows) { position, row ->
+            row.year?.let {
+                Text(
+                    text = it,
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
+                    modifier = Modifier.padding(top = BittrTokens.Spacing.xs, start = BittrTokens.Spacing.xs),
+                )
+            }
+            HistoryCard(row = row, position = position, onClick = { onTransaction(row.id) })
+        }
+    }
+}
+
+@Composable
+private fun HistoryCard(row: HistoryRow, position: Int, onClick: () -> Unit) {
+    val colors = BittrTheme.colors
+    val figureColor = if (row.unconfirmed) colors.unconfirmed else MaterialTheme.colorScheme.onSurface
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(MaterialTheme.colorScheme.surfaceContainerLowest, RoundedCornerShape(13.dp)),
+    ) {
+        // Drawn first, under the content. A later sibling that covers a node entirely
+        // removes that node from the accessibility tree, so a tap layer on top would take
+        // `history.transactionAmountN` out of reach of the flows; the labels handle no
+        // touches, so taps still reach this layer through them.
+        Box(
+            modifier = Modifier
+                .matchParentSize()
+                .clickable(onClick = onClick)
+                .testTag(TestID.History.transactionButtonAt(position)),
+        )
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = BittrTokens.Spacing.md, vertical = BittrTokens.Spacing.md),
+        ) {
+            Text(
+                text = row.day,
+                style = MaterialTheme.typography.labelMedium,
+                modifier = Modifier
+                    .background(MaterialTheme.colorScheme.surfaceContainer, RoundedCornerShape(7.dp))
+                    .padding(horizontal = BittrTokens.Spacing.sm, vertical = BittrTokens.Spacing.xs),
+            )
+            if (row.isLightning) {
+                Image(
+                    imageVector = rememberStrokeIcon(BittrIconPaths.BOLT, colors.emphasis, strokeWidth = 2f),
+                    contentDescription = "Instant",
+                    modifier = Modifier
+                        .padding(start = BittrTokens.Spacing.sm)
+                        .size(18.dp),
+                )
+            }
+            Column(horizontalAlignment = Alignment.End, modifier = Modifier.weight(1f)) {
+                Text(
+                    text = row.sats,
+                    style = MaterialTheme.typography.titleMedium,
+                    color = figureColor,
+                    modifier = Modifier.testTag(TestID.History.transactionAmountAt(position)),
+                )
+                row.fiat?.let {
+                    Text(text = it, style = MaterialTheme.typography.bodyMedium, color = figureColor)
+                }
+            }
+        }
     }
 }
 

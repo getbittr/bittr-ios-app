@@ -2,6 +2,8 @@ package com.bittr.android.feature.home
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.bittr.android.core.wallet.FiatPrice
+import com.bittr.android.core.wallet.FiatPriceSource
 import com.bittr.android.core.wallet.WalletOverviewSource
 import com.bittr.android.core.wallet.WalletService
 import com.bittr.android.core.wallet.WalletState
@@ -12,7 +14,10 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
 
 /**
  * What Home knows about the wallet.
@@ -33,6 +38,7 @@ data class HomeUiState(
     val walletHasSynced: Boolean = false,
     val showSyncSpinner: Boolean = false,
     val balanceSats: Long? = null,
+    val history: List<HistoryRow> = emptyList(),
 )
 
 /**
@@ -45,16 +51,30 @@ data class HomeAlert(val title: String, val message: String)
 class HomeViewModel @Inject constructor(
     walletService: WalletService,
     overview: WalletOverviewSource,
+    prices: FiatPriceSource,
 ) : ViewModel() {
 
     private val alert = MutableStateFlow<HomeAlert?>(null)
 
-    val uiState: StateFlow<HomeUiState> = combine(walletService.state, overview.overview) { state, wallet ->
+    /** Re-fetched whenever the history changes, which is when a row needs converting. */
+    private val price = MutableStateFlow<FiatPrice?>(null)
+
+    init {
+        viewModelScope.launch {
+            overview.overview
+                .map { it.hasSynced to it.transactions }
+                .distinctUntilChanged()
+                .collect { (synced, _) -> if (synced) prices.current()?.let { price.value = it } }
+        }
+    }
+
+    val uiState: StateFlow<HomeUiState> = combine(walletService.state, overview.overview, price) { state, wallet, price ->
         HomeUiState(
             walletState = state,
             walletHasSynced = wallet.hasSynced,
             showSyncSpinner = wallet.hasNode && !wallet.hasSynced,
             balanceSats = if (wallet.hasSynced) wallet.totalSatoshis else null,
+            history = if (wallet.hasSynced) historyRows(wallet.transactions, price, wallet.currentHeight) else emptyList(),
         )
     }.stateIn(
         scope = viewModelScope,

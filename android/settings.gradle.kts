@@ -144,3 +144,7 @@ include(":feature:website")
 // lightning address. Depends on nothing wallet-specific: :app implements ReceiveSource
 // over the engine.
 include(":feature:receive")
+
+// Send (ios/bittr/Move, Send, Receive/SendVC) — on-chain and Lightning, with the confirm
+// page. :app implements SendSource over the engine.
+include(":feature:send")

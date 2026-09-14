@@ -110,7 +110,7 @@ class SettingsFlowTest {
                             composable(Routes.HOME) {
                                 HomeScreen(
                                     onSettings = { navController.navigate(Routes.SETTINGS) },
-                                    viewModel = remember { HomeViewModel(wallet, neverSynced) },
+                                    viewModel = remember { HomeViewModel(wallet, neverSynced) { null } },
                                 )
                             }
                             // `remember`, and it is load-bearing rather than tidy:

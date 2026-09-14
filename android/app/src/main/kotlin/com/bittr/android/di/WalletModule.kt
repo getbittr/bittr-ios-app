@@ -35,6 +35,7 @@ import com.bittr.android.core.wallet.ldk.node.NodeLifecycle
 import com.bittr.android.core.wallet.ldk.onchain.AddressDerivation
 import com.bittr.android.core.wallet.ldk.onchain.ChannelClosureRecorder
 import com.bittr.android.core.wallet.ldk.onchain.OnchainAddressPool
+import com.bittr.android.core.wallet.ldk.onchain.OnchainSendSupport
 import com.bittr.android.core.wallet.ldk.onchain.OnchainSyncLoop
 import com.bittr.android.core.wallet.ldk.onchain.ScanCoordinator
 import com.bittr.android.core.wallet.ldk.seed.SecureStoreSeedVault
@@ -240,6 +241,9 @@ object WalletModule {
                 // Never publishes, so Home never reports a sync for a wallet with no
                 // node — and, with `hasNode` false, shows no sync spinner either.
                 overview = WalletOverviewPublisher(hasNode = false),
+                // Nothing to send from.
+                onchainSend = null,
+                refresh = {},
             )
         }
 
@@ -626,6 +630,17 @@ object WalletModule {
             ),
             addressPool = addressPool,
             overview = overview,
+            // Send's view of BDK: ready once the full scan has applied, which is iOS's
+            // `bdkWalletHasBeenScanned` gate on the regular send.
+            onchainSend = object : OnchainSendSupport {
+                override val isReady: Boolean get() = onchainWallet.opened.value && scans.hasBeenScanned
+                override fun drainPreview(address: String?, satPerVb: ULong) = onchainWallet.drainPreview(address, satPerVb)
+                override fun transactionVsize(address: String, amountSats: Long, satPerVb: ULong) =
+                    onchainWallet.transactionVsize(address, amountSats, satPerVb)
+            },
+            // A reading now, so what Send just did reaches the overview without waiting
+            // for the sync loop's next tick.
+            refresh = { balances.read() },
         )
     }
 
@@ -669,4 +684,8 @@ class WalletComposition(
     val addressPool: OnchainAddressPool?,
     /** Home's balance, history and sync state. */
     val overview: WalletOverviewSource,
+    /** Send's drain and size previews over the BDK wallet. Null in a build with no node. */
+    val onchainSend: OnchainSendSupport?,
+    /** Take a wallet reading now and publish it to [overview]. */
+    val refresh: () -> Unit,
 )

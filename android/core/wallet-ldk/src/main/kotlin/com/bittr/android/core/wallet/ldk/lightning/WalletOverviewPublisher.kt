@@ -36,6 +36,10 @@ class WalletOverviewPublisher(private val hasNode: Boolean) : WalletOverviewSour
             satoshisLightning = snapshot.satoshisLightning,
             pendingClosureSatoshis = snapshot.pendingClosureSatoshis,
             transactions = activity(reading.payments),
+            currentHeight = reading.bestBlockHeight,
+            satoshisOnchainSpendable = snapshot.satoshisOnchainSpendable,
+            lightningSendableSats = ((reading.channels.activeChannel()?.outboundCapacityMsat ?: 0uL) / 1000uL).toLong(),
+            channelCount = reading.channels.size,
         )
     }
 

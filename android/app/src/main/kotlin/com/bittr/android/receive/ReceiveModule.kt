@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import com.bittr.android.core.network.BittrEnvironment
 import com.bittr.android.core.network.HttpClient
 import com.bittr.android.core.preferences.AppPreferences
+import com.bittr.android.core.wallet.FiatPriceSource
 import com.bittr.android.di.WalletComposition
 import com.bittr.android.feature.receive.ReceiveSource
 import dagger.Module
@@ -23,6 +24,11 @@ object ReceiveModule {
     @Singleton
     fun provideBitcoinPriceSource(environment: BittrEnvironment, http: HttpClient): BitcoinPriceSource =
         BitcoinPriceSource(environment, http)
+
+    @Provides
+    @Singleton
+    fun provideFiatPriceSource(prices: BitcoinPriceSource, preferences: AppPreferences): FiatPriceSource =
+        AppFiatPriceSource(prices, preferences)
 
     @Provides
     @Singleton

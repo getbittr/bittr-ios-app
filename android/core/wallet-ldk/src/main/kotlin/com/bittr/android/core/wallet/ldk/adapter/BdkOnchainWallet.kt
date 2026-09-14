@@ -13,7 +13,13 @@ import com.bittr.android.core.wallet.ldk.onchain.OnchainWalletPort
 import com.bittr.android.core.wallet.ldk.onchain.ScanCoordinator
 import com.bittr.android.core.wallet.ldk.onchain.TxOutpoint
 import com.bittr.android.core.wallet.ldk.onchain.WalletTransactions
+import com.bittr.android.core.wallet.ldk.onchain.OnchainDrainPreview
+import org.bitcoindevkit.Address
+import org.bitcoindevkit.Amount
 import org.bitcoindevkit.CanonicalTx
+import org.bitcoindevkit.FeeRate
+import org.bitcoindevkit.Script
+import org.bitcoindevkit.TxBuilder
 import org.bitcoindevkit.Connection
 import org.bitcoindevkit.Descriptor
 import org.bitcoindevkit.DescriptorSecretKey
@@ -468,6 +474,56 @@ class BdkOnchainWalletHolder(
         }
     }
 
+    /**
+     * `maximumSendableOnchainDrain`'s BDK half (`BDKManager.swift:388`): drain the whole
+     * wallet to [address] at [satPerVb], sign, and read the one output, the fee and the
+     * vsize. With no or an unparseable address the largest common output script stands in
+     * for the recipient, so the quoted fee is never an underestimate.
+     *
+     * Null when no wallet is open. Throws BDK's error when the drain cannot be built — an
+     * empty wallet, or fees above the balance — which callers treat as "nothing sendable".
+     */
+    fun drainPreview(address: String?, satPerVb: ULong): OnchainDrainPreview? = synchronized(lock) {
+        val open = current ?: return null
+        val script = address?.let { recipientScript(it) } ?: Script(LARGEST_COMMON_OUTPUT_SCRIPT)
+        FeeRate.fromSatPerVb(maxOf(satPerVb, 1uL)).use { rate ->
+            val psbt = TxBuilder().drainWallet().drainTo(script).feeRate(rate).finish(open.wallet)
+            psbt.use {
+                open.wallet.sign(psbt, null)
+                psbt.extractTx().use { tx ->
+                    OnchainDrainPreview(
+                        sendableSats = tx.output().first().value,
+                        feeSats = psbt.fee(),
+                        vsize = tx.vsize(),
+                    )
+                }
+            }
+        }
+    }
+
+    /**
+     * `getSize(address:amountSats:selectedVbyte:)` — the vsize of a transaction paying
+     * [amountSats] to [address], signed so the witness is counted. Null when no wallet is open.
+     */
+    fun transactionVsize(address: String, amountSats: Long, satPerVb: ULong): ULong? = synchronized(lock) {
+        val open = current ?: return null
+        val script = recipientScript(address) ?: throw IllegalArgumentException("Not an address on this network")
+        FeeRate.fromSatPerVb(maxOf(satPerVb, 1uL)).use { rate ->
+            val psbt = TxBuilder()
+                .addRecipient(script, Amount.fromSat(amountSats.toULong()))
+                .feeRate(rate)
+                .finish(open.wallet)
+            psbt.use {
+                open.wallet.sign(psbt, null)
+                psbt.extractTx().use { it.vsize() }
+            }
+        }
+    }
+
+    private fun recipientScript(address: String): Script? = runCatching {
+        Address(address, BdkWalletFactory.network(network)).use { it.scriptPubkey() }
+    }.getOrNull()
+
     private fun closeLocked() {
         // Wallet first, for the ordering `BdkWallet.close` states; the Electrum
         // client holds no reference to either and goes last.
@@ -476,5 +532,11 @@ class BdkOnchainWalletHolder(
         current = null
         runCatching { electrum?.close() }
         electrum = null
+    }
+
+    private companion object {
+        /** `BitcoinManager.largestCommonOutputScript`: a P2TR script, the largest common output. */
+        val LARGEST_COMMON_OUTPUT_SCRIPT: List<UByte> =
+            listOf(0x51.toUByte(), 0x20.toUByte()) + List(32) { 0.toUByte() }
     }
 }
