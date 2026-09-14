@@ -363,6 +363,7 @@ internal object LdkNodeMapping {
             channel.counterpartyUnspendablePunishmentReserve,
         isChannelReady = channel.isChannelReady,
         isUsable = channel.isUsable,
+        inboundHtlcMaximumMsat = channel.inboundHtlcMaximumMsat,
     )
 
     fun toView(payment: PaymentDetails) = PaymentView(

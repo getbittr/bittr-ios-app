@@ -26,7 +26,8 @@ class SendControllerTest {
         override fun onchainReady() = true
         override suspend fun awaitOnchainReady() = true
         override fun onchainSpendableSats() = 294_424L
-        override fun lightningSendableSats() = 0L
+        var lightning = 0L
+        override fun lightningSendableSats() = lightning
         override suspend fun feeEstimates() = FeeEstimates(fastest = 10.0, hour = 5.0, economy = 1.0)
         override suspend fun drainQuote(address: String?, satPerVb: Long) = DrainQuote(sendableSats = 290_000, feeSats = 2_000, vsize = 150)
         override suspend fun transactionVsize(address: String, amountSats: Long, satPerVb: Long) = Result.success(141L)
@@ -38,6 +39,29 @@ class SendControllerTest {
         override suspend fun settledTransactionId(id: String) = id
         override fun fiatCurrency() = FiatCurrency("EUR", "€")
         override suspend fun fiatPricePerBitcoin() = 100_000.0
+    }
+
+    @Test
+    fun `an on-chain payment the balance cannot cover offers Swap & Pay when Lightning can`() = runTest {
+        val source = FakeSource().apply { lightning = 400_000 }
+        val controller = SendController(source, this)
+        val effects = mutableListOf<SendEffect>()
+        val collecting = launch(UnconfinedTestDispatcher(testScheduler)) { controller.effects.toList(effects) }
+
+        controller.onModeSelected(SendMode.Onchain)
+        controller.onToChange(address)
+        controller.onAmountChange("300000")
+        controller.onNext()
+        advanceUntilIdle()
+
+        val alert = controller.state.value.alert!!
+        assertEquals(SendStrings.INSUFFICIENT_FUNDS, alert.title)
+        assertEquals(listOf("Cancel", "Swap & Pay"), alert.buttons.map { it.label })
+        controller.onAlertButton(1)
+        advanceUntilIdle()
+
+        assertEquals(listOf<SendEffect>(SendEffect.SwapAndPayAddress(address, 300_000)), effects)
+        collecting.cancel()
     }
 
     @Test

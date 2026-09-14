@@ -149,3 +149,9 @@ include(":feature:receive")
 // page. :app implements SendSource over the engine.
 include(":feature:send")
 include(":feature:buy")
+
+// Swaps (ios/bittr/Swaps) — Boltz submarine and reverse swaps. :core:swaps is pure Kotlin
+// (the Taproot lockup, the response checks, MuSig2 claim/refund, the swap file);
+// :feature:swap is the screen. :app implements SwapWallet over the engine.
+include(":core:swaps")
+include(":feature:swap")

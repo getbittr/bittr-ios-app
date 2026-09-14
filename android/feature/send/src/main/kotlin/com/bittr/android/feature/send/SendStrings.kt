@@ -83,6 +83,13 @@ internal object SendStrings {
     const val INSUFFICIENT_FUNDS = "Insufficient funds"
     const val LIGHTNING_INSUFFICIENT_FUNDS =
         "You don't have enough instant bitcoin funds to send this payment. Your available balance is <b><amount> satoshis</b>."
+    const val ONCHAIN_INSUFFICIENT_FUNDS =
+        "You don't have enough onchain funds to send this payment. Your available onchain balance is <b><amount> satoshis</b>."
+    const val SWAP_INSUFFICIENT_FUNDS =
+        "However, you have enough regular bitcoin funds to swap and pay. Your available onchain balance is <b><amount> satoshis</b>."
+    const val SWAP_INSUFFICIENT_FUNDS_LIGHTNING =
+        "However, you have enough instant bitcoin funds to swap and pay. Your available instant balance is <b><amount> satoshis</b>."
+    const val SWAP_AND_PAY = "Swap & Pay"
     /** `balance2`. */
     const val BALANCE_2 = "Balance"
     const val INSUFFICIENT_ONCHAIN_BALANCE = "Your available balance (<fee>) is insufficient to cover this fee."
