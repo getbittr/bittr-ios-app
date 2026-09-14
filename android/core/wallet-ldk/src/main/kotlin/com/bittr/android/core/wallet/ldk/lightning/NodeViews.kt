@@ -75,6 +75,12 @@ data class ChannelView(
      * that asymmetry is ported rather than tidied.
      */
     val isUsable: Boolean,
+
+    /**
+     * `inboundHtlcMaximumMsat` — the largest single payment the channel accepts inbound. The swap
+     * screen's per-swap ceiling (`SwapViewController.swift:139`). Null when LDK does not know it yet.
+     */
+    val inboundHtlcMaximumMsat: ULong? = null,
 )
 
 /** `PeerDetails`, whole — it is four fields and all four are read. */

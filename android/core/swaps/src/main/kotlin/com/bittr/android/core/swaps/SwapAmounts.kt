@@ -64,6 +64,12 @@ object SwapAmounts {
      */
     fun maxRoutingFeeSats(amountSats: Long): Long = (amountSats * 1000 / 100 + 50_000) / 1000
 
+    /** `SatPerVb.wholeSatPerVb`: whole sats per vbyte, rounded down, never below 1. */
+    fun wholeSatPerVb(rate: Double): Long = if (!rate.isFinite() || rate <= 1.0) 1L else floor(rate).toLong()
+
+    /** `feeSats(forVsize:)`: the fee at the whole rate that is actually broadcast. */
+    fun feeSats(rate: Double, vsize: Long): Long = if (vsize <= 0) 0L else wholeSatPerVb(rate) * vsize
+
     /** `createDateId()`: `yyyyMMddHHmmss`, local time. */
     fun createDateId(now: Date = Date()): String = SimpleDateFormat("yyyyMMddHHmmss", Locale.US).format(now)
 

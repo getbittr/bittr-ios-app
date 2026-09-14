@@ -16,6 +16,8 @@ kotlin {
 // implements (SwapWallet, SwapStatusFeed, InvoiceInspector).
 dependencies {
     api(project(":core:network"))
+    // TestID, for the alert ids a swap raises (`alert.swapValidationFailed`, …).
+    implementation(project(":core:common"))
 
     // Taproot, MuSig2 and transactions. bitcoin-kmp's JNI half comes from the app
     // (secp256k1-kmp-jni-android via :core:wallet-ldk) and, for tests, from the
