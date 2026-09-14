@@ -4,10 +4,17 @@ The Play Store screenshot set **must be captured with CHF explicitly selected**.
 document is the procedure for doing that, written to be followed rather than
 re-derived. It comes from BIT-47, which carries the requirement forward from BIT-37.
 
-> **Status: not yet performed.** No store screenshot set exists. The Android port has
-> no screen that displays a fiat amount yet — `BittrNavHost.kt` routes to
-> `signup/start` and nothing else — so there is nothing to capture. This document
-> exists so the requirement is in place before the screens are, not after.
+> **Status: not yet performed, and step 2 does not currently work on Android.**
+> No store screenshot set exists.
+>
+> An earlier revision of this note said the port had no screen displaying a fiat
+> amount. That is **no longer true**: the Bitcoin value screen (BIT-99) renders one —
+> `ValueScreen.kt:82` draws `"${currency.symbol} ${formatPrice(...)}"` above the chart,
+> and the scrub card repeats the symbol via `ValueCopy.currencySymbol`.
+>
+> It is, however, **hard-wired to euro and cannot be switched to CHF by any user
+> action** — see *The Value screen ignores the currency setting* below. So the capture
+> is still blocked, but on that defect rather than on the absence of a screen.
 
 ## The rule, in one line
 
@@ -65,19 +72,62 @@ Note that CHF also switches the price endpoint (`/api/price/btc/historical/chf`)
 capture run with mocked pricing must mock the CHF URL, or the amounts render from a
 euro-denominated feed even with CHF selected.
 
-## When the Android screens land
+## The Value screen ignores the currency setting
 
-The same trap applies to the port unless it defaults differently. Two things to do
-when the first fiat-displaying Android screen is built:
+This is the defect that currently blocks the capture, and it is also a plain
+user-facing bug. Verified by code read on `android-parity` at `c7f67583`:
 
-1. **Do not port the `?? "EUR"` fallback.** There is no reason for the Android app to
-   have a euro default at all — the app ships to Switzerland only (BIT-37). Make the
-   currency non-optional, or default it to CHF.
-2. `CurrencyDefaultGuardTest` (`android/app/src/test/.../CurrencyDefaultGuardTest.kt`)
-   fails the build if a euro default is introduced into `main` sources. It scans for
-   fallback and default-assignment syntax, so it stays quiet about a currency picker
-   that legitimately *lists* EUR as an option. If it fires, fix the default — do not
-   add an exemption so a store capture can be taken around it.
+- `AppPreferences.currency` is the app-wide EUR/CHF setting. The Device screen writes
+  it (`DeviceScreen.kt:149-153`) and it persists.
+- Its **only** readers are `MainActivity` (theme) and `DeviceViewModel` (the picker
+  that writes it). **Nothing reads it to display an amount.**
+- The value screen takes its own, unrelated `PriceCurrency` parameter defaulting to
+  euro (`ValueScreen.kt:55`, `:67`), and `BittrNavHost.kt:195` constructs it as
+  `ValueScreen(onBack = ...)` — passing nothing. So it is always `PriceCurrency.EUR`.
+- `PriceCurrency` is referenced nowhere outside `feature/value`. The two currency
+  types are never connected.
+
+Consequence: selecting **CHF** in Settings changes nothing on the value screen. It
+keeps the `€` glyph *and* keeps fetching the euro series (`btc_eur`,
+`/historical/eur`). Steps 2–3 of the procedure below cannot be satisfied for this
+screen today — not because the operator might forget, but because there is no input
+that would change the result.
+
+**Fix before capturing:** feed the selected `AppPreferences.currency` into
+`ValueScreen` (map `Currency` → `PriceCurrency` at the nav host, or read the
+preference inside the feature). Do not work around it by capturing this screen in
+euro — see *No fiat amount is a substitute for a wrong one*.
+
+## `CurrencyDefaultGuardTest` is green, and blind
+
+`CurrencyDefaultGuardTest` (`android/app/src/test/.../CurrencyDefaultGuardTest.kt`)
+was written to fail the build if a euro default reached `main` sources. It currently
+**passes over all 123 main sources while five euro defaults are present**, because its
+regex matches only *quoted string literals* (`?: "EUR"`, `= "€"`) and the port
+expresses its defaults as *typed enum constants*:
+
+| Site | Line |
+|---|---|
+| `core/preferences/.../AppPreferences.kt:79` | `val DEFAULT_CURRENCY = Currency.EUR` |
+| `feature/settings/.../DeviceViewModel.kt:29` | `val currency: Currency = Currency.EUR,` |
+| `feature/value/.../ValueCopy.kt:41` | `?: PriceCurrency.EUR.symbol` |
+| `feature/value/.../ValueScreen.kt:55` | `currency: PriceCurrency = PriceCurrency.EUR,` |
+| `feature/value/.../ValueScreen.kt:67` | `currency: PriceCurrency = PriceCurrency.EUR,` |
+
+Extending the alternation to `(?:[A-Za-z_][A-Za-z0-9_]*\.)*EUR\b` catches exactly
+these five and nothing else (checked against all 123 files; the enum *declarations*
+`EUR("EUR", "€", "EUR €")` and `EUR("€", "eur", "btc_eur")` are positional
+constructor calls with no `=`, so they stay quiet, which is correct — offering EUR is
+a product choice, defaulting to it is the thing being guarded).
+
+> **Do not simply tighten this guard and walk away.** Its stated rationale is *"the
+> app ships to Switzerland only (BIT-37)"*, and **that premise is superseded** —
+> availability is worldwide as of Ruben's 2026-09-10 decision (`perimeter` v1.1 §6).
+> Whether a worldwide, iOS-parity wallet should default to EUR is now a product
+> question and not settled here. What is *not* in question is BIT-37 §4, explicitly
+> preserved through that decision: **the screenshot set is captured with CHF
+> selected.** That needs CHF to be *selectable and effective*, which is the section
+> above — it does not need the default to change.
 
 ## `FLAG_SECURE` blanks a capture without failing it
 
@@ -100,8 +150,9 @@ anyway.
 ## No fiat amount is a substitute for a wrong one
 
 If a screen cannot be captured with CHF showing, **leave it out of the set**. A
-euro-denominated screenshot is worse than a missing one — it is public copy stating a
-currency the app does not serve. A shorter set is an acceptable outcome of this
+euro-denominated screenshot is worse than a missing one: it is public copy, it
+contradicts the CHF-denominated Terms, and BIT-37 §4 requires CHF whatever the store's
+country availability turns out to be. A shorter set is an acceptable outcome of this
 procedure.
 
 ## Procedure
@@ -110,10 +161,20 @@ procedure.
 2. **Select CHF**: Settings → the currency row (`settings.row.currency` /
    `device.row.currency` in `TestIDs.kt`) → **CHF**. On iOS this is
    `DeviceViewController.changeCurrency()`.
-3. **Verify the selection took**, before capturing anything — the currency control on
-   Home / Send / Receive (`home.currencyButton`, `send.currencyLabel`,
-   `receive.currencyLabel`) must read `CHF`. If it reads `€` or `EUR`, stop; step 2
-   did not apply.
+3. **Verify the selection took on the screen you are about to capture** — not just in
+   Settings. Read the fiat amount on that screen itself; it must show `CHF`. If it
+   shows `€` or `EUR`, stop; the selection did not reach it.
+
+   > Verifying only in Settings is not sufficient, and this is not hypothetical: the
+   > value screen shows the Settings row reading `CHF` while the chart above it stays
+   > in euro (see *The Value screen ignores the currency setting*). Check the amount,
+   > not the setting.
+
+   On Home / Send / Receive the control to read is `home.currencyButton`,
+   `send.currencyLabel`, `receive.currencyLabel` (`TestIDs.kt`). Note that as of
+   `android-parity` `c7f67583` these three are **test-ID constants for screens that do
+   not exist yet** — Home's send/receive/balance routes are stubs behind BIT-6/BIT-7.
+   The value screen is the only fiat-displaying screen currently built.
 4. **Capture the set.** Skip any screen that sets `FLAG_SECURE`.
 5. **Verify the output** (below).
 6. **Send the set to Compliance** (below) and wait for acceptance.
