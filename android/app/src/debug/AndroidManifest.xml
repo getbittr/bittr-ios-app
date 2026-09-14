@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!--
+        Debug (regtest) builds only: lets the Maestro push helper deliver a bittr push with
+        `adb shell am broadcast` — see DebugPushReceiver and shared/flows/scripts/push_server.js.
+        Exported because the shell sends it; never merged into a release build.
+    -->
+    <application>
+        <receiver
+            android:name="com.bittr.android.push.DebugPushReceiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="com.bittr.android.DEBUG_PUSH" />
+            </intent-filter>
+        </receiver>
+    </application>
+
+</manifest>

@@ -19,22 +19,22 @@ import kotlinx.coroutines.flow.asSharedFlow
  * half is `DeviceTokenLifecycle`, which is 20 JVM tests in `:core:network`, and the payload half
  * is a decode that already happened in `:core:push`.
  *
- * ## What happens to a payout push today
+ * ## What happens to a push
  *
- * It reaches [envelopes] and nothing collects it yet, because the screens that would act on one
- * are not ported: Home is still its no-funds skeleton (BIT-98) and there is no payout or HTLC
- * surface to drive. That is honest rather than a stub — the envelope is decoded, correct and
- * available, and the collector is a screen's job.
+ * It goes to [PushCoordinator], the one singleton that dedups it, holds it while the wallet is
+ * locked or syncing, and shows what iOS shows. Handed over directly rather than collected from
+ * [envelopes]: that flow replays its newest push to every new collector, which would handle a
+ * push twice. The coordinator outlives every screen, so a data message that starts the process
+ * is not dropped before the first composition.
  *
- * A `SharedFlow` with `replay = 1` rather than a callback, for one reason that matters on this
- * path: a data message can start the process, so the payload frequently arrives *before* any
- * screen exists to hear it. Replay is what stops that push from being dropped between the
- * service handling it and the first composition. `extraBufferCapacity` keeps [emit] from
- * suspending, which matters because [onPush] is called inside the service's `runBlocking`.
+ * [envelopes] stays for anything that only wants to observe pushes. `extraBufferCapacity` keeps
+ * [emit] from suspending, which matters because [onPush] is called inside the service's
+ * `runBlocking`.
  */
 @Singleton
 class BittrPushDelivery @Inject constructor(
     private val lifecycle: DeviceTokenLifecycle,
+    private val coordinator: PushCoordinator,
 ) : PushDelivery {
 
     private val _envelopes = MutableSharedFlow<PushEnvelope>(replay = 1, extraBufferCapacity = 16)
@@ -43,6 +43,7 @@ class BittrPushDelivery @Inject constructor(
     val envelopes: SharedFlow<PushEnvelope> = _envelopes.asSharedFlow()
 
     override suspend fun onPush(envelope: PushEnvelope) {
+        coordinator.receive(envelope)
         _envelopes.emit(envelope)
     }
 
