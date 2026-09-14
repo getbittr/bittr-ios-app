@@ -26,6 +26,25 @@ interface OnchainWalletPort {
     fun close()
 }
 
+/**
+ * The node balance read this loop lends its clock to.
+ *
+ * `WalletBalanceReader.read()`, as a seam with no `lightning/` type in it —
+ * `onchain/` does not depend on the node views and should not start. What the
+ * loop needs from it is only whether a reading happened, which is what it
+ * reports.
+ *
+ * **Must not throw.** The implementation swallows and reports through its own
+ * `onFailure`; an exception out of here would end the runner and with it the
+ * light-sync timer, which is the cost [OnchainSyncLoop] spells out for a failed
+ * full scan and is far more than a missed cache write is worth.
+ */
+fun interface WalletBalanceRead {
+
+    /** @return true if a reading was taken, false if there was no node to read. */
+    fun read(): Boolean
+}
+
 /** What the loop did, for the log and for [OnchainSyncLoopTest]'s assertions. */
 enum class OnchainLoopEvent {
 
@@ -46,6 +65,12 @@ enum class OnchainLoopEvent {
 
     /** One did not — no wallet, a full scan in the way, or the network. */
     LightSyncSkipped,
+
+    /** A balance reading was taken and its cache writes were made. See [WalletBalanceRead]. */
+    BalancesRead,
+
+    /** There was no node to read, so nothing was cached. Routine between a stop and a start. */
+    BalancesUnavailable,
 }
 
 /**
@@ -77,6 +102,46 @@ enum class OnchainLoopEvent {
  *    revisits scripts the wallet has already revealed and a wallet that never
  *    scanned has revealed none. Syncing on that would be round trips that cannot
  *    find anything.
+ *
+ * ## The balance read rides this clock, and that was a decision
+ *
+ * [balances] runs after the start's scan and after every light-sync tick. It is
+ * the node read `WalletBalanceReader` needs — the port of `loadWalletData()`,
+ * which writes the funding outpoint the closure scan watches for.
+ *
+ * iOS triggers it from two places, and Android has neither. One is the home
+ * screen's load; there is no home screen. The other is the light-sync comparison
+ * at `BitcoinManager.swift:496`, and that one **does** have a counterpart: this
+ * loop's timer is `BackgroundSync`'s, 30 seconds, already running for as long as
+ * a node is up. So the choice was between borrowing it and adding a second
+ * timer, and the second timer is what is being refused:
+ *
+ * - It costs a wakeup. A `NodeRunner` with its own `delay` is a second coroutine
+ *   the OS has to keep scheduled while the app is backgrounded, for a read whose
+ *   only consumer today is three cache writes. K8's measurement of what Doze
+ *   costs the wallet is the reason to add timers reluctantly.
+ * - It buys nothing. The two would have the same period and the same lifetime —
+ *   cancelled by the host on every stop, relaunched on every start — so the only
+ *   difference would be that they drift apart.
+ *
+ * The read is **after** each sync, not before, and that ordering is load-bearing
+ * rather than incidental. `OnchainSync` runs the closure scan at the end of a
+ * sync that applied; the balance read's third write clears the funding outpoint
+ * once a closure is pending. Reading first would clear the outpoint in the same
+ * tick that the scan was about to use it, and the closing transaction would
+ * never be recorded. Reading after gives the scan the outpoint on every tick
+ * until it finds the closure itself.
+ *
+ * **What this costs is stated rather than hidden: a failed full scan takes the
+ * balance read down with it**, because the `return` below ends the runner and
+ * the read has no clock of its own. The two are not otherwise related — the
+ * balance read is a *node* read and does not need BDK at all — so a wallet whose
+ * Electrum server is down stops writing the funding outpoint as well as stopping
+ * its on-chain sync. That is acceptable while the read's only consumer is the
+ * closure scan, which also only runs off an applied sync. It stops being
+ * acceptable the day the drain clamp or a balance screen reads the snapshot, and
+ * the answer then is to give the read its own runner rather than to soften the
+ * `return`.
  *
  * iOS's third guard — `guard !bdkWalletIsScanning else { return }` at the top of
  * `startBDK()` — is not ported as a branch because the host makes it structural:
@@ -137,6 +202,18 @@ class OnchainSyncLoop(
     private val sync: OnchainSync<*, *, *, *>,
     /** The same instance [sync] was built with. Read for `hasBeenScanned`, cleared on the way out. */
     private val scans: ScanCoordinator,
+    /**
+     * The node balance read, run after the start's scan and after every tick.
+     *
+     * **Nullable but not defaulted**, for the reason [OnchainSync.closures]
+     * gives: a defaulted collaborator is a wiring step that can be forgotten in
+     * silence, and this one has already been forgotten once — that is the whole
+     * of BIT-144. A production `OnchainSyncLoop(wallet, sync, scans)` would
+     * compile, run, sync correctly and write no funding outpoint, and nothing
+     * about it would read as wrong. Null is still a legitimate answer — it is
+     * what most of `OnchainSyncLoopTest` wants — it just has to be written down.
+     */
+    private val balances: WalletBalanceRead?,
     /** `BackgroundSync.swift:18`. Injected so the test needs no wall clock. */
     private val lightSyncIntervalMillis: Long = LIGHT_SYNC_INTERVAL_MILLIS,
     /** Every step, in order. A log line in production; the assertion in the test. */
@@ -161,6 +238,11 @@ class OnchainSyncLoop(
                 return
             }
 
+            // The node-start read. `AlreadyScanned` reaches it too: a second node
+            // inside one process is a new node object, and the outpoint it should
+            // be watching is a question about the channels *that* node reports.
+            readBalances()
+
             while (true) {
                 // Before the first sync, not after: iOS schedules the timer at
                 // `.now() + 30`, and the full scan immediately above has just
@@ -174,6 +256,12 @@ class OnchainSyncLoop(
                         OnchainLoopEvent.LightSyncSkipped
                     },
                 )
+                // After the sync, and after the closure scan inside it — see the
+                // class comment. Unconditional on whether the sync applied,
+                // because this reads the *node* and the node's channels can move
+                // without BDK seeing anything: a light sync skipped for want of
+                // an Electrum server is not a reason to stop watching a channel.
+                readBalances()
             }
         } finally {
             // Non-suspending, both of them, which is what makes this correct on
@@ -183,6 +271,20 @@ class OnchainSyncLoop(
             scans.clear()
             wallet.close()
         }
+    }
+
+    /**
+     * One reading, reported.
+     *
+     * Silent when there is no [balances] — a loop wired without one has nothing
+     * to say about a read it does not make, and an event claiming otherwise would
+     * be the kind of log line that makes BIT-144 hard to find again.
+     */
+    private fun readBalances() {
+        val read = balances ?: return
+        report(
+            if (read.read()) OnchainLoopEvent.BalancesRead else OnchainLoopEvent.BalancesUnavailable,
+        )
     }
 
     companion object {

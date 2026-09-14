@@ -1,5 +1,6 @@
 package com.bittr.android.core.wallet.ldk.cache
 
+import com.bittr.android.core.wallet.ldk.onchain.ChannelClosureCache
 import com.bittr.android.core.wallet.ldk.onchain.ChannelClosureStore
 import com.bittr.android.core.wallet.ldk.onchain.TxOutpoint
 
@@ -8,17 +9,25 @@ import com.bittr.android.core.wallet.ldk.onchain.TxOutpoint
  * `storeChannelClosureTxIDIfFound` reads and writes (`BDKManager.swift:493`,
  * `:510–511`).
  *
- * ## The writer iOS has that the interface does not
+ * ## The writer the recorder's seam does not have
  *
  * `ChannelClosureStore` is only what `ChannelClosureRecorder` needs, which is
  * two reads and a clear. Somebody has to put the funding outpoint *in* —
- * `CacheManager.storeChannelFundingOutpoint(txID:vout:)`, called on iOS when a
- * channel is opened — and until they do, [channelFundingOutpoint] answers null
- * for ever and the closure scan short-circuits on every sync. [store] is that
- * writer, on the concrete class rather than on the interface, so the recorder's
- * seam stays as narrow as it was and the channel-open path has somewhere to
- * write when it lands. Android has no channel-open path yet; that is BIT-122's
- * remaining half, and this is what it will call.
+ * `CacheManager.storeChannelFundingOutpoint(txID:vout:)` — and until BIT-144
+ * that somebody did not exist in `main`, so [channelFundingOutpoint] answered
+ * null for ever and the closure scan short-circuited on every sync.
+ *
+ * [store] is that writer. It is on [ChannelClosureCache] rather than on
+ * `ChannelClosureStore` so the recorder's seam stays as narrow as it was — the
+ * thing that runs inside a sync cannot start watching a channel — and
+ * `WalletBalanceReader` takes the wider one. That reader is iOS's
+ * `loadWalletData()`: it writes the outpoint of whichever channel is active on
+ * every on-chain sync tick, which is the trigger Android has instead of a home
+ * screen.
+ *
+ * On a wallet that has never opened a channel there is still nothing to write,
+ * because `listChannels()` is empty. The channel-open path is BIT-122's
+ * remaining half, and when it lands it writes through this same method.
  *
  * [closureTxIds] is the matching reader for `CacheManager.getChannelClosureTxIDs`.
  * Without it this class only ever writes that key, and a store nothing reads is
@@ -38,7 +47,7 @@ import com.bittr.android.core.wallet.ldk.onchain.TxOutpoint
  */
 class CachedChannelClosureStore(
     private val cache: WalletCache,
-) : ChannelClosureStore {
+) : ChannelClosureCache {
 
     override fun channelFundingOutpoint(): TxOutpoint? =
         cache.strings(KEY_FUNDING_OUTPOINT).firstOrNull()?.let(::decodeOutpoint)
@@ -47,7 +56,7 @@ class CachedChannelClosureStore(
      * `CacheManager.storeChannelFundingOutpoint(txID:vout:)` — one channel at a
      * time, replacing whatever was being watched.
      */
-    fun store(outpoint: TxOutpoint) {
+    override fun store(outpoint: TxOutpoint) {
         cache.put(KEY_FUNDING_OUTPOINT, listOf("${outpoint.txId}$OUTPOINT_SEPARATOR${outpoint.vout}"))
     }
 

@@ -3,6 +3,31 @@ package com.bittr.android.core.wallet.ldk.lightning
 import com.bittr.android.core.wallet.ldk.onchain.TxOutpoint
 
 /**
+ * The three lists a [WalletBalanceSnapshot] is made of, taken from one node.
+ *
+ * A record rather than three return values because that is the guarantee it
+ * carries: everything in it was read through the *same* `Node` handle, in one
+ * block, so no two fields can describe different wallets. See
+ * [WalletBalanceSnapshot]'s class comment for why that is a hazard on Android
+ * rather than a tidiness argument, and [LightningNodePort.readWalletState] for
+ * the contract that produces it.
+ *
+ * [balances] is non-null here, unlike [LightningNodePort.listBalances]. The
+ * nullable case is the whole reading: no node, no [WalletNodeReading]. Carrying
+ * the null inwards would put "there is no node" and "the node reports nothing"
+ * back in the same value, which is what [WalletBalanceSnapshot.ldkSpendableSats]
+ * exists to keep apart.
+ */
+data class WalletNodeReading(
+    /** `listChannels()`. */
+    val channels: List<ChannelView>,
+    /** `listBalances()`, which answered. */
+    val balances: BalanceView,
+    /** `listPayments()`. */
+    val payments: List<PaymentView>,
+)
+
+/**
  * One consistent read of the wallet's money, and the cache writes that go with
  * it.
  *
@@ -25,8 +50,12 @@ import com.bittr.android.core.wallet.ldk.onchain.TxOutpoint
  * routinely — so a caller reading channels, then balances, then payments through
  * three separate port calls can get two thirds of a snapshot and a null. [of]
  * takes the three lists it needs as arguments for that reason: assembling them
- * is one `withNode` block in the caller, and this function cannot be the place
- * the wallet disappears.
+ * is one block in the caller, and this function cannot be the place the wallet
+ * disappears.
+ *
+ * That block is [LightningNodePort.readWalletState], which takes the node handle
+ * once and returns a [WalletNodeReading] or null. [WalletBalanceReader] is the
+ * production caller that joins the two and performs the cache writes named below.
  *
  * Proved by `WalletBalanceSnapshotTest`.
  */

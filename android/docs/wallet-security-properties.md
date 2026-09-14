@@ -796,16 +796,19 @@ worth making to the product to satisfy a test.
       It is a required field, so a build that omits it composes the seed-only
       wallet rather than a node with a permanently zero on-chain balance.
   - Lightning channel and payment handling, and the ldk-node event loop.
-    **BIT-125** — the decisions have landed, the wiring has not. `lightning/`
+    **BIT-125** — the decisions have landed; the wiring has, in part. `lightning/`
     now holds the balance arithmetic that turns ldk-node's `BalanceDetails`
     into the figure beside the on-chain balance, the guard that decides whether
     the wallet may be deleted from the device, the LSP reconnect, the BOLT12
     fee ceiling and the event pump's acknowledgement order; `LdkNodeSurface` is
     the binding, and its record-to-view mapping is asserted on the JVM for the
-    same reason `LdkNodeConfigTest` can be. Two things to be plain about:
-    **no test here runs against a node** (BIT-123), and the pump's survival
+    same reason `LdkNodeConfigTest` can be. Three things to be plain about:
+    **no test here runs against a node** (BIT-123); the pump's survival
     across backgrounding is a property of the service hosting it, not of the
-    loop.
+    loop; and the balance arithmetic now *runs* on a running app (BIT-144,
+    below) but its **figures** still have no consumer — there is no home screen
+    and no caller for `OnchainDrainClamp`, so what the snapshot is read for
+    today is the three cache writes and nothing else.
 
     **The pump does now have a caller.** BIT-126 built the host and passed it
     `runners = emptyList()`, because `EventLedger` and `ChannelClosureStore`
@@ -832,19 +835,51 @@ worth making to the product to satisfy a test.
     channel's closing txid is now recorded on a running app, at iOS's position —
     after the persist, on both sync paths, before success is reported.
 
-    **And the thing to be plainest about: it is reachable, not yet effective.**
-    `ChannelClosureRecorder`'s first step reads the funding outpoint out of the
-    cache, and **nothing in `main` writes one.** `CachedChannelClosureStore.store`
-    — iOS's `CacheManager.storeChannelFundingOutpoint` — has no production
-    caller, because it belongs on the channel-open path and beside the balance
-    read and Android has neither; `WalletBalanceSnapshot.of`, which is where
-    iOS's two writes here come from, is unreferenced for the same reason. So on
-    a running app the scan short-circuits on every sync and records nothing.
-    Landing the reader first is still the right order — a channel-open path that
-    cached an outpoint nothing read would fail identically and be harder to spot
-    — but the list above says "has a caller", and this row would be a lie
-    without this paragraph. The other half is tracked as BIT-130's child,
-    *"Nothing writes the channel funding outpoint"*.
+    **And the outpoint it watches now has a writer.** BIT-144 was the half
+    BIT-130 left open: `ChannelClosureRecorder`'s first step reads the funding
+    outpoint out of the cache, and nothing in `main` wrote one, so on a running
+    app the scan short-circuited on every sync and recorded nothing.
+    `WalletBalanceReader` is the production caller `WalletBalanceSnapshot.of`
+    did not have — iOS's `loadWalletData()` — and it performs the three cache
+    writes the snapshot names: the funding outpoint when there is an active
+    channel, the closure spending txids unconditionally, and the clear when a
+    closure is pending. Four things decided there rather than ported, because
+    Android has no home screen to port from:
+
+    - **Its trigger is `OnchainSyncLoop`'s tick, not a timer of its own.** iOS
+      reads on home-screen load and on the light-sync comparison
+      (`BitcoinManager.swift:496`); the second has a counterpart here, because
+      the sync loop's 30-second `BackgroundSync` timer is already running for
+      as long as a node is up. A second timer would have the same period and
+      the same lifetime and would only cost a wakeup while the app is
+      backgrounded.
+    - **The read runs *after* each sync, never before.** `OnchainSync` runs the
+      closure scan at the end of a sync that applied, and the read's third write
+      clears the very outpoint that scan needs. Reading first would clear it in
+      the same tick the scan was about to use it, and the closing transaction
+      would never be recorded. `OnchainSyncLoopTest` carries that as a negative
+      control.
+    - **What that costs is that a failed full scan takes the balance read with
+      it**, because the read has no clock of its own. The two are otherwise
+      unrelated — the read goes to the *node*, not to BDK — so this is
+      acceptable only while the read's sole consumer is the closure scan, which
+      also only runs off an applied sync. The day the drain clamp or a balance
+      screen reads the snapshot, the answer is a runner of its own.
+    - **The node is read through one handle.**
+      `LightningNodePort.readWalletState()` takes the `Node` up front and makes
+      the three FFI calls against the local, which is iOS's "take the node
+      handle up front" and matters more here: `NodeLifecycle.current` goes null
+      between two statements routinely, and two thirds of a wallet plus an empty
+      list is indistinguishable from a wallet with no channels. Null means no
+      node, and nothing is written on it.
+
+    **Still to be plain about: on a wallet that has never opened a channel there
+    is nothing to write.** `listChannels()` is empty, so
+    `channelFundingOutpointToStore` is null and the scan finds no outpoint to
+    watch — which is the correct behaviour for a wallet with no channels rather
+    than the broken wiring it was. The channel-open path is BIT-122's remaining
+    half, and when it lands it writes through the same
+    `CachedChannelClosureStore.store`.
 
     Three more things to be plain about:
 

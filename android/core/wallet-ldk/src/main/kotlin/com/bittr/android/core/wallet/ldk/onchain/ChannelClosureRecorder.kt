@@ -32,6 +32,40 @@ interface ChannelClosureStore {
     fun removeChannelFundingOutpoint()
 }
 
+/**
+ * [ChannelClosureStore] plus the write that puts an outpoint *in*.
+ *
+ * Two interfaces over one store because they have two callers with two
+ * appetites, and the narrower one is the one that matters:
+ * [ChannelClosureRecorder] runs inside a sync and must not be able to start
+ * watching a channel, so it takes [ChannelClosureStore] and cannot see [store].
+ * The balance read — `WalletBalanceReader`, which is the port of
+ * `loadWalletData()` — decides *which* channel is watched and needs all four
+ * entries, so it takes this.
+ *
+ * BIT-128 put [store] on `CachedChannelClosureStore` as a concrete method, on
+ * the argument that widening the recorder's seam to reach it would be the wrong
+ * trade. That argument still holds; what changed is that the write now has a
+ * caller in `main`, and a caller that named the concrete class would drag
+ * `cache/` into `lightning/`'s signature for one method. This is the seam
+ * instead, and the recorder's is untouched.
+ */
+interface ChannelClosureCache : ChannelClosureStore {
+
+    /**
+     * `CacheManager.storeChannelFundingOutpoint(txID:vout:)` — start watching
+     * [outpoint] for the transaction that spends it.
+     *
+     * One channel at a time, replacing whatever was being watched. Callers reach
+     * this only when they have an outpoint: **there is no "write null"**, which
+     * is `WalletBalanceSnapshot.channelFundingOutpointToStore`'s contract
+     * expressed in the type rather than in a comment. Forgetting an outpoint is
+     * [removeChannelFundingOutpoint], and it is a different decision with a
+     * different trigger.
+     */
+    fun store(outpoint: TxOutpoint)
+}
+
 /** The wallet's transactions, as the pairs [ChannelClosureScan] compares. */
 fun interface WalletTransactions {
 

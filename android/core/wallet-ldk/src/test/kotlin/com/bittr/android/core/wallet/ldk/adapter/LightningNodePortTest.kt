@@ -77,6 +77,14 @@ class LightningNodePortTest {
                 "what collapsing the two costs.",
             port.listBalances(),
         )
+        assertNull(
+            "readWalletState() answered a reading with no node behind it. A " +
+                "WalletNodeReading of empty lists and zeroed balances is an empty " +
+                "wallet, and WalletBalanceReader would write its cache entries on the " +
+                "strength of it — clearing the funding outpoint the closure scan needs " +
+                "every time the node happened to be down.",
+            port.readWalletState(),
+        )
     }
 
     @Test
@@ -109,6 +117,7 @@ class LightningNodePortTest {
             // the state a K7 run spends its first seconds in.
             assertNull(lifecycle.current)
             assertEquals(emptyList<Any>(), port.listChannels())
+            assertNull(port.readWalletState())
             assertThrows(NodeUnavailableException::class.java) {
                 port.closeChannel("channel-1", "02aa")
             }

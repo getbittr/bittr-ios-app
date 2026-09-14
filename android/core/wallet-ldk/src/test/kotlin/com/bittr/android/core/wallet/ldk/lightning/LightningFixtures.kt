@@ -57,6 +57,94 @@ internal fun balances(
     pendingBalancesFromChannelClosures = pendingBalancesFromChannelClosures,
 )
 
+/**
+ * A [LightningNodePort] that answers [readWalletState] and refuses everything
+ * else a snapshot could be assembled from.
+ *
+ * The refusal is the fixture's point rather than a convenience. [WalletNodeReading]
+ * exists so the three lists describe one node at one moment, and the way that
+ * guarantee is lost is a caller quietly going back to `listChannels()` +
+ * `listBalances()` + `listPayments()` — which compiles, passes a value-equality
+ * test, and reintroduces the half-read the type was added to prevent. Here those
+ * three throw, so a test cannot pass that way.
+ *
+ * The writes are no-ops: nothing that reads a balance also opens a channel, and
+ * a throwing write would only obscure which call a failing test made.
+ */
+internal class ReadingOnlyPort(private val reading: WalletNodeReading?) : LightningNodePort {
+
+    /** How many times [readWalletState] was called. */
+    var reads = 0
+        private set
+
+    override fun readWalletState(): WalletNodeReading? {
+        reads += 1
+        return reading
+    }
+
+    private fun forbidden(name: String): Nothing = throw AssertionError(
+        "$name was called. The wallet must be taken through one readWalletState() so " +
+            "the three lists describe one node at one moment — see WalletBalanceSnapshot.",
+    )
+
+    override fun listChannels(): List<ChannelView> = forbidden("listChannels")
+    override fun listBalances(): BalanceView = forbidden("listBalances")
+    override fun listPayments(): List<PaymentView> = forbidden("listPayments")
+    override fun listPeers(): List<PeerView> = forbidden("listPeers")
+    override fun payment(paymentId: String): PaymentView = forbidden("payment")
+
+    override fun connect(nodeId: String, address: String, persist: Boolean) = Unit
+    override fun disconnect(nodeId: String) = Unit
+
+    override fun openChannel(
+        nodeId: String,
+        address: String,
+        channelAmountSats: ULong,
+        pushToCounterpartyMsat: ULong?,
+    ): String = "user-channel-1"
+
+    override fun closeChannel(userChannelId: String, counterpartyNodeId: String) = Unit
+
+    override fun forceCloseChannel(
+        userChannelId: String,
+        counterpartyNodeId: String,
+        reason: String,
+    ) = Unit
+
+    override fun updateChannelConfig(
+        userChannelId: String,
+        counterpartyNodeId: String,
+        channelConfig: Any,
+    ) = Unit
+
+    override fun receiveBolt11(
+        amountMsat: ULong,
+        description: Bolt11DescriptionView,
+        expirySecs: UInt,
+    ): String = "invoice"
+
+    override fun sendBolt11(invoice: String, routeLimits: RouteLimitsView?): String = "hash"
+
+    override fun sendBolt11UsingAmount(
+        invoice: String,
+        amountMsat: ULong,
+        routeLimits: RouteLimitsView?,
+    ): String = "hash"
+
+    override fun sendBolt12UsingAmount(
+        offer: String,
+        amountMsat: ULong,
+        routeLimits: RouteLimitsView,
+    ): String = "payment-id"
+}
+
+/** One node reading, with each list defaulting to an empty wallet. */
+internal fun reading(
+    channels: List<ChannelView> = emptyList(),
+    balances: BalanceView = balances(),
+    payments: List<PaymentView> = emptyList(),
+) = WalletNodeReading(channels = channels, balances = balances, payments = payments)
+
 internal fun payment(
     id: String = "payment-1",
     kind: PaymentKindView = PaymentKindView.Bolt11(hash = "hash-1", preimage = "preimage-1"),

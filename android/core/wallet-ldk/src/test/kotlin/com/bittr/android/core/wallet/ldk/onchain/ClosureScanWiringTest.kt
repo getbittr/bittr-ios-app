@@ -4,10 +4,16 @@ import com.bittr.android.core.wallet.ldk.adapter.lightningNodePort
 import com.bittr.android.core.wallet.ldk.cache.CachedChannelClosureStore
 import com.bittr.android.core.wallet.ldk.cache.FileWalletCache
 import com.bittr.android.core.wallet.ldk.lightning.ChannelView
+import com.bittr.android.core.wallet.ldk.lightning.PendingSweepView
+import com.bittr.android.core.wallet.ldk.lightning.ReadingOnlyPort
+import com.bittr.android.core.wallet.ldk.lightning.WalletBalanceReader
+import com.bittr.android.core.wallet.ldk.lightning.balances
 import com.bittr.android.core.wallet.ldk.lightning.channel
 import com.bittr.android.core.wallet.ldk.lightning.openChannelFundingTxIds
+import com.bittr.android.core.wallet.ldk.lightning.reading
 import java.io.File
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Before
 import org.junit.Rule
@@ -166,5 +172,110 @@ class ClosureScanWiringTest {
             recorded,
         )
         assertEquals(funding, store().channelFundingOutpoint())
+    }
+
+    // ---- The other half of the join: who writes the outpoint. ----
+
+    /**
+     * BIT-144's premise, as a test that fails on the code as it stood.
+     *
+     * Every test above begins by calling `store().store(funding)` in [setUp] — a
+     * write no production code made. That is what the issue is about: the scan
+     * was reachable and could never fire, because `channel_funding_outpoint` had
+     * no writer in `main` and `shouldScan` short-circuits on a null outpoint.
+     *
+     * So this one does **not** seed the cache. It runs the real
+     * `WalletBalanceReader` over a wallet with one live channel, exactly as
+     * `WalletModule` composes it, and then runs the real recorder against the
+     * same file-backed store — first while the channel is open, then after it has
+     * gone. Delete the `?.let(closures::store)` from the reader and the second
+     * half records nothing.
+     */
+    @Test
+    fun `the balance read writes the outpoint the closure scan later needs`() {
+        val fresh = temporaryFolder.newFolder("unseeded")
+        val cache = CachedChannelClosureStore(FileWalletCache(fresh))
+        var channels = listOf(channel(fundingTxo = funding))
+
+        assertNull(
+            "The state this issue found production in: nothing has written the " +
+                "outpoint, so the scan cannot run.",
+            cache.channelFundingOutpoint(),
+        )
+
+        val reader = WalletBalanceReader(
+            node = ReadingOnlyPort(reading(channels = channels)),
+            closures = cache,
+        )
+        val recorder = ChannelClosureRecorder(
+            store = cache,
+            transactions = WalletTransactions { closingTransaction },
+            openChannelFundingTxIds = { channels.openChannelFundingTxIds() },
+        )
+
+        assertNotNull(reader.read())
+        assertEquals(
+            "iOS's storeChannelFundingOutpoint, on Android's trigger.",
+            funding,
+            cache.channelFundingOutpoint(),
+        )
+
+        // The channel is still open, so the scan still stands down — the outpoint
+        // being present is not on its own a reason to record a closure.
+        assertNull(recorder.record())
+
+        // And now it has gone. The recorder finds the transaction spending the
+        // outpoint the reader cached, which is the sequence that recorded nothing
+        // on a running app before this issue.
+        channels = emptyList()
+        assertEquals("closing-txid", recorder.record())
+        assertEquals(listOf("closing-txid"), cache.closureTxIds())
+        assertNull(cache.channelFundingOutpoint())
+    }
+
+    /**
+     * The key's two writers, over one real store.
+     *
+     * `storeChannelClosureTxIds` is a union rather than a replace, and this is
+     * the pair that argument is about: the recorder writes the cooperative
+     * closure it found, and the balance read writes the sweep txids from
+     * `pendingBalancesFromChannelClosures`. Under replace semantics whichever ran
+     * last would erase the other's, and the loop runs them one after another on
+     * every tick — so the erasure would be permanent rather than occasional.
+     */
+    @Test
+    fun `the recorder's closure and the balance read's sweeps both survive`() {
+        val fresh = temporaryFolder.newFolder("two-writers")
+        val cache = CachedChannelClosureStore(FileWalletCache(fresh))
+        cache.store(funding)
+
+        assertEquals(
+            "closing-txid",
+            ChannelClosureRecorder(
+                store = cache,
+                transactions = WalletTransactions { closingTransaction },
+                openChannelFundingTxIds = { emptyList() },
+            ).record(),
+        )
+
+        WalletBalanceReader(
+            node = ReadingOnlyPort(
+                reading(
+                    balances = balances(
+                        pendingBalancesFromChannelClosures = listOf(
+                            PendingSweepView.AwaitingThresholdConfirmations(9_000uL, "sweep-tx"),
+                        ),
+                    ),
+                ),
+            ),
+            closures = cache,
+        ).read()
+
+        assertEquals(
+            "A replace in either writer loses the other's txid, and the user loses " +
+                "sight of a closure that has happened.",
+            listOf("closing-txid", "sweep-tx"),
+            cache.closureTxIds(),
+        )
     }
 }

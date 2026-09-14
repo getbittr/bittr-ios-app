@@ -15,6 +15,7 @@ import com.bittr.android.core.wallet.ldk.lightning.PaymentView
 import com.bittr.android.core.wallet.ldk.lightning.PeerView
 import com.bittr.android.core.wallet.ldk.lightning.PendingSweepView
 import com.bittr.android.core.wallet.ldk.lightning.RouteLimitsView
+import com.bittr.android.core.wallet.ldk.lightning.WalletNodeReading
 import com.bittr.android.core.wallet.ldk.node.NodeLifecycle
 import com.bittr.android.core.wallet.ldk.onchain.TxOutpoint
 import org.lightningdevkit.ldknode.BalanceDetails
@@ -130,6 +131,28 @@ class LdkNodeSurface(
 
     override fun listBalances(): BalanceView? =
         node()?.listBalances()?.let(LdkNodeMapping::toView)
+
+    /**
+     * The one place in this class that reads [node] once and then uses it more
+     * than once, and the only place that may.
+     *
+     * Every other read re-reads the field per call, which is right for them — see
+     * the class comment. Here the requirement is the opposite and it is stronger:
+     * the three lists have to describe one wallet at one moment, so the handle is
+     * taken up front and the three FFI calls go through the local. A teardown
+     * during them does not produce a mixed reading; UniFFI's `callCounter` holds
+     * the handle open for an in-flight call and the next call throws, which
+     * propagates to [com.bittr.android.core.wallet.ldk.lightning.WalletBalanceReader]'s
+     * swallow rather than producing a half-read.
+     */
+    override fun readWalletState(): WalletNodeReading? {
+        val node = node() ?: return null
+        return WalletNodeReading(
+            channels = node.listChannels().map(LdkNodeMapping::toView),
+            balances = LdkNodeMapping.toView(node.listBalances()),
+            payments = node.listPayments().map(LdkNodeMapping::toView),
+        )
+    }
 
     // ---- Peers. ----
 

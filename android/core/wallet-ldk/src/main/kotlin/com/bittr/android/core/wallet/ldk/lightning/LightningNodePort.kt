@@ -84,6 +84,25 @@ interface LightningNodePort {
      */
     fun listBalances(): BalanceView?
 
+    /**
+     * [listChannels], [listBalances] and [listPayments] through **one** node
+     * handle — iOS's "take the node handle up front" (`LoadWalletData.swift:15`).
+     *
+     * Not sugar over the three reads above, and a default implementation calling
+     * them in turn would defeat the point. `NodeLifecycle.current` can go null
+     * between two statements, so three separate reads can return two thirds of a
+     * wallet and an empty list, and nothing downstream can tell that apart from a
+     * wallet that really has no channels. [WalletBalanceSnapshot]'s class comment
+     * has the full argument; this is the method that honours it, which is why it
+     * belongs on the port — the port is the only thing that holds the handle.
+     *
+     * Null means **no node**, exactly as [listBalances] does, and for the same
+     * reason: a caller must be able to tell "nothing was read" from "nothing is
+     * there". It never means an empty wallet — that is a [WalletNodeReading] with
+     * empty lists and zeroed balances.
+     */
+    fun readWalletState(): WalletNodeReading?
+
     // ---- Peers. ----
 
     /** `connect(nodeId:address:persist:)` (`BitcoinManager.swift:457–463`). */

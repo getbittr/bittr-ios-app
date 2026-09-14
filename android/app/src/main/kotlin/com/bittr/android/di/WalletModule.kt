@@ -20,6 +20,7 @@ import com.bittr.android.core.wallet.ldk.host.ServiceForegroundPresence
 import com.bittr.android.core.wallet.ldk.host.WalletNodeHost
 import com.bittr.android.core.wallet.ldk.lightning.LightningNodePort
 import com.bittr.android.core.wallet.ldk.lightning.NodeOnchainPort
+import com.bittr.android.core.wallet.ldk.lightning.WalletBalanceReader
 import com.bittr.android.core.wallet.ldk.lightning.openChannelFundingTxIds
 import com.bittr.android.core.wallet.ldk.node.LdkEnvironment
 import com.bittr.android.core.wallet.ldk.node.NodeConfigPlan
@@ -291,6 +292,19 @@ object WalletModule {
         )
 
         /*
+         * The three `CacheManager` entries the channel closure turns on, as one
+         * store with two callers.
+         *
+         * The balance read writes the funding outpoint and clears it; the
+         * closure scan reads it and clears it; both write the closure txids.
+         * One instance because it is one set of keys over the one `cache`
+         * above — two would be two objects, but the bug they invite is the
+         * reader ending up over a *different* `WalletCache`, which is how the
+         * in-memory mirror stops being one answer to "what is on disk".
+         */
+        val closureCache = CachedChannelClosureStore(cache)
+
+        /*
          * `storeChannelClosureTxIDIfFound()`, which iOS runs at the end of both
          * sync paths and nowhere else (`BDKManager.swift:301`, `:369`).
          *
@@ -312,30 +326,29 @@ object WalletModule {
          * list and records nothing. Defaulting the other way would skip the
          * real closure. `ClosureScanWiringTest` carries that case.
          *
-         * ## What this does not yet do, said plainly
+         * ## What this still does not do, said plainly
          *
-         * **On a running app today this records nothing, because nothing writes
-         * the outpoint it watches.** `ChannelClosureRecorder`'s first step reads
-         * `CachedChannelClosureStore.channelFundingOutpoint()`, and the matching
-         * writer — `store(outpoint)`, iOS's
-         * `CacheManager.storeChannelFundingOutpoint` — has no caller in `main`:
-         * it belongs on the channel-open path and beside the balance read, and
-         * Android has neither. `WalletBalanceSnapshot.of` is unreferenced for
-         * the same reason, and it is where the two writes iOS makes here come
-         * from (`channelFundingOutpointToStore` and
-         * `clearChannelFundingOutpoint`).
+         * BIT-144 supplied the writer this paragraph used to say was missing:
+         * `balances` below is `WalletBalanceReader`, it runs on the sync loop's
+         * tick, and it writes `channel_funding_outpoint` through the same
+         * `closureCache`. So the scan is now effective as well as reachable —
+         * **on a wallet that has a channel**.
          *
-         * So this wiring makes the scan *reachable* rather than *effective*,
-         * and that is the honest description of it. It is still the right half
-         * to land first: the alternative is a channel-open path that caches an
-         * outpoint nothing ever reads, which fails the same way and is harder
-         * to notice. The other half is tracked as BIT-130's child, *"Nothing
-         * writes the channel funding outpoint"*.
+         * On one that has never opened a channel there is still nothing to
+         * write, because `listChannels()` is empty and
+         * `WalletBalanceSnapshot.channelFundingOutpointToStore` is therefore
+         * null. Android has no channel-open path yet; that is BIT-122's
+         * remaining half. Until it lands, the honest statement about a fresh
+         * Android wallet is that the closure scan runs, finds no outpoint to
+         * watch, and records nothing — which is the correct behaviour for a
+         * wallet with no channels rather than the broken wiring it used to be.
          */
         val closures = ChannelClosureRecorder(
-            // The same `cache` the event ledger writes through, deliberately:
-            // one in-memory mirror of one directory. See `cache` above.
-            store = CachedChannelClosureStore(cache),
+            // The same instance the balance read writes through, not a second
+            // store over the same cache. They share three keys and one of them —
+            // the closure txids — has both of them as writers, which only works
+            // because `storeChannelClosureTxIds` is a union; see its KDoc.
+            store = closureCache,
             transactions = onchainWallet.transactions,
             openChannelFundingTxIds = { lightning.listChannels().openChannelFundingTxIds() },
             onFailure = { failure ->
@@ -344,6 +357,36 @@ object WalletModule {
                 // over it would leave `hasBeenScanned` false. Logged so the
                 // missing label leaves a trace somewhere.
                 Log.w(TAG, "Channel closure scan failed", failure)
+            },
+        )
+
+        /*
+         * `loadWalletData()` — the read that decides which channel is watched.
+         *
+         * This is BIT-144, and it is the half BIT-130 said was missing: without
+         * it `channel_funding_outpoint` had no writer in `main`, so the recorder
+         * above short-circuited on every sync and a running app recorded no
+         * closure at all.
+         *
+         * Over the same `lightning` port the recorder's channel-list lambda
+         * uses, which is `provideLightningNodePort`'s rule again — a second port
+         * would read a node this composition never starts. It calls
+         * `readWalletState()`, which is the single-handle read: three separate
+         * port calls here could return two thirds of a wallet and a null, and
+         * `WalletBalanceSnapshot`'s class comment says what that costs.
+         *
+         * Its trigger is `OnchainSyncLoop`'s tick rather than a timer of its
+         * own; that decision, and the ordering of the read against the closure
+         * scan, are argued in that class.
+         */
+        val balances = WalletBalanceReader(
+            node = lightning,
+            closures = closureCache,
+            onFailure = { failure ->
+                // Swallowed by the reader by design — an exception here would
+                // end the sync runner and take the light-sync timer with it.
+                // Logged so a cache entry that was not written leaves a trace.
+                Log.w(TAG, "Wallet balance read failed", failure)
             },
         )
 
@@ -408,6 +451,10 @@ object WalletModule {
                         wallet = onchainWallet,
                         sync = onchainWallet.sync(scans = scans, closures = closures),
                         scans = scans,
+                        // The tick the balance read borrows. Named rather than
+                        // defaulted, because a loop wired without one is exactly
+                        // the silent failure BIT-144 was about.
+                        balances = { balances.read() != null },
                         report = { event -> Log.i(TAG, "On-chain sync: $event") },
                     ),
                 ),
