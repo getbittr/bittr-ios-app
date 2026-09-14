@@ -12,9 +12,10 @@ The pipeline behind `android/docs/tile-pipeline.md`. That document decides *what
 | `make-world-places.py` | The z0–z5 world city labels planetiler will not emit. `--selftest` decodes its own output and checks each label's position |
 | `make-style.py` | Generates the style document `MapBasemap.STYLE_URI` points at |
 | `check-style-hosts.py` | Fails if the built style would send the client to a non-bittr host. Run by both scripts below; `--selftest` proves it both ways |
+| `check-archive-coverage.py` | Fails if the built archive does not cover §1's scope — labels on every continent, street detail in the Swiss cities, and nothing past the buffer. Run by `build-basemap.sh` |
 | `verify-deploy.sh` | Client-side checks against a deployed version, before its URL is handed to the app |
 
-**The archive is not checked in and never should be.** It is gigabytes and it is
+**The archive is not checked in and never should be.** It is 572 MiB and it is
 regenerable; §4 of the document asks for a quarterly rebuild, which a committed blob
 cannot satisfy. The scripts are the artefact.
 

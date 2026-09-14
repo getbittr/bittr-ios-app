@@ -191,6 +191,16 @@ python3 "$SCRIPT_DIR/check-style-hosts.py" "$STAGE/style.json"
 
 mv "$WORKDIR/ch.pmtiles" "$STAGE/ch.pmtiles"
 
+# Coverage, not volume. The first build produced a correctly sized archive whose
+# world band carried city names only inside Switzerland, and nothing here noticed:
+# the tile count, the byte count and `pmtiles show` were all exactly right. This
+# names places and asserts what must be true at them, the absences included — so a
+# build that silently widened past §1's scope fails as loudly as one that fell
+# short. §4 calls for a quarterly rebuild; this is what stops the next one
+# regressing in a way only a human panning the map would ever see.
+PMTILES_BIN="$BIN_DIR/pmtiles" python3 "$SCRIPT_DIR/check-archive-coverage.py" \
+  "$STAGE/ch.pmtiles"
+
 # Glyphs are served from the bittr host for the reason make-style.py gives: the
 # public endpoint for this schema is a third party that would receive the client
 # IP on every label render, and no test in the repo can see that.
