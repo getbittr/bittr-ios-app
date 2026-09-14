@@ -197,8 +197,12 @@ because it is the one a reader would otherwise make again.)
 
 **The wording is settled.** BIT-140 worded the OSM half **`Map data © OpenStreetMap
 contributors`**; BIT-149 extended it to **`Map data © OpenStreetMap contributors, design ©
-OpenMapTiles.org`** once the second licence surfaced. It lives in
-`MapCopy.BASEMAP_ATTRIBUTION` — a plain constant, deliberately *not* in
+OpenMapTiles.org`** once the second licence surfaced. **Settled is not shipped: no constant
+holds it yet.** Today the sentence exists only here and as the two phrases the guard pins —
+there is no `BASEMAP_ATTRIBUTION` in `MapCopy.kt` and no credit `Text` in `MapScreen.kt`, by
+the same "deliberately not added ahead of that commit" above. The commit that sets
+`STYLE_URI` is the one that declares it and renders it, and the guard is what makes that
+commit fail if it does not. Declare it as a plain constant, deliberately *not* in
 `shared/strings/en.json`. That file is the cross-platform canonical source, and this string
 must not be cross-platform: iOS renders through `MKMapView` on Apple's imagery, where this
 credit would be false. Promote it the day iOS renders from bittr's tiles. "Map data" rather
@@ -237,7 +241,8 @@ web page — this is planetiler's own end-of-run banner, and the same text is in
 > with these vector tiles must display a visible credit: **© OpenMapTiles © OpenStreetMap
 > contributors**
 
-`MapCopy.BASEMAP_ATTRIBUTION` was `Map data © OpenStreetMap contributors`. That is the OSM
+The wording settled at that point — the string `BASEMAP_ATTRIBUTION` was to carry, not a
+constant that existed — was `Map data © OpenStreetMap contributors`. That is the OSM
 half and only the OSM half, and `BasemapAttributionGuardTest` matched on the OSM phrase
 alone — so the guard passed in exactly the state the licence is not satisfied in. **This is
 a wording change owned by BIT-140 and the Growth & Content Lead, not something to patch
