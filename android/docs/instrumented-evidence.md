@@ -23,26 +23,32 @@ is on `android-parity`.
 | 68 | `3bb6e52` | **RED** | 202s · 9 required · 0 missing · 0 skipped · **2 failed** · canary passed |
 | 95 | `5956c29` | **green** | 203s · 9 required · 0 missing · 0 skipped · 0 failed · canary passed |
 | 97 | `52b0ffe` | **RED** | 233s · 11 required · 0 missing · 0 skipped · **1 failed** · canary passed |
-| 98 | `3b2392a` | **RED** | job never ran — `build` failed first, on `:app`'s unit tests |
+| 98 | `3b2392a` | **RED** | job never ran — `build` failed first, at `./gradlew test` |
+| 131 | `48c529d` | **green** | 186s · 11 required · 0 missing · 0 skipped · 0 failed · canary passed |
 
-Run 95 is the first execution of `CrossOriginIframeIsolationTest` in the test's life. It
-is also, as of this writing, the last verdict this suite has given: runs 97 and 98 are
-both about the two positive controls added *after* it, and neither has yet been answered
-on a device.
+Run 95 is the first execution of `CrossOriginIframeIsolationTest` in the test's life.
+**Run 131 is the one to cite**: the full eleven, including both positive controls, green on
+a real WebView. Run 95 proved the suite runs; run 131 proves the probe inside it still
+recognises a bridge while doing so. Run 131 is on `feature/bit-62-instrumented-ci`, merged
+into `android-parity` after the rest of this table.
 
 **Run 97** is the positive controls' own false red, diagnosed under
 *The positive controls* below and fixed in `3b2392a`. Note `11 required`, not 9 — the two
-controls are in the `REQUIRED` set, so neither can be quietly dropped.
+controls are in the `REQUIRED` set, so neither can be quietly dropped. Run 131 is the
+same eleven tests with that fix, and nothing failed.
 
-**Run 98** carries no signal about this suite at all. `build` went red on `:app`'s unit
-tests — the BIT-106 test-gate breakage, unrelated to anything here and fixed three hours
-later on `android-parity` by `8ae197d`, which the branch tip predates. Every emulator job
-`needs: build`, so `instrumented` was *skipped*, not failed. Worth stating plainly,
-because a red run with this suite's job showing grey is the one shape that looks like
-evidence and is not.
+**Run 98** carries no signal about this suite at all. `build` went red at `./gradlew test`
+and every emulator job `needs: build`, so `instrumented` was *skipped*, not failed. Worth
+stating plainly, because a red run with this suite's job showing grey is the one shape that
+looks like evidence and is not. Two readings of that red were recorded and they do not
+agree: on `android-parity` it was attributed to the BIT-106 test-gate breakage, fixed by
+`8ae197d`, which the branch tip predates; on the branch, `./gradlew test --rerun-tasks` on
+the same commit executed all 226 tasks green locally and run 131 was green without
+`8ae197d`, which reads as a transient toolchain failure. Either way nothing in run 98
+concerns this suite — and that nobody could tell which from the run itself is what
+[Reading a red build job](#reading-a-red-build-job) is about.
 
-The verdict on `3b2392a` therefore has to come from `android-parity`, which carries both
-that commit and `8ae197d`. Four attempts to get it produced nothing, for a reason that had
+Four attempts to get a verdict on `android-parity` produced nothing, for a reason that had
 nothing to do with the tests — see *The gate that would not start* below.
 
 Reproduce the table without credentials — the repository is public and the Actions REST
@@ -227,6 +233,41 @@ does: as an enumerable own property of `window` that is not the window.
 The guard's scan strips comments *and* string literals before searching, which is why
 both test files are free to name the banned API in prose and in assertion messages — and
 they have to, because the reason it is banned is the whole point.
+
+## Reading a red build job
+
+The emulator job sits behind `build`, so a red build job means the isolation suite did not
+run at all — and run 98 is the case where nobody could tell why. Job logs on this
+repository answer **403** without admin rights and artifacts answer **401**, so check-run
+annotations are the only part of a run readable from outside, and all run 98 offered was
+GitHub's own:
+
+```
+[failure] Process completed with exit code 1.
+```
+
+That single line cannot distinguish a unit test that genuinely failed — whose name and
+assertion message are sitting in XML on the runner — from a Gradle that died fetching a
+dependency or was OOM-killed. The two want opposite responses: read the assertion, or
+re-run. Telling them apart cost a full local `./gradlew test --rerun-tasks`.
+
+`android/scripts/report-test-failures.py` closes that, in the build job's
+`Say which unit test failed` step. It runs only on the red path (`if: failure()`),
+**always exits 0** — the step above has already failed the job, and a reporter that could
+change the outcome would only replace one uninformative failure with another — and puts
+its answer where the annotations are, as one of three `::error::` commands:
+
+- each failing test by class and name, with its message;
+- *failed with no test results*, when the task died before any test ran — a compile error
+  in a test source set, a Gradle configuration failure; or
+- *failed but every test passed*, when result files exist and none of them records a
+  failure.
+
+The last is the one run 98 needed. The absence of a failing test *is* the finding: it
+points at the toolchain rather than at the wallet, and saying so is a conclusion where
+silence was not. Its self-test, `test_report_test_failures.py`, runs in the build job
+beside the other readers, because a reporter that only ever speaks on the red path would
+otherwise stay broken unnoticed until the day it is needed.
 
 ## What these tests are for
 
