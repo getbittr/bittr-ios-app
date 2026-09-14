@@ -58,9 +58,9 @@ class SendControllerTest {
         "lnbcrt1500n1qqqsyqcyq5rqwzqfpg9scrgwpugpzysnzs23v9ccrydpk8qarc0jqgfzyvjz2f389q5" +
             "j52ev95hz7vp3xgengdfkxuurjw3m8s7nu06qg9pyx3z9ger5sj22fdxy6nj0dnuknp"
 
-    private val lightningAddress = "e2ebittr@staging.getbittr.com"
-    private val wellKnown = "https://staging.getbittr.com/.well-known/lnurlp/e2ebittr"
-    private val callback = "https://staging.getbittr.com/lnurlp/cb/e2ebittr"
+    private val lightningAddress = "e2ebittr@pay.example.com"
+    private val wellKnown = "https://pay.example.com/.well-known/lnurlp/e2ebittr"
+    private val callback = "https://pay.example.com/lnurlp/cb/e2ebittr"
 
     private fun payRequest(min: Long, max: Long) =
         """{"tag":"payRequest","callback":"$callback","minSendable":$min,"maxSendable":$max,"metadata":"[[\"text/plain\",\"Pay to e2ebittr\"]]"}"""

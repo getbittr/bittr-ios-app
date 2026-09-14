@@ -12,7 +12,7 @@ class LightningAddressPushTest {
         metadata = """[["text/plain","Payment to e2ebittr"]]""",
         timeSent = "1757900000",
         username = "e2ebittr",
-        endpoint = "https://staging.getbittr.com/lnurl-invoice",
+        endpoint = "https://pay.example.com/lnurl-invoice",
     )
 
     @Test
