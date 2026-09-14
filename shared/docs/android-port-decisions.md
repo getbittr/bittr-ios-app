@@ -91,6 +91,36 @@ Full log: `android/docs/port-specs/notifications-decisions.md`. The two that nee
 20. **Decided — pushes are tested on Android through a debug-only broadcast receiver.** Start
     `BITTR_PUSH_PLATFORM=android node shared/flows/scripts/push_server.js` and the flows run unchanged.
 
+## Buy, bittr signup and profits (merged from `port/buy`)
+
+Full log: `android/docs/port-specs/buy-decisions.md`. What needs you:
+
+21. **Question — `buy_signup_no_notifications.yaml` on Android.** Maestro denies the notification permission
+    before the app has ever asked, so the app still shows its own "receive notifications" prompt, and Okay then
+    opens the system dialog, which the flow doesn't expect. Add an Android-only "Don't allow" step to the flow,
+    or change the app?
+
+22. **Question — onboarding's "Your wallet is ready" → bittr signup isn't wired yet.** Continue still ends
+    onboarding, so `happy_path_signup.yaml` and `fresh_install_unhappy.yaml` don't reach the signup pages. The
+    Buy signup pages can be reused there as iOS does (pages 9–13). I can do that next if you want it.
+
+23. **Question — a signup with no push token.** Emulators often have no FCM token, so Android registers after
+    15 s without `android_device_token` and sends the token later with `PATCH /customer/device-token`.
+    iOS shows `tokenregistrationfail` [Try again, Continue] instead. OK?
+
+24. **Decided — two iOS quirks not copied:**
+    - A payout-mode change is applied even when the IBAN and other details didn't change. iOS only checks it
+      inside the "details changed" branch, which contradicts its own comment.
+    - A missing `lightning_address_username` doesn't count as a change, so "Update details" doesn't fire every
+      time Buy opens.
+
+25. **Gap — profits don't count the channel-funding transaction yet** (iOS sends `getTxoID()` to
+    `/transaction_info` too). Also not ported: the article cards on the signup pages, the connectivity check
+    between pages, and the Sentry signup metric.
+
+26. **Decided — the push handlers read the deposit code from the Buy customer store**
+    (`BuyPushHooksModule`), so `htlc-interceptor/ready` and payouts work once a customer has signed up.
+
 ## Test environment
 
 9. **Decided — local emulator runs with `-memory 4096 -cores 6 -camera-back none`.** With the AVD's 4 cores /
