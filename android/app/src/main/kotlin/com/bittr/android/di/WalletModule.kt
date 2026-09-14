@@ -12,11 +12,13 @@ import com.bittr.android.core.wallet.ldk.adapter.LdkEventPumpRunner
 import com.bittr.android.core.wallet.ldk.adapter.LdkNodeFactory
 import com.bittr.android.core.wallet.ldk.adapter.LdkNodeStartErrors
 import com.bittr.android.core.wallet.ldk.adapter.lightningNodePort
+import com.bittr.android.core.wallet.ldk.adapter.nodeOnchainPort
 import com.bittr.android.core.wallet.ldk.cache.FileWalletCache
 import com.bittr.android.core.wallet.ldk.host.NodeBackedWalletService
 import com.bittr.android.core.wallet.ldk.host.ServiceForegroundPresence
 import com.bittr.android.core.wallet.ldk.host.WalletNodeHost
 import com.bittr.android.core.wallet.ldk.lightning.LightningNodePort
+import com.bittr.android.core.wallet.ldk.lightning.NodeOnchainPort
 import com.bittr.android.core.wallet.ldk.node.LdkEnvironment
 import com.bittr.android.core.wallet.ldk.node.NodeConfigPlan
 import com.bittr.android.core.wallet.ldk.node.NodeLifecycle
@@ -103,6 +105,29 @@ object WalletModule {
     fun provideLightningNodePort(composition: WalletComposition): LightningNodePort =
         composition.lightning
 
+    /**
+     * The node's on-chain receive surface — BIT-132, K7's funding phase.
+     *
+     * Bound out of [WalletComposition] for [provideLightningNodePort]'s reason,
+     * and one of its own. An address is only useful to the wallet that can
+     * spend it: this port must be over the `NodeLifecycle` [provideWalletService]
+     * starts, or the host funds an address belonging to a node nothing opens a
+     * channel from, and the failure arrives as an insufficient-funds error one
+     * phase later.
+     *
+     * **`NodeOnchainPort`, not BDK.** `BdkOnchainWalletHolder` below is a second
+     * on-chain wallet over the same seed, and it derives its own addresses;
+     * `openChannel` cannot spend them. `NodeOnchainPort`'s comment has the full
+     * argument for why those are two wallets rather than one.
+     *
+     * Like [provideLightningNodePort], its only caller today is [WalletGraph].
+     * The receive screen that will use it does not exist on Android yet.
+     */
+    @Provides
+    @Singleton
+    fun provideNodeOnchainPort(composition: WalletComposition): NodeOnchainPort =
+        composition.onchain
+
     @Provides
     @Singleton
     fun provideWalletComposition(
@@ -121,7 +146,14 @@ object WalletModule {
             // A port over no lifecycle, which is what this build has: reads
             // answer empty, writes throw. `lightningNodePort`'s comment is the
             // argument for why that is the contract rather than a null binding.
-            return WalletComposition(wallet = seed, lightning = lightningNodePort(null))
+            return WalletComposition(
+                wallet = seed,
+                lightning = lightningNodePort(null),
+                // Same null lifecycle, same contract: this build has no node,
+                // so it has no on-chain wallet to reveal an address from and
+                // the port says so rather than inventing one.
+                onchain = nodeOnchainPort(null),
+            )
         }
 
         // Everything ldk-node writes goes under no_backup — BIT-8 rule 4 /
@@ -320,7 +352,14 @@ object WalletModule {
             // business deciding about.
         )
 
-        return WalletComposition(wallet = wallet, lightning = lightningNodePort(lifecycle))
+        return WalletComposition(
+            wallet = wallet,
+            lightning = lightningNodePort(lifecycle),
+            // The same `lifecycle` the wallet and the Lightning port are over,
+            // which is the whole reason this class exists — see
+            // WalletModule.provideNodeOnchainPort.
+            onchain = nodeOnchainPort(lifecycle),
+        )
     }
 }
 
@@ -342,4 +381,13 @@ object WalletModule {
 class WalletComposition(
     val wallet: WalletService,
     val lightning: LightningNodePort,
+    /**
+     * BIT-132 — the node's on-chain receive surface, over the same lifecycle.
+     *
+     * Here for the same reason [lightning] is: it must be a port over the node
+     * *this* composition starts. A second one would hand out addresses from a
+     * wallet the app never funds — and unlike a wrong balance, that failure is
+     * a transaction that confirms.
+     */
+    val onchain: NodeOnchainPort,
 )

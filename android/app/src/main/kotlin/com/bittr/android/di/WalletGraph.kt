@@ -2,6 +2,7 @@ package com.bittr.android.di
 
 import com.bittr.android.core.wallet.WalletService
 import com.bittr.android.core.wallet.ldk.lightning.LightningNodePort
+import com.bittr.android.core.wallet.ldk.lightning.NodeOnchainPort
 import dagger.hilt.EntryPoint
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
@@ -85,4 +86,26 @@ interface WalletGraph {
      * case for tests — see `lightningNodePort`.
      */
     fun lightningNode(): LightningNodePort
+
+    /**
+     * Where to send the coins that fund the channel — BIT-132, K7 run 1.
+     *
+     * The host phase cannot derive this. It would need ldk-node 0.7.0's exact
+     * derivation, which is not recoverable from the shipped `.so`, and a guess
+     * funds an address nothing is watching. So the first instrumented run asks
+     * the device and prints the answer as an evidence line; the host sends,
+     * mines, and the second run opens the channel.
+     *
+     * **ldk-node's on-chain wallet, not BDK's.** They are two wallets over one
+     * seed, and only the first is the one `openChannel` spends from — see
+     * [NodeOnchainPort], which is where that distinction is written down rather
+     * than left to whoever reads `BdkOnchainWalletHolder` first.
+     *
+     * In an unconfigured build this throws `NodeUnavailableException`, which is
+     * the port's contract for a missing node and not a special case. A test that
+     * reaches this method in the `wallet-instrumented` job has misread which APK
+     * it is running in; `RegtestEnvironmentTest` is the assertion that says so
+     * before a payment test draws a conclusion.
+     */
+    fun nodeOnchain(): NodeOnchainPort
 }

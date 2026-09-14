@@ -23,7 +23,7 @@ passed.
 | K2 — the seed is usable with the device locked | **written, not yet run** | — | `SeedReadableWhileLockedTest`, `wallet-instrumented` |
 | K2 — an FCM data message wakes the process | closed **unrun** | **BIT-133** | §1 below |
 | K2 — *force-stop* then wake | **withdrawn as specified** | **BIT-133** | §2 below |
-| K7 — interrupted payment resolves to one outcome | **unrun; precondition, kill window and graph access all solved — the test and its host phase are what is left** | **BIT-132** | §3 below |
+| K7 — interrupted payment resolves to one outcome | **unrun; precondition, kill window, graph access and the funding seam all solved — the test class and its host script are what is left** | **BIT-132** | §3 below |
 | K8 — Doze and App Standby machinery | **unrun; its precondition is now solved** | **BIT-132** | §4 below |
 | K8 — channel-monitor freshness after wake | **unrun; needs the soak job** | **BIT-132** | §4 below |
 | The configured regtest build and the private network | **built, and one green leg deep** | — | §0 below |
@@ -287,9 +287,12 @@ hold invoice, in the counterparty.
 
 ### What K7 still needs, and it is no longer infrastructure
 
-Three of the four below are decided or built. **The one thing left is the test
-itself and its host phase** — item 1, which is the only item here that is still a
-description rather than a file.
+Three of the four below are decided or built, and item 1 is now half of each.
+**What is left is the test itself and the host script that sequences it** — the
+four `am instrument` runs, the funding, and the kill. Item 1's *missing seam* is
+closed: the device can be asked for the address to fund, which was the one thing
+in the phase that no amount of shell could work around. Everything still open in
+item 1 is a script and a test class, which is to say: ordinary.
 
 1. **A host phase.** The test cannot observe its own restart. `am kill` takes the
    instrumentation process with it, which is the lesson `BackupExclusionTest`
@@ -323,16 +326,47 @@ description rather than a file.
      between them, since neither `am instrument` nor `adb install -r` clears app
      data.
 
-   **A gap in what BIT-132 has already committed, said here rather than found at
-   03:20 UTC:** `WalletGraph` hands out a `WalletService` and a
-   `LightningNodePort`, and **neither can produce a receive address.**
-   `LightningNodePort` is channels, peers and payments by design; the on-chain
-   address comes from ldk-node's `onchainPayment()`, and — per BIT-126's finding
-   that the on-chain balance is ldk-node's rather than BDK's — it must be *that*
-   wallet's address and not `BdkOnchainWalletHolder`'s, or the funds land where
-   the channel opener is not looking. So run 1 above needs an on-chain seam that
-   does not exist yet. It belongs in `LightningNodePort`'s neighbourhood as a
-   port with its own view types, not as a widening of `ManagedNode`.
+   **The gap that stopped run 1 — closed.** It was recorded here last pass as
+   open: `WalletGraph` handed out a `WalletService` and a `LightningNodePort`,
+   and **neither could produce a receive address.** `LightningNodePort` is
+   channels, peers and payments by design; the on-chain address comes from
+   ldk-node's `onchainPayment()`, and — per BIT-126's finding that the on-chain
+   balance is ldk-node's rather than BDK's — it must be *that* wallet's address
+   and not `BdkOnchainWalletHolder`'s, or the funds land where the channel
+   opener is not looking.
+
+   `NodeOnchainPort` is that seam, with `OnchainAddressView` as its one view
+   type, `LdkOnchainSurface` as the adapter, and `WalletGraph.nodeOnchain()` as
+   the door — a port beside `LightningNodePort` rather than a widening of
+   `ManagedNode`, which is the shape this paragraph asked for. `WalletModule`
+   binds it out of the same `WalletComposition`, so it is over the same
+   `NodeLifecycle` the wallet starts; a second one would hand out addresses
+   from a node nothing opens a channel from, and that failure arrives as an
+   insufficient-funds error one phase later rather than where it was made.
+
+   **It has no send.** ldk-node's on-chain surface also offers `sendToAddress`
+   and `sendAllToAddress`; neither is on the port. The host holds bitcoind and
+   does all the sending, nothing in the app sends on-chain today, and an unused
+   fund-moving method is a liability with no caller to justify it.
+
+   **Its forwarding half is proved on the JVM, which `LightningNodePort`'s is
+   not**, and the difference is the seam's position rather than luck.
+   `LdkNodeSurface` takes `() -> Node?` and `Node` is a concrete UniFFI class,
+   so no test can build one. `NodeInterface.onchainPayment()` returns the
+   concrete `OnchainPayment` too — but that class implements
+   `OnchainPaymentInterface`, a plain Kotlin interface, so `LdkOnchainSurface`
+   takes `() -> OnchainPaymentInterface?` and a fake can stand in.
+   `NodeOnchainPortTest` is six methods over both halves: the address is
+   forwarded verbatim, `newAddress()` is called exactly once per request (each
+   call persists an advanced index), each request reveals the next address, the
+   node is re-read rather than captured, and all three flavours of absence — no
+   lifecycle, an unconfigured build, a lifecycle over a `ManagedNode` that is
+   not ldk-node's — throw rather than inventing a value. Driven to red with a
+   constant-returning body: six of six failed.
+
+   What still needs the device is the layer under the seam — that the address
+   is one ldk-node will actually spend from at `openChannel`. That is run 2's,
+   and it is the first thing the host phase will find out.
 2. **`am kill`, never `am force-stop`.** §2 above is the same correction for K2:
    force-stop puts the package in Android's *stopped state*, which is a different
    event from process death and one the platform treats differently.
