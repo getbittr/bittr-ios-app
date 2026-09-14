@@ -1,38 +1,47 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  UNAPPROVED PLACEHOLDER COPY. Do not ship as written.
+  Copy source: shared/strings/en.json. Do not reword here.
 
   These three strings are permanently on the user's screen while the wallet is
-  running, which makes them shipped copy and puts them inside the process in
-  shared/strings/README.md: copy is authored once, in shared/strings/en.json,
-  and reaches both apps from there.
+  running, which makes them shipped copy, so they are authored once in
+  shared/strings/en.json and reach both apps from there (shared/strings/README.md).
+  The generator that would make this file a build artefact does not exist yet, so
+  until it does the two are kept identical by hand — the same arrangement the
+  README describes for every other key that has already moved.
 
-  They are here and not there because there is nothing to port. iOS has no
-  foreground service, so there is no existing string to move verbatim, and
-  writing new user-visible copy is not something a lifecycle issue gets to do on
-  its own — approved copy goes back through compliance, and a notification that
-  says the wrong thing about a non-custodial wallet is exactly the kind of claim
-  that process exists for (see bittr-regulatory-perimeter).
+  They carry a review trail and three standing constraints, all recorded in
+  shared/strings/README.md under "The wallet's foreground-service notification".
+  The short version, because this is the file someone edits in a hurry:
 
-  What they must not say is anything the app cannot stand behind: not "your
-  wallet is secure", not "syncing" when Doze has frozen the threads that would
-  sync, and no balance. What they do say is the smallest true thing.
-
-  Once approved, they move to shared/strings/en.json and this file becomes
-  generated output like every other strings.xml.
+  - No freshness claim. Not "syncing", not "up to date". ldk-node's intervals run
+    on Rust threads Doze can freeze, and whether they are honoured is unmeasured
+    until K8 (BIT-123).
+  - No balance and no amount. The notification is VISIBILITY_SECRET so it does
+    not render on the lock screen; that decision has to be reopened before
+    anything financial goes in here.
+  - Nothing that reads as custody or protection. bittr is non-custodial and
+    cannot recover anything (bittr-regulatory-perimeter).
 -->
 <resources>
 
     <!-- The Settings → Notifications channel name, and the shade's group label. -->
-    <string name="wallet_node_service_channel">Wallet</string>
-
-    <string name="wallet_node_service_title">bittr wallet is running</string>
+    <string name="wallet_node_service_channel">Wallet running</string>
 
     <!--
-      Deliberately does not claim the wallet is up to date. Whether ldk-node's
-      background sync actually runs on a given device is unmeasured until K8, and
-      a notification that says "synced" would be the app asserting it.
+      A statement about the app, not about the network. "Running" rather than
+      "open" on purpose: on Android the wallet runs while the app is backgrounded,
+      which is the whole reason the service exists, and iOS's "have the app open"
+      means foregrounded.
     -->
-    <string name="wallet_node_service_text">Keeping your Lightning node connected</string>
+    <string name="wallet_node_service_title">Your bittr wallet is running</string>
+
+    <!--
+      A necessary condition, never a sufficient one: it says instant payments need
+      the app, not that they will work because it is there. "Instant payments" is
+      the app's own word for lightning (questionvc7, limitlightning); "node" and
+      "connection" are not available here — the app has never shown the user the
+      word node, and "connection" already means their channel.
+    -->
+    <string name="wallet_node_service_text">Instant payments need the app running.</string>
 
 </resources>
