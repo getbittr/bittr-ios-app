@@ -425,7 +425,9 @@ fun BittrAlertDialog(
                 )
             }
         },
-        modifier = modifier,
+        // Its own window, so the app root's testTagsAsResourceId does not reach the
+        // button ids — see exposeTestTags.
+        modifier = modifier.exposeTestTags(),
     )
 }
 

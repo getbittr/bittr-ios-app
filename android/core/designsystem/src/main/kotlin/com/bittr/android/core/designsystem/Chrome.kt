@@ -356,7 +356,9 @@ fun BittrChoiceDialog(
         // Material insists on a confirm slot; the choices are the buttons here, so
         // there is nothing to put in it.
         confirmButton = {},
-        modifier = modifier,
+        // Its own window, so the app root's testTagsAsResourceId does not reach the
+        // choices' ids — see exposeTestTags.
+        modifier = modifier.exposeTestTags(),
     )
 }
 

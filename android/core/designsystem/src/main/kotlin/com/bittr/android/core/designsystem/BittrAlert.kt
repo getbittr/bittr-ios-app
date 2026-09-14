@@ -1,10 +1,19 @@
 package com.bittr.android.core.designsystem
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.unit.dp
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -118,9 +127,78 @@ fun BittrAlert(
                 }
             }
         },
-        modifier = modifier,
+        // The dialog is its own window and semantics root, so the app root's
+        // testTagsAsResourceId does not reach `alert.button.N` — see exposeTestTags.
+        modifier = modifier.exposeTestTags(),
     )
 }
+
+/**
+ * [BittrAlert] drawn inside the current window instead of in a dialog window.
+ *
+ * For the one case a dialog cannot serve: a flow that asserts on the screen *behind* the
+ * alert while the alert is up. Maestro reads only the focused window, so with a dialog
+ * the screen underneath disappears from the hierarchy — `send_onchain.yaml` checks
+ * `scanner.scannerView` and `alert.button.0` together, as iOS allows because its alert
+ * lives in the same view hierarchy. Same buttons, same `alert.button.N` ids, same
+ * Cancel-first order; a scrim swallows taps meant for the screen beneath.
+ *
+ * Back is the caller's to handle — there is no dialog to route it through.
+ */
+@Composable
+fun BittrInlineAlert(
+    title: String,
+    message: String,
+    buttons: List<BittrAlertButton>,
+    modifier: Modifier = Modifier,
+) {
+    require(buttons.isNotEmpty()) {
+        "A BittrInlineAlert with no buttons cannot be dismissed — it would trap the user on " +
+            "the screen underneath it."
+    }
+    Box(
+        contentAlignment = Alignment.Center,
+        modifier = modifier
+            .fillMaxSize()
+            .background(Color.Black.copy(alpha = SCRIM_ALPHA))
+            // Taps on the scrim go nowhere, as they do outside a modal dialog.
+            .pointerInput(Unit) { detectTapGestures { } },
+    ) {
+        Column(
+            verticalArrangement = Arrangement.spacedBy(BittrTokens.Spacing.md),
+            modifier = Modifier
+                .padding(horizontal = BittrTokens.Spacing.xl)
+                .fillMaxWidth()
+                .background(MaterialTheme.colorScheme.surface, RoundedCornerShape(28.dp))
+                .padding(BittrTokens.Spacing.xl),
+        ) {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.headlineSmall,
+                color = MaterialTheme.colorScheme.onSurface,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.fillMaxWidth(),
+            )
+            Text(
+                text = message,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurface,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.fillMaxWidth(),
+            )
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(BittrTokens.Spacing.xs),
+            ) {
+                buttons.forEachIndexed { position, button ->
+                    AlertButton(button = button, position = position)
+                }
+            }
+        }
+    }
+}
+
+private const val SCRIM_ALPHA = 0.4f
 
 /**
  * Position 0 is the way out and is drawn quieter; everything after it is an action.

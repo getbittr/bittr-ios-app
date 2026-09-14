@@ -38,6 +38,7 @@ import androidx.core.content.ContextCompat
 import com.bittr.android.core.common.TestID
 import com.bittr.android.core.designsystem.BittrAlert
 import com.bittr.android.core.designsystem.BittrAlertButton
+import com.bittr.android.core.designsystem.BittrInlineAlert
 import com.bittr.android.core.designsystem.BittrTheme
 import com.bittr.android.core.designsystem.BittrTokens
 import com.bittr.android.core.permissions.AppSettings
@@ -203,10 +204,17 @@ internal fun ScannerScreenContent(
             }
         }
 
+        // Inline, not dialog, alerts: `send_onchain.yaml` asserts `scanner.scannerView` and
+        // `alert.button.0` together, and a dialog window hides the frame from Maestro. With
+        // no dialog, back is handled here — to the way out, as the dialog's back press did.
+        androidx.activity.compose.BackHandler(enabled = state != ScannerUiState.Scanning) {
+            if (state == ScannerUiState.NoCamera) onClose() else onCancel()
+        }
+
         when (state) {
             ScannerUiState.Scanning -> Unit
 
-            ScannerUiState.Rationale -> BittrAlert(
+            ScannerUiState.Rationale -> BittrInlineAlert(
                 title = ScannerCopy.PERMISSION_TITLE,
                 message = ScannerCopy.RATIONALE_BODY,
                 buttons = listOf(
@@ -215,7 +223,7 @@ internal fun ScannerScreenContent(
                 ),
             )
 
-            ScannerUiState.PermanentlyDenied -> BittrAlert(
+            ScannerUiState.PermanentlyDenied -> BittrInlineAlert(
                 title = ScannerCopy.PERMISSION_TITLE,
                 message = ScannerCopy.PERMANENTLY_DENIED_BODY,
                 buttons = listOfNotNull(
@@ -229,7 +237,7 @@ internal fun ScannerScreenContent(
             // (ScannerViewController.swift:53). There is nothing to do on this
             // screen without a camera, so leaving the user on it would be a dead end
             // with a view of a black square.
-            ScannerUiState.NoCamera -> BittrAlert(
+            ScannerUiState.NoCamera -> BittrInlineAlert(
                 title = ScannerCopy.NO_CAMERA_TITLE,
                 message = ScannerCopy.NO_CAMERA_BODY,
                 buttons = listOf(

@@ -40,6 +40,7 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.bittr.android.core.common.TestID
 import com.bittr.android.core.designsystem.BittrAlertDialog
+import com.bittr.android.core.designsystem.exposeTestTags
 import com.bittr.android.core.designsystem.BittrCanvas
 import com.bittr.android.core.designsystem.BittrCanvasShapes
 import com.bittr.android.core.designsystem.BittrTheme
@@ -296,7 +297,8 @@ internal fun MapScreen(
             WebsiteScreen(
                 url = url.withScheme(),
                 onClose = { state = state.copy(openWebsite = null) },
-                modifier = Modifier.statusBarsPadding().navigationBarsPadding(),
+                // Its own window: expose test tags so `website.*` ids reach Maestro.
+                modifier = Modifier.exposeTestTags().statusBarsPadding().navigationBarsPadding(),
             )
         }
     }

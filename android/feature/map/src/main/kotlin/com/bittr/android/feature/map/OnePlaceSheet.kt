@@ -28,6 +28,7 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.bittr.android.core.common.TestID
 import com.bittr.android.core.designsystem.BittrCanvasShapes
+import com.bittr.android.core.designsystem.exposeTestTags
 import com.bittr.android.core.designsystem.BittrIconPaths
 import com.bittr.android.core.designsystem.BittrTheme
 import com.bittr.android.core.designsystem.BittrTokens
@@ -62,7 +63,9 @@ internal fun OnePlaceSheet(
     ) {
         Box(
             contentAlignment = Alignment.BottomCenter,
-            modifier = Modifier.fillMaxSize(),
+            // The Dialog is its own window, so the app root's testTagsAsResourceId does
+            // not reach `map.onePlace.*` — see exposeTestTags.
+            modifier = Modifier.fillMaxSize().exposeTestTags(),
         ) {
             // The tap-to-dismiss scrim is a *sibling* of the card, not its parent.
             // `Modifier.clickable` sets `mergeDescendants`, so a clickable wrapper
