@@ -456,27 +456,50 @@ because the cost is build-level rather than editorial.
 widening it. Those constants are the *licence obligation*, an ASCII-spaced credit discharges
 it perfectly well, and a guard that failed such a build would be the "cries wolf" failure
 this file's own KDoc names as worse than no guard at all. Instead normalise U+00A0 to
-U+0020 in the text `creditConstant` searches, immediately before the `indexOf`, and leave
-both constants ASCII and readable:
+U+0020 in the text `creditConstant` searches, rather than moving either constant.
+
+**The one-line form of that does not work, and the reason is this document's own spelling
+rule.** It was prescribed here as:
 
 ```kotlin
-val at = text.replace('\u00A0', ' ').indexOf(credit)
+val at = text.replace('\u00A0', ' ').indexOf(credit)   // insufficient
 ```
 
-One line, and it is safe next to the rest of that function for a reason worth stating:
-`replace(Char, Char)` is length-preserving, so `at` stays a valid index into the
-*un-normalised* `text` that the `CONST_DECL` walk below it still scans. Normalising the
-whole function's input would not have been.
+`replace(Char, Char)` replaces the **character** U+00A0. "The wording, settled" above
+requires the credit be spelled with *escapes* rather than pasted as the character — for the
+good reason that an invisible character is one a reformat can silently eat — so the source
+`creditConstant` reads never contains that character. It contains the six characters
+`\u00A0`. The replace finds nothing, `indexOf` still misses, and the guard still reports the
+credit as absent. The same applies to the OSM half: with the settled literal, `Map data ©`
+is followed by an escape too, so `OSM_CREDIT` stops matching as well and the claim above
+that it "survives verbatim and contiguous" holds for the rendered string but not for the
+source text the guard scans.
 
-This widens the accepted set by exactly one character, and it is the right one to widen by:
-U+00A0 **renders as a space**. That is precisely the distinction that keeps `&copy;` and
-`(c)` rejected while admitting this — those two render *wrong*, this one renders
-*identically*. Nothing else loosens. The `©` stays U+00A9, the `.org` stays required, and
-all four rejection fixtures (`OSM_ONLY_CREDIT_LINE`, `BARE_OMT_CREDIT_LINE`,
-`ENTITY_CREDIT_LINE`, `ASCII_CREDIT_LINE`) still reject for the reasons they were written.
-Add a fifth holding the credit with NBSP escapes, so the normalisation is proven in the same
-file that now depends on it — by the same argument as every other fixture there, an untested
-normaliser is one that can quietly stop normalising.
+Measured, both directions, on one tree carrying the settled literal exactly as it is written
+above: with the one-liner, `:app:testDebugUnitTest` fails naming `© OpenMapTiles.org`
+absent; with the normaliser described next, it is green.
+
+**What landed instead: a table of spellings, not an escape decoder.** `RENDERED_FORMS` maps
+each way of *writing* something to what it **renders as** — the three non-breaking spaces
+and the two zero-width joiners, each as the character *and* as the escape, plus `\u00A9` for
+the sign — and `sourceNormalized` applies it. The `\u00A9` entry is there because writing
+this credit by hand produced exactly that false red: once the rule says spell the invisible
+character as an escape, the next move is to spell its neighbour the same way.
+
+The replacements change length, so unlike `replace(Char, Char)` this is **not**
+length-preserving and a normalised index is not a valid index into the original text. That
+is why `sourceNormalized` returns an index map alongside the normalised string, and why
+`creditConstant` maps back before the `CONST_DECL` walk. Skipping that step is a real
+failure and not a theoretical one: with enough non-breaking spaces ahead of the credit — a
+single alert paragraph that puts one between each number and its unit is enough, at
+nineteen — the walk-back stops one declaration early and names the wrong constant.
+
+Nothing loosens. The `©` stays U+00A9, the `.org` stays required, and every rejection
+fixture still rejects: `OSM_ONLY_CREDIT_LINE`, `BARE_OMT_CREDIT_LINE`, `ENTITY_CREDIT_LINE`,
+`ASCII_CREDIT_LINE`, and a new `SPLIT_CREDIT_LINE` for a credit broken across two
+concatenated literals — a quote and a `+` render as neither a space nor nothing, so
+tolerating typography must not become tolerating a broken string. Each is asserted
+separately **after** normalisation rather than assumed to be unaffected by it.
 
 **And that dissolves the same-commit constraint, which is the point of doing it this way.**
 Moving the pins would have forced copy and guard into one commit, because a guard pinned to
@@ -486,12 +509,25 @@ it can land **on its own, ahead of the `STYLE_URI` commit**, and leave that comm
 copy only. The requirement weakens from "same commit" to "no later than", which is the
 weakest form this obligation can take.
 
-Verified on this tree rather than reasoned about, in both directions (BIT-150). With the
-fixture added and the normalisation absent, `:app:testDebugUnitTest` fails at the new
-assertion — so the fixture genuinely reproduces the trap and is not decorative. With the
-one-line normalisation applied, `BasemapAttributionGuardTest` is green, 2 tests, 0 failures,
-with all four rejection fixtures still rejecting and `STYLE_URI` still `null`. The patch was
-reverted; the guard half is the Head of App (Android)'s to land.
+**Landed (BIT-119).** `sourceNormalized`, `RENDERED_FORMS` and five new fixtures are in
+`BasemapAttributionGuardTest`; `STYLE_URI` is still `null` and no app code moved, so this is
+the "on its own, ahead of the `STYLE_URI` commit" case the paragraph above describes.
+
+Verified by mutation rather than by a green run, because a green normaliser and an absent
+one look identical from the outside. Each of these was run:
+
+| Tree | Expected | Result |
+|---|---|---|
+| `STYLE_URI` null, as it ships | dormant, green | green |
+| `STYLE_URI` set + the settled literal, escapes and all | green | green |
+| `STYLE_URI` set, credit text replaced by "Map of Switzerland" | red | red, names both credits |
+| `STYLE_URI` set, OpenStreetMap half only | red | red, names `© OpenMapTiles.org` |
+| normaliser reverted to a bare `indexOf` | self-test red | red at the non-breaking fixture |
+| index map bypassed, normalisation kept | self-test red | red, `expected BASEMAP_ATTRIBUTION but was NEARBY_ALERT` |
+
+The last two are the ones worth having: they prove the new fixtures fail when the thing they
+guard is removed, which is the only evidence that separates a guard from a decoration. Full
+offline line green on the landed tree — 492 tests, 0 failures, 0 errors.
 
 ### A correction to the measurement's basis: `bodySmall` is not Gilroy
 

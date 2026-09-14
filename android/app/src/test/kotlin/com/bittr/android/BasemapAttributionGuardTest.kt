@@ -240,6 +240,105 @@ class BasemapAttributionGuardTest {
             "const val BASEMAP_ATTRIBUTION: String = " +
                 "\"Map data (c) OpenMapTiles (c) OpenStreetMap contributors\""
 
+        /**
+         * The settled line with the `©` held against `OpenMapTiles.org` by a
+         * non-breaking space — the repair BIT-119's wrap measurement calls for.
+         *
+         * Written with the character itself, which is the form a Kotlin source file
+         * gets if the credit is pasted from a document that already contains one.
+         */
+        val NON_BREAKING_CREDIT_LINE =
+            "const val BASEMAP_ATTRIBUTION: String = " +
+                "\"Map data $OSM_CREDIT, design ©\u00A0OpenMapTiles.org\""
+
+        /**
+         * The same repair written the deliberate way: `\u00A0` as an escape, so the
+         * source file contains no invisible character.
+         *
+         * Both forms have to be accepted, because both are what a careful author
+         * plausibly writes and neither is distinguishable on screen.
+         */
+        val ESCAPED_NON_BREAKING_CREDIT_LINE =
+            "const val BASEMAP_ATTRIBUTION: String = " +
+                "\"Map data $OSM_CREDIT, design ©\\u00A0OpenMapTiles.org\""
+
+        /**
+         * The whole credit spelled with escapes -- both copyright signs and the
+         * non-breaking space -- which is what a source file gets from an author who
+         * decided not to put invisible or exotic characters in it.
+         *
+         * Not a hypothetical. This is the line I wrote by hand while proving the
+         * change above end to end, and this guard called the credit absent.
+         */
+        val ESCAPED_SIGN_CREDIT_LINE =
+            "const val BASEMAP_ATTRIBUTION: String = " +
+                "\"Map data \\u00A9 OpenStreetMap contributors, " +
+                "design \\u00A9\\u00A0OpenMapTiles.org\""
+
+        /** The same repair done with a word joiner beside an ordinary space. */
+        val WORD_JOINER_CREDIT_LINE =
+            "const val BASEMAP_ATTRIBUTION: String = " +
+                "\"Map data $OSM_CREDIT, design ©\u2060 OpenMapTiles.org\""
+
+        /**
+         * The credit split across two concatenated literals, which normalising must
+         * **not** rescue.
+         *
+         * The guard's tolerance is for characters that render as a space or as
+         * nothing. A `" +` and a newline render as neither: this source produces
+         * `design ©OpenMapTiles.org`, with no separator at all, so the pinned phrase
+         * genuinely is not on the screen and null is the right answer.
+         */
+        val SPLIT_CREDIT_LINE =
+            "const val BASEMAP_ATTRIBUTION: String =\n" +
+                "    \"Map data $OSM_CREDIT, design ©\" +\n" +
+                "        \"OpenMapTiles.org\"\n"
+
+        /**
+         * The credit preceded by a long constant whose own typography normalises
+         * shorter -- the one regression [sourceNormalized]'s index map exists to stop.
+         *
+         * Every `\u00A0` escape ahead of the credit is six source characters standing
+         * in for one normalised character, so the credit sits *earlier* in the
+         * normalised text than in the file. Searching there and then walking back
+         * through `CONST_DECL` matches taken from the **original** text compares two
+         * different coordinate systems. Once the accumulated shift exceeds the
+         * distance from a declaration's start to the credit inside it, the walk-back
+         * stops one declaration too early and names `NEARBY_ALERT` as the constant
+         * carrying the credit -- after which the render check hunts `MapCopy` for a
+         * name nobody wrote and the build goes red pointing at the wrong thing.
+         *
+         * ### Why the fixture is this long
+         *
+         * Because that is what it takes, and a shorter one would pass either way and
+         * prove nothing. The credit sits 87 characters into its own declaration, so
+         * the shift has to clear 87 -- eighteen escapes at five characters each. A
+         * fixture padded out to reach that would be a fixture built to fail.
+         *
+         * This one is not padded. It is an alert body of the length `MapCopy` already
+         * writes -- `POWERED_BY_ALERT` runs to eight concatenated literals -- with a
+         * non-breaking space in the places typography actually puts one: between a
+         * number and its unit. `5 km`, `15 min`, `24 h` and `500 ms` should not be
+         * split across a line break, and an author who knows that writes nineteen of
+         * them into a paragraph this size without thinking about it. The shift is 95.
+         */
+        val CREDIT_AFTER_TYPESET_UNITS =
+            """
+            const val NEARBY_ALERT: String =
+                "Places within 5\u00A0km are shown first, refreshed every 15\u00A0min. " +
+                    "Walking times assume 5\u00A0km/h and round up to the next 5\u00A0min. " +
+                    "Distances over 2\u00A0km are given in whole kilometres, under 2\u00A0km " +
+                    "in 50\u00A0m steps. Opening hours are local time, and a place that " +
+                    "closes within 30\u00A0min is dimmed. Cached results expire after 24\u00A0h " +
+                    "and are refetched when you move more than 1\u00A0km. Prices shown in " +
+                    "CHF\u00A0are indicative. Marker clusters split below 1\u00A0km, and the " +
+                    "map holds 14\u00A0zoom levels between 0\u00A0z and 14\u00A0z. Tap within " +
+                    "10\u00A0dp of a marker to open it; drag more than 8\u00A0dp to pan. " +
+                    "Long-press for 500\u00A0ms to drop a pin, or 1\u00A0s to recentre."
+            $NON_BREAKING_CREDIT_LINE
+            const val CLOSE: String = "Close"
+            """.trimIndent()
+
         /** Whichever way [styleUriLiteral] read the declaration. */
         sealed interface Result {
             object Null : Result
@@ -259,8 +358,114 @@ class BasemapAttributionGuardTest {
         }
 
         /**
+         * Ways of writing "a space that will not break here", each as it can appear
+         * in Kotlin source: the character itself, and the `\uXXXX` escape, which is
+         * how anyone would sensibly write an otherwise-invisible character into a
+         * source file.
+         *
+         * ### Why this exists
+         *
+         * The credits below are pinned with a plain ASCII space and matched with
+         * `indexOf`, and that combination had a failure mode worth naming: it
+         * reported a **deleted credit** for a credit that was present and correct.
+         *
+         * Measured on BIT-119 rather than imagined. Rendering the settled line under
+         * Robolectric in `NATIVE` graphics mode shows it wrapping after `design ©` —
+         * at 411 dp as well as at 320 dp — orphaning the copyright sign from the
+         * thing it credits. The obvious repair is a non-breaking space before
+         * `OpenMapTiles.org`, which renders identically and holds the sign against
+         * its subject. Patched in, this guard went red saying *"no constant in
+         * MapCopy.kt carries the credit © OpenMapTiles.org"*, which was false.
+         *
+         * That is not a harmless false alarm. It couples a typographic decision that
+         * belongs to the Growth & Content Lead to a change in this file's pins and
+         * fixtures, inside the single commit that is least able to absorb one — the
+         * `STYLE_URI` commit, which is described everywhere as a one-constant diff.
+         * Normalising here decouples them: whatever wording lands, it lands as copy.
+         *
+         * ### Why it does not weaken the pin
+         *
+         * Each entry maps a way of *writing* something to what it **renders as**, so
+         * normalising cannot make an inadequate credit look adequate: `(c)`,
+         * `&copy;`, a bare `© OpenMapTiles` and an absent credit are all still
+         * rejected, and the self-test below asserts each of those separately after
+         * normalisation rather than trusting that claim.
+         *
+         * Deliberately narrow. This is a table of known spellings, not an escape
+         * decoder: nothing here bridges a quote, a `+` or a newline, so splitting a
+         * credit across two concatenated literals still fails, as it did before.
+         */
+        val RENDERED_FORMS: List<Pair<String, String>> = listOf(
+            // No-break space, narrow no-break space, figure space. Each is written
+            // both as the character and as the escape, because both reach a source
+            // file: the character when the line is pasted from a document that
+            // already holds one, the escape when it is typed deliberately.
+            "\u00A0" to " ", "\\u00A0" to " ", "\\u00a0" to " ",
+            "\u202F" to " ", "\\u202F" to " ", "\\u202f" to " ",
+            "\u2007" to " ", "\\u2007" to " ",
+            // Word joiner and zero-width no-break space, the invisible way to hold
+            // two words together. Normalised away entirely rather than to a space,
+            // because that is what they render as: nothing.
+            "\u2060" to "", "\\u2060" to "",
+            "\uFEFF" to "", "\\uFEFF" to "", "\\ufeff" to "",
+            // The copyright sign written as an escape. Added after writing the
+            // credit that way by hand and watching this guard call it absent, which
+            // is the same false failure as the space and is arrived at more easily
+            // than it looks: the comment above recommends escapes for the invisible
+            // character, and the obvious next move is to spell its neighbour the
+            // same way. Note U+00A9 itself needs no entry -- it is already the
+            // pinned character -- and that "(c)" and "&copy;" are still absent from
+            // this table, because neither renders as the sign.
+            "\\u00A9" to "\u00A9", "\\u00a9" to "\u00A9",
+        )
+
+        /**
+         * [text] with every source form in [RENDERED_FORMS] replaced by what it
+         * actually renders as, paired with a map from each index in the result back
+         * to the index it came from in [text].
+         *
+         * The map is the reason this is not a chain of `replace` calls. The
+         * replacements change length — `\u00A0` is six characters standing in for
+         * one — so a position found in the normalised text does not address the same
+         * character in the original, and [creditConstant] needs an *original*
+         * position to walk back to the enclosing declaration. Returning the mapping
+         * keeps the search and the walk-back honest about which string each is
+         * indexing into.
+         *
+         * One known limit, stated rather than hidden: inside a raw (`"""`) string an
+         * escape is not an escape, so a literal `\u00A0` typed there would be
+         * normalised here but rendered verbatim on screen. That is accepted because
+         * the resulting screen says `design ©\u00A0OpenMapTiles.org` to the user,
+         * which is not a defect this guard has to be the one to catch, and because
+         * the copy in [COPY_FILE] is written as ordinary string literals.
+         */
+        fun sourceNormalized(text: String): Pair<String, IntArray> {
+            val out = StringBuilder(text.length)
+            val offsets = IntArray(text.length + 1)
+            var i = 0
+            while (i < text.length) {
+                val form = RENDERED_FORMS.firstOrNull { text.startsWith(it.first, i) }
+                if (form == null) {
+                    offsets[out.length] = i
+                    out.append(text[i])
+                    i++
+                    continue
+                }
+                // Zero-width forms render as nothing and contribute no index.
+                repeat(form.second.length) { offsets[out.length + it] = i }
+                out.append(form.second)
+                i += form.first.length
+            }
+            offsets[out.length] = text.length
+            return out.toString() to offsets
+        }
+
+        /**
          * The name of the constant in [COPY_FILE] carrying [credit], or null when no
          * constant does.
+         *
+         * Matched after [sourceNormalized], so a non-breaking space inside a credit
+         * reads as the space it renders as instead of as a missing credit.
          *
          * Found by locating the credit text and walking back to the declaration that
          * encloses it, rather than by matching a whole declaration in one pattern:
@@ -270,12 +475,14 @@ class BasemapAttributionGuardTest {
          * relative to the declarations around it does not need modelling.
          */
         fun creditConstant(text: String, credit: String): String? {
-            val at = text.indexOf(credit)
+            val (normalized, offsets) = sourceNormalized(text)
+            val at = normalized.indexOf(sourceNormalized(credit).first)
             if (at < 0) return null
             val matcher = CONST_DECL.matcher(text)
             var enclosing: String? = null
+            val original = offsets[at]
             while (matcher.find()) {
-                if (matcher.start() > at) break
+                if (matcher.start() > original) break
                 enclosing = matcher.group(1)
             }
             return enclosing
@@ -453,6 +660,60 @@ class BasemapAttributionGuardTest {
                 "line, so the assertion above no longer isolates the OpenMapTiles credit.",
             "BASEMAP_ATTRIBUTION",
             creditConstant(BARE_OMT_CREDIT_LINE, OSM_CREDIT),
+        )
+
+        // A credit is not deleted by being typeset. These four say so — see
+        // RENDERED_FORMS for the measured wrap this tolerance exists for, and
+        // note that the rejections above and below run against the same normaliser.
+        for ((form, line) in mapOf(
+            "a non-breaking space" to NON_BREAKING_CREDIT_LINE,
+            "a \\u00A0 escape" to ESCAPED_NON_BREAKING_CREDIT_LINE,
+            "a word joiner" to WORD_JOINER_CREDIT_LINE,
+            "\\u00A9 and \\u00A0 escapes throughout" to ESCAPED_SIGN_CREDIT_LINE,
+        )) {
+            assertEquals(
+                "The OpenMapTiles detector reports the credit as *absent* when it is " +
+                    "present and held together with $form. It renders as the pinned " +
+                    "phrase, so calling it missing is a false failure — and an " +
+                    "expensive one: it forces a typographic choice that belongs to the " +
+                    "Growth & Content Lead into a change of this file's pins and " +
+                    "fixtures, inside the one-constant STYLE_URI commit.",
+                "BASEMAP_ATTRIBUTION",
+                creditConstant(line, OMT_CREDIT),
+            )
+
+            assertEquals(
+                "The OpenStreetMap detector stopped seeing the OSM half of the line " +
+                    "repaired with $form, so the assertion above no longer isolates the " +
+                    "OpenMapTiles credit.",
+                "BASEMAP_ATTRIBUTION",
+                creditConstant(line, OSM_CREDIT),
+            )
+        }
+
+        assertEquals(
+            "The credit detector attributes a normalised credit to the wrong constant. " +
+                "Every \\u00A0 escape ahead of the credit is six source characters " +
+                "standing in for one, so the credit sits earlier in the normalised text " +
+                "than in the file. Matching there and then walking back through " +
+                "declarations found in the *original* text compares two coordinate " +
+                "systems, and once the shift clears the 87 characters between a " +
+                "declaration and the credit inside it, the walk-back stops early and " +
+                "names NEARBY_ALERT. The render check would then hunt MapCopy for a " +
+                "name nobody wrote. See sourceNormalized on why it returns an index map.",
+            "BASEMAP_ATTRIBUTION",
+            creditConstant(CREDIT_AFTER_TYPESET_UNITS, OMT_CREDIT),
+        )
+
+        assertEquals(
+            "The credit detector normalises across a string concatenation, so a credit " +
+                "split over two literals now passes. A quote and a '+' are not " +
+                "whitespace and do not render as a space: that source puts " +
+                "'design ©OpenMapTiles.org' on the screen, with no separator, so the " +
+                "pinned phrase is genuinely not there. Tolerating typography is not the " +
+                "same as tolerating a broken string.",
+            null,
+            creditConstant(SPLIT_CREDIT_LINE, OMT_CREDIT),
         )
 
         assertEquals(
