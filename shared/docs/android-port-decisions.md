@@ -121,6 +121,52 @@ Full log: `android/docs/port-specs/buy-decisions.md`. What needs you:
 26. **Decided — the push handlers read the deposit code from the Buy customer store**
     (`BuyPushHooksModule`), so `htlc-interceptor/ready` and payouts work once a customer has signed up.
 
+## Swaps (merged from `port/swaps`)
+
+Full log: `android/docs/port-specs/swaps-decisions.md`. Crypto (Taproot lockup, MuSig2 claim/refund) is on
+bitcoin-kmp, with every iOS check on Boltz's answers and the evil-Boltz cases as JVM tests.
+
+27. **Decided — Android checks Boltz's partial signature and the final signature before broadcasting** a claim
+    or refund. iOS broadcasts unchecked; this doesn't change the happy path.
+
+28. **Decided — claims and refunds keep running after the swap screen closes** (process scope). iOS ties them
+    to the view controller.
+
+29. **Question — FCM on the test emulator.** A swap needs a push token for Boltz's webhook, so without Firebase
+    set up on the emulator every swap stops at `alert.notificationsRequired`. Should the Android test emulator
+    get a Play-services image and `google-services.json`?
+
+30. **Question — should Android claim or refund in the background after a swap push**, when the app isn't open?
+    iOS doesn't.
+
+31. **Gap — swap history rows.** Android's history has no description cache yet, so the two legs of a swap show
+    as separate, unlabelled rows. The transaction screen has no swap status button, there's no swap from a payout
+    push, and there's no Live Activity equivalent. The `-evilBoltz` test harness isn't ported (JVM tests cover it).
+
+## LNURL, Lightning address, channel chart, sync overlay, notes (merged from `port/lnurl`)
+
+Full log: `android/docs/port-specs/lnurl-decisions.md`.
+
+32. **Question — new copy:** "The invoice we received doesn't match the requested amount." Android refuses an
+    LNURL-pay invoice for a different amount than was asked; iOS pays whatever invoice comes back.
+
+33. **Decided — LNURL service URLs, callbacks and the Lightning-address push endpoint must be public https.**
+    iOS fetches or posts to any URL. `notification_lnurl.yaml` still ends on `alert.paymentRequestFailed`.
+
+34. **Decided — LNURL-auth uses iOS's own key derivation** (HMAC of the mnemonic, not LUD-05), so an account on a
+    site carries over from iOS. Not tested against a live site.
+
+35. **Gap — still missing here:**
+    - Lightning invoice descriptions on received payments, since Receive doesn't store them.
+    - LNURL links inside the in-app browser.
+    - The chart on Send's "why a limit" card.
+    - An Android clipboard bridge for the invoice-paste steps in `send_lightning.yaml` / `receive_invoice.yaml`.
+    - The Lightning-address push handler isn't bound to the notifications hook yet (see below).
+
+36. **Decided — the channel-closed card** (`question.yellowCard`, "closed lightning connection") now opens from
+    LDK's `ChannelClosed` event, as `remove_wallet.yaml` expects. iOS hides it during the 10-wrong-PIN wipe; Android
+    doesn't yet.
+
 ## Test environment
 
 9. **Decided — local emulator runs with `-memory 4096 -cores 6 -camera-back none`.** With the AVD's 4 cores /
