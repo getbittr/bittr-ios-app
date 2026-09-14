@@ -24,8 +24,9 @@ the map ends up talking to a third party while the file still reads as clean:
 - **Cleartext to our own host.** `http://tiles.getbittr.com/...` is on a bittr apex and
   passes a host-only test, but it is the tile path in the clear — the same disclosure
   section 2 of the document exists to prevent, minus the TLS.
-- **`attribution` is not a fetch.** A source's `attribution` is rendered as text; a
-  `<a href="https://www.openstreetmap.org/copyright">` inside it is the licence link,
+- **`attribution` is not a fetch.** A source's `attribution` is display markup, which
+  MapLibre Android surfaces in its attribution dialog rather than on the map (BIT-149);
+  a `<a href="https://www.openstreetmap.org/copyright">` inside it is the licence link,
   not a resource request. A text scan flags it, and the way that gets "fixed" is by
   deleting a licence credit. Flagged here as a note instead. (Today the style carries
   no `attribution` at all — see the comment in make-style.py and BIT-140 — so this arm

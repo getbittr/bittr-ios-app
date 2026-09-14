@@ -130,8 +130,10 @@ OSM today only for the *places*: `MapCopy.POWERED_BY` is "Powered by BTCMap.org"
 alert explains that BTCMap "uses OpenStreetMap to tag places that accept bitcoin". Neither
 sentence covers a basemap, because there is no basemap yet.
 
-Required with the archive, in the same commit that sets `STYLE_URI`: **© OpenStreetMap
-contributors**, visible on the map surface.
+Required with the archive, in the same commit that sets `STYLE_URI`, visible on the map
+surface: **Map data © OpenStreetMap contributors, design © OpenMapTiles.org**. Two credits,
+because two licences — "OSM is not the only credit owed" below is how the second was found,
+and "The wording, settled" is where the sentence was fixed.
 
 Deliberately not added ahead of that commit. It is user-facing copy and copy on this screen
 is the Growth & Content Lead's to word — BIT-56 is the precedent. Adding an unreviewed
@@ -141,8 +143,10 @@ string now would also credit OSM for a basemap the app does not draw.
 otherwise, with the reasoning below; the assumption is corrected rather than deleted
 because it is the one a reader would otherwise make again.)
 
-**The wording is settled.** BIT-140 worded it **`Map data © OpenStreetMap contributors`**,
-as `MapCopy.BASEMAP_ATTRIBUTION` — a plain constant, deliberately *not* in
+**The wording is settled.** BIT-140 worded the OSM half **`Map data © OpenStreetMap
+contributors`**; BIT-149 extended it to **`Map data © OpenStreetMap contributors, design ©
+OpenMapTiles.org`** once the second licence surfaced. It lives in
+`MapCopy.BASEMAP_ATTRIBUTION` — a plain constant, deliberately *not* in
 `shared/strings/en.json`. That file is the cross-platform canonical source, and this string
 must not be cross-platform: iOS renders through `MKMapView` on Apple's imagery, where this
 credit would be false. Promote it the day iOS renders from bittr's tiles. "Map data" rather
@@ -154,17 +158,18 @@ and in the same style. Do not reword `POWERED_BY_ALERT` to explain any of this �
 re-triggers the BIT-69 compliance read and re-opens the SE length budget.
 
 **The "same commit" is enforced, not remembered.** `BasemapAttributionGuardTest` fails the
-build if `STYLE_URI` is set to a URL while no constant in `MapCopy.kt` carries the phrase
-`© OpenStreetMap contributors`, or while `MapScreen.kt` never reads that constant. It is
-dormant today — `STYLE_URI` is `null`, so the app owes no basemap credit — and its
-self-test runs the detectors against known offenders so a dormant check cannot quietly
-become a broken one. Three things about the match are deliberate: the full phrase rather
-than "OpenStreetMap", because the alert above already contains the shorter word while
-covering no imagery; the `©` as U+00A9, so `(c)` and `&copy;` are rejected — the second
-renders literally in a Compose `Text`; and *only* that phrase, so the framing around it
-stays editable without touching the guard. What the guard still cannot see is whether the
-credit is *legible* once rendered; that belongs in a rendered assertion beside the map
-module's other Robolectric tests.
+build if `STYLE_URI` is set to a URL while `MapCopy.kt` is missing either required phrase —
+`© OpenStreetMap contributors` or `© OpenMapTiles.org` — or while `MapScreen.kt` never
+reads the constant carrying one of them. It is dormant today — `STYLE_URI` is `null`, so
+the app owes no basemap credit — and its self-test runs the detectors against known
+offenders so a dormant check cannot quietly become a broken one. Four things about the
+match are deliberate: the full OSM phrase rather than "OpenStreetMap", because the alert
+above already contains the shorter word while covering no imagery; the `©` as U+00A9, so
+`(c)` and `&copy;` are rejected — the second renders literally in a Compose `Text`; the
+`.org` on the OpenMapTiles credit, for the licence reason in "The wording, settled" below;
+and *only* those phrases, so the framing around them stays editable without touching the
+guard. What the guard still cannot see is whether the credit is *legible* once rendered;
+that belongs in a rendered assertion beside the map module's other Robolectric tests.
 
 ### Correction from the first build: OSM is not the only credit owed
 
@@ -180,11 +185,15 @@ web page — this is planetiler's own end-of-run banner, and the same text is in
 > with these vector tiles must display a visible credit: **© OpenMapTiles © OpenStreetMap
 > contributors**
 
-`MapCopy.BASEMAP_ATTRIBUTION` is `Map data © OpenStreetMap contributors`. That is the OSM
-half and only the OSM half, and `BasemapAttributionGuardTest` matches on the OSM phrase
-alone — so the guard passes in exactly the state the licence is not satisfied in. **This is
+`MapCopy.BASEMAP_ATTRIBUTION` was `Map data © OpenStreetMap contributors`. That is the OSM
+half and only the OSM half, and `BasemapAttributionGuardTest` matched on the OSM phrase
+alone — so the guard passed in exactly the state the licence is not satisfied in. **This is
 a wording change owned by BIT-140 and the Growth & Content Lead, not something to patch
 here**; §3's whole point is that this copy is not the pipeline's to write.
+
+*(Both halves are now resolved: the guard in the commit that added `OMT_CREDIT`, the
+sentence in "The wording, settled" at the end of this section. What follows is kept as the
+record of how the gap was found and what was believed while finding it.)*
 
 Two things make it less alarming than it reads, and neither disposes of it:
 
@@ -250,10 +259,10 @@ in the tree reads dialog entries.
 
 ### The guard now requires both credits
 
-`BasemapAttributionGuardTest` pins both `© OpenMapTiles` and `© OpenStreetMap
+`BasemapAttributionGuardTest` pins both `© OpenMapTiles.org` and `© OpenStreetMap
 contributors`, each checked separately and each required to be rendered by `MapScreen.kt`.
 Whether they live in one constant or two is not pinned, and neither is the framing — the
-sentence stays BIT-149's to word.
+sentence is settled just below.
 
 The phrases are taken from the built archive's own PMTiles `attribution` metadata rather
 than from licence prose, so the guard asks for the credit the artefact says it carries.
@@ -263,6 +272,45 @@ wording, and the exact state the licence is unmet in — the guard fails naming
 `© OpenMapTiles`; adding the OpenMapTiles half turns it green, with `TileHostGuardTest`
 green throughout. The first run matters more than the second: it is the state this guard
 used to pass.
+
+### The wording, settled
+
+`MapCopy.BASEMAP_ATTRIBUTION` is:
+
+> **Map data © OpenStreetMap contributors, design © OpenMapTiles.org**
+
+One string, one `Text`, in the placement BIT-140 already fixed. Four decisions in it.
+
+**It extends BIT-140's phrase rather than replacing it.** `Map data © OpenStreetMap
+contributors` survives verbatim and contiguous, so the half that went through BIT-140 is
+not reopened and the OSM pin keeps matching. Only the clause after the comma is new.
+
+**"design", not a second "data".** `NOTICE.md` in the pinned planetiler jar is specific
+about what is CC-BY here: "the cartography and visual design features of the map tile
+schema". OSM supplied the data; OpenMapTiles supplied the schema the tiles are cut to. A
+combined `Map data © OpenMapTiles © OpenStreetMap contributors` — the form the banner
+shows — would credit OpenMapTiles for the data, which is not what either licence says.
+Splitting the roles costs one word and makes the line true.
+
+**`.org`, and it is load-bearing.** The same notice states the obligation as two
+alternatives: visibly credit "OpenMapTiles.org", **or** reference "OpenMapTiles" with a
+link to openmaptiles.org. Planetiler's banner and the archive metadata both take the second
+— they render `© OpenMapTiles` as an `<a href>`. This credit is a plain, unclickable
+`Text`, so the second alternative is not available to it and the first is what has to be
+met; the first names the domain. A bare unlinked `© OpenMapTiles` would satisfy neither,
+and the guard rejects it with its own fixture. If this credit ever becomes a real link,
+relax the pin in that commit.
+
+**OSM first.** Neither licence constrains order. The existing copy on this screen is
+OSM-centric — "Powered by BTCMap.org" and an alert about OSM tagging — so leading with OSM
+reads continuously with the line above it, and it is what keeps BIT-140's phrase contiguous.
+
+Not promoted to `shared/strings/en.json`, for BIT-140's reason unchanged and now doubled:
+iOS renders through `MKMapView` on Apple's imagery, where *both* credits would be false.
+
+At 64 characters it wraps on a narrow screen, which BIT-140 already chose over truncating.
+`POWERED_BY_ALERT` is not reworded to explain any of this — that re-triggers the BIT-69
+compliance read.
 
 ## 4. Refresh cadence and owner
 

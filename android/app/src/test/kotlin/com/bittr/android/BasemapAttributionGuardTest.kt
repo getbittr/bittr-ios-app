@@ -136,8 +136,32 @@ class BasemapAttributionGuardTest {
          * That is also why only the two `©` phrases are pinned and the links are not:
          * the metadata's form is the tile builder's, and the on-screen sentence is
          * the Growth & Content Lead's.
+         *
+         * ### Why the `.org` is part of the pin
+         *
+         * This constant read `© OpenMapTiles` when BIT-149 first landed, copied from
+         * the archive metadata and from planetiler's banner. Both render it **as a
+         * link**, and that turns out to be the whole of it. `NOTICE.md` in the same
+         * pinned jar states the obligation as two alternatives, not one:
+         *
+         * > Products or services using maps derived from OpenMapTiles schema need to
+         * > visibly credit "OpenMapTiles.org" or reference "OpenMapTiles" with a link
+         * > to openmaptiles.org
+         *
+         * BIT-140 fixed this credit as a plain Compose `Text`, outside the existing
+         * line's `clickable` and not itself clickable. There is no link, so the
+         * second alternative is unavailable and the first is the one that has to be
+         * met — and the first names `OpenMapTiles.org`, with the suffix. A bare
+         * `© OpenMapTiles` in an unclickable `Text` satisfies neither alternative,
+         * which would have been the same failure BIT-149 exists to fix, one level
+         * down: a guard green on a credit that does not discharge the licence.
+         *
+         * So the `.org` is load-bearing rather than decorative, and the bare form is
+         * rejected below. If a later change makes this credit a real link, the second
+         * alternative opens up and this pin should be relaxed **in that commit**, not
+         * loosened to clear a red build.
          */
-        const val OMT_CREDIT = "© OpenMapTiles"
+        const val OMT_CREDIT = "© OpenMapTiles.org"
 
         /**
          * Every phrase the two upstream licences require on the map surface.
@@ -193,6 +217,19 @@ class BasemapAttributionGuardTest {
          */
         val OSM_ONLY_CREDIT_LINE =
             "const val BASEMAP_ATTRIBUTION: String = \"Map data $OSM_CREDIT\""
+
+        /**
+         * The bare `© OpenMapTiles` this constant used to accept.
+         *
+         * A second "not hypothetical" fixture, for the same reason as
+         * [OSM_ONLY_CREDIT_LINE]: it is the form both planetiler and the archive
+         * metadata show, so it is what anyone writing this line from the upstream
+         * sources would reach for. Unlinked, it meets neither alternative in the
+         * CC-BY notice — see [OMT_CREDIT].
+         */
+        val BARE_OMT_CREDIT_LINE =
+            "const val BASEMAP_ATTRIBUTION: String = " +
+                "\"Map data $OSM_CREDIT, design © OpenMapTiles\""
 
         /** The same line with the two substitute forms the credits exclude. */
         const val ENTITY_CREDIT_LINE =
@@ -397,6 +434,25 @@ class BasemapAttributionGuardTest {
                 "reason and no longer isolates the missing OpenMapTiles credit.",
             "BASEMAP_ATTRIBUTION",
             creditConstant(OSM_ONLY_CREDIT_LINE, OSM_CREDIT),
+        )
+
+        assertEquals(
+            "The OpenMapTiles detector accepts a bare '© OpenMapTiles'. That is the form " +
+                "planetiler and the archive metadata both show, so it is what anyone " +
+                "writing this line from the upstream sources would reach for — but both " +
+                "show it as a link, and this credit is an unclickable Text. Unlinked it " +
+                "meets neither alternative in the CC-BY notice, so accepting it would be " +
+                "the BIT-149 failure again one level down: green on a credit that does not " +
+                "discharge the licence. See OMT_CREDIT on why the '.org' is pinned.",
+            null,
+            creditConstant(BARE_OMT_CREDIT_LINE, OMT_CREDIT),
+        )
+
+        assertEquals(
+            "The OpenStreetMap detector stopped seeing the OSM half of the bare-OpenMapTiles " +
+                "line, so the assertion above no longer isolates the OpenMapTiles credit.",
+            "BASEMAP_ATTRIBUTION",
+            creditConstant(BARE_OMT_CREDIT_LINE, OSM_CREDIT),
         )
 
         assertEquals(

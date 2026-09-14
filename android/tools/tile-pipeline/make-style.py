@@ -80,15 +80,29 @@ def style(version):
         # endpoint is not an incidental detail.
         "glyphs": base + "/glyphs/{fontstack}/{range}.pbf",
         "sources": {
-            # No `attribution` key here, deliberately. BIT-140 settled that the OSM
+            # No `attribution` key here, deliberately. BIT-140 settled that the
             # credit is an app-side Compose Text on the map surface
             # (`MapCopy.BASEMAP_ATTRIBUTION`), and `BasemapAttributionGuardTest`
             # fails the build if `STYLE_URI` is set without it — so the licence is
-            # covered whatever this file says. MapLibre Android also has a built-in
-            # attribution control that surfaces source-level `attribution` values,
-            # and nothing in `BasemapController` currently disables it, so adding a
-            # key here is the likely way to end up with two credits on one small
-            # map. If a later revision wants one, raise it with the Head of App
+            # covered whatever this file says.
+            #
+            # The reason recorded here used to be that MapLibre Android's built-in
+            # attribution control surfaces source-level `attribution` values, so a
+            # key here would put two credits on one small map. BIT-149 checked that
+            # against the artefact and it is not what happens: on Android that
+            # control is `UiSettings.attributionsView`, an ImageView whose content
+            # description is "Attribution icon. Activate to show attribution
+            # dialog." The class that draws attribution text, `AttributionMeasure`,
+            # is reachable only from `MapSnapshotter`, which the app never uses. So
+            # a key here would add a line to a dialog behind a tap, not a second
+            # credit on the map.
+            #
+            # The conclusion is unchanged, for a different reason: the archive's own
+            # metadata already carries planetiler's combined credit, and the PMTiles
+            # source synthesises a TileJSON from it. A key here would duplicate an
+            # entry *inside that dialog* for no gain, as a second hand-maintained
+            # copy of a licence string that can drift from the one in the archive it
+            # describes. If a later revision wants one, raise it with the Head of App
             # (Android) first rather than adding it for completeness.
             "basemap": {
                 "type": "vector",
