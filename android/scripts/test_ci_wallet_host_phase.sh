@@ -48,6 +48,14 @@
 #      to back up until it reads it. A drift there fails the same silent way —
 #      the host never finds the hand-off, declines to drive the backup, and
 #      warns that the plant never happened when it did.
+#   4. BIT-114's evidence channel: the file name both EvidenceLog copies write
+#      and collect-wallet-evidence.sh reads, the directory it lives in, and the
+#      prefix list the logcat fallback greps against the gate's EVIDENCE_PREFIXES.
+#      Same class of silence again, and the one BIT-114 was: a gate reading a
+#      channel nothing writes to reports an absence on a green run, and thirty
+#      runs went by. What collect-wallet-evidence.sh DOES with those strings is
+#      test_collect_wallet_evidence.sh's job — it drives the real script against
+#      a stub `adb`. This file only pins that the strings agree.
 #
 # No device, no emulator, no Gradle: greps and comparisons.
 set -uo pipefail
@@ -59,6 +67,13 @@ SCRIPT="$SCRIPT_DIR/ci-wallet-instrumented.sh"
 GRADLE="$REPO_ROOT/android/app/build.gradle.kts"
 WORKFLOW="$REPO_ROOT/.github/workflows/android-maestro.yml"
 TEST_KT="$REPO_ROOT/android/app/src/androidTest/kotlin/com/bittr/android/BackupExclusionTest.kt"
+# BIT-114's channel: the file the suites record their observations to and the
+# host reads back. Both modules keep their own copy on purpose — see either
+# file's header — so both are pinned, against each other and against the host.
+APP_EVIDENCE_KT="$REPO_ROOT/android/app/src/androidTest/kotlin/com/bittr/android/EvidenceLog.kt"
+LDK_EVIDENCE_KT="$REPO_ROOT/android/core/wallet-ldk/src/androidTest/kotlin/com/bittr/android/core/wallet/ldk/seed/EvidenceLog.kt"
+CHECKER="$SCRIPT_DIR/check-wallet-instrumented-results.py"
+COLLECTOR="$SCRIPT_DIR/collect-wallet-evidence.sh"
 
 failures=0
 
@@ -67,7 +82,8 @@ fail() {
   failures=$((failures + 1))
 }
 
-for f in "$SCRIPT" "$GRADLE" "$WORKFLOW" "$TEST_KT"; do
+for f in "$SCRIPT" "$GRADLE" "$WORKFLOW" "$TEST_KT" "$APP_EVIDENCE_KT" \
+  "$LDK_EVIDENCE_KT" "$CHECKER" "$COLLECTOR"; do
   [ -f "$f" ] || { fail "missing file: $f"; }
 done
 [ "$failures" -eq 0 ] || { echo; echo "$failures failure(s)."; exit 1; }
@@ -179,6 +195,109 @@ if ! printf '%s' "$sh_handoff_path" | grep -qF "\$APP_PACKAGE"; then
     "so a package rename would leave it pointing at another app's data directory."
 else
   echo "PASS: the hand-off path is rooted at \$APP_PACKAGE and under no_backup/"
+fi
+
+# --- 4. The evidence channel — BIT-114 ----------------------------------------
+#
+# The hand-off above is an interlock; this is the record. Same shape, same
+# silence when it drifts: the tests append their BACKUP_EXCLUSION and KEYSTORE_*
+# lines to a file in the app's data directory, and the host reads that file back
+# by name. There is no compiler between the two names either.
+#
+# It is pinned for a sharper reason than symmetry. The defect BIT-114 fixed was
+# the gate reading a channel nothing writes to — <system-out>, which the AGP
+# result writer has no element for — and it survived thirty runs because its
+# failure mode is a green run that reports an absence. A drift here restores
+# exactly that: the host reads a file name nothing writes, finds nothing, and
+# the gate says the tests did not get that far.
+kt_app_evidence=$(grep -oE 'const val FILE_NAME = "[^"]+"' "$APP_EVIDENCE_KT" \
+  | head -1 | cut -d'"' -f2)
+kt_ldk_evidence=$(grep -oE 'const val FILE_NAME = "[^"]+"' "$LDK_EVIDENCE_KT" \
+  | head -1 | cut -d'"' -f2)
+sh_evidence=$(grep -oE 'EVIDENCE_FILE_NAME="[^"]+"' "$COLLECTOR" | head -1 | cut -d'"' -f2)
+
+if [ -z "$kt_app_evidence" ] || [ -z "$kt_ldk_evidence" ] || [ -z "$sh_evidence" ]; then
+  fail "could not read the evidence file name from all three sides"\
+    "(:app='${kt_app_evidence:-not found}', :core:wallet-ldk='${kt_ldk_evidence:-not found}',"\
+    "collect-wallet-evidence.sh='${sh_evidence:-not found}'). If a declaration changed"\
+    "shape, update this pin in the same commit."
+elif [ "$kt_app_evidence" != "$sh_evidence" ] || [ "$kt_ldk_evidence" != "$sh_evidence" ]; then
+  fail "the evidence file name drifted: :app writes '$kt_app_evidence',"\
+    ":core:wallet-ldk writes '$kt_ldk_evidence', the host reads '$sh_evidence'."\
+    "The host would find nothing and the gate would report the observations as"\
+    "never recorded — a green run that says it could not see, which is the state"\
+    "BIT-114 existed to end."
+else
+  echo "PASS: both modules and the host use the evidence file '$sh_evidence'"
+fi
+
+# Both copies must write it where the host looks: under noBackupFilesDir, which
+# is what keeps a file naming MARKER_PREFIX out of the set check-backup-set.sh
+# greps, and is the directory the host's glob reads.
+for evidence_kt in "$APP_EVIDENCE_KT" "$LDK_EVIDENCE_KT"; do
+  if ! grep -q 'noBackupFilesDir' "$evidence_kt"; then
+    fail "$(basename "$(dirname "$evidence_kt")")/$(basename "$evidence_kt") does not"\
+      "write under noBackupFilesDir. The host reads"\
+      "/data/data/com.bittr.android*/no_backup/, so the file would not be found —"\
+      "and a file quoting MARKER_PREFIX outside no_backup/ could reach the set the"\
+      "halt grep searches."
+  fi
+done
+# shellcheck disable=SC2016  # the literal `$EVIDENCE_FILE_NAME` is the pattern.
+if ! grep -q 'no_backup/\$EVIDENCE_FILE_NAME' "$COLLECTOR"; then
+  fail "collect-wallet-evidence.sh no longer reads the evidence file from"\
+    "no_backup/, but both EvidenceLog copies write it there."
+else
+  echo "PASS: both sides agree the evidence file lives under no_backup/"
+fi
+
+# The logcat fallback's prefixes against the gate's EVIDENCE_PREFIXES. The
+# fallback is what answers on an image that refuses `adb root`, and a prefix
+# added to the gate but not to the grep narrows it silently — the run reports
+# fewer observations than it made, with nothing to say it did.
+gate_prefixes=$(grep -A6 '^EVIDENCE_PREFIXES = (' "$CHECKER" \
+  | grep -oE '"[A-Z_]+"' | tr -d '"' | sort | tr '\n' ' ')
+fallback_prefixes=$(grep -oE "\\^\\((BACKUP|KEYSTORE)[A-Z_|]*\\)" "$COLLECTOR" \
+  | head -1 | tr -d '^()' | tr '|' '\n' | sort | tr '\n' ' ')
+
+if [ -z "$gate_prefixes" ] || [ -z "$fallback_prefixes" ]; then
+  fail "could not read the evidence prefixes from both sides"\
+    "(gate='${gate_prefixes:-not found}', logcat fallback='${fallback_prefixes:-not found}')."
+elif [ "$gate_prefixes" != "$fallback_prefixes" ]; then
+  fail "the evidence prefixes drifted: check-wallet-instrumented-results.py reads"\
+    "[$gate_prefixes], collect-wallet-evidence.sh's logcat fallback greps"\
+    "[$fallback_prefixes]. Whichever is missing is dropped on any run that falls"\
+    "back to logcat, silently and only there."
+else
+  echo "PASS: the gate and the logcat fallback agree on [$gate_prefixes]"
+fi
+
+# EvidenceLog truncates its file once per instrumentation PROCESS, which is
+# right for one `am instrument` invocation per module and wrong under the Android
+# Test Orchestrator, which gives every test method its own invocation. Enabling
+# it would leave the file holding only the last test's lines — the earlier ones
+# clobbered, on a green run, with nothing to say so. That is BIT-114's failure
+# mode exactly, so the assumption is pinned rather than trusted.
+#
+# Not a ban. If the orchestrator is wanted, the fix is to drop the truncate and
+# rely on collect-wallet-evidence.sh --clear, which already runs before the first
+# Gradle task and is covered by test_collect_wallet_evidence.sh. This check is
+# what makes that a decision rather than an accident.
+orchestrator=$(grep -rlE 'ANDROIDX_TEST_ORCHESTRATOR|androidx\.test:orchestrator|execution[[:space:]]*=' \
+  "$REPO_ROOT/android/app/build.gradle.kts" \
+  "$REPO_ROOT/android/core/wallet-ldk/build.gradle.kts" \
+  "$REPO_ROOT/android/build.gradle.kts" 2>/dev/null)
+
+if [ -n "$orchestrator" ]; then
+  fail "the Android Test Orchestrator appears to be configured in:"\
+    "$(printf '%s' "$orchestrator" | tr '\n' ' ')."\
+    "It runs each test method in its own instrumentation process, and"\
+    "EvidenceLog truncates its file once per process — so every test but the last"\
+    "would have its BACKUP_EXCLUSION and KEYSTORE_* lines clobbered, silently, on"\
+    "a green run. Drop the truncate in both EvidenceLog copies and rely on"\
+    "collect-wallet-evidence.sh --clear instead, then delete this check."
+else
+  echo "PASS: no test orchestrator, so one instrumentation process per module run"
 fi
 
 echo

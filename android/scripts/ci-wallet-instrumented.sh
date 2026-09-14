@@ -144,6 +144,30 @@ test_start=$(date +%s)
 # Written by the emulator runner; fall back so the script stays runnable locally.
 RUNNER_TEMP_DIR=${RUNNER_TEMP:-${TMPDIR:-/tmp}}
 
+# --- The per-run observations, off the device and onto the host — BIT-114 -----
+#
+# The suites record a BACKUP_EXCLUSION line per path and per plant, and what the
+# Keystore reported for a key it really generated. Those lines used to be read
+# off <system-out> in the result XML, and every run from 110 to 140 reported
+# finding none — 139 and 140 included, which were green with the vacuity check
+# passed, so every test ran and every print was reached. The XML writer AGP uses
+# has no <system-out> element at all, so they were never going to be there.
+#
+# collect-wallet-evidence.sh is the fix and its header is the long version:
+# the suites append the lines to a file in the app's own data directory and it
+# reads that back with `adb root`, after Gradle has exited. It is a separate file
+# for the reason check-backup-set.sh is — the seam is `adb`, so its branches are
+# testable without an emulator, and test_collect_wallet_evidence.sh runs them in
+# the build job.
+EVIDENCE_DIR="android/build/wallet-evidence"
+COLLECT_EVIDENCE="android/scripts/collect-wallet-evidence.sh"
+
+# Whatever a previous local invocation left here is not this run's. On CI the
+# directory does not exist yet; locally it is the difference between reporting
+# what this run observed and reporting what the last one did.
+rm -rf "$EVIDENCE_DIR"
+mkdir -p "$EVIDENCE_DIR"
+
 # `run_gradle <label> <task>`: stream to the log as before, keep a copy, and on
 # failure re-state the tail INSIDE an ::error:: so it lands in the annotations.
 #
@@ -175,8 +199,21 @@ run_gradle() {
   return 1
 }
 
+# Before the first run, because a cached AVD snapshot can carry an earlier run's
+# file and logcat buffer, and the gate has no way to tell one run's observations
+# from another's.
+bash "$COLLECT_EVIDENCE" --clear
+
+# `leaveApksInstalledAfterRun` here for BIT-114 rather than for BIT-108's reason
+# below: these tests are self-instrumenting, so the file they write lands in the
+# test APK's own data directory, and AGP's post-run uninstall would take it with
+# the APK before this script could read it. Nothing else in the run depends on
+# this module's APK surviving.
 run_gradle "Keystore — what the platform gave us" \
-  :core:wallet-ldk:connectedDebugAndroidTest || status=$?
+  :core:wallet-ldk:connectedDebugAndroidTest \
+  -Pandroid.injected.androidTest.leaveApksInstalledAfterRun=true || status=$?
+
+bash "$COLLECT_EVIDENCE" wallet-ldk "$EVIDENCE_DIR"
 
 # `leaveApksInstalledAfterRun` — the app has to still BE there afterwards.
 #
@@ -193,6 +230,13 @@ run_gradle "Keystore — what the platform gave us" \
 run_gradle "installed app — backup exclusion under bmgr" \
   :app:connectedDebugAndroidTest \
   -Pandroid.injected.androidTest.leaveApksInstalledAfterRun=true || status=$?
+
+# Before the device-transfer phase below, not after. That phase drives a backup
+# and the framework kills the app process when it tears the backup agent down —
+# BIT-108 — and while the file survives the process, reading it first means the
+# observations are collected by the last thing that cannot have been affected by
+# the backup.
+bash "$COLLECT_EVIDENCE" app "$EVIDENCE_DIR"
 
 test_end=$(date +%s)
 duration=$((test_end - test_start))
@@ -370,8 +414,22 @@ bash android/scripts/check-backup-set.sh || status=$?
 #
 # Deliberately runs whatever Gradle said. connectedDebugAndroidTest exits 0 when
 # it matched no tests at all, so on a green run this is the load-bearing half.
+#
+# The evidence files are passed in rather than discovered by the gate, so that a
+# phase which collected nothing is visible as an EMPTY file it was handed rather
+# than as a file it did not find. The two readings are different — "the device
+# said nothing" against "nobody asked the device" — and BIT-114 is what a run
+# looks like when they are indistinguishable.
 check_status=0
-python3 android/scripts/check-wallet-instrumented-results.py || check_status=$?
+evidence_args=()
+for evidence in "$EVIDENCE_DIR"/*.txt; do
+  [ -e "$evidence" ] && evidence_args+=(--evidence-file "$evidence")
+done
+# `${a[@]+"${a[@]}"}` rather than `"${a[@]}"`: `set -u` is on, and on bash 4.3
+# and older an empty array expanded the plain way is an unbound-variable error
+# that would take the gate down with it.
+python3 android/scripts/check-wallet-instrumented-results.py \
+  ${evidence_args[@]+"${evidence_args[@]}"} || check_status=$?
 
 if [ "$status" -eq 0 ] && [ "$check_status" -ne 0 ]; then
   echo "::error::Gradle reported success but the required wallet tests did not all"\
@@ -426,6 +484,17 @@ fi
   echo "\`adb root\`. Only the grep reads the backup set itself. Grep the log for"
   echo "\`Backup set inspection\` to see which outcome this run got, and for"
   echo "\`Device-transfer backup\` to see whether there was a set to read."
+  echo
+  echo "**The per-path detail comes off a file, not off stdout (BIT-114).**"
+  echo "The suites record their \`BACKUP_EXCLUSION\` and \`KEYSTORE_*\` lines to"
+  echo "a file in the app's own data directory and"
+  echo "\`collect-wallet-evidence.sh\` reads it back with \`adb root\` after each"
+  echo "Gradle run. They used to be read off \`<system-out>\` in the result XML,"
+  echo "where they never appeared: the writer AGP uses for connected tests has no"
+  echo "such element, so every run from 110 to 140 reported an absence while"
+  echo "green. Grep the annotations for \`What the device reported\` for the lines"
+  echo "and for \`Instrumentation evidence\` for the host saying it could not read"
+  echo "them — those are different runs and the two annotations keep them apart."
   echo
   echo "**A pass is not automatically evidence that the rules were exercised.**"
   echo "An empty set satisfies every exclusion assertion without any rule being"

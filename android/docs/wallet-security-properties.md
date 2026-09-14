@@ -182,7 +182,12 @@ produced.
 The hand-off is a file rather than the adjacent `println` because instrumentation
 stdout reaches the host only if the runner files it into the JUnit XML's
 `<system-out>`, and run 133 recorded that it did not. A hand-off on that channel
-would go missing exactly when something had gone wrong.
+would go missing exactly when something had gone wrong. BIT-114 later found that
+the element does not exist in the writer at all, and took the same way out for
+the observations — see the `BACKUP_EXCLUSION` lines later in this section. The
+hand-off stays its own file regardless: it means "the plant is on disk and the
+host may back up", which is an interlock rather than a record, and permission
+must not be inferrable from a line describing what was planted.
 
 The host refuses to back up when the hand-off is absent, and that refusal is the
 point: backing up a package that was never planted writes an *empty* set, and an
@@ -612,10 +617,24 @@ quietly turning the device-transfer case into a second cloud case.
   per-package result line, so the log says which path each result belongs to even
   when the grep cannot.
 
-  As of run 139 those lines still do not reach `<system-out>` — the runner is not
-  filing instrumentation stdout into the result XML (known since run 110). That
-  is a gap in the *diagnostics*, not in the verdict, and it is only survivable
-  because the verdict moved to the host. It was not before. Tracked on BIT-114.
+  Those lines did not reach a reader on any run between 110 and 140, and BIT-114
+  is why: the gate read them off `<system-out>` in the result XML, and the writer
+  AGP uses for connected tests — ddmlib's `XmlTestRunListener` — has a
+  `system-err` element and **no `system-out` element at all**. Nothing was being
+  dropped on the device; the gate was reading a channel nothing writes to, which
+  is why runs 139 and 140 reported no lines while green with every test run. It
+  survived thirty runs because its failure mode is a green run that reports an
+  absence, and it was survivable at all only because the verdict had already
+  moved to the host — it was not, before BIT-108.
+
+  They now arrive on the same shape of hand-off the device-transfer backup uses:
+  `EvidenceLog` (one copy per module, in the androidTest sources) appends each
+  line to a file under the app's `no_backup` directory, and
+  `ci-wallet-instrumented.sh` reads it back with `adb root` after Gradle exits,
+  passing it to the gate with `--evidence-file`. A host that cannot read it says
+  so in its own `Instrumentation evidence` warning, so "the tests never got that
+  far" and "nobody read the device" stay distinguishable — which is the property
+  whose absence made this worth an issue.
 
 **Since BIT-108 the verdict does not come from the suite at all.** The check that
 decides rule 5 is `android/scripts/check-backup-set.sh`: `BackupExclusionTest`

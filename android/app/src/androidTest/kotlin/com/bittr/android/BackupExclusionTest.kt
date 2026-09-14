@@ -315,6 +315,15 @@ class BackupExclusionTest {
          * the plant uses and read back by the same `adb root` the set inspection
          * already needs.
          *
+         * BIT-114 settled why that channel was empty and took the same way out
+         * for the observations as this file took for the hand-off: the XML writer
+         * AGP uses has no `system-out` element at all, so the printed lines could
+         * never have arrived, and [EvidenceLog] now carries them to a sibling file
+         * the host reads the same way. This hand-off stays its own file all the
+         * same. Its meaning is "the plant is on disk and the host may back up",
+         * which is an interlock and not a record, and the host must not be able to
+         * infer permission from a line that merely describes what was planted.
+         *
          * It sits in `getNoBackupFilesDir()` rather than `getFilesDir()` so that
          * it cannot itself end up in the set it is announcing.
          *
@@ -492,15 +501,15 @@ class BackupExclusionTest {
         val canary = File(context.filesDir, CANARY)
             .also { it.parentFile?.mkdirs(); it.writeText(CANARY_PREFIX + stamp("canary")) }
 
-        println(
+        EvidenceLog.record(
             "BACKUP_EXCLUSION path=device-transfer api=${Build.VERSION.SDK_INT} " +
                 "package=$packageName result=<host drives the backup> " +
                 "walletMarker=$MARKER_PREFIX canaryMarker=$CANARY_PREFIX " +
                 "decoyMarker=$DECOY_PREFIX setLeftOnTransport=true",
         )
-        println("BACKUP_EXCLUSION device-transfer canary: ${canary.path}")
+        EvidenceLog.record("BACKUP_EXCLUSION device-transfer canary: ${canary.path}")
         for (marker in markers) {
-            println(
+            EvidenceLog.record(
                 "BACKUP_EXCLUSION device-transfer plant: ${marker.file.name} at " +
                     "${marker.file.path} — ${marker.what}. If this one is in the set: " +
                     marker.consequence,
@@ -535,7 +544,7 @@ class BackupExclusionTest {
         //    leaves the cloud test's set in place, and the host's grep would then
         //    return a verdict on the wrong path while naming this one.
         val setsAfterWipe = DeviceShell.bmgr("list sets")
-        println("BACKUP_EXCLUSION device-transfer list sets after wipe:\n$setsAfterWipe")
+        EvidenceLog.record("BACKUP_EXCLUSION device-transfer list sets after wipe:\n$setsAfterWipe")
 
         // 3. Tell the host it may proceed. Written last, so it exists only if
         //    everything above held. @After is disarmed at the same moment: from
@@ -548,7 +557,7 @@ class BackupExclusionTest {
         val handoff = File(context.noBackupFilesDir, HANDOFF_FILE)
         handoff.writeText(HANDOFF)
         handedOffToHost = true
-        println("$HANDOFF at ${handoff.path}")
+        EvidenceLog.record("$HANDOFF at ${handoff.path}")
     }
 
     /**
@@ -598,26 +607,26 @@ class BackupExclusionTest {
         // Printed before the assertions so it survives a failure — and, unlike
         // the restore this replaced, it survives whatever the framework does to
         // this process afterwards.
-        println(
+        EvidenceLog.record(
             "BACKUP_EXCLUSION path=$path api=${Build.VERSION.SDK_INT} package=$packageName " +
                 "result=${result ?: "<no result line>"} " +
                 "walletMarker=$MARKER_PREFIX canaryMarker=$CANARY_PREFIX " +
                 "decoyMarker=$DECOY_PREFIX setLeftOnTransport=false",
         )
-        println("BACKUP_EXCLUSION $path canary: ${canary.path}")
+        EvidenceLog.record("BACKUP_EXCLUSION $path canary: ${canary.path}")
         // The decoder ring for a halt. check-backup-set.sh can only report the
         // transport files a marker was found in; the marker's own bytes name
         // the file it was planted as, and these lines say what finding that
         // particular one would mean. Emitted per path because that is the
         // channel a red run is read through.
         for (marker in markers) {
-            println(
+            EvidenceLog.record(
                 "BACKUP_EXCLUSION $path plant: ${marker.file.name} at ${marker.file.path} — " +
                     "${marker.what}. If this one is in the set: ${marker.consequence}",
             )
         }
-        println("BACKUP_EXCLUSION $path backupnow output:\n$backup")
-        println("BACKUP_EXCLUSION $path list sets:\n$sets")
+        EvidenceLog.record("BACKUP_EXCLUSION $path backupnow output:\n$backup")
+        EvidenceLog.record("BACKUP_EXCLUSION $path list sets:\n$sets")
 
         // 1. The framework considered this package. A `backupnow` that never
         //    names it did not produce a set, and a grep of no set is not
@@ -650,7 +659,7 @@ class BackupExclusionTest {
         //    107 left them to be inferred from which test crashed.
         val backedUp = result.equals("Success", ignoreCase = true)
         if (backedUp) {
-            println(
+            EvidenceLog.record(
                 "BACKUP_EXCLUSION $path: the framework backed $packageName up " +
                     "(result=$result). The package WAS offered to the transport on this " +
                     "path, so the exclusion rules were actually consulted and the set is " +
@@ -658,7 +667,7 @@ class BackupExclusionTest {
                     "find $CANARY_PREFIX and must not find $MARKER_PREFIX.",
             )
         } else {
-            println(
+            EvidenceLog.record(
                 "BACKUP_EXCLUSION $path: the framework declined to back $packageName up " +
                     "(result=$result). Exclusion was not exercised on this path — the " +
                     "package was ineligible outright, which is what allowBackup=\"false\" " +

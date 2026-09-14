@@ -238,17 +238,48 @@ class Case:
         return "FAILED" if self.problem else "passed"
 
 
-# Prefixes the suite prints its per-run observations under. These are the lines
+# Prefixes the suite records its per-run observations under. These are the lines
 # that say WHICH of the two green outcomes a run got — a real backup set that
-# excluded our material, or a package the framework declined outright — and
-# which of the two Keystore flags the device was able to report on.
+# excluded our material, or a package the framework declined outright — which of
+# the two Keystore flags the device was able to report on, and where the key
+# material actually sat.
 #
-# They go to instrumentation stdout, which AGP puts in <system-out> in the XML
-# and in the HTML report. Both are artefacts, and downloading a workflow
-# artefact needs a token that reading a public run's annotations does not. A
-# result nobody can read without credentials is most of the way back to no
-# result, so the gate lifts these into the job log itself.
-EVIDENCE_PREFIXES = ("BACKUP_EXCLUSION", "KEYSTORE_KEY_INFO")
+# They are read by grep, from an annotation, by a person without log access. So
+# they are pinned in two directions: ci-wallet-instrumented.sh's logcat fallback
+# must match this tuple (test_ci_wallet_host_phase.sh checks it), and
+# KEYSTORE_SECURITY_LEVEL is here because recordTheObservedSecurityLevel prints
+# it and the BIT-18 device matrix is fed from it — it was omitted from this tuple
+# until BIT-114, so even a run that had filed stdout would have dropped it.
+EVIDENCE_PREFIXES = (
+    "BACKUP_EXCLUSION",
+    "KEYSTORE_KEY_INFO",
+    "KEYSTORE_SECURITY_LEVEL",
+)
+
+# WHERE THE EVIDENCE COMES FROM, AND WHY IT IS NOT <system-out> — BIT-114
+#
+# It used to be read only off <system-out> in the result XML, on the assumption
+# that AGP files instrumentation stdout there. It does not, and it cannot: the
+# XML for a connected test is written by
+# com.android.ddmlib.testrunner.XmlTestRunListener (AGP's CustomTestRunListener
+# extends it and overrides no part of this), and in the ddmlib this AGP is built
+# against that class has a `system-err` element and NO `system-out` element at
+# all — no constant, no writer. Every run from 110 onward reported no lines,
+# including runs 139 and 140, which were green with the vacuity check passed, so
+# every test ran and every print was reached. No runner argument was ever going
+# to change that: the gate was reading for something the writer does not know how
+# to produce.
+#
+# So the tests append these lines to a file in the app's own data directory
+# (EvidenceLog, in both modules' androidTest sources) and ci-wallet-instrumented.sh
+# reads it back with `adb root` after Gradle exits, handing the files here with
+# --evidence-file. That is the same hand-off shape BIT-108 used to move the
+# device-transfer backup out of the process the framework kills.
+#
+# <system-out> is still read. It costs nothing, a future AGP or a different
+# runner may start filing it, and the reading is the same either way. What has
+# changed is that its emptiness is no longer the whole story — which is why the
+# absence wording below names the file channel first.
 
 
 def evidence_lines(root):
@@ -260,6 +291,38 @@ def evidence_lines(root):
             if stripped.startswith(EVIDENCE_PREFIXES):
                 found.append(stripped)
     return found
+
+
+def prefix_list():
+    """"A, B or C" — the prefixes as prose, so adding one updates every message."""
+    return ", ".join(EVIDENCE_PREFIXES[:-1]) + f" or {EVIDENCE_PREFIXES[-1]}"
+
+
+def evidence_from_file(path):
+    """Lines under EVIDENCE_PREFIXES in one --evidence-file, or a problem.
+
+    Returns (lines, problem). A file the host could not produce at all is a
+    problem worth naming rather than an empty list: "the device said nothing" and
+    "nobody read the device" are different runs, and BIT-114 is what it looks
+    like when a gate cannot tell them apart. An EMPTY file is not a problem here
+    — it is the host reporting that it looked and found nothing, which the
+    absence wording below covers.
+    """
+    try:
+        text = path.read_text(errors="replace")
+    except OSError as exc:
+        return [], (
+            f"Could not read the evidence file {path} ({exc}). "
+            "ci-wallet-instrumented.sh writes one per Gradle run and passes it "
+            "here, so a path that cannot be read means the host phase and this "
+            "gate disagree about where the observations went — not that the "
+            "device had nothing to say."
+        )
+    return [
+        line.strip()
+        for line in text.splitlines()
+        if line.strip().startswith(EVIDENCE_PREFIXES)
+    ], None
 
 
 def collect(results_dir):
@@ -293,6 +356,17 @@ def main(argv=None):
         help="An androidTest-results directory. Repeatable. Defaults to the "
              "first known AGP layout that exists under each of "
              f"{', '.join(MODULES)}.",
+    )
+    parser.add_argument(
+        "--evidence-file",
+        type=pathlib.Path,
+        action="append",
+        default=None,
+        help="A file of instrumentation observations pulled off the device by "
+             "ci-wallet-instrumented.sh. Repeatable, one per Gradle run. This is "
+             "the channel the BACKUP_EXCLUSION and KEYSTORE_* lines actually "
+             "arrive on; <system-out> in the result XML is read too but the AGP "
+             "writer does not produce that element (BIT-114).",
     )
     args = parser.parse_args(argv)
 
@@ -337,6 +411,23 @@ def main(argv=None):
         cases.extend(found_cases)
         evidence.extend(found_evidence)
 
+    # The file channel, appended after the XML one so that a run which somehow
+    # gets both reads the same list in the same order. Deduplicated, because the
+    # two channels carry the same lines by design once an AGP starts filing
+    # stdout — and because the logcat fallback in ci-wallet-instrumented.sh can
+    # overlap a partially-read file. Order-preserving: these lines are a
+    # narrative of what the run did, and sorting them would destroy the one thing
+    # a reader uses them for.
+    evidence_files = list(args.evidence_file or ())
+    for path in evidence_files:
+        found_evidence, problem = evidence_from_file(path)
+        if problem:
+            problems.append(problem)
+        evidence.extend(found_evidence)
+
+    seen = set()
+    evidence = [line for line in evidence if not (line in seen or seen.add(line))]
+
     by_id = {}
     for case in cases:
         # A test that appears more than once — a second device, or a re-run — has
@@ -363,11 +454,19 @@ def main(argv=None):
     if evidence:
         for line in evidence:
             print(f"  {line}")
+        print(f"  ({len(evidence)} line(s), from {len(evidence_files)} evidence "
+              f"file(s) and the result XML's <system-out>)")
     else:
-        print("  (none — no BACKUP_EXCLUSION or KEYSTORE_KEY_INFO line in any "
-              "<system-out>. Those are printed unconditionally by the tests that "
+        print("  (none — no " + prefix_list()
+              + " line in any evidence file the host passed in, nor in any "
+              "<system-out>. Those are recorded unconditionally by the tests that "
               "own them, so this means the tests did not get that far, or the "
-              "runner did not capture instrumentation stdout.)")
+              "host could not read them back off the device. Passed "
+              f"{len(evidence_files)} evidence file(s): "
+              + (", ".join(str(p) for p in evidence_files) or "none, which is "
+                 "itself the finding — ci-wallet-instrumented.sh collects them "
+                 "after each Gradle run and hands them here with --evidence-file")
+              + ".)")
 
     # ...and again as an annotation, which is the part that matters.
     #
@@ -387,16 +486,23 @@ def main(argv=None):
     # first version was not and was wrong within one run. It said absence meant
     # "the tests did not reach the print"; run 110 had KeystoreKeyInfoTest pass
     # all five cases — it plainly reached the print — and still reported no
-    # lines. So the lines are printed and do not land in <system-out>: AGP does
-    # not file instrumentation stdout there, which is a wrong assumption in THIS
-    # script about where to look, not an observation about the device. Known
-    # cause as of run 110; tracked on BIT-114.
+    # lines.
     #
-    # Runs 139 and 140 removed the remaining ambiguity. Both are green with the
-    # vacuity check passed, so every test ran to completion and every print was
-    # reached — and both still reported no lines. The wording below keeps naming
-    # both causes anyway, because it has to be true on a RED run too, where "the
-    # tests did not reach the print" is live again.
+    # BIT-114 settled it, and the answer is that it was never going to arrive:
+    # the XML is written by ddmlib's XmlTestRunListener, which has no
+    # <system-out> element at all. Reading that element was a wrong assumption in
+    # THIS script about where to look, not an observation about the device, and
+    # runs 139 and 140 — green, vacuity check passed, every print reached, still
+    # no lines — are what that looks like from the outside. The fix is the
+    # --evidence-file channel: the tests write the lines to a file and the host
+    # reads it back after Gradle exits.
+    #
+    # So the causes named below changed with the channel. "The runner did not
+    # file stdout" is no longer one of them, because nothing depends on the
+    # runner filing stdout any more. What is left is a test that did not reach
+    # the record (live again on a RED run) and a host that could not read the
+    # file back — and ci-wallet-instrumented.sh emits its own ::warning:: naming
+    # which of those it hit, so the two annotations answer each other.
     #
     # What changed with BIT-108 is the stakes, not the cause. While the rule-5
     # verdict lived in the suite, these lines were how a reader told an excluded
@@ -412,18 +518,24 @@ def main(argv=None):
     # nothing in the annotation to distinguish "we checked the tie" from "we
     # could not", which is the shape of gap this whole file exists to refuse.
     reported = "\n".join(evidence) if evidence else (
-        "No BACKUP_EXCLUSION or KEYSTORE_KEY_INFO line reached <system-out>. "
-        "These lines are the per-path detail — which prefixes were planted, "
-        "`setLeftOnTransport`, the Keystore security level "
-        "this device gave us — so treat the tie between this suite and the host "
-        "phase as UNPROVEN on this run: without them you cannot check that the "
-        "two were reporting on the same run, or the same path. Two causes, not "
-        "distinguishable from here: the tests did not reach the print, or the "
-        "lines were printed and the runner did not file instrumentation stdout "
-        "into the result XML. The latter is the known cause as of run 110 and is "
-        "tracked on BIT-114; runs 139 and 140 were green with every test run and "
-        "still reported none. This does NOT undercut the rule-5 verdict, which "
-        "comes from the `Backup set inspection` annotation and needs no stdout."
+        "No "
+        + prefix_list()
+        + " line was recorded on any channel: not in the "
+        f"{len(evidence_files)} evidence file(s) the host passed in, and not in "
+        "<system-out>. These lines are the per-path detail — which prefixes were "
+        "planted, `setLeftOnTransport`, the Keystore security level this device "
+        "gave us — so treat the tie between this suite and the host phase as "
+        "UNPROVEN on this run: without them you cannot check that the two were "
+        "reporting on the same run, or the same path. Two causes, not "
+        "distinguishable from here: the tests did not reach the record, or the "
+        "host could not read the file back off the device. The `Instrumentation "
+        "evidence` warning from ci-wallet-instrumented.sh says which, when it is "
+        "the second. (Until BIT-114 there was a third and it was the real one: "
+        "the gate read only <system-out>, which the AGP result writer does not "
+        "produce, so every run from 110 reported this — 139 and 140 included, "
+        "both green with every test run.) This does NOT undercut the rule-5 "
+        "verdict, which comes from the `Backup set inspection` annotation and "
+        "needs none of these lines."
     )
     print(f"::notice title=What the device reported::{annotate(reported)}")
 
@@ -518,15 +630,19 @@ def main(argv=None):
     # is not what BackupExclusionTest prints.
     #
     # Ordering, which BIT-108 raised and is right about: this used to open with
-    # "read 'What the device reported' first". That annotation has carried the
-    # gap wording and no per-path lines on every run to date — run 110 onward,
-    # and runs 139/140 were green with every test run and still reported none —
-    # so a reader who followed the first sentence landed on the annotation that
-    # cannot answer them, and reached the one that can only afterwards. The
-    # verdict goes first now and the per-path detail is described as conditional,
-    # which is what it is. It is still described rather than dropped: when the
-    # runner does file instrumentation stdout (BIT-114), those lines are how the
-    # host verdict gets tied to a path, and the guide should already name them.
+    # "read 'What the device reported' first". That annotation carried the gap
+    # wording and no per-path lines on every run from 110 to 140 — 139 and 140
+    # were green with every test run and still reported none — so a reader who
+    # followed the first sentence landed on the annotation that cannot answer
+    # them, and reached the one that can only afterwards. The verdict goes first
+    # and stays first, because it is the verdict, not because the other one was
+    # empty. BIT-114 filled it in; it did not promote it.
+    #
+    # The per-path detail is still described as conditional. It arrives on a file
+    # the host reads off the device, and a host phase that could not read it is a
+    # live outcome with its own warning — so "expect these lines" would be a
+    # promise this script cannot keep, and a reader who took it as one would read
+    # their absence as a device finding.
     print("\nNOTE: the verdict for this suite is the 'Backup set inspection' "
           "annotation, not this one — read that one first. Whether the set was "
           "real is decided on the HOST: it is a ::notice:: only when the canary "
@@ -537,12 +653,16 @@ def main(argv=None):
           "BACKUP_EXCLUSION lines, one per path, each with the framework's own "
           "result for the package, the three marker prefixes it planted, and "
           "`setLeftOnTransport` for whether the set it produced was left on the "
-          "transport for the host to read — on any run that captured them. No run "
-          "has yet: instrumentation stdout is not reaching <system-out>, known "
-          "since run 110 and tracked on BIT-114, so expect the gap wording there "
-          "instead. That annotation is the tie between this suite and the host "
-          "phase; it is not the verdict. wallet-security-properties.md §4 is "
-          "where the distinction is tracked.")
+          "transport for the host to read — on any run that recorded them. Since "
+          "BIT-114 they reach this gate on a file the tests write and the host "
+          "pulls off the device, not on instrumentation stdout: the AGP result "
+          "writer has no <system-out> element to file stdout into, which is why "
+          "runs 110 to 140 reported none of these lines while passing. If they "
+          "are missing now, check the 'Instrumentation evidence' warning — that "
+          "is the host saying it could not read the file, which is a different "
+          "run from one where the tests never got that far. This annotation is "
+          "the tie between this suite and the host phase; it is not the verdict. "
+          "wallet-security-properties.md §4 is where the distinction is tracked.")
 
     if problems:
         print()
