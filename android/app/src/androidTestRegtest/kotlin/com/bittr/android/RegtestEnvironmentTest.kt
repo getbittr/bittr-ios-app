@@ -82,11 +82,15 @@ import org.junit.runner.RunWith
  * ## What it deliberately does not do
  *
  * It does not start a node, open a channel or pay anything. Those belong to
- * `K7InterruptedPaymentTest` and `K8DozeSoakTest`, **neither of which is written
- * yet** — `android/docs/wallet-node-device-tests.md` §3 and §4 say what each still
- * needs. Both will need a host phase, because a `SIGKILL` takes the
+ * [K7InterruptedPaymentTest] — written, and driven by
+ * `android/scripts/k7-interrupted-payment.sh` because a process death takes the
  * instrumentation with it (the lesson `BackupExclusionTest` learned from
- * `bmgr restore`), and both are worth nothing until this class is green.
+ * `bmgr restore`) — and to `K8DozeSoakTest`, **which is not written yet**;
+ * `android/docs/wallet-node-device-tests.md` §4 says what it still needs.
+ *
+ * Both are worth nothing until this class is green, and that ordering is
+ * enforced rather than hoped for: `ci-wallet-regtest.sh` runs this suite first
+ * and K7's phases after it.
  *
  * Every method here is in `check-wallet-regtest-results.py`'s `REQUIRED` set by
  * name.

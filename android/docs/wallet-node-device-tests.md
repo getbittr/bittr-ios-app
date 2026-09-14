@@ -23,7 +23,7 @@ passed.
 | K2 — the seed is usable with the device locked | **written, not yet run** | — | `SeedReadableWhileLockedTest`, `wallet-instrumented` |
 | K2 — an FCM data message wakes the process | closed **unrun** | **BIT-133** | §1 below |
 | K2 — *force-stop* then wake | **withdrawn as specified** | **BIT-133** | §2 below |
-| K7 — interrupted payment resolves to one outcome | **unrun; precondition, kill window, graph access and the funding seam all solved — the test class and its host script are what is left** | **BIT-132** | §3 below |
+| K7 — interrupted payment resolves to one outcome | **written, not yet run** | **BIT-132** | §3 below |
 | K8 — Doze and App Standby machinery | **unrun; its precondition is now solved** | **BIT-132** | §4 below |
 | K8 — channel-monitor freshness after wake | **unrun; needs the soak job** | **BIT-132** | §4 below |
 | The configured regtest build and the private network | **built, and one green leg deep** | — | §0 below |
@@ -120,6 +120,8 @@ than as three Keystore tests failing for a reason that is not about the Keystore
   node-backed side of the `fromBuildConfig()` branch, that every endpoint names
   the emulator's own host, and that all four of them answer. Six methods, all in
   `check-wallet-regtest-results.py`'s `REQUIRED` set by name.
+- **K7 now runs after it in the same job** — four host-driven phases, written and
+  not yet executed. §3 says what a first run is the first thing to test.
 
 **What it cost the repository, stated because a future reader will hit it:**
 
@@ -209,9 +211,84 @@ people read. **BIT-133** owns the correction.
 and no lost claim: on restart, LDK's payment state resolves to exactly **one**
 terminal outcome.
 
-**Carried on BIT-132**, together with the configured build above and K8. **Two of
-the three things it was waiting for now exist**; what is left is the test itself
-and its host phase.
+**Carried on BIT-132**, together with the configured build above and K8.
+
+### State: written, not green, and the distinction is this document's own
+
+`K7InterruptedPaymentTest` (four phases) and
+`android/scripts/k7-interrupted-payment.sh` (the host between them) exist and
+compile. **Neither has executed against a device.** This row moves to *passing*
+when a nightly run shows it passing, and not before — the same rule
+`SeedReadableWhileLockedTest` is held to above, for the same reason: commit
+`dd50f457` exists because that difference was elided once, and
+`KeystoreKeyInfoTest` is what it cost, carrying an inverted assertion for its
+entire unrun life.
+
+What is checked without a device, and it is more than nothing:
+
+- It compiles, on every push. The `build` job's *Compile the regtest
+  instrumented sources* step builds this source set with throwaway `.invalid`
+  values, so a missing import in K7 is a red on the push that wrote it rather
+  than at 03:20 UTC.
+- The joins between the host script and the device phases are pinned by
+  `android/scripts/test_k7_host_phase.sh`, also in the `build` job: the installed
+  package name, the four method names in both directions, `@HostDriven` on every
+  phase *and* the filter on the run that has to apply it, the hand-off path, the
+  three instrumentation arguments, and every phase's presence in
+  `check-wallet-regtest-results.py`'s `REQUIRED` set. Each of those checks was
+  driven to red and back.
+- All four phases are in `REQUIRED` by name, so a phase that silently stops
+  running fails the nightly job rather than leaving it green.
+
+What is **not** checked until a device runs it — and this is the honest list, in
+the order a first run is likely to hit it:
+
+1. That the address `NodeOnchainPort` reveals is one ldk-node will actually spend
+   from at `openChannel`. Phase 2 is the first thing that finds out.
+2. That `sendBolt11` returns a value equal to the payment hash the host chose the
+   preimage for. Phase 3 asserts it rather than assuming it, because phase 4
+   looks the payment up *by* that value; ldk-node's BOLT11 `PaymentId` is
+   documented as the hash and this is where the documentation meets the binary.
+3. That an in-flight HTLC actually reaches LND and sticks — route-finding over a
+   one-hop channel, which should be the easy case and is the one thing between a
+   wide window and a narrow one.
+4. That the instrumented process really is torn down when phase 3 returns. The
+   script does not rely on it (`am kill` follows, and the run refuses to start
+   phase 4 while any process of the package is alive), but the pid phase 4
+   asserts against is read *during* the window and a device could still surprise
+   it.
+
+### How it is driven, and why not from the test
+
+Four `am instrument` runs against one emulator boot, sequenced from the host,
+with wallet state surviving between them under `no_backup`
+(`leaveApksInstalledAfterRun=true` stops AGP uninstalling it; phase 2 onward
+*assert* they found the wallet phase 1 created rather than quietly making a
+second one):
+
+| Phase | The device does | The host then does |
+|---|---|---|
+| 1 | starts the node, reveals ldk-node's on-chain address | sends 0.02 BTC to it, mines 3 |
+| 2 | waits for the confirmed coins, opens a 0.01 BTC channel to LND | mines until LND reports the channel active |
+| 3 | waits for the channel to be usable, pays a **hold** invoice, blocks on the hand-off | polls `lookupinvoice` to `ACCEPTED`, records the pid, writes the hand-off |
+| — | *(phase 3 returns; the framework tears the process down)* | `am kill`, then waits until no process of the package exists |
+| — | | `settleinvoice` — while nothing is listening |
+| 4 | restarts, asserts one terminal outcome and that it sticks | reads the verdict |
+
+The phases are `@HostDriven`, and `ci-wallet-regtest.sh`'s undirected suite run
+passes `notAnnotation=com.bittr.android.HostDriven` so they are **absent** from
+it rather than skipped — `check-wallet-regtest-results.py` treats a `<skipped/>`
+as a failed run, correctly. Each phase's JUnit XML is preserved under
+`androidTest-results/k7/phaseN` because every Gradle run overwrites
+`.../connected`, and the gate is handed all five directories explicitly.
+
+**The host settles rather than cancels, and that is the asymmetric direction.**
+The money has left and the counterparty holds the preimage, so the wallet must
+come back knowing the payment *succeeded*. A wallet reporting `Failed` there has
+lost the claim: it shows the user a failed payment they were charged for, and a
+retry pays twice. Cancelling tests the cheaper direction — funds returned,
+payment failed — and is the obvious second run for this suite once the first is
+green. It is not a substitute.
 
 ### The kill window — decided, and the decision is not the one this section expected
 
@@ -285,16 +362,15 @@ that reports a fund-safety property as flaky — the worst possible reading, sin
 the expected result and a missed window look identical. That is decided above: the
 hold invoice, in the counterparty.
 
-### What K7 still needs, and it is no longer infrastructure
+### The four things K7 needed — all four now built
 
-Three of the four below are decided or built, and item 1 is now half of each.
-**What is left is the test itself and the host script that sequences it** — the
-four `am instrument` runs, the funding, and the kill. Item 1's *missing seam* is
-closed: the device can be asked for the address to fund, which was the one thing
-in the phase that no amount of shell could work around. Everything still open in
-item 1 is a script and a test class, which is to say: ordinary.
+Kept below as the record of what each one cost to decide, because the decisions
+are the part a future reader will want and the code is the part they can grep
+for. **Nothing in this list is open.** What remains is a run, and the section
+above says exactly which of these claims a run is the first to test.
 
-1. **A host phase.** The test cannot observe its own restart. `am kill` takes the
+1. ~~**A host phase.**~~ **Built** — `android/scripts/k7-interrupted-payment.sh`.
+   The test cannot observe its own restart. `am kill` takes the
    instrumentation process with it, which is the lesson `BackupExclusionTest`
    learned from `bmgr restore` — it used to delete what it planted, restore, and
    assert nothing came back, and that assertion died exactly when there was a set
@@ -302,6 +378,18 @@ item 1 is a script and a test class, which is to say: ordinary.
    invoice; `adb shell am kill` once `lncli lookupinvoice` says `ACCEPTED`; and a
    second instrumented run that asserts the restarted node resolves the payment
    to exactly one terminal outcome.
+
+   **One thing the shape above gets wrong, corrected in the building of it.**
+   "Kill it once `lookupinvoice` says `ACCEPTED`" reads as though the host waits
+   for a state and then interrupts a running test. It cannot: a kill that lands
+   inside the instrumentation fails the phase, and a phase that returns
+   immediately after `send` is torn down *somewhere*, most likely inside the
+   narrow window where K7's claim is not under test. So the wait is on the
+   **device** side — phase 3 blocks on a hand-off the host writes only on
+   `ACCEPTED` — and the process death is the framework's teardown of the
+   returning phase, with `am kill` behind it and a pid assertion in phase 4 to
+   make "it died" a checked fact rather than an assumption about instrumentation
+   teardown.
 
    **It is more than three steps, because the device has to be funded first and
    the host cannot do that behind its back.** `android/regtest/up.sh` funds

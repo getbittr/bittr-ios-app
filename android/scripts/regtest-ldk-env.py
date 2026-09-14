@@ -35,9 +35,10 @@ WHAT IT DOES NOT DO
 It does not open a channel, and it cannot: the counterparty is LND, the channel is
 opened by the app (see android/regtest/README.md), and the app's node id does not
 exist until the APK this script's output builds has been installed and unlocked.
-The channel, the hold invoice and the kill are K7's host phase, which is not
-written yet — android/docs/wallet-node-device-tests.md §3 says what it has to do
-and why it cannot live inside the instrumentation.
+The channel, the hold invoice and the kill are K7's host phase —
+android/scripts/k7-interrupted-payment.sh, which reads the same two values this
+script emits and why it cannot live inside the instrumentation is in
+android/docs/wallet-node-device-tests.md §3.
 
 NO DEPENDENCIES, DELIBERATELY
 

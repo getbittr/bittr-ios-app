@@ -98,24 +98,58 @@ REQUIRED = {
     # ties a payment result to the instance that held its HTLC. A rename that
     # dropped it would leave every future K7 verdict unattributable.
     f"{APP_PACKAGE}.RegtestEnvironmentTest#recordTheEnvironmentThisRunSaw",
-    # --- K7 and K8 -------------------------------------------------------------
+    # --- K7 — an interrupted payment resolves to exactly one terminal outcome ---
+    #
+    # Four methods, four separate `am instrument` runs against one emulator boot,
+    # sequenced by android/scripts/k7-interrupted-payment.sh. They are REQUIRED
+    # individually and not as a class, because each phase failing means something
+    # different and only the last one is a claim about the wallet:
+    #
+    #   1  the node came up and revealed an address to fund   — infrastructure
+    #   2  it saw its coins and opened a channel              — infrastructure
+    #   3  it paid a HELD invoice and the HTLC stuck at LND   — the window opened
+    #   4  after the kill and the settle: one outcome, stable — THE CLAIM
+    #
+    # THEY DO NOT RUN IN THE UNDIRECTED SUITE, AND THAT IS WHY THEY ARE HERE.
+    #
+    # ci-wallet-regtest.sh runs `connectedDebugAndroidTest` with no class filter
+    # and with `notAnnotation=com.bittr.android.HostDriven`, so these four are
+    # filtered out of it — a filtered test is absent from the results rather than
+    # `<skipped/>`, which this gate would fail. The host script then runs each by
+    # name and preserves its XML under
+    # android/app/build/outputs/androidTest-results/k7/phaseN, and ci-wallet-
+    # regtest.sh passes every one of those directories to this file with
+    # --results-dir.
+    #
+    # So the thing that catches a phase silently not running is exactly this list.
+    # A method renamed in the test and not in the host script executes nowhere,
+    # produces no XML, and is reported below as "did not run at all" — where
+    # without these five lines it would be an empty space that reads, a year
+    # later, exactly like a K7 that passed.
+    f"{APP_PACKAGE}.K7InterruptedPaymentTest#phase1RevealTheAddressTheHostMustFund",
+    f"{APP_PACKAGE}.K7InterruptedPaymentTest#phase2OpenAChannelToTheRegtestPeer",
+    f"{APP_PACKAGE}.K7InterruptedPaymentTest#phase3PayTheHoldInvoiceAndLeaveItInFlight",
+    # The one that is a fund-safety finding when it is red. The process was killed
+    # with the HTLC accepted at the counterparty and the invoice was then settled,
+    # so the money has left: a wallet reporting anything but exactly one
+    # `Succeeded` record has either lost the claim or double-counted it. A rerun
+    # that goes green does not withdraw that.
+    f"{APP_PACKAGE}.K7InterruptedPaymentTest#phase4TheInterruptedPaymentResolvedToExactlyOneOutcome",
+    # --- K8 — node lifecycle across Doze and App Standby ------------------------
     #
     # NOT YET HERE, AND THAT IS THE CURRENT STATE OF BIT-132 RATHER THAN AN
     # OVERSIGHT.
     #
-    # K7 (an interrupted payment resolves to exactly one terminal outcome) and K8
-    # (node lifecycle across Doze and App Standby) are what this job is for. The
-    # infrastructure they need now exists — android/regtest/ and the six
-    # BuildConfig values — and the tests themselves do not.
+    # The infrastructure K8 needs now exists — android/regtest/, the six
+    # BuildConfig values, and a nightly job with a soak budget — and the test does
+    # not. android/docs/wallet-node-device-tests.md §4 says what is left: the soak
+    # has to DRIVE the App Standby buckets rather than wait for them, because they
+    # move on the order of hours and this job has 90 minutes, and a forced bucket
+    # is a weaker claim than elapsed wall-clock that has to be labelled as one.
     #
-    # They are named here, unwritten, on purpose. BIT-132's definition of done is
-    # "every method added goes into the REQUIRED set by name, per method, in the
-    # commit that writes it", and the counterpart of that rule is that a reader of
-    # this file can see what is missing. An empty space where K7 should be reads,
-    # a year later, exactly like a K7 that passed — which is the failure
-    # android/docs/wallet-node-device-tests.md was written to make visible.
-    #
-    # What each one still needs is in that document, §3 and §4.
+    # Named here, unwritten, on purpose — the counterpart of BIT-132's "every
+    # method added goes into the REQUIRED set by name, per method, in the commit
+    # that writes it" is that a reader of this file can see what is missing.
 }
 
 CANARY = f"{APP_PACKAGE}.RegtestEnvironmentTest#recordTheEnvironmentThisRunSaw"

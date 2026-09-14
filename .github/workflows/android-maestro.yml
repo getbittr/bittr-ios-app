@@ -360,6 +360,27 @@ jobs:
         # after a boot costs a run to learn something a grep knew.
         run: bash android/scripts/test_ci_wallet_host_phase.sh
 
+      - name: Check K7's host phase still reaches its device phases
+        # BIT-132. The same class of guard as the step above, for the other
+        # host-driven suite — and with more joins to come apart, because K7 is
+        # four instrumented runs with the host funding, mining, holding an HTLC
+        # and killing the process between them. Every join is a string: the
+        # method names are Gradle `-P` values, the package is an `am kill`
+        # argument, the hand-off is an `adb shell` path, and the invoice and the
+        # payment hash are instrumentation bundle keys.
+        #
+        # Most of those drift toward a stall. One of them drifts toward a WRONG
+        # CONCLUSION: a phase that loses its @HostDriven annotation also runs
+        # inside the nightly job's undirected suite, out of order and in one
+        # process, and its failure is read as a fund-safety result. That one is
+        # checked in both directions — the annotation on every phase, and the
+        # filter on the run that has to apply it.
+        #
+        # Here rather than in the nightly job, for the reason the step above
+        # gives: this is greps over five files, and learning it at 03:20 UTC
+        # costs a 90-minute emulator run to be told something a grep knew.
+        run: bash android/scripts/test_k7_host_phase.sh
+
       - name: Check every flow ID is registered
         # A flow selecting an ID that is in no registry entry fails at run time
         # with "element not found" — indistinguishable from a missing testTag in

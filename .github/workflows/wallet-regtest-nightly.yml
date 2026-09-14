@@ -88,10 +88,18 @@ jobs:
     # and pays the cold electrs build every night.
     runs-on: ${{ fromJSON(vars.ANDROID_EMULATOR_RUNNER || '["ubuntu-latest"]') }}
     # 90, where the three emulator jobs in android-maestro.yml get 45. A cold
-    # electrs build is 8-12 minutes of that before anything Android happens, and
-    # this suite grows a Doze soak. Still a hard ceiling rather than a hope: a
-    # job that hangs on a container healthcheck must die, because a hung nightly
-    # holds the self-hosted runner away from the push jobs until someone notices.
+    # electrs build is 8-12 minutes of that before anything Android happens, K7
+    # is five `connectedDebugAndroidTest` invocations rather than one — the
+    # undirected suite plus its four host-sequenced phases, each waiting on chain
+    # sync or a channel — and this suite grows a Doze soak. Still a hard ceiling
+    # rather than a hope: a job that hangs on a container healthcheck must die,
+    # because a hung nightly holds the self-hosted runner away from the push jobs
+    # until someone notices.
+    #
+    # If this starts timing out before K8 is written, the thing to cut is the
+    # per-phase Gradle overhead rather than K7's own waits: every one of those
+    # waits is a chain or a channel, and shortening them is how a suite starts
+    # reporting infrastructure as a fund-safety failure.
     timeout-minutes: 90
     steps:
       - uses: actions/checkout@v4
@@ -199,7 +207,14 @@ jobs:
           disable-animations: false
           script: echo "AVD created and snapshotted"
 
-      - name: Run the regtest node suite
+      - name: Run the regtest node suite and K7
+        # ci-wallet-regtest.sh runs two things in one emulator session: the
+        # undirected regtest suite (RegtestEnvironmentTest, the vacuity guard),
+        # and then android/scripts/k7-interrupted-payment.sh, which sequences
+        # K7's four phases with the funding, the mining, the held HTLC and the
+        # kill in between. They share a boot because K7's phases share an
+        # installed app: its wallet lives under no_backup and has to survive from
+        # phase 1 to phase 4.
         uses: reactivecircus/android-emulator-runner@v2
         with:
           api-level: 34
