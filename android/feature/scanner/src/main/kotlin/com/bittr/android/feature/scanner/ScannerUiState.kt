@@ -8,28 +8,46 @@ package com.bittr.android.feature.scanner
  * (`ScannerViewController.viewDidAppear`), which is why
  * `shared/flows/features/send_onchain.yaml:78-81` asserts `scanner.scannerView` and
  * `alert.button.0` in the same breath. The Android screen keeps that shape.
+ *
+ * **Serializable because `ScannerScreen` holds it in `rememberSaveable`.** The default
+ * saver only accepts what a `Bundle` can store, and a plain `data object` is not that:
+ * opening the scanner with the camera already granted threw `IllegalArgumentException:
+ * MutableState containing Scanning cannot be saved` and closed the app. Nothing had
+ * opened the scanner on a device before Send did.
  */
-internal sealed interface ScannerUiState {
+internal sealed interface ScannerUiState : java.io.Serializable {
+
+    // Each state resolves back to its own instance when a saved Bundle is restored.
+    // Without `readResolve` Java serialization hands back a second copy of the object:
+    // equal by value, but not the singleton, which any identity check would miss.
 
     /** Camera running, frames going to the analyser. The only state that scans. */
-    data object Scanning : ScannerUiState
+    data object Scanning : ScannerUiState {
+        private fun readResolve(): Any = Scanning
+    }
 
     /**
      * Explaining why the camera is needed, before asking the system for it.
      *
      * Buttons: *Cancel* / *Continue*. Continue is what triggers the real request.
      */
-    data object Rationale : ScannerUiState
+    data object Rationale : ScannerUiState {
+        private fun readResolve(): Any = Rationale
+    }
 
     /**
      * Asking again would return the same denial without showing anything.
      *
      * Buttons: *Cancel* / *Settings*.
      */
-    data object PermanentlyDenied : ScannerUiState
+    data object PermanentlyDenied : ScannerUiState {
+        private fun readResolve(): Any = PermanentlyDenied
+    }
 
     /** No camera on this device at all. Button: *Okay*, which closes the scanner. */
-    data object NoCamera : ScannerUiState
+    data object NoCamera : ScannerUiState {
+        private fun readResolve(): Any = NoCamera
+    }
 }
 
 /**
