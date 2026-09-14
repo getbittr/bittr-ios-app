@@ -154,11 +154,28 @@ mv "$WORKDIR/ch.pmtiles" "$STAGE/ch.pmtiles"
 # Glyphs are served from the bittr host for the reason make-style.py gives: the
 # public endpoint for this schema is a third party that would receive the client
 # IP on every label render, and no test in the repo can see that.
+#
+# Only the fontstacks the style actually names are staged, read back out of the
+# style rather than listed here so the two cannot drift. The set the upstream zip
+# ships is Regular, Bold and Italic — a style naming anything else (a "Medium",
+# say) produces a 404 per label and no visible error, which is why
+# verify-deploy.sh checks each name against what was deployed.
 if [ ! -d "$STAGE/glyphs" ]; then
   curl -fsSL -o "$WORKDIR/noto-sans.zip" \
     "https://github.com/openmaptiles/fonts/releases/download/v2.0/noto-sans.zip"
   mkdir -p "$STAGE/glyphs"
-  unzip -q -o "$WORKDIR/noto-sans.zip" -d "$STAGE/glyphs"
+  python3 - "$STAGE/style.json" <<'PY' | while IFS= read -r stack; do
+import json, sys
+style = json.load(open(sys.argv[1]))
+names = set()
+for layer in style["layers"]:
+    for font in layer.get("layout", {}).get("text-font", []):
+        names.add(font)
+print("\n".join(sorted(names)))
+PY
+    echo "staging glyphs: $stack"
+    unzip -q -o "$WORKDIR/noto-sans.zip" "$stack/*" -d "$STAGE/glyphs"
+  done
 fi
 
 step "result"

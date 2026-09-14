@@ -45,8 +45,16 @@ BOUNDARY = "#B0A99C"
 LABEL = "#5A554C"  # 5.8:1 on the background
 LABEL_HALO = "#F2EFE9"
 
+# Each of these must name exactly one fontstack that exists as a directory in the
+# deployed glyphs tree, and the openmaptiles glyph set ships three: Regular, Bold
+# and Italic. There is no "Medium", and asking for one is not a graceful
+# degradation — MapLibre requests a multi-font stack as a single comma-joined path
+# (`Noto%20Sans%20Medium,Noto%20Sans%20Regular/0-255.pbf`), which static hosting
+# cannot synthesise, so a two-element list 404s rather than falling back. The
+# result either way is labels that silently never draw. verify-deploy.sh checks
+# every stack named here against the deployed tree for exactly that reason.
 FONT_REGULAR = ["Noto Sans Regular"]
-FONT_MEDIUM = ["Noto Sans Medium"]
+FONT_EMPHASIS = ["Noto Sans Bold"]
 
 
 def style(version):
@@ -239,7 +247,7 @@ def layers():
             "filter": ["in", "class", "country", "state", "city", "town", "village"],
             "layout": {
                 "text-field": ["get", "name"],
-                "text-font": FONT_MEDIUM,
+                "text-font": FONT_EMPHASIS,
                 "text-size": [
                     "interpolate",
                     ["linear"],

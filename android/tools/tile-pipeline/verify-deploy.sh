@@ -117,11 +117,30 @@ for u in $(printf '%s' "$style" | tr ',' '\n' | sed -n 's#.*"glyphs": *"\([^"]*\
   esac
 done
 
-gcode="$(curl -sS -o /dev/null -w '%{http_code}' "$BASE/glyphs/Noto%20Sans%20Regular/0-255.pbf" 2>/dev/null)"
-if [ "$gcode" = "200" ]; then
-  pass "a glyph range resolves"
+# Every fontstack the style names, checked against what was actually deployed.
+# MapLibre asks for a stack as one comma-joined path, so a name that is not a
+# directory in the glyphs tree is a 404 and not a fallback — the layer's labels
+# simply never draw, on a map that otherwise looks completely healthy. The
+# openmaptiles glyph set ships Regular, Bold and Italic and no Medium, which is
+# exactly the way this goes wrong.
+# Newlines collapsed but not spaces: the font names contain spaces ("Noto Sans
+# Regular"), and stripping them produced a name that 404s for the wrong reason.
+stacks="$(printf '%s' "$style" | tr -d '\n' | grep -o '"text-font": *\[[^]]*\]' | grep -o '"[^"]*"' | grep -v 'text-font' | tr -d '"' | sort -u)"
+if [ -z "$stacks" ]; then
+  echo "  note  style names no text-font; skipping the glyph checks"
 else
-  fail "glyph range returned $gcode — labels will not render"
+  while IFS= read -r stack; do
+    [ -z "$stack" ] && continue
+    enc="$(printf '%s' "$stack" | sed 's/ /%20/g')"
+    gcode="$(curl -sS -o /dev/null -w '%{http_code}' "$BASE/glyphs/$enc/0-255.pbf" 2>/dev/null)"
+    if [ "$gcode" = "200" ]; then
+      pass "glyphs resolve for '$stack'"
+    else
+      fail "glyphs for '$stack' returned $gcode — every label in the layers using it will silently not draw"
+    fi
+  done <<EOF
+$stacks
+EOF
 fi
 
 echo
