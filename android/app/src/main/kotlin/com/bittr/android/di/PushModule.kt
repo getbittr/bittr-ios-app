@@ -75,24 +75,21 @@ object PushModule {
     fun provideRetryBudget(): DeviceTokenRetryBudget = DeviceTokenRetryBudget()
 
     /**
-     * **BIT-6's seam.** Signing a bittr request needs the lightning node key, and there is no
-     * lightning node yet — `:core:wallet`'s interface covers the seed, the PIN and BIP-39, and
-     * `WalletService` has no `nodeId()` or `signMessage()` because ldk-node has not landed.
+     * Signs bittr requests with the Lightning node key — iOS's `nodeId()` and
+     * `signMessage(message:)` (`BitcoinManager.swift:405`).
      *
-     * So this reports the node as not ready, which is a state the contract and both clients
-     * already model: iOS guards on exactly this at every signing call site
-     * (`BuyViewController.swift:330`, `SwapManager.swift:86`) because the node syncs
-     * asynchronously after launch. `DeviceTokenLifecycle` returns `WALLET_NOT_READY` and spends
-     * no retry budget.
-     *
-     * BIT-6 replaces the body of this function, exactly as [WalletModule] documents for
-     * `provideWalletService`. Nothing else in the push path changes when it does.
+     * Over the one wallet composition's port, so the key is the node the wallet actually runs.
+     * Both answer null while no node is up — after launch, before unlock, in a build with no
+     * `LdkEnvironment` — which is the state iOS guards on at every signing call site
+     * (`BuyViewController.swift:330`, `SwapManager.swift:86`) and `DeviceTokenLifecycle` reports as
+     * `WALLET_NOT_READY` without spending retry budget.
      */
     @Provides
     @Singleton
-    fun provideRequestSigner(): BittrRequestSigner = object : BittrRequestSigner {
-        override suspend fun pubkey(): String? = null
-        override suspend fun sign(message: String): String? = null
+    fun provideRequestSigner(composition: WalletComposition): BittrRequestSigner = object : BittrRequestSigner {
+        override suspend fun pubkey(): String? = runCatching { composition.lightning.nodeId() }.getOrNull()
+        override suspend fun sign(message: String): String? =
+            runCatching { composition.lightning.signMessage(message) }.getOrNull()
     }
 
     /**

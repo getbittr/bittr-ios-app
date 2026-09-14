@@ -159,6 +159,11 @@ class LdkNodeSurface(
 
     override fun syncWallets() = require("sync the wallets").syncWallets()
 
+    override fun nodeId(): String? = node()?.nodeId()
+
+    override fun signMessage(message: String): String =
+        require("sign a message").signMessage(message.toByteArray(Charsets.UTF_8).map { it.toUByte() })
+
     // ---- Peers. ----
 
     override fun connect(nodeId: String, address: String, persist: Boolean) =

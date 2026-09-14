@@ -130,6 +130,10 @@ internal class ReadingOnlyPort(private val reading: WalletNodeReading?) : Lightn
 
     override fun syncWallets() = Unit
 
+    override fun nodeId(): String? = null
+
+    override fun signMessage(message: String): String = "signature"
+
     override fun sendBolt11(invoice: String, routeLimits: RouteLimitsView?): String = "hash"
 
     override fun sendBolt11UsingAmount(

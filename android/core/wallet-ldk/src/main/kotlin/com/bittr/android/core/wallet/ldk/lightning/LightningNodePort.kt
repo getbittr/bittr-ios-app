@@ -104,6 +104,23 @@ interface LightningNodePort {
     fun readWalletState(): WalletNodeReading?
 
     /**
+     * `nodeId()` — the node's public key, hex. The `pubkey` of every signed bittr request.
+     *
+     * A read, so null when there is no node rather than a throw: iOS guards on it at each
+     * signing call site because the node comes up asynchronously after unlock.
+     */
+    fun nodeId(): String?
+
+    /**
+     * `signMessage(msg:)` over the UTF-8 bytes of [message] — iOS's
+     * `BitcoinManager.signMessage(message:)` (`BitcoinManager.swift:405`). The node's own
+     * zbase32 message signature, which the bittr backend verifies against [nodeId].
+     *
+     * @throws NodeUnavailableException when no node is running.
+     */
+    fun signMessage(message: String): String
+
+    /**
      * `syncWallets()` (`BitcoinManager.swift`) — sync the node's on-chain and Lightning
      * wallets now, so a payment just sent shows up in [listPayments] without waiting for
      * the background sync.
