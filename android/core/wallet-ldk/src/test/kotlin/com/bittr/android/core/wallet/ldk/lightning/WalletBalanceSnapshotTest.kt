@@ -111,18 +111,20 @@ class WalletBalanceSnapshotTest {
 
     // ---- The hand-off to ChannelClosureScan. ----
 
+    private val mixedChannels = listOf(
+        channel(channelId = "ready", fundingTxo = TxOutpoint("tx-ready", 0u)),
+        channel(
+            channelId = "pending",
+            isChannelReady = false,
+            fundingTxo = TxOutpoint("tx-pending", 0u),
+        ),
+        channel(channelId = "unfunded", fundingTxo = null),
+    )
+
     @Test
     fun `open channel funding txids include pending channels, not only ready ones`() {
         val snapshot = WalletBalanceSnapshot.of(
-            channels = listOf(
-                channel(channelId = "ready", fundingTxo = TxOutpoint("tx-ready", 0u)),
-                channel(
-                    channelId = "pending",
-                    isChannelReady = false,
-                    fundingTxo = TxOutpoint("tx-pending", 0u),
-                ),
-                channel(channelId = "unfunded", fundingTxo = null),
-            ),
+            channels = mixedChannels,
             balances = balances(),
             payments = emptyList(),
         )
@@ -133,6 +135,37 @@ class WalletBalanceSnapshotTest {
             listOf("tx-ready", "tx-pending"),
             snapshot.openChannelFundingTxIds,
         )
+    }
+
+    /**
+     * The snapshot is not the only reader any more.
+     *
+     * BIT-130 wired `ChannelClosureRecorder` into the sync, and it cannot afford
+     * a `WalletBalanceSnapshot` to get this list from: building one costs a
+     * `listBalances()` and a `listPayments()` round trip through the node, and
+     * the sync needs the channel list *during* a scan, not during a balance
+     * read. So it calls the same extension directly — and the risk that creates
+     * is drift, two `mapNotNull`s that stop agreeing about whether a pending
+     * channel counts.
+     *
+     * This asserts they are the same answer rather than two answers that happen
+     * to match today. Breaking either one alone reddens this test.
+     */
+    @Test
+    fun `the snapshot's list is the same function the sync reads`() {
+        val snapshot = WalletBalanceSnapshot.of(
+            channels = mixedChannels,
+            balances = balances(),
+            payments = emptyList(),
+        )
+
+        assertEquals(
+            "The home screen and the closure scan must not disagree about which " +
+                "funding transactions are still backing a live channel.",
+            snapshot.openChannelFundingTxIds,
+            mixedChannels.openChannelFundingTxIds(),
+        )
+        assertEquals(emptyList<String>(), emptyList<ChannelView>().openChannelFundingTxIds())
     }
 
     // ---- The cache writes. ----

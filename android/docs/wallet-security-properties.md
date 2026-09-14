@@ -820,6 +820,54 @@ worth making to the product to satisfy a test.
     the *variant name* rather than the rendering, since a rendered
     `PaymentSuccessful` carries the payment preimage.
 
+    **The closure scan does now have a caller too, and it was the last thing on
+    this list with none.** BIT-130 wired `ChannelClosureRecorder` into
+    `OnchainSync`'s `closures` parameter — the argument BIT-128 could only
+    leave defaulted, because the recorder needs a Lightning channel list and
+    nothing then had one to give it. It is assembled in `di/WalletModule` out of
+    three layers at once: the store is `CachedChannelClosureStore` over the same
+    `WalletCache` the event ledger uses, the transactions are the open BDK
+    wallet's, and the channel list is `listChannels().openChannelFundingTxIds()`
+    read through the *same* `LightningNodePort` the graph hands out. So a closed
+    channel's closing txid is now recorded on a running app, at iOS's position —
+    after the persist, on both sync paths, before success is reported.
+
+    **And the thing to be plainest about: it is reachable, not yet effective.**
+    `ChannelClosureRecorder`'s first step reads the funding outpoint out of the
+    cache, and **nothing in `main` writes one.** `CachedChannelClosureStore.store`
+    — iOS's `CacheManager.storeChannelFundingOutpoint` — has no production
+    caller, because it belongs on the channel-open path and beside the balance
+    read and Android has neither; `WalletBalanceSnapshot.of`, which is where
+    iOS's two writes here come from, is unreferenced for the same reason. So on
+    a running app the scan short-circuits on every sync and records nothing.
+    Landing the reader first is still the right order — a channel-open path that
+    cached an outpoint nothing read would fail identically and be harder to spot
+    — but the list above says "has a caller", and this row would be a lie
+    without this paragraph. The other half is tracked as BIT-130's child,
+    *"Nothing writes the channel funding outpoint"*.
+
+    Three more things to be plain about:
+
+    - **`OnchainSync.closures` is no longer defaulted.** A defaulted parameter is
+      a wiring step that can be forgotten in silence: `OnchainSync(port, scans)`
+      compiles, syncs correctly, and never records a closure. Every construction
+      site now says which it wants, and null is still a legitimate answer.
+    - **The channel list is read during the scan, not before the sync**, and an
+      empty answer is the safe direction rather than a bug. A torn-down node
+      answers `listChannels()` with an empty list, which makes `shouldScan` say
+      yes about a channel that may still be open — and that costs a walk of the
+      transaction list and nothing else, because the match is on the funding
+      **outpoint** and an open channel's funding output is unspent.
+      `ClosureScanWiringTest` drives that case with a transaction spending the
+      funding transaction's *other* output and asserts nothing is recorded;
+      matching on the txid alone reddens it.
+    - **`BdkWalletTransactions` has no JVM test and is the reason the wiring
+      test stops where it does.** Every call on that path crosses into Rust and
+      returns a concrete BDK type, so there is no seam to fake below
+      `WalletTransactions` — the join above it is asserted on the JVM with a
+      real `FileWalletCache` and the real channel-list expression, and the
+      mapping itself belongs to the regtest suite.
+
     Two deliberate divergences from iOS are recorded in code and repeated here
     because they are the kind that get "tidied" back: the channel-balance
     subtraction is floored at zero rather than being allowed to wrap a `ULong`

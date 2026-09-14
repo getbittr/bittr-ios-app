@@ -269,3 +269,25 @@ data class PaymentView(
  * which number the user sees.
  */
 fun List<ChannelView>.activeChannel(): ChannelView? = firstOrNull { it.isChannelReady }
+
+/**
+ * The funding txids of every channel in this list — iOS's
+ * `listChannels().compactMap { $0.fundingTxo?.txid }` (`BDKManager.swift:492`).
+ *
+ * **Every channel, not only the ready ones**, which is the one way this differs
+ * from [activeChannel] above and the difference that matters. A channel that is
+ * still pending is a channel whose funding output has not been spent by a
+ * closing transaction; leaving it out would tell
+ * [com.bittr.android.core.wallet.ldk.onchain.ChannelClosureScan] that a channel
+ * which is *opening* has closed, and start the scan on it after every sync for
+ * as long as it takes to confirm.
+ *
+ * One function and not two identical `mapNotNull`s, because it now has two
+ * callers that have to agree. [WalletBalanceSnapshot.openChannelFundingTxIds] is
+ * one — the home screen's read — and the lambda `WalletModule` hands
+ * `ChannelClosureRecorder` is the other, on the sync's own thread. Both answer
+ * "which funding transactions are still backing a live channel", and a copy that
+ * drifted would let the balance and the closure scan disagree about whether a
+ * channel has closed.
+ */
+fun List<ChannelView>.openChannelFundingTxIds(): List<String> = mapNotNull { it.fundingTxo?.txId }

@@ -224,12 +224,19 @@ class OnchainSync<W : Any, F : Any, S : Any, U : Any>(
      * iOS calls `storeChannelClosureTxIDIfFound()` from both paths and from
      * nowhere else (`BDKManager.swift:301`, `:369`), immediately before
      * reporting success — so the ordering is encoded here rather than left to a
-     * caller. It is nullable and defaulted because [ChannelClosureRecorder]
-     * needs a Lightning channel list this class has no way to obtain: BIT-125
-     * supplies it, BIT-126 wires it, and a sync with no recorder behaves exactly
-     * as it did before.
+     * caller.
+     *
+     * **Nullable but not defaulted, and the missing default is the point.** It
+     * was defaulted while [ChannelClosureRecorder] had no channel list to be
+     * built from, and a defaulted parameter is a wiring step that can be
+     * forgotten in silence: a production `OnchainSync(port, scans)` compiles,
+     * runs, syncs correctly and never records a closure, and nothing about it
+     * reads as wrong. BIT-130 supplied the channel list and wired it, so every
+     * construction site now has to say which it is. Null is still a legitimate
+     * answer — it is what most of `OnchainSyncTest` wants — it just has to be
+     * written down.
      */
-    private val closures: ChannelClosureRecorder? = null,
+    private val closures: ChannelClosureRecorder?,
 ) {
 
     /**

@@ -253,6 +253,7 @@ class OnchainSyncClosureScanTest {
         val outcome = OnchainSync(
             port = SimplePort(),
             scans = ScanCoordinator(this),
+            closures = null,
         ).runLightSync()
 
         assertTrue(outcome.applied)

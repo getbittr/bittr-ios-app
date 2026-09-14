@@ -2,6 +2,8 @@ package com.bittr.android.core.wallet.ldk.adapter
 
 import com.bittr.android.core.wallet.ldk.node.WalletNetwork
 import com.bittr.android.core.wallet.ldk.onchain.BdkStore
+import com.bittr.android.core.wallet.ldk.onchain.ChannelClosureRecorder
+import com.bittr.android.core.wallet.ldk.onchain.ChannelClosureScan
 import com.bittr.android.core.wallet.ldk.onchain.DescriptorXpub
 import com.bittr.android.core.wallet.ldk.onchain.FullScanParameters
 import com.bittr.android.core.wallet.ldk.onchain.LightSyncParameters
@@ -9,6 +11,9 @@ import com.bittr.android.core.wallet.ldk.onchain.OnchainSync
 import com.bittr.android.core.wallet.ldk.onchain.OnchainSyncPort
 import com.bittr.android.core.wallet.ldk.onchain.OnchainWalletPort
 import com.bittr.android.core.wallet.ldk.onchain.ScanCoordinator
+import com.bittr.android.core.wallet.ldk.onchain.TxOutpoint
+import com.bittr.android.core.wallet.ldk.onchain.WalletTransactions
+import org.bitcoindevkit.CanonicalTx
 import org.bitcoindevkit.Connection
 import org.bitcoindevkit.Descriptor
 import org.bitcoindevkit.DescriptorSecretKey
@@ -83,6 +88,71 @@ class BdkSyncPort(
 
     override fun persist(wallet: Wallet) {
         wallet.persist(connection())
+    }
+}
+
+/**
+ * `bdkWallet.transactions()` as the pairs [ChannelClosureScan] compares —
+ * iOS's `for tx in bdkWallet.transactions()` loop (`BDKManager.swift:497–508`).
+ *
+ * A forward and a field copy, like the rest of this file. The decision it feeds
+ * — match on the **whole** outpoint rather than on the txid, because a funding
+ * transaction can pay change back to this same wallet from another output — is
+ * [ChannelClosureScan]'s and is asserted on the JVM. What is left here is the
+ * mapping, and the one thing the mapping has to get right that iOS does not:
+ * freeing what it walked.
+ *
+ * ## Every object this touches is a native handle, and none of them is reused
+ *
+ * `transactions()` returns a fresh `CanonicalTx` per call, each holding a
+ * `Transaction`; `input()` returns fresh `TxIn`s, each holding a `Script`.
+ * UniFFI's Kotlin bindings free all of them from a `java.lang.ref.Cleaner` at an
+ * unspecified time — the hazard [LdkManagedNode.close] and [BdkWalletFactory]
+ * exist for — so on a wallet with a hundred transactions a scan that dropped
+ * them would leave several hundred Rust objects alive for an unbounded period,
+ * on a platform that kills the process to reclaim memory. `destroy()` is what
+ * hands them back at a known moment, and it cascades: `CanonicalTx.destroy()`
+ * reaches its `Transaction` and `TxIn.destroy()` reaches its `Script`
+ * (`javap -c org/bitcoindevkit/CanonicalTx.class`, `TxIn.class` — both call
+ * `Disposable.Companion.destroy(...)` over their own fields).
+ *
+ * `OutPoint` is the exception and is why the values can outlive the walk: it is
+ * a plain Kotlin class with a `String` and a `UInt` and no pointer behind it, so
+ * the [TxOutpoint]s built here own nothing.
+ *
+ * **No JVM test, deliberately.** Every call on this path crosses into Rust and
+ * returns a concrete native type, so there is no seam to fake below it — the
+ * seam is [WalletTransactions] itself, which is where `ChannelClosureRecorder`
+ * is proved. This class is the part that needs a device; it belongs to the
+ * regtest suite in `wallet-node-device-tests.md`.
+ *
+ * @param wallet the live wallet field, read on every call, for the reason
+ *   [BdkSyncPort] gives. Null is an ordinary answer — a teardown racing a sync —
+ *   and it maps to no transactions rather than to a failure, which
+ *   `ChannelClosureScan` then reads as "no closing transaction found".
+ */
+class BdkWalletTransactions(
+    private val wallet: () -> Wallet?,
+) : WalletTransactions {
+
+    override fun transactions(): List<Pair<String, List<TxOutpoint>>> =
+        wallet()?.transactions().orEmpty().map(::spentOutpoints)
+
+    private fun spentOutpoints(canonical: CanonicalTx): Pair<String, List<TxOutpoint>> = try {
+        val transaction = canonical.transaction
+        transaction.computeTxid() to transaction.input().map { input ->
+            try {
+                // `previousOutput` is iOS's `eachInput.previousOutput`. The vout
+                // is carried, not dropped: it is the half of the match that
+                // stops a change-spending transaction being reported as the
+                // channel's closure.
+                TxOutpoint(txId = input.previousOutput.txid, vout = input.previousOutput.vout)
+            } finally {
+                input.destroy()
+            }
+        }
+    } finally {
+        canonical.destroy()
     }
 }
 
@@ -273,6 +343,21 @@ class BdkOnchainWalletHolder(
     /** The BIP84 account xpub of the open wallet, or null. iOS's `self.xpub`. */
     val accountXpub: String? get() = current?.accountXpub
 
+    /**
+     * The open wallet's transactions, for the closure scan.
+     *
+     * Exposed as [WalletTransactions] rather than built inside [sync] so
+     * `di/WalletModule` can compose the recorder itself: the other two things
+     * `ChannelClosureRecorder` needs are the cache store and the node's channel
+     * list, and neither of them is this class's to reach for — a holder that
+     * went looking for a `NodeLifecycle` would be an on-chain wallet that knows
+     * about Lightning.
+     *
+     * Valid across opens, like [sync]: it re-reads [current] on every call, so a
+     * wallet closed and reopened by a node restart needs no new recorder.
+     */
+    val transactions: WalletTransactions = BdkWalletTransactions { current?.wallet }
+
     override fun open(): Boolean = synchronized(lock) {
         // `guard self.bdkWallet == nil else { return true }`. Idempotent, and the
         // loop relies on it: a node restart within one process re-runs `open`.
@@ -316,8 +401,17 @@ class BdkOnchainWalletHolder(
      * Built once and valid across opens: every lambda in [BdkSyncPort] re-reads
      * the field, which is the property its own KDoc says the identity check
      * depends on.
+     *
+     * @param closures the closure scan [OnchainSync] runs at the end of a sync
+     *   that applied, or null for a wallet that does not record closures. Not
+     *   defaulted, for the reason [OnchainSync]'s own parameter is not: this is
+     *   the last call site between a composed wallet and a closure that is never
+     *   recorded, and a forgotten argument here would be invisible.
      */
-    fun sync(scans: ScanCoordinator): OnchainSync<*, *, *, *> = OnchainSync(
+    fun sync(
+        scans: ScanCoordinator,
+        closures: ChannelClosureRecorder?,
+    ): OnchainSync<*, *, *, *> = OnchainSync(
         port = BdkSyncPort(
             wallet = { current?.wallet },
             connection = { requireNotNull(current).connection },
@@ -327,6 +421,7 @@ class BdkOnchainWalletHolder(
             electrum = { electrum ?: ElectrumClient(electrumUrl).also { electrum = it } },
         ),
         scans = scans,
+        closures = closures,
     )
 
     private fun closeLocked() {

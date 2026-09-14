@@ -105,7 +105,7 @@ class OnchainSyncLoopTest {
 
         fun loop() = OnchainSyncLoop(
             wallet = wallet,
-            sync = OnchainSync(port, scans),
+            sync = OnchainSync(port, scans, closures = null),
             scans = scans,
             report = { events += it },
         )
@@ -195,7 +195,7 @@ class OnchainSyncLoopTest {
         val second = launch {
             OnchainSyncLoop(
                 wallet = FakeWallet(),
-                sync = OnchainSync(port, scans),
+                sync = OnchainSync(port, scans, closures = null),
                 scans = scans,
                 report = { events += it },
             ).run()
@@ -267,7 +267,7 @@ class OnchainSyncLoopTest {
         val runner = launch {
             OnchainSyncLoop(
                 wallet = wallet,
-                sync = OnchainSync(fixture.port, fixture.scans),
+                sync = OnchainSync(fixture.port, fixture.scans, closures = null),
                 scans = fixture.scans,
             ).run()
         }

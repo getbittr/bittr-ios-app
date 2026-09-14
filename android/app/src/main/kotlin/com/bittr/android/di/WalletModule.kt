@@ -13,15 +13,18 @@ import com.bittr.android.core.wallet.ldk.adapter.LdkNodeFactory
 import com.bittr.android.core.wallet.ldk.adapter.LdkNodeStartErrors
 import com.bittr.android.core.wallet.ldk.adapter.lightningNodePort
 import com.bittr.android.core.wallet.ldk.adapter.nodeOnchainPort
+import com.bittr.android.core.wallet.ldk.cache.CachedChannelClosureStore
 import com.bittr.android.core.wallet.ldk.cache.FileWalletCache
 import com.bittr.android.core.wallet.ldk.host.NodeBackedWalletService
 import com.bittr.android.core.wallet.ldk.host.ServiceForegroundPresence
 import com.bittr.android.core.wallet.ldk.host.WalletNodeHost
 import com.bittr.android.core.wallet.ldk.lightning.LightningNodePort
 import com.bittr.android.core.wallet.ldk.lightning.NodeOnchainPort
+import com.bittr.android.core.wallet.ldk.lightning.openChannelFundingTxIds
 import com.bittr.android.core.wallet.ldk.node.LdkEnvironment
 import com.bittr.android.core.wallet.ldk.node.NodeConfigPlan
 import com.bittr.android.core.wallet.ldk.node.NodeLifecycle
+import com.bittr.android.core.wallet.ldk.onchain.ChannelClosureRecorder
 import com.bittr.android.core.wallet.ldk.onchain.OnchainSyncLoop
 import com.bittr.android.core.wallet.ldk.onchain.ScanCoordinator
 import com.bittr.android.core.wallet.ldk.seed.SecureStoreSeedVault
@@ -244,6 +247,16 @@ object WalletModule {
         )
 
         /*
+         * The Lightning surface, built here rather than in the `return` below
+         * because the on-chain sync needs it: `ChannelClosureRecorder` asks
+         * `listChannels()` which funding transactions are still backing a live
+         * channel. One port, over one lifecycle, read by the graph and by the
+         * sync — which is `provideLightningNodePort`'s rule applied inside the
+         * composition as well as outside it.
+         */
+        val lightning = lightningNodePort(lifecycle)
+
+        /*
          * The on-chain half: BDK's wallet, and the loop that scans it.
          *
          * Composed here rather than lazily at a screen — which is what iOS does,
@@ -274,6 +287,63 @@ object WalletModule {
                 // a zero on-chain balance and refuses to build a drain; what it
                 // must not do is do that silently.
                 Log.w(TAG, "BDK wallet failed to open; on-chain balance will read zero", failure)
+            },
+        )
+
+        /*
+         * `storeChannelClosureTxIDIfFound()`, which iOS runs at the end of both
+         * sync paths and nowhere else (`BDKManager.swift:301`, `:369`).
+         *
+         * Composed here because nowhere else can be: its three collaborators
+         * come from three layers — the cache store, the BDK wallet's
+         * transactions, and the node's channel list — and each of the three
+         * owns one and cannot reach the other two. That is also why the
+         * parameter went un-passed from BIT-124 until now, with the result that
+         * a running app recorded no closures at all.
+         *
+         * **The channel list is a lambda, read inside the scan rather than
+         * before the sync.** A full scan is a round trip with a 180-second
+         * watchdog and a channel can close during one. An empty answer — what a
+         * torn-down node gives, per `LightningNodePort`'s read contract — makes
+         * `shouldScan` say yes about a channel that may still be open, and that
+         * is the safe direction rather than a bug: the scan then looks for a
+         * transaction spending the funding *outpoint*, an open channel's
+         * funding output is unspent, and so it costs a walk of the transaction
+         * list and records nothing. Defaulting the other way would skip the
+         * real closure. `ClosureScanWiringTest` carries that case.
+         *
+         * ## What this does not yet do, said plainly
+         *
+         * **On a running app today this records nothing, because nothing writes
+         * the outpoint it watches.** `ChannelClosureRecorder`'s first step reads
+         * `CachedChannelClosureStore.channelFundingOutpoint()`, and the matching
+         * writer — `store(outpoint)`, iOS's
+         * `CacheManager.storeChannelFundingOutpoint` — has no caller in `main`:
+         * it belongs on the channel-open path and beside the balance read, and
+         * Android has neither. `WalletBalanceSnapshot.of` is unreferenced for
+         * the same reason, and it is where the two writes iOS makes here come
+         * from (`channelFundingOutpointToStore` and
+         * `clearChannelFundingOutpoint`).
+         *
+         * So this wiring makes the scan *reachable* rather than *effective*,
+         * and that is the honest description of it. It is still the right half
+         * to land first: the alternative is a channel-open path that caches an
+         * outpoint nothing ever reads, which fails the same way and is harder
+         * to notice. The other half is tracked as BIT-130's child, *"Nothing
+         * writes the channel funding outpoint"*.
+         */
+        val closures = ChannelClosureRecorder(
+            // The same `cache` the event ledger writes through, deliberately:
+            // one in-memory mirror of one directory. See `cache` above.
+            store = CachedChannelClosureStore(cache),
+            transactions = onchainWallet.transactions,
+            openChannelFundingTxIds = { lightning.listChannels().openChannelFundingTxIds() },
+            onFailure = { failure ->
+                // Swallowed by the recorder by design — the cost is a missing
+                // label on one row of the transaction list, and a sync failed
+                // over it would leave `hasBeenScanned` false. Logged so the
+                // missing label leaves a trace somewhere.
+                Log.w(TAG, "Channel closure scan failed", failure)
             },
         )
 
@@ -336,7 +406,7 @@ object WalletModule {
                      */
                     OnchainSyncLoop(
                         wallet = onchainWallet,
-                        sync = onchainWallet.sync(scans),
+                        sync = onchainWallet.sync(scans = scans, closures = closures),
                         scans = scans,
                         report = { event -> Log.i(TAG, "On-chain sync: $event") },
                     ),
@@ -354,7 +424,9 @@ object WalletModule {
 
         return WalletComposition(
             wallet = wallet,
-            lightning = lightningNodePort(lifecycle),
+            // The same instance the closure scan reads through, not a second
+            // port over the same lifecycle.
+            lightning = lightning,
             // The same `lifecycle` the wallet and the Lightning port are over,
             // which is the whole reason this class exists — see
             // WalletModule.provideNodeOnchainPort.

@@ -142,7 +142,10 @@ data class WalletBalanceSnapshot(
                     balances.pendingBalancesFromChannelClosures,
                 ),
                 clearChannelFundingOutpoint = pendingClosure > 0L,
-                openChannelFundingTxIds = channels.mapNotNull { it.fundingTxo?.txId },
+                // The shared definition, not a `mapNotNull` of its own: the sync
+                // loop reads the same thing through the same function so the two
+                // cannot drift. See `List<ChannelView>.openChannelFundingTxIds`.
+                openChannelFundingTxIds = channels.openChannelFundingTxIds(),
             )
         }
     }

@@ -100,7 +100,14 @@ class OnchainSyncTest {
         }
     }
 
-    private fun sync(port: FakeSyncPort, scans: ScanCoordinator) = OnchainSync(port, scans)
+    /**
+     * `closures = null` because this class is about the *sequence*: the order
+     * of the steps and which failure stops it. The closure scan hanging off the
+     * end of a sync that applied is `ChannelClosureRecorderTest`'s, and it
+     * asserts its position there against the same class.
+     */
+    private fun sync(port: FakeSyncPort, scans: ScanCoordinator) =
+        OnchainSync(port, scans, closures = null)
 
     /**
      * The step a sync stopped at, or a failure that says what happened instead.
