@@ -62,6 +62,16 @@ def style(version):
         # endpoint is not an incidental detail.
         "glyphs": base + "/glyphs/{fontstack}/{range}.pbf",
         "sources": {
+            # No `attribution` key here, deliberately. BIT-140 settled that the OSM
+            # credit is an app-side Compose Text on the map surface
+            # (`MapCopy.BASEMAP_ATTRIBUTION`), and `BasemapAttributionGuardTest`
+            # fails the build if `STYLE_URI` is set without it — so the licence is
+            # covered whatever this file says. MapLibre Android also has a built-in
+            # attribution control that surfaces source-level `attribution` values,
+            # and nothing in `BasemapController` currently disables it, so adding a
+            # key here is the likely way to end up with two credits on one small
+            # map. If a later revision wants one, raise it with the Head of App
+            # (Android) first rather than adding it for completeness.
             "basemap": {
                 "type": "vector",
                 "url": f"pmtiles://{base}/ch.pmtiles",
