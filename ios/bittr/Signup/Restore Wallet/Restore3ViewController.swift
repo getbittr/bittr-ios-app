@@ -31,33 +31,24 @@ class Restore3ViewController: UIViewController, UITextFieldDelegate {
     
     
     func backButtonTapped() {
-        
         self.signupVC?.moveToPage(1)
-        
-        /*let notificationDict:[String: Any] = ["page":"-3"]
-         NotificationCenter.default.post(NSNotification(name: NSNotification.Name(rawValue: "signupnext"), object: nil, userInfo: notificationDict) as Notification)*/
     }
     
     func nextButtonTapped(enteredPin:String) {
         
-        if let actualPreviousPin = self.previousPIN {
-            
-            if actualPreviousPin == enteredPin {
-                CacheManager.storePin(pin: actualPreviousPin)
-                // Ownership was just proven with the mnemonic, so clear any
-                // accumulated wrong-PIN attempts — otherwise a Forgot-PIN
-                // recovery would leave the user partway to the 10-attempt wipe.
-                CacheManager.resetFailedPinAttempts()
-                self.coreVC!.userHasSignedIn = true
-                self.signupVC?.coreVC?.resettingPin = false
-                self.coreVC!.buyVC?.registerIbanVC?.dismiss(animated: true)
-                self.coreVC!.buyVC?.parseIbanEntities(uponPageLaunch: false)
-                self.coreVC!.hideSignup()
-                
-            } else {
-                self.showAlert(title: Language.getWord(withID: "incorrectpin"), message: Language.getWord(withID: "repeatnumber"), buttons: [.dismiss(Language.getWord(withID: "okay"))])
-            }
+        guard let previousPIN, enteredPin == previousPIN else {
+            self.showAlert(title: Language.getWord(withID: "incorrectpin"), message: Language.getWord(withID: "repeatnumber"), buttons: [.dismiss(Language.getWord(withID: "okay"))])
+            return
         }
+        
+        CacheManager.storePin(pin: previousPIN)
+        CacheManager.resetFailedPinAttempts()
+        
+        self.coreVC!.userHasSignedIn = true
+        self.signupVC?.coreVC?.resettingPin = false
+        self.coreVC!.buyVC?.registerIbanVC?.dismiss(animated: true)
+        self.coreVC!.buyVC?.parseIbanEntities(uponPageLaunch: false)
+        self.coreVC!.fromSignupToHome()
     }
     
     override func prepare(for segue: UIStoryboardSegue, sender: Any?) {

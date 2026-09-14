@@ -81,7 +81,7 @@ class Signup7ViewController: UIViewController {
         // Close sign up and proceed into wallet.
         self.coreVC!.buyVC?.registerIbanVC?.dismiss(animated: true)
         self.coreVC!.buyVC?.parseIbanEntities(uponPageLaunch: false)
-        self.coreVC!.hideSignup()
+        self.coreVC!.fromSignupToHome()
     }
     
     @IBAction func partnerButtonTapped(_ sender: UIButton) {

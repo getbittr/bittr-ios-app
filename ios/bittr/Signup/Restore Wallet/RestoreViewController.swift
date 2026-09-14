@@ -317,7 +317,8 @@ class RestoreViewController: UIViewController, UITextFieldDelegate {
             // We're resetting the device PIN.
             self.signupVC!.coreVC!.pinContainerView.alpha = 1
             self.signupVC!.coreVC!.resettingPin = false
-            self.signupVC!.coreVC!.hideSignup()
+            // Go back from SignupVC to PinVC.
+            self.signupVC!.coreVC!.fromSignupToPin()
         } else {
             // We're restoring an existing wallet.
             self.signupVC!.moveToPage(3)
