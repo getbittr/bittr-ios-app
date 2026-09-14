@@ -29,8 +29,18 @@ apt-get install -y osmium-tool python3-shapely python3-pyproj
 ```
 
 It downloads planetiler, the `pmtiles` CLI, ten Geofabrik extracts (~3.4 GB) and
-planetiler's Natural Earth and water-polygon sources. Expect an hour or so; the
-z6–z14 render is the long part.
+planetiler's Natural Earth and water-polygon sources.
+
+**Budget about 2h15m from cold, unattended** — measured on the first real build,
+2026-09-14: ~30 min to fetch and clip the ten extracts, ~1h40m for the two planetiler
+passes (run in parallel; the z6–z14 Switzerland render is the long one), then the merge
+and the PMTiles conversion. Run it under `nohup`/`tmux`; nothing here needs an operator
+after it starts.
+
+Run it **after** the bucket and the edge exist, not before. The archive is 572 MiB and
+lives only on the machine that built it — it is deliberately never checked in and there
+is nowhere else to park it, so a build done ahead of hosting is thrown away. See §4 of
+`android/docs/tile-pipeline.md`: a deploy is this rebuild, not an upload.
 
 The upstream extracts move, so two builds a quarter apart are not byte-identical and
 are not meant to be. What is pinned is the *pipeline* — planetiler and `pmtiles`

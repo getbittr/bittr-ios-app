@@ -76,7 +76,8 @@ archive well past 1.5 GB.
 
 This is a server-side file, not an app download — §2's mechanism is a remote archive read by
 range request, so the app ships none of it and the size does not touch the APK. What it does
-bound is storage cost and the monthly re-upload in §4.
+bound is storage cost and the quarterly rebuild in §4 — not a re-upload, because as §4
+records there is never a local copy to upload.
 
 ## 2. Serving mechanism
 
@@ -96,9 +97,13 @@ plus an edge — no per-tile compute, no process to keep alive, and a bill that 
 plus egress rather than a per-request rate card.
 
 **Version the object path; pin it in the style.** `/basemap/<yyyy-mm>/ch.pmtiles`, with
-`MapBasemap.STYLE_URI` naming a specific version. A rebuild uploads a new object and the
-style URL moves in one commit, so a refresh cannot half-land, the old archive stays
-cacheable, and a bad build is a one-line rollback.
+`MapBasemap.STYLE_URI` naming a specific version. A refresh writes a new object at a new
+version prefix and the style URL moves in one commit, so a refresh cannot half-land, the
+old archive stays cacheable, and a bad build is a one-line rollback.
+
+The new object is *produced* by a rebuild on the serving side, not uploaded from here — see
+§4. That is why the rollback is worth having: re-pointing `STYLE_URI` at the previous
+version prefix is instant, whereas re-obtaining a superseded archive is another two hours.
 
 ### The edge is where this decision can be silently undone
 
@@ -279,6 +284,31 @@ owner; the first build and the hosting are [BIT-139](/BIT/issues/BIT-139). The s
 instruction survives the lapse: if the pipeline comes due while that agent is unavailable,
 raise it with the CTO rather than letting the cadence lapse unowned — an unowned schedule
 is the failure mode this section exists to prevent.
+
+### A deploy is a rebuild, not an upload
+
+**There is no archive anywhere to upload, and there never will be.** The 572 MiB measured
+in §1 exists only inside the container that built it; this section forbids checking the
+archive in, and no durable store outside the serving bucket is in scope. So every deploy —
+the first one and each quarterly refresh — is a **full unattended rebuild via
+`build-basemap.sh`, roughly 2h15m from cold** as measured by the BIT-139 owner on
+2026-09-14: about 30 minutes to fetch and clip the ten Geofabrik extracts covering the
+buffer ring, about 1h40m for the two planetiler passes run in parallel, then the merge and
+the PMTiles conversion.
+
+Two consequences, and the first is a sequencing rule:
+
+- **Do not treat "build" and "host" as separable steps weeks apart.** The bucket and the
+  edge come first; the rebuild is then run in one sitting, by whoever runs it, writing
+  straight to the version prefix it will be served from. Building first only produces an
+  artefact that expires with the container.
+- The rebuild is not a second chance to get the contents wrong. `check-style-hosts.py` and
+  `check-archive-coverage.py` both run *inside* `build-basemap.sh`, so a build that
+  reproduces the world-band-without-city-names failure fails there rather than shipping.
+
+This corrects an earlier reading of §2 on which a deploy was "an upload and a
+`verify-deploy.sh` run". `verify-deploy.sh` still runs, and still runs against the served
+URL — but it verifies the output of that rebuild, it is not the deploy.
 
 ## 5. Tile-request logging
 
