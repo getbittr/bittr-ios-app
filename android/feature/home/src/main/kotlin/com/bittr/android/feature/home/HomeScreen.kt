@@ -169,8 +169,12 @@ internal fun HomeScreen(
     fun guarded(action: () -> Unit): () -> Unit =
         { if (state.walletHasSynced) action() else onSyncingWallet() }
 
+    // `syncingStatusTapped`: the balance screen once synced, the sync overlay before.
+    var syncStatusVisible by remember { mutableStateOf(false) }
+
+    Box(modifier = modifier.fillMaxSize()) {
     Column(
-        modifier = modifier
+        modifier = Modifier
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.surfaceBright),
     ) {
@@ -182,7 +186,7 @@ internal fun HomeScreen(
             onSend = guarded(onSend),
             onReceive = guarded(onReceive),
             onBuy = onBuy,
-            onSyncStatus = guarded(onBalanceDetails),
+            onSyncStatus = { if (state.walletHasSynced) onBalanceDetails() else syncStatusVisible = true },
             onBalanceCard = guarded(onBalanceDetails),
         )
 
@@ -228,6 +232,8 @@ internal fun HomeScreen(
             settingsTestTag = TestID.Nav.settingsButton,
             modifier = Modifier.navigationBarsPadding(),
         )
+    }
+    if (syncStatusVisible) SyncStatusSheet(syncProgress(state), onClose = { syncStatusVisible = false })
     }
 }
 

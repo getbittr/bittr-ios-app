@@ -51,6 +51,10 @@ import com.bittr.android.core.designsystem.BittrCanvas
 import com.bittr.android.core.designsystem.BittrCard
 import com.bittr.android.core.designsystem.BittrIconPaths
 import com.bittr.android.core.designsystem.BittrModalHeader
+import com.bittr.android.core.designsystem.BittrTextFieldAlert
+import androidx.compose.foundation.layout.BoxScope
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.ui.input.pointer.pointerInput
 import com.bittr.android.core.designsystem.BittrTheme
 import com.bittr.android.core.designsystem.BittrTokens
 import com.bittr.android.core.designsystem.rememberStrokeIcon
@@ -113,17 +117,34 @@ internal fun SendScreen(
     val focusManager = LocalFocusManager.current
 
     state.alert?.let { alert ->
-        BittrAlert(
-            title = alert.title,
-            message = alert.message,
-            buttons = alert.buttons.mapIndexed { position, button ->
-                BittrAlertButton(label = button.label, dismissesAlert = position == 0, onClick = { controller.onAlertButton(position) })
-            },
-            modifier = if (alert.tag != null) Modifier.testTag(alert.tag) else Modifier,
-        )
+        val field = alert.field
+        if (field != null && alert.buttons.size == 2) {
+            BittrTextFieldAlert(
+                title = alert.title,
+                message = alert.message,
+                initialText = "",
+                placeholder = field.placeholder,
+                cancelLabel = alert.buttons[0].label,
+                saveLabel = alert.buttons[1].label,
+                onCancel = { controller.onAlertButton(0) },
+                onSave = { text -> controller.onAlertText(1, text) },
+                testTag = alert.tag,
+                keyboardType = KeyboardType.Number,
+            )
+        } else {
+            BittrAlert(
+                title = alert.title,
+                message = alert.message,
+                buttons = alert.buttons.mapIndexed { position, button ->
+                    BittrAlertButton(label = button.label, dismissesAlert = position == 0, onClick = { controller.onAlertButton(position) })
+                },
+                modifier = if (alert.tag != null) Modifier.testTag(alert.tag) else Modifier,
+            )
+        }
     }
 
-    BittrCanvas(modifier = modifier, appBar = false) {
+    Box(modifier = modifier) {
+    BittrCanvas(appBar = false) {
         BittrModalHeader(
             title = SendStrings.SEND_BITCOIN,
             onDown = onDown,
@@ -157,6 +178,35 @@ internal fun SendScreen(
             }
         }
     }
+    if (state.lnurlLoading) LoadingCover(SendStrings.HANDLING_LNURL, TestID.Loading.handlingLnurl)
+    }
+}
+
+/**
+ * `showLoading(id:message:)`: a dim cover that swallows taps, and a card with a spinner and the
+ * message. In the window rather than a dialog, so the screen underneath stays in Maestro's view.
+ */
+@Composable
+private fun BoxScope.LoadingCover(message: String, testTag: String) {
+    Box(
+        contentAlignment = Alignment.Center,
+        modifier = Modifier
+            .matchParentSize()
+            .background(androidx.compose.ui.graphics.Color.Black.copy(alpha = 0.4f))
+            .pointerInput(Unit) { detectTapGestures { } },
+    ) {
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(BittrTokens.Spacing.md),
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier
+                .background(MaterialTheme.colorScheme.surface, RoundedCornerShape(13.dp))
+                .padding(BittrTokens.Spacing.lg)
+                .testTag(testTag),
+        ) {
+            CircularProgressIndicator(strokeWidth = 2.dp, modifier = Modifier.size(20.dp))
+            Text(message, style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurface)
+        }
+    }
 }
 
 @Composable
@@ -168,6 +218,10 @@ private fun ColumnScope.SendPage(
 ) {
     val clipboard = LocalClipboardManager.current
     val amountFocus = remember { FocusRequester() }
+    // A pay request with a range: `amountTextField.becomeFirstResponder()`.
+    LaunchedEffect(state.focusAmountRequests) {
+        if (state.focusAmountRequests > 0) amountFocus.requestFocus()
+    }
 
     Row(horizontalArrangement = Arrangement.spacedBy(BittrTokens.Spacing.sm), verticalAlignment = Alignment.CenterVertically) {
         ModeTile(SendStrings.REGULAR, selected = state.mode == SendMode.Onchain, bolt = false, testTag = TestID.Send.regularButton, modifier = Modifier.weight(1f)) {

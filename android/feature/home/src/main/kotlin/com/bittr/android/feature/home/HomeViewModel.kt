@@ -39,6 +39,8 @@ data class HomeUiState(
     val showSyncSpinner: Boolean = false,
     val balanceSats: Long? = null,
     val history: List<HistoryRow> = emptyList(),
+    /** The sync overlay's first row: a conversion rate has been fetched. */
+    val conversionFetched: Boolean = false,
 )
 
 /**
@@ -60,6 +62,9 @@ class HomeViewModel @Inject constructor(
     private val price = MutableStateFlow<FiatPrice?>(null)
 
     init {
+        // iOS fetches conversion rates first thing at start (`SyncType.conversion`), before the
+        // wallet has synced; the sync overlay's first row reports it.
+        viewModelScope.launch { prices.current()?.let { if (price.value == null) price.value = it } }
         viewModelScope.launch {
             overview.overview
                 .map { it.hasSynced to it.transactions }
@@ -75,6 +80,7 @@ class HomeViewModel @Inject constructor(
             showSyncSpinner = wallet.hasNode && !wallet.hasSynced,
             balanceSats = if (wallet.hasSynced) wallet.totalSatoshis else null,
             history = if (wallet.hasSynced) historyRows(wallet.transactions, price, wallet.currentHeight) else emptyList(),
+            conversionFetched = price != null,
         )
     }.stateIn(
         scope = viewModelScope,

@@ -114,7 +114,7 @@ object LnurlAuth {
             callbackOrigin = origin,
             requestingPage = when (source) {
                 is LnurlSource.FirstPartyWeb -> RequestingPage(source.origin, source.pageTitle)
-                LnurlSource.QrScan, LnurlSource.Deeplink -> null
+                LnurlSource.QrScan, LnurlSource.Deeplink, LnurlSource.ManualEntry -> null
             },
             action = request.action,
             request = request,

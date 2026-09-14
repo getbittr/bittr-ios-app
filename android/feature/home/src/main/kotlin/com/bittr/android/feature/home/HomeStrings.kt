@@ -50,6 +50,11 @@ internal object HomeStrings {
     /** `currentvalue`. */
     const val CURRENT_VALUE = "Current value"
     const val COPIED = "Copied"
+
+    // The sync overlay — `SyncingStatus.swift`'s three rows.
+    const val FETCH_CONVERSION_RATES = "Fetch conversion rates"
+    const val START_LIGHTNING_NODE = "Start lightning node"
+    const val FINAL_CALCULATIONS = "Final calculations"
     const val DESCRIPTION = "Description"
     const val NOTE = "Note"
     /** `addanote` — the button, the alert's title and its placeholder. */

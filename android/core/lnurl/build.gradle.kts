@@ -18,4 +18,6 @@ dependencies {
     testImplementation(libs.junit)
     testImplementation(libs.kotlinx.coroutines.test)
     implementation(libs.kotlinx.coroutines.core)
+    // Reading what an LNURL service answered (`LnurlService`). Parsing only — still no I/O here.
+    implementation(libs.kotlinx.serialization.json)
 }

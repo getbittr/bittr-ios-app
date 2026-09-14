@@ -3,6 +3,17 @@ package com.bittr.android.feature.send
 import com.bittr.android.core.common.TestID
 import com.bittr.android.core.common.destination.Destination
 import com.bittr.android.core.common.destination.DestinationParser
+import com.bittr.android.core.common.destination.LnurlTarget
+import com.bittr.android.core.lnurl.LnurlAction
+import com.bittr.android.core.lnurl.LnurlAuthKeys
+import com.bittr.android.core.lnurl.LnurlEndpoint
+import com.bittr.android.core.lnurl.LnurlEndpointCheck
+import com.bittr.android.core.lnurl.LnurlPayCallback
+import com.bittr.android.core.lnurl.LnurlPermission
+import com.bittr.android.core.lnurl.LnurlService
+import com.bittr.android.core.lnurl.LnurlServiceResponse
+import com.bittr.android.core.lnurl.LnurlSource
+import com.bittr.android.core.lnurl.LnurlSourcePolicy
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -15,15 +26,27 @@ import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
-/** One alert button. Its position is its `alert.button.N` id; the first is the way out. */
-data class SendAlertButton(val label: String, val onTap: () -> Unit = {})
+/**
+ * One alert button. Its position is its `alert.button.N` id; the first is the way out.
+ *
+ * @property onText on an alert with a [SendAlert.field], what the button does with the text.
+ *   Before [onTap] so that a trailing lambda still means "on tap".
+ */
+data class SendAlertButton(val label: String, val onText: ((String) -> Unit)? = null, val onTap: () -> Unit = {})
 
-/** @property tag the alert's own test id (`alert.amountMissing`, …) where iOS gives it one. */
+/** The text field of an alert like `alert.withdrawRequest`. */
+data class SendAlertField(val placeholder: String)
+
+/**
+ * @property tag the alert's own test id (`alert.amountMissing`, …) where iOS gives it one.
+ * @property field a text field above the buttons, as `showTextFieldAlert` draws.
+ */
 data class SendAlert(
     val title: String,
     val message: String,
     val buttons: List<SendAlertButton>,
     val tag: String? = null,
+    val field: SendAlertField? = null,
 )
 
 /** Something the screen does outside itself. */
@@ -90,6 +113,10 @@ data class SendUiState(
     val nextLoading: Boolean = false,
     val confirm: ConfirmState? = null,
     val alert: SendAlert? = null,
+    /** `loading.handlingLnurl` — "Handling lightning request" while an LNURL service answers. */
+    val lnurlLoading: Boolean = false,
+    /** Bumped when the amount field should take focus — a pay request with a range. */
+    val focusAmountRequests: Int = 0,
 ) {
     /** `btcLabel`. */
     val currencyLabel: String
@@ -114,8 +141,13 @@ data class SendUiState(
  * broadcasts and opens the new transaction, or shows the success alert if the wallet
  * has not seen it yet.
  *
- * Not ported yet, and said so rather than faked: LNURL / Lightning-address payments, and
- * the swap offered when one balance is short but the other would cover it.
+ * LNURL and Lightning addresses follow `SendLNURL.swift`: a pay request with one amount asks
+ * `payrequest1`; one with a range takes the amount field and fetches the invoice on Done; a
+ * withdraw asks for its amount in `alert.withdrawRequest`; a login asks `lnauth1`. Every
+ * service URL passes [LnurlEndpoint.validate] before it is fetched.
+ *
+ * Not ported yet, and said so rather than faked: the swap offered when one balance is short
+ * but the other would cover it.
  */
 class SendController(
     private val source: SendSource,
@@ -134,6 +166,20 @@ class SendController(
     private var fees: FeeEstimates? = null
     private var availableJob: Job? = null
     private var readinessJob: Job? = null
+
+    /** `pendingLNURLCallback` & co.: a pay request with a range, waiting for the amount. */
+    private data class PendingPay(
+        val callback: String,
+        val description: String?,
+        val minMsat: Long,
+        val maxMsat: Long,
+        val displayed: String,
+    )
+
+    private var pendingPay: PendingPay? = null
+
+    /** `pendingLnurlNote`: the paid request's description, stored as the transaction's note. */
+    private var pendingNote: String? = null
 
     /** `viewDidLoad`: the label for the default type, and a refresh whenever balances move. */
     fun start() {
@@ -160,7 +206,12 @@ class SendController(
         refreshAvailable()
     }
 
-    fun onToChange(text: String) = _state.update { it.copy(toText = text) }
+    /** Any edit to the address drops a pending LNURL request — `clearPendingLnurlState`. */
+    fun onToChange(text: String) {
+        pendingPay = null
+        pendingNote = null
+        _state.update { it.copy(toText = text) }
+    }
 
     fun onAmountChange(text: String) {
         didTapAvailable = false
@@ -177,7 +228,7 @@ class SendController(
         if (destination is Destination.Lnurl || SendMath.isLnurl(entered)) {
             _state.update { it.copy(mode = SendMode.Lightning) }
             refreshAvailable()
-            checkLightning()
+            handleLnurl(entered, destination as? Destination.Lnurl, LnurlSource.ManualEntry)
             return false
         }
         if (destination is Destination.Lightning && destination.amountSats != null) {
@@ -229,13 +280,23 @@ class SendController(
 
     /** `toPasteButtonTapped`. */
     fun onPaste(text: String?) {
-        if (text != null) onDestination(DestinationParser.parse(text, source.network), text.trim())
+        if (text != null) onDestination(DestinationParser.parse(text, source.network), text.trim(), LnurlSource.ManualEntry)
     }
 
-    /** `handleScannedOrPastedString`, fed by the scanner or by [onPaste]. */
-    fun onDestination(destination: Destination, raw: String = "") {
+    /**
+     * `handleScannedOrPastedString`, fed by the scanner or by [onPaste]. An LNURL is handled
+     * straight away, as iOS calls `handleLNURL` from here.
+     */
+    fun onDestination(destination: Destination, raw: String = "", lnurlSource: LnurlSource = LnurlSource.QrScan) {
         when (destination) {
-            is Destination.Lnurl -> _state.update { it.copy(toText = destination.raw, mode = SendMode.Lightning) }
+            is Destination.Lnurl -> {
+                pendingPay = null
+                pendingNote = null
+                _state.update { it.copy(toText = destination.raw, mode = SendMode.Lightning) }
+                refreshAvailable()
+                handleLnurl(destination.raw, destination, lnurlSource)
+                return
+            }
             is Destination.Lightning -> {
                 val amount = destination.amountSats
                 val fallback = destination.onChainFallback
@@ -273,7 +334,12 @@ class SendController(
 
     /** `nextButtonTapped`, and the amount field's Done. */
     fun onNext() {
-        if (_state.value.nextLoading) return
+        if (_state.value.nextLoading || _state.value.lnurlLoading) return
+        // A pay request with a range is waiting for this amount — `handleLNURLAmountCompletion`.
+        if (pendingPay != null) {
+            completePayAmount()
+            return
+        }
         if (_state.value.mode == SendMode.Onchain) {
             if (!source.onchainReady()) onchainUnavailable(quiet = false) else checkOnchain()
         } else {
@@ -321,6 +387,13 @@ class SendController(
         val button = _state.value.alert?.buttons?.getOrNull(position) ?: return
         _state.update { it.copy(alert = null) }
         button.onTap()
+    }
+
+    /** A button on an alert with a text field, with what was typed into it. */
+    fun onAlertText(position: Int, text: String) {
+        val button = _state.value.alert?.buttons?.getOrNull(position) ?: return
+        _state.update { it.copy(alert = null) }
+        button.onText?.invoke(text) ?: button.onTap()
     }
 
     // ---- Internals. ----
@@ -460,7 +533,7 @@ class SendController(
 
         val destination = DestinationParser.parse(entered, source.network)
         if (destination is Destination.Lnurl || SendMath.isLnurl(entered)) {
-            return raise(okay(SendStrings.OOPS, SendStrings.LNURL_NOT_ON_ANDROID))
+            return handleLnurl(entered, destination as? Destination.Lnurl, LnurlSource.ManualEntry)
         }
 
         when (destination) {
@@ -478,46 +551,60 @@ class SendController(
             }
         }
 
-        scope.launch {
-            val price = source.fiatPricePerBitcoin()
-            val invoiceAmount = destination.amountSats
-            val sats = invoiceAmount ?: SendMath.parseSats(snapshot.amountText, snapshot.currency, price)?.takeIf { it > 0 }
-            if (sats == null) {
-                raise(
-                    SendAlert(
-                        title = SendStrings.INVOICE,
-                        message = SendStrings.AMOUNT_MISSING,
-                        buttons = listOf(SendAlertButton(SendStrings.OKAY)),
-                        tag = TestID.Alert.amountMissing,
-                    ),
-                )
-                return@launch
-            }
-            val sendable = source.lightningSendableSats()
-            if (sats > sendable) {
-                raise(okay(SendStrings.INSUFFICIENT_FUNDS, SendMath.plain(SendStrings.LIGHTNING_INSUFFICIENT_FUNDS).replace("<amount>", SendMath.group(sendable))))
-                return@launch
-            }
-            val symbol = source.fiatCurrency().symbol
-            _state.update {
-                it.copy(
-                    amountText = sats.toString(),
-                    currency = AmountCurrency.Satoshis,
-                    confirm = ConfirmState(
-                        mode = SendMode.Lightning,
-                        addressOrInvoice = destination.invoice,
-                        displayedAddress = destination.invoice,
-                        amountSats = sats,
-                        amountFiat = SendMath.formattedFiat(sats, price, symbol),
-                        pricePerBitcoin = price,
-                        fiatSymbol = symbol,
-                        lightningFeesSats = SendMath.maxRoutingFeeSats(sats),
-                        invoiceHasAmount = invoiceAmount != null,
-                    ),
-                )
-            }
+        // A plain invoice drops any LNURL description left from an earlier request.
+        pendingNote = null
+        scope.launch { confirmInvoice(destination, destination.invoice, snapshot.amountText, snapshot.currency) }
+    }
+
+    /**
+     * The rest of `checkSendLightning`: an amount (the invoice's, else [fallbackSats], else the
+     * field's), the balance check, and the confirm page showing [displayed] as the address.
+     */
+    private suspend fun confirmInvoice(
+        destination: Destination.Lightning,
+        displayed: String,
+        amountText: String,
+        currency: AmountCurrency,
+        fallbackSats: Long? = null,
+    ) {
+        val price = source.fiatPricePerBitcoin()
+        val invoiceAmount = destination.amountSats
+        val sats = invoiceAmount ?: fallbackSats ?: SendMath.parseSats(amountText, currency, price)?.takeIf { it > 0 }
+        if (sats == null) {
+            raise(amountMissing())
+            return
+        }
+        val sendable = source.lightningSendableSats()
+        if (sats > sendable) {
+            raise(okay(SendStrings.INSUFFICIENT_FUNDS, SendMath.plain(SendStrings.LIGHTNING_INSUFFICIENT_FUNDS).replace("<amount>", SendMath.group(sendable))))
+            return
+        }
+        val symbol = source.fiatCurrency().symbol
+        _state.update {
+            it.copy(
+                amountText = sats.toString(),
+                currency = AmountCurrency.Satoshis,
+                confirm = ConfirmState(
+                    mode = SendMode.Lightning,
+                    addressOrInvoice = destination.invoice,
+                    displayedAddress = displayed,
+                    amountSats = sats,
+                    amountFiat = SendMath.formattedFiat(sats, price, symbol),
+                    pricePerBitcoin = price,
+                    fiatSymbol = symbol,
+                    lightningFeesSats = SendMath.maxRoutingFeeSats(sats),
+                    invoiceHasAmount = invoiceAmount != null,
+                ),
+            )
         }
     }
+
+    private fun amountMissing() = SendAlert(
+        title = SendStrings.INVOICE,
+        message = SendStrings.AMOUNT_MISSING,
+        buttons = listOf(SendAlertButton(SendStrings.OKAY)),
+        tag = TestID.Alert.amountMissing,
+    )
 
     private fun switchToFee(confirm: ConfirmState, tier: FeeTier) {
         var next = confirm.copy(selectedFee = tier)
@@ -611,18 +698,26 @@ class SendController(
         setSending(true)
         scope.launch {
             val result = source.payInvoice(confirm.addressOrInvoice, if (confirm.invoiceHasAmount) null else confirm.amountSats)
+            val note = pendingNote
+            pendingNote = null
             val paymentId = result.getOrElse { failure ->
                 _state.update { it.copy(confirm = null) }
                 raise(okay(SendStrings.UNEXPECTED_ERROR, SendStrings.FAILED_INVOICE_PAYMENT_1.replace("<message>", failure.message.orEmpty())))
                 return@launch
             }
-            finishSend(paymentId)
+            finishSend(paymentId, note)
         }
     }
 
-    /** `addNewPaymentToTable`, or the success alert when the wallet has not seen it yet. */
-    private suspend fun finishSend(id: String) {
+    /**
+     * `addNewPaymentToTable`, or the success alert when the wallet has not seen it yet.
+     *
+     * @param note an LNURL description, stored against the history row's id as iOS stores it
+     *   against `kind.transactionID ?? id`.
+     */
+    private suspend fun finishSend(id: String, note: String? = null) {
         val historyId = source.settledTransactionId(id)
+        if (note != null) source.storeTransactionNote(historyId ?: id, note)
         resetFields()
         _state.update { it.copy(confirm = null) }
         refreshAvailable(quiet = true)
@@ -632,6 +727,253 @@ class SendController(
             raise(okay(SendStrings.SUCCESS, SendStrings.TRANSACTION_SUCCESS))
         }
     }
+
+    // ---- LNURL — `SendLNURL.swift`. ----
+
+    /** `handleLNURL(code:)`. [parsed] is what [DestinationParser] made of [entered], if anything. */
+    private fun handleLnurl(entered: String, parsed: Destination.Lnurl?, origin: LnurlSource) {
+        val lnurl = parsed ?: DestinationParser.parse(entered, source.network) as? Destination.Lnurl
+            ?: return raise(lnurlStatus(SendStrings.LNURL_FAIL_3))
+        when (val target = lnurl.target) {
+            is LnurlTarget.Auth -> showAuth(target.callbackUrl, target.k1Hex, target.action, origin)
+            is LnurlTarget.Service -> fetchService(target.url, displayed = lnurl.raw, origin)
+        }
+    }
+
+    private fun fetchService(url: String, displayed: String, origin: LnurlSource) {
+        if (LnurlEndpoint.validate(url) is LnurlEndpointCheck.Rejected) return raise(lnurlStatus(SendStrings.LNURL_FAIL_3))
+        setLnurlLoading(true)
+        scope.launch {
+            val body = source.lnurlGet(url).getOrNull()
+            if (body == null) {
+                setLnurlLoading(false)
+                return@launch raise(lnurlStatus(SendStrings.LNURL_FAIL_3))
+            }
+            when (val response = LnurlService.parse(body)) {
+                is LnurlServiceResponse.Pay -> if (permitted(LnurlAction.Pay, origin)) handlePay(response, displayed)
+                is LnurlServiceResponse.Withdraw -> {
+                    setLnurlLoading(false)
+                    if (permitted(LnurlAction.Withdraw, origin)) handleWithdraw(response)
+                }
+                is LnurlServiceResponse.Login -> {
+                    setLnurlLoading(false)
+                    showAuth(response.callback, response.k1, response.action, origin)
+                }
+                LnurlServiceResponse.Unsupported -> {
+                    setLnurlLoading(false)
+                    raise(lnurlStatus(SendStrings.LNURL_FAIL_4))
+                }
+                LnurlServiceResponse.Unreadable -> {
+                    setLnurlLoading(false)
+                    raise(lnurlStatus(SendStrings.LNURL_FAIL_3))
+                }
+            }
+        }
+    }
+
+    private fun permitted(action: LnurlAction, origin: LnurlSource): Boolean =
+        when (val permission = LnurlSourcePolicy.permit(action, origin)) {
+            LnurlPermission.Allowed -> true
+            is LnurlPermission.Denied -> {
+                setLnurlLoading(false)
+                raise(lnurlStatus(permission.reason))
+                false
+            }
+        }
+
+    /** `handlePayRequest`. One amount is confirmed in an alert; a range waits for the amount field. */
+    private fun handlePay(pay: LnurlServiceResponse.Pay, displayed: String) {
+        if (pay.minSendableMsat <= 0 || pay.maxSendableMsat < pay.minSendableMsat) {
+            setLnurlLoading(false)
+            return raise(lnurlStatus(SendStrings.LNURL_FAIL_3))
+        }
+        if (pay.minSendableMsat == pay.maxSendableMsat) {
+            setLnurlLoading(false)
+            raise(
+                SendAlert(
+                    title = SendStrings.PAY_REQUEST,
+                    message = SendStrings.PAY_REQUEST_1.replace("<payable>", "${pay.minSendableMsat / MSAT_PER_SAT}"),
+                    buttons = listOf(
+                        SendAlertButton(SendStrings.CANCEL),
+                        SendAlertButton(SendStrings.CONFIRM) { sendPayRequest(pay.callback, pay.minSendableMsat, pay.description, displayed) },
+                    ),
+                ),
+            )
+            return
+        }
+        pendingPay = PendingPay(pay.callback, pay.description, pay.minSendableMsat, pay.maxSendableMsat, displayed)
+        if (_state.value.amountText.isNotBlank()) {
+            completePayAmount()
+        } else {
+            setLnurlLoading(false)
+            _state.update { it.copy(amountText = "", focusAmountRequests = it.focusAmountRequests + 1) }
+        }
+    }
+
+    /** `handleLNURLAmountCompletion`. */
+    private fun completePayAmount() {
+        val pay = pendingPay ?: return
+        val snapshot = _state.value
+        scope.launch {
+            val price = if (snapshot.currency == AmountCurrency.Fiat) source.fiatPricePerBitcoin() else null
+            val sats = SendMath.parseSats(snapshot.amountText.trim(), snapshot.currency, price)?.takeIf { it > 0 }
+            if (sats == null) {
+                setLnurlLoading(false)
+                return@launch raise(amountMissing())
+            }
+            val msat = sats * MSAT_PER_SAT
+            if (msat < pay.minMsat || msat > pay.maxMsat) {
+                setLnurlLoading(false)
+                return@launch raise(
+                    okay(
+                        SendStrings.OOPS,
+                        SendStrings.LNURL_BETWEEN
+                            .replace("<min>", "${pay.minMsat / MSAT_PER_SAT}")
+                            .replace("<max>", "${pay.maxMsat / MSAT_PER_SAT}"),
+                    ),
+                )
+            }
+            pendingPay = null
+            sendPayRequest(pay.callback, msat, pay.description, pay.displayed)
+        }
+    }
+
+    /**
+     * `sendPayRequest`: fetch the invoice, check it is for this amount on this network, then the
+     * confirm page — the user's consent — rather than paying on arrival.
+     */
+    private fun sendPayRequest(callback: String, amountMsat: Long, description: String?, displayed: String) {
+        if (LnurlEndpoint.validate(callback) is LnurlEndpointCheck.Rejected) return raise(lnurlStatus(SendStrings.LNURL_FAIL_3))
+        setLnurlLoading(true)
+        scope.launch {
+            val body = source.lnurlGet(LnurlService.withQuery(callback, "amount" to amountMsat.toString())).getOrNull()
+            setLnurlLoading(false)
+            if (body == null) return@launch raise(lnurlStatus(SendStrings.LNURL_FAIL_3))
+            when (val answer = LnurlService.parsePayCallback(body)) {
+                is LnurlPayCallback.Refused ->
+                    raise(okay(SendStrings.PAY_REQUEST, "${SendStrings.LNURL_FAIL_2} ${answer.detail ?: SendStrings.UNEXPECTED_ERROR}"))
+                is LnurlPayCallback.Invoice -> {
+                    val invoice = DestinationParser.parse(answer.pr, source.network) as? Destination.Lightning
+                    val invoiceSats = invoice?.amountSats
+                    if (invoice == null || (invoiceSats != null && invoiceSats != amountMsat / MSAT_PER_SAT)) {
+                        return@launch raise(okay(SendStrings.PAY_REQUEST, "${SendStrings.LNURL_FAIL_2} ${SendStrings.LNURL_INVOICE_MISMATCH}"))
+                    }
+                    pendingNote = description
+                    val snapshot = _state.value
+                    confirmInvoice(invoice, displayed, snapshot.amountText, snapshot.currency, fallbackSats = amountMsat / MSAT_PER_SAT)
+                }
+            }
+        }
+    }
+
+    /** `handleWithdrawRequest`. */
+    private fun handleWithdraw(withdraw: LnurlServiceResponse.Withdraw) {
+        val min = withdraw.minWithdrawableMsat
+        if (min == withdraw.maxWithdrawableMsat) {
+            raise(
+                SendAlert(
+                    title = SendStrings.WITHDRAW_REQUEST,
+                    message = SendStrings.WITHDRAW_REQUEST_3.replace("<withdrawable>", "${min / MSAT_PER_SAT}"),
+                    buttons = listOf(
+                        SendAlertButton(SendStrings.CANCEL),
+                        SendAlertButton(SendStrings.CONFIRM) { sendWithdrawRequest(withdraw, min) },
+                    ),
+                ),
+            )
+        } else {
+            askWithdrawAmount(withdraw, note = null)
+        }
+    }
+
+    /** `askForWithdrawAmount`: re-asked, with the reason first, until the amount is in range. */
+    private fun askWithdrawAmount(withdraw: LnurlServiceResponse.Withdraw, note: String?) {
+        val range = SendStrings.WITHDRAW_REQUEST_1
+            .replace("<minwithdrawable>", "${withdraw.minWithdrawableMsat / MSAT_PER_SAT}")
+            .replace("<maxwithdrawable>", "${withdraw.maxWithdrawableMsat / MSAT_PER_SAT}")
+        raise(
+            SendAlert(
+                title = SendStrings.WITHDRAW_REQUEST,
+                message = note?.let { "$it\n\n$range" } ?: range,
+                buttons = listOf(
+                    SendAlertButton(SendStrings.CANCEL),
+                    SendAlertButton(SendStrings.CONFIRM, onText = { text ->
+                        val msat = text.trim()
+                            .takeIf { it.isNotEmpty() && it.all(Char::isDigit) }
+                            ?.toLongOrNull()
+                            ?.takeIf { it > 0 }
+                            ?.times(MSAT_PER_SAT)
+                        if (msat == null || msat < withdraw.minWithdrawableMsat || msat > withdraw.maxWithdrawableMsat) {
+                            askWithdrawAmount(withdraw, SendStrings.WITHDRAW_OUT_OF_RANGE)
+                        } else {
+                            sendWithdrawRequest(withdraw, msat)
+                        }
+                    }),
+                ),
+                tag = TestID.Alert.withdrawRequest,
+                field = SendAlertField(SendStrings.AMOUNT_IN_SATOSHIS),
+            ),
+        )
+    }
+
+    /** `sendWithdrawRequest`: an invoice for the amount, handed to the service. Success is silent. */
+    private fun sendWithdrawRequest(withdraw: LnurlServiceResponse.Withdraw, amountMsat: Long) {
+        if (LnurlEndpoint.validate(withdraw.callback) is LnurlEndpointCheck.Rejected) return raise(lnurlStatus(SendStrings.LNURL_FAIL_3))
+        setLnurlLoading(true)
+        scope.launch {
+            val invoice = source.createInvoice(amountMsat, "").getOrElse {
+                setLnurlLoading(false)
+                return@launch raise(okay(SendStrings.UNEXPECTED_ERROR, SendStrings.INVOICE_CREATE_FAIL))
+            }
+            val body = source.lnurlGet(LnurlService.withQuery(withdraw.callback, "k1" to withdraw.k1, "pr" to invoice)).getOrNull()
+            setLnurlLoading(false)
+            if (body == null) return@launch raise(lnurlStatus(SendStrings.LNURL_FAIL_3))
+            val status = LnurlService.parseStatus(body)
+            if (!status.ok) {
+                raise(okay(SendStrings.WITHDRAW_REQUEST, "${SendStrings.LNURL_FAIL_1} ${status.reason ?: SendStrings.UNEXPECTED_ERROR}"))
+            }
+        }
+    }
+
+    /** `showLNURLAuthConfirmation`: https, a 32-byte k1, and the user's go-ahead. */
+    private fun showAuth(callback: String, k1Hex: String, action: String?, origin: LnurlSource) {
+        val endpoint = LnurlEndpoint.validate(callback) as? LnurlEndpointCheck.Usable
+        val validK1 = k1Hex.length == 64 && k1Hex.all { it in '0'..'9' || it in 'a'..'f' || it in 'A'..'F' }
+        if (endpoint == null || !validK1) return raise(lnurlStatus(SendStrings.LNAUTH_3))
+        if (!permitted(LnurlAction.Auth, origin)) return
+        val actionText = LnurlAuthKeys.actionText(action)
+        raise(
+            SendAlert(
+                title = SendStrings.LNURL_STATUS,
+                message = SendStrings.LNAUTH_1.replace("<action>", actionText.lowercase()).replace("<domain>", endpoint.host),
+                buttons = listOf(
+                    SendAlertButton(SendStrings.CANCEL),
+                    SendAlertButton(actionText) { performAuth(callback, endpoint.host, k1Hex.lowercase()) },
+                ),
+            ),
+        )
+    }
+
+    /** `performLnurlAuth`. */
+    private fun performAuth(callback: String, host: String, k1Hex: String) {
+        setLnurlLoading(true)
+        scope.launch {
+            val signed = source.lnurlAuthSign(host, k1Hex).getOrNull()
+            if (signed == null) {
+                setLnurlLoading(false)
+                return@launch raise(lnurlStatus(SendStrings.LNAUTH_3))
+            }
+            val (key, signature) = signed
+            val body = source.lnurlGet(LnurlService.withQuery(callback, "k1" to k1Hex, "sig" to signature, "key" to key)).getOrNull()
+            setLnurlLoading(false)
+            if (body == null) return@launch raise(lnurlStatus(SendStrings.LNAUTH_3))
+            val status = LnurlService.parseStatus(body)
+            raise(lnurlStatus(if (status.ok) SendStrings.LNAUTH_2 else status.reason ?: SendStrings.LNAUTH_3))
+        }
+    }
+
+    private fun setLnurlLoading(loading: Boolean) = _state.update { it.copy(lnurlLoading = loading) }
+
+    private fun lnurlStatus(message: String) = okay(SendStrings.LNURL_STATUS, message)
 
     private fun setSending(sending: Boolean) = _state.update { state ->
         state.copy(confirm = state.confirm?.copy(sending = sending))
@@ -644,4 +986,8 @@ class SendController(
     private fun raise(alert: SendAlert) = _state.update { it.copy(alert = alert) }
 
     private fun okay(title: String, message: String) = SendAlert(title, message, listOf(SendAlertButton(SendStrings.OKAY)))
+
+    private companion object {
+        const val MSAT_PER_SAT = 1_000L
+    }
 }
