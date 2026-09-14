@@ -198,6 +198,13 @@ this half, and the split is worth stating because each side looks complete on it
 | Hard-coded in a Kotlin or XML file | `TileHostGuardTest` — scans the `android/` tree |
 | In the generated `style.json` | `check-style-hosts.py` — the file is built here, uploaded, and never enters that tree |
 
+`check-style-hosts.py` also runs in CI on every push (`android-maestro.yml`, the
+`build` job), against a style generated on the spot. That matters more than it looks:
+`TileHostGuardTest` walks `kt/xml/json/properties/kts/toml`, so `make-style.py` is
+invisible to it *by extension*, and until that step existed, editing the one `HOST`
+constant in it moved every client's tile and glyph fetches to a third party with
+nothing in the repo going red.
+
 Pointing the app-side scan at `make-style.py` would be worse than leaving the gap:
 this pipeline fetches from Geofabrik and from GitHub releases at build time, both
 legitimately, and no regex over the generator tells a build-time fetch from one the

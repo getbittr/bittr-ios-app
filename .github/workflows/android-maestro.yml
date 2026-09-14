@@ -357,6 +357,34 @@ jobs:
         # a package that was never installed. Seconds here, ~20 minutes there.
         run: python3 shared/flows/check_app_ids.py
 
+      - name: Check the basemap style points only at bittr hosts
+        # The one basemap URL no guard in the tree can see.
+        #
+        # TileHostGuardTest walks kt/xml/json/properties/kts/toml, so make-style.py
+        # is invisible to it by extension, and the style that file generates is
+        # uploaded to the tile host and never enters the repo at all. Between those
+        # two facts, editing one constant in make-style.py moves every client's
+        # glyph and tile fetches to a third party with nothing going red — which is
+        # the disclosure BIT-53 decided against, arriving through the one door the
+        # decision's own guard does not cover.
+        #
+        # Widening TileHostGuardTest to read .py would be worse than this gap: the
+        # pipeline legitimately fetches from Geofabrik and from GitHub releases at
+        # build time, and no scan of a generator distinguishes those from a URL the
+        # client will resolve. So generate the style and check the artefact, where
+        # every URL present is by definition one the renderer fetches on a device.
+        #
+        # Self-test first, as with the copy guard above: one of its ten cases
+        # asserts the style we generate today is *accepted*, so this cannot decay
+        # into a check that fails routinely and gets waved through.
+        #
+        # The version argument only selects a path segment; the hosts are what is
+        # under test, so it is a literal rather than the current month.
+        run: |
+          python3 android/tools/tile-pipeline/check-style-hosts.py --selftest
+          python3 android/tools/tile-pipeline/make-style.py 0000-00 "$RUNNER_TEMP/style.json"
+          python3 android/tools/tile-pipeline/check-style-hosts.py "$RUNNER_TEMP/style.json"
+
       - name: Check generated test IDs are in sync
         # The generated TestIDs.swift/.kt are committed for diff visibility. If
         # someone edits test-ids.json without regenerating, iOS and Android drift
