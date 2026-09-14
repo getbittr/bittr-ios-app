@@ -23,6 +23,8 @@ import com.bittr.android.core.network.DeviceTokenLifecycle
 import com.bittr.android.core.preferences.AppPreferences
 import com.bittr.android.core.preferences.DarkModeSetting
 import com.bittr.android.navigation.BittrNavHost
+import com.bittr.android.push.PushCoordinator
+import com.bittr.android.push.PushOverlayHost
 import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
 import kotlinx.coroutines.launch
@@ -53,6 +55,9 @@ class MainActivity : ComponentActivity() {
      */
     @Inject
     lateinit var deviceTokens: DeviceTokenLifecycle
+
+    @Inject
+    lateinit var pushCoordinator: PushCoordinator
 
     /**
      * `api-contract` §2.3 rule 2's per-foreground reset, plus the reconciliation above.
@@ -86,7 +91,7 @@ class MainActivity : ComponentActivity() {
         setContent {
             val setting by preferences.darkMode.collectAsState()
             BittrTheme(darkTheme = setting.isDark()) {
-                BittrApp()
+                BittrApp(pushCoordinator)
             }
         }
     }
@@ -128,7 +133,7 @@ private fun DarkModeSetting.isDark(): Boolean = when (this) {
  */
 @OptIn(ExperimentalComposeUiApi::class)
 @Composable
-private fun BittrApp() {
+private fun BittrApp(pushCoordinator: PushCoordinator) {
     Surface(modifier = Modifier.fillMaxSize()) {
         Box(
             modifier = Modifier
@@ -137,6 +142,8 @@ private fun BittrApp() {
                 .testTag(TestID.Core.launchComplete),
         ) {
             BittrNavHost()
+            // What a push shows, over every screen — see PushOverlayHost.
+            PushOverlayHost(pushCoordinator)
         }
     }
 }

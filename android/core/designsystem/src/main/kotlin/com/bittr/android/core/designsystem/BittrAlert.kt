@@ -151,6 +151,8 @@ fun BittrInlineAlert(
     message: String,
     buttons: List<BittrAlertButton>,
     modifier: Modifier = Modifier,
+    // iOS `showAlert(id:)` puts the id on the card — `alert.incomingPayment`, for one.
+    cardTestTag: String? = null,
 ) {
     require(buttons.isNotEmpty()) {
         "A BittrInlineAlert with no buttons cannot be dismissed — it would trap the user on " +
@@ -170,7 +172,8 @@ fun BittrInlineAlert(
                 .padding(horizontal = BittrTokens.Spacing.xl)
                 .fillMaxWidth()
                 .background(MaterialTheme.colorScheme.surface, RoundedCornerShape(28.dp))
-                .padding(BittrTokens.Spacing.xl),
+                .padding(BittrTokens.Spacing.xl)
+                .then(if (cardTestTag != null) Modifier.testTag(cardTestTag) else Modifier),
         ) {
             Text(
                 text = title,
