@@ -198,6 +198,67 @@ appears that nobody in the repo put there, and that it is the only *complete* on
 chain of static reads, not an observation: I cannot render MapLibre here. Settling it needs
 one look at the map with `STYLE_URI` set, which is app-side.
 
+### Settled from the SDK: the control is on, and it is a button
+
+Answered without rendering anything, by disassembling the pinned
+`org.maplibre.gl:android-sdk:11.11.0` AAR. Two findings, and they point opposite ways.
+
+**The control is enabled by default.** `MapLibreMapOptions`' no-arg constructor sets
+`attributionEnabled` to `true` — `iconst_1` immediately before
+`putfield attributionEnabled:Z`, alongside `logoEnabled` — and nothing under
+`android/feature/map/` calls `attributionEnabled(false)` or touches `uiSettings` at all. So
+the first half of the reasoning above is confirmed rather than plausible.
+
+**It does not put a credit on the map surface.** `AttributionDialogManager` is a
+`View.OnClickListener` holding an `AlertDialog`; the credits reach the user through
+`getAttributionTitles()` → `showAttributionDialog(String[])`, i.e. **only after a tap on an
+ⓘ button**. The classes that lay attribution text out over the map —
+`AttributionMeasure`, `AttributionLayout` — belong to the snapshotter, not the live view.
+
+That resolves the question and it does **not** invert §3:
+
+- Done-when item 4 says the credit is *visible on the map surface*. A dialog behind an
+  unlabelled icon is not that, so the app-side `Text` is still required. The built-in
+  control is a supplement, not a substitute.
+- The duplicate the Head of App (Android) originally worried about does not appear either,
+  because the control renders no text until it is opened. Both concerns were about the
+  same assumption — that the control behaves like its web counterpart — and on Android it
+  does not.
+- `make-style.py`'s reason for omitting `attribution` therefore rests on a premise that is
+  wrong in its particulars. Leave the key out anyway: the PMTiles source already supplies
+  the combined credit from archive metadata, so adding it to the style would duplicate an
+  entry *inside the dialog* for no gain.
+
+**One thing to carry into BIT-141.** Tapping a dialog entry calls `showWebPage`, which is
+an `ACTION_VIEW` intent to the external browser — the app itself makes no request. But
+`showMapAttributionWebPage` first inspects the entry's URL, and if it contains
+`https://apps.mapbox.com/feedback` or `https://www.mapbox.com/map-feedback` it *rewrites*
+it into a feedback URL whose fragment is `/{lon}/{lat}/{zoom}/{bearing}/{tilt}`, taken from
+the live `CameraPosition`. That is a third-party URL carrying the user's on-screen centre,
+which is precisely what BIT-52's capture exists to catch.
+
+It does not arm for this basemap: the rewrite is gated on the *attribution text of the
+loaded source*, and ours carries OpenMapTiles and OpenStreetMap links only. Worth writing
+down regardless, because the gate is upstream metadata rather than anything in this repo —
+a future style or a vendor source could open it without a line changing here, and no guard
+in the tree reads dialog entries.
+
+### The guard now requires both credits
+
+`BasemapAttributionGuardTest` pins both `© OpenMapTiles` and `© OpenStreetMap
+contributors`, each checked separately and each required to be rendered by `MapScreen.kt`.
+Whether they live in one constant or two is not pinned, and neither is the framing — the
+sentence stays BIT-149's to word.
+
+The phrases are taken from the built archive's own PMTiles `attribution` metadata rather
+than from licence prose, so the guard asks for the credit the artefact says it carries.
+Proven in both directions before landing, by patching the tree rather than by reading it:
+with `STYLE_URI` set and `BASEMAP_ATTRIBUTION` holding the OSM half alone — the BIT-140
+wording, and the exact state the licence is unmet in — the guard fails naming
+`© OpenMapTiles`; adding the OpenMapTiles half turns it green, with `TileHostGuardTest`
+green throughout. The first run matters more than the second: it is the state this guard
+used to pass.
+
 ## 4. Refresh cadence and owner
 
 **Quarterly**, rebuilt from the upstream OSM extract, plus an out-of-band rebuild whenever
@@ -277,13 +338,19 @@ both tokens in a `glyphs` value, so no spelling of a glyphs URL avoids them. `sp
 no required token and is matched on the path segment, which is convention rather than a
 closed set.
 
-One gap is left, and it is not closeable from here. These checks read the `android/` tree,
-and the style document the app fetches is **generated** by `android/tools/tile-pipeline/`
-and uploaded — it never exists in this repo, so no source scan can see its `glyphs` value.
-That check belongs in the pipeline, against the generated file rather than against a
-pattern: every `https?://` in the built `style.json` must be on a bittr host. It is three
-lines and it runs on the artefact, which is stronger than anything a regex over a build
-script could claim.
+These checks read the `android/` tree, and the style document the app fetches is
+**generated** by `android/tools/tile-pipeline/` and uploaded — it never exists in this
+repo, so no source scan here can see its `glyphs` value. That gap is closed in the
+pipeline instead, by `check-style-hosts.py`, which runs against the built artefact: every
+URL the renderer would resolve on the device must be on a bittr host over TLS. Running on
+the artefact rather than on the generator is what makes it sound — this pipeline
+legitimately fetches from Geofabrik and from GitHub at *build* time, and no pattern over a
+build script can tell those from a fetch the *client* will make.
+
+It also covers four cases a `https?://` scan cannot: scheme-relative URLs, cleartext to a
+bittr host, a lookalike host with `getbittr.com` as a prefix, and `attribution` values —
+which are rendered as text rather than fetched, so flagging the licence link inside one
+would invite "fixing" it by deleting a credit.
 
 `BasemapAttributionGuardTest` sits beside it and holds the *licence* rather than the host —
 the §3 credit, and specifically its "same commit" sequencing. The two are independent on

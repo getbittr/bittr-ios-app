@@ -9,14 +9,20 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * Ties the OpenStreetMap credit to the basemap that requires it (BIT-119).
+ * Ties the basemap's credits to the basemap that requires them (BIT-119).
  *
  * [TileHostGuardTest] holds *who serves the tiles*. This holds *what the screen owes
  * the people who made them*, and the two are independent: a basemap served from
- * bittr's own storage is still built from OpenStreetMap data, and OSM's licence
- * requires the credit regardless of who serves it. `android/docs/tile-pipeline.md`
+ * bittr's own storage is still built from someone else's work, and their licences
+ * require the credits regardless of who serves it. `android/docs/tile-pipeline.md`
  * §3 states the requirement and the BIT-119 done-when list repeats it as "**in the
  * same commit as** the one that sets `STYLE_URI`".
+ *
+ * There are **two** credits, not one — see [REQUIRED_CREDITS]. The data is
+ * OpenStreetMap's; the tiles are built with the OpenMapTiles schema, which is CC-BY
+ * and asks for its own. This file originally pinned only the first, which meant it
+ * reported success on a half-met obligation. BIT-149 caught that, and the
+ * [OSM_ONLY_CREDIT_LINE] fixture now holds the door shut.
  *
  * That phrase is the whole problem. It is a sequencing requirement, and a sequencing
  * requirement written only in an issue description is enforced by whoever happens to
@@ -86,8 +92,9 @@ class BasemapAttributionGuardTest {
             Pattern.compile("""STYLE_URI\s*:\s*String\?\s*=\s*(null|"([^"]*)")""")
 
         /**
-         * The words the licence requires, and the only part of the sentence this
-         * guard has an opinion about.
+         * The OSM half of what the licences require — one of the two phrases in
+         * [REQUIRED_CREDITS], and part of the only thing this guard has an opinion
+         * about.
          *
          * The surrounding copy is the Growth & Content Lead's — whether it reads
          * "Map data © OpenStreetMap contributors" or something else is a copy
@@ -104,7 +111,44 @@ class BasemapAttributionGuardTest {
          * `&copy;` are not accepted: the second renders literally in a Compose
          * `Text`, so accepting it would pass a build that shows the entity to a user.
          */
-        const val REQUIRED_CREDIT = "© OpenStreetMap contributors"
+        const val OSM_CREDIT = "© OpenStreetMap contributors"
+
+        /**
+         * The other half, which this guard did not ask for until BIT-149.
+         *
+         * The tiles are built by planetiler's **OpenMapTiles** profile, and that
+         * schema is CC-BY: the credit it requires is `© OpenMapTiles` *alongside*
+         * the OSM one, not instead of it. Two upstreams, two obligations, and only
+         * one of them was written down here.
+         *
+         * This is worth stating plainly because of the shape of the failure it fixes:
+         * before this constant existed, the guard passed in exactly the state the
+         * licence was not met in. A credit reading "Map data © OpenStreetMap
+         * contributors" — the wording BIT-140 approved, and the obvious thing to
+         * write — satisfied every check in this file while leaving the CC-BY grant
+         * unmet. A guard that is green on the violation it was written to prevent is
+         * worse than no guard, because it is also an assurance.
+         *
+         * Not taken from documentation. The built archive's own PMTiles metadata
+         * carries `attribution` with both credits as HTML links, written by
+         * planetiler rather than by anything in `android/tools/tile-pipeline/` — so
+         * the requirement is visible in the artefact the app will actually serve.
+         * That is also why only the two `©` phrases are pinned and the links are not:
+         * the metadata's form is the tile builder's, and the on-screen sentence is
+         * the Growth & Content Lead's.
+         */
+        const val OMT_CREDIT = "© OpenMapTiles"
+
+        /**
+         * Every phrase the two upstream licences require on the map surface.
+         *
+         * Checked independently rather than as one fixed sentence: the order, the
+         * separator and the surrounding words are copy, and pinning the whole line
+         * would make this file the arbiter of a sentence it has no business writing.
+         * Whether they live in one constant or two is likewise not pinned — only that
+         * each is present and each is rendered.
+         */
+        val REQUIRED_CREDITS = listOf(OMT_CREDIT, OSM_CREDIT)
 
         /** `const val NAME` — group 1 is the name. */
         val CONST_DECL: Pattern = Pattern.compile("""const\s+val\s+([A-Z][A-Z0-9_]*)""")
@@ -112,30 +156,52 @@ class BasemapAttributionGuardTest {
         /**
          * A `STYLE_URI` value in the shape §2 settles on, for the self-test below.
          *
-         * On a bittr host and carrying a real archive extension, so that this file
+         * The **style document**, not the archive beside it. That distinction was
+         * corrected on BIT-139 after this fixture first landed pointing at
+         * `ch.pmtiles`: the archive is referenced by the style's source as a
+         * `pmtiles://` URL, and `STYLE_URI` is what MapLibre is handed. A fixture
+         * that models the wrong shape teaches the wrong shape to whoever reads it
+         * next, which for a one-constant change is the whole of the guidance.
+         *
+         * On a bittr host and carrying a tile-shaped marker, so that this file
          * satisfies `TileHostGuardTest`'s own scans rather than needing to be added
          * to its allowlist — a guard that has to be excluded from a sibling guard is
          * a guard that weakened one to add another.
          */
-        const val VERSIONED_ARCHIVE = "https://tiles.getbittr.com/basemap/2026-09/ch.pmtiles"
+        const val VERSIONED_STYLE = "https://tiles.getbittr.com/basemap/2026-09/style.json"
 
         /**
-         * The credit line exactly as BIT-140 worded it, for the self-test below.
+         * A complete credit line, for the self-test below.
          *
-         * Built from [REQUIRED_CREDIT] rather than spelled out, so the fixture
-         * cannot drift from the phrase the guard actually pins.
+         * Built from [REQUIRED_CREDITS] rather than spelled out, so the fixture
+         * cannot drift from the phrases the guard actually pins. The framing words
+         * are invented here and are *not* a proposal — BIT-140 worded the OSM half
+         * before the OpenMapTiles obligation was known, so the shipped sentence is
+         * BIT-149's to settle, not this file's.
          */
-        const val CREDIT_LINE =
-            "const val BASEMAP_ATTRIBUTION: String = \"Map data " + REQUIRED_CREDIT + "\""
+        val CREDIT_LINE =
+            "const val BASEMAP_ATTRIBUTION: String = " +
+                "\"Map data ${REQUIRED_CREDITS.joinToString(" ")}\""
 
-        /** The same line with the two substitute forms [REQUIRED_CREDIT] excludes. */
+        /**
+         * The credit as it stood before BIT-149: the OSM half alone.
+         *
+         * This is the fixture that matters most in this file. It is not a
+         * hypothetical offender — it is the exact string BIT-140 approved and the
+         * exact state this guard used to pass, so if the detector ever accepts it
+         * again the regression is back in full.
+         */
+        val OSM_ONLY_CREDIT_LINE =
+            "const val BASEMAP_ATTRIBUTION: String = \"Map data $OSM_CREDIT\""
+
+        /** The same line with the two substitute forms the credits exclude. */
         const val ENTITY_CREDIT_LINE =
             "const val BASEMAP_ATTRIBUTION: String = " +
-                "\"Map data &copy; OpenStreetMap contributors\""
+                "\"Map data &copy; OpenMapTiles &copy; OpenStreetMap contributors\""
 
         const val ASCII_CREDIT_LINE =
             "const val BASEMAP_ATTRIBUTION: String = " +
-                "\"Map data (c) OpenStreetMap contributors\""
+                "\"Map data (c) OpenMapTiles (c) OpenStreetMap contributors\""
 
         /** Whichever way [styleUriLiteral] read the declaration. */
         sealed interface Result {
@@ -156,8 +222,8 @@ class BasemapAttributionGuardTest {
         }
 
         /**
-         * The name of the constant in [COPY_FILE] carrying [REQUIRED_CREDIT], or
-         * null when no constant does.
+         * The name of the constant in [COPY_FILE] carrying [credit], or null when no
+         * constant does.
          *
          * Found by locating the credit text and walking back to the declaration that
          * encloses it, rather than by matching a whole declaration in one pattern:
@@ -166,8 +232,8 @@ class BasemapAttributionGuardTest {
          * span an initialiser would have to model that. The position of the credit
          * relative to the declarations around it does not need modelling.
          */
-        fun creditConstant(text: String): String? {
-            val at = text.indexOf(REQUIRED_CREDIT)
+        fun creditConstant(text: String, credit: String): String? {
+            val at = text.indexOf(credit)
             if (at < 0) return null
             val matcher = CONST_DECL.matcher(text)
             var enclosing: String? = null
@@ -222,38 +288,54 @@ class BasemapAttributionGuardTest {
         if (literal !is Result.Url) return
 
         val copy = fileNamed(COPY_FILE)
-        val constant = creditConstant(copy.code())
-
-        assertTrue(
-            "MapBasemap.STYLE_URI is set to '${literal.value}', so this app now draws a " +
-                "basemap built from OpenStreetMap data — but no constant in " +
-                "${copy.repoPath()} carries the credit \"$REQUIRED_CREDIT\".\n" +
-                "That credit is required by the data licence whoever serves the tiles, which " +
-                "is why it is not satisfied by the existing BTCMap wording: that sentence " +
-                "credits OSM for where the *places* are tagged and covers no map imagery.\n" +
-                "This is done-when item 4 on BIT-119, and it is required in the same commit " +
-                "as the STYLE_URI change rather than in a follow-up. The wording around the " +
-                "credit is the Growth & Content Lead's to write (BIT-56 is the precedent); " +
-                "the credit itself is the licence's and is not a copy decision.\n" +
-                "Read android/docs/tile-pipeline.md §3.",
-            constant != null,
-        )
-        requireNotNull(constant)
-
         val screen = fileNamed(SCREEN_FILE)
 
-        assertTrue(
-            "MapCopy.$constant carries the OpenStreetMap credit, but ${screen.repoPath()} " +
-                "never reads it — so the string exists and the screen does not show it, " +
-                "which is the same outcome as not having written it.\n" +
-                "Render it on the map surface, next to where MapCopy.POWERED_BY is rendered " +
-                "today.\n" +
-                "Note what this guard still cannot see: that the credit is legible once " +
-                "rendered. It reads a reference, not a pixel. Prove visibility with an " +
-                "assertion in the map module's Robolectric tests, where the rest of this " +
-                "screen is already checked without an emulator.",
-            rendersCredit(screen.code(), constant),
-        )
+        // Both phrases are checked, and each one separately, because the failure this
+        // guard exists to prevent is a *partial* credit: the half that is present is
+        // exactly what makes the missing half easy to miss in review.
+        for (credit in REQUIRED_CREDITS) {
+            val constant = creditConstant(copy.code(), credit)
+
+            assertTrue(
+                "MapBasemap.STYLE_URI is set to '${literal.value}', so this app now draws " +
+                    "the bittr basemap — but no constant in ${copy.repoPath()} carries the " +
+                    "credit \"$credit\".\n" +
+                    "The basemap has two upstreams and owes both: the data is " +
+                    "OpenStreetMap's under ODbL, and the tiles are built with the " +
+                    "OpenMapTiles schema under CC-BY. Crediting one is not crediting the " +
+                    "other, and neither is satisfied by the existing BTCMap wording — that " +
+                    "sentence credits OSM for where the *places* are tagged and covers no " +
+                    "map imagery.\n" +
+                    "The full pair is what the built archive's own PMTiles metadata " +
+                    "declares, so this is not a reading of the licence text: it is the " +
+                    "credit the artefact the app serves says it carries.\n" +
+                    "This is done-when item 4 on BIT-119, and it is required in the same " +
+                    "commit as the STYLE_URI change rather than in a follow-up. The wording " +
+                    "around the credits is the Growth & Content Lead's to write (BIT-56 is " +
+                    "the precedent, BIT-149 is the live issue); the credits themselves are " +
+                    "the licences' and are not a copy decision.\n" +
+                    "Read android/docs/tile-pipeline.md §3.",
+                constant != null,
+            )
+            requireNotNull(constant)
+
+            assertTrue(
+                "MapCopy.$constant carries \"$credit\", but ${screen.repoPath()} never " +
+                    "reads it — so the string exists and the screen does not show it, which " +
+                    "is the same outcome as not having written it.\n" +
+                    "Render it on the map surface, next to where MapCopy.POWERED_BY is " +
+                    "rendered today.\n" +
+                    "Note what this guard still cannot see: that the credit is legible once " +
+                    "rendered. It reads a reference, not a pixel. Prove visibility with an " +
+                    "assertion in the map module's Robolectric tests, where the rest of " +
+                    "this screen is already checked without an emulator.\n" +
+                    "It also cannot see MapLibre's built-in attribution control, and that " +
+                    "control is not a substitute: on Android it is an (i) button whose " +
+                    "credits appear only in a dialog after a tap, so it does not put either " +
+                    "phrase on the map surface.",
+                rendersCredit(screen.code(), constant),
+            )
+        }
     }
 
     @Test
@@ -269,30 +351,52 @@ class BasemapAttributionGuardTest {
         assertEquals(
             "The STYLE_URI reader no longer recognises a set declaration, which is the only " +
                 "state that owes a credit.",
-            Result.Url(VERSIONED_ARCHIVE),
-            styleUriLiteral("""val STYLE_URI: String? = "$VERSIONED_ARCHIVE""""),
+            Result.Url(VERSIONED_STYLE),
+            styleUriLiteral("""val STYLE_URI: String? = "$VERSIONED_STYLE""""),
+        )
+
+        for (credit in REQUIRED_CREDITS) {
+            assertEquals(
+                "The credit detector no longer finds \"$credit\" when it is present, so the " +
+                    "guard would fail a commit that did everything right — and the fix for " +
+                    "a guard that cries wolf is that someone deletes it.",
+                "BASEMAP_ATTRIBUTION",
+                creditConstant(CREDIT_LINE, credit),
+            )
+
+            assertEquals(
+                "The credit detector attributes \"$credit\" to the wrong constant when " +
+                    "several are declared, so the render check would look for a name that " +
+                    "is not the one holding the string.",
+                "BASEMAP_ATTRIBUTION",
+                creditConstant(
+                    """
+                    const val TITLE: String = "Pay with bitcoin"
+                    $CREDIT_LINE
+                    const val CLOSE: String = "Close"
+                    """.trimIndent(),
+                    credit,
+                ),
+            )
+        }
+
+        assertEquals(
+            "The OpenMapTiles detector accepts a credit that carries only the " +
+                "OpenStreetMap half. This is the BIT-149 regression itself, not a " +
+                "hypothetical one: that line is the wording BIT-140 approved, it is what " +
+                "anyone writing this credit from the issue description would produce, and " +
+                "while this assertion was absent the guard went green on it — reporting " +
+                "that the licences were met in the one state where the CC-BY grant was not.",
+            null,
+            creditConstant(OSM_ONLY_CREDIT_LINE, OMT_CREDIT),
         )
 
         assertEquals(
-            "The credit detector no longer finds a credit that is present, so the guard " +
-                "would fail a commit that did everything right — and the fix for a guard " +
-                "that cries wolf is that someone deletes it.",
+            "The OpenStreetMap detector stopped seeing the OSM half of a line that has " +
+                "only that half — which would mean the assertion above passes for the wrong " +
+                "reason and no longer isolates the missing OpenMapTiles credit.",
             "BASEMAP_ATTRIBUTION",
-            creditConstant(CREDIT_LINE),
-        )
-
-        assertEquals(
-            "The credit detector attributes the credit to the wrong constant when several " +
-                "are declared, so the render check below it would look for a name that is " +
-                "not the one holding the string.",
-            "BASEMAP_ATTRIBUTION",
-            creditConstant(
-                """
-                const val TITLE: String = "Pay with bitcoin"
-                $CREDIT_LINE
-                const val CLOSE: String = "Close"
-                """.trimIndent(),
-            ),
+            creditConstant(OSM_ONLY_CREDIT_LINE, OSM_CREDIT),
         )
 
         assertEquals(
@@ -302,6 +406,7 @@ class BasemapAttributionGuardTest {
             null,
             creditConstant(
                 """const val POWERED_BY_ALERT: String = "uses OpenStreetMap to tag places"""",
+                OSM_CREDIT,
             ),
         )
 
@@ -309,7 +414,7 @@ class BasemapAttributionGuardTest {
             "The credit detector reports a credit in a file that has none, which would let " +
                 "an absent credit satisfy the check.",
             null,
-            creditConstant("""const val TITLE: String = "Pay with bitcoin""""),
+            creditConstant("""const val TITLE: String = "Pay with bitcoin"""", OSM_CREDIT),
         )
 
         assertEquals(
@@ -317,9 +422,7 @@ class BasemapAttributionGuardTest {
                 "Text renders that literally, so the guard would pass a build showing " +
                 "'&copy; OpenStreetMap contributors' to the user.",
             null,
-            creditConstant(
-                ENTITY_CREDIT_LINE,
-            ),
+            creditConstant(ENTITY_CREDIT_LINE, OSM_CREDIT),
         )
 
         assertEquals(
@@ -327,9 +430,7 @@ class BasemapAttributionGuardTest {
                 "U+00A9 specifically, and a credit is a licence artefact whose exact form " +
                 "is not the app's to restyle.",
             null,
-            creditConstant(
-                ASCII_CREDIT_LINE,
-            ),
+            creditConstant(ASCII_CREDIT_LINE, OSM_CREDIT),
         )
 
         assertTrue(
