@@ -1,0 +1,1 @@
+First release of bittr for Android. A Bitcoin and Lightning wallet with keys only you control: send and receive on-chain and over Lightning, and learn your way around it with the built-in Academy.

@@ -1,0 +1,19 @@
+bittr is a Bitcoin and Lightning wallet from a Swiss company. Your bitcoin sits in a wallet on your own phone, held by keys that only you have. bittr never takes custody of it.
+
+Your keys, your bitcoin
+
+The wallet is non-custodial. Your recovery phrase is generated on your device and stays there. bittr cannot move your bitcoin, freeze it, or restore it for you — which is why the app walks you through writing down your recovery phrase before you put anything into it.
+
+On-chain and Lightning in one wallet
+
+Send and receive on the Bitcoin network, or over Lightning for payments that settle in seconds. Smaller amounts can open a Lightning connection for you automatically, so you can send and receive instantly without setting one up yourself.
+
+Learn as you go
+
+The built-in Academy explains custody, recovery phrases, addresses, Lightning and the mistakes that cost people their bitcoin — in plain language, assuming no prior knowledge.
+
+About bittr
+
+bittr is made by Bittr AG, a company registered in Ibach, Schwyz, Switzerland.
+
+If you lose your recovery phrase, your bitcoin is gone and nobody — including bittr — can bring it back. Write it down before you put money in.
