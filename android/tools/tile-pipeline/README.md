@@ -9,8 +9,13 @@ The pipeline behind `android/docs/tile-pipeline.md`. That document decides *what
 | `make-buffer.py` | Switzerland + 25 km, in metres, as GeoJSON (for osmium) and `.poly` (for planetiler) |
 | `merge-mbtiles.py` | Joins the z0–z5 planet pass to the z6–z14 Switzerland pass |
 | `inspect-tile.py` | Reads layer names and feature counts out of given tiles — how the claims in §1 were checked rather than assumed |
+| `make-world-places.py` | The z0–z5 world city labels planetiler will not emit. `--selftest` decodes its own output and checks each label's position |
+| `make-style.py` | Generates the style document `MapBasemap.STYLE_URI` points at |
+| `check-style-hosts.py` | Fails if the built style would send the client to a non-bittr host. Run by both scripts below; `--selftest` proves it both ways |
+| `check-archive-coverage.py` | Fails if the built archive does not cover §1's scope — labels on every continent, street detail in the Swiss cities, and nothing past the buffer. Run by `build-basemap.sh` |
+| `verify-deploy.sh` | Client-side checks against a deployed version, before its URL is handed to the app |
 
-**The archive is not checked in and never should be.** It is gigabytes and it is
+**The archive is not checked in and never should be.** It is 572 MiB and it is
 regenerable; §4 of the document asks for a quarterly rebuild, which a committed blob
 cannot satisfy. The scripts are the artefact.
 
@@ -44,12 +49,34 @@ python3 inspect-tile.py combined.mbtiles 14 8590 5745
 python3 inspect-tile.py combined.mbtiles 4 3 6 4 14 6 3 7 4
 ```
 
-What the world band contains is worth knowing before someone reports it as a bug:
-coastlines, water and landcover everywhere; country boundaries everywhere through
-z4, and from z5 only where the OSM extract reaches; city names only where the OSM
-extract reaches. That last one is a property of the schema, not of this pipeline —
-the profile derives `place` from OSM and uses Natural Earth only to rank it. §1 of
-the document records the same thing.
+What the world band contains, and where it comes from, because two of these arrive
+from different places than you would guess:
+
+| At world zooms | Source | Coverage |
+|---|---|---|
+| Coastlines, water, landcover | Natural Earth, via planetiler | Everywhere |
+| Country boundaries | Natural Earth through z4, OSM from z5 | Everywhere to z4; from z5 only where the extract reaches |
+| City names, `place` layer | OSM, via planetiler | **Only where the extract reaches** — i.e. Switzerland |
+| City names, `place_world` layer | Natural Earth, via `make-world-places.py` | Everywhere, z0–z5 |
+
+The third row is the one that surprises. planetiler's `Place` layer handles
+`ne_10m_populated_places` with a single `PointIndex.put` — Natural Earth is a lookup
+table for *ranking* cities that came from OSM, and never becomes a tile feature. So a
+`place` layer built from a Swiss extract names Switzerland and nothing else, however
+much of the world the band covers. Measured, not inferred: before the fourth row
+existed, a z2 tile over the Americas had zero place strings and a z2 tile over the
+Atlantic had 118, every one of them Switzerland, Liechtenstein, Aosta or Vorarlberg in
+a different language.
+
+That is why the fourth row exists. §1 specifies the low band as "coastlines, borders,
+major cities", and the first three rows deliver two of those three.
+
+Checking it after a build:
+
+```sh
+# The Americas at z2: place_world present, place absent. Both are correct.
+python3 inspect-tile.py combined.mbtiles 2 0 1
+```
 
 ## Deploy
 
@@ -101,6 +128,11 @@ server {
     # every tile and looks nothing like a permissions problem from the client.
     root /srv/tiles;
 
+    # Without this a .pmtiles is served as text/plain, because nginx's mime.types
+    # has never heard of it. MapLibre reads bytes and does not care, but a proxy
+    # or a scanner in the path might, and the correct type costs one line.
+    types { application/octet-stream pmtiles; application/json json; }
+
     # Section 5: tile-request access logs are not retained. If an incident forces
     # this on, it goes on with the truncation and the 24 h cap that section
     # specifies, and the incident is written into that section.
@@ -131,28 +163,34 @@ access logging is off too, per §5.
 ### Verify before handing the URL over
 
 ```sh
-BASE=https://tiles.getbittr.com/basemap/<yyyy-mm>
-
-# 1. Ranges work, and exactly one Accept-Ranges comes back.
-curl -sD- -o /dev/null -r 1024-2047 $BASE/ch.pmtiles | grep -iE 'HTTP|content-range|accept-ranges|cache-control'
-#    Expect: 206, `content-range: bytes 1024-2047/<size>`, one `accept-ranges: bytes`,
-#    and the immutable cache-control — on the 206, not just on a 200.
-
-# 2. It is really a PMTiles v3 archive and not an HTML error page with a good status.
-curl -s -r 0-7 $BASE/ch.pmtiles | xxd        # expect the ASCII "PMTiles" then 0x03
-
-# 3. The style and the glyphs resolve too. A working archive behind a 404 style is
-#    a blank map, and STYLE_URI points at the style.
-curl -so /dev/null -w '%{http_code}\n' $BASE/style.json
-curl -so /dev/null -w '%{http_code}\n' "$BASE/glyphs/Noto%20Sans%20Regular/0-255.pbf"
-
-# 4. Nothing is being logged. Expect zero new lines from everything above.
-sudo wc -l /var/log/nginx/access.log
+./verify-deploy.sh https://tiles.getbittr.com/basemap/<yyyy-mm>
 ```
 
-Check 4 is the one worth doing by hand every time. It is the only one that fails
-silently, the only one no test in this repo can make for you, and the one that decides
-whether §5 is true.
+Ten client-side checks plus one per fontstack the style names — the serving host is
+under a bittr apex, ranges return 206 with the right `Content-Range`, exactly one
+`Accept-Ranges: bytes`, immutable `Cache-Control` on the 206, the archive really
+begins with the PMTiles magic bytes rather than being an error page with a healthy
+status, the style is served and names *this* version's archive, every URL in that
+style is https on a bittr apex, and each fontstack resolves. It exits with the number
+of failures, so it works as a gate. It needs no access to the host and anyone can run
+it from anywhere.
+
+The style-host check runs twice on purpose: `build-basemap.sh` runs it on the file it
+just generated, so a bad edit to `make-style.py` fails the build rather than a deploy,
+and `verify-deploy.sh` runs it again on what the server actually returned. Those are
+the same bytes right up until someone uploads by hand, which is the case the second
+run exists for.
+
+Then the one that matters, by hand, on the edge:
+
+```sh
+sudo wc -l /var/log/nginx/access.log      # expect zero new lines from the run above
+```
+
+That check is last on purpose. It is the only one that fails silently, the only one
+no test in this repo and no client-side script can make for you, and the one that
+decides whether §5 is true. The same goes for the §2 requirement above it: nothing
+you can run from outside tells you who terminated the TLS.
 
 ## Still needed before `STYLE_URI` can be set
 
@@ -165,8 +203,34 @@ more things on the same bittr host:
 - **A glyph range endpoint** — any style with text labels fetches
   `{fontstack}/{range}.pbf` per label. The public default for this schema is a
   third-party host, and pointing at it would send the client IP off to that third
-  party on every label render. It is also a gap in the guard:
-  `TileHostGuardTest.TILE_URL_MARKERS` looks for `{z}`, `{x}`, `{y}`, `style.json`,
-  `.pmtiles`, `.mbtiles` — a glyphs URL contains none of them, so a foreign font host
-  would pass the scan. Glyphs are served from `tiles.getbittr.com` alongside the
-  archive, and that rule lives here because the build cannot hold it.
+  party on every label render. Glyphs are served from `tiles.getbittr.com` alongside
+  the archive.
+
+### Which check covers which half
+
+A foreign glyph host used to pass `TileHostGuardTest` outright — its URL markers were
+`{z}`, `{x}`, `{y}`, `style.json`, `.pmtiles` and `.mbtiles`, and a glyphs URL contains
+none of them. The Head of App (Android) has widened `TILE_URL_MARKERS` with
+`{fontstack}`, `{range}` and `/sprite` (BIT-119); the first two are required by the
+MapLibre style spec in any `glyphs` value, so there is no spelling that evades them.
+
+That closes the half of the problem that lives in the `android/` tree. It cannot close
+this half, and the split is worth stating because each side looks complete on its own:
+
+| Where the URL is | What sees it |
+|---|---|
+| Hard-coded in a Kotlin or XML file | `TileHostGuardTest` — scans the `android/` tree |
+| In the generated `style.json` | `check-style-hosts.py` — the file is built here, uploaded, and never enters that tree |
+
+`check-style-hosts.py` also runs in CI on every push (`android-maestro.yml`, the
+`build` job), against a style generated on the spot. That matters more than it looks:
+`TileHostGuardTest` walks `kt/xml/json/properties/kts/toml`, so `make-style.py` is
+invisible to it *by extension*, and until that step existed, editing the one `HOST`
+constant in it moved every client's tile and glyph fetches to a third party with
+nothing in the repo going red.
+
+Pointing the app-side scan at `make-style.py` would be worse than leaving the gap:
+this pipeline fetches from Geofabrik and from GitHub releases at build time, both
+legitimately, and no regex over the generator tells a build-time fetch from one the
+client will make. The built artefact carries no such ambiguity — every URL in it is a
+URL the renderer resolves on the device.

@@ -357,6 +357,67 @@ jobs:
         # a package that was never installed. Seconds here, ~20 minutes there.
         run: python3 shared/flows/check_app_ids.py
 
+      - name: Check the basemap style points only at bittr hosts
+        # The one basemap URL no guard in the tree can see.
+        #
+        # TileHostGuardTest walks kt/xml/json/properties/kts/toml, so make-style.py
+        # is invisible to it by extension, and the style that file generates is
+        # uploaded to the tile host and never enters the repo at all. Between those
+        # two facts, editing one constant in make-style.py moves every client's
+        # glyph and tile fetches to a third party with nothing going red — which is
+        # the disclosure BIT-53 decided against, arriving through the one door the
+        # decision's own guard does not cover.
+        #
+        # Widening TileHostGuardTest to read .py would be worse than this gap: the
+        # pipeline legitimately fetches from Geofabrik and from GitHub releases at
+        # build time, and no scan of a generator distinguishes those from a URL the
+        # client will resolve. So generate the style and check the artefact, where
+        # every URL present is by definition one the renderer fetches on a device.
+        #
+        # Self-test first, as with the copy guard above: one of its ten cases
+        # asserts the style we generate today is *accepted*, so this cannot decay
+        # into a check that fails routinely and gets waved through.
+        #
+        # The version argument only selects a path segment; the hosts are what is
+        # under test, so it is a literal rather than the current month.
+        run: |
+          python3 android/tools/tile-pipeline/check-style-hosts.py --selftest
+          python3 android/tools/tile-pipeline/make-style.py 0000-00 "$RUNNER_TEMP/style.json"
+          python3 android/tools/tile-pipeline/check-style-hosts.py "$RUNNER_TEMP/style.json"
+
+      - name: Check the archive coverage assertions assert what they say
+        # check-archive-coverage.py itself cannot run here — it needs the 572 MiB
+        # archive, which is built quarterly and never checked in. Its self-test can,
+        # and earns a step because the failure it guards is silent: every assertion in
+        # that file is "place X must/must not be in the archive", and a coordinate that
+        # is not where its label claims still returns a plausible present/absent answer.
+        # Three of them were wrong in exactly that way while being written, and the run
+        # read as a clean pass. So this checks each coordinate lands in the country its
+        # label names, that tile_of agrees with its own inverse, and that the MVT layer
+        # reader round-trips rather than silently returning nothing — the last of which
+        # would read as "this tile has no city labels".
+        run: python3 android/tools/tile-pipeline/check-archive-coverage.py --selftest
+
+      - name: Check the world city labels land where the cities are
+        # make-world-places.py hand-rolls an MVT writer, because planetiler will not
+        # emit Natural Earth's populated places and the low band is built from a Swiss
+        # extract — so without it the world band names Switzerland and nothing else.
+        #
+        # Hand-rolled protobuf is the reason this has a CI step of its own. A tile
+        # that decodes, reports the right layer name and holds the right feature count
+        # can still put every label in the wrong place, and nothing downstream looks:
+        # verify-deploy.sh would pass, the style would render, and the defect would be
+        # "the map looks subtly wrong" — found by a person, or not at all.
+        #
+        # The self-test encodes six cities on five continents, decodes its own output
+        # and fails if any label is further from its city than that zoom's
+        # quantisation step. Verified against four injected defects — a flipped
+        # Mercator sign, swapped x/y, an unflipped TMS row, and a 2% scale error on
+        # the pixel offset, which is the one an eyeball would not catch.
+        #
+        # No Natural Earth download needed: the cases are synthetic coordinates.
+        run: python3 android/tools/tile-pipeline/make-world-places.py --selftest
+
       - name: Check generated test IDs are in sync
         # The generated TestIDs.swift/.kt are committed for diff visibility. If
         # someone edits test-ids.json without regenerating, iOS and Android drift

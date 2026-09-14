@@ -120,12 +120,18 @@ step "render z0-z5 (planet)"
 # Natural Earth and the global water-polygon shapefile carry the planet-wide part
 # of this band: coastlines, water, landcover, and country boundaries through z4.
 #
-# The same merged extract is fed in here rather than a token one, and that is not
-# arbitrary. The openmaptiles profile takes the `place` layer from OSM and uses
-# Natural Earth's populated places only to *rank* what OSM already gave it, so
-# "no OSM here" means "no city name here". Built against a token input, the world
-# band came out with no city labels anywhere at all. Feeding it the real extract
-# costs nothing and puts names on the part of the world these users pan around.
+# The same merged extract is fed in here rather than a token one. The openmaptiles
+# profile takes the `place` layer from OSM and uses Natural Earth's populated places
+# only to *rank* what OSM already gave it, so "no OSM here" means "no city name here",
+# and a token input produced a world band with no city labels anywhere at all.
+#
+# The real extract does NOT fix that, which is worth stating plainly because the
+# feature count says otherwise. It raises the world band from nine place features to a
+# few hundred, and every one of them is still inside the extract: Switzerland,
+# Liechtenstein, Aosta and Vorarlberg, in forty languages. Measured by reading the
+# string pool of the `place` layer -- z2 over the Americas has zero. The world city
+# labels section 1 asks for come from make-world-places.py below, which is the only
+# way to get them without a planet-sized OSM input.
 #
 # What that still does not buy, measured rather than assumed: country boundaries
 # outside the extract stop at z4, because the profile switches the boundary layer
@@ -137,9 +143,34 @@ java -Xmx3g -jar "$BIN_DIR/planetiler.jar" \
   --minzoom=0 --maxzoom=5 \
   --download --force
 
+step "world city labels (z0-z5)"
+# Section 1 specifies the low band as "coastlines, borders, major cities". The pass
+# above delivers the first two worldwide from Natural Earth; it cannot deliver the
+# third, for the reason in make-world-places.py -- planetiler indexes NE populated
+# places to rank OSM cities and never emits them as features.
+#
+# So they are built here, straight from the Natural Earth table planetiler has already
+# downloaded as a build dependency. 7,342 cities, ~230 KB of tiles for the whole world.
+NE_ZIP="$WORKDIR/data/sources/natural_earth_vector.sqlite.zip"
+if [ ! -f "$NE_ZIP" ]; then
+  echo "missing $NE_ZIP — planetiler downloads it; run the render steps first" >&2
+  exit 1
+fi
+# Unpacked to 850 MB, used, and removed in the same step: this runs on a box where
+# the extracts and the two planetiler temp directories are already the constraint.
+unzip -o -q -j "$NE_ZIP" 'packages/natural_earth_vector.sqlite' -d "$WORKDIR/ne"
+python3 "$SCRIPT_DIR/make-world-places.py" \
+  "$WORKDIR/ne/natural_earth_vector.sqlite" "$WORKDIR/world-places.mbtiles"
+rm -rf "$WORKDIR/ne"
+
 step "combine and convert"
-python3 "$SCRIPT_DIR/merge-mbtiles.py" \
-  "$WORKDIR/combined.mbtiles" "$WORKDIR/low.mbtiles" "$WORKDIR/high.mbtiles"
+# --union, not the default replace. make-world-places.py writes `place_world` into the
+# same z0-z5 tiles the low pass filled with coastlines and landcover, so replacing
+# would hand back a world with city names and nothing under them. The two passes below
+# it are still disjoint by zoom, so --union changes nothing for them.
+python3 "$SCRIPT_DIR/merge-mbtiles.py" --union \
+  "$WORKDIR/combined.mbtiles" \
+  "$WORKDIR/low.mbtiles" "$WORKDIR/world-places.mbtiles" "$WORKDIR/high.mbtiles"
 "$BIN_DIR/pmtiles" convert "$WORKDIR/combined.mbtiles" "$WORKDIR/ch.pmtiles"
 
 step "style and glyphs"
@@ -149,16 +180,52 @@ VERSION="${BASEMAP_VERSION:-$(date -u +%Y-%m)}"
 STAGE="$WORKDIR/stage/basemap/$VERSION"
 mkdir -p "$STAGE"
 python3 "$SCRIPT_DIR/make-style.py" "$VERSION" "$STAGE/style.json"
+
+# Gate the generated style before anything is staged next to it. The app-side guards
+# scan the `android/` tree and this file is never in it, so this is the only place the
+# artefact the client actually fetches gets checked — see check-style-hosts.py for why
+# scanning the generator instead would be worse. Run against the built style, not the
+# uploaded one, so a bad edit to make-style.py fails here rather than after a deploy;
+# verify-deploy.sh runs the same check against what the server returns.
+python3 "$SCRIPT_DIR/check-style-hosts.py" "$STAGE/style.json"
+
 mv "$WORKDIR/ch.pmtiles" "$STAGE/ch.pmtiles"
+
+# Coverage, not volume. The first build produced a correctly sized archive whose
+# world band carried city names only inside Switzerland, and nothing here noticed:
+# the tile count, the byte count and `pmtiles show` were all exactly right. This
+# names places and asserts what must be true at them, the absences included — so a
+# build that silently widened past §1's scope fails as loudly as one that fell
+# short. §4 calls for a quarterly rebuild; this is what stops the next one
+# regressing in a way only a human panning the map would ever see.
+PMTILES_BIN="$BIN_DIR/pmtiles" python3 "$SCRIPT_DIR/check-archive-coverage.py" \
+  "$STAGE/ch.pmtiles"
 
 # Glyphs are served from the bittr host for the reason make-style.py gives: the
 # public endpoint for this schema is a third party that would receive the client
 # IP on every label render, and no test in the repo can see that.
+#
+# Only the fontstacks the style actually names are staged, read back out of the
+# style rather than listed here so the two cannot drift. The set the upstream zip
+# ships is Regular, Bold and Italic — a style naming anything else (a "Medium",
+# say) produces a 404 per label and no visible error, which is why
+# verify-deploy.sh checks each name against what was deployed.
 if [ ! -d "$STAGE/glyphs" ]; then
   curl -fsSL -o "$WORKDIR/noto-sans.zip" \
     "https://github.com/openmaptiles/fonts/releases/download/v2.0/noto-sans.zip"
   mkdir -p "$STAGE/glyphs"
-  unzip -q -o "$WORKDIR/noto-sans.zip" -d "$STAGE/glyphs"
+  python3 - "$STAGE/style.json" <<'PY' | while IFS= read -r stack; do
+import json, sys
+style = json.load(open(sys.argv[1]))
+names = set()
+for layer in style["layers"]:
+    for font in layer.get("layout", {}).get("text-font", []):
+        names.add(font)
+print("\n".join(sorted(names)))
+PY
+    echo "staging glyphs: $stack"
+    unzip -q -o "$WORKDIR/noto-sans.zip" "$stack/*" -d "$STAGE/glyphs"
+  done
 fi
 
 step "result"

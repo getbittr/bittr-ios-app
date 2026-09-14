@@ -45,8 +45,26 @@ BOUNDARY = "#B0A99C"
 LABEL = "#5A554C"  # 5.8:1 on the background
 LABEL_HALO = "#F2EFE9"
 
+# Each of these must name exactly one fontstack that exists as a directory in the
+# deployed glyphs tree, and the openmaptiles glyph set ships three: Regular, Bold
+# and Italic. There is no "Medium", and asking for one is not a graceful
+# degradation — MapLibre requests a multi-font stack as a single comma-joined path
+# (`Noto%20Sans%20Medium,Noto%20Sans%20Regular/0-255.pbf`), which static hosting
+# cannot synthesise, so a two-element list 404s rather than falling back. The
+# result either way is labels that silently never draw. verify-deploy.sh checks
+# every stack named here against the deployed tree for exactly that reason.
 FONT_REGULAR = ["Noto Sans Regular"]
-FONT_MEDIUM = ["Noto Sans Medium"]
+FONT_EMPHASIS = ["Noto Sans Bold"]
+
+# Values from OpenMapTilesSchema$Transportation$FieldValues in the pinned
+# planetiler jar, read rather than remembered. There is no "residential" — the
+# schema folds residential, unclassified and living_street into "minor", so a
+# filter naming it matches nothing and quietly narrows the map. `pedestrian` is
+# named on purpose: the Zurich Niederdorf and the Bern old town are pedestrian
+# streets, and those are exactly the addresses this map is asked about.
+MAJOR_ROAD_CLASSES = ["motorway", "trunk", "primary", "secondary"]
+MINOR_ROAD_CLASSES = ["minor", "service", "pedestrian"]
+ROAD_CLASSES = MAJOR_ROAD_CLASSES + MINOR_ROAD_CLASSES
 
 
 def style(version):
@@ -139,13 +157,18 @@ def layers():
         },
         # Roads in two passes, casing under fill, so junctions read as junctions
         # rather than as overlapping strokes.
+        #
+        # The casing names the same classes the two fill layers below do, rather
+        # than excluding a few. `transportation` also carries rail, tram, subway,
+        # funicular, ferry and footways, and an exclusion list drew a casing under
+        # all of them with no fill on top — a railway rendered as a fat grey road.
         {
             "id": "road-casing",
             "type": "line",
             "source": "basemap",
             "source-layer": "transportation",
             "minzoom": 9,
-            "filter": ["!in", "class", "ferry", "path", "track"],
+            "filter": ["in", "class"] + ROAD_CLASSES,
             "layout": {"line-cap": "round", "line-join": "round"},
             "paint": {
                 "line-color": ROAD_CASING,
@@ -158,7 +181,7 @@ def layers():
             "source": "basemap",
             "source-layer": "transportation",
             "minzoom": 12,
-            "filter": ["in", "class", "minor", "service", "residential"],
+            "filter": ["in", "class"] + MINOR_ROAD_CLASSES,
             "layout": {"line-cap": "round", "line-join": "round"},
             "paint": {
                 "line-color": ROAD_MINOR,
@@ -171,7 +194,7 @@ def layers():
             "source": "basemap",
             "source-layer": "transportation",
             "minzoom": 6,
-            "filter": ["in", "class", "motorway", "trunk", "primary", "secondary"],
+            "filter": ["in", "class"] + MAJOR_ROAD_CLASSES,
             "layout": {"line-cap": "round", "line-join": "round"},
             "paint": {
                 "line-color": ROAD_MAJOR,
@@ -231,15 +254,48 @@ def layers():
                 "text-halo-width": 1.2,
             },
         },
+        # World cities, z0-z5 only. A separate layer from `label-place` below because
+        # it is a separate source layer: planetiler's OpenMapTiles profile never emits
+        # Natural Earth populated places as features -- it indexes them to *rank* OSM
+        # cities -- so a `place` layer built from a Swiss extract names Switzerland and
+        # nothing else at world zooms. make-world-places.py fills that in as
+        # `place_world`. See section 1 on why the low band exists at all.
+        {
+            "id": "label-place-world",
+            "type": "symbol",
+            "source": "basemap",
+            "source-layer": "place_world",
+            "maxzoom": 6,
+            "layout": {
+                "text-field": ["get", "name"],
+                "text-font": FONT_EMPHASIS,
+                # Natural Earth's own scalerank, so the biggest cities are also the
+                # largest labels rather than every city sharing one size.
+                "text-size": [
+                    "interpolate", ["linear"], ["zoom"],
+                    1, ["case", ["<=", ["get", "rank"], 1], 12, 10],
+                    5, ["case", ["<=", ["get", "rank"], 3], 14, 11],
+                ],
+            },
+            "paint": {
+                "text-color": LABEL,
+                "text-halo-color": LABEL_HALO,
+                "text-halo-width": 1.4,
+            },
+        },
         {
             "id": "label-place",
             "type": "symbol",
             "source": "basemap",
             "source-layer": "place",
+            # z6 up, where the OSM extract actually has data. Without this the band
+            # below would label Zurich twice between z0 and z5, once from each source,
+            # and MapLibre has no reason to collide-suppress across two layers.
+            "minzoom": 6,
             "filter": ["in", "class", "country", "state", "city", "town", "village"],
             "layout": {
                 "text-field": ["get", "name"],
-                "text-font": FONT_MEDIUM,
+                "text-font": FONT_EMPHASIS,
                 "text-size": [
                     "interpolate",
                     ["linear"],
