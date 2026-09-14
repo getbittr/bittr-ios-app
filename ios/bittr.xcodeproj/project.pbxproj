@@ -45,7 +45,6 @@
 		051D77932A9DFCCE002107C0 /* Restore3ViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 051D77922A9DFCCE002107C0 /* Restore3ViewController.swift */; };
 		051DDEF92C6B185C0002CF2D /* Colors.swift in Sources */ = {isa = PBXBuildFile; fileRef = 051DDEF82C6B185C0002CF2D /* Colors.swift */; };
 		052171262CB4157E006C5663 /* Language.swift in Sources */ = {isa = PBXBuildFile; fileRef = 052171252CB41577006C5663 /* Language.swift */; };
-		052171282CB416EA006C5663 /* HomeVCLanguage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 052171272CB416E7006C5663 /* HomeVCLanguage.swift */; };
 		0521712A2CB41B1A006C5663 /* TransactionVCLanguage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 052171292CB41B14006C5663 /* TransactionVCLanguage.swift */; };
 		0521712E2CB41E73006C5663 /* SettingsVCLanguage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0521712D2CB41E6E006C5663 /* SettingsVCLanguage.swift */; };
 		052171302CB421FC006C5663 /* MoveVCLanguage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0521712F2CB421F8006C5663 /* MoveVCLanguage.swift */; };
@@ -67,6 +66,8 @@
 		053190EE29FEE7C90072CE76 /* ArticleViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 053190ED29FEE7C90072CE76 /* ArticleViewController.swift */; };
 		053C37542FD28E8E00A510DF /* BittrArticles.swift in Sources */ = {isa = PBXBuildFile; fileRef = 053C37532FD28E8800A510DF /* BittrArticles.swift */; };
 		054BED26304EBC95009F0C06 /* LDKManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 054BED25304EBC93009F0C06 /* LDKManager.swift */; };
+		054BED50304FD7C9009F0C06 /* HomeHeaderTableViewCell.swift in Sources */ = {isa = PBXBuildFile; fileRef = 054BED4F304FD7C9009F0C06 /* HomeHeaderTableViewCell.swift */; };
+		054BEE60304FF041009F0C06 /* HomeHeaderData.swift in Sources */ = {isa = PBXBuildFile; fileRef = 054BEE5F304FF03E009F0C06 /* HomeHeaderData.swift */; };
 		054D42DF2F7B739E00599720 /* LogoAnimation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 054D42DE2F7B739800599720 /* LogoAnimation.swift */; };
 		05512F26300F80AF00E75272 /* WalletCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05512F25300F80AC00E75272 /* WalletCache.swift */; };
 		05512F28300F80B100E75272 /* CacheStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05512F27300F80B000E75272 /* CacheStore.swift */; };
@@ -267,7 +268,6 @@
 		051D77922A9DFCCE002107C0 /* Restore3ViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Restore3ViewController.swift; sourceTree = "<group>"; };
 		051DDEF82C6B185C0002CF2D /* Colors.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Colors.swift; sourceTree = "<group>"; };
 		052171252CB41577006C5663 /* Language.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Language.swift; sourceTree = "<group>"; };
-		052171272CB416E7006C5663 /* HomeVCLanguage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeVCLanguage.swift; sourceTree = "<group>"; };
 		052171292CB41B14006C5663 /* TransactionVCLanguage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TransactionVCLanguage.swift; sourceTree = "<group>"; };
 		0521712D2CB41E6E006C5663 /* SettingsVCLanguage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsVCLanguage.swift; sourceTree = "<group>"; };
 		0521712F2CB421F8006C5663 /* MoveVCLanguage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MoveVCLanguage.swift; sourceTree = "<group>"; };
@@ -289,6 +289,8 @@
 		053190ED29FEE7C90072CE76 /* ArticleViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ArticleViewController.swift; sourceTree = "<group>"; };
 		053C37532FD28E8800A510DF /* BittrArticles.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BittrArticles.swift; sourceTree = "<group>"; };
 		054BED25304EBC93009F0C06 /* LDKManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LDKManager.swift; sourceTree = "<group>"; };
+		054BED4F304FD7C9009F0C06 /* HomeHeaderTableViewCell.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeHeaderTableViewCell.swift; sourceTree = "<group>"; };
+		054BEE5F304FF03E009F0C06 /* HomeHeaderData.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeHeaderData.swift; sourceTree = "<group>"; };
 		054D42DE2F7B739800599720 /* LogoAnimation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LogoAnimation.swift; sourceTree = "<group>"; };
 		05512F25300F80AC00E75272 /* WalletCache.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WalletCache.swift; sourceTree = "<group>"; };
 		05512F27300F80B000E75272 /* CacheStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CacheStore.swift; sourceTree = "<group>"; };
@@ -691,13 +693,14 @@
 			isa = PBXGroup;
 			children = (
 				05A2241029E6C98100F9861F /* HomeViewController.swift */,
+				054BED4F304FD7C9009F0C06 /* HomeHeaderTableViewCell.swift */,
+				054BEE5F304FF03E009F0C06 /* HomeHeaderData.swift */,
 				05A8BD8D2B7514DE002F0282 /* HistoryTable.swift */,
 				05F8DC5629EEBFA1008052B5 /* HistoryTableViewCell.swift */,
 				05A8BD872B750F82002F0282 /* ShowCachedData.swift */,
 				05A8BD892B750FAF002F0282 /* LoadWalletData.swift */,
 				05512F27300F957900E75272 /* SwapMatching.swift */,
 				05A8BD8B2B7513B7002F0282 /* FetchAndPrint.swift */,
-				052171272CB416E7006C5663 /* HomeVCLanguage.swift */,
 				058B2FDF2EEA9ECC0010693D /* BottomCurveView.swift */,
 				05E305362F517F4E003DE7CF /* ReloadWallet.swift */,
 			);
@@ -1247,10 +1250,10 @@
 				05C5A0EF2A334E30004CC671 /* Transfer3ViewController.swift in Sources */,
 				051015442F96142100D3F631 /* SwapDirection.swift in Sources */,
 				058B85D02CEDCAF300625A14 /* PinCollectionViewCell.swift in Sources */,
-				052171282CB416EA006C5663 /* HomeVCLanguage.swift in Sources */,
 				051DDEF92C6B185C0002CF2D /* Colors.swift in Sources */,
 				057E6E892A14DBAC00B37026 /* OneArticleTableViewCell.swift in Sources */,
 				379160602E1D99D300024560 /* MnemonicTextField.swift in Sources */,
+				054BEE60304FF041009F0C06 /* HomeHeaderData.swift in Sources */,
 				05C5A0ED2A33252C004CC671 /* Transfer1ViewController.swift in Sources */,
 				05AF89762D437073009D629C /* SwapViewController.swift in Sources */,
 				05F31CC32B88009E00AAA342 /* QuestionViewController.swift in Sources */,
@@ -1325,6 +1328,7 @@
 				05A8BD8A2B750FAF002F0282 /* LoadWalletData.swift in Sources */,
 				0514BC5330109C3F00BC05A2 /* PaymentDetails.swift in Sources */,
 				05F31CC52B8802DB00AAA342 /* LaunchQuestion.swift in Sources */,
+				054BED50304FD7C9009F0C06 /* HomeHeaderTableViewCell.swift in Sources */,
 				051D77932A9DFCCE002107C0 /* Restore3ViewController.swift in Sources */,
 				05980B542A46F7E4001F312F /* BittrWallet.swift in Sources */,
 				05BFCEB72A3B113E00565E2A /* Transfer2ViewController.swift in Sources */,

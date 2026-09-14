@@ -13,51 +13,7 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
     
     // Home table view
     @IBOutlet weak var homeTableView: UITableView!
-    @IBOutlet weak var noTransactionsLabel: UILabel!
-    
-    // Table view header elements
-    @IBOutlet weak var backgroundColorView: UIView!
-    @IBOutlet weak var backgroundColorTopView: UIView!
-    @IBOutlet weak var bottomCurve: BottomCurveView!
-    
-    // Header: Balance card
-    @IBOutlet weak var balanceCard: UIView!
-    @IBOutlet weak var balanceCardTop: NSLayoutConstraint!
-    @IBOutlet weak var bitcoinSign: UIImageView!
-    @IBOutlet weak var balanceLabel: UILabel!
-    @IBOutlet weak var balanceLabelWidth: NSLayoutConstraint!
-    @IBOutlet weak var conversionLabel: UILabel!
-    @IBOutlet weak var balanceCardButton: UIButton!
-    
-    // Balance card profit views
-    @IBOutlet weak var balanceCardProfitView: UIView!
-    @IBOutlet weak var balanceCardArrowImage: UIImageView!
-    @IBOutlet weak var balanceCardGainLabel: UILabel!
-    
-    // Header: Balance card header view
-    @IBOutlet weak var headerView: UIView!
-    @IBOutlet weak var headerSpinner: UIActivityIndicatorView!
-    @IBOutlet weak var headerProblemImage: UIImageView!
-    @IBOutlet weak var headerPiggyImage: UIImageView!
-    @IBOutlet weak var headerLabel: UILabel!
-    @IBOutlet weak var headerViewButton: UIButton!
-    @IBOutlet weak var headerDetailsImage: UIImageView!
-    @IBOutlet weak var headerCurrencyImage: UIImageView!
-    @IBOutlet weak var currencyButton: UIButton!
-    @IBOutlet weak var headerMapImage: UIImageView!
-    @IBOutlet weak var mapButton: UIButton!
-    
-    // Header: Lower buttons
-    @IBOutlet weak var sendButtonView: UIView!
-    @IBOutlet weak var receiveButtonView: UIView!
-    @IBOutlet weak var buyButtonView: UIView!
-    @IBOutlet weak var sendButton: UIButton!
-    @IBOutlet weak var receiveButton: UIButton!
-    @IBOutlet weak var buyButton: UIButton!
-    @IBOutlet weak var profitButton: UIButton!
-    @IBOutlet weak var sendLabel: UILabel!
-    @IBOutlet weak var receiveLabel: UILabel!
-    @IBOutlet weak var buyLabel: UILabel!
+    var appliedTopSafeArea:CGFloat?
     
     // Profit calculations
     var calculatedProfit = 0
@@ -97,35 +53,17 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
     override func viewDidLoad() {
         super.viewDidLoad()
 
-        self.headerLabel.accessibilityIdentifier = TestID.Home.headerLabel
-        self.headerSpinner.accessibilityIdentifier = TestID.Home.headerSpinner
-        self.headerViewButton.accessibilityIdentifier = TestID.Home.syncStatusButton
-        self.sendButton.accessibilityIdentifier = TestID.Home.sendButton
-        self.sendButton.accessibilityLabel = Language.getWord(withID: "send")
-        self.receiveButton.accessibilityIdentifier = TestID.Home.receiveButton
-        self.receiveButton.accessibilityLabel = Language.getWord(withID: "receive")
-        self.buyButton.accessibilityIdentifier = TestID.Home.buyButton
-        self.buyButton.accessibilityLabel = Language.getWord(withID: "buy")
-        self.balanceCardButton.accessibilityIdentifier = TestID.Home.balanceCardButton
-        self.balanceCardButton.accessibilityLabel = "Balance details"
-        self.balanceLabel.accessibilityIdentifier = TestID.Home.balanceLabel
-        self.profitButton.accessibilityIdentifier = TestID.Home.profitButton
-        self.balanceCardGainLabel.accessibilityIdentifier = TestID.Home.profitLabel
-        self.currencyButton.accessibilityIdentifier = TestID.Home.currencyButton
-        self.mapButton.accessibilityIdentifier = TestID.Home.mapButton
-
         // Table view
         self.homeTableView.delegate = self
         self.homeTableView.dataSource = self
+        self.homeTableView.estimatedRowHeight = 430
+        self.homeTableView.contentInsetAdjustmentBehavior = .never
         
         // Check if dark mode is on.
         self.changeColors()
-        self.setWords()
-        self.setBasicStyling()
         
         // Notification observers
         NotificationCenter.default.addObserver(self, selector: #selector(changeColors), name: NSNotification.Name(rawValue: "changecolors"), object: nil)
-        NotificationCenter.default.addObserver(self, selector: #selector(setWords), name: NSNotification.Name(rawValue: "changecolors"), object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(openValueVC), name: NSNotification.Name(rawValue: "openvalue"), object: nil)
     }
     
@@ -136,45 +74,23 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
         self.downloadConversionAndBlockHeight()
     }
     
-    
     func changeCurrency() {
-        // Update conversion label.
-        self.conversionLabel.alpha = 0
-        self.setConversion()
-        
         // Update table.
         self.reloadTransactionsTable()
-        
-        // Calculate profits.
-        self.calculateProfit()
     }
     
+    @objc func changeColors() {
+        // Update table.
+        self.reloadTransactionsTable()
+    }
     
     override func viewDidLayoutSubviews() {
         
-        // Set correct top constraint and table insets.
-        var bottomInset:CGFloat = 80
-        var headerViewTopConstant:CGFloat = 85
-        if self.coreVC!.view.safeAreaInsets.bottom == 0 {
-            bottomInset = 130
-            headerViewTopConstant = 110
-        }
+        // Set table insets.
+        let bottomSafeArea = self.coreVC!.view.safeAreaInsets.bottom
+        let bottomInset:CGFloat = bottomSafeArea == 0 ? 130 : bottomSafeArea + 80
         self.homeTableView.contentInset = UIEdgeInsets(top: 0, left: 0, bottom: bottomInset, right: 0)
-        self.balanceCardTop.constant = headerViewTopConstant
-        
-        // Set header view.
-        if let newHeaderView = homeTableView.tableHeaderView {
-            let height = newHeaderView.systemLayoutSizeFitting(UIView.layoutFittingCompressedSize).height
-            var headerFrame = newHeaderView.frame
-            if height != headerFrame.size.height {
-                headerFrame.size.height = height
-                newHeaderView.frame = headerFrame
-                homeTableView.tableHeaderView = newHeaderView
-            }
-        }
-        
     }
-    
     
     @IBAction func profitButtonTapped(_ sender: UIButton) {
         performSegue(withIdentifier: "HomeToProfit", sender: self)
@@ -322,14 +238,13 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
             transaction1.timestamp > transaction2.timestamp
         }
         
-        // Reload table.
-        self.homeTableView.reloadData()
-        self.noTransactionsLabel.alpha = 0
-        
         // Update cache
         CacheManager.cachedHomeTransactions = self.visibleTransactions
         
-        guard !didFindDuplicateTransaction else { return }
+        guard !didFindDuplicateTransaction else {
+            self.reloadTransactionsTable()
+            return
+        }
         
         // Update balance and transactions.
         // For funding transactions, .channelReady will update the balance.
@@ -347,9 +262,8 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
         }
         
         // Update balance label.
-        self.setTotalSats()
+        self.reloadTransactionsTable()
         self.moveVC?.updateLabels()
-        self.calculateProfit()
     }
     
     @IBAction func balanceDetailsButtonTapped(_ sender: UIButton) {
@@ -369,7 +283,7 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
             if self.couldNotFetchConversion {
                 self.showAlert(title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "conversionfail"), buttons: [.dismiss(Language.getWord(withID: "okay"))])
             } else {
-                self.balanceDetailsButtonTapped(self.balanceCardButton)
+                self.balanceDetailsButtonTapped(UIButton())
             }
         } else {
             self.coreVC?.showSyncView()
