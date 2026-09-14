@@ -385,6 +385,19 @@ jobs:
           python3 android/tools/tile-pipeline/make-style.py 0000-00 "$RUNNER_TEMP/style.json"
           python3 android/tools/tile-pipeline/check-style-hosts.py "$RUNNER_TEMP/style.json"
 
+      - name: Check the archive coverage assertions assert what they say
+        # check-archive-coverage.py itself cannot run here — it needs the 572 MiB
+        # archive, which is built quarterly and never checked in. Its self-test can,
+        # and earns a step because the failure it guards is silent: every assertion in
+        # that file is "place X must/must not be in the archive", and a coordinate that
+        # is not where its label claims still returns a plausible present/absent answer.
+        # Three of them were wrong in exactly that way while being written, and the run
+        # read as a clean pass. So this checks each coordinate lands in the country its
+        # label names, that tile_of agrees with its own inverse, and that the MVT layer
+        # reader round-trips rather than silently returning nothing — the last of which
+        # would read as "this tile has no city labels".
+        run: python3 android/tools/tile-pipeline/check-archive-coverage.py --selftest
+
       - name: Check the world city labels land where the cities are
         # make-world-places.py hand-rolls an MVT writer, because planetiler will not
         # emit Natural Earth's populated places and the low band is built from a Swiss

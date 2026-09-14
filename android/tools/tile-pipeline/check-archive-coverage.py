@@ -152,12 +152,112 @@ def read_tile(pmtiles_bin, archive, z, x, y):
     return gzip.decompress(body) if body[:2] == b"\x1f\x8b" else body
 
 
+def tile_bounds(z, x, y):
+    """(west, south, east, north) of a tile, by the inverse of tile_of().
+
+    Written from the inverse formula rather than by reusing tile_of, so the two
+    disagree if either is wrong.
+    """
+    n = 2 ** z
+    west = x / n * 360.0 - 180.0
+    east = (x + 1) / n * 360.0 - 180.0
+    north = math.degrees(math.atan(math.sinh(math.pi * (1 - 2 * y / n))))
+    south = math.degrees(math.atan(math.sinh(math.pi * (1 - 2 * (y + 1) / n))))
+    return west, south, east, north
+
+
+def selftest():
+    """Check the parts that can be wrong while every assertion still passes.
+
+    This exists because of a mistake made while writing the tables below by
+    hand: three cases were given coordinates that were nowhere near the city
+    they were labelled with. Every one of them still produced a plausible
+    present/absent answer, so the run looked like a clean pass on a set of
+    assertions that were not testing what they said they were. A wrong constant
+    in tile_of would do the same to all of them at once.
+    """
+    failures = []
+
+    # tile_of against its own inverse: the tile it picks must contain the point
+    # it was given. Catches a sign error, a radians/degrees slip, or an
+    # off-by-one in the y formula.
+    for lon, lat, label, _ in Z14_CASES:
+        x, y = tile_of(lon, lat, 14)
+        w, s, e, n = tile_bounds(14, x, y)
+        if not (w <= lon < e and s < lat <= n):
+            failures.append(f"tile_of({lon}, {lat}) -> z14/{x}/{y}, whose bounds "
+                            f"({w:.4f},{s:.4f},{e:.4f},{n:.4f}) do not contain it ({label})")
+
+    # Anchors that do not depend on the inverse being right either.
+    for z, lon, lat, want in [
+        (0, 0.0, 0.0, (0, 0)),        # one tile at z0, everything lands in it
+        (0, 179.0, -80.0, (0, 0)),
+        (1, 0.5, 0.5, (1, 0)),        # just NE of the origin -> NE quadrant
+        (1, -0.5, -0.5, (0, 1)),      # just SW of it -> SW quadrant
+        (2, 0.5, 0.5, (2, 1)),
+    ]:
+        got = tile_of(lon, lat, z)
+        if got != want:
+            failures.append(f"tile_of({lon}, {lat}, z{z}) = {got}, expected {want}")
+
+    # Every named place must sit in the country its label claims, to the extent
+    # a bounding box can say so. This is the check that would have caught the
+    # mislabelled cases: "Innsbruck" at 15.6E is inside no plausible box for it.
+    BOXES = {
+        "CH": (5.9, 45.8, 10.5, 47.8), "LI": (9.4, 47.0, 9.7, 47.3),
+        "DE": (5.8, 47.2, 15.1, 55.1), "IT": (6.6, 35.4, 18.6, 47.1),
+        "FR": (-5.2, 41.3, 9.6, 51.1), "AT": (9.5, 46.3, 17.2, 49.1),
+    }
+    for lon, lat, label, _ in Z14_CASES:
+        country = label.split(",")[1].strip().split()[0] if "," in label else None
+        box = BOXES.get(country)
+        if box and not (box[0] <= lon <= box[2] and box[1] <= lat <= box[3]):
+            failures.append(f"{label}: ({lon}, {lat}) is outside {country}'s bounding box "
+                            f"{box} -- the coordinate does not match the label")
+
+    # layer_names against a tile built here, so a protobuf walk that silently
+    # returns [] cannot read as "this tile has no place_world".
+    def mvt(*names):
+        out = b""
+        for name in names:
+            body = b"\x0a" + bytes([len(name)]) + name.encode()
+            out += b"\x1a" + bytes([len(body)]) + body
+        return out
+
+    for names in [("water",), ("place_world",), ("boundary", "place_world", "water")]:
+        got = layer_names(mvt(*names))
+        if got != list(names):
+            failures.append(f"layer_names() read {got} from a tile holding {list(names)}")
+
+    # Scalar and 64-bit fields ahead of the layers must be skipped, not
+    # misparsed -- planetiler does not emit them today, but a reader that
+    # cannot skip them fails silently rather than loudly.
+    if layer_names(b"\x08\x02" + mvt("place_world")) != ["place_world"]:
+        failures.append("layer_names() mis-skips a varint field preceding the layers")
+
+    if failures:
+        print(f"{len(failures)} selftest failure(s):", file=sys.stderr)
+        for f in failures:
+            print(f"  - {f}", file=sys.stderr)
+        sys.exit(1)
+    print(f"selftest ok: {len(Z14_CASES)} coordinates land in the tile and the country "
+          f"their label names, and the MVT layer reader round-trips")
+
+
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("archive")
+    ap.add_argument("archive", nargs="?")
+    ap.add_argument("--selftest", action="store_true",
+                    help="check this file's own coordinates and MVT reader; no archive needed")
     ap.add_argument("--pmtiles", default=os.environ.get("PMTILES_BIN", "pmtiles"),
                     help="path to the pmtiles binary (default: $PMTILES_BIN or 'pmtiles')")
     args = ap.parse_args()
+
+    if args.selftest:
+        selftest()
+        return
+    if not args.archive:
+        ap.error("an archive is required unless --selftest is given")
 
     # Prove the archive is readable before reading absence as a result. Without
     # this, a missing file or a wrong --pmtiles path makes every positive case
