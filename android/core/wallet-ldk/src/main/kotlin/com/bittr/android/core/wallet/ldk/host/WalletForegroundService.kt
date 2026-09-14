@@ -29,9 +29,14 @@ import com.bittr.android.core.wallet.ldk.R
  * run on Rust threads that Doze and App Standby freeze along with everything
  * else, so the intervals are a request and not a guarantee. A foreground service
  * while the wallet is in use plus the app's push wake is the answer, and **how
- * well it works is unmeasured** — K8 (`wallet-core-spec` §6) is the measurement
- * and it needs a device. BIT-123 owns it. Nothing in this file should be read as
- * evidence that channel-monitor freshness survives a doze.
+ * well it works is still unmeasured** — K8 (`wallet-core-spec` §6) is the
+ * measurement and it needs a device. BIT-132 carries it, and
+ * `K8DozeMachineryTest` in `:app`'s `androidTestRegtest` source set is that test:
+ * it asserts this service and its notification are still there after a forced
+ * deep-idle window. **Written, not yet run** — see
+ * `android/docs/wallet-node-device-tests.md` §4. Nothing in this file, and
+ * nothing in that test's existence, should be read as evidence that
+ * channel-monitor freshness survives a doze.
  *
  * ## `dataSync`, and what it costs
  *
@@ -48,6 +53,12 @@ import com.bittr.android.core.wallet.ldk.R
  * decided here — the node keeps running unprotected until the process is frozen
  * — and deciding it is part of the same measurement K8 is, because the right
  * answer depends on how long the node actually survives a freeze.
+ *
+ * **K8 as written does not reach it, and no arithmetic on its constants will.**
+ * `K8DozeMachineryTest` holds a two-minute forced window against a nightly job
+ * with a 90-minute ceiling; the cap is six hours. So this paragraph stays open
+ * after K8 goes green, and a reader who sees a green K8 row should not conclude
+ * otherwise.
  *
  * ## `START_NOT_STICKY`, on purpose
  *

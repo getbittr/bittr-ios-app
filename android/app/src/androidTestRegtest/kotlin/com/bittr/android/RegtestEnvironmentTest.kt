@@ -85,8 +85,10 @@ import org.junit.runner.RunWith
  * [K7InterruptedPaymentTest] — written, and driven by
  * `android/scripts/k7-interrupted-payment.sh` because a process death takes the
  * instrumentation with it (the lesson `BackupExclusionTest` learned from
- * `bmgr restore`) — and to `K8DozeSoakTest`, **which is not written yet**;
- * `android/docs/wallet-node-device-tests.md` §4 says what it still needs.
+ * `bmgr restore`) — and to [K8DozeMachineryTest] and [K8ChannelFreshnessTest],
+ * which are **written and not yet run**;
+ * `android/docs/wallet-node-device-tests.md` §4 says what a first run tests
+ * first, and why the freshness half's claim is narrower than the spec's wording.
  *
  * Both are worth nothing until this class is green, and that ordering is
  * enforced rather than hoped for: `ci-wallet-regtest.sh` runs this suite first
