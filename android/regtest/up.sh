@@ -51,6 +51,39 @@ fail() {
   exit 1
 }
 
+# Like fail(), but carries evidence INTO the annotation rather than leaving it in
+# the log.
+#
+# "Logs are above" is a promise this repository cannot keep. On this public
+# repository the job log answers 403 and artifacts answer 401
+# (android/docs/ci-evidence.md), so the check-run annotation is the only channel
+# a reader actually has. The first run of the regtest network ever attempted
+# printed `compose ps` and eighty lines of `compose logs` into exactly the place
+# nobody can read, and surfaced one sentence — "did not come up healthy" — which
+# names no service and no reason. Diagnosing it took a source audit that the logs
+# would have answered in a line.
+#
+# A workflow command reads one line, so newlines are escaped as %0A and render as
+# real lines in the annotation. `%` goes first or it would eat the escapes it is
+# about to write. Trimmed to the last 40 lines per service: annotations are
+# capped (~64 KB), and a truncated annotation is worth more than a dropped one.
+fail_with_state() {
+  local summary="$1" evidence
+  evidence=$(
+    echo "--- docker compose ps"
+    compose ps 2>&1 || true
+    echo "--- docker compose logs (last 40 lines per service)"
+    compose logs --no-color --tail=40 2>&1 || true
+  )
+  # Keep the plain copy too, for anyone who CAN read the log.
+  echo "$evidence"
+  evidence=${evidence//'%'/'%25'}
+  evidence=${evidence//$'\n'/'%0A'}
+  evidence=${evidence//$'\r'/'%0D'}
+  echo "::error::$summary%0A%0A$evidence" >&2
+  exit 1
+}
+
 # --- Preflight ----------------------------------------------------------------
 #
 # Docker is a host requirement this repository did not have before BIT-132, so
@@ -70,13 +103,7 @@ docker compose version > /dev/null 2>&1 \
 # also builds electrs from source (see electrs/Dockerfile for what that costs).
 echo "--- Starting the regtest network (this builds electrs on a cold runner)"
 compose up -d --build --wait --wait-timeout 1800 \
-  || {
-    echo "--- Service state at failure"
-    compose ps || true
-    echo "--- Logs"
-    compose logs --tail=80 || true
-    fail "The regtest network did not come up healthy. Logs are above."
-  }
+  || fail_with_state "The regtest network did not come up healthy."
 
 # --- Coins ---------------------------------------------------------------------
 #
