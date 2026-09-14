@@ -112,20 +112,38 @@ sentence covers a basemap, because there is no basemap yet.
 Required with the archive, in the same commit that sets `STYLE_URI`: **© OpenStreetMap
 contributors**, visible on the map surface.
 
-Deliberately not added ahead of that commit. It is user-facing copy, it goes in
-`shared/strings`, and copy on this screen is the Growth & Content Lead's to word — BIT-56
-is the precedent. Adding an unreviewed string now would also credit OSM for a basemap the
-app does not draw.
+Deliberately not added ahead of that commit. It is user-facing copy and copy on this screen
+is the Growth & Content Lead's to word — BIT-56 is the precedent. Adding an unreviewed
+string now would also credit OSM for a basemap the app does not draw.
+
+(This section originally said the string "goes in `shared/strings`". BIT-140 decided
+otherwise, with the reasoning below; the assumption is corrected rather than deleted
+because it is the one a reader would otherwise make again.)
+
+**The wording is settled.** BIT-140 worded it **`Map data © OpenStreetMap contributors`**,
+as `MapCopy.BASEMAP_ATTRIBUTION` — a plain constant, deliberately *not* in
+`shared/strings/en.json`. That file is the cross-platform canonical source, and this string
+must not be cross-platform: iOS renders through `MKMapView` on Apple's imagery, where this
+credit would be false. Promote it the day iOS renders from bittr's tiles. "Map data" rather
+than a bare credit because, one line under "Powered by BTCMap.org", a bare credit reads as
+a second credit for the *places*; and because bittr produces the imagery while OSM supplied
+the data, which is what the licence is about. BIT-140 also fixes the placement: its own
+`Text`, second, outside the existing line's `clickable`, wrapping rather than truncating,
+and in the same style. Do not reword `POWERED_BY_ALERT` to explain any of this — that
+re-triggers the BIT-69 compliance read and re-opens the SE length budget.
 
 **The "same commit" is enforced, not remembered.** `BasemapAttributionGuardTest` fails the
 build if `STYLE_URI` is set to a URL while no constant in `MapCopy.kt` carries the phrase
-`OpenStreetMap contributors`, or while `MapScreen.kt` never reads that constant. It is
+`© OpenStreetMap contributors`, or while `MapScreen.kt` never reads that constant. It is
 dormant today — `STYLE_URI` is `null`, so the app owes no basemap credit — and its
 self-test runs the detectors against known offenders so a dormant check cannot quietly
-become a broken one. Matching the full phrase rather than "OpenStreetMap" is deliberate:
-the alert above already contains the shorter word while covering no imagery. What the
-guard still cannot see is whether the credit is *legible* once rendered; that belongs in a
-rendered assertion beside the map module's other Robolectric tests.
+become a broken one. Three things about the match are deliberate: the full phrase rather
+than "OpenStreetMap", because the alert above already contains the shorter word while
+covering no imagery; the `©` as U+00A9, so `(c)` and `&copy;` are rejected — the second
+renders literally in a Compose `Text`; and *only* that phrase, so the framing around it
+stays editable without touching the guard. What the guard still cannot see is whether the
+credit is *legible* once rendered; that belongs in a rendered assertion beside the map
+module's other Robolectric tests.
 
 ## 4. Refresh cadence and owner
 
@@ -201,7 +219,7 @@ entirely uncredited, because the hostname is the only thing they read.
 
 | Check | Catches |
 |---|---|
-| A set `STYLE_URI` implies the phrase `OpenStreetMap contributors` in `MapCopy.kt`, read from `MapScreen.kt` | The commit that turns the basemap on and forgets the credit. That commit is a one-constant diff, which is exactly why it reads as too small to carry a licence obligation |
+| A set `STYLE_URI` implies the phrase `© OpenStreetMap contributors` in `MapCopy.kt`, read from `MapScreen.kt` | The commit that turns the basemap on and forgets the credit. That commit is a one-constant diff, which is exactly why it reads as too small to carry a licence obligation |
 
 **What it cannot enforce** is everything in §2's edge requirement and all of §5, and
 whether the §3 credit is legible rather than merely present. Those are deployment and

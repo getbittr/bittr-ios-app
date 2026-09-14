@@ -99,8 +99,12 @@ class BasemapAttributionGuardTest {
          * covers no map imagery. Matching on the full phrase rather than on
          * "OpenStreetMap" alone is what keeps the existing credit from satisfying a
          * requirement it does not meet.
+         *
+         * The `©` is U+00A9 and is part of what is pinned, per BIT-140. `(c)` and
+         * `&copy;` are not accepted: the second renders literally in a Compose
+         * `Text`, so accepting it would pass a build that shows the entity to a user.
          */
-        const val REQUIRED_CREDIT = "OpenStreetMap contributors"
+        const val REQUIRED_CREDIT = "© OpenStreetMap contributors"
 
         /** `const val NAME` — group 1 is the name. */
         val CONST_DECL: Pattern = Pattern.compile("""const\s+val\s+([A-Z][A-Z0-9_]*)""")
@@ -115,9 +119,23 @@ class BasemapAttributionGuardTest {
          */
         const val VERSIONED_ARCHIVE = "https://tiles.getbittr.com/basemap/2026-09/ch.pmtiles"
 
-        /** The credit as it would actually be written, for the self-test below. */
+        /**
+         * The credit line exactly as BIT-140 worded it, for the self-test below.
+         *
+         * Built from [REQUIRED_CREDIT] rather than spelled out, so the fixture
+         * cannot drift from the phrase the guard actually pins.
+         */
         const val CREDIT_LINE =
-            "const val OSM_CREDIT: String = \"Map data © " + REQUIRED_CREDIT + "\""
+            "const val BASEMAP_ATTRIBUTION: String = \"Map data " + REQUIRED_CREDIT + "\""
+
+        /** The same line with the two substitute forms [REQUIRED_CREDIT] excludes. */
+        const val ENTITY_CREDIT_LINE =
+            "const val BASEMAP_ATTRIBUTION: String = " +
+                "\"Map data &copy; OpenStreetMap contributors\""
+
+        const val ASCII_CREDIT_LINE =
+            "const val BASEMAP_ATTRIBUTION: String = " +
+                "\"Map data (c) OpenStreetMap contributors\""
 
         /** Whichever way [styleUriLiteral] read the declaration. */
         sealed interface Result {
@@ -259,7 +277,7 @@ class BasemapAttributionGuardTest {
             "The credit detector no longer finds a credit that is present, so the guard " +
                 "would fail a commit that did everything right — and the fix for a guard " +
                 "that cries wolf is that someone deletes it.",
-            "OSM_CREDIT",
+            "BASEMAP_ATTRIBUTION",
             creditConstant(CREDIT_LINE),
         )
 
@@ -267,7 +285,7 @@ class BasemapAttributionGuardTest {
             "The credit detector attributes the credit to the wrong constant when several " +
                 "are declared, so the render check below it would look for a name that is " +
                 "not the one holding the string.",
-            "OSM_CREDIT",
+            "BASEMAP_ATTRIBUTION",
             creditConstant(
                 """
                 const val TITLE: String = "Pay with bitcoin"
@@ -294,17 +312,43 @@ class BasemapAttributionGuardTest {
             creditConstant("""const val TITLE: String = "Pay with bitcoin""""),
         )
 
+        assertEquals(
+            "The credit detector accepts an HTML entity for the copyright sign. A Compose " +
+                "Text renders that literally, so the guard would pass a build showing " +
+                "'&copy; OpenStreetMap contributors' to the user.",
+            null,
+            creditConstant(
+                ENTITY_CREDIT_LINE,
+            ),
+        )
+
+        assertEquals(
+            "The credit detector accepts '(c)' for the copyright sign. BIT-140 pinned " +
+                "U+00A9 specifically, and a credit is a licence artefact whose exact form " +
+                "is not the app's to restyle.",
+            null,
+            creditConstant(
+                ASCII_CREDIT_LINE,
+            ),
+        )
+
         assertTrue(
             "The render detector no longer sees the credit constant being read, so a " +
                 "correctly rendered credit would fail the guard.",
-            rendersCredit("""Text(text = MapCopy.OSM_CREDIT, style = small)""", "OSM_CREDIT"),
+            rendersCredit(
+                """Text(text = MapCopy.BASEMAP_ATTRIBUTION, style = small)""",
+                "BASEMAP_ATTRIBUTION",
+            ),
         )
 
         assertTrue(
             "The render detector reports a constant the screen never reads. A string " +
                 "declared and never shown would pass — which is the exact failure this " +
                 "guard exists to catch, one step further along.",
-            !rendersCredit("""Text(text = MapCopy.POWERED_BY, style = small)""", "OSM_CREDIT"),
+            !rendersCredit(
+                """Text(text = MapCopy.POWERED_BY, style = small)""",
+                "BASEMAP_ATTRIBUTION",
+            ),
         )
     }
 }
