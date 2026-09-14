@@ -44,6 +44,21 @@ class TransactionDetailTest {
     }
 
     @Test
+    fun `a channel closure payout explains where its funds came from`() {
+        val payout = WalletActivity("closetx", 90_000, 0, 0, 0, false, 99)
+        val detail = transactionDetail(payout, null, 100, utc, closureTxIds = setOf("closetx"))
+        assertEquals(HomeStrings.CHANNEL_CLOSURE_TRANSACTION, detail.description)
+        assertNull(transactionDetail(payout, null, 100, utc).description)
+    }
+
+    @Test
+    fun `a blank note is no note`() {
+        val receive = WalletActivity("hash", 1_000, 0, 0, 0, true, null)
+        assertEquals("coffee", transactionDetail(receive, null, 100, utc, note = "coffee").note)
+        assertNull(transactionDetail(receive, null, 100, utc, note = "  ").note)
+    }
+
+    @Test
     fun `fiat values keep two decimals and group the whole part`() {
         assertEquals("1 234.50", twoDecimals(1234.5))
         assertEquals("0.07", twoDecimals(0.066))

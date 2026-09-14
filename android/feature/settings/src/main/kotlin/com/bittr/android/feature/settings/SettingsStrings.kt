@@ -70,6 +70,18 @@ internal object SettingsStrings {
             "to 100 CHF/EUR to receive a lightning connection. Check your wallet's Buy " +
             "section or getbittr.com for all information."
 
+    // The channel chart, when there is an active channel. `questionvc7`, `total`, `reserve`;
+    // the two titles are `Main.storyboard`'s labels.
+    const val QUESTION_VC_7 =
+        "As part of your bittr wallet, you have a <b>bitcoin wallet</b> (for regular payments) and a " +
+            "<b>bitcoin lightning connection</b> (for instant payments).\n\nYour lightning balance is " +
+            "<b><channelbalance> satoshis</b>. The connection needs to contain a minimum of " +
+            "<b><channelreserve> sats</b>, so you can send up to <b><sendlimit> sats</b>."
+    const val YOUR_BALANCE = "Your balance"
+    const val RECEIVE_LIMIT = "Receive limit"
+    const val TOTAL = "total"
+    const val RESERVE = "reserve"
+
     // The guard in front of every node-backed row. `syncingwallet` / `syncingwallet2`.
     const val SYNCING_WALLET = "Syncing wallet"
     const val SYNCING_WALLET_2 = "Please wait a moment while we're syncing your wallet."

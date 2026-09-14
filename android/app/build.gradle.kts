@@ -542,6 +542,8 @@ dependencies {
     // declares ACCESS_FINE_LOCATION, and the `tools:node="remove"` line below is the
     // only reason the shipped APK does not ask for it.
     implementation(project(":core:lnurl"))
+    // Transaction notes and the Lightning-address push payload are small JSON documents.
+    implementation(libs.kotlinx.serialization.json)
     implementation(project(":feature:signup"))
     implementation(project(":feature:website"))
     // Receive (ios/bittr/Move, Send, Receive/ReceiveVC). :app implements its ReceiveSource.

@@ -50,6 +50,15 @@ internal object HomeStrings {
     /** `currentvalue`. */
     const val CURRENT_VALUE = "Current value"
     const val COPIED = "Copied"
+    const val DESCRIPTION = "Description"
+    const val NOTE = "Note"
+    /** `addanote` — the button, the alert's title and its placeholder. */
+    const val ADD_A_NOTE = "Add a note"
+    const val SAVE = "Save"
+    const val CANCEL = "Cancel"
+    /** `channelclosuretransaction`. */
+    const val CHANNEL_CLOSURE_TRANSACTION =
+        "These are the funds from your closed lightning connection, returning to your regular wallet."
 
     // The balance screen — `MoveVCLanguage.swift` and `MoveViewController`'s alerts.
     const val BALANCE = "balance"

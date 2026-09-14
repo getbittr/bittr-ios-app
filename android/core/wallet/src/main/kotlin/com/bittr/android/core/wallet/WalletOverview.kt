@@ -37,6 +37,14 @@ data class WalletOverview(
     val lightningSendableSats: Long = 0L,
     /** `lightningChannels.count` — Move explains channels differently when there is none. */
     val channelCount: Int = 0,
+    /** The channel `getActiveChannel()` returns — the first ready one — for the channel chart. */
+    val activeChannel: ChannelSummary? = null,
+    /**
+     * Txids of the transactions that paid out a closed channel — `CacheManager.channelClosureTxIDs`,
+     * which marks a history row `isChannelClosure` so its description reads
+     * `channelclosuretransaction`.
+     */
+    val channelClosureTxIds: Set<String> = emptySet(),
 ) {
 
     /**
@@ -67,6 +75,29 @@ data class WalletActivity(
 }
 
 /** Where [WalletOverview] comes from. A build with no node answers a never-synced overview. */
+/**
+ * The figures `QuestionViewController.setChannelChart(forChannel:)` draws.
+ *
+ * @property valueSats `channelValueSats`.
+ * @property outboundSats `outboundCapacityMsat / 1000`.
+ * @property reserveSats `unspendablePunishmentReserve ?? 0`.
+ */
+data class ChannelSummary(
+    val valueSats: Long,
+    val outboundSats: Long,
+    val reserveSats: Long,
+) {
+    /** "Your balance": what can be sent plus the reserve that has to stay in. */
+    val balanceSats: Long get() = outboundSats + reserveSats
+
+    /** "Receive limit": the rest of the channel. */
+    val receiveLimitSats: Long get() = valueSats - outboundSats - reserveSats
+
+    /** The yellow bar's share of the grey one, clamped so a bad reading cannot overflow it. */
+    val balanceFraction: Float
+        get() = if (valueSats <= 0) 0f else (balanceSats.toFloat() / valueSats).coerceIn(0f, 1f)
+}
+
 interface WalletOverviewSource {
     val overview: StateFlow<WalletOverview>
 }

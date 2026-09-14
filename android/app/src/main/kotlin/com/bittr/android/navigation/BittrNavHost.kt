@@ -1,6 +1,7 @@
 package com.bittr.android.navigation
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -36,7 +37,13 @@ import com.bittr.android.feature.map.MapScreen
 import com.bittr.android.feature.scanner.ScannerScreen
 import com.bittr.android.feature.settings.DeviceScreen
 import com.bittr.android.feature.settings.DeviceViewModel
+import com.bittr.android.core.wallet.ChannelSummary
+import com.bittr.android.core.wallet.ldk.lightning.NodeEvent
+import com.bittr.android.events.ChannelClosedCard
+import com.bittr.android.events.NodeEventsViewModel
 import com.bittr.android.feature.settings.LightningQuestionScreen
+import com.bittr.android.feature.settings.LightningQuestionViewModel
+import com.bittr.android.feature.settings.QuestionScreen
 import com.bittr.android.feature.settings.SettingsScreen
 import com.bittr.android.feature.settings.WebsitePage
 import com.bittr.android.feature.receive.ReceiveRoute
@@ -58,6 +65,9 @@ object Routes {
     const val SETTINGS = "settings"
     const val DEVICE = "settings/device"
     const val LIGHTNING_QUESTION = "settings/device/lightning"
+
+    /** The "closed lightning connection" card, raised by the node's `channelClosed` event. */
+    const val CHANNEL_CLOSED = "question/channel-closed"
 
     /** The three `getbittr.com` pages, keyed by [WebsitePage] name. */
     const val WEBSITE_ARG = "page"
@@ -160,6 +170,19 @@ fun BittrNavHost(
     http: HttpClient = remember { OkHttpBittrHttpClient() },
 ) {
     val walletState by viewModel.walletState.collectAsState()
+
+    // The node's `channelClosed` event opens the "closed lightning connection" card over
+    // whatever is on screen, as iOS's `launchQuestion` does.
+    val nodeEvents = hiltViewModel<NodeEventsViewModel>()
+    var channelClosedAnswer by remember { mutableStateOf("") }
+    LaunchedEffect(nodeEvents) {
+        nodeEvents.events.collect { event ->
+            if (event is NodeEvent.ChannelClosed) {
+                channelClosedAnswer = ChannelClosedCard.answer(event)
+                navController.navigate(Routes.CHANNEL_CLOSED)
+            }
+        }
+    }
 
     // See [NotPortedDialog]. Held here rather than in a screen because it is
     // scaffolding for the port, not app behaviour, and keeping it out of the feature
@@ -295,6 +318,14 @@ fun BittrNavHost(
             SendQuestionScreen(onDown = { navController.popBackStack() })
         }
 
+        composable(Routes.CHANNEL_CLOSED) {
+            QuestionScreen(
+                title = ChannelClosedCard.TITLE,
+                answer = channelClosedAnswer,
+                onDown = { navController.popBackStack() },
+            )
+        }
+
         composable(
             route = Routes.TRANSACTION,
             arguments = listOf(navArgument(TransactionViewModel.ID_ARG) { type = NavType.StringType }),
@@ -349,6 +380,9 @@ fun BittrNavHost(
  */
 internal fun NavGraphBuilder.settingsArea(
     navController: NavHostController,
+    lightningChannel: @Composable () -> ChannelSummary? = {
+        hiltViewModel<LightningQuestionViewModel>().channel.collectAsState().value
+    },
     deviceViewModel: @Composable () -> DeviceViewModel = { hiltViewModel() },
 ) {
     composable(Routes.SETTINGS) {
@@ -390,7 +424,7 @@ internal fun NavGraphBuilder.settingsArea(
     }
 
     composable(Routes.LIGHTNING_QUESTION) {
-        LightningQuestionScreen(onDown = { navController.popBackStack() })
+        LightningQuestionScreen(onDown = { navController.popBackStack() }, channel = lightningChannel())
     }
 }
 

@@ -1,5 +1,6 @@
 package com.bittr.android.core.wallet.ldk.lightning
 
+import com.bittr.android.core.wallet.ChannelSummary
 import com.bittr.android.core.wallet.WalletActivity
 import com.bittr.android.core.wallet.WalletOverview
 import com.bittr.android.core.wallet.WalletOverviewSource
@@ -23,7 +24,11 @@ import kotlinx.coroutines.flow.asStateFlow
  * invoice was made. None of those caches exist on Android yet, so a Lightning row is dated
  * by `latestUpdateTimestamp` and there are no bittr or swap rows. The balances are complete.
  */
-class WalletOverviewPublisher(private val hasNode: Boolean) : WalletOverviewSource {
+class WalletOverviewPublisher(
+    private val hasNode: Boolean,
+    /** `CacheManager.channelClosureTxIDs` as of this reading — see [WalletOverview.channelClosureTxIds]. */
+    private val closureTxIds: () -> Collection<String> = { emptyList() },
+) : WalletOverviewSource {
 
     private val _overview = MutableStateFlow(WalletOverview(hasNode = hasNode))
     override val overview: StateFlow<WalletOverview> = _overview.asStateFlow()
@@ -40,6 +45,14 @@ class WalletOverviewPublisher(private val hasNode: Boolean) : WalletOverviewSour
             satoshisOnchainSpendable = snapshot.satoshisOnchainSpendable,
             lightningSendableSats = ((reading.channels.activeChannel()?.outboundCapacityMsat ?: 0uL) / 1000uL).toLong(),
             channelCount = reading.channels.size,
+            activeChannel = reading.channels.activeChannel()?.let { channel ->
+                ChannelSummary(
+                    valueSats = channel.channelValueSats.toLong(),
+                    outboundSats = (channel.outboundCapacityMsat / 1000uL).toLong(),
+                    reserveSats = (channel.unspendablePunishmentReserveSats ?: 0uL).toLong(),
+                )
+            },
+            channelClosureTxIds = runCatching { closureTxIds().toSet() }.getOrDefault(emptySet()),
         )
     }
 
