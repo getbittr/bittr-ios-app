@@ -185,7 +185,9 @@ sentence covers a basemap, because there is no basemap yet.
 Required with the archive, in the same commit that sets `STYLE_URI`, visible on the map
 surface: **Map data © OpenStreetMap contributors, design © OpenMapTiles.org**. Two credits,
 because two licences — "OSM is not the only credit owed" below is how the second was found,
-and "The wording, settled" is where the sentence was fixed.
+and "The wording, settled" is where the sentence was fixed. The spaces after the two `©`
+signs are non-breaking; that is a decision with a guard change attached, and both live in
+"The wording, settled".
 
 Deliberately not added ahead of that commit. It is user-facing copy and copy on this screen
 is the Growth & Content Lead's to word — BIT-56 is the precedent. Adding an unreviewed
@@ -337,7 +339,19 @@ used to pass.
 
 > **Map data © OpenStreetMap contributors, design © OpenMapTiles.org**
 
-One string, one `Text`, in the placement BIT-140 already fixed. Four decisions in it.
+Written as a Kotlin literal, because the two spaces after the `©` are not ordinary
+spaces. Spelled as escapes rather than pasted as the character: a literal U+00A0 in source
+is invisible, so the next person to touch this line cannot see what they are preserving,
+and a stray reformat that eats it would be a silent revert of this decision.
+
+```kotlin
+const val BASEMAP_ATTRIBUTION: String =
+    "Map data ©\u00A0OpenStreetMap contributors, design ©\u00A0OpenMapTiles.org"
+```
+
+It renders identically to the ASCII form — U+00A0 draws as a space — so nothing about the
+sentence a user reads has changed. One string, one `Text`, in the placement BIT-140 already
+fixed. Five decisions in it.
 
 **It extends BIT-140's phrase rather than replacing it.** `Map data © OpenStreetMap
 contributors` survives verbatim and contiguous, so the half that went through BIT-140 is
@@ -358,6 +372,30 @@ link to openmaptiles.org. Planetiler's banner and the archive metadata both take
 met; the first names the domain. A bare unlinked `© OpenMapTiles` would satisfy neither,
 and the guard rejects it with its own fixture. If this credit ever becomes a real link,
 relax the pin in that commit.
+
+**The spaces after the two `©` signs are non-breaking (BIT-150).** A copyright sign
+belongs to the name it credits, and "Measured: how the line actually wraps" below found the
+break falling between them at *both* 320 dp and 411 dp — leaving a line that ends `design ©`
+and credits nobody. U+00A0 makes that break impossible at any width, font size or font scale.
+
+The alternative was to shorten the line under the 320 dp budget so it never wraps, which
+would have needed no guard change. It was rejected for three reasons, and the first two are
+arithmetic. **There is no headroom.** The first line at 320 dp holds 47 characters. The two
+phrases the licences require plus a single separator are 47 characters exactly —
+`© OpenStreetMap contributors` is 28, `© OpenMapTiles.org` is 18. So a non-wrapping line is
+only reachable by deleting *both* "Map data" and "design", which lands on
+`© OpenStreetMap contributors © OpenMapTiles.org`: the bare combined form that
+*"design", not a second "data"* above rejects for crediting OpenMapTiles with the data.
+Every word the two decisions above exist to justify is exactly what the budget has no room
+for. **And it would not hold.** A character budget is a count at one font scale; at
+fontScale 1.3 the same width buys roughly 36 characters, so a 47-character line wraps too,
+at the last space that fits — the one before `OpenMapTiles.org`. The orphan returns at the
+accessibility sizes, where it is least likely to be looked at. The third reason is the
+`bodySmall` correction at the end of this section: the budget is a property of a face the
+design system did not choose, and it moves the day that slot is fixed.
+
+So the shorter line trades two true words and a settled decision for a fix that holds at one
+font scale in one face. The non-breaking space costs a guard change and holds everywhere.
 
 **OSM first.** Neither licence constrains order. The existing copy on this screen is
 OSM-centric — "Powered by BTCMap.org" and an alert about OSM tagging — so leading with OSM
@@ -408,6 +446,85 @@ That is the guard working — it cannot tell a typographic refinement from a del
 and for a licence artefact that is the safer direction to be wrong in. If the non-breaking
 space is chosen, `OMT_CREDIT` and `OSM_CREDIT` have to move in the *same* commit, and the
 fixtures with them.
+
+**Chosen: the non-breaking space (BIT-150).** The reasoning, and the rejected alternative,
+are the fifth decision in "The wording, settled" above. What it costs is recorded here
+because the cost is build-level rather than editorial.
+
+**Normalise the haystack; do not move the pins.** The tempting fix is to rewrite
+`OMT_CREDIT` and `OSM_CREDIT` with U+00A0. Do not: that inverts the guard rather than
+widening it. Those constants are the *licence obligation*, an ASCII-spaced credit discharges
+it perfectly well, and a guard that failed such a build would be the "cries wolf" failure
+this file's own KDoc names as worse than no guard at all. Instead normalise U+00A0 to
+U+0020 in the text `creditConstant` searches, immediately before the `indexOf`, and leave
+both constants ASCII and readable:
+
+```kotlin
+val at = text.replace('\u00A0', ' ').indexOf(credit)
+```
+
+One line, and it is safe next to the rest of that function for a reason worth stating:
+`replace(Char, Char)` is length-preserving, so `at` stays a valid index into the
+*un-normalised* `text` that the `CONST_DECL` walk below it still scans. Normalising the
+whole function's input would not have been.
+
+This widens the accepted set by exactly one character, and it is the right one to widen by:
+U+00A0 **renders as a space**. That is precisely the distinction that keeps `&copy;` and
+`(c)` rejected while admitting this — those two render *wrong*, this one renders
+*identically*. Nothing else loosens. The `©` stays U+00A9, the `.org` stays required, and
+all four rejection fixtures (`OSM_ONLY_CREDIT_LINE`, `BARE_OMT_CREDIT_LINE`,
+`ENTITY_CREDIT_LINE`, `ASCII_CREDIT_LINE`) still reject for the reasons they were written.
+Add a fifth holding the credit with NBSP escapes, so the normalisation is proven in the same
+file that now depends on it — by the same argument as every other fixture there, an untested
+normaliser is one that can quietly stop normalising.
+
+**And that dissolves the same-commit constraint, which is the point of doing it this way.**
+Moving the pins would have forced copy and guard into one commit, because a guard pinned to
+NBSP rejects the ASCII credit and a guard pinned to ASCII rejects the NBSP one — either
+ordering is red in between. Normalising is *backward-compatible*: it accepts both forms, so
+it can land **on its own, ahead of the `STYLE_URI` commit**, and leave that commit carrying
+copy only. The requirement weakens from "same commit" to "no later than", which is the
+weakest form this obligation can take.
+
+Verified on this tree rather than reasoned about, in both directions (BIT-150). With the
+fixture added and the normalisation absent, `:app:testDebugUnitTest` fails at the new
+assertion — so the fixture genuinely reproduces the trap and is not decorative. With the
+one-line normalisation applied, `BasemapAttributionGuardTest` is green, 2 tests, 0 failures,
+with all four rejection fixtures still rejecting and `STYLE_URI` still `null`. The patch was
+reverted; the guard half is the Head of App (Android)'s to land.
+
+### A correction to the measurement's basis: `bodySmall` is not Gilroy
+
+The table above is labelled Gilroy and the method says `NATIVE` mode "rasterises the real
+Gilroy face". **The line counts are sound** — they were rendered rather than predicted, and
+they describe what the app draws today. **The face is not Gilroy.** `BittrTypography` in
+`core/designsystem/Type.kt` never overrides `bodySmall`, and `MapScreen` renders both
+`POWERED_BY` and the credit with `MaterialTheme.typography.bodySmall`, so that slot falls
+through to the Material 3 default. Read out of the pinned
+`androidx.compose.material3:material3-android:1.4.0` — `TypeScaleTokens` in `classes.jar`,
+disassembled rather than looked up:
+
+| token | value |
+|---|---|
+| `BodySmallFont` | `TypefaceTokens.Plain` → `FontFamily.SansSerif`, a `GenericFontFamily` |
+| `BodySmallSize` | 12 sp |
+| `BodySmallLineHeight` | 16 sp |
+| `BodySmallTracking` | 0.4 sp |
+
+So the credit draws in the **platform sans-serif at 12 sp with 0.4 sp of tracking**, not
+Gilroy at 13 sp. `Type.kt`'s scale defines no 12 sp slot at all — `labelMedium` is its 13 sp
+one — and Gilroy is a `FontListFontFamily`, so a `GenericFontFamily` in that field is
+conclusive rather than suggestive.
+
+That is a defect in the design system and not in this pipeline: four call sites use a slot
+the scale never defined (`MapScreen` twice, `OnePlaceSheet`, `GraphView`), against
+`Type.kt`'s own "every size in the app comes from this scale" and "the only font family in
+the app". It is raised separately and is **not** fixed here — wording a credit does not
+carry a licence to restyle three other screens.
+
+It belongs in this section because it is load-bearing for the decision above: any character
+budget for this line is a property of a face nobody chose, and it moves the day that slot is
+corrected. A fix that survives that change was worth a guard edit.
 
 ### Measured: the SDK's own overlays sit clear of ours
 
