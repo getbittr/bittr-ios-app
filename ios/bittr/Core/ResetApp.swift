@@ -368,7 +368,7 @@ extension CoreViewController {
                 BitcoinManager.shared.bittrWallet = BittrWallet()
                 
                 // Hide signup view and launch create wallet flow.
-                self.hideSignup()
+                self.fromSignupToPin()
                 self.userHasSignedIn = false
                 
                 // Launch signup on create wallet page after a delay to ensure cleanup is complete

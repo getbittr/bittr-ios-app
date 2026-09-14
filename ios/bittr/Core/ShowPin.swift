@@ -17,6 +17,7 @@ extension CoreViewController {
         self.pinBottom = NSLayoutConstraint(item: self.pinContainerView, attribute: .bottom, relatedBy: .equal, toItem: self.view, attribute: .top, multiplier: 1, constant: 0)
         NSLayoutConstraint.activate([self.pinBottom])
         self.view.layoutIfNeeded()
+        self.pinContainerView.alpha = 1
         
         // Lower SignupVC out of view, and PinVC into view.
         UIView.animate(withDuration: 0.8, delay: 0, usingSpringWithDamping: 0.75, initialSpringVelocity: 0, options: .curveEaseInOut) {
