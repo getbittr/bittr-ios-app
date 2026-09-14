@@ -104,6 +104,8 @@ fun HomeScreen(
     onBalanceDetails: () -> Unit = {},
     onAcademy: () -> Unit = {},
     onTransaction: (String) -> Unit = {},
+    profitPill: ProfitPill? = null,
+    onProfit: () -> Unit = {},
     viewModel: HomeViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsState()
@@ -123,6 +125,8 @@ fun HomeScreen(
         onBalanceDetails = onBalanceDetails,
         onAcademy = onAcademy,
         onTransaction = onTransaction,
+        profitPill = profitPill,
+        onProfit = onProfit,
         modifier = modifier,
     )
 }
@@ -151,6 +155,8 @@ internal fun HomeScreen(
     onAcademy: () -> Unit,
     modifier: Modifier = Modifier,
     onTransaction: (String) -> Unit = {},
+    profitPill: ProfitPill? = null,
+    onProfit: () -> Unit = {},
 ) {
     alert?.let {
         BittrAlertDialog(
@@ -184,6 +190,8 @@ internal fun HomeScreen(
             onBuy = onBuy,
             onSyncStatus = guarded(onBalanceDetails),
             onBalanceCard = guarded(onBalanceDetails),
+            profitPill = profitPill,
+            onProfit = onProfit,
         )
 
         if (state.history.isNotEmpty()) {
@@ -249,6 +257,8 @@ private fun HomeHeader(
     onBuy: () -> Unit,
     onSyncStatus: () -> Unit,
     onBalanceCard: () -> Unit = onSyncStatus,
+    profitPill: ProfitPill? = null,
+    onProfit: () -> Unit = {},
 ) {
     val colors = BittrTheme.colors
     CompositionLocalProvider(LocalContentColor provides colors.onCanvas) {
@@ -343,6 +353,11 @@ private fun HomeHeader(
                                 .testTag(TestID.Home.balanceCardButton),
                         )
                         BalanceLabel(balance = balanceText(balanceSats), dimmedColor = colors.balanceDimmed)
+                    }
+                    // `balanceCardProfitView` — shown with the balance, once profits are known.
+                    if (profitPill != null) {
+                        CanvasSpacer(BittrTokens.Spacing.sm)
+                        ProfitPillView(pill = profitPill, onClick = onProfit)
                     }
                 }
 

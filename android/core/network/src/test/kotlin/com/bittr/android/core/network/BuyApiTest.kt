@@ -18,13 +18,24 @@ class BuyApiTest {
         Json.parseToJsonElement(requireNotNull(request.jsonBody)) as JsonObject
 
     @Test
+    fun `verify email rejects only an explicit failure with a message, whatever the status`() {
+        assertEquals(
+            EmailVerification.Outcome.Rejected("Invalid IBAN"),
+            EmailVerificationAnswer.parse(HttpResponse(400, """{"success":false,"message":"Invalid IBAN"}""")),
+        )
+        assertEquals(EmailVerification.Outcome.Accepted, EmailVerificationAnswer.parse(HttpResponse(200, """{"success":false}""")))
+        assertEquals(EmailVerification.Outcome.Accepted, EmailVerificationAnswer.parse(HttpResponse(500, "{}")))
+        assertNull(EmailVerificationAnswer.parse(HttpResponse(502, "bad gateway")))
+    }
+
+    @Test
     fun `check2fa sends the trimmed code and the pubkey only when there is one`() {
         val withNode = bodyOf(EmailCheck2fa.request(env, "a@b.com", " 123456 ", "02abc"))
         assertEquals(JsonPrimitive("a@b.com"), withNode["email_address"])
         assertEquals(JsonPrimitive("123456"), withNode["token_2fa"])
         assertEquals(JsonPrimitive("02abc"), withNode["lightning_pubkey"])
         assertFalse(bodyOf(EmailCheck2fa.request(env, "a@b.com", "1", null)).containsKey("lightning_pubkey"))
-        assertEquals("https://staging.getbittr.com/api/verify/email/check2fa", EmailCheck2fa.request(env, "a", "b", null).url)
+        assertEquals(env.url("verify/email/check2fa"), EmailCheck2fa.request(env, "a", "b", null).url)
     }
 
     @Test
@@ -62,7 +73,7 @@ class BuyApiTest {
         val request = DepositCodeFetch.request(env, signed)
         assertEquals(HttpMethod.GET, request.method)
         assertEquals(
-            "https://staging.getbittr.com/api/deposit_code?timestamp=1700000000&signature=sig%2B%2F%3D&pubkey=02abc",
+            env.url("deposit_code") + "?timestamp=1700000000&signature=sig%2B%2F%3D&pubkey=02abc",
             request.url,
         )
         assertEquals(

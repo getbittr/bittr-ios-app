@@ -27,6 +27,25 @@ private fun objectOf(response: HttpResponse): JsonObject? = BittrEnvelope.parse(
 private fun q(value: String): String = URLEncoder.encode(value, "UTF-8")
 
 /**
+ * `POST /verify/email`, read the way `didSendDetailsToBittr` (`Transfer1ViewController.swift:404-436`)
+ * reads it: any JSON body is an answer, and only `success: false` *with* a `message` rejects. The
+ * request is [EmailVerification.request].
+ */
+object EmailVerificationAnswer {
+
+    /** Null when the body is not a JSON object — iOS's `bittrsignupfail4`. */
+    fun parse(response: HttpResponse): EmailVerification.Outcome? {
+        val root = objectOf(response) ?: return null
+        val message = BittrEnvelope.message(root)
+        return if (BittrEnvelope.isExplicitFailure(root) && message != null) {
+            EmailVerification.Outcome.Rejected(message)
+        } else {
+            EmailVerification.Outcome.Accepted
+        }
+    }
+}
+
+/**
  * `POST /verify/email/check2fa` — `Transfer2ViewController.sendCodeToBittr` (`:216-289`).
  */
 object EmailCheck2fa {

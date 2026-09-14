@@ -1,0 +1,106 @@
+package com.bittr.android.buy
+
+import com.bittr.android.core.network.BittrCustomerStore
+import com.bittr.android.core.network.BittrEnvironment
+import com.bittr.android.core.network.BittrRequestSigner
+import com.bittr.android.core.network.HttpClient
+import com.bittr.android.core.network.HttpTransportException
+import com.bittr.android.core.network.TransactionInfo
+import com.bittr.android.core.preferences.AppPreferences
+import com.bittr.android.core.preferences.Currency
+import com.bittr.android.core.wallet.WalletOverviewSource
+import com.bittr.android.feature.buy.ProfitCalculator
+import com.bittr.android.feature.buy.ProfitSummary
+import com.bittr.android.feature.buy.PurchaseForProfit
+import com.bittr.android.receive.BitcoinPriceSource
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.filter
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
+
+/**
+ * Home's profit pill and the Profits screen — `getBittrTransactionDetails()` and
+ * `calculateProfit()` from `LoadWalletData.swift`.
+ *
+ * Each time the wallet overview publishes a new set of transactions, the received ones not yet
+ * sent to bittr are sent to `GET /transaction_info`; the purchases it confirms are stored, and
+ * the summary is recomputed from them at today's prices.
+ */
+class AppProfits(
+    private val store: BittrCustomerStore,
+    private val overview: WalletOverviewSource,
+    private val prices: BitcoinPriceSource,
+    private val preferences: AppPreferences,
+    private val http: HttpClient,
+    private val environment: BittrEnvironment,
+    private val signer: BittrRequestSigner,
+    private val scope: CoroutineScope,
+) {
+
+    private val _summary = MutableStateFlow<ProfitSummary?>(null)
+
+    /** Null until the wallet has synced and a price has been read. */
+    val summary: StateFlow<ProfitSummary?> = _summary.asStateFlow()
+
+    private val lookup = Mutex()
+
+    fun start() {
+        scope.launch {
+            overview.overview
+                .filter { it.hasSynced }
+                .map { snapshot -> snapshot.transactions.map { it.id } }
+                .distinctUntilChanged()
+                .collect { lookUpPurchases() }
+        }
+        scope.launch {
+            combine(overview.overview, store.purchases, preferences.currency) { snapshot, _, _ -> snapshot }
+                .filter { it.hasSynced }
+                .collect { recalculate() }
+        }
+    }
+
+    private suspend fun lookUpPurchases() = lookup.withLock {
+        val depositCodes = store.depositCodes()
+        if (depositCodes.isEmpty()) return@withLock
+        val sent = store.sentToBittr()
+        val txIds = overview.overview.value.transactions
+            .filter { it.receivedSats > 0 && it.netSats > 0 && it.id !in sent }
+            .map { it.id }
+        if (txIds.isEmpty()) return@withLock
+        val pubkey = signer.pubkey() ?: return@withLock
+        val signature = signer.sign(TransactionInfo.message(txIds, depositCodes)) ?: return@withLock
+        val response = try {
+            http.execute(TransactionInfo.request(environment, txIds, depositCodes, pubkey, signature))
+        } catch (e: HttpTransportException) {
+            return@withLock
+        }
+        val rows = TransactionInfo.parse(response) ?: return@withLock
+        store.addSentToBittr(txIds)
+        if (rows.isNotEmpty()) store.addPurchases(rows)
+    }
+
+    private suspend fun recalculate() {
+        val purchases = store.purchases.value
+        val transactions = overview.overview.value.transactions
+        val chosen = preferences.currency.value
+        val eur = prices.price(Currency.EUR)
+        val chf = prices.price(Currency.CHF)
+        val chosenPrice = (if (chosen == Currency.EUR) eur else chf) ?: return
+        val inputs = transactions.mapNotNull { tx ->
+            val purchase = purchases[tx.id] ?: return@mapNotNull null
+            PurchaseForProfit(
+                receivedBtc = tx.receivedSats / 100_000_000.0,
+                currency = purchase.currency,
+                fiatNetAmount = purchase.fiatAmountNet ?: 0.0,
+            )
+        }
+        _summary.value = ProfitCalculator.summarise(inputs, chosen.symbol, chosenPrice, eur, chf)
+    }
+}

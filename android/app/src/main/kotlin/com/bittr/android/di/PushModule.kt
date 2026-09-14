@@ -2,6 +2,7 @@ package com.bittr.android.di
 
 import android.content.Context
 import com.bittr.android.BuildConfig
+import com.bittr.android.core.network.BittrCustomerStore
 import com.bittr.android.core.network.BittrEnvironment
 import com.bittr.android.core.network.BittrRequestSigner
 import com.bittr.android.core.network.BoltzWebhookCache
@@ -114,6 +115,7 @@ object PushModule {
         tokenCache: DeviceTokenCache,
         webhookCache: BoltzWebhookCache,
         budget: DeviceTokenRetryBudget,
+        customers: BittrCustomerStore,
     ): DeviceTokenLifecycle = DeviceTokenLifecycle(
         environment = environment,
         httpClient = httpClient,
@@ -123,7 +125,8 @@ object PushModule {
         webhookCache = webhookCache,
         budget = budget,
         clock = UnixClock.System,
-        depositCode = { null },
+        // The first non-empty deposit code, as iOS picks it; null until Buy signup completes.
+        depositCode = { customers.firstDepositCode() },
     )
 
     @Provides

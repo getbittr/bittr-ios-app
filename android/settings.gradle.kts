@@ -148,3 +148,4 @@ include(":feature:receive")
 // Send (ios/bittr/Move, Send, Receive/SendVC) — on-chain and Lightning, with the confirm
 // page. :app implements SendSource over the engine.
 include(":feature:send")
+include(":feature:buy")
