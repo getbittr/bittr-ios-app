@@ -39,6 +39,7 @@ import com.bittr.android.core.designsystem.BittrIconPaths
 import com.bittr.android.core.designsystem.BittrModalHeader
 import com.bittr.android.core.designsystem.BittrTheme
 import com.bittr.android.core.designsystem.BittrTokens
+import com.bittr.android.core.designsystem.dismissOnPullDown
 import com.bittr.android.core.designsystem.rememberStrokeIcon
 import com.bittr.android.core.wallet.FiatPrice
 import com.bittr.android.core.wallet.FiatPriceSource
@@ -118,6 +119,8 @@ fun MoveScreen(
     onReceive: () -> Unit,
     onLightningQuestion: () -> Unit,
     modifier: Modifier = Modifier,
+    // `MoveToSwap`, once there is a channel to swap with.
+    onSwap: () -> Unit = {},
     viewModel: MoveViewModel = hiltViewModel(),
 ) {
     val balances by viewModel.balances.collectAsState()
@@ -128,7 +131,8 @@ fun MoveScreen(
 
     alert?.let { (text, buttons) -> BittrAlert(title = text.first, message = text.second, buttons = buttons) }
 
-    BittrCanvas(modifier = modifier, appBar = false) {
+    // Pulled down, the sheet closes — the swipe the swap flows use to leave it.
+    BittrCanvas(modifier = modifier.dismissOnPullDown(onDown), appBar = false) {
         BittrModalHeader(
             title = HomeStrings.BALANCE,
             onDown = onDown,
@@ -190,7 +194,7 @@ fun MoveScreen(
                             if (balances.channelCount == 0) {
                                 okay(HomeStrings.INSTANT_PAYMENTS, HomeStrings.QUESTION_VC_13)
                             } else {
-                                okay(HomeStrings.SWAP, HomeStrings.SWAP_NOT_ON_ANDROID)
+                                onSwap()
                             }
                         }
                     }

@@ -30,6 +30,12 @@ data class SendAlert(
 sealed interface SendEffect {
     data class OpenTransaction(val id: String) : SendEffect
     data object OpenLightningQuestion : SendEffect
+
+    /** Swap & Pay: Lightning cannot cover [invoice], the on-chain balance can (`swapAndPayLightning`). */
+    data class SwapAndPayInvoice(val invoice: String, val amountSats: Long) : SendEffect
+
+    /** Swap & Pay: the on-chain balance cannot cover the payment, Lightning can (`swapAndPayOnchain`). */
+    data class SwapAndPayAddress(val address: String, val amountSats: Long) : SendEffect
 }
 
 /**
@@ -403,7 +409,26 @@ class SendController(
             if (sats == null) return@launch stopNext()
             if (sats <= 0) return@launch stopNext(okay(SendStrings.OOPS, SendStrings.ENTER_AMOUNT))
             val spendable = source.onchainSpendableSats()
-            if (sats > spendable) return@launch stopNext(okay(SendStrings.OOPS, SendStrings.SPENDABLE_BALANCE))
+            if (sats > spendable) {
+                // `checkSendOnchain`: offer Swap & Pay when Lightning could cover it instead.
+                val lightning = source.lightningSendableSats()
+                val requested: Long = sats
+                if (lightning >= requested) {
+                    return@launch stopNext(
+                        SendAlert(
+                            title = SendStrings.INSUFFICIENT_FUNDS,
+                            message = SendMath.plain(SendStrings.ONCHAIN_INSUFFICIENT_FUNDS).replace("<amount>", SendMath.group(spendable)) +
+                                "\n\n" + SendMath.plain(SendStrings.SWAP_INSUFFICIENT_FUNDS_LIGHTNING).replace("<amount>", SendMath.group(lightning)),
+                            buttons = listOf(
+                                // `cancelSwapOffer` clears the amount.
+                                SendAlertButton(SendStrings.CANCEL) { _state.update { it.copy(amountText = "") } },
+                                SendAlertButton(SendStrings.SWAP_AND_PAY) { _effects.tryEmit(SendEffect.SwapAndPayAddress(address, requested)) },
+                            ),
+                        ),
+                    )
+                }
+                return@launch stopNext(okay(SendStrings.OOPS, SendStrings.SPENDABLE_BALANCE))
+            }
 
             val estimates = source.feeEstimates()
                 ?: return@launch stopNext(okay(SendStrings.OOPS, "${SendStrings.CANNOT_PROCEED}. Error: Couldn't fetch recommended fees."))
@@ -495,7 +520,23 @@ class SendController(
             }
             val sendable = source.lightningSendableSats()
             if (sats > sendable) {
-                raise(okay(SendStrings.INSUFFICIENT_FUNDS, SendMath.plain(SendStrings.LIGHTNING_INSUFFICIENT_FUNDS).replace("<amount>", SendMath.group(sendable))))
+                val lightningShort = SendMath.plain(SendStrings.LIGHTNING_INSUFFICIENT_FUNDS).replace("<amount>", SendMath.group(sendable))
+                // `checkAvailableOnchainBalance`: offer Swap & Pay when the on-chain balance could cover it.
+                val onchain = source.onchainSpendableSats()
+                if (onchain >= sats) {
+                    raise(
+                        SendAlert(
+                            title = SendStrings.INSUFFICIENT_FUNDS,
+                            message = lightningShort + "\n\n" + SendMath.plain(SendStrings.SWAP_INSUFFICIENT_FUNDS).replace("<amount>", SendMath.group(onchain)),
+                            buttons = listOf(
+                                SendAlertButton(SendStrings.CANCEL),
+                                SendAlertButton(SendStrings.SWAP_AND_PAY) { _effects.tryEmit(SendEffect.SwapAndPayInvoice(destination.invoice, sats)) },
+                            ),
+                        ),
+                    )
+                } else {
+                    raise(okay(SendStrings.INSUFFICIENT_FUNDS, lightningShort))
+                }
                 return@launch
             }
             val symbol = source.fiatCurrency().symbol

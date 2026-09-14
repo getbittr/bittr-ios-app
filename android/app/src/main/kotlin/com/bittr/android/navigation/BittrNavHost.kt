@@ -276,6 +276,12 @@ fun BittrNavHost(
                 onOpenScanner = { navController.navigate(Routes.SCANNER) },
                 onOpenTransaction = { id -> navController.navigate(Routes.transaction(id)) },
                 onOpenLightningQuestion = { navController.navigate(Routes.SEND_QUESTION) },
+                // iOS closes Send before opening the swap for an invoice (`swapAndPayLightning`), and
+                // pushes the swap over Send for an on-chain payment (`SendToSwap`).
+                onSwapAndPayInvoice = { invoice, amount ->
+                    navController.navigate(SwapRoutes.payInvoice(invoice, amount)) { popUpTo(Routes.SEND) { inclusive = true } }
+                },
+                onSwapAndPayAddress = { address, amount -> navController.navigate(SwapRoutes.payAddress(address, amount)) },
                 scanned = scanned,
                 onScannedConsumed = { ScannerResult.consume(entry.savedStateHandle) },
             )
@@ -288,8 +294,11 @@ fun BittrNavHost(
                 onReceive = { navController.navigate(Routes.RECEIVE) },
                 // The same lightning-connections card Device details opens.
                 onLightningQuestion = { navController.navigate(Routes.LIGHTNING_QUESTION) },
+                onSwap = { navController.navigate(SwapRoutes.swap()) },
             )
         }
+
+        swapArea(navController)
 
         composable(Routes.SEND_QUESTION) {
             SendQuestionScreen(onDown = { navController.popBackStack() })

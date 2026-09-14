@@ -122,7 +122,19 @@ class SwapCoordinator(
         return SwapLimit(SwapAmounts.maxOnchainToLightning(drain.sendableSats, api.feeQuote(reverse = false), space))
     }
 
-    /** `nextTapped` and everything up to the fees alert: create the swap at Boltz, check it, price it. */
+    fun onchainReady(): Boolean = wallet.onchainReady()
+
+    /** `awaitBdkScan`: false when the scan failed or ran out of time. */
+    suspend fun awaitOnchainReady(): Boolean = wallet.awaitOnchainReady()
+
+    /**
+     * `nextTapped` and everything up to the fees alert: create the swap at Boltz, check it, price it.
+     *
+     * A [SwapRequest.suggested] swap skips the screen's amount checks, as iOS's
+     * `startSuggestedOnchainToLightningSwap` and `handlePendingOnchainPayment` go straight to
+     * `SwapManager` without `nextTapped`: Swap & Pay is offered precisely when there may be no
+     * channel to measure the amount against.
+     */
     suspend fun prepare(request: SwapRequest): SwapPreparation {
         if (request.direction == SwapDirection.OnchainToLightning && !wallet.onchainReady()) {
             return refused(SwapCopy.SYNCING, SwapCopy.AWAITING_BDK_SYNC)
@@ -131,10 +143,12 @@ class SwapCoordinator(
         if (amount <= 0) return refused(SwapCopy.SWAP_FUNDS, SwapCopy.ENTER_AMOUNT_OF_SATOSHIS)
 
         val maxAmount = (wallet.activeChannel()?.inboundHtlcMaximumMsat ?: 0L) / 1000
-        if (amount > maxAmount) return refused(SwapCopy.SWAP_FUNDS, SwapCopy.AMOUNT_EXCEEDED.replace("<amount>", "$maxAmount"))
+        if (!request.suggested && amount > maxAmount) return refused(SwapCopy.SWAP_FUNDS, SwapCopy.AMOUNT_EXCEEDED.replace("<amount>", "$maxAmount"))
 
         var drain = false
-        if (request.direction == SwapDirection.OnchainToLightning && request.maxOnchainToLightning != null && amount >= request.maxOnchainToLightning) {
+        if (request.suggested) {
+            // Straight to Boltz.
+        } else if (request.direction == SwapDirection.OnchainToLightning && request.maxOnchainToLightning != null && amount >= request.maxOnchainToLightning) {
             // At or above the maximum: drain the whole on-chain balance to Boltz.
             amount = request.maxOnchainToLightning
             drain = true

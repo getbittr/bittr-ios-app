@@ -42,7 +42,7 @@ class BoltzApiTest {
     fun `a submarine swap is created with iOS's body and read from iOS's example answer`() = runTest {
         val example = """{"bip21":"bitcoin:bcrt1p…","acceptZeroConf":false,"expectedAmount":50352,"id":"ChTExx2srRLT","address":"bcrt1pfalvfpkhtha6qmxmkgvljnajnc2hvl2c828euxh5679e302gk9wsh3e9af","swapTree":{"claimLeaf":{"version":192,"output":"a914ed96"},"refundLeaf":{"version":192,"output":"2004cac3"}},"claimPublicKey":"03611b80","timeoutBlockHeight":479}"""
         val (http, boltz) = api { HttpResponse(201, example) }
-        val created = boltz.createSubmarine("lnbcrt1", "02ab", "https://staging.getbittr.com/api/boltz/webhook/x")
+        val created = boltz.createSubmarine("lnbcrt1", "02ab", "https://hooks.example/boltz/webhook/x")
         assertEquals(SubmarineCreated("ChTExx2srRLT", "bcrt1pfalvfpkhtha6qmxmkgvljnajnc2hvl2c828euxh5679e302gk9wsh3e9af", 50_352, "03611b80", "a914ed96", "2004cac3"), created)
 
         val body = Json.parseToJsonElement(http.requests.single().jsonBody!!).jsonObject

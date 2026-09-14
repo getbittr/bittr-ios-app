@@ -76,11 +76,15 @@ fun SendRoute(
     scanned: Destination?,
     onScannedConsumed: () -> Unit,
     modifier: Modifier = Modifier,
+    onSwapAndPayInvoice: (invoice: String, amountSats: Long) -> Unit = { _, _ -> },
+    onSwapAndPayAddress: (address: String, amountSats: Long) -> Unit = { _, _ -> },
 ) {
     val scope = rememberCoroutineScope()
     val controller = remember(source) { SendController(source, scope) }
     val openTransaction by rememberUpdatedState(onOpenTransaction)
     val openQuestion by rememberUpdatedState(onOpenLightningQuestion)
+    val swapInvoice by rememberUpdatedState(onSwapAndPayInvoice)
+    val swapAddress by rememberUpdatedState(onSwapAndPayAddress)
 
     LaunchedEffect(controller) {
         controller.start()
@@ -88,6 +92,8 @@ fun SendRoute(
             when (effect) {
                 is SendEffect.OpenTransaction -> openTransaction(effect.id)
                 SendEffect.OpenLightningQuestion -> openQuestion()
+                is SendEffect.SwapAndPayInvoice -> swapInvoice(effect.invoice, effect.amountSats)
+                is SendEffect.SwapAndPayAddress -> swapAddress(effect.address, effect.amountSats)
             }
         }
     }

@@ -548,6 +548,11 @@ dependencies {
     implementation(project(":feature:receive"))
     // Send (ios/bittr/Move, Send, Receive/SendVC). :app implements its SendSource.
     implementation(project(":feature:send"))
+    // Swaps (ios/bittr/Swaps). :app implements SwapWallet and the Boltz websocket, which is
+    // why OkHttp is named here directly: the websocket is Boltz's, not the bittr API's.
+    implementation(project(":core:swaps"))
+    implementation(project(":feature:swap"))
+    implementation(libs.okhttp)
 
     // BIT-41 item 1. :core:network holds BittrEnvironment, which BittrNavHost reads
     // out of BuildConfig and hands down — the same shape as BitcoinNetwork above it.

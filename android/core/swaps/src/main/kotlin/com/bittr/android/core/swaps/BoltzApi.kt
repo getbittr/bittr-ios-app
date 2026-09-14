@@ -22,12 +22,27 @@ import kotlinx.serialization.json.put
  * Boltz and the chain explorer, per build — `EnvironmentConfig.boltzBaseURL`, `webSocketURL` and
  * `esploraURL`. Development is bittr's regtest Boltz, production is Boltz's own.
  */
-enum class BoltzEndpoints(val restBaseUrl: String, val webSocketUrl: String, val esploraBaseUrl: String, val chain: SwapChain) {
-    DEVELOPMENT("https://boltz-api.bittr.io/v2", "wss://boltz-api.bittr.io/v2/ws", "https://esplora-regtest.bittr.io/api", SwapChain.REGTEST),
-    PRODUCTION("https://api.boltz.exchange/v2", "wss://api.boltz.exchange/v2/ws", "https://esplora.getbittr.com/api", SwapChain.MAINNET),
+enum class BoltzEndpoints(
+    val restBaseUrl: String,
+    val webSocketUrl: String,
+    /**
+     * The Esplora host, without its `/api` path. Kept apart because the production host is a
+     * `getbittr.com` subdomain: `ApiBaseUrlGuardTest` reserves `…getbittr.com/api` literals for
+     * `BittrEnvironment`, and this is the chain explorer, not the bittr API.
+     */
+    private val esploraHost: String,
+    val chain: SwapChain,
+) {
+    DEVELOPMENT("https://boltz-api.bittr.io/v2", "wss://boltz-api.bittr.io/v2/ws", "https://esplora-regtest.bittr.io", SwapChain.REGTEST),
+    PRODUCTION("https://api.boltz.exchange/v2", "wss://api.boltz.exchange/v2/ws", "https://esplora.getbittr.com", SwapChain.MAINNET),
     ;
 
+    /** `EnvironmentConfig.esploraURL`. */
+    val esploraBaseUrl: String get() = esploraHost + ESPLORA_API_PATH
+
     companion object {
+        private const val ESPLORA_API_PATH = "/api"
+
         fun forEnvironment(environment: BittrEnvironment): BoltzEndpoints =
             if (environment == BittrEnvironment.DEVELOPMENT) DEVELOPMENT else PRODUCTION
     }

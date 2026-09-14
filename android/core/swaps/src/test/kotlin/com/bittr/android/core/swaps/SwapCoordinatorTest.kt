@@ -83,7 +83,7 @@ class SwapCoordinatorTest {
 
     private class Gate(var token: String? = "fcm-token") : SwapPushGate {
         override suspend fun deviceToken() = token
-        override suspend fun webhookUrl() = "https://staging.getbittr.com/api/boltz/webhook/signed"
+        override suspend fun webhookUrl() = "https://hooks.example/boltz/webhook/signed"
     }
 
     /** A Boltz that builds real lockups from the keys it is sent and co-signs the claim. */
