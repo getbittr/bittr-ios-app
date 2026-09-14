@@ -3,6 +3,17 @@ plugins {
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.ksp)
     alias(libs.plugins.hilt)
+    // BIT-41 item 3. Reads src/<buildType>/google-services.json and generates the
+    // string resources FirebaseApp.initializeApp picks up from the manifest's
+    // auto-init provider — the API key, the project number and the mobilesdk_app_id.
+    //
+    // Applied to :app and to nothing else, because it is keyed on applicationId and a
+    // library module has none. It also fails the build when the file's package_name
+    // does not match the variant's applicationId, which is a second line of defence
+    // behind GoogleServicesConfigTest and catches the case that test cannot: a debug
+    // build pointed at the bittr-prod project would otherwise mint tokens against the
+    // wrong Firebase project and silently never receive a regtest push.
+    alias(libs.plugins.google.services)
 }
 
 android {
@@ -217,6 +228,13 @@ dependencies {
     // one dependency block.
     implementation(project(":core:network"))
     implementation(project(":core:network-okhttp"))
+
+    // BIT-41 item 3. :core:push-fcm brings :core:push and :core:network with it (both
+    // `api` there), contributes the <service> entry to the merged manifest, and is the
+    // only path by which com.google.firebase reaches this classpath —
+    // FirebaseMessagingGuardTest asserts that, the same way MapSdkGuardTest does for
+    // the renderer.
+    implementation(project(":core:push-fcm"))
 
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)

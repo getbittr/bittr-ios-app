@@ -212,6 +212,10 @@ class DeviceTokenLifecycleTest {
             result,
         )
         assertTrue(client.requests.isEmpty())
+        // The assertion that matters, and the one the obvious ordering gets wrong: the budget
+        // bounds attempts against the endpoint, and this request was never built. Charging it
+        // would spend the session's three on the seconds before the wallet came up.
+        assertEquals(0, budget.attemptsInSession)
     }
 
     /** `onNewToken` posts unconditionally — FCM only calls it when the value changed. */

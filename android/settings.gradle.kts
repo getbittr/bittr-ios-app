@@ -80,6 +80,12 @@ include(":core:wallet-keystore")
 // RemoteMessage.getData() and gets a PushEnvelope back; everything between those two
 // points runs as a JVM unit test.
 include(":core:push")
+// The one module allowed to reach Firebase (BIT-41 item 3). Same split as
+// :core:network / :core:network-okhttp: :core:push decides what a payload means and is
+// provable on the JVM, while this holds the FirebaseMessagingService that cannot be —
+// and holds nothing else, so the boundary keeps "which code can reach Firebase"
+// answerable from one build file. See FirebaseMessagingGuardTest in :app.
+include(":core:push-fcm")
 
 // The network seam (BIT-41 item 1), split on the same line :core:wallet is:
 // :core:network is pure Kotlin and holds every *decision* a request embodies — which

@@ -274,18 +274,24 @@ class DeviceTokenLifecycle(
         // doing it anyway would put a request on the wire during signup for no reason.
         val isRotation = tokenCache.acknowledgedToken()?.let { it != token } ?: false
 
+        // Signing comes first, and the order is the rule rather than an implementation detail:
+        // §2.3 rule 2's budget bounds attempts *against the endpoint*, and a request that was
+        // never built never reached it. The node syncs asynchronously after launch — iOS guards
+        // on exactly this at `BuyViewController.swift:330` and `SwapManager.swift:86` — so a
+        // launch-time sync can easily find no key. Charging that to the budget would spend the
+        // session's three attempts on the seconds before the wallet came up, and §4.3 makes the
+        // remaining attempts the thing standing between the customer and an unwanted downgrade.
+        val signed = signer.signRequest(clock.nowSeconds()) { pubkey, timestamp ->
+            DeviceTokenPatch.message(pubkey, code, token, timestamp)
+        } ?: return DeviceTokenSyncResult.NotAttempted(
+            DeviceTokenSyncResult.NotAttempted.Reason.WALLET_NOT_READY,
+        )
+
         if (!budget.tryConsume()) {
             return DeviceTokenSyncResult.NotAttempted(
                 DeviceTokenSyncResult.NotAttempted.Reason.BUDGET_SPENT,
             )
         }
-
-        val now = clock.nowSeconds()
-        val signed = signer.signRequest(now) { pubkey, timestamp ->
-            DeviceTokenPatch.message(pubkey, code, token, timestamp)
-        } ?: return DeviceTokenSyncResult.NotAttempted(
-            DeviceTokenSyncResult.NotAttempted.Reason.WALLET_NOT_READY,
-        )
 
         val result = execute(DeviceTokenPatch.request(environment, code, token, signed)) {
             DeviceTokenPatch.parse(it)
@@ -339,6 +345,12 @@ class DeviceTokenLifecycle(
         allowed: Boolean,
     ): DeviceTokenSyncResult? {
         if (!allowed || action.retry != PushChannelAction.Retry.FRESH_TOKEN) return null
+        // Note what the recursive call will and will not do about the Boltz URL. The caller has
+        // already cleared the acknowledgement, so the retry does not read as a rotation and does
+        // not re-mint. That is the right outcome and not an oversight: the caller also already
+        // *cleared* the cached URL, and an empty cache is a fully working state — the next swap
+        // mints one against a backend that by then holds the fresh token. Re-minting here would
+        // put a request on the wire to save that one round trip.
         tokenSource.invalidate()
         val fresh = tokenSource.current()?.takeIf { it != rejectedToken } ?: return null
         return when (val retried = post(fresh, force = true, allowFreshTokenRecovery = false)) {

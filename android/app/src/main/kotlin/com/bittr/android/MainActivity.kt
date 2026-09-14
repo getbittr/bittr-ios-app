@@ -15,13 +15,16 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.testTagsAsResourceId
+import androidx.lifecycle.lifecycleScope
 import com.bittr.android.core.common.TestID
 import com.bittr.android.core.designsystem.BittrTheme
+import com.bittr.android.core.network.DeviceTokenLifecycle
 import com.bittr.android.core.preferences.AppPreferences
 import com.bittr.android.core.preferences.DarkModeSetting
 import com.bittr.android.navigation.BittrNavHost
 import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
+import kotlinx.coroutines.launch
 
 /**
  * The single Activity. Navigation is Compose Navigation inside it — see
@@ -38,6 +41,37 @@ class MainActivity : ComponentActivity() {
      */
     @Inject
     lateinit var preferences: AppPreferences
+
+    /**
+     * BIT-41 item 5's second entry point — the one `onNewToken` cannot cover.
+     *
+     * FCM delivers `onNewToken` at most once, to a process that may not exist. A token rotated
+     * during a restore, a data clear or a long idle period therefore produces no callback at
+     * all, and without this reconciliation the customer's payout route would die at the first
+     * rotation they were not watching, permanently and silently.
+     */
+    @Inject
+    lateinit var deviceTokens: DeviceTokenLifecycle
+
+    /**
+     * `api-contract` §2.3 rule 2's per-foreground reset, plus the reconciliation above.
+     *
+     * Hung off the activity rather than off `ProcessLifecycleOwner`, which would be the more
+     * literal reading of "app foreground". This is a single-activity app — `MainActivity` is the
+     * only `<activity>` in the manifest — so its `ON_START` *is* the process coming to the
+     * foreground, and the alternative is an `androidx.lifecycle:lifecycle-process` dependency
+     * for a distinction this app cannot currently express. Revisit if a second activity ever
+     * lands.
+     *
+     * The reconciliation is launched rather than awaited: it does network work, and blocking
+     * `onStart` on it would delay the first frame behind a call that is allowed to take as long
+     * as a socket timeout. `lifecycleScope` cancels it if the activity goes away.
+     */
+    override fun onStart() {
+        super.onStart()
+        deviceTokens.onAppForegrounded()
+        lifecycleScope.launch { deviceTokens.syncOnAppStart() }
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
