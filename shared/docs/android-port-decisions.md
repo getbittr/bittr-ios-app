@@ -76,6 +76,21 @@ Status key: **Decided** (done, reversible) · **Question** (needs your answer) �
     channel branch of `remove_wallet.yaml` / `forgot_pin_remove_wallet.yaml` dismisses) needs LDK's
     `ChannelClosed` event to reach the UI. It comes with the notifications/events work.
 
+## Notifications (merged from `port/notifications`)
+
+Full log: `android/docs/port-specs/notifications-decisions.md`. The two that need you:
+
+18. **Question — new copy.** On the "channel full" payout alert, "Swap & Instant Receive" shows "Swapping isn't
+    available in the Android app yet…" until the swaps port provides a swap screen. This goes away once swaps
+    are merged. Until then, approve the copy or hide the button?
+
+19. **Question — "arrived while locked" flag.** iOS never resets `wasNotified`, so after one push arrives while
+    the app is locked, every later push skips the "you're receiving a payment" alert until the app is relaunched.
+    Android resets it after each payout or HTLC. Keep that, or copy iOS?
+
+20. **Decided — pushes are tested on Android through a debug-only broadcast receiver.** Start
+    `BITTR_PUSH_PLATFORM=android node shared/flows/scripts/push_server.js` and the flows run unchanged.
+
 ## Test environment
 
 9. **Decided — local emulator runs with `-memory 4096 -cores 6 -camera-back none`.** With the AVD's 4 cores /
