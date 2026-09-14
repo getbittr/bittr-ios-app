@@ -28,7 +28,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # Pinned rather than :latest so a rebuild three months from now is the same
 # pipeline with newer data, instead of two variables moving at once.
-PLANETILER_VERSION="v0.9.2"
+PLANETILER_VERSION="v0.10.2"
 PMTILES_VERSION="1.31.2"
 
 # Geofabrik regions covering Switzerland and everything within 25 km of its
@@ -58,6 +58,7 @@ need java
 need osmium        # Debian/Ubuntu: apt-get install osmium-tool
 need python3       # with shapely and pyproj: apt-get install python3-shapely python3-pyproj
 need curl
+need unzip         # for the glyph set
 
 step() { printf '\n=== %s\n' "$1"; }
 
@@ -116,11 +117,21 @@ java -Xmx3g -jar "$BIN_DIR/planetiler.jar" \
   --download --force
 
 step "render z0-z5 (planet)"
-# Natural Earth and the global water-polygon shapefile carry this band; both are
-# planet-wide regardless of which OSM extract is fed in. The OSM input is only
-# here because planetiler requires one.
+# Natural Earth and the global water-polygon shapefile carry the planet-wide part
+# of this band: coastlines, water, landcover, and country boundaries through z4.
+#
+# The same merged extract is fed in here rather than a token one, and that is not
+# arbitrary. The openmaptiles profile takes the `place` layer from OSM and uses
+# Natural Earth's populated places only to *rank* what OSM already gave it, so
+# "no OSM here" means "no city name here". Built against a token input, the world
+# band came out with no city labels anywhere at all. Feeding it the real extract
+# costs nothing and puts names on the part of the world these users pan around.
+#
+# What that still does not buy, measured rather than assumed: country boundaries
+# outside the extract stop at z4, because the profile switches the boundary layer
+# from Natural Earth to OSM at z5. See section 1 of the document.
 java -Xmx3g -jar "$BIN_DIR/planetiler.jar" \
-  --osm-path="$OSM_DIR/liechtenstein.osm.pbf" \
+  --osm-path="$WORKDIR/ch-buffer-25km.osm.pbf" \
   --output="$WORKDIR/low.mbtiles" \
   --bounds=world \
   --minzoom=0 --maxzoom=5 \

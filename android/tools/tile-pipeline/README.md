@@ -8,6 +8,7 @@ The pipeline behind `android/docs/tile-pipeline.md`. That document decides *what
 | `build-basemap.sh` | End to end: download, clip, render, merge, convert. Produces `ch.pmtiles` |
 | `make-buffer.py` | Switzerland + 25 km, in metres, as GeoJSON (for osmium) and `.poly` (for planetiler) |
 | `merge-mbtiles.py` | Joins the z0–z5 planet pass to the z6–z14 Switzerland pass |
+| `inspect-tile.py` | Reads layer names and feature counts out of given tiles — how the claims in §1 were checked rather than assumed |
 
 **The archive is not checked in and never should be.** It is gigabytes and it is
 regenerable; §4 of the document asks for a quarterly rebuild, which a committed blob
@@ -30,6 +31,25 @@ The upstream extracts move, so two builds a quarter apart are not byte-identical
 are not meant to be. What is pinned is the *pipeline* — planetiler and `pmtiles`
 versions, the region list, the buffer distance and the zoom split — so that a
 difference between two archives is a difference in OSM, not in how it was rendered.
+
+## Check the output before deploying it
+
+A PMTiles archive of the right size is not the same as an archive of the right
+*contents*, and the two failures look identical from the outside. `inspect-tile.py`
+reads the layers back out:
+
+```sh
+# Switzerland at z14, then the world band well away from the extract
+python3 inspect-tile.py combined.mbtiles 14 8590 5745
+python3 inspect-tile.py combined.mbtiles 4 3 6 4 14 6 3 7 4
+```
+
+What the world band contains is worth knowing before someone reports it as a bug:
+coastlines, water and landcover everywhere; country boundaries everywhere through
+z4, and from z5 only where the OSM extract reaches; city names only where the OSM
+extract reaches. That last one is a property of the schema, not of this pipeline —
+the profile derives `place` from OSM and uses Natural Earth only to rank it. §1 of
+the document records the same thing.
 
 ## Deploy
 
