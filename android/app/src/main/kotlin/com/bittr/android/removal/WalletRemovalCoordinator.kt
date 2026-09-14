@@ -130,6 +130,12 @@ class WalletRemovalCoordinator(
     /** iOS's `removingWalletForIncorrectPin`. */
     private var lockout = false
 
+    /**
+     * A 10-wrong-PIN removal is under way. iOS shows no "closed lightning connection" card then
+     * (the user is locked out, and the close is the removal's own doing).
+     */
+    val isLockoutRemoval: Boolean get() = lockout
+
     /** iOS's `isRemovalInFlight` — one automatic channel close at a time. */
     private var closeInFlight = false
 

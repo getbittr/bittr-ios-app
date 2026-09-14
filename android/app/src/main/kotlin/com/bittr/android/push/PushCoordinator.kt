@@ -159,8 +159,7 @@ class PushCoordinator(
             }
             is PushEnvelope.Unknown -> question(PushStrings.OOPS, PushStrings.BITTR_NOTIFICATION_FAIL)
             is PushEnvelope.Swap -> delegate(envelope) { swapHandler?.onSwapPush(envelope) ?: log("No swap handler bound; swap push dropped.") }
-            is PushEnvelope.LightningAddress ->
-                delegate(envelope) { lnurlHandler?.onLightningAddressPush(envelope) ?: log("No LNURL handler bound; push dropped.") }
+            is PushEnvelope.LightningAddress -> handleLightningAddress(envelope)
         }
     }
 
@@ -325,6 +324,52 @@ class PushCoordinator(
                 alert(null, PushStrings.ONCHAIN_PAYOUT_SCHEDULED, PushStrings.ONCHAIN_PAYOUT_SCHEDULED_2, okay())
             } else {
                 alert(null, PushStrings.ERROR, PushStrings.ONCHAIN_PAYOUT_FAIL.replace("<message>", failure), okay())
+            }
+        }
+    }
+
+    // ---- Lightning address (`HandleLightningAddressNotification.swift:13-130`). ----
+
+    /**
+     * Someone is paying the user's Lightning address. Locked: ask them to sign in and keep the push.
+     * Syncing: wait. Synced: ask [Cancel, Handle now], unless the push arrived while locked, in which
+     * case signing in was the consent. The invoice is made and posted by [lnurlHandler].
+     */
+    private fun handleLightningAddress(push: PushEnvelope.LightningAddress) {
+        val handler = lnurlHandler
+        val amountMsats = push.amountMsats?.takeIf { it > 0 }
+        if (handler == null || amountMsats == null) {
+            log("Lightning-address push not handled: ${if (handler == null) "no handler bound" else "no amount"}.")
+            return
+        }
+        pending = push
+        val amount = PushStrings.plain(PushStrings.PAYMENT_REQUEST_SIGN_IN).replace("<amount>", PushStrings.groupedSats(amountMsats))
+        when {
+            !signedIn -> {
+                wasNotified = true
+                alert(TestID.Alert.paymentRequest, PushStrings.PAYMENT_REQUEST, amount, okay())
+            }
+            !synced -> showLoading(TestID.Loading.syncingWallet, PushStrings.SYNCING_WALLET_3)
+            wasNotified -> answerLightningAddress(push, handler)
+            else -> alert(
+                TestID.Alert.paymentRequest,
+                PushStrings.PAYMENT_REQUEST,
+                PushStrings.plain(PushStrings.PAYMENT_REQUEST_HANDLE_NOW).replace("<amount>", PushStrings.groupedSats(amountMsats)),
+                PushAlertButton(PushStrings.CANCEL, dismisses = true) { pending = null },
+                PushAlertButton(PushStrings.HANDLE_NOW, dismisses = false) { answerLightningAddress(push, handler) },
+            )
+        }
+    }
+
+    private fun answerLightningAddress(push: PushEnvelope.LightningAddress, handler: LnurlPushHandler) {
+        wasNotified = false
+        pending = null
+        showLoading(null, PushStrings.GENERATING_INVOICE)
+        scope.launch {
+            val answered = withContext(io) { runCatching { handler.answer(push) }.getOrDefault(false) }
+            hideLoading()
+            if (!answered) {
+                alert(TestID.Alert.paymentRequestFailed, PushStrings.PAYMENT_REQUEST_FAILED, PushStrings.PAYMENT_REQUEST_FAILED_2, okay())
             }
         }
     }

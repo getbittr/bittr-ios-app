@@ -72,17 +72,17 @@ Status key: **Decided** (done, reversible) · **Question** (needs your answer) �
     ever reached once channels are closed and swept, and a later wallet with a different seed quarantines it
     (`SeedImportGuard`) rather than deleting it. iOS deletes its documents directory.
 
-17. **Gap — the "lightning connection closed" Question card** (`question.yellowCard` after a close, which the
-    channel branch of `remove_wallet.yaml` / `forgot_pin_remove_wallet.yaml` dismisses) needs LDK's
-    `ChannelClosed` event to reach the UI. It comes with the notifications/events work.
+17. **Decided — the "lightning connection closed" Question card** (`question.yellowCard` after a close, which the
+    channel branch of `remove_wallet.yaml` / `forgot_pin_remove_wallet.yaml` dismisses) opens from LDK's
+    `ChannelClosed` event (LNURL port), and is not shown during the 10-wrong-PIN removal, as on iOS.
 
 ## Notifications (merged from `port/notifications`)
 
 Full log: `android/docs/port-specs/notifications-decisions.md`. The two that need you:
 
-18. **Question — new copy.** On the "channel full" payout alert, "Swap & Instant Receive" shows "Swapping isn't
-    available in the Android app yet…" until the swaps port provides a swap screen. This goes away once swaps
-    are merged. Until then, approve the copy or hide the button?
+18. **Decided — "Swap & Instant Receive" on the "channel full" payout alert opens the swap screen** now that swaps
+    are merged. It opens the plain swap screen; iOS pre-fills the suggested amount, which the Android swap route
+    can't take yet (small gap). The "Swapping isn't available…" copy is only left as a fallback for tests.
 
 19. **Question — "arrived while locked" flag.** iOS never resets `wasNotified`, so after one push arrives while
     the app is locked, every later push skips the "you're receiving a payment" alert until the app is relaunched.
@@ -161,11 +161,12 @@ Full log: `android/docs/port-specs/lnurl-decisions.md`.
     - LNURL links inside the in-app browser.
     - The chart on Send's "why a limit" card.
     - An Android clipboard bridge for the invoice-paste steps in `send_lightning.yaml` / `receive_invoice.yaml`.
-    - The Lightning-address push handler isn't bound to the notifications hook yet (see below).
+    - ~~The Lightning-address push handler~~ — now bound: locked → `alert.paymentRequest` "please sign in", then
+      answered after the first sync; open → [Cancel, Handle now]; a failure → `alert.paymentRequestFailed`.
 
 36. **Decided — the channel-closed card** (`question.yellowCard`, "closed lightning connection") now opens from
-    LDK's `ChannelClosed` event, as `remove_wallet.yaml` expects. iOS hides it during the 10-wrong-PIN wipe; Android
-    doesn't yet.
+    LDK's `ChannelClosed` event, as `remove_wallet.yaml` expects, and like iOS it stays hidden during the
+    10-wrong-PIN wipe.
 
 ## Test environment
 

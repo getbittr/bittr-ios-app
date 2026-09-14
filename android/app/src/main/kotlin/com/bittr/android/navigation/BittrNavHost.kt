@@ -191,11 +191,19 @@ fun BittrNavHost(
     var channelClosedAnswer by remember { mutableStateOf("") }
     LaunchedEffect(nodeEvents) {
         nodeEvents.events.collect { event ->
-            if (event is NodeEvent.ChannelClosed) {
+            // Not during the 10-wrong-PIN removal: iOS suppresses it there, and the close is the
+            // removal's own.
+            if (event is NodeEvent.ChannelClosed && !removal.isLockoutRemoval) {
                 channelClosedAnswer = ChannelClosedCard.answer(event)
                 navController.navigate(Routes.CHANNEL_CLOSED)
             }
         }
+    }
+
+    // "Swap & Instant Receive" on a channel-full payout push opens the swap screen.
+    val swapLaunches = hiltViewModel<com.bittr.android.swap.SwapLaunchViewModel>().requests
+    LaunchedEffect(swapLaunches) {
+        swapLaunches.requests.collect { navController.navigate(SwapRoutes.swap()) }
     }
 
     // See [NotPortedDialog]. Held here rather than in a screen because it is

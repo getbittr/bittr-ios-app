@@ -45,6 +45,9 @@ class PushCoordinatorTest {
         }
     }
 
+    private val answered = mutableListOf<PushEnvelope.LightningAddress>()
+    private var answerSucceeds = true
+
     // Unconfined and no pauses: each push is handled inside `receive`.
     private val coordinator = PushCoordinator(
         scope = CoroutineScope(Dispatchers.Unconfined),
@@ -57,12 +60,61 @@ class PushCoordinatorTest {
         environment = BittrEnvironment.DEVELOPMENT,
         depositCodes = DepositCodeSource { depositCode },
         swapHandler = null,
-        lnurlHandler = null,
+        lnurlHandler = LnurlPushHandler { push ->
+            answered += push
+            answerSucceeds
+        },
         payoutSwap = null,
         clockMillis = { now },
         pause = {},
         log = {},
     )
+
+    private val addressPush = PushEnvelope.LightningAddress(
+        amountMsats = 21_000_000,
+        metadata = "[[\"text/plain\",\"Pay to e2ebittr\"]]",
+        timeSent = "1",
+        username = "e2ebittr",
+        endpoint = "https://pay.example.com/answer",
+    )
+
+    @Test
+    fun `a lightning-address push while locked asks to sign in, then answers after the first sync`() {
+        coordinator.receive(addressPush)
+        val signIn = state.alert!!
+        assertEquals(TestID.Alert.paymentRequest, signIn.testTag)
+        assertEquals("Someone wants to pay you 21 000 satoshis! Please sign in to accept the payment.", signIn.message)
+        coordinator.onAlertButton(signIn.buttons.single())
+        assertTrue(answered.isEmpty())
+
+        unlockAndSync()
+        assertEquals(listOf(addressPush), answered)
+        assertEquals(PushUiState(), state)
+    }
+
+    @Test
+    fun `a lightning-address push while open asks, and a failed answer says so`() {
+        unlockAndSync()
+        answerSucceeds = false
+        coordinator.receive(addressPush)
+        val ask = state.alert!!
+        assertEquals(listOf(PushStrings.CANCEL, PushStrings.HANDLE_NOW), ask.buttons.map { it.label })
+
+        coordinator.onAlertButton(ask.buttons[1])
+        assertEquals(listOf(addressPush), answered)
+        assertEquals(TestID.Alert.paymentRequestFailed, state.alert?.testTag)
+        assertNull(state.loading)
+    }
+
+    @Test
+    fun `cancelling a lightning-address push forgets it`() {
+        unlockAndSync()
+        coordinator.receive(addressPush)
+        coordinator.onAlertButton(state.alert!!.buttons[0])
+        walletState.value = WalletState.Locked
+        unlockAndSync()
+        assertTrue(answered.isEmpty())
+    }
 
     private val state get() = coordinator.uiState.value
 

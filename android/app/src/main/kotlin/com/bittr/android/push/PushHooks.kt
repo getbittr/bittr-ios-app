@@ -23,11 +23,14 @@ fun interface SwapPushHandler {
 }
 
 /**
- * `lightning_address_notification` — iOS's `handleLightningAddressNotification`. The
- * LNURL port binds one; until then these pushes are logged and dropped.
+ * `lightning_address_notification` — iOS's `handleLightningAddressNotification`: make the
+ * invoice and post it to the pushed endpoint. [PushCoordinator] shows the alerts around it;
+ * `LnurlPushHooksModule` binds it.
+ *
+ * @return true when the invoice was posted.
  */
 fun interface LnurlPushHandler {
-    suspend fun onLightningAddressPush(push: PushEnvelope.LightningAddress)
+    suspend fun answer(push: PushEnvelope.LightningAddress): Boolean
 }
 
 /**

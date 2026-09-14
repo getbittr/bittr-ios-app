@@ -46,15 +46,37 @@ internal object PushStrings {
     const val ONCHAIN_PAYOUT_FAIL = "Failed to schedule on-chain payment: <message>"
     const val WALLET_NOT_SYNCED = "Wallet has not been synced."
 
-    /** Android-only: the swap screen is not ported, so "Swap & Instant Receive" cannot open it yet. */
+    /**
+     * Android-only, and only reachable when no swap launcher is bound (the JVM tests): the swap
+     * screen could not be opened, so "Swap & Instant Receive" says so.
+     */
     const val SWAP_UNAVAILABLE =
         "Swapping isn't available in the Android app yet. Tap Receive on-chain to get this payment paid " +
             "out to your regular balance instead."
 
+    // Lightning address (`paymentrequest`, `paymentrequest2`, `paymentrequest3`, `generatinginvoice`).
+    const val PAYMENT_REQUEST = "Payment Request"
+    const val PAYMENT_REQUEST_SIGN_IN = "Someone wants to pay you <b><amount> satoshis</b>! Please sign in to accept the payment."
+    const val PAYMENT_REQUEST_HANDLE_NOW =
+        "Someone wants to pay you <b><amount> satoshis</b>! Accept now or try again later in Device Details."
+    const val GENERATING_INVOICE = "Generating invoice"
+    const val PAYMENT_REQUEST_FAILED = "Payment Request Failed"
+    const val PAYMENT_REQUEST_FAILED_2 =
+        "We couldn't process this payment request. If this keeps happening, please contact support@getbittr.com."
+
     // Buttons.
     const val OKAY = "Okay"
     const val CLOSE = "Close"
+    const val CANCEL = "Cancel"
     const val TRY_AGAIN = "Try again"
+    const val HANDLE_NOW = "Handle now"
     const val RECEIVE_ONCHAIN = "Receive on-chain"
     const val SWAP_AND_RECEIVE_INSTANTLY = "Swap & Instant Receive"
+
+    /** iOS renders the `<b>` in these as bold; the alerts here are plain text. */
+    fun plain(text: String): String = text.replace("<b>", "").replace("</b>", "")
+
+    /** Millisatoshis as whole satoshis with spaces between thousands, as `addSpaces()` writes them. */
+    fun groupedSats(amountMsats: Long): String =
+        (amountMsats / 1000).toString().reversed().chunked(3).joinToString(" ").reversed()
 }
