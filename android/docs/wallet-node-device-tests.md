@@ -21,8 +21,8 @@ passed.
 | Leg | State | Carried on | Where |
 |---|---|---|---|
 | K2 — the seed is usable with the device locked | **written, not yet run** | — | `SeedReadableWhileLockedTest`, `wallet-instrumented` |
-| K2 — an FCM data message wakes the process | closed **unrun** | **BIT-133** | §1 below |
-| K2 — *force-stop* then wake | **withdrawn as specified** | **BIT-133** | §2 below |
+| K2 — an FCM data message wakes the process | **receiver built (BIT-133); the app-side half written, the delivery half still unrun** | **BIT-135** | §1 below |
+| K2 — *force-stop* then wake | **withdrawn as specified; `wallet-core-spec` §6 corrected 2026-09-14** | **BIT-133** | §2 below |
 | K7 — interrupted payment resolves to one outcome | **unrun; precondition, kill window and graph access all solved — the test and its host phase are what is left** | **BIT-132** | §3 below |
 | K8 — Doze and App Standby machinery | **unrun; its precondition is now solved** | **BIT-132** | §4 below |
 | K8 — channel-monitor freshness after wake | **unrun; needs the soak job** | **BIT-132** | §4 below |
@@ -145,40 +145,139 @@ still needs.
 **Claim.** A data message delivered while the device is locked and the process is
 not running reaches `Node.start()`.
 
-**Why CI cannot supply it.** Three independent blockers, and the first is not
-about CI at all:
+**Status, 2026-09-14 (BIT-133).** The first of the three blockers below has been
+removed rather than argued with: **the receiver exists**. The other two are
+unchanged, and they are now the whole of what is left.
 
-1. **There is no receiver.** The app has no `FirebaseMessagingService` and no
-   `firebase-messaging` dependency. `android/scripts/verify-fcm-service-account.sh`
-   is a *backend* credential check; nothing on the client listens. A test for a
-   wake path that does not exist would be a test of the test.
-2. **The image cannot deliver one.** `wallet-instrumented` runs `default` — an
-   AOSP image, and that is load-bearing for a different claim: the suite needs
-   `com.android.localtransport`, which is an AOSP component absent from
-   Play-flavoured images. FCM needs exactly the Google Play services those images
-   have and an AOSP one does not. The two requirements are mutually exclusive on
-   one AVD, so this leg needs a **second emulator job on a `google_apis` image**,
-   not a change to this one.
+### What was built
 
-   (This job ran `aosp_atd` until BIT-123 moved it to `default` so the lock
-   screen would exist — see *The precondition that is upstream of three of these
-   rows*, above. That swap does not touch this argument: both are AOSP images,
-   and neither carries Play services.)
-3. **Sending one needs a project.** A data message has to come from somewhere,
-   and the only FCM project this repository knows about is production. BIT-123
-   forbids production node access; the same reasoning covers pushing through the
-   production sender.
+- **`BackgroundWake`** (`:core:wallet-ldk`, `host/BackgroundWake.kt`) — the
+  decision: what counts as a wake, what is held up before anything is launched,
+  what is released when a start throws. Pure Kotlin, ten methods of
+  `BackgroundWakeTest` on the JVM.
+- **`BittrMessagingService`** (`:app`, `messaging/`) — the twenty lines that
+  cannot be tested off a device. It resolves the app's own `BackgroundWake`
+  through a Hilt `@EntryPoint` declared in `main` and hands it
+  `RemoteMessage.getData()`.
+- **The wiring** — `firebase-messaging` and the `google-services` plugin, which
+  BIT-39 provisioned the configs for and nobody had applied; a `<service>` block
+  in the app manifest; `BackgroundWake` bound into the one `WalletComposition`
+  so it shares the wallet's scope, its `ForegroundPresence` and its
+  `WalletService`.
+- **`FcmWakeTest`** (`:app`, instrumented, five methods in `REQUIRED`) — the
+  app-side half, on the installed package, in the existing `wallet-instrumented`
+  job.
+- **`FcmWakeWiringTest`** (`:app`, JVM/Robolectric) — the merged manifest and
+  the permission set, in `./gradlew test`.
 
-**What it would need.** A `FirebaseMessagingService` in the app (a feature, not a
-test); a `google_apis` AVD in a job of its own; and a non-production FCM project
-whose service-account key is a repository secret. Roughly a day's work of which
-none is the test.
+The seam is `WalletService.start()`, which is what `UnlockViewModel` calls; in a
+configured build that *is* `WalletNodeHost.start()` through
+`NodeBackedWalletService`, so the foreground promotion, the start collapsing and
+the runner restart come for free. Binding to the interface rather than to the
+host is also what lets the wake exist in an unconfigured build — which is the APK
+`wallet-instrumented` installs, and therefore the only one any of this could be
+measured on.
 
-**Risk accepted by not running it.** The wake path does not exist, so there is no
-behaviour to regress. This row becomes live the moment background wake is built,
-and should be a condition of that work rather than a follow-up to it — which is
-why **BIT-133** owns the receiver *and* this row, rather than the row being filed
-against a feature somebody else may or may not build.
+### Three things worth knowing before touching it
+
+1. **A lost `<service>` block is silent.** `firebase-messaging`'s own AAR
+   declares a fallback `FirebaseMessagingService` for
+   `com.google.firebase.MESSAGING_EVENT` at `android:priority="-500"`. An app
+   that drops its entry still resolves a service — Google's base class, whose
+   `onMessageReceived` does nothing — so the wake goes quiet with no crash and
+   no log line. `FcmWakeTest#theAppsOwnServiceOutranksTheLibraryFallback`
+   asserts resolution *order* on a real `PackageManager` for that reason;
+   Robolectric models filter priority poorly, so the JVM test deliberately does
+   not make that claim.
+2. **The sender decides whether the promotion is allowed.** A node start takes
+   tens of seconds and `onMessageReceived` returns long before it finishes, so
+   the only thing that keeps the process off the freezer is the foreground
+   service — and starting one from the background on Android 12+ needs an
+   exemption. A **high-priority** data message grants a temporary one; a
+   normal-priority message does not, and is deferred by Doze besides. The
+   message must also carry `data` and **no `notification` block**, or the system
+   tray handles it and `onMessageReceived` is never called at all. Neither is
+   assertable from Android; both are why this paragraph exists.
+3. **Two permissions reached the shipped APK** — `WAKE_LOCK` and
+   `com.google.android.c2dm.permission.RECEIVE`. `firebase-messaging`'s AAR
+   declares four; `POST_NOTIFICATIONS` was already the app's own and
+   `ACCESS_NETWORK_STATE` already arrives from MapLibre. `FcmWakeWiringTest`
+   pins the whole merged set, so a third one arriving in a version bump is a red
+   test rather than a line on the Play listing nobody reviewed.
+
+### Why the delivery half still cannot run in this job
+
+Two of BIT-123's three blockers survive intact, and the first is a property of
+the image rather than of anything in this repository.
+
+1. **This job's image cannot deliver one.** `wallet-instrumented` runs
+   `default` — an AOSP image, and that is load-bearing for a different claim:
+   the suite needs `com.android.localtransport`, which is an AOSP component
+   absent from Play-flavoured images. FCM needs exactly the Google Play services
+   those images have and an AOSP one does not. The two requirements are mutually
+   exclusive on one AVD, so this leg needs a **second emulator job on a
+   `google_apis` image**, not a change to this one.
+
+   This is no longer asserted from a comment.
+   `FcmWakeTest#recordWhetherThisImageCouldEverDeliverAWake` prints
+   `FCM_WAKE_IMAGE playServices=… localTransport=… canDeliverFcm=…` from inside
+   the suite, so the run itself says which image it got. If that line ever reads
+   `canDeliverFcm=true`, the image has changed under this suite and the argument
+   above needs re-deriving — starting with whether the local transport is still
+   there for the backup half.
+
+2. **Sending one needs a project, and a key this repository does not hold.**
+   **BIT-135** carries this and is blocked on it; only Ruben can provision it.
+   BIT-39 provisioned two: `bittr-prod` and `bittr-regtest`. The regtest one is
+   exactly the non-production sender this needs, and
+   `android/scripts/verify-fcm-service-account.sh` already exists to check a key
+   before it goes into an environment. What is missing is the key itself, as a
+   repository secret. **Only Ruben can provision it**, and BIT-123's standing
+   note — never mainnet keys, never production node access, never real funds —
+   covers pushing through the production sender too.
+
+### What the second job needs, with the open question named
+
+Written down here because it is the part a reader would otherwise re-derive:
+
+- **A `google_apis` AVD, API 34, x86_64**, cached under its own key. Not
+  `google_apis_playstore`: the Play Store image is locked down (no
+  `adb root`, no writable system) and nothing here needs the store, only the
+  services.
+- **The debug APK**, which is the one registered against `bittr-regtest` —
+  `applicationId` `com.bittr.android.regtest`, per `GoogleServicesConfigTest`.
+  Sending to it through the production project is not a smaller version of this
+  test, it is a different and forbidden one.
+- **`FCM_REGTEST_SERVICE_ACCOUNT`** as a repository secret, checked with
+  `verify-fcm-service-account.sh --expect regtest` before use.
+- **A sender**, posting a high-priority `data`-only message to FCM HTTP v1.
+- **A way to address the device, and this is the open question.** Two routes,
+  and they trade differently:
+  - *By registration token.* Faithful to production, which addresses a token the
+    backend stored at signup. Costs: the token has to get from the device to the
+    host, and today it deliberately cannot — `BittrMessagingService.onNewToken`
+    logs its length and not its value, because it is a per-install device
+    identifier that `shared/docs/privacy-disclosure.md` lists as one and logcat
+    is readable over any adb cable. Doing this means a debug-only path that
+    surrenders it.
+  - *By topic.* The device subscribes to a CI topic and the sender posts to
+    `/topics/<name>`; no token ever leaves the device. Costs: a subscription
+    call in the app that exists only for the test — unless it is gated to the
+    regtest build, which is the same class of build-type-only behaviour
+    `BiometricUnlockFlagTest` already polices — and topic fan-out is
+    best-effort, so a delivery failure is harder to tell from a wake failure.
+
+  Neither is obviously right and the choice is the first thing **BIT-135** — which
+  carries this job — should make.
+
+**Risk accepted by not running it.** Smaller than it was, and differently
+shaped. The wake path now exists and its app-side half is under test on every
+run, so what is unproven is no longer "does the code exist" but "does Google
+deliver to this app, and does the foreground promotion survive the background
+start restriction on a real Play-services device". The first is Google's to get
+right. The second is the one that could bite: if the promotion is refused, the
+node starts unprotected and may be frozen mid-start — survivable, silent, and
+exactly the kind of thing a measurement rather than an argument settles.
 
 ## 2. K2 — the force-stop leg, withdrawn as specified
 
@@ -199,9 +298,11 @@ pressure leaves the package in its normal state and a later FCM message does
 restart it. `am kill` reproduces that; `am force-stop` does not. Any future
 version of this row should say **process death**, and should use `am kill`.
 
-**This is a spec correction, not a hardware limit**, and it is recorded here
-rather than fixed silently because `wallet-core-spec` §6 is the document other
-people read. **BIT-133** owns the correction.
+**The correction has been made.** `wallet-core-spec` §6's K2 row now reads
+*process death*, names `am kill` and says why `am force-stop` cannot appear in
+it — BIT-133, 2026-09-14. This section stays as the record of what was corrected
+and why; the spec is the document other people read, and until that row moved
+this was a note nobody consulting the spec would find.
 
 ## 3. K7 — an interrupted payment
 

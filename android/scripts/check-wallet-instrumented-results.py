@@ -213,6 +213,46 @@ REQUIRED = {
     f"{APP_PACKAGE}.InstalledBackupConfigurationTest#theInstalledManifestPointsAtOurDataExtractionRules",
     f"{APP_PACKAGE}.InstalledBackupConfigurationTest#theInstalledRulesExcludeTheWalletDirectoryFromBothPaths",
     f"{APP_PACKAGE}.InstalledBackupConfigurationTest#everyWalletFileLandedUnderNoBackup",
+    # --- :app — K2's wake leg exists at all (BIT-133) --------------------------
+    #
+    # Before this branch there was no FirebaseMessagingService and no
+    # firebase-messaging dependency, so `wallet-core-spec` §6's "deliver an FCM
+    # data message, assert node start reaches Node.start()" had nothing to be
+    # true or false about — wallet-node-device-tests.md §1 closed it unrun for
+    # that reason. FcmWakeTest is the half of it that can run without Play
+    # services: the receiver is wired, the graph really hands it the app's own
+    # BackgroundWake, and a wake payload reaches WalletService.start().
+    #
+    # The delivery half still cannot run here and is not in this list — it needs
+    # a google_apis image, which is mutually exclusive with the local backup
+    # transport this suite depends on. BIT-135 carries it; §1 says what it needs.
+    #
+    # THE ONE THAT IS NOT OPTIONAL, AND WHY
+    #
+    # theAppsOwnServiceOutranksTheLibraryFallback. firebase-messaging's AAR
+    # declares its OWN FirebaseMessagingService for com.google.firebase.MESSAGING_EVENT
+    # at android:priority="-500". So an app that loses its <service> block still
+    # resolves a service — Google's, whose onMessageReceived does nothing — and
+    # the wake goes quiet with no crash and no log line. That is the only
+    # regression in this area that is silent, and it is why the claim is
+    # resolution ORDER on a real PackageManager rather than presence on
+    # Robolectric's (FcmWakeWiringTest makes the cheap half of it on the JVM).
+    f"{APP_PACKAGE}.FcmWakeTest#theAppsOwnServiceOutranksTheLibraryFallback",
+    f"{APP_PACKAGE}.FcmWakeTest#theWakeIsAggregatedIntoTheInstalledAppsGraph",
+    f"{APP_PACKAGE}.FcmWakeTest#aWakeMessageReachesTheWalletStart",
+    # The negative control, required by name for the reason
+    # SeedReadableWhileLockedTest#recordTheLockStateTheseReadsHappenedIn is: "the
+    # wake ran" and "every push starts a node" are the same green from outside.
+    # The FCM project this app registers in also carries the ordinary payment
+    # notifications iOS's device token is registered for, and each of those
+    # would otherwise put a permanent foreground notification in front of a user.
+    f"{APP_PACKAGE}.FcmWakeTest#aMessageWithoutTheWakeKeyIsDropped",
+    # Records rather than asserts, like KeystoreKeyInfoTest#recordTheObservedSecurityLevel,
+    # and required for the same reason: wallet-node-device-tests.md §1 claims
+    # this job's image cannot deliver an FCM message, and that claim should be
+    # fed by the device. A silently dropped test stops feeding it without
+    # anything going red.
+    f"{APP_PACKAGE}.FcmWakeTest#recordWhetherThisImageCouldEverDeliverAWake",
 }
 
 CANARY = (

@@ -80,6 +80,31 @@ robolectric = "4.16.1"
 # MapSdkGuardTest.
 maplibre = "11.11.0"
 
+# Firebase Cloud Messaging (BIT-133) — the client half of the background wake.
+#
+# BIT-39 provisioned the two projects and committed the two `google-services.json`
+# files; nothing on the client listened to them until BIT-133. The plugin is what
+# turns those files into the resources `FirebaseApp` initialises from, and it is
+# also the thing that fails the build on a config whose package name does not
+# match — the check `GoogleServicesConfigTest` had to do by hand because the
+# plugin was not applied.
+#
+# The BOM, not a version on each artefact: Firebase publishes ~40 artefacts on
+# independent version lines that are only tested together as a release train, and
+# `firebase-messaging` alone spans `firebase-common`, `firebase-installations`
+# and three `datatransport` modules. Only `firebase-messaging` is declared, and
+# the absences are load-bearing: the analytics and crash-reporting members of the
+# same family are on `LocationEgressGuardTest`'s tripwire list, and messaging
+# depends on neither. Verified against the published POM rather than the docs —
+# what it names is `firebase-measurement-connector`, the empty interface such an
+# SDK would implement if one were present.
+#
+# That test is a plain string scan over the build files, deliberately, so those
+# two artefact ids are described here rather than written: naming them in a
+# comment trips it exactly as declaring them would. Found by tripping it.
+firebaseBom = "34.19.0"
+googleServices = "4.5.0"
+
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "androidxCore" }
 androidx-lifecycle-runtime-ktx = { group = "androidx.lifecycle", name = "lifecycle-runtime-ktx", version.ref = "androidxLifecycle" }
@@ -119,6 +144,11 @@ kotlinx-coroutines-test = { group = "org.jetbrains.kotlinx", name = "kotlinx-cor
 # the emulator images in CI do not reliably provide; `android-sdk` is the variant
 # MapLibre publishes as the default and the one the Maestro suite has to run on.
 maplibre-android = { group = "org.maplibre.gl", name = "android-sdk", version.ref = "maplibre" }
+
+firebase-bom = { group = "com.google.firebase", name = "firebase-bom", version.ref = "firebaseBom" }
+# Version deliberately absent: the BOM supplies it. See `firebaseBom` above.
+firebase-messaging = { group = "com.google.firebase", name = "firebase-messaging" }
+
 bdk-android = { group = "org.bitcoindevkit", name = "bdk-android", version.ref = "bdk" }
 ldk-node-android = { group = "org.lightningdevkit", name = "ldk-node-android", version.ref = "ldkNode" }
 
@@ -146,3 +176,4 @@ kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
 kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
 ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
 hilt = { id = "com.google.dagger.hilt.android", version.ref = "hilt" }
+google-services = { id = "com.google.gms.google-services", version.ref = "googleServices" }

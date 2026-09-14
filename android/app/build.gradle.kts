@@ -3,6 +3,17 @@ plugins {
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.ksp)
     alias(libs.plugins.hilt)
+    // BIT-133. Reads `src/<buildType>/google-services.json` and generates the
+    // string resources FirebaseApp initialises from at process start. Applied
+    // last, which is the order Google documents and the order that matters: the
+    // plugin hooks the variants the Android plugin has already created.
+    //
+    // It is also a build-time check GoogleServicesConfigTest could only
+    // approximate — "No matching client found for package name" fails the build
+    // if the config and the applicationId ever drift. That test stays, because
+    // it asserts the *two-project split* as well, which the plugin knows nothing
+    // about.
+    alias(libs.plugins.google.services)
 }
 
 /**
@@ -471,6 +482,25 @@ dependencies {
     debugImplementation(libs.androidx.compose.ui.tooling)
     debugImplementation(libs.androidx.compose.ui.test.manifest)
 
+    // BIT-133 — the background wake. Only the messaging artefact, and the set is
+    // the point the same way CameraX's is: the analytics and crash-reporting
+    // members of the same family are on LocationEgressGuardTest's tripwire list,
+    // and firebase-messaging depends on neither. Its POM names
+    // firebase-measurement-connector, which is the empty interface such an SDK
+    // would implement if one were present. (Those two ids are described rather
+    // than written, because that test is a string scan over build files and a
+    // comment naming them trips it — see libs.versions.toml.)
+    //
+    // What it adds to the *shipped* permission set is two: WAKE_LOCK and
+    // com.google.android.c2dm.permission.RECEIVE. Its AAR declares four, and the
+    // other two were already in the merge — POST_NOTIFICATIONS is the app's own
+    // and ACCESS_NETWORK_STATE arrives from MapLibre. Measured against the
+    // merged manifest rather than read off the docs, and pinned by
+    // FcmWakeWiringTest so that a third arriving in a version bump is a red test
+    // rather than a line on the Play listing nobody reviewed.
+    implementation(platform(libs.firebase.bom))
+    implementation(libs.firebase.messaging)
+
     implementation(libs.androidx.navigation.compose)
     implementation(libs.androidx.hilt.navigation.compose)
     implementation(libs.hilt.android)
@@ -528,4 +558,10 @@ dependencies {
     // WalletPaths and AndroidKeystoreBlobCodec to write the material it then
     // looks for in a backup set.
     androidTestImplementation(project(":core:wallet-ldk"))
+
+    // BIT-133. FcmWakeTest drives `WalletService`'s suspending API from a plain
+    // JUnit4 instrumented test and polls a `StateFlow`, so it needs coroutines
+    // on the compile classpath. :core:wallet-ldk declares them `implementation`,
+    // not `api`, so they do not arrive through the line above.
+    androidTestImplementation(libs.kotlinx.coroutines.core)
 }
