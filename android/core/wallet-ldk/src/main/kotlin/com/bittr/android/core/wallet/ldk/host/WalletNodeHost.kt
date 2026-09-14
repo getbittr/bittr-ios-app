@@ -6,6 +6,7 @@ import com.bittr.android.core.wallet.ldk.node.NodeStartResult
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.async
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -151,8 +152,18 @@ class WalletNodeHost(
      * [scope] via `NodeStartGate`, and the runners are launched there too. That
      * is the whole reason the gate takes a scope, and it is what makes a
      * rotation during unlock survivable.
+     *
+     * **The whole body runs in [scope], not only the gate's half of it.** Unlock
+     * is the case: `unlock()` flips the wallet to ready, the navigation graph
+     * swaps the PIN screen out for Home, and the view model that called this is
+     * cleared while the node is still starting. With the body in the caller's
+     * coroutine, the node came up in [scope] but `await()` threw in the cancelled
+     * caller and the runners were never launched — a running node with no sync,
+     * no balance and no event pump, and nothing in the log to say so.
      */
-    suspend fun start(): NodeStartResult = mutex.withLock {
+    suspend fun start(): NodeStartResult = scope.async { startLocked() }.await()
+
+    private suspend fun startLocked(): NodeStartResult = mutex.withLock {
         // Before the start, not after. A start that takes half a minute with the
         // app already backgrounded is the case this exists for, and a promotion
         // that happens once the node is up would have missed it.

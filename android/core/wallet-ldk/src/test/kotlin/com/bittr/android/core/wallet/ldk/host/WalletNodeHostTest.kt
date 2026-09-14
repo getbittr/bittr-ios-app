@@ -230,6 +230,50 @@ class WalletNodeHostTest {
         }
 
     /**
+     * **A caller going away still gets the node its runners.**
+     *
+     * Unlock is this case, every time: `unlock()` flips the wallet to ready, the
+     * navigation graph replaces the PIN screen with Home, and the view model that
+     * called `start()` is cleared mid-start. The node kept coming up in the host's
+     * scope, but the runner launch ran in the cancelled caller and never happened —
+     * a running node with no on-chain sync, no balance and no event pump.
+     */
+    @Test
+    fun `a cancelled caller still gets the runners launched once the node is up`() =
+        runTest(UnconfinedTestDispatcher()) {
+            val released = CompletableDeferred<Unit>()
+            val attempts = AtomicInteger()
+            val runner = ForeverRunner()
+            val host = WalletNodeHost(
+                scope = this,
+                lifecycle = lifecycleOf(
+                    scope = this,
+                    factory = {
+                        FakeNode(mutableListOf()) {
+                            if (attempts.incrementAndGet() == 1) throw Unretryable()
+                        }
+                    },
+                    classifier = { true },
+                    wait = { released.await() },
+                ),
+                presence = ForegroundPresence.None,
+                runners = listOf(runner),
+            )
+
+            val caller = launch { host.start() }
+            caller.cancel()
+            caller.join()
+            assertEquals("nothing is up yet", 0, runner.lives.get())
+
+            released.complete(Unit)
+
+            assertTrue("the node should be up", host.isRunning)
+            assertEquals("the runners belong to the node, not to the caller", 1, runner.lives.get())
+
+            host.stop()
+        }
+
+    /**
      * **A new node means new runners.**
      *
      * `EventPump` says it: it is deliberately terminal on a read failure, and
