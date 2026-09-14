@@ -51,7 +51,8 @@ object SignedRequestMessage {
      * to continue without notifications — goes through the same construction as the token
      * refresh instead of a second, separately-drifting one.
      *
-     * @param mode `"instant"` or `"onchain"`, the value being written.
+     * @param mode `"lightning"` or `"onchain"`, the value being written — the strings
+     *   `BuyViewController.swift:305` sends and the backend stores.
      */
     fun paymentMode(
         pubkey: String,
@@ -59,6 +60,16 @@ object SignedRequestMessage {
         mode: String,
         timestamp: Long,
     ): String = "payment_mode:$pubkey:$depositCode:$mode:$timestamp"
+
+    /**
+     * The message covered by the `signature` query parameter of `GET /deposit_code` —
+     * `deposit_codes:<pubkey>:<timestamp>` (`BuyViewController.swift:229`). Three parts, like
+     * [boltzWebhook], for the same reason: it is what the shipping client signs.
+     */
+    fun depositCodes(
+        pubkey: String,
+        timestamp: Long,
+    ): String = "deposit_codes:$pubkey:$timestamp"
 
     /**
      * The message covered by the `signature` query parameter of `GET /boltz/webhook-token`.
