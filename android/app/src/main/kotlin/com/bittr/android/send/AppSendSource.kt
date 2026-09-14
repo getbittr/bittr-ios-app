@@ -1,6 +1,13 @@
 package com.bittr.android.send
 
 import com.bittr.android.core.common.destination.BitcoinNetwork
+import com.bittr.android.core.lnurl.LnurlAuthKeys
+import com.bittr.android.core.network.HttpClient
+import com.bittr.android.core.network.HttpMethod
+import com.bittr.android.core.network.HttpRequest
+import com.bittr.android.core.wallet.TransactionNoteStore
+import com.bittr.android.core.wallet.ldk.bip.LnurlAuthSigner
+import com.bittr.android.core.wallet.ldk.lightning.Bolt11DescriptionView
 import com.bittr.android.core.preferences.AppPreferences
 import com.bittr.android.core.wallet.WalletOverviewSource
 import com.bittr.android.core.wallet.ldk.lightning.LightningNodePort
@@ -35,6 +42,10 @@ class AppSendSource(
     private val preferences: AppPreferences,
     private val prices: BitcoinPriceSource,
     override val network: BitcoinNetwork,
+    private val http: HttpClient? = null,
+    private val notes: TransactionNoteStore? = null,
+    /** The recovery phrase, read when an LNURL-auth key is derived and not held. */
+    private val mnemonic: () -> String? = { null },
 ) : SendSource {
 
     override val walletUpdates: Flow<Any> = overview.overview
@@ -109,6 +120,35 @@ class AppSendSource(
 
     override suspend fun fiatPricePerBitcoin(): Double? = prices.price(preferences.currency.value)
 
+    override suspend fun lnurlGet(url: String): Result<String> = io {
+        runCatching {
+            val client = http ?: error("No HTTP client")
+            val response = client.execute(HttpRequest(HttpMethod.GET, url))
+            check(response.isSuccessful) { "HTTP ${response.code}" }
+            response.body
+        }
+    }
+
+    override suspend fun createInvoice(amountMsat: Long, description: String): Result<String> = io {
+        runCatching {
+            lightning.receiveBolt11(amountMsat.toULong(), Bolt11DescriptionView.Direct(description), INVOICE_EXPIRY_SECS)
+        }
+    }
+
+    override suspend fun lnurlAuthSign(domain: String, k1Hex: String): Result<Pair<String, String>> = io {
+        runCatching {
+            val phrase = mnemonic() ?: error("No recovery phrase on this device")
+            val key = LnurlAuthKeys.linkingPrivateKey(LnurlAuthKeys.seed(phrase), domain)
+            val k1 = k1Hex.chunked(2).map { it.toInt(16).toByte() }.toByteArray()
+            val signed = LnurlAuthSigner.sign(k1, key)
+            signed.keyHex to signed.signatureHex
+        }
+    }
+
+    override fun storeTransactionNote(transactionId: String, note: String) {
+        notes?.store(transactionId, note)
+    }
+
     private suspend fun <T> io(block: suspend () -> T): T = withContext(Dispatchers.IO) { block() }
 
     private companion object {
@@ -117,5 +157,7 @@ class AppSendSource(
         const val PAYMENT_WAIT_MS = 60_000L
         const val POLL_MS = 500L
         const val MSAT_PER_SAT = 1000uL
+        /** `getInvoice(…, expirySecs: 3600)` for a withdraw. */
+        const val INVOICE_EXPIRY_SECS = 3600u
     }
 }

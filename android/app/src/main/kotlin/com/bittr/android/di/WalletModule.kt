@@ -28,6 +28,7 @@ import com.bittr.android.core.wallet.ldk.host.NodeRunner
 import com.bittr.android.core.wallet.ldk.host.ServiceForegroundPresence
 import com.bittr.android.core.wallet.ldk.host.WalletNodeHost
 import com.bittr.android.core.wallet.ldk.lightning.LightningNodePort
+import com.bittr.android.core.wallet.ldk.lightning.NodeEvents
 import com.bittr.android.core.wallet.ldk.lightning.NodeOnchainPort
 import com.bittr.android.core.wallet.ldk.lightning.WalletBalanceReader
 import com.bittr.android.core.wallet.ldk.lightning.WalletOverviewPublisher
@@ -450,7 +451,10 @@ object WalletModule {
          * reading below; the first one is `finalizeSync()`, which opens Send and
          * Receive on Home.
          */
-        val overview = WalletOverviewPublisher(hasNode = true)
+        val overview = WalletOverviewPublisher(hasNode = true, closureTxIds = closureCache::closureTxIds)
+
+        // What the event pump tells the UI — the channel-closed card, for now.
+        val nodeEvents = NodeEvents()
 
         val balances = WalletBalanceReader(
             node = lightning,
@@ -547,6 +551,7 @@ object WalletModule {
                         onStopped = { outcome ->
                             Log.i(TAG, "Event pump stopped: ${outcome.stop}", outcome.cause)
                         },
+                        onNodeEvent = nodeEvents::emit,
                     ),
                     /*
                      * The on-chain scan loop — `startBDK()` plus
@@ -664,6 +669,7 @@ object WalletModule {
 
                 override fun signBitcoinMessage(message: String): String? = signer.sign(message)
             },
+            nodeEvents = nodeEvents,
         )
     }
 
@@ -713,4 +719,6 @@ class WalletComposition(
     val refresh: () -> Unit,
     /** What bittr registration signs with. Null in a build with no node. */
     val registration: BittrRegistrationKeys? = null,
+    /** Node events the UI reacts to. Never emits in a build with no node. */
+    val nodeEvents: NodeEvents = NodeEvents(),
 )

@@ -119,7 +119,7 @@ class SettingsFlowTest {
                             // Without it every recomposition would hand Device details
                             // a fresh ViewModel, discarding the open picker or alert
                             // that the tap under test had just set.
-                            settingsArea(navController) {
+                            settingsArea(navController, lightningChannel = { null }) {
                                 remember { DeviceViewModel(preferences, wallet) }
                             }
                         }

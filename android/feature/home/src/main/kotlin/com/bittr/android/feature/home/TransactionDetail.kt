@@ -18,6 +18,9 @@ import kotlin.math.abs
  * @property fees only for a transaction that took money out (`received - sent - fee < 0`).
  * @property confirmations only on-chain; "Unconfirmed" until it has one.
  * @property explorerId set for on-chain transactions, which have an explorer page.
+ * @property description `descriptionText()`: for now only the channel-closure sentence, because
+ *   ldk-node reports no invoice description and Receive does not cache one yet.
+ * @property note the user's note, or null for "Add a note".
  */
 internal data class TransactionDetail(
     val id: String,
@@ -28,6 +31,8 @@ internal data class TransactionDetail(
     val confirmations: String?,
     val explorerId: String?,
     val currentValue: String?,
+    val description: String? = null,
+    val note: String? = null,
 )
 
 internal fun transactionDetail(
@@ -35,6 +40,8 @@ internal fun transactionDetail(
     price: FiatPrice?,
     currentHeight: Int?,
     timeZone: TimeZone = TimeZone.getDefault(),
+    closureTxIds: Set<String> = emptySet(),
+    note: String? = null,
 ): TransactionDetail {
     val format = SimpleDateFormat("dd MMM yyyy HH:mm", Locale.ENGLISH).apply { this.timeZone = timeZone }
     val gross = activity.receivedSats - activity.sentSats
@@ -52,6 +59,9 @@ internal fun transactionDetail(
         },
         explorerId = if (activity.isLightning) null else activity.id,
         currentValue = price?.let { "${twoDecimals(abs(activity.netSats) / SATS_PER_BITCOIN * it.pricePerBitcoin)} ${it.symbol}" },
+        // `isChannelClosure`: the payout's txid is one the closure scan recorded.
+        description = if (!activity.isLightning && activity.id in closureTxIds) HomeStrings.CHANNEL_CLOSURE_TRANSACTION else null,
+        note = note?.takeIf { it.isNotBlank() },
     )
 }
 

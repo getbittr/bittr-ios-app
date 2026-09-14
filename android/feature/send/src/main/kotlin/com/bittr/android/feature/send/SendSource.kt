@@ -53,4 +53,23 @@ interface SendSource {
     fun fiatCurrency(): FiatCurrency
 
     suspend fun fiatPricePerBitcoin(): Double?
+
+    // ---- LNURL. Defaulted so a source that has no LNURL wiring still compiles; each says so. ----
+
+    /** A GET to an LNURL service or callback: the body of a 2xx, a failure otherwise. */
+    suspend fun lnurlGet(url: String): Result<String> = Result.failure(UnsupportedOperationException("No LNURL client"))
+
+    /** A BOLT11 invoice for an LNURL withdraw — `getInvoice(amountMsat:description:expirySecs: 3600)`. */
+    suspend fun createInvoice(amountMsat: Long, description: String): Result<String> =
+        Result.failure(UnsupportedOperationException("No node"))
+
+    /**
+     * LNURL-auth: the linking key for [domain] and its DER signature over [k1Hex] —
+     * (compressed public key hex, signature hex).
+     */
+    suspend fun lnurlAuthSign(domain: String, k1Hex: String): Result<Pair<String, String>> =
+        Result.failure(UnsupportedOperationException("No signer"))
+
+    /** `CacheManager.storeTransactionNote` — an LNURL pay request's description, once paid. */
+    fun storeTransactionNote(transactionId: String, note: String) = Unit
 }

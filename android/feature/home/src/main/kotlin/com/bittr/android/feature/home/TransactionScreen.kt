@@ -39,6 +39,8 @@ import com.bittr.android.core.designsystem.BittrCanvas
 import com.bittr.android.core.designsystem.BittrCard
 import com.bittr.android.core.designsystem.BittrIconPaths
 import com.bittr.android.core.designsystem.BittrModalHeader
+import com.bittr.android.core.designsystem.BittrTextFieldAlert
+import com.bittr.android.core.wallet.TransactionNoteStore
 import com.bittr.android.core.designsystem.BittrTheme
 import com.bittr.android.core.designsystem.BittrTokens
 import com.bittr.android.core.designsystem.rememberStrokeIcon
@@ -60,6 +62,7 @@ class TransactionViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle,
     overview: WalletOverviewSource,
     prices: FiatPriceSource,
+    private val notes: TransactionNoteStore,
 ) : ViewModel() {
 
     private val id: String = checkNotNull(savedStateHandle[ID_ARG]) { "transaction route without an id" }
@@ -69,9 +72,20 @@ class TransactionViewModel @Inject constructor(
         viewModelScope.launch { price.value = prices.current() }
     }
 
-    internal val detail: StateFlow<TransactionDetail?> = combine(overview.overview, price) { wallet, price ->
-        wallet.transactions.firstOrNull { it.id == id }?.let { transactionDetail(it, price, wallet.currentHeight) }
+    internal val detail: StateFlow<TransactionDetail?> = combine(overview.overview, price, notes.notes) { wallet, price, notes ->
+        wallet.transactions.firstOrNull { it.id == id }?.let {
+            transactionDetail(
+                activity = it,
+                price = price,
+                currentHeight = wallet.currentHeight,
+                closureTxIds = wallet.channelClosureTxIds,
+                note = notes[it.id],
+            )
+        }
     }.stateIn(viewModelScope, SharingStarted.Eagerly, null)
+
+    /** `noteButtonTapped`'s save: trimmed and stored, or deleted when cleared. */
+    fun saveNote(note: String) = notes.store(id, note)
 
     companion object {
         const val ID_ARG = "id"
@@ -95,6 +109,7 @@ fun TransactionScreen(
     val detail by viewModel.detail.collectAsState()
     val clipboard = LocalClipboardManager.current
     var copied by remember { mutableStateOf<String?>(null) }
+    var editingNote by remember { mutableStateOf(false) }
 
     copied?.let {
         BittrAlertDialog(
@@ -103,6 +118,22 @@ fun TransactionScreen(
             confirmLabel = HomeStrings.OKAY,
             onConfirm = { copied = null },
             confirmTestTag = TestID.Alert.buttonAt(0),
+            modifier = Modifier.testTag(TestID.Alert.copied),
+        )
+    }
+    if (editingNote) {
+        BittrTextFieldAlert(
+            title = HomeStrings.ADD_A_NOTE,
+            initialText = detail?.note.orEmpty(),
+            placeholder = HomeStrings.ADD_A_NOTE,
+            cancelLabel = HomeStrings.CANCEL,
+            saveLabel = HomeStrings.SAVE,
+            onCancel = { editingNote = false },
+            onSave = { note ->
+                viewModel.saveNote(note)
+                editingNote = false
+            },
+            testTag = TestID.Alert.addNote,
         )
     }
 
@@ -148,6 +179,67 @@ fun TransactionScreen(
                     shown.currentValue?.let { DetailRow(HomeStrings.CURRENT_VALUE, it) }
                 }
             }
+            shown.description?.let { description ->
+                TextCard(
+                    title = HomeStrings.DESCRIPTION,
+                    text = description,
+                    textTag = TestID.Transaction.descriptionLabel,
+                    buttonTag = TestID.Transaction.descriptionButton,
+                    onClick = {
+                        clipboard.setText(AnnotatedString(description))
+                        copied = description
+                    },
+                )
+            }
+            val note = shown.note
+            if (note != null) {
+                TextCard(
+                    title = HomeStrings.NOTE,
+                    text = note,
+                    textTag = TestID.Transaction.labelNote,
+                    buttonTag = null,
+                    onClick = { editingNote = true },
+                )
+            } else {
+                Box(
+                    contentAlignment = Alignment.Center,
+                    modifier = Modifier
+                        .padding(top = BittrTokens.Spacing.md)
+                        .fillMaxWidth()
+                        .background(MaterialTheme.colorScheme.surfaceContainerLowest, RoundedCornerShape(8.dp))
+                        .clickable { editingNote = true }
+                        .padding(BittrTokens.Spacing.md)
+                        .testTag(TestID.Transaction.addNoteButton),
+                ) {
+                    Text(HomeStrings.ADD_A_NOTE, style = MaterialTheme.typography.labelLarge)
+                }
+            }
+        }
+    }
+}
+
+/**
+ * The Description and Note cards. The whole card is the tap target, drawn under the text so
+ * the text keeps its own id (a clickable parent would merge it away).
+ */
+@Composable
+private fun TextCard(title: String, text: String, textTag: String, buttonTag: String?, onClick: () -> Unit) {
+    Box(modifier = Modifier.padding(top = BittrTokens.Spacing.md)) {
+        Box(
+            modifier = Modifier
+                .matchParentSize()
+                .background(MaterialTheme.colorScheme.surfaceContainerLowest, RoundedCornerShape(8.dp))
+                .clickable(onClick = onClick)
+                .then(if (buttonTag != null) Modifier.testTag(buttonTag) else Modifier),
+        )
+        Column(
+            verticalArrangement = Arrangement.spacedBy(BittrTokens.Spacing.xs),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(BittrTokens.Spacing.md),
+        ) {
+            Text(title, style = MaterialTheme.typography.labelLarge, color = BittrTheme.colors.emphasis)
+            Text(text, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.testTag(textTag))
         }
     }
 }

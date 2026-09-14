@@ -39,6 +39,12 @@ sealed interface LnurlSource {
     data object Deeplink : LnurlSource
 
     /**
+     * Typed or pasted into Send's address field by the user. As deliberate as a scan: the
+     * user put it there and still confirms the amount on the Confirm page.
+     */
+    data object ManualEntry : LnurlSource
+
+    /**
      * A page on a first-party origin handed us an LNURL through the in-app
      * browser's message bridge.
      *
@@ -114,7 +120,7 @@ object LnurlSourcePolicy {
         // in v1. This is the line that makes the Android port no worse than the
         // accident that protects iOS.
         LnurlAction.Pay -> when (source) {
-            LnurlSource.QrScan, LnurlSource.Deeplink -> LnurlPermission.Allowed
+            LnurlSource.QrScan, LnurlSource.Deeplink, LnurlSource.ManualEntry -> LnurlPermission.Allowed
             is LnurlSource.FirstPartyWeb -> LnurlPermission.Denied(WEB_PAY_DENIED)
         }
 
@@ -126,7 +132,7 @@ object LnurlSourcePolicy {
         // from a web page; if a first-party page ever does, this is a one-line
         // change made on purpose with a confirmation designed alongside it.
         LnurlAction.Withdraw -> when (source) {
-            LnurlSource.QrScan, LnurlSource.Deeplink -> LnurlPermission.Allowed
+            LnurlSource.QrScan, LnurlSource.Deeplink, LnurlSource.ManualEntry -> LnurlPermission.Allowed
             is LnurlSource.FirstPartyWeb -> LnurlPermission.Denied(WEB_WITHDRAW_DENIED)
         }
 
@@ -135,7 +141,7 @@ object LnurlSourcePolicy {
         // remaining obligation is on the dialog, which must show the full callback
         // origin and name the requesting page. See LnurlAuthPrompt.
         LnurlAction.Auth -> when (source) {
-            LnurlSource.QrScan, LnurlSource.Deeplink -> LnurlPermission.Allowed
+            LnurlSource.QrScan, LnurlSource.Deeplink, LnurlSource.ManualEntry -> LnurlPermission.Allowed
             is LnurlSource.FirstPartyWeb -> LnurlPermission.Allowed
         }
     }

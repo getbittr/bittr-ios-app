@@ -5,6 +5,8 @@ import com.bittr.android.core.wallet.ldk.cache.WalletCache
 import com.bittr.android.core.wallet.ldk.host.NodeRunner
 import com.bittr.android.core.wallet.ldk.lightning.EventPump
 import com.bittr.android.core.wallet.ldk.lightning.EventPumpOutcome
+import com.bittr.android.core.wallet.ldk.lightning.NodeEvent
+import com.bittr.android.core.wallet.ldk.lightning.NodeEvents
 import com.bittr.android.core.wallet.ldk.node.ManagedNode
 import com.bittr.android.core.wallet.ldk.node.NodeLifecycle
 import org.lightningdevkit.ldknode.Event
@@ -138,6 +140,8 @@ class LdkEventPumpRunner(
      * and this is what it will read.
      */
     private val onStopped: (EventPumpOutcome) -> Unit = {},
+    /** The events a screen reacts to, translated out of ldk-node's types — see [NodeEvents]. */
+    onNodeEvent: (NodeEvent) -> Unit = {},
 ) : NodeRunner {
 
     override val name: String = NAME
@@ -158,7 +162,10 @@ class LdkEventPumpRunner(
             isExemptFromDeduplication = LdkEventKey::isPaymentFailed,
             onFailure = onLedgerFailure,
         ),
-        handler = { event -> onEvent(LdkEventKey.summary(event)) },
+        handler = { event ->
+            onEvent(LdkEventKey.summary(event))
+            LdkNodeEvents.of(event)?.let(onNodeEvent)
+        },
         onAcknowledgeFailure = onAcknowledgeFailure,
     )
 

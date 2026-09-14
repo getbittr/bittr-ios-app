@@ -114,10 +114,32 @@ internal object SendStrings {
     const val SUCCESS = "Success"
     const val TRANSACTION_SUCCESS = "Your transaction has been sent and will show up in your wallet shortly."
 
+    // LNURL — `SendLNURL.swift`.
+    const val HANDLING_LNURL = "Handling lightning request"
+    /** `lnurl`. */
+    const val LNURL_STATUS = "LNURL status"
+    const val LNURL_FAIL_1 = "We could not complete this withdraw request. Error:"
+    const val LNURL_FAIL_2 = "We could not complete your pay request. Error:"
+    const val LNURL_FAIL_3 = "We've received an error while handling this request. Please try again."
+    const val LNURL_FAIL_4 = "We currently only support lightning pay and withdraw requests."
+    const val PAY_REQUEST = "Pay request"
+    const val PAY_REQUEST_1 = "Are you sure you'd like to pay <payable> satoshis?"
+    const val WITHDRAW_REQUEST = "Withdraw request"
+    const val WITHDRAW_REQUEST_1 =
+        "You can withdraw between <minwithdrawable> and <maxwithdrawable> satoshis. How many satoshis would you like to withdraw?"
+    const val WITHDRAW_REQUEST_3 = "Are you sure you'd like to withdraw <withdrawable> satoshis?"
+    const val WITHDRAW_OUT_OF_RANGE = "Please enter an amount within the range shown."
+    const val AMOUNT_IN_SATOSHIS = "Amount"
+    const val LNURL_BETWEEN = "Amount must be between <min> and <max> satoshis."
+    const val INVOICE_CREATE_FAIL = "We could not create an invoice. Please try again later."
+    const val LNAUTH_1 =
+        "<domain> wants to <action> with your lightning wallet. No bitcoin will be sent. Would you like to proceed?"
+    const val LNAUTH_2 = "You've been successfully signed in."
+    const val LNAUTH_3 = "We could not sign you in. Please try again."
+
     /**
-     * Not iOS copy. Lightning addresses and LNURL are handled on iOS (`SendLNURL.swift`) and
-     * are not ported yet; this says so instead of pretending the payment failed.
+     * Not iOS copy: iOS pays whatever invoice the pay callback returns. Android checks it is for
+     * the amount the user confirmed, on this network, first.
      */
-    const val LNURL_NOT_ON_ANDROID =
-        "Paying a lightning address isn't available on Android yet. Please use a lightning invoice instead."
+    const val LNURL_INVOICE_MISMATCH = "The invoice we received doesn't match the requested amount."
 }

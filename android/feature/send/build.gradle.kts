@@ -31,6 +31,8 @@ dependencies {
     // DestinationParser, for what is pasted, typed or scanned.
     implementation(project(":core:common"))
     implementation(project(":core:designsystem"))
+    // LNURL: the endpoint checks, the source policy and reading a service's answers.
+    implementation(project(":core:lnurl"))
 
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.compose.ui)

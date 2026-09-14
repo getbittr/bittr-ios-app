@@ -5,6 +5,10 @@ import com.bittr.android.BuildConfig
 import com.bittr.android.core.common.destination.BitcoinNetwork
 import com.bittr.android.core.network.HttpClient
 import com.bittr.android.core.preferences.AppPreferences
+import com.bittr.android.core.wallet.SecureStore
+import com.bittr.android.core.wallet.TransactionNoteStore
+import com.bittr.android.core.wallet.ldk.seed.SecureStoreSeedVault
+import com.bittr.android.core.wallet.seed.SeedWalletService
 import com.bittr.android.di.WalletComposition
 import com.bittr.android.feature.send.SendSource
 import com.bittr.android.receive.BitcoinPriceSource
@@ -32,7 +36,13 @@ object SendModule {
         fees: MempoolFeeEstimates,
         preferences: AppPreferences,
         prices: BitcoinPriceSource,
+        http: HttpClient,
+        notes: TransactionNoteStore,
+        store: SecureStore,
     ): SendSource = AppSendSource(
+        http = http,
+        notes = notes,
+        mnemonic = { SecureStoreSeedVault(store, SeedWalletService.KEY_SEED).read() },
         lightning = composition.lightning,
         onchain = composition.onchain,
         onchainSend = composition.onchainSend,

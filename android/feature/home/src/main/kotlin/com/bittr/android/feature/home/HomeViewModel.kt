@@ -42,6 +42,8 @@ data class HomeUiState(
     /** `conversionLabel` — the balance in the display currency, e.g. "CHF 190". */
     val balanceFiat: String? = null,
     val history: List<HistoryRow> = emptyList(),
+    /** The sync overlay's first row: a conversion rate has been fetched. */
+    val conversionFetched: Boolean = false,
 )
 
 /**
@@ -63,6 +65,9 @@ class HomeViewModel @Inject constructor(
     private val price = MutableStateFlow<FiatPrice?>(null)
 
     init {
+        // iOS fetches conversion rates first thing at start (`SyncType.conversion`), before the
+        // wallet has synced; the sync overlay's first row reports it.
+        viewModelScope.launch { prices.current()?.let { if (price.value == null) price.value = it } }
         // Refetched when the history changes and when Settings switches the currency —
         // Home stays on the back stack under Settings, so without the second trigger it
         // would keep showing the old currency until the next transaction.
@@ -84,6 +89,7 @@ class HomeViewModel @Inject constructor(
             balanceSats = if (wallet.hasSynced) wallet.totalSatoshis else null,
             balanceFiat = if (wallet.hasSynced) balanceFiat(wallet.totalSatoshis, price) else null,
             history = if (wallet.hasSynced) historyRows(wallet.transactions, price, wallet.currentHeight) else emptyList(),
+            conversionFetched = price != null,
         )
     }.stateIn(
         scope = viewModelScope,
