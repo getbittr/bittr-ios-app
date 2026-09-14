@@ -117,6 +117,16 @@ Deliberately not added ahead of that commit. It is user-facing copy, it goes in
 is the precedent. Adding an unreviewed string now would also credit OSM for a basemap the
 app does not draw.
 
+**The "same commit" is enforced, not remembered.** `BasemapAttributionGuardTest` fails the
+build if `STYLE_URI` is set to a URL while no constant in `MapCopy.kt` carries the phrase
+`OpenStreetMap contributors`, or while `MapScreen.kt` never reads that constant. It is
+dormant today — `STYLE_URI` is `null`, so the app owes no basemap credit — and its
+self-test runs the detectors against known offenders so a dormant check cannot quietly
+become a broken one. Matching the full phrase rather than "OpenStreetMap" is deliberate:
+the alert above already contains the shorter word while covering no imagery. What the
+guard still cannot see is whether the credit is *legible* once rendered; that belongs in a
+rendered assertion beside the map module's other Robolectric tests.
+
 ## 4. Refresh cadence and owner
 
 **Quarterly**, rebuilt from the upstream OSM extract, plus an out-of-band rebuild whenever
@@ -128,11 +138,15 @@ volatile part, and that is the BTCMap sync, which already refreshes incrementall
 its own watermark. Street geometry is the slow part. A quarter-old basemap is not a
 visibly wrong map; a quarter-old places list would be.
 
-**Owner: the Backend & API Engineer**, who owns the storage and the edge. That agent is
-paused as of 2026-09-13, so until they are available the owner is the **Head of App
-(Android)**, who also builds the first archive. If the pipeline comes due while that agent
-is still paused, raise it with the CTO rather than letting the cadence lapse unowned —
-an unowned schedule is the failure mode this section exists to prevent.
+**Owner: the Backend & API Engineer**, who owns the storage and the edge.
+
+That agent was paused when this section was written on 2026-09-13, so it named the **Head
+of App (Android)** as interim owner until they were available. **They are available again
+as of 2026-09-14, so the interim clause has lapsed** and the cadence sits with its real
+owner; the first build and the hosting are [BIT-139](/BIT/issues/BIT-139). The standing
+instruction survives the lapse: if the pipeline comes due while that agent is unavailable,
+raise it with the CTO rather than letting the cadence lapse unowned — an unowned schedule
+is the failure mode this section exists to prevent.
 
 ## 5. Tile-request logging
 
@@ -180,20 +194,31 @@ build instead of quietly disarming the guard:
 Kotlin is read with comments stripped and string literals kept, so this document and the
 guard's own KDoc can name the hosts the rules exclude.
 
-**What it cannot enforce** is everything in §2's edge requirement and all of §5. Those are
-deployment properties; a hostname is all the repo can see. They are written down here
-because writing them down is the only form of enforcement available to them.
+`BasemapAttributionGuardTest` sits beside it and holds the *licence* rather than the host —
+the §3 credit, and specifically its "same commit" sequencing. The two are independent on
+purpose: every check in the table above passes on a basemap that is correctly hosted and
+entirely uncredited, because the hostname is the only thing they read.
+
+| Check | Catches |
+|---|---|
+| A set `STYLE_URI` implies the phrase `OpenStreetMap contributors` in `MapCopy.kt`, read from `MapScreen.kt` | The commit that turns the basemap on and forgets the credit. That commit is a one-constant diff, which is exactly why it reads as too small to carry a licence obligation |
+
+**What it cannot enforce** is everything in §2's edge requirement and all of §5, and
+whether the §3 credit is legible rather than merely present. Those are deployment and
+rendering properties; a hostname and a symbol reference are all a source scan can see. They
+are written down here because writing them down is the only form of enforcement available
+to them.
 
 ## Status
 
 | Done-when | State |
 |---|---|
 | 1. Region scope and serving mechanism chosen and recorded | Done — §1, §2 |
-| 2. Map renders from a bittr-controlled source | **Not done.** Needs the archive built and hosted. `STYLE_URI` stays `null` until then, which means no tile request leaves the device at all |
-| 3. OSM attribution in the map UI | Specified in §3, ships with the commit that sets `STYLE_URI` |
-| 4. Update cadence with a named owner | Done — §4 |
+| 2. Map renders from a bittr-controlled source | **Not done.** Needs the archive built and hosted — [BIT-139](/BIT/issues/BIT-139), with the Backend & API Engineer. `STYLE_URI` stays `null` until then, which means no tile request leaves the device at all |
+| 3. OSM attribution in the map UI | Specified in §3, ships with the commit that sets `STYLE_URI` — now **enforced** by `BasemapAttributionGuardTest` rather than relying on the reader. Wording commissioned on [BIT-140](/BIT/issues/BIT-140) |
+| 4. Update cadence with a named owner | Done — §4. Interim ownership lapsed 2026-09-14 |
 | 5. Tile-request logging decided and written down | Done — §5. Growth & Content Lead told on BIT-56, Compliance told on BIT-71 |
-| 6. BIT-52 proxy capture passes against a build with a map | **Deferred to BIT-119.** Owned by the Application Security Engineer, paused. Note the limit in §2: it cannot see who operates the edge |
+| 6. BIT-52 proxy capture passes against a build with a map | **Not done — [BIT-141](/BIT/issues/BIT-141)**, unassigned because the Application Security Engineer is still paused, and blocked on BIT-139 because there is no tile request to observe until one exists. Note the limit in §2: it cannot see who operates the edge |
 
 Items 2 and 6 are the whole of the remainder, and neither is app-side work.
 
