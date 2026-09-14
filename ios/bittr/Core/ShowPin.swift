@@ -9,8 +9,11 @@ import UIKit
 
 extension CoreViewController {
     
-    func fromSignupToPin() {
-        guard self.currentPage == .signup else { return }
+    func fromSignupToPin(completion: (() -> Void)? = nil) {
+        guard self.currentPage == .signup else {
+            completion?()
+            return
+        }
         
         // Place PinVC above SignupVC.
         NSLayoutConstraint.deactivate([self.pinBottom])
@@ -37,6 +40,7 @@ extension CoreViewController {
             
             self.currentPage = .pin
             self.hideSignup()
+            completion?()
         }
     }
     

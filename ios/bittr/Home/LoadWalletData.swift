@@ -133,9 +133,14 @@ extension HomeViewController {
         if (self.coreVC != nil && !self.coreVC!.walletHasSynced) {
             // Finalize sync.
             self.finalizeSync()
-        } else if self.coreVC != nil, (self.coreVC!.resettingPin || self.coreVC!.removingWalletForIncorrectPin), self.coreVC!.genericSpinner.isAnimating {
-            // User is locked out and is retrying removing their wallet.
-            self.coreVC!.restoreWalletTapped()
+        } else if self.coreVC != nil {
+            // Already synced.
+            self.reloadTransactionsTable()
+            
+            if (self.coreVC!.resettingPin || self.coreVC!.removingWalletForIncorrectPin), self.coreVC!.genericSpinner.isAnimating {
+                // User is locked out and is retrying removing their wallet.
+                self.coreVC!.restoreWalletTapped()
+            }
         }
     }
     

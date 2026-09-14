@@ -366,13 +366,10 @@ extension CoreViewController {
             DispatchQueue.main.async {
                 // Clear the in-memory account entity.
                 BitcoinManager.shared.bittrWallet = BittrWallet()
-                
-                // Hide signup view and launch create wallet flow.
-                self.fromSignupToPin()
                 self.userHasSignedIn = false
                 
-                // Launch signup on create wallet page after a delay to ensure cleanup is complete
-                DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+                // Hide signup view and launch create wallet flow.
+                self.fromSignupToPin {
                     Log.info("ResetApp - Launching signup after cleanup")
                     self.launchSignup(onPage: 3) // Page 3 is create wallet
                     self.showSignup()
