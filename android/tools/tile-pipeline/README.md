@@ -97,6 +97,8 @@ server {
     ssl_certificate     /etc/letsencrypt/live/tiles.getbittr.com/fullchain.pem;
     ssl_certificate_key /etc/letsencrypt/live/tiles.getbittr.com/privkey.pem;
 
+    # The worker user has to be able to read this. Getting it wrong gives 403 on
+    # every tile and looks nothing like a permissions problem from the client.
     root /srv/tiles;
 
     # Section 5: tile-request access logs are not retained. If an incident forces
@@ -105,18 +107,22 @@ server {
     access_log off;
 
     # Nothing here is dynamic and nothing is user-specific; the only reason a
-    # client comes back to the origin is a new <yyyy-mm> prefix.
+    # client comes back to the origin is a new <yyyy-mm> prefix. add_header
+    # applies to 206 as well as 200, which is the case that matters — every tile
+    # read is a range request, so a directive that only reached 200 would cache
+    # nothing that the map actually fetches.
     location /basemap/ {
         add_header Cache-Control "public, max-age=31536000, immutable";
-        # nginx serves byte ranges for static files by default. Stated explicitly
-        # because every tile read is a range request and a proxy or a module that
-        # silently disabled them would look like a blank map, not like an error.
-        add_header Accept-Ranges bytes;
     }
 
     location / { return 404; }
 }
 ```
+
+No `add_header Accept-Ranges bytes` here, deliberately. nginx emits it natively for
+static files, and adding it produces the header **twice** on a 200 — verified against
+this exact config, which is also how that line came to be deleted rather than
+reasoned about. Check it rather than assert it; the check is below.
 
 Serve the file from local disk, or from object storage behind this — either is fine
 as long as the TLS termination above is bittr's. If a bucket is in the path, its own
@@ -125,18 +131,28 @@ access logging is off too, per §5.
 ### Verify before handing the URL over
 
 ```sh
-# 1. Range requests work. Expect: HTTP/1.1 206 and Content-Range.
-curl -sI -r 0-16383 https://tiles.getbittr.com/basemap/<yyyy-mm>/ch.pmtiles | head -5
+BASE=https://tiles.getbittr.com/basemap/<yyyy-mm>
 
-# 2. The PMTiles header is really there (magic bytes "PMTiles", spec version 3).
-curl -s -r 0-7 https://tiles.getbittr.com/basemap/<yyyy-mm>/ch.pmtiles | xxd
+# 1. Ranges work, and exactly one Accept-Ranges comes back.
+curl -sD- -o /dev/null -r 1024-2047 $BASE/ch.pmtiles | grep -iE 'HTTP|content-range|accept-ranges|cache-control'
+#    Expect: 206, `content-range: bytes 1024-2047/<size>`, one `accept-ranges: bytes`,
+#    and the immutable cache-control — on the 206, not just on a 200.
 
-# 3. Nothing is being logged. Expect no new lines for the requests above.
+# 2. It is really a PMTiles v3 archive and not an HTML error page with a good status.
+curl -s -r 0-7 $BASE/ch.pmtiles | xxd        # expect the ASCII "PMTiles" then 0x03
+
+# 3. The style and the glyphs resolve too. A working archive behind a 404 style is
+#    a blank map, and STYLE_URI points at the style.
+curl -so /dev/null -w '%{http_code}\n' $BASE/style.json
+curl -so /dev/null -w '%{http_code}\n' "$BASE/glyphs/Noto%20Sans%20Regular/0-255.pbf"
+
+# 4. Nothing is being logged. Expect zero new lines from everything above.
 sudo wc -l /var/log/nginx/access.log
 ```
 
-Check 3 is the one that is worth doing by hand every time, because it is the only one
-of the three that fails silently and that no test in the repo can make for you.
+Check 4 is the one worth doing by hand every time. It is the only one that fails
+silently, the only one no test in this repo can make for you, and the one that decides
+whether §5 is true.
 
 ## Still needed before `STYLE_URI` can be set
 
