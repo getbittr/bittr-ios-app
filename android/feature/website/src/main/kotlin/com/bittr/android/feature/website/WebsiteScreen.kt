@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
@@ -99,7 +100,11 @@ fun WebsiteScreen(
     Column(
         modifier = modifier
             .fillMaxSize()
-            .background(MaterialTheme.colorScheme.surfaceContainerHigh),
+            .background(MaterialTheme.colorScheme.surfaceContainerHigh)
+            // After the background, so the bar colour runs under the status bar while
+            // the top bar itself sits below it — the app is edge-to-edge on every API
+            // level (see MainActivity).
+            .systemBarsPadding(),
     ) {
         WebsiteTopBar(
             onClose = onClose,

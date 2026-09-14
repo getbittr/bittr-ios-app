@@ -171,7 +171,8 @@ class RestoreWalletViewModelTest {
         advanceUntilIdle()
 
         assertTrue("Restore3 must hand off to Home", finished)
-        assertEquals(WalletState.Locked, wallet.state.value)
+        // Signed in, as on iOS — a Locked wallet would send navigation to the PIN pad.
+        assertEquals(WalletState.Ready, wallet.state.value)
     }
 
     @Test

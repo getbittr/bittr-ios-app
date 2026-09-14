@@ -1,9 +1,13 @@
 package com.bittr.android.feature.signup
 
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
@@ -15,13 +19,23 @@ import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.layout.positionInRoot
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.input.ImeAction
@@ -65,6 +79,17 @@ import com.bittr.android.core.wallet.seed.Bip39
  * trade-off here than on Verify — it is twelve words, not three — which is exactly
  * why it is made the same way.
  *
+ * **The focused field is parked near the top, so the next ones are above the keyboard.**
+ * Twelve fields plus a keyboard are taller than any phone, and the first emulator run
+ * of `restore_wallet.yaml` stopped at field 7: it sat behind the keyboard, where it
+ * cannot be seen or tapped. Asking Compose to bring the next field into view on focus
+ * was not enough, because moving focus between text fields hides and re-shows the
+ * keyboard — the visible area changes height mid-animation, and a request made against
+ * that height lands short. So focusing a field scrolls it, without animation, to one
+ * row below the top of the visible area, and while a field has focus the content gets
+ * a visible-area's worth of room below it so even the twelfth can go there. That does
+ * not depend on what the keyboard is doing at the time.
+ *
  * **The same screen serves the forgot-PIN reset**, which is iOS's arrangement too —
  * `startPinReset` opens this very view controller with `resettingPin` set, and the
  * only visible difference is that the primary button reads "Reset PIN". Hence
@@ -92,6 +117,25 @@ fun RestoreScreen(
     val words = remember { mutableStateListOf(*Array(Bip39.WORD_COUNT) { "" }) }
     val focusRequesters = remember { List(Bip39.WORD_COUNT) { FocusRequester() } }
     val keyboard = LocalSoftwareKeyboardController.current
+    val focusManager = LocalFocusManager.current
+    val density = LocalDensity.current
+
+    val scrollState = rememberScrollState()
+    var focusedIndex by remember { mutableIntStateOf(NO_FOCUS) }
+    // Where the visible area starts on screen, and how tall it is, in px.
+    var viewportTop by remember { mutableIntStateOf(0) }
+    var viewportHeight by remember { mutableIntStateOf(0) }
+    // Each row's top on screen, in px, as of its last placement.
+    val rowTops = remember { IntArray(Bip39.WORD_COUNT) }
+
+    LaunchedEffect(focusedIndex) {
+        if (focusedIndex == NO_FOCUS) return@LaunchedEffect
+        // Top of the row within the scrolled content: where it is on screen, minus
+        // where the visible area starts, plus how far the content is already scrolled.
+        val rowInContent = rowTops[focusedIndex] - viewportTop + scrollState.value
+        val oneRowAbove = with(density) { (RowHeight + RowGap).roundToPx() }
+        scrollState.scrollTo((rowInContent - oneRowAbove).coerceAtLeast(0))
+    }
 
     fun submit() {
         keyboard?.hide()
@@ -99,26 +143,44 @@ fun RestoreScreen(
     }
 
     BittrCanvas(modifier = modifier, onBack = onCancel) {
+        // Above the scroll, not inside it: a focused field is parked near the top of the
+        // visible area, which would scroll the heading away. `restore_wallet.yaml` taps
+        // it after the twelfth word to put the keyboard away — on iOS that tap falls
+        // through to `backgroundButtonTapped` — so it has to stay on screen, and a tap
+        // on it does the same thing here.
+        BittrStepHeading(
+            text = SignupStrings.ENTER_RECOVERY_PHRASE,
+            modifier = Modifier
+                .padding(horizontal = CanvasGutter)
+                .padding(top = BittrTokens.Spacing.sm)
+                .clickable(
+                    interactionSource = remember { MutableInteractionSource() },
+                    indication = null,
+                ) {
+                    focusManager.clearFocus()
+                    keyboard?.hide()
+                }
+                .testTag(TestID.Signup.Restore.topLabel),
+        )
+
         Column(
             verticalArrangement = Arrangement.Center,
             modifier = Modifier
                 .weight(1f)
-                .verticalScroll(rememberScrollState())
-                // The twelve fields plus the keyboard are taller than any phone, so
-                // the content has to move up out from under the IME rather than sit
-                // behind it. iOS does this by hand in keyboardWillAppear.
+                // Before the scroll, not inside it: padding applied inside a scroll
+                // container pads the content and leaves the viewport running under
+                // the keyboard. Applied here, the visible area ends at the keyboard.
                 .imePadding()
+                .onGloballyPositioned { coordinates ->
+                    viewportTop = coordinates.positionInRoot().y.toInt()
+                }
+                .onSizeChanged { viewportHeight = it.height }
+                .verticalScroll(scrollState)
                 .padding(horizontal = CanvasGutter, vertical = BittrTokens.Spacing.lg),
         ) {
             BittrCard {
-                BittrStepHeading(
-                    text = SignupStrings.ENTER_RECOVERY_PHRASE,
-                    modifier = Modifier.testTag(TestID.Signup.Restore.topLabel),
-                )
-                CanvasSpacer(BittrTokens.Spacing.xl)
-
                 repeat(Bip39.WORD_COUNT) { index ->
-                    if (index > 0) CanvasSpacer(12.dp)
+                    if (index > 0) CanvasSpacer(RowGap)
                     val last = index == Bip39.WORD_COUNT - 1
                     WordField(
                         wordNumber = index + 1,
@@ -127,6 +189,14 @@ fun RestoreScreen(
                         fieldTag = RestoreFieldTags[index],
                         last = last,
                         focusRequester = focusRequesters[index],
+                        onPlaced = { top -> rowTops[index] = top },
+                        onFocusChange = { focused ->
+                            if (focused) {
+                                focusedIndex = index
+                            } else if (focusedIndex == index) {
+                                focusedIndex = NO_FOCUS
+                            }
+                        },
                         // Next walks the fields; Done on the twelfth submits, which
                         // is RestoreViewController's `textField.tag == 12` branch.
                         onImeAction = {
@@ -144,9 +214,23 @@ fun RestoreScreen(
                 )
                 BittrTextButton(text = SignupStrings.CANCEL, onClick = onCancel)
             }
+
+            // Room to park even the last field one row from the top. Only while a field
+            // has focus, so the resting layout is unchanged.
+            if (focusedIndex != NO_FOCUS && viewportHeight > 0) {
+                Spacer(Modifier.height(with(density) { viewportHeight.toDp() }))
+            }
         }
     }
 }
+
+private const val NO_FOCUS = -1
+
+/** [BittrValueRow]'s default height, which every row here uses. */
+private val RowHeight = 56.dp
+
+/** The gap between rows. */
+private val RowGap = 12.dp
 
 /**
  * `signup.restore.field1` … `field12`, in field order.
@@ -178,6 +262,8 @@ private val RestoreFieldTags = listOf(
  * field — twelve fields is enough that making the user tap each one is a real cost,
  * where three is not — and folding the focus plumbing into Verify's would complicate
  * the screen that does not need it.
+ *
+ * @param onPlaced the row's top on screen, in px, each time it is placed.
  */
 @Composable
 private fun WordField(
@@ -187,9 +273,13 @@ private fun WordField(
     fieldTag: String,
     last: Boolean,
     focusRequester: FocusRequester,
+    onPlaced: (Int) -> Unit,
+    onFocusChange: (Boolean) -> Unit,
     onImeAction: () -> Unit,
 ) {
-    BittrValueRow {
+    BittrValueRow(
+        modifier = Modifier.onGloballyPositioned { onPlaced(it.positionInRoot().y.toInt()) },
+    ) {
         BittrNumeral(text = "$wordNumber", width = 22.dp)
         Box(
             contentAlignment = Alignment.CenterStart,
@@ -228,6 +318,7 @@ private fun WordField(
                 modifier = Modifier
                     .fillMaxWidth()
                     .focusRequester(focusRequester)
+                    .onFocusChanged { onFocusChange(it.isFocused) }
                     .testTag(fieldTag),
             )
         }

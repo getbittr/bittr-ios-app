@@ -3,6 +3,7 @@ package com.bittr.android
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
@@ -74,6 +75,13 @@ class MainActivity : ComponentActivity() {
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        // Edge-to-edge on every API level, not only where targetSdk 36 forces it (35+).
+        // Every screen already pads for the system bars itself — BittrCanvas, Home,
+        // the map — because on 35+ it has to. Below 35 the framework used to fit the
+        // window instead, which also swallowed the IME inset: `imePadding()` read zero,
+        // fields behind the keyboard stayed "on screen" to Compose, and
+        // `restore_wallet.yaml` could not reach field 7 on an API 34 emulator.
+        enableEdgeToEdge()
         super.onCreate(savedInstanceState)
         setContent {
             val setting by preferences.darkMode.collectAsState()

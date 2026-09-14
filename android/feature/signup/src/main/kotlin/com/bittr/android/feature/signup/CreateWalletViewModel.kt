@@ -209,6 +209,11 @@ class CreateWalletViewModel @Inject constructor(
         viewModelScope.launch {
             try {
                 wallet.setPin(pin)
+                // Signed in, as iOS is on Signup7: unlock with the PIN just confirmed and
+                // start the wallet, as `UnlockViewModel` does. `setPin` alone leaves it
+                // `Locked`, and the navigation graph follows that state to the PIN pad.
+                wallet.unlock(pin)
+                wallet.start()
                 firstPin = null
                 _uiState.value = _uiState.value.copy(
                     step = CreateWalletStep.Ready,

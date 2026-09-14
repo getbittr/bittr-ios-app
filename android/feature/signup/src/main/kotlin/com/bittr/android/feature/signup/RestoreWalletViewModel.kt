@@ -139,6 +139,13 @@ class RestoreWalletViewModel @Inject constructor(
      * [WalletService.setPin] has actually succeeded — before that the service still
      * reports `Uninitialized`, and landing on Home for a wallet the app does not
      * consider set up would put the user one relaunch away from signup again.
+     *
+     * **The wallet is unlocked with the PIN just confirmed**, then started — what
+     * `UnlockViewModel` does on a correct PIN. iOS finishes Restore3 signed in, and
+     * [WalletService.setPin] alone leaves the wallet `Locked`: correct for the next
+     * launch, wrong for this one, because the navigation graph follows the wallet's
+     * state and a `Locked` wallet sends it to the PIN pad instead of Home. That is
+     * where the first emulator run of `restore_wallet.yaml` ended.
      */
     fun submitConfirmationPin(pin: String, onDone: () -> Unit) {
         val expected = firstPin
@@ -155,6 +162,8 @@ class RestoreWalletViewModel @Inject constructor(
         viewModelScope.launch {
             try {
                 wallet.setPin(pin)
+                wallet.unlock(pin)
+                wallet.start()
                 finish()
                 onDone()
             } catch (e: WalletStorageException) {

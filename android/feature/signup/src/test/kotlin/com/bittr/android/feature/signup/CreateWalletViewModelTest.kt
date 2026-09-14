@@ -109,7 +109,8 @@ class CreateWalletViewModelTest {
         vm.submitConfirmationPin("4821")
         advanceUntilIdle()
         assertEquals(CreateWalletStep.Ready, vm.uiState.value.step)
-        assertEquals(WalletState.Locked, wallet.state.value)
+        // Signed in, as on iOS's Signup7 — a Locked wallet would send navigation to the PIN pad.
+        assertEquals(WalletState.Ready, wallet.state.value)
 
         // The words are gone from the arc once they are no longer needed.
         assertNull(vm.uiState.value.mnemonic)

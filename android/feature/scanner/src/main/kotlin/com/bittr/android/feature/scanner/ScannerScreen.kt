@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.MaterialTheme
@@ -150,6 +151,9 @@ internal fun ScannerScreenContent(
         Column(
             modifier = Modifier
                 .fillMaxSize()
+                // The app is edge-to-edge on every API level (see MainActivity), so the
+                // header would otherwise sit under the status bar.
+                .systemBarsPadding()
                 .padding(BittrTokens.Spacing.lg),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(BittrTokens.Spacing.lg),
