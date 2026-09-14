@@ -225,7 +225,18 @@ REQUIRED = {
     #
     # The delivery half still cannot run here and is not in this list — it needs
     # a google_apis image, which is mutually exclusive with the local backup
-    # transport this suite depends on. BIT-135 carries it; §1 says what it needs.
+    # transport this suite depends on. BIT-135 built it as its own job,
+    # .github/workflows/fcm-delivery.yml, with its own gate in
+    # check-fcm-delivery-results.py.
+    #
+    # FcmDeliveryTest is in this same :app test APK and is kept out of THIS job
+    # by ci-wallet-instrumented.sh's
+    # -Pandroid.testInstrumentationRunnerArguments.notAnnotation argument. A
+    # filtered test emits no <testcase> at all, which is why it does not trip the
+    # skip rule below — an @Assume would have, and that is the whole reason the
+    # split is an annotation rather than an assumption. Do NOT add any
+    # FcmDeliveryTest method to this set: this job's image can never satisfy it,
+    # and test_check_fcm_delivery_results.py asserts the two sets stay disjoint.
     #
     # THE ONE THAT IS NOT OPTIONAL, AND WHY
     #

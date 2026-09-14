@@ -270,6 +270,40 @@ jobs:
         # claim unchecked behind a job that stayed green.
         run: python3 android/scripts/test_check_wallet_instrumented_results.py
 
+      - name: Test the FCM delivery results gate
+        # BIT-135. The twin of the wallet gate's self-test, for the job that runs
+        # on a `google_apis` image. It needs one thing that gate's does not: its
+        # job selects tests by ANNOTATION rather than running everything, so the
+        # empty-run case is a typo away rather than a rename away — and an empty
+        # run there is not merely weaker evidence. It means the host phase sends a
+        # real message to a device that has no wallet and no hand-off, observes no
+        # wake, and is RIGHT about a device nothing prepared.
+        #
+        # It also asserts the constraint that keeps the one-APK/two-image split
+        # honest: the two gates' REQUIRED sets must stay disjoint, because a
+        # method required by both is required by a job whose image can never
+        # satisfy it.
+        run: python3 android/scripts/test_check_fcm_delivery_results.py
+
+      - name: Test the FCM wake sender
+        # BIT-135, and this one is not a gate self-test — it is the ONLY place in
+        # the repository where two load-bearing claims are falsifiable at all.
+        #
+        # `send-fcm-wake.sh` must send a high-priority, data-only message.
+        # BittrMessagingService and BackgroundWake both document why and both say
+        # the same thing: neither property is assertable from Android. A message
+        # that lost `priority: high` sends fine and is accepted fine, and its only
+        # symptom is a refused foreground promotion — which is exactly what the
+        # platform legitimately does to an app that was not allowlisted, so the
+        # run reads as a real finding rather than as a typo. A message that gained
+        # a `notification` block is handled by the system tray and
+        # onMessageReceived is never called, so the run reads as "the wake did not
+        # fire" about a message the app never saw.
+        #
+        # The cases are mostly negative controls: the sender is doctored and has
+        # to refuse its own output. No network, no key, no device.
+        run: bash android/scripts/test-send-fcm-wake.sh
+
       - name: Test the ldk-node data-loss-protect check
         # BIT-123. The check it guards asserts a property of the ldk-node binary
         # we ship, and every marker it looks for is currently present — so the

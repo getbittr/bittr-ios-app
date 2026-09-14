@@ -1,0 +1,222 @@
+name: K2 — FCM delivery (google_apis emulator)
+
+# BIT-135. The half of K2's wake leg that no test in `wallet-instrumented` can
+# run: does Google actually deliver a data message to this app.
+#
+# WHY THIS IS A SEPARATE WORKFLOW AND NOT A JOB IN android-maestro.yml
+#
+# The image. `wallet-instrumented` runs `default` — an AOSP image — because
+# BackupExclusionTest needs `com.android.localtransport`, which is an AOSP
+# component absent from every Play-flavoured image. FCM needs exactly the Google
+# Play services those images have and an AOSP one does not. The two requirements
+# are mutually exclusive on one AVD, so this is a second emulator job rather than
+# a change to that one, and `FcmWakeTest#recordWhetherThisImageCouldEverDeliverAWake`
+# prints `FCM_WAKE_IMAGE playServices=… localTransport=…` from inside that suite
+# so the claim is fed by a measurement rather than by this comment.
+#
+# It is a separate FILE rather than a fourth job in android-maestro.yml for the
+# reason wallet-regtest-nightly.yml gives: on a single self-hosted runner all the
+# emulator jobs serialise, and android-maestro.yml already boots three AVDs inside
+# one 45-minute-per-job budget. A fourth would push every push's feedback out for
+# a leg that only changes when the FCM surface does. The `paths:` filter below is
+# what keeps it honest — it fires on the files that can change the answer and on
+# nothing else.
+#
+# `google_apis`, NOT `google_apis_playstore`
+#
+# The Play Store image is locked down: no `adb root`, no writable system. Nothing
+# here needs the store, only the services. `google_apis` keeps `adb root` as the
+# fallback for reading the hand-off, behind `run-as`.
+#
+# THE CREDENTIAL, AND WHAT HAPPENS WITHOUT IT
+#
+# `FCM_REGTEST_SERVICE_ACCOUNT` is the bittr-regtest service-account key, base64
+# encoded. It is NOT in the repository and only Ruben can provision it. Until it
+# exists this workflow still runs and still proves something the AOSP job cannot —
+# that this image has Play services, that the APK is registered against
+# bittr-regtest, and that Google minted a registration token for this install —
+# and then emits a `::warning::` saying the delivery leg is still unrun. That is a
+# warning and not an error on purpose: a job that is working correctly should not
+# look broken for the length of a wait.
+#
+# BIT-123's standing note applies unchanged: never mainnet keys, never production
+# node access, never real funds. `send-fcm-wake.sh` refuses any key whose
+# project_id is not `bittr-regtest`, with no flag to override it.
+
+on:
+  push:
+    paths:
+      # Everything that can change the answer, and nothing that cannot. Narrower
+      # than android-maestro.yml's filter on purpose — see the note above about
+      # serialised emulator jobs.
+      - 'android/app/src/androidTest/kotlin/com/bittr/android/FcmDeliveryTest.kt'
+      - 'android/app/src/androidTest/kotlin/com/bittr/android/RequiresPlayServices.kt'
+      - 'android/app/src/main/kotlin/com/bittr/android/messaging/**'
+      - 'android/app/src/main/kotlin/com/bittr/android/di/WalletModule.kt'
+      - 'android/app/src/main/AndroidManifest.xml'
+      - 'android/app/src/debug/google-services.json'
+      - 'android/core/wallet-ldk/src/main/kotlin/com/bittr/android/core/wallet/ldk/host/BackgroundWake.kt'
+      - 'android/scripts/ci-fcm-delivery.sh'
+      - 'android/scripts/send-fcm-wake.sh'
+      - 'android/scripts/check-fcm-delivery-results.py'
+      - '.github/workflows/fcm-delivery.yml'
+  workflow_dispatch:
+
+concurrency:
+  # Every run gets its own group, for the reason android-maestro.yml states at
+  # length: a cancelled run is not a result, and this leg's evidence is a single
+  # annotation from a single emulator boot. Keying on the SHA means the only run
+  # this can ever cancel is a re-run of an identical commit racing itself.
+  group: fcm-delivery-${{ github.ref }}-${{ github.event_name == 'workflow_dispatch' && github.run_id || github.sha }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  JAVA_VERSION: '21'
+  # The INSTALLED package: `applicationId` + the debug build type's
+  # `applicationIdSuffix`, which is NOT the namespace. Must match
+  # android/app/build.gradle.kts; ci-fcm-delivery.sh falls back to this literal
+  # when the variable is unset so it stays runnable locally.
+  APP_ID: com.bittr.android.regtest
+
+jobs:
+  fcm-delivery:
+    name: K2 — FCM delivery (emulator)
+    runs-on: ${{ fromJSON(vars.ANDROID_EMULATOR_RUNNER || '["ubuntu-latest"]') }}
+    # 50 minutes: one AVD boot on a Play-services image, one Gradle
+    # connectedDebugAndroidTest, and two 90-second delivery windows with a process
+    # kill in front of each. The boot is the slow part — google_apis carries GMS,
+    # which has to come all the way up before a token can be minted.
+    timeout-minutes: 50
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Mark job start
+        run: echo "JOB_START_EPOCH=$(date +%s)" >> "$GITHUB_ENV"
+
+      - name: Set up JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: ${{ env.JAVA_VERSION }}
+
+      - name: Set up Gradle
+        # Builds the APKs here rather than downloading another workflow's, for the
+        # reason the other emulator jobs give: `connectedDebugAndroidTest` is what
+        # an engineer runs locally to reproduce a failure, and CI doing something
+        # else is how "works on my machine" gets invented. It is also what writes
+        # the JUnit XML the vacuity check reads.
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          build-scan-publish: false
+
+      - name: Enable KVM
+        if: runner.environment == 'github-hosted'
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' \
+            | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      - name: Preflight — hardware acceleration is actually available
+        run: |
+          set -euo pipefail
+          if [ ! -e /dev/kvm ]; then
+            echo "::error::No /dev/kvm on runner '${{ runner.name }}'. Without hardware acceleration the emulator does not fail, it crawls, and this job dies on its timeout looking like a flaky emulator. A google_apis image is heavier than the AOSP ones the other jobs boot, so this bites here first. See android/docs/self-hosted-runner.md."
+            exit 1
+          fi
+          if [ ! -r /dev/kvm ] || [ ! -w /dev/kvm ]; then
+            echo "::error::/dev/kvm exists but is not read/write for user '$(id -un)'. Add the runner user to the 'kvm' group. See android/docs/self-hosted-runner.md."
+            ls -l /dev/kvm
+            exit 1
+          fi
+          echo "KVM OK on ${{ runner.environment }} runner '${{ runner.name }}' as $(id -un)."
+
+      - name: Cache AVD
+        uses: actions/cache@v4
+        id: avd-cache
+        with:
+          path: |
+            ~/.android/avd/*
+            ~/.android/adb*
+          # Its own key, naming the image. The other two emulator jobs learned
+          # this the expensive way (BIT-123): the key is what decides which
+          # snapshot gets restored, so a key that does not name the image lets an
+          # old snapshot come back under a new config — and here that would mean
+          # an AOSP snapshot restored into a job whose every claim needs Play
+          # services. The preflight would catch it, after a boot.
+          key: avd-api34-google_apis-x86_64-fcm
+
+      - name: Create AVD snapshot
+        if: steps.avd-cache.outputs.cache-hit != 'true'
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 34
+          # Must not drift from the run step below: this is what the cached
+          # snapshot is made from.
+          target: google_apis
+          arch: x86_64
+          profile: pixel_6
+          force-avd-creation: false
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
+          disable-animations: false
+          script: echo "AVD created and snapshotted"
+
+      - name: Run the FCM delivery leg
+        uses: reactivecircus/android-emulator-runner@v2
+        env:
+          # The secret, forwarded to the emulator script's environment. Empty
+          # until it is provisioned, which ci-fcm-delivery.sh handles as a
+          # ::warning:: rather than as a failure — see this file's header.
+          #
+          # It must be the bittr-regtest key. send-fcm-wake.sh refuses anything
+          # else outright and ci-fcm-delivery.sh re-runs
+          # verify-fcm-service-account.sh --expect regtest over it before the
+          # first send, because the two near-identical key files have been
+          # swapped once already on this repository.
+          FCM_REGTEST_SERVICE_ACCOUNT: ${{ secrets.FCM_REGTEST_SERVICE_ACCOUNT }}
+          APP_ID: ${{ env.APP_ID }}
+        with:
+          api-level: 34
+          # `google_apis`, and this is the whole reason the job exists. NOT
+          # `default` or `aosp_atd`, which carry no Play services and on which
+          # every observation here would be vacuous. NOT
+          # `google_apis_playstore`, which has no `adb root` and no writable
+          # system — nothing here needs the store, only the services.
+          #
+          # The cost, stated because it is the mirror image of the wallet job's:
+          # this image has no `com.android.localtransport`, so the backup suite
+          # cannot run on it. That is the mutual exclusion, and it is why
+          # ci-wallet-instrumented.sh passes `notAnnotation` while this passes
+          # `annotation` — one APK, two jobs, two images.
+          target: google_apis
+          arch: x86_64
+          profile: pixel_6
+          force-avd-creation: false
+          emulator-options: -no-snapshot-save -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
+          disable-animations: true
+          # `bash <file>`, not an inline block: the action runs this input under
+          # /usr/bin/sh (dash), and a bashism here fails AFTER the emulator has
+          # booted. android/scripts/check-action-scripts.sh enforces the shape.
+          script: bash android/scripts/ci-fcm-delivery.sh
+
+      - name: Upload FCM delivery test report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: fcm-delivery-test-report
+          # :app only — this suite is one class in one module, unlike the wallet
+          # suite which deliberately spans two.
+          #
+          # The XML is what the vacuity check reads. It carries FCM_DELIVERY_IMAGE
+          # and the token's LENGTH, and check-fcm-delivery-results.py fails the run
+          # if a token-shaped string ever appears in it: these artefacts are
+          # downloadable, and the registration token is a per-install device
+          # identifier per shared/docs/privacy-disclosure.md.
+          path: |
+            android/app/build/outputs/androidTest-results/**
+            android/app/build/reports/androidTests/**
+          retention-days: 14
+          if-no-files-found: warn

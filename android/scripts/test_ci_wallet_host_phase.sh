@@ -60,6 +60,16 @@ GRADLE="$REPO_ROOT/android/app/build.gradle.kts"
 WORKFLOW="$REPO_ROOT/.github/workflows/android-maestro.yml"
 TEST_KT="$REPO_ROOT/android/app/src/androidTest/kotlin/com/bittr/android/BackupExclusionTest.kt"
 
+# BIT-135 added a second host phase with the same dependency on the installed
+# package name and a worse failure mode: `am kill` on a package that does not
+# exist exits 0, so a drifted name there means the app is never killed, the
+# message reaches a LIVE process, a wake line appears, and the run reports a
+# delivered wake having proved nothing whatever about process restart. Pinned
+# here rather than in a second file because what is being pinned is one value in
+# build.gradle.kts and, now, two readers of it.
+FCM_SCRIPT="$SCRIPT_DIR/ci-fcm-delivery.sh"
+FCM_WORKFLOW="$REPO_ROOT/.github/workflows/fcm-delivery.yml"
+
 failures=0
 
 fail() {
@@ -67,7 +77,7 @@ fail() {
   failures=$((failures + 1))
 }
 
-for f in "$SCRIPT" "$GRADLE" "$WORKFLOW" "$TEST_KT"; do
+for f in "$SCRIPT" "$GRADLE" "$WORKFLOW" "$TEST_KT" "$FCM_SCRIPT" "$FCM_WORKFLOW"; do
   [ -f "$f" ] || { fail "missing file: $f"; }
 done
 [ "$failures" -eq 0 ] || { echo; echo "$failures failure(s)."; exit 1; }
@@ -96,36 +106,53 @@ fi
 expected="${application_id}${suffix}"
 echo "build.gradle.kts installs the debug variant as: $expected"
 
-# --- 1. The script's default --------------------------------------------------
-script_default=$(grep -oE 'APP_PACKAGE="\$\{APP_ID:-[^}]+\}"' "$SCRIPT" \
-  | head -1 | sed -E 's/.*:-([^}]+)\}"/\1/')
+# --- 1 and 2. Every host script's default, and every workflow's APP_ID --------
+#
+# Two readers each, since BIT-135. A correct default with a drifted APP_ID is the
+# same bug wearing the other hat — both scripts prefer $APP_ID when the step
+# exported it — so both halves are checked for both jobs.
 
-if [ -z "$script_default" ]; then
-  fail "could not find an APP_PACKAGE=\"\${APP_ID:-…}\" assignment in $SCRIPT."\
-    "If the shape changed, update this pin in the same commit — dropping it"\
-    "silently restores a bug that reads as a pass."
-elif [ "$script_default" != "$expected" ]; then
-  fail "ci-wallet-instrumented.sh defaults APP_PACKAGE to '$script_default',"\
-    "but Gradle installs '$expected'. The device-transfer phase would find no"\
-    "such package, skip the backup, and leave check-backup-set.sh grepping an"\
-    "empty set — a run that measures nothing while reading as a pass."
-else
-  echo "PASS: ci-wallet-instrumented.sh defaults to $script_default"
-fi
+check_script_default() {
+  script=$1
+  script_default=$(grep -oE 'APP_PACKAGE="\$\{APP_ID:-[^}]+\}"' "$script" \
+    | head -1 | sed -E 's/.*:-([^}]+)\}"/\1/')
 
-# --- 2. The workflow's APP_ID -------------------------------------------------
-workflow_app_id=$(grep -oE '^[[:space:]]*APP_ID:[[:space:]]*[^[:space:]#]+' "$WORKFLOW" \
-  | head -1 | sed -E 's/.*APP_ID:[[:space:]]*//')
+  if [ -z "$script_default" ]; then
+    fail "could not find an APP_PACKAGE=\"\${APP_ID:-…}\" assignment in $script."\
+      "If the shape changed, update this pin in the same commit — dropping it"\
+      "silently restores a bug that reads as a pass."
+  elif [ "$script_default" != "$expected" ]; then
+    fail "$(basename "$script") defaults APP_PACKAGE to '$script_default', but"\
+      "Gradle installs '$expected'. In ci-wallet-instrumented.sh the"\
+      "device-transfer phase would find no such package, skip the backup and leave"\
+      "check-backup-set.sh grepping an empty set; in ci-fcm-delivery.sh the app"\
+      "would never be killed and the wake would be delivered to a live process."\
+      "Both measure nothing while reading as a pass."
+  else
+    echo "PASS: $(basename "$script") defaults to $script_default"
+  fi
+}
 
-if [ -z "$workflow_app_id" ]; then
-  fail "could not find an APP_ID: entry in $WORKFLOW."
-elif [ "$workflow_app_id" != "$expected" ]; then
-  fail "the workflow sets APP_ID=$workflow_app_id but Gradle installs $expected."\
-    "ci-wallet-instrumented.sh prefers \$APP_ID over its own default, so this"\
-    "drift defeats the default being right."
-else
-  echo "PASS: the workflow sets APP_ID=$workflow_app_id"
-fi
+check_workflow_app_id() {
+  workflow=$1
+  workflow_app_id=$(grep -oE '^[[:space:]]*APP_ID:[[:space:]]*[^[:space:]#]+' "$workflow" \
+    | head -1 | sed -E 's/.*APP_ID:[[:space:]]*//')
+
+  if [ -z "$workflow_app_id" ]; then
+    fail "could not find an APP_ID: entry in $workflow."
+  elif [ "$workflow_app_id" != "$expected" ]; then
+    fail "$(basename "$workflow") sets APP_ID=$workflow_app_id but Gradle installs"\
+      "$expected. The host scripts prefer \$APP_ID over their own defaults, so this"\
+      "drift defeats the default being right."
+  else
+    echo "PASS: $(basename "$workflow") sets APP_ID=$workflow_app_id"
+  fi
+}
+
+check_script_default "$SCRIPT"
+check_script_default "$FCM_SCRIPT"
+check_workflow_app_id "$WORKFLOW"
+check_workflow_app_id "$FCM_WORKFLOW"
 
 # --- 3. The hand-off interlock ------------------------------------------------
 #

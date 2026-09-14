@@ -21,7 +21,7 @@ passed.
 | Leg | State | Carried on | Where |
 |---|---|---|---|
 | K2 — the seed is usable with the device locked | **written, not yet run** | — | `SeedReadableWhileLockedTest`, `wallet-instrumented` |
-| K2 — an FCM data message wakes the process | **receiver built (BIT-133); the app-side half written, the delivery half still unrun** | **BIT-135** | §1 below |
+| K2 — an FCM data message wakes the process | **receiver built (BIT-133); delivery job built and addressing settled (BIT-135) — the send itself is one repository secret away, and the foreground promotion is out of scope for it** | **BIT-135** | §1 below |
 | K2 — *force-stop* then wake | **withdrawn as specified; `wallet-core-spec` §6 corrected 2026-09-14** | **BIT-133** | §2 below |
 | K7 — interrupted payment resolves to one outcome | **unrun; precondition, kill window and graph access all solved — the test and its host phase are what is left** | **BIT-132** | §3 below |
 | K8 — Doze and App Standby machinery | **unrun; its precondition is now solved** | **BIT-132** | §4 below |
@@ -149,6 +149,16 @@ not running reaches `Node.start()`.
 removed rather than argued with: **the receiver exists**. The other two are
 unchanged, and they are now the whole of what is left.
 
+**Status, 2026-09-14 (BIT-135), and this supersedes the section head above.**
+The second blocker — *the image* — is removed: there is now a `google_apis` job,
+`.github/workflows/fcm-delivery.yml`, and everything it needs to send is written
+and self-tested. **The open question is settled: by registration token, not by
+topic** — the argument is [below](#the-addressing-question-settled-by-token).
+The third blocker is unchanged and is now the only one: **the credential does
+not exist**, and only Ruben can provision it. What the job establishes without
+one, and what it still cannot, is in
+[what the job proves today](#what-that-job-proves-today-and-what-it-does-not).
+
 ### What was built
 
 - **`BackgroundWake`** (`:core:wallet-ldk`, `host/BackgroundWake.kt`) — the
@@ -205,10 +215,11 @@ measured on.
    pins the whole merged set, so a third one arriving in a version bump is a red
    test rather than a line on the Play listing nobody reviewed.
 
-### Why the delivery half still cannot run in this job
+### Why the delivery half cannot run *in this job*, and where it runs instead
 
-Two of BIT-123's three blockers survive intact, and the first is a property of
-the image rather than of anything in this repository.
+The first of BIT-123's two remaining blockers was a property of the image rather
+than of anything in this repository, and it is now removed by giving the leg its
+own job rather than by arguing with it.
 
 1. **This job's image cannot deliver one.** `wallet-instrumented` runs
    `default` — an AOSP image, and that is load-bearing for a different claim:
@@ -226,58 +237,123 @@ the image rather than of anything in this repository.
    above needs re-deriving — starting with whether the local transport is still
    there for the backup half.
 
+   **Removed by BIT-135.** `.github/workflows/fcm-delivery.yml` boots
+   `google_apis`, API 34, x86_64, under its own AVD cache key
+   (`avd-api34-google_apis-x86_64-fcm`). Not `google_apis_playstore`: that has no
+   `adb root` and no writable system, and nothing here needs the store, only the
+   services.
+
 2. **Sending one needs a project, and a key this repository does not hold.**
-   **BIT-135** carries this and is blocked on it; only Ruben can provision it.
-   BIT-39 provisioned two: `bittr-prod` and `bittr-regtest`. The regtest one is
-   exactly the non-production sender this needs, and
-   `android/scripts/verify-fcm-service-account.sh` already exists to check a key
-   before it goes into an environment. What is missing is the key itself, as a
-   repository secret. **Only Ruben can provision it**, and BIT-123's standing
-   note — never mainnet keys, never production node access, never real funds —
-   covers pushing through the production sender too.
+   **Still open, and now the only thing open.** BIT-39 provisioned two projects:
+   `bittr-prod` and `bittr-regtest`. The regtest one is exactly the
+   non-production sender this needs. What is missing is
+   `FCM_REGTEST_SERVICE_ACCOUNT` as a repository secret; **only Ruben can
+   provision it**, and `android/scripts/verify-fcm-service-account.sh --expect
+   regtest` is what tells the two near-identical key files apart before one is
+   pasted — they arrived swapped once already. BIT-123's standing note — never
+   mainnet keys, never production node access, never real funds — covers pushing
+   through the production sender too, and `send-fcm-wake.sh` enforces it with no
+   flag to override: it refuses any key whose `project_id` is not
+   `bittr-regtest`.
 
-### What the second job needs, with the open question named
+### The addressing question, settled: by token
 
-Written down here because it is the part a reader would otherwise re-derive:
+BIT-135's first job was to choose between addressing the device by registration
+token and addressing it by CI topic. **It is the token**, and the trade turned
+out to be far less close than the two paragraphs this section used to carry.
 
-- **A `google_apis` AVD, API 34, x86_64**, cached under its own key. Not
-  `google_apis_playstore`: the Play Store image is locked down (no
-  `adb root`, no writable system) and nothing here needs the store, only the
-  services.
-- **The debug APK**, which is the one registered against `bittr-regtest` —
-  `applicationId` `com.bittr.android.regtest`, per `GoogleServicesConfigTest`.
-  Sending to it through the production project is not a smaller version of this
-  test, it is a different and forbidden one.
-- **`FCM_REGTEST_SERVICE_ACCOUNT`** as a repository secret, checked with
-  `verify-fcm-service-account.sh --expect regtest` before use.
-- **A sender**, posting a high-priority `data`-only message to FCM HTTP v1.
-- **A way to address the device, and this is the open question.** Two routes,
-  and they trade differently:
-  - *By registration token.* Faithful to production, which addresses a token the
-    backend stored at signup. Costs: the token has to get from the device to the
-    host, and today it deliberately cannot — `BittrMessagingService.onNewToken`
-    logs its length and not its value, because it is a per-install device
-    identifier that `shared/docs/privacy-disclosure.md` lists as one and logcat
-    is readable over any adb cable. Doing this means a debug-only path that
-    surrenders it.
-  - *By topic.* The device subscribes to a CI topic and the sender posts to
-    `/topics/<name>`; no token ever leaves the device. Costs: a subscription
-    call in the app that exists only for the test — unless it is gated to the
-    regtest build, which is the same class of build-type-only behaviour
-    `BiometricUnlockFlagTest` already polices — and topic fan-out is
-    best-effort, so a delivery failure is harder to tell from a wake failure.
+**The token route's stated cost does not exist.** It was written down as *"a
+debug-only path in the app that surrenders the token"* — and no such path is
+needed. Instrumented tests run inside the **target application's process**, so
+`FirebaseMessaging.getInstance()` in `androidTest/` is the *app's* instance,
+initialised from the app's own `google-services.json`, and the token it mints is
+the app's own. Everything that surrenders it lives in `FcmDeliveryTest`, which is
+compiled into the test APK and is in no shipped artefact.
+`BittrMessagingService.onNewToken` is untouched and still logs the token's length
+and never its value.
 
-  Neither is obviously right and the choice is the first thing **BIT-135** — which
-  carries this job — should make.
+That observation applies to the topic route too — a test could call
+`subscribeToTopic` from the same place — so it does not by itself decide
+anything. What decides it is the other side:
 
-**Risk accepted by not running it.** Smaller than it was, and differently
-shaped. The wake path now exists and its app-side half is under test on every
-run, so what is unproven is no longer "does the code exist" but "does Google
-deliver to this app, and does the foreground promotion survive the background
-start restriction on a real Play-services device". The first is Google's to get
-right. The second is the one that could bite: if the promotion is refused, the
-node starts unprotected and may be frozen mid-start — survivable, silent, and
-exactly the kind of thing a measurement rather than an argument settles.
+**A topic send cannot fail visibly, and this job exists to tell two failures
+apart.** `POST /v1/projects/…/messages:send` with `"topic"` returns HTTP 200 and
+a message name *whether or not anything is subscribed*. So "Google did not
+deliver" and "the wake did not fire" would both present as silence on the device
+with a green send behind them — which is precisely the distinction the job is
+for. Addressing a `token` returns `UNREGISTERED` or `INVALID_ARGUMENT` per
+message, so a bad target is a legible harness failure and a silent device is a
+real finding. Topic subscriptions also propagate asynchronously, adding a third
+cause indistinguishable from the other two.
+
+**And the token is what production does** — the backend addresses the token it
+stored at signup. A test that exercises the topic path would be exercising a path
+the product does not have.
+
+The privacy cost is handled rather than accepted. The token goes into
+`no_backup/fcm_delivery_handoff.txt`, the same channel BIT-108 used for its
+backup hand-off; the host reads it with `run-as`, masks it with `::add-mask::`
+before anything else touches it, passes it to `curl` in a file rather than in
+`argv`, and clears the app at the end. `check-fcm-delivery-results.py` fails the
+run if a token-shaped string ever reaches the result XML, because those files are
+uploaded as artefacts.
+
+### What that job proves today, and what it does not
+
+The parts are deliberately separate, in the shape BIT-108 established for the
+backup verdict, and **none of the three is evidence alone**:
+
+| who | what |
+|---|---|
+| `FcmDeliveryTest` (`:app`, 3 methods) | leaves the device in the state a wake needs: Play services asserted present, `FirebaseApp` asserted to have resolved `bittr-regtest`, a wallet planted, a token handed off |
+| `ci-fcm-delivery.sh` | `am kill`s the process, sends, and reads logcat — **the verdict** |
+| `check-fcm-delivery-results.py` | refuses a run whose three methods did not all execute |
+
+**Running today, without any credential**, and this is more than the AOSP job can
+establish: that this image carries Play services, that the installed APK really
+resolved `bittr-regtest` after the `google-services` plugin and `aapt` had both
+had the config, and that **Google mints a registration token for this install** —
+i.e. everything up to Google's own delivery. Without the secret the run then
+emits a `::warning::` saying the delivery leg is unrun. A warning and not an
+error: a job working correctly should not look broken for the length of a wait.
+
+**Waiting on the secret:** the send itself, and with it the negative control —
+an otherwise identical high-priority data message carrying no `bittr_wake`
+field, which must produce `NotAWake`. Without it, "the wake ran" and "every push
+starts a node" are the same green, and the project this app registers in also
+carries ordinary payment notifications.
+
+**NOT proved by this job at all, and the honest part of this section.** The
+**foreground promotion** is not measured and cannot be, because this job installs
+the ordinary debug APK — which has no `LdkEnvironment`, so `WalletModule` binds
+`ForegroundPresence.None` and `promote()` is a no-op. Nothing is promoted,
+refused or allowlisted, so the Android 12+ background-start restriction is
+untouched by a green run here. Proving it needs the **configured regtest APK on a
+`google_apis` image**, which is a third combination: §0's configured build boots
+`default` because the nightly's own reasons put it there. That row is not closed
+by BIT-135 and should not be read as closed.
+
+Two properties of the message carry the rest of the claim and **neither is
+assertable from Android** — `BittrMessagingService` and `BackgroundWake` both say
+so. `send-fcm-wake.sh` builds them in one place, re-asserts them on every send,
+and `test-send-fcm-wake.sh` negative-controls both in the `build` job by doctoring
+the sender and requiring it to refuse its own output. They are `priority: high`,
+without which the promotion is refused and Doze defers the message, and `data`
+with **no** `notification` block, without which the system tray handles it and
+`onMessageReceived` is never called at all.
+
+**`am kill`, never `am force-stop`** — §2 below is the whole argument, and the
+host script repeats it where someone would otherwise "fix" it.
+
+**Risk still accepted.** Smaller than it was and differently shaped again. The
+wake path exists and its app-side half runs on every wallet run; the delivery
+path exists, is written, is self-tested, and is one secret away from executing.
+What remains unproven is that Google delivers to a killed process — Google's to
+get right, and now measurable in one job — and the foreground promotion, which is
+the one that could bite: if it is refused, the node starts unprotected and may be
+frozen mid-start. Survivable, silent, and not closable without a configured APK
+on a Play-services image.
+
 
 ## 2. K2 — the force-stop leg, withdrawn as specified
 

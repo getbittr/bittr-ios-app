@@ -43,10 +43,20 @@ import org.junit.runner.RunWith
  *    token can be minted and no message can arrive.
  *    [recordWhetherThisImageCouldEverDeliverAWake] asks the device rather than
  *    asserting it, so the doc's claim is fed by a measurement.
+ *    **Built by BIT-135**: `.github/workflows/fcm-delivery.yml`, and
+ *    `FcmDeliveryTest` is its device half. That class is in this same test APK
+ *    and is kept out of this job by an annotation filter — see
+ *    [RequiresPlayServices], which is also why it cannot be an `@Assume`.
  * 2. **A non-production FCM project's service-account key**, as a repository
  *    secret. BIT-39 provisioned `bittr-regtest` for exactly this; the key is not
- *    in the repository and must never be `bittr-prod`'s.
- * 3. **A sender, and a way to address it.** Both are open — see §1.
+ *    in the repository and must never be `bittr-prod`'s. **Still missing**, and
+ *    now the only thing missing — only Ruben can provision it.
+ * 3. **A sender, and a way to address it.** **Both settled by BIT-135**:
+ *    `android/scripts/send-fcm-wake.sh`, addressing the device by registration
+ *    token rather than by topic. §1 carries the argument; the short form is that
+ *    a `/topics/` send returns 200 whether or not anything is subscribed, so it
+ *    cannot tell a delivery failure from a wake failure — which is the one
+ *    distinction the job exists for.
  *
  * ## Why the delivery is driven through [BittrMessagingService.deliver]
  *
