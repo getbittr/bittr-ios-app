@@ -607,7 +607,26 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: app-debug-apk
-          path: android/app/build/outputs/apk/debug/*.apk
+          # BIT-129: the x86_64 split ONLY, not `*.apk`.
+          #
+          # `:app:assembleDebug` emits one APK per supported ABI and no universal
+          # one — see the `splits` block in android/app/build.gradle.kts, which
+          # also explains why per-ABI packaging is not a divergence between what
+          # Maestro tests and what users get.
+          #
+          # The one consumer of this artifact is the `maestro` job, and its
+          # emulator is x86_64 (`arch: x86_64`, both steps). The other two splits
+          # are 127 MB that every run would upload here and download there so that
+          # `adb install` could push libraries the emulator's PackageManager would
+          # never open: it selects one primary ABI at install time. Uploading all
+          # three costs the transfer twice and buys nothing.
+          #
+          # Someone who wants the arm64 APK — a real device, a size measurement —
+          # builds it; it is the same `assembleDebug` that produced this one. If a
+          # second consumer of this artifact ever appears, widen the glob here and
+          # change the install in android/scripts/ci-smoke.sh in the same commit.
+          # AbiPackagingGuardTest fails if only one of the two moves.
+          path: android/app/build/outputs/apk/debug/app-x86_64-debug.apk
           retention-days: 7
           if-no-files-found: error
 

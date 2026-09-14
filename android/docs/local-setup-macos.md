@@ -98,7 +98,22 @@ cd android
 ./gradlew :app:assembleDebug    # debug == the regtest variant
 ```
 
-APK lands at `app/build/outputs/apk/debug/app-debug.apk`.
+APKs land in `app/build/outputs/apk/debug/` — **one per ABI**, and no universal
+one:
+
+```
+app-arm64-v8a-debug.apk      71 MB   ← a physical phone
+app-armeabi-v7a-debug.apk    56 MB
+app-x86_64-debug.apk         69 MB   ← an emulator, and what CI installs
+```
+
+Install the one matching what you are installing onto — the wrong one is refused
+with `INSTALL_FAILED_NO_MATCHING_ABIS`, which is at least a legible error.
+`./gradlew :app:installDebug` picks for you off the attached device.
+
+Three APKs rather than one is [BIT-129](abi-packaging.md). The size is
+`libldk_node.so` and `libbdkffi.so`, which are ~40 MB of every one of them and
+are not going away — this is a Lightning wallet.
 
 Run `test`, not `testDebugUnitTest` — `:core:common`, `:core:wallet` and
 `:core:wallet-stub` are pure-Kotlin modules with no Android variants, so

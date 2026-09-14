@@ -55,6 +55,109 @@ android {
     namespace = "com.bittr.android"
     compileSdk = libs.versions.compileSdk.get().toInt()
 
+    /**
+     * The ABIs bittr supports, named once and applied to every variant (BIT-129).
+     *
+     * BIT-126 put `:core:wallet-ldk` on this module's graph, which brought
+     * `libldk_node.so` and `libbdkffi.so` with it. The universal debug APK went to
+     * **174 MB**, of which **156 MB is `lib/`** — measured on `d882d1e8`, and
+     * written down in android/docs/abi-packaging.md with the per-ABI split.
+     *
+     * WHY THIS LIST AND NOT THE ONE THE DEPENDENCIES HAPPEN TO CARRY
+     *
+     * Without this filter the APK ships seven `lib/` directories, and four of them
+     * are not a supported configuration of this app:
+     *
+     *   - `armeabi`, `mips`, `mips64` — JNA's `libjnidispatch.so`, for three ABIs
+     *     the NDK removed in r17 (2017). No Android device in support has ever run
+     *     them. ~0.4 MB, and cheap to carry, but they are noise in every size
+     *     measurement anyone takes of this APK from here on.
+     *   - `x86` (32-bit) — this one is not noise. **ldk-node and BDK publish no
+     *     32-bit x86 binary.** MapLibre does, so today a 32-bit x86 device installs
+     *     bittr successfully and then dies on the first `System.loadLibrary` the
+     *     wallet makes. Listing the ABIs the wallet actually has turns "installs,
+     *     then crashes" into "not offered", which is the honest state: an app whose
+     *     whole purpose is the node cannot support an ABI the node has no build for.
+     *
+     * So this is a correctness statement first and a size one second. The three
+     * entries are exactly the ABIs for which BOTH `libldk_node.so` and
+     * `libbdkffi.so` exist. Adding a fourth without checking that is how the
+     * crash-on-load case comes back.
+     *
+     * DEBUG AND RELEASE GET THE SAME LIST, DELIBERATELY
+     *
+     * The cheap way to shrink what CI installs is `ndk.abiFilters` on the debug
+     * build only. This repo does not do that — see the `androidComponents` block
+     * at the bottom of this file, which exists because a release-only gap in what
+     * gets tested had already cost us a silently dead assertion once. `splits`
+     * below is what makes the CI saving available without buying a second
+     * divergence: it changes how a variant is *packaged*, not what it contains.
+     *
+     * WHY THE LIST IS APPLIED THROUGH `splits` AND NOT `defaultConfig.ndk`
+     *
+     * Because AGP will not take both, and that is a hard error rather than a
+     * preference. Setting the two to the *same* three ABIs fails configuration
+     * with "Conflicting configuration : 'armeabi-v7a,arm64-v8a,x86_64' in ndk
+     * abiFilters cannot be present when splits abi filters are set" — verified
+     * against AGP 9.4.0, which is the version in gradle/libs.versions.toml.
+     *
+     * So one of them carries the list, and for an APK it has to be `splits`:
+     * `ndk.abiFilters` alone would shrink every APK to the same three ABIs but
+     * still emit ONE universal APK, leaving CI pushing all three. The reverse
+     * trade arrives with the App Bundle — `splits.abi` does not apply to
+     * `bundle*` tasks, so a bundle built today would contain all seven `lib/`
+     * directories. That is not a live problem (this repo has no signing config
+     * and produces no bundle; see the `release` build type below) and it is the
+     * one thing that must change when it becomes one: swap this block for
+     * `defaultConfig.ndk.abiFilters`, and let Play do the splitting.
+     * AbiPackagingGuardTest is written to accept either mechanism for exactly
+     * that reason — it asserts the ABI SET, not the block that spells it.
+     */
+    val supportedAbis = listOf("arm64-v8a", "armeabi-v7a", "x86_64")
+
+    /*
+     * One APK per ABI, for every variant, with no universal APK (BIT-129).
+     *
+     * WHY THIS IS NOT THE DIVERGENCE IT LOOKS LIKE
+     *
+     * The objection to shrinking the CI APK is that Maestro would stop testing the
+     * build users get. It does not apply here, and the reason is a property of the
+     * platform rather than a judgement call: **`PackageManager` picks ONE primary
+     * ABI at install time and loads only that directory.** The Maestro emulator is
+     * `x86_64` (see android-maestro.yml), so on every run to date the arm64-v8a,
+     * armeabi-v7a and x86 libraries inside the universal APK were pushed over adb,
+     * written to disk, and never opened. A universal APK ships more; it does not
+     * test more. Splitting changes what travels, and changes nothing about what
+     * executes.
+     *
+     * What DOES differ between the emulator and a user's phone is the ABI itself —
+     * CI has exercised x86_64 Rust and users run arm64 — and that was already true
+     * before this block and is unchanged by it. It is the reason the nightly
+     * regtest suite exists; it is not something a universal APK was fixing.
+     *
+     * `isUniversalApk = false`: there is no consumer for a 174 MB artefact that no
+     * device would use more than a third of. `:app:assembleDebug` now writes
+     * app-arm64-v8a-debug.apk, app-armeabi-v7a-debug.apk and app-x86_64-debug.apk
+     * instead of app-debug.apk — android/scripts/ci-smoke.sh installs the third by
+     * name, and AbiPackagingGuardTest holds it to that.
+     *
+     * NOT `packaging.jniLibs.useLegacyPackaging = true`, which is the other obvious
+     * lever and is a trap. Every `.so` above is stored uncompressed because AGP
+     * defaults `extractNativeLibs` to false: the loader maps them straight out of
+     * the APK. Turning legacy packaging on would compress them — a smaller APK to
+     * download — and then have the installer decompress a second copy into
+     * /data/app on the device, which is slower to install and roughly doubles the
+     * on-device footprint. Smaller file, worse app.
+     */
+    splits {
+        abi {
+            isEnable = true
+            reset()
+            include(*supportedAbis.toTypedArray())
+            isUniversalApk = false
+        }
+    }
+
     defaultConfig {
         // Note: iOS uses com.bittr.bittr-regtest for the regtest variant. Android
         // applicationIds cannot contain hyphens, so the regtest build is
@@ -262,6 +365,30 @@ android {
                 it.systemProperty(
                     "bittr.ldk.configured",
                     ldkEnvironment.values.any { value -> value.isNotBlank() }.toString(),
+                )
+
+                // BIT-129. The two halves of the ABI decision, as AGP resolved them
+                // rather than as this file appears to say — read off
+                // `defaultConfig.ndk` and `splits` themselves, so a value set
+                // somewhere else (a build type, a plugin, a second `ndk` block) is
+                // visible to AbiPackagingGuardTest instead of hidden behind a
+                // grep of this file that still looks right.
+                //
+                // A deleted block reaches the test as an empty string, which fails.
+                // That is the case worth engineering for: the decision is about
+                // what is NOT in the APK, and absent configuration produces a
+                // bigger, more permissive APK that nothing else complains about.
+                it.systemProperty(
+                    "bittr.abi.filters",
+                    defaultConfig.ndk.abiFilters.sorted().joinToString(","),
+                )
+                it.systemProperty(
+                    "bittr.abi.splits",
+                    splits.abiFilters.sorted().joinToString(","),
+                )
+                it.systemProperty(
+                    "bittr.abi.universalApk",
+                    splits.abi.isUniversalApk.toString(),
                 )
             }
         }

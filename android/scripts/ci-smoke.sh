@@ -54,7 +54,34 @@ set -euo pipefail
 # the first moment the job can observe how long booting took.
 emulator_ready=$(date +%s)
 
-adb install -r apk/*.apk
+# BIT-129. Named, not globbed. `:app:assembleDebug` emits one APK per ABI —
+# app-arm64-v8a-debug.apk, app-armeabi-v7a-debug.apk, app-x86_64-debug.apk — and
+# there is no universal APK to fall back on; see the `splits` block in
+# android/app/build.gradle.kts for why that is not a divergence from what ships.
+#
+# The emulator this runs on is x86_64 (`arch: x86_64` in the workflow, both the
+# AVD snapshot and the run step), so that is the one to install. Installing one
+# of the other two here fails with INSTALL_FAILED_NO_MATCHING_ABIS, which is a
+# legible message — the expensive failures are the ones below, where the file is
+# missing or the glob is wrong and the error names neither an APK nor an ABI.
+#
+# The workflow only uploads this one file, so the glob would have resolved to it
+# anyway. It is spelled out because the failure mode of a wrong glob is the
+# expensive kind: `adb install -r apk/*.apk` with three files present becomes a
+# multi-argument install, and with zero files present becomes an install of the
+# literal string `apk/*.apk`. Both happen after a full emulator boot.
+# AbiPackagingGuardTest holds this line and the workflow's upload path to the
+# same ABI.
+apk=apk/app-x86_64-debug.apk
+if [ ! -f "$apk" ]; then
+  # `find`, not `ls`, because check-action-scripts.sh shellchecks this file and
+  # SC2012 is right: the whole point of this line is to be readable when
+  # something unexpected is in the directory.
+  present=$(find apk -maxdepth 1 -type f -exec basename {} \; 2>/dev/null | tr '\n' ' ')
+  echo "::error::$apk is missing. The build job uploads exactly that file (see the 'Upload APK' step in .github/workflows/android-maestro.yml); the ABIs :app emits are the \`splits\` block in android/app/build.gradle.kts. Present in apk/: ${present:-nothing}" >&2
+  exit 1
+fi
+adb install -r "$apk"
 installed=$(date +%s)
 
 # Video of the run, kept when the flow fails.
