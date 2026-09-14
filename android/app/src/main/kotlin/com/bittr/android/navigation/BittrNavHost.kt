@@ -18,6 +18,9 @@ import com.bittr.android.BuildConfig
 import com.bittr.android.core.common.TestID
 import com.bittr.android.core.common.destination.BitcoinNetwork
 import com.bittr.android.core.designsystem.BittrAlertDialog
+import com.bittr.android.core.network.BittrEnvironment
+import com.bittr.android.core.network.HttpClient
+import com.bittr.android.core.network.okhttp.OkHttpBittrHttpClient
 import com.bittr.android.core.wallet.WalletState
 import com.bittr.android.feature.academy.AcademyScreen
 import com.bittr.android.feature.home.HomeScreen
@@ -105,6 +108,16 @@ fun BittrNavHost(
     // rather than read inside the parser because `:core:common` cannot see `:app`'s
     // BuildConfig — the same reason AuthCapabilities is injected.
     network: BitcoinNetwork = BitcoinNetwork.fromBuildConfig(BuildConfig.BITCOIN_NETWORK),
+    // Which backend this build talks to, read here for the same reason and handed
+    // down the same way (BIT-41 item 1). Unlike `network` above there is no lenient
+    // fallback on an unrecognised name: see BittrEnvironment.fromBuildConfig on why
+    // neither direction is the safe one.
+    environment: BittrEnvironment = BittrEnvironment.fromBuildConfig(BuildConfig.BITTR_ENVIRONMENT),
+    // The single HTTP client for the process. One instance, because OkHttp's
+    // connection and thread pools live on it — a per-screen client is a per-screen
+    // pool, which is the standard way to turn one app into several from the
+    // backend's point of view.
+    http: HttpClient = remember { OkHttpBittrHttpClient() },
 ) {
     val walletState by viewModel.walletState.collectAsState()
 
@@ -192,7 +205,11 @@ fun BittrNavHost(
         }
 
         composable(Routes.VALUE) {
-            ValueScreen(onBack = { navController.popBackStack() })
+            ValueScreen(
+                environment = environment,
+                http = http,
+                onBack = { navController.popBackStack() },
+            )
         }
 
         composable(Routes.MAP) {

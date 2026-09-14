@@ -73,6 +73,32 @@ include(":core:wallet-ldk")
 include(":core:wallet-seed")
 include(":core:wallet-keystore")
 
+// The push envelope (BIT-41 item 4). Pure Kotlin for the same reason :core:lnurl is,
+// and here the reason is sharper: the two things that would let this be tested any
+// other way — a Firebase project that can send (BIT-39) and a backend that accepts
+// Android tokens (BIT-9) — are both blocked. The FCM service in :app hands it
+// RemoteMessage.getData() and gets a PushEnvelope back; everything between those two
+// points runs as a JVM unit test.
+include(":core:push")
+// The one module allowed to reach Firebase (BIT-41 item 3). Same split as
+// :core:network / :core:network-okhttp: :core:push decides what a payload means and is
+// provable on the JVM, while this holds the FirebaseMessagingService that cannot be —
+// and holds nothing else, so the boundary keeps "which code can reach Firebase"
+// answerable from one build file. See FirebaseMessagingGuardTest in :app.
+include(":core:push-fcm")
+
+// The network seam (BIT-41 item 1), split on the same line :core:wallet is:
+// :core:network is pure Kotlin and holds every *decision* a request embodies — which
+// backend this build talks to, what the body says, what the response means — while
+// :core:network-okhttp is the one module allowed to open a socket. The split is what
+// lets the whole of `api-contract` §2 be proven as JVM unit tests against a backend
+// that does not answer yet (BIT-9 is Ruben's, and BIT-142 is where this meets a real
+// server). ApiBaseUrlGuardTest in :app enforces the other half of the reason: every
+// bittr API hostname in this repo lives in one file, so a debug build can never read
+// production — the bug BIT-32 exists for, which had already been reproduced here.
+include(":core:network")
+include(":core:network-okhttp")
+
 // BIT-18/K1. An instrumented probe, not a shipped module — nothing depends on it. It proves on
 // real devices what BIT-8 rule 2 currently asserts from AOSP javadoc: that a non-auth-bound
 // Keystore key survives a lock-screen change. See android/docs/k1-keystore-lockscreen.md.

@@ -66,6 +66,54 @@ ldkNode = "0.7.0"      # iOS pins ldk-node 0.7.0
 bitcoinKmp = "0.31.0"
 secp256k1Kmp = "0.23.0"  # the version bitcoin-kmp-jvm 0.31.0 resolves; JNI half added explicitly
 
+# JSON. Arrived with the push envelope (BIT-41): an FCM data message is
+# string -> string, so the payload crosses as a JSON *string* and something has to
+# parse it. kotlinx.serialization rather than Moshi/Gson because it is the one that
+# needs no reflection and no codegen to read a JsonObject, which is all :core:push
+# does — see the note in core/push/build.gradle.kts about why the compiler plugin is
+# deliberately absent.
+kotlinxSerialization = "1.9.0"
+
+# HTTP. Arrived with the push client (BIT-41 item 1): before it, the app's only
+# network call was `PriceRepository`'s raw HttpURLConnection.
+#
+# OkHttp rather than staying on HttpURLConnection, and the reason is not taste — it
+# is that the contract cannot be implemented without it. `api-contract` §2.3 makes
+# the device-token endpoint `PATCH /customer/device-token`, and
+# `java.net.HttpURLConnection.setRequestMethod` validates against a hardcoded array
+# of seven verbs that does not contain PATCH; it throws ProtocolException. Android's
+# implementation inherits that check from the JDK superclass. The workarounds are a
+# reflective poke at a private field or an `X-HTTP-Method-Override` header the
+# backend would have to agree to — a contract change to avoid a dependency.
+#
+# The second reason is testability, which is the same argument :core:push made:
+# mockwebserver3 lets the exact bytes this client puts on the wire be asserted by a
+# JVM unit test against a real socket, months before the backend exists. Retrofit is
+# deliberately absent — it is a code generator over this, and with three endpoints
+# there is nothing to generate.
+okhttp = "5.5.0"
+
+# Firebase Cloud Messaging (BIT-41 item 3), against the two projects BIT-39
+# provisioned: bittr-regtest (597951034849) and bittr-prod (32504298165).
+#
+# The BOM is the version that matters; firebase-messaging is declared without one
+# below and takes it from here. That is not a convenience — the messaging artefact
+# has a hard co-version relationship with play-services-basement and
+# firebase-common, and mismatching them fails at runtime on a device rather than at
+# build time, which is the worst place for a push bug to first appear.
+#
+# `firebase-messaging` alone, deliberately. The BOM covers analytics, crashlytics,
+# installations, remote-config and a dozen more; `implementation(platform(bom))`
+# adds none of them. FirebaseMessagingGuardTest keeps it that way — a transitively
+# arriving analytics artefact would start collecting events against an app whose
+# approved copy (BIT-91) says what it collects.
+firebaseBom = "34.19.0"
+
+# The Gradle plugin that turns google-services.json into the resources
+# FirebaseApp.initializeApp reads at startup. Applied to :app only; it is keyed on
+# applicationId, which no library module has.
+googleServices = "4.5.0"
+
 # Test
 junit = "4.13.2"
 androidxTestExt = "1.3.0"
@@ -115,6 +163,20 @@ hilt-compiler = { group = "com.google.dagger", name = "hilt-android-compiler", v
 kotlinx-coroutines-core = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-core", version.ref = "coroutines" }
 kotlinx-coroutines-test = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-test", version.ref = "coroutines" }
 
+kotlinx-serialization-json = { group = "org.jetbrains.kotlinx", name = "kotlinx-serialization-json", version.ref = "kotlinxSerialization" }
+
+okhttp = { group = "com.squareup.okhttp3", name = "okhttp", version.ref = "okhttp" }
+# The loopback server the OkHttp binding's tests run against. `mockwebserver3`, not
+# the old `mockwebserver` artifact: OkHttp 5 moved it to that package and the 4.x
+# coordinate now ships a deprecated shim. The `-junit4` companion is deliberately
+# not used — `MockWebServer` is `Closeable` in 5.x, so `use { }` scopes it without a
+# rule and without a second artifact.
+mockwebserver3 = { group = "com.squareup.okhttp3", name = "mockwebserver3", version.ref = "okhttp" }
+
+firebase-bom = { group = "com.google.firebase", name = "firebase-bom", version.ref = "firebaseBom" }
+# No version: supplied by the BOM above. Adding one here would silently win over it.
+firebase-messaging = { group = "com.google.firebase", name = "firebase-messaging" }
+
 # The OpenGL build. `android-sdk-vulkan` renders through Vulkan and needs a driver
 # the emulator images in CI do not reliably provide; `android-sdk` is the variant
 # MapLibre publishes as the default and the one the Maestro suite has to run on.
@@ -146,3 +208,4 @@ kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
 kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
 ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
 hilt = { id = "com.google.dagger.hilt.android", version.ref = "hilt" }
+google-services = { id = "com.google.gms.google-services", version.ref = "googleServices" }

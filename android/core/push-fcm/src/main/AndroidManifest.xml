@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!--
+        The FCM receiver, declared in the library that owns it rather than in :app's
+        manifest, so that the module boundary above it means something: the service
+        class, the Firebase dependency and the manifest entry that activates it are
+        one unit and move together.
+
+        `exported="false"` — the intent filter below is matched by an explicit
+        broadcast from Google Play services within the app's own process boundary,
+        and nothing else has any business starting it. `FirebaseMessagingService`'s
+        own manifest entry in the AAR is a fallback that does nothing; this one wins
+        by being more specific and is what routes messages to BittrMessagingService.
+
+        No `android:permission` attribute: the intent is delivered by the Play
+        services client library in-process, not by a remote sender.
+    -->
+    <application>
+        <service
+            android:name=".BittrMessagingService"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="com.google.firebase.MESSAGING_EVENT" />
+            </intent-filter>
+        </service>
+    </application>
+
+</manifest>
