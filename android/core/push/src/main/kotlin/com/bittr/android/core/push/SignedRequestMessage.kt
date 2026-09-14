@@ -59,4 +59,26 @@ object SignedRequestMessage {
         mode: String,
         timestamp: Long,
     ): String = "payment_mode:$pubkey:$depositCode:$mode:$timestamp"
+
+    /**
+     * The message covered by the `signature` query parameter of `GET /boltz/webhook-token`.
+     *
+     * **Three parts, not five** — `<prefix>:<pubkey>:<timestamp>`, with no deposit code and no
+     * value. That is not an inconsistency to be tidied up: it is what the shipping client signs
+     * (`SwapManager.swift:85-95`, `signBittrRequest(prefix:)`), the backend verifies it as such,
+     * and this endpoint predates BIT-9. Making it match the two five-part siblings above would
+     * be a contract change to an endpoint §2.4 explicitly leaves alone, and the symptom would be
+     * a 401 on every swap.
+     *
+     * The two shapes live in one object anyway, because the thing that matters is that *all*
+     * the bytes this app signs are written in one tested place. A second file would drift; two
+     * functions that visibly disagree do not.
+     *
+     * Needed by BIT-41 item 6: after a token rotation the webhook URL has to be re-minted, and
+     * minting requires this signature. See `DeviceTokenLifecycle` for the ordering rule.
+     */
+    fun boltzWebhook(
+        pubkey: String,
+        timestamp: Long,
+    ): String = "boltz_webhook:$pubkey:$timestamp"
 }

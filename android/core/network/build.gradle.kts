@@ -21,6 +21,29 @@ dependencies {
     // what HttpPriceRepository's `withContext(Dispatchers.IO)` currently hand-rolls.
     implementation(libs.kotlinx.coroutines.core)
 
+    // `api`, not `implementation`, and the direction is deliberate: :core:push knows
+    // nothing about HTTP and must keep knowing nothing, while the registration and
+    // token-refresh responses defined here carry a `push_channel` pair that is only
+    // meaningful as a PushChannelStatus. So the dependency points network -> push,
+    // never back. The types appear on this module's public surface — every endpoint
+    // in BittrApi returns one — so callers need them on their compile classpath.
+    //
+    // It also keeps SignedRequestMessage in one place. The bytes a signature covers
+    // belong next to the decode rules that are already tested against the contract,
+    // not next to the code that opens a socket; a message built one way here and
+    // verified another way on the server surfaces as a 401 and sends the
+    // investigation to the wallet.
+    api(project(":core:push"))
+
+    // Request bodies and response envelopes. JsonObject/JsonPrimitive only — no
+    // @Serializable class and so, as in :core:push, no compiler plugin. The reason
+    // is the same one PushEnvelopeDecoder gives: every field of every response is
+    // read individually and tolerantly, because `api-contract` §2.1's whole
+    // additivity argument rests on an unknown key being ignored rather than fatal.
+    // A generated strict deserialiser would turn the backend adding a field into an
+    // Android outage.
+    implementation(libs.kotlinx.serialization.json)
+
     testImplementation(libs.junit)
     testImplementation(libs.kotlinx.coroutines.test)
 }

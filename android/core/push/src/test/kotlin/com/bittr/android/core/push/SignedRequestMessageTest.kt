@@ -33,6 +33,24 @@ class SignedRequestMessageTest {
         )
     }
 
+    /**
+     * The odd one out, and it has to stay odd. `GET /boltz/webhook-token` predates BIT-9 and the
+     * shipping client signs it with three parts (`SwapManager.swift:85-95`); §2.4 leaves that
+     * endpoint alone. Making it match the two five-part siblings above would be a contract change
+     * to an endpoint nobody agreed to change, and the symptom would be a 401 on every swap.
+     *
+     * It lives here anyway, because the value of this object is that *every* string this app
+     * signs is written in one tested place. Two functions that visibly disagree do not drift;
+     * two files do.
+     */
+    @Test
+    fun `the boltz webhook message has no deposit code and no value`() {
+        assertEquals(
+            "boltz_webhook:02a1b2c3:1757808000",
+            SignedRequestMessage.boltzWebhook(PUBKEY, 1_757_808_000L),
+        )
+    }
+
     @Test
     fun `the token is embedded verbatim`() {
         // FCM tokens are ~150+ characters, are not fixed length, and carry ':' in the
