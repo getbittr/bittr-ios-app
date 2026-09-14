@@ -1,6 +1,7 @@
 package com.bittr.android.navigation
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -44,6 +45,9 @@ import com.bittr.android.feature.value.ValueScreen
 import com.bittr.android.feature.website.WebsiteScreen
 import com.bittr.android.feature.signup.CreateWalletScreen
 import com.bittr.android.feature.signup.RestoreWalletScreen
+import com.bittr.android.removal.RemovalOrigin
+import com.bittr.android.removal.WalletRemovalHost
+import com.bittr.android.removal.WalletRemovalViewModel
 
 /**
  * Route constants. Kept as plain strings rather than type-safe routes so that the
@@ -160,6 +164,7 @@ fun BittrNavHost(
     http: HttpClient = remember { OkHttpBittrHttpClient() },
 ) {
     val walletState by viewModel.walletState.collectAsState()
+    val removal = hiltViewModel<WalletRemovalViewModel>().coordinator
 
     // See [NotPortedDialog]. Held here rather than in a screen because it is
     // scaffolding for the port, not app behaviour, and keeping it out of the feature
@@ -167,6 +172,20 @@ fun BittrNavHost(
     var notPorted by remember { mutableStateOf<String?>(null) }
     notPorted?.let { NotPortedDialog(screen = it, onDismiss = { notPorted = null }) }
 
+    // `checkWalletRemoval`: a lockout to resume, or a removal left half-done.
+    LaunchedEffect(Unit) { removal.checkOnLaunch() }
+
+    WalletRemovalHost(
+        coordinator = removal,
+        // The erase already swaps the start destination to signup; this clears whatever
+        // back stack was above it so Back cannot return to a screen of the old wallet.
+        onWalletRemoved = {
+            navController.navigate(Routes.SIGNUP_START) {
+                popUpTo(navController.graph.id) { inclusive = true }
+                launchSingleTop = true
+            }
+        },
+    ) {
     NavHost(
         navController = navController,
         startDestination = when (walletState) {
@@ -208,14 +227,6 @@ fun BittrNavHost(
             UnlockScreen(
                 onUnlocked = {
                     navController.navigate(Routes.HOME) {
-                        popUpTo(Routes.PIN_UNLOCK) { inclusive = true }
-                    }
-                },
-                // Ten wrong PINs: the wallet is off the device, so the PIN screen must
-                // not be on the back stack. `inclusive` is what stops Back returning to
-                // a pad that would unlock nothing.
-                onWalletWiped = {
-                    navController.navigate(Routes.SIGNUP_START) {
                         popUpTo(Routes.PIN_UNLOCK) { inclusive = true }
                     }
                 },
@@ -328,7 +339,11 @@ fun BittrNavHost(
             )
         }
 
-        settingsArea(navController)
+        settingsArea(
+            navController = navController,
+            onRemoveWallet = { removal.removeWalletTapped(RemovalOrigin.Settings) },
+        )
+    }
     }
 }
 
@@ -349,6 +364,7 @@ fun BittrNavHost(
  */
 internal fun NavGraphBuilder.settingsArea(
     navController: NavHostController,
+    onRemoveWallet: (() -> Unit)? = null,
     deviceViewModel: @Composable () -> DeviceViewModel = { hiltViewModel() },
 ) {
     composable(Routes.SETTINGS) {
@@ -380,12 +396,14 @@ internal fun NavGraphBuilder.settingsArea(
     }
 
     composable(Routes.DEVICE) {
+        val device = deviceViewModel()
         DeviceScreen(
             onDown = { navController.popBackStack() },
             onOpenLightningQuestion = {
                 navController.navigate(Routes.LIGHTNING_QUESTION)
             },
-            viewModel = deviceViewModel(),
+            viewModel = device,
+            onRemoveWallet = onRemoveWallet ?: device::nodeBackedRowTapped,
         )
     }
 

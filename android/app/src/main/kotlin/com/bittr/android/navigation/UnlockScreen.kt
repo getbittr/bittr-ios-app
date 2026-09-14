@@ -24,21 +24,17 @@ import com.bittr.android.feature.signup.SignupStrings
  * half-finished PIN reset that the user can press Back into is a screen asking for a
  * recovery phrase with nothing behind it.
  *
- * **What is still not here**, and is BIT-6's rather than deferred by choice: the
- * cooperative Lightning channel close that has to precede the wipe when the wallet has
- * an open channel (`wrong_pin_with_channel.yaml`), and the `removeWalletButton` escape
- * hatch on the phrase screen for a user who has lost their phrase as well
- * (`remove_wallet.yaml`, `forgot_pin_remove_wallet.yaml`). Both need a node to close
- * channels against. The no-channel branches below are complete.
+ * **The wipe is not drawn here.** The lockout and the phrase screen's "Remove wallet from
+ * device" hand over to `WalletRemovalCoordinator`, whose alerts and cover
+ * `WalletRemovalHost` draws over the whole app — the erase swaps the graph to signup, so
+ * this screen is gone before a removal finishes (`wrong_pin_with_channel.yaml`,
+ * `forgot_pin_remove_wallet.yaml`).
  *
  * @param onUnlocked the PIN was right.
- * @param onWalletWiped ten wrong entries; there is no wallet on this device any more,
- *   so the caller must leave for signup and must not allow Back into this screen.
  */
 @Composable
 fun UnlockScreen(
     onUnlocked: () -> Unit,
-    onWalletWiped: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: UnlockViewModel = hiltViewModel(),
 ) {
@@ -58,7 +54,7 @@ fun UnlockScreen(
                 // alerts that have a second button; on the rest it is just Okay.
                 when (alert) {
                     is UnlockAlert.Warning, UnlockAlert.ConfirmReset -> viewModel.startPinReset()
-                    else -> if (viewModel.dismissAlert()) onWalletWiped()
+                    else -> viewModel.dismissAlert()
                 }
             },
             confirmTestTag = TestID.Alert.buttonAt(if (alert.dismissLabel != null) 1 else 0),
@@ -89,6 +85,7 @@ fun UnlockScreen(
             onCancel = viewModel::cancelPinReset,
             busy = state.busy,
             submitLabel = UnlockStrings.RESET_PIN,
+            onRemoveWallet = viewModel::removeWalletTapped,
             modifier = modifier,
         )
 

@@ -62,6 +62,7 @@ fun DeviceScreen(
     onOpenLightningQuestion: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: DeviceViewModel = hiltViewModel(),
+    onRemoveWallet: () -> Unit = viewModel::nodeBackedRowTapped,
 ) {
     val state by viewModel.uiState.collectAsState()
     val picker by viewModel.openPicker.collectAsState()
@@ -104,6 +105,7 @@ fun DeviceScreen(
         onNodeBackedRow = viewModel::nodeBackedRowTapped,
         onOpenLightningQuestion = onOpenLightningQuestion,
         onDismissAlert = viewModel::dismissAlert,
+        onRemoveWallet = onRemoveWallet,
         modifier = modifier,
     )
 }
@@ -125,6 +127,7 @@ internal fun DeviceScreen(
     onOpenLightningQuestion: () -> Unit,
     onDismissAlert: () -> Unit,
     modifier: Modifier = Modifier,
+    onRemoveWallet: () -> Unit = onNodeBackedRow,
 ) {
     alert?.let {
         BittrAlertDialog(
@@ -266,14 +269,13 @@ internal fun DeviceScreen(
                 BittrRowValue(state.channelCount)
             }
 
-            // 9. Remove wallet. Node-backed: iOS refuses to wipe until it can see
-            //    whether a channel is open, because the wipe destroys the channel
-            //    state a seed alone cannot rebuild. Its `walletHasSynced` guard is
-            //    the same one, and it is a hard rule rather than a convenience.
+            // 9. Remove wallet. The app's `WalletRemovalCoordinator`: it refuses to
+            //    wipe until it can see whether a channel is open, because the wipe
+            //    destroys the channel state a seed alone cannot rebuild.
             BittrListRow(
                 label = SettingsStrings.REMOVE_WALLET,
                 icon = BittrIconPaths.TRASH,
-                onClick = onNodeBackedRow,
+                onClick = onRemoveWallet,
                 testTag = TestID.Device.Row.restore,
             )
         }

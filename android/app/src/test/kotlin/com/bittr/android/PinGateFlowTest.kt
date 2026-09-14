@@ -21,6 +21,13 @@ import com.bittr.android.core.wallet.WalletState
 import com.bittr.android.core.wallet.seed.SeedWalletService
 import com.bittr.android.navigation.UnlockScreen
 import com.bittr.android.navigation.UnlockViewModel
+import com.bittr.android.core.wallet.ldk.lightning.ChannelView
+import com.bittr.android.core.wallet.ldk.lightning.WalletNodeReading
+import com.bittr.android.removal.RemovalFlagStore
+import com.bittr.android.removal.RemovalNode
+import com.bittr.android.removal.WalletRemovalCoordinator
+import com.bittr.android.removal.WalletRemovalHost
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -99,20 +106,39 @@ class PinGateFlowTest {
     private fun gate(
         onUnlocked: () -> Unit = {},
         onWalletWiped: () -> Unit = {},
+        over: SeedWalletService = wallet,
     ): UnlockViewModel {
-        val viewModel = UnlockViewModel(wallet)
+        // No node in this build: the channel branches are WalletRemovalCoordinatorTest's.
+        val removal = WalletRemovalCoordinator(
+            scope = CoroutineScope(Dispatchers.Main.immediate),
+            wallet = over,
+            node = NoNode,
+            flag = object : RemovalFlagStore { override var inProgress = false },
+            io = Dispatchers.Unconfined,
+        )
+        val viewModel = UnlockViewModel(over, removal)
         composeRule.runOnUiThread {
             composeRule.activity.setContent {
                 BittrTheme {
-                    UnlockScreen(
-                        onUnlocked = onUnlocked,
-                        onWalletWiped = onWalletWiped,
-                        viewModel = viewModel,
-                    )
+                    WalletRemovalHost(coordinator = removal, onWalletRemoved = onWalletWiped) {
+                        UnlockScreen(onUnlocked = onUnlocked, viewModel = viewModel)
+                    }
                 }
             }
         }
         return viewModel
+    }
+
+    private object NoNode : RemovalNode {
+        override val hasNode = false
+        override fun isSynced() = true
+        override suspend fun startAndSync() = true
+        override fun read(): WalletNodeReading? = null
+        override fun isPeerConnected() = false
+        override fun connectPeer() = false
+        override fun closeChannel(channel: ChannelView) = error("no channels without a node")
+        override fun forceCloseChannel(channel: ChannelView) = error("no channels without a node")
+        override fun didCloseChannel() = Unit
     }
 
     // -----------------------------------------------------------------------
@@ -284,18 +310,45 @@ class PinGateFlowTest {
             )
         }
 
-        // The tenth. The flow stops here and waits for an alert.
+        // The tenth. The flow stops here and waits for an alert — `pinlock`.
         enterPin(WRONG_PIN)
         awaitTag(TestID.Alert.buttonAt(0))
 
-        // wrong_pin.yaml: tap Okay, then Signup1 is reachable. The wipe has already
-        // happened by the time the alert claims it has — see UnlockViewModel.
-        assertEquals(WalletState.Uninitialized, wallet.state.value)
+        // With no channel the erase finishes behind the alert.
+        composeRule.waitUntil(TIMEOUT_MS) { wallet.state.value == WalletState.Uninitialized }
         assertFalse(store.contains(SeedWalletService.KEY_SEED))
-        composeRule.onNodeWithTag(TestID.Alert.buttonAt(0)).performClick()
-
         composeRule.waitUntil(TIMEOUT_MS) { wiped }
         assertTrue("The gate must hand off to signup once the wallet is gone", wiped)
+
+        // wrong_pin.yaml: tap Okay, then Signup1 is reachable.
+        composeRule.onNodeWithTag(TestID.Alert.buttonAt(0)).performClick()
+    }
+
+    // -----------------------------------------------------------------------
+    // features/forgot_pin_remove_wallet.yaml — the no-channel tail
+    // -----------------------------------------------------------------------
+
+    @Test
+    fun `forgot PIN without the phrase removes the wallet after one confirmation`() {
+        aWalletWithPin1234()
+        var wiped = false
+        gate(onWalletWiped = { wiped = true })
+
+        composeRule.onNodeWithTag(TestID.Pin.restoreButton).performClick()
+        awaitTag(TestID.Alert.buttonAt(1))
+        composeRule.onNodeWithTag(TestID.Alert.buttonAt(1)).performClick()
+        awaitTag(TestID.Signup.Restore.topLabel)
+
+        // - tapOn: signup.restore.removeWalletButton
+        composeRule.onNodeWithTag(TestID.Signup.Restore.removeWalletButton)
+            .performScrollTo().performClick()
+        // [Cancel, Remove wallet]
+        awaitTag(TestID.Alert.buttonAt(1))
+        assertTrue(store.contains(SeedWalletService.KEY_SEED))
+        composeRule.onNodeWithTag(TestID.Alert.buttonAt(1)).performClick()
+
+        composeRule.waitUntil(TIMEOUT_MS) { wiped }
+        assertEquals(WalletState.Uninitialized, wallet.state.value)
     }
 
     /**
@@ -362,23 +415,12 @@ class PinGateFlowTest {
         assertEquals(WalletState.Locked, afterRelaunch.state.value)
 
         var wiped = false
-        val viewModel = UnlockViewModel(afterRelaunch)
-        composeRule.runOnUiThread {
-            composeRule.activity.setContent {
-                BittrTheme {
-                    UnlockScreen(
-                        onUnlocked = {},
-                        onWalletWiped = { wiped = true },
-                        viewModel = viewModel,
-                    )
-                }
-            }
-        }
+        gate(onWalletWiped = { wiped = true }, over = afterRelaunch)
 
         awaitTag(TestID.Alert.buttonAt(0))
+        composeRule.waitUntil(TIMEOUT_MS) { wiped }
         assertEquals(WalletState.Uninitialized, afterRelaunch.state.value)
         composeRule.onNodeWithTag(TestID.Alert.buttonAt(0)).performClick()
-        composeRule.waitUntil(TIMEOUT_MS) { wiped }
     }
 
     // -----------------------------------------------------------------------

@@ -98,13 +98,12 @@ import com.bittr.android.core.wallet.seed.Bip39
  * device and stores nothing. See `UnlockViewModel`.
  *
  * What is not ported: the "wallet recovery" article chip, which needs the article
- * fetch BIT-7 owns, and `removeWalletButton` — the "I have lost my phrase too, wipe
- * the wallet" escape hatch iOS shows on the reset path. That one leads to
- * `restoreWalletTapped`, whose no-channel and channel-close branches are
- * `remove_wallet.yaml` and belong with BIT-6's wave, not here.
+ * fetch BIT-7 owns.
  *
  * @param submitLabel the primary button — "Restore wallet" when adopting a phrase,
  *   "Reset PIN" when proving one you already have.
+ * @param onRemoveWallet the reset path's `removeWalletButton` — "I have lost my phrase
+ *   too" — or null on the restore arc, where there is no wallet to remove.
  */
 @Composable
 fun RestoreScreen(
@@ -113,6 +112,7 @@ fun RestoreScreen(
     modifier: Modifier = Modifier,
     busy: Boolean = false,
     submitLabel: String = SignupStrings.RESTORE_WALLET,
+    onRemoveWallet: (() -> Unit)? = null,
 ) {
     val words = remember { mutableStateListOf(*Array(Bip39.WORD_COUNT) { "" }) }
     val focusRequesters = remember { List(Bip39.WORD_COUNT) { FocusRequester() } }
@@ -213,6 +213,13 @@ fun RestoreScreen(
                     modifier = Modifier.testTag(TestID.Signup.Restore.nextButton),
                 )
                 BittrTextButton(text = SignupStrings.CANCEL, onClick = onCancel)
+                if (onRemoveWallet != null) {
+                    BittrTextButton(
+                        text = SignupStrings.REMOVE_WALLET_FROM_DEVICE,
+                        onClick = onRemoveWallet,
+                        modifier = Modifier.testTag(TestID.Signup.Restore.removeWalletButton),
+                    )
+                }
             }
 
             // Room to park even the last field one row from the top. Only while a field

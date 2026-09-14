@@ -11,6 +11,8 @@ import com.bittr.android.core.wallet.seed.PhraseEntry
 import com.bittr.android.core.wallet.seed.SeedPhraseEntry
 import com.bittr.android.core.wallet.seed.SeedWalletService
 import com.bittr.android.feature.signup.SignupStrings
+import com.bittr.android.removal.RemovalOrigin
+import com.bittr.android.removal.WalletRemovalCoordinator
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -81,13 +83,6 @@ sealed interface UnlockAlert {
         override val confirmLabel = UnlockStrings.RESET
     }
 
-    /** `pinlock` — the wallet is gone. Okay leaves for signup. */
-    data object Wiped : UnlockAlert {
-        override val title = UnlockStrings.RESTORE_WALLET
-        override val message = UnlockStrings.PIN_LOCK
-        override val confirmLabel = UnlockStrings.OKAY
-    }
-
     /** Anything that is just something to read: a wrong phrase, a failed write. */
     data class Message(override val title: String, override val message: String) : UnlockAlert {
         override val confirmLabel = UnlockStrings.OKAY
@@ -133,13 +128,11 @@ data class UnlockUiState(
 @HiltViewModel
 class UnlockViewModel @Inject constructor(
     private val wallet: WalletService,
+    private val removal: WalletRemovalCoordinator,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(UnlockUiState())
     val uiState: StateFlow<UnlockUiState> = _uiState.asStateFlow()
-
-    /** Set once the wallet has actually been erased; the Okay on [UnlockAlert.Wiped]. */
-    private var walletWasWiped = false
 
     private var provenSeed: Mnemonic? = null
     private var firstPin: String? = null
@@ -151,11 +144,19 @@ class UnlockViewModel @Inject constructor(
      * between the tenth wrong PIN and the erase. Without this, force-quitting at
      * exactly that moment is a way to keep a wallet that is already forfeit, and the
      * user is left with a counter that locks them out on the next attempt anyway.
+     * [WalletRemovalCoordinator.checkOnLaunch] runs it once per process.
      */
     fun checkLockout() {
-        viewModelScope.launch {
-            if (PinLockout.isLockedOut(wallet.failedUnlockAttempts())) wipeWallet()
-        }
+        removal.checkOnLaunch()
+    }
+
+    /**
+     * "Remove wallet from device" under the phrase fields — `removeWalletButtonTapped`, for
+     * someone who has lost their PIN *and* their phrase. Channel-safe: see
+     * [WalletRemovalCoordinator].
+     */
+    fun removeWalletTapped() {
+        removal.removeWalletTapped(RemovalOrigin.ForgotPin)
     }
 
     /** @param onUnlocked runs only after the PIN was right and the wallet is up. */
@@ -164,7 +165,7 @@ class UnlockViewModel @Inject constructor(
         _uiState.value = _uiState.value.copy(busy = true)
         viewModelScope.launch {
             if (PinLockout.isLockedOut(wallet.failedUnlockAttempts())) {
-                wipeWallet()
+                lockedOut()
                 return@launch
             }
 
@@ -181,7 +182,7 @@ class UnlockViewModel @Inject constructor(
             val failures = wallet.failedUnlockAttempts()
             val alert = when {
                 PinLockout.isLockedOut(failures) -> {
-                    wipeWallet()
+                    lockedOut()
                     return@launch
                 }
                 PinLockout.isWarning(failures) -> UnlockAlert.Warning(failures)
@@ -324,44 +325,18 @@ class UnlockViewModel @Inject constructor(
         }
     }
 
-    /**
-     * Dismiss the alert, and tell the caller whether the wallet went with it.
-     *
-     * @return true when the alert that was showing was [UnlockAlert.Wiped], meaning
-     *   there is no longer a wallet on this device and the caller must leave for
-     *   signup. Returned rather than pushed through a callback so the one transition
-     *   that cannot be undone is visible at the call site.
-     */
-    fun dismissAlert(): Boolean {
-        val wasWiped = _uiState.value.alert is UnlockAlert.Wiped && walletWasWiped
+    fun dismissAlert() {
         _uiState.value = _uiState.value.copy(alert = null)
-        return wasWiped
     }
 
     /**
-     * `removeWallet` — erase it, then say so.
-     *
-     * The alert goes up *after* the erase rather than before it, unlike iOS, which
-     * shows it and wipes behind it. The copy tells the user their wallet is gone, and
-     * on the failure path it is not: [WalletService.removeWallet] leaves an openable
-     * wallet behind rather than a seed with no way in, and `removalfailed` is the
-     * alert that says so. Ordering it this way means the app never claims a removal
-     * that did not happen.
+     * `removeWallet` — the tenth wrong PIN. The coordinator shows `pinlock`, closes any
+     * open channel cooperatively, and erases only once the funds have settled; the app
+     * leaves for signup when it does.
      */
-    private suspend fun wipeWallet() {
-        _uiState.value = _uiState.value.copy(busy = true)
-        try {
-            wallet.removeWallet()
-            walletWasWiped = true
-            _uiState.value = UnlockUiState(alert = UnlockAlert.Wiped)
-        } catch (e: WalletStorageException) {
-            _uiState.value = UnlockUiState(
-                alert = UnlockAlert.Message(
-                    UnlockStrings.REMOVE_WALLET,
-                    UnlockStrings.REMOVAL_FAILED,
-                ),
-            )
-        }
+    private fun lockedOut() {
+        _uiState.value = _uiState.value.copy(busy = false)
+        removal.lockedOut()
     }
 
     private fun showAlert(title: String, message: String) {

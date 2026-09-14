@@ -42,6 +42,40 @@ Status key: **Decided** (done, reversible) · **Question** (needs your answer) �
    camera features and list no camera (the CI emulator with `-camera-back none`); the scanner now shows the
    "Scanning not supported" alert there, like iOS.
 
+## Wallet removal (Device details, Forgot PIN, 10 wrong PINs)
+
+11. **Decided — one removal coordinator, ported from `ResetApp.swift`, for all three entry points.**
+    The wallet is only erased when `WipeSafety.channelsFullyClosedAndSwept` is true: no open channel, no
+    Lightning balance, nothing still sweeping. If the node isn't running or can't be read, nothing is erased
+    and the user gets `removalfailed` (with "Try again" when locked out). Before this, the Android 10-wrong-PIN
+    wipe erased the seed with no channel check at all, which could have lost channel funds.
+
+12. **Question — when the bittr node can't be reached for a cooperative close, iOS force-closes straight away**
+    (`closeChannelConfirmed` → `forceCloseChannel()`), even though its own comment says "let the user explicitly
+    choose force close". Android shows the `closechannel6`/`closechannel7` alert with [Cancel, Force Close]
+    instead, the same alert iOS shows when the close call itself fails. A force close locks the funds for
+    about a day and costs more in fees, so I didn't want to start one without asking. Should iOS change to match?
+
+13. **Decided — the lockout shows `pinlock` first and works behind it (iOS order),** and never force-closes:
+    locked out, an open channel is closed cooperatively and the only button is "Try again" until the funds
+    have settled. A failed erase on the lockout path also offers "Try again" (iOS shows Okay and relies on a
+    relaunch).
+
+14. **Decided — Forgot PIN → "Remove wallet from device" always asks `removewallet1` first**, then starts the
+    node in the background (without unlocking), syncs, and applies the same channel rules.
+
+15. **Decided — the "removal in progress" flag is a marker file under `no_backup`,** so a phone restored from
+    backup doesn't offer to remove a wallet it never started removing. The launch prompt (`removalinprogress`)
+    matches iOS.
+
+16. **Decided — removing a wallet still leaves the LDK state directory on the device** (as before). It is only
+    ever reached once channels are closed and swept, and a later wallet with a different seed quarantines it
+    (`SeedImportGuard`) rather than deleting it. iOS deletes its documents directory.
+
+17. **Gap — the "lightning connection closed" Question card** (`question.yellowCard` after a close, which the
+    channel branch of `remove_wallet.yaml` / `forgot_pin_remove_wallet.yaml` dismisses) needs LDK's
+    `ChannelClosed` event to reach the UI. It comes with the notifications/events work.
+
 ## Test environment
 
 9. **Decided — local emulator runs with `-memory 4096 -cores 6 -camera-back none`.** With the AVD's 4 cores /
