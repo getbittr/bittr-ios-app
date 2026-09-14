@@ -32,6 +32,8 @@ import com.bittr.android.core.designsystem.BittrCanvasShapes
 import com.bittr.android.core.designsystem.BittrTheme
 import com.bittr.android.core.designsystem.BittrTokens
 import com.bittr.android.core.designsystem.CanvasSpacer
+import com.bittr.android.core.network.BittrEnvironment
+import com.bittr.android.core.network.HttpClient
 import java.time.LocalDate
 
 /**
@@ -48,26 +50,47 @@ import java.time.LocalDate
  * 3. Span taps are dropped while the fetch is in flight, which is why the wait has
  *    to come first. That guard lives in [ValueUiState.selectSpan] and is tested.
  */
+/**
+ * [environment] and [http] are passed in rather than defaulted, and that is
+ * deliberate: this screen used to build its own URL from a literal, so the regtest
+ * build read the production price API (BIT-32, fixed in BIT-41 item 1). A default
+ * here would put the choice of backend back inside a feature module, where
+ * `ApiBaseUrlGuardTest` would have to allow a second hostname. `BittrNavHost` reads
+ * it once out of `BuildConfig` and hands it down, the same way it does
+ * `BitcoinNetwork`.
+ */
 @Composable
 fun ValueScreen(
+    environment: BittrEnvironment,
+    http: HttpClient,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
     currency: PriceCurrency = PriceCurrency.EUR,
-) = ValueScreen(onBack = onBack, modifier = modifier, currency = currency, repository = null)
+) = ValueScreen(
+    onBack = onBack,
+    modifier = modifier,
+    currency = currency,
+    repository = remember(environment, http) { HttpPriceRepository(environment, http) },
+)
 
 /**
  * The same screen with its data source supplied — how the tests and the preview
  * drive it without a network. Internal because [PriceRepository] is: the payload
  * shape is a detail of this module and nothing outside it should be binding to it.
+ *
+ * [repository] is required rather than nullable-with-a-default. It was the latter
+ * while the default could be `HttpPriceRepository()` — a no-argument constructor
+ * that existed only because the backend URL was a constant in this module. It is
+ * not, any more.
  */
 @Composable
 internal fun ValueScreen(
     onBack: () -> Unit,
+    repository: PriceRepository,
     modifier: Modifier = Modifier,
     currency: PriceCurrency = PriceCurrency.EUR,
-    repository: PriceRepository? = null,
 ) {
-    val prices = remember(repository) { repository ?: HttpPriceRepository() }
+    val prices = repository
     var state by remember { mutableStateOf(ValueUiState()) }
     var failed by remember { mutableStateOf(false) }
     var attempt by remember { mutableStateOf(0) }

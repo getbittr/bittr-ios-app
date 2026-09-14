@@ -74,6 +74,25 @@ secp256k1Kmp = "0.23.0"  # the version bitcoin-kmp-jvm 0.31.0 resolves; JNI half
 # deliberately absent.
 kotlinxSerialization = "1.9.0"
 
+# HTTP. Arrived with the push client (BIT-41 item 1): before it, the app's only
+# network call was `PriceRepository`'s raw HttpURLConnection.
+#
+# OkHttp rather than staying on HttpURLConnection, and the reason is not taste — it
+# is that the contract cannot be implemented without it. `api-contract` §2.3 makes
+# the device-token endpoint `PATCH /customer/device-token`, and
+# `java.net.HttpURLConnection.setRequestMethod` validates against a hardcoded array
+# of seven verbs that does not contain PATCH; it throws ProtocolException. Android's
+# implementation inherits that check from the JDK superclass. The workarounds are a
+# reflective poke at a private field or an `X-HTTP-Method-Override` header the
+# backend would have to agree to — a contract change to avoid a dependency.
+#
+# The second reason is testability, which is the same argument :core:push made:
+# mockwebserver3 lets the exact bytes this client puts on the wire be asserted by a
+# JVM unit test against a real socket, months before the backend exists. Retrofit is
+# deliberately absent — it is a code generator over this, and with three endpoints
+# there is nothing to generate.
+okhttp = "5.5.0"
+
 # Test
 junit = "4.13.2"
 androidxTestExt = "1.3.0"
@@ -124,6 +143,14 @@ kotlinx-coroutines-core = { group = "org.jetbrains.kotlinx", name = "kotlinx-cor
 kotlinx-coroutines-test = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-test", version.ref = "coroutines" }
 
 kotlinx-serialization-json = { group = "org.jetbrains.kotlinx", name = "kotlinx-serialization-json", version.ref = "kotlinxSerialization" }
+
+okhttp = { group = "com.squareup.okhttp3", name = "okhttp", version.ref = "okhttp" }
+# The loopback server the OkHttp binding's tests run against. `mockwebserver3`, not
+# the old `mockwebserver` artifact: OkHttp 5 moved it to that package and the 4.x
+# coordinate now ships a deprecated shim. The `-junit4` companion is deliberately
+# not used — `MockWebServer` is `Closeable` in 5.x, so `use { }` scopes it without a
+# rule and without a second artifact.
+mockwebserver3 = { group = "com.squareup.okhttp3", name = "mockwebserver3", version.ref = "okhttp" }
 
 # The OpenGL build. `android-sdk-vulkan` renders through Vulkan and needs a driver
 # the emulator images in CI do not reliably provide; `android-sdk` is the variant

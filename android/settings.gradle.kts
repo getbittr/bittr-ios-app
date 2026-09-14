@@ -81,6 +81,18 @@ include(":core:wallet-keystore")
 // points runs as a JVM unit test.
 include(":core:push")
 
+// The network seam (BIT-41 item 1), split on the same line :core:wallet is:
+// :core:network is pure Kotlin and holds every *decision* a request embodies — which
+// backend this build talks to, what the body says, what the response means — while
+// :core:network-okhttp is the one module allowed to open a socket. The split is what
+// lets the whole of `api-contract` §2 be proven as JVM unit tests against a backend
+// that does not answer yet (BIT-9 is Ruben's, and BIT-142 is where this meets a real
+// server). ApiBaseUrlGuardTest in :app enforces the other half of the reason: every
+// bittr API hostname in this repo lives in one file, so a debug build can never read
+// production — the bug BIT-32 exists for, which had already been reproduced here.
+include(":core:network")
+include(":core:network-okhttp")
+
 // BIT-18/K1. An instrumented probe, not a shipped module — nothing depends on it. It proves on
 // real devices what BIT-8 rule 2 currently asserts from AOSP javadoc: that a non-auth-bound
 // Keystore key survives a lock-screen change. See android/docs/k1-keystore-lockscreen.md.

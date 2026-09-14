@@ -44,6 +44,22 @@ android {
         // build overrides it below, exactly as iOS does
         // (`isDevelopment ? .regtest : .bitcoin`).
         buildConfigField("String", "BITCOIN_NETWORK", "\"MAINNET\"")
+
+        // Which bittr backend this build talks to, consumed via
+        // core.network.BittrEnvironment — the port of iOS's BittrAPIEnvironment,
+        // which makes the same split off `#if DEBUG` (BIT-41 item 1).
+        //
+        // The *name* of the case, never the URL. Putting a hostname in a build file
+        // would defeat ApiBaseUrlGuardTest, whose whole rule is that every bittr API
+        // hostname in this repo lives in BittrEnvironment.kt and nowhere else — the
+        // bug BIT-32 is filed for, and one this repo had already reproduced in
+        // PriceRepository.
+        //
+        // There is no lenient fallback on the reading side: an unrecognised name
+        // throws rather than guessing, because PRODUCTION would point a mistyped
+        // debug build at the real backend and DEVELOPMENT would ship a release build
+        // talking to staging. ApiEnvironmentFlagTest covers both variants.
+        buildConfigField("String", "BITTR_ENVIRONMENT", "\"PRODUCTION\"")
     }
 
     buildTypes {
@@ -67,6 +83,12 @@ android {
             // Debug == regtest, so a mainnet address pasted into the Maestro build
             // is rejected at parse time rather than at broadcast time.
             buildConfigField("String", "BITCOIN_NETWORK", "\"REGTEST\"")
+
+            // ...and the same build talks to the staging backend rather than to
+            // production, which is the half BIT-32 is about. On iOS the endpoint
+            // this protects is authenticated by lightning-pubkey signature, so a
+            // debug build on the production host reads real customer payout state.
+            buildConfigField("String", "BITTR_ENVIRONMENT", "\"DEVELOPMENT\"")
         }
         release {
             isMinifyEnabled = true
@@ -187,6 +209,14 @@ dependencies {
     implementation(project(":core:lnurl"))
     implementation(project(":feature:signup"))
     implementation(project(":feature:website"))
+
+    // BIT-41 item 1. :core:network holds BittrEnvironment, which BittrNavHost reads
+    // out of BuildConfig and hands down — the same shape as BitcoinNetwork above it.
+    // :core:network-okhttp is the socket, and :app is where the single client
+    // instance is built, so that "who can reach the bittr API" stays answerable from
+    // one dependency block.
+    implementation(project(":core:network"))
+    implementation(project(":core:network-okhttp"))
 
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
