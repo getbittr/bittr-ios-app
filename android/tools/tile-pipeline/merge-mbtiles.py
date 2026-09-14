@@ -35,9 +35,14 @@ def main(out_path, in_paths):
     out.execute("PRAGMA journal_mode=OFF")
     out.execute("PRAGMA synchronous=OFF")
     out.execute("CREATE TABLE metadata (name TEXT, value TEXT)")
+    # The unique index exists before any insert so that INSERT OR REPLACE resolves
+    # collisions as they arrive. Deduplicating afterwards with a CREATE TABLE ... AS
+    # would copy every tile blob, which on a multi-gigabyte archive means peaking at
+    # twice the final size on disk for a merge whose inputs are disjoint anyway.
     out.execute(
         "CREATE TABLE tiles ("
-        "zoom_level INTEGER, tile_column INTEGER, tile_row INTEGER, tile_data BLOB)"
+        "zoom_level INTEGER, tile_column INTEGER, tile_row INTEGER, tile_data BLOB, "
+        "PRIMARY KEY (zoom_level, tile_column, tile_row))"
     )
 
     metadata = {}
@@ -59,27 +64,17 @@ def main(out_path, in_paths):
             maxzoom = z if maxzoom is None else max(maxzoom, z)
             batch.append(row)
             count += 1
-            if len(batch) >= 20_000:
-                out.executemany("INSERT INTO tiles VALUES (?,?,?,?)", batch)
+            # Small batches on purpose: a z14 tile can be tens of kilobytes, so a
+            # batch counted in tens of thousands is counted in hundreds of megabytes.
+            if len(batch) >= 2_000:
+                out.executemany("INSERT OR REPLACE INTO tiles VALUES (?,?,?,?)", batch)
                 batch.clear()
         if batch:
-            out.executemany("INSERT INTO tiles VALUES (?,?,?,?)", batch)
+            out.executemany("INSERT OR REPLACE INTO tiles VALUES (?,?,?,?)", batch)
+        out.commit()
         src.close()
         total += count
         print(f"{os.path.basename(path)}: {count:,} tiles")
-
-    # Deduplicate last, so a collision is resolved by "later input wins" rather
-    # than by whichever row the index happens to reach first.
-    out.execute(
-        "CREATE TABLE tiles_dedup AS "
-        "SELECT zoom_level, tile_column, tile_row, tile_data FROM tiles "
-        "GROUP BY zoom_level, tile_column, tile_row HAVING MAX(rowid)"
-    )
-    out.execute("DROP TABLE tiles")
-    out.execute("ALTER TABLE tiles_dedup RENAME TO tiles")
-    out.execute(
-        "CREATE UNIQUE INDEX tile_index ON tiles (zoom_level, tile_column, tile_row)"
-    )
 
     metadata.update(
         {
