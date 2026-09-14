@@ -225,7 +225,8 @@ above already contains the shorter word while covering no imagery; the `©` as U
 `.org` on the OpenMapTiles credit, for the licence reason in "The wording, settled" below;
 and *only* those phrases, so the framing around them stays editable without touching the
 guard. What the guard still cannot see is whether the credit is *legible* once rendered;
-that belongs in a rendered assertion beside the map module's other Robolectric tests.
+that belongs in a rendered assertion beside the map module's other Robolectric tests, and
+"Measured: how the line actually wraps" below is that measurement taken ahead of the commit.
 
 ### Correction from the first build: OSM is not the only credit owed
 
@@ -365,9 +366,70 @@ reads continuously with the line above it, and it is what keeps BIT-140's phrase
 Not promoted to `shared/strings/en.json`, for BIT-140's reason unchanged and now doubled:
 iOS renders through `MKMapView` on Apple's imagery, where *both* credits would be false.
 
-At 64 characters it wraps on a narrow screen, which BIT-140 already chose over truncating.
 `POWERED_BY_ALERT` is not reworded to explain any of this — that re-triggers the BIT-69
 compliance read.
+
+### Measured: how the line actually wraps, and the one thing wrong with it
+
+The 64-character estimate above was a prediction. It has now been measured on the JVM, by
+patching the three files of the `STYLE_URI` commit into the tree, rendering `MapScreen`
+under Robolectric in `NATIVE` graphics mode — which rasterises the real Gilroy face rather
+than the stub metrics `LEGACY` returns — and reading the `TextLayoutResult` back. The patch
+was reverted; nothing below is in the tree.
+
+| | available width | lines | overflow |
+|---|---|---|---|
+| 320 dp, fontScale 1.0 | 290 dp | 2 | none |
+| 411 dp, fontScale 1.0 | 381 dp | 2 | none |
+| 320 dp, fontScale 1.3 | 290 dp | 3 | none |
+
+So the credit is legible and nothing is truncated, including at the largest font scale,
+where the block grows from 32 dp to 63 dp. That answers the question BIT-149 raised.
+
+**It wraps in the wrong place, and not only on a narrow screen.** At both 320 dp and
+411 dp the break falls here:
+
+> Map data © OpenStreetMap contributors, design ©
+> OpenMapTiles.org
+
+The `©` is orphaned onto the end of the first line, separated from the thing it credits.
+This is not a narrow-screen artefact — 411 dp is the ordinary phone width every other
+screenshot in this repo is taken at, and it breaks identically there, because the line is
+long enough to wrap at both. Whatever is done about it is a copy decision and belongs to
+the Growth & Content Lead; it is recorded here because it will otherwise be discovered in
+the `STYLE_URI` commit, which is the one commit that cannot absorb a copy round-trip.
+
+**A non-breaking space is the obvious fix and it fails the build.** `© OpenMapTiles.org`
+would hold the sign against its subject, but `BasemapAttributionGuardTest` pins
+`OMT_CREDIT` with an ASCII space and matches it with `indexOf`, so the substring stops
+matching and the guard goes red naming the credit as absent. Proven, not inferred: patched
+in, the guard failed with *"no constant in MapCopy.kt carries the credit © OpenMapTiles.org"*.
+That is the guard working — it cannot tell a typographic refinement from a deleted credit,
+and for a licence artefact that is the safer direction to be wrong in. If the non-breaking
+space is chosen, `OMT_CREDIT` and `OSM_CREDIT` have to move in the *same* commit, and the
+fixtures with them.
+
+### Measured: the SDK's own overlays sit clear of ours
+
+The other half of the same question. `BasemapController` never touches `uiSettings`, so
+both of MapLibre's default-on overlays appear, and both default to `BOTTOM|LEFT` inside the
+280 dp map card. From the pinned `android-sdk-11.11.0.aar`:
+
+- the logo is `maplibre_logo_icon`, **88 × 23 dp** at mdpi, with 4 dp default margins;
+- the ⓘ button's default left margin is **92 dp** — `NINETY_TWO_DP` in
+  `MapLibreMapOptions`, which is the logo's 88 dp plus that 4 dp gap. The two are designed
+  to sit side by side, not stacked and not overlapping.
+
+Their combined footprint is therefore roughly 92 dp wide by 31 dp tall in the bottom-left
+corner of a card that is full-width by 280 dp. The app's own control on that card is the
+my-location button, which is `BottomEnd` — the opposite corner — so there is no collision
+to design around and no `uiSettings` call is needed.
+
+What this does **not** cover: that either overlay draws at all. MapLibre renders through
+GL, there is no GL under Robolectric, and the map card is stubbed to an empty `Box` in
+every test in this repo. The geometry above is read from the AAR's resources and bytecode,
+not from a picture. Confirming they are actually drawn needs the emulator or a device, and
+it is the only part of BIT-119's done-when item 4 that does.
 
 ## 4. Refresh cadence and owner
 
