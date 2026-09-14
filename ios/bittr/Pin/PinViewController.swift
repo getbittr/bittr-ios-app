@@ -146,7 +146,8 @@ class PinViewController: UIViewController, UITextFieldDelegate, UICollectionView
                 
                 // Hide pin and sync wallet.
                 self.coreVC?.userHasSignedIn = true
-                self.coreVC?.lowerPinView(spinner: self.pinSpinner)
+                self.pinSpinner.stopAnimating()
+                self.coreVC?.fromPinToHome()
                 self.coreVC?.startWallet()
             } else {
                 // Wrong pin.
