@@ -75,6 +75,14 @@ The backend is not in this repository. These are the requirements it has to meet
 implementation spec, with reference Postgres DDL, is the `exclusive-initiative-persistence`
 document on BIT-86.
 
+**Status, so nobody re-opens the question:** the server side is unimplemented and is owned by
+Ruben, who applies backend changes himself — *"don't worry about backend tasks, i'll do them
+myself when necessary"* (2026-09-13), recorded as decision **D4** on BIT-99 and the reason
+BIT-31 (backend repository access) was cancelled. This is a deliberate deferral with a named
+owner, not a gap waiting to be picked up: **do not re-request backend repository access.**
+Until the four rules below are implemented, the confirmation exists only in the client's local
+cache, and the compliance record §2.5 assumes does not exist.
+
 **1. Persist it against the customer**, as sent, zone-aware (`timestamptz`, not a zone-naive
 column — a Swiss host reinterpreting a UTC string costs one or two hours of drift on a field
 whose entire purpose is answering *when*). Nullable, no default, no back-fill.
@@ -104,6 +112,29 @@ branch on platform. The confirmation is a property of the customer's contract wi
 of the device it was collected on. A customer who confirms on iOS and later reinstalls on
 Android must still read as confirmed — with their original timestamp, which rule 3 is what
 preserves.
+
+## Accepting the server side when it lands
+
+Four `POST /customer` calls against staging, in this order, on one customer. They are ordered
+because each depends on the state the previous one left. Rules 1 and 2 are covered by cases A
+and D; rule 3 is the only one that needs a sequence, and it is the rule a straightforward
+handler gets wrong.
+
+| | Send | Expect stored | Why it is here |
+|---|---|---|---|
+| **A** | `exclusive_initiative_confirmed_at: "2026-01-02T10:00:00Z"` on a new customer | `2026-01-02T10:00:00Z`, to the second, still UTC when read back | Rule 1. A zone-naive column shows as `11:00` or `12:00` on a Swiss host — that shift *is* the failure, so compare the exact instant, not the date. |
+| **B** | No key at all, same `deposit_code` | unchanged, still `2026-01-02T10:00:00Z` | Rule 3, absent-must-not-clear. This is the pre-feature build and the Android reinstall. A handler that assigns the parameter unconditionally writes `NULL` here and destroys the only record. |
+| **C** | `exclusive_initiative_confirmed_at: "2026-06-01T09:00:00Z"`, same `deposit_code` | unchanged, still `2026-01-02T10:00:00Z` | Rule 3, first-confirmation-wins. The later value is a new device's cache, not a new confirmation; accepting it moves the compliance date forward and loses the true one. |
+| **D** | No key at all, on a *fresh* customer | `NULL`, and the registration **succeeds** | The pre-existing-registration case. A 4xx here breaks every customer who registered before the app collected this. `NULL` must read as *not confirmed* — not epoch, not "now". |
+
+Then the read paths, which are half of what BIT-86 asks for and are easy to skip once the
+writes look right: the customer from A shows the timestamp in whatever the support view is,
+the customer from D shows **"not recorded"** rather than a blank cell, and the population
+count returns both buckets.
+
+One caveat on running these: staging's fixed-code 2FA bypass is exact-matched to the shared
+Maestro fixture account, so use a different account — registering against the fixture breaks
+the `shared/flows/` assertions for every other agent.
 
 ## Optional, additive: echo it back
 
