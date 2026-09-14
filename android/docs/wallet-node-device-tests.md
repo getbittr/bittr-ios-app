@@ -564,6 +564,48 @@ not solve:
   start begins, demoted only on a definite failure — without proving the platform
   honours it. That remains the gap.
 
+### Two decisions K8 needs before it is written, settled here
+
+Recorded now for the reason BIT-132 gives about K7's kill window: these are
+decisions, and a decision discovered once the infrastructure is green is a
+decision made under pressure to keep it green.
+
+**1. K8 is two tests, not one, because the two halves need different set-ups.**
+
+- *The machinery half* — the node survives a forced idle window and the
+  foreground service is still there on the other side of it — needs a running
+  node and **no channel**. It can live in the undirected suite
+  `ci-wallet-regtest.sh` runs, alongside `RegtestEnvironmentTest`.
+- *The freshness half* — the channel is still ready, the peer reconnects, and the
+  node catches the tip that moved while it was idle — needs a **funded, open
+  channel**, which on this network only exists after K7's phase 2.
+
+  That is an ordering constraint, and it points one way: the freshness half is
+  `@HostDriven` and runs **after** K7, over the channel K7 left behind. The
+  alternative — a second funding and a second channel open for K8's own use —
+  costs two more mined-and-waited phases for a channel identical to the one
+  already there, on a job that has 90 minutes. The cost of the choice is that a
+  red K7 phase 2 makes the freshness half unrunnable rather than merely
+  unreadable, and the gate will report it as "did not run at all", which is the
+  accurate verdict.
+
+**2. "Channel-monitor freshness" is not directly observable through our port, and
+the test must say so rather than pick a proxy quietly.**
+
+`LightningNodePort` exposes channels, peers, payments and balances.
+`ChannelView` carries no monitor update id and ldk-node does not offer one, so
+there is no reading of "the monitor is current" to assert. The observable
+proxies, which are what the test will actually measure, are: the channel is still
+`isChannelReady` **and** `isUsable` after the wake; the peer reports
+`isConnected` again; and the node's view of the chain has advanced to blocks that
+were mined while it was idle. Each of those is a real property and none of them
+is the claim as `wallet-core-spec` §6 words it.
+
+So K8's freshness row will land as *passing with a narrowed claim*, with the
+narrowing written into the test and into this table — not as *passing*. The row
+that would be dishonest is the one that keeps the spec's wording over a test that
+measures the proxies.
+
 **Risk accepted by not running it.** Moderate and asymmetric. Doze suspends
 network and defers alarms; for a Lightning node the cost of being wrong is a
 channel force-closed by a counterparty that saw no response, which loses fees and
