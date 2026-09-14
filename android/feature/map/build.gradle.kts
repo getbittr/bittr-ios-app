@@ -33,6 +33,27 @@ kotlin {
     }
 }
 
+// **What `SharedStringsTest` reads, said out loud to Gradle (BIT-113).**
+//
+// That test opens `shared/strings/en.json` by path at runtime. The file is
+// outside the Gradle root entirely — it belongs to neither platform — so it
+// cannot become an input to this task by accident the way a Kotlin source can.
+// Without this, editing the canonical copy leaves every input of
+// `testDebugUnitTest` untouched: Gradle calls the task up-to-date, or CI hands
+// it back from the build cache, and the drift check does not run. The workflow's
+// `paths:` filter lists `shared/strings/**`, so the job starts — and then
+// verifies nothing, which is the worst of the three outcomes because it looks
+// like the most.
+//
+// The directory rather than the one file: `shared/strings/README.md` is what
+// says these copies are kept in step by hand, and a second locale landing there
+// should re-run this without anyone remembering to widen a path.
+tasks.withType<Test>().configureEach {
+    inputs.dir(layout.projectDirectory.dir("../../../shared/strings"))
+        .withPathSensitivity(PathSensitivity.RELATIVE)
+        .withPropertyName("sourcesReadAtRuntime")
+}
+
 dependencies {
     implementation(project(":core:common"))
     implementation(project(":core:designsystem"))
