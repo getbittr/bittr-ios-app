@@ -7,7 +7,7 @@ import com.bittr.android.core.wallet.WalletState
 import com.bittr.android.core.wallet.ldk.host.BackgroundWake
 import com.bittr.android.core.wallet.ldk.host.WakeOutcome
 import com.bittr.android.di.WalletGraph
-import com.bittr.android.messaging.BittrMessagingService
+import com.bittr.android.messaging.WalletWake
 import dagger.hilt.android.EntryPointAccessors
 import org.junit.After
 import org.junit.Assert.assertEquals
@@ -58,7 +58,7 @@ import org.junit.runner.RunWith
  *    cannot tell a delivery failure from a wake failure — which is the one
  *    distinction the job exists for.
  *
- * ## Why the delivery is driven through [BittrMessagingService.deliver]
+ * ## Why the delivery is driven through [WalletWake.deliver]
  *
  * Because the platform will not let a test start a background service on API
  * 26+, and `FirebaseMessagingService`'s dispatch is reached by the framework
@@ -81,7 +81,7 @@ class FcmWakeTest {
 
     private companion object {
         const val MESSAGING_EVENT = "com.google.firebase.MESSAGING_EVENT"
-        const val OUR_SERVICE = "com.bittr.android.messaging.BittrMessagingService"
+        const val OUR_SERVICE = "com.bittr.android.core.push.fcm.BittrMessagingService"
         const val LIBRARY_FALLBACK = "com.google.firebase.messaging.FirebaseMessagingService"
 
         /** Any valid PIN. Completes setup; never a secret. */
@@ -131,7 +131,7 @@ class FcmWakeTest {
             "$LIBRARY_FALLBACK resolves ahead of $OUR_SERVICE, so a real data message would " +
                 "reach firebase-messaging's empty base class and the wake would go quiet " +
                 "without a single line in logcat. Check the <service> block in " +
-                "app/src/main/AndroidManifest.xml: it must declare the " +
+                "core/push-fcm/src/main/AndroidManifest.xml: it must declare the " +
                 "$MESSAGING_EVENT action and must not carry a negative android:priority.\n" +
                 "Resolution order: $resolved",
             OUR_SERVICE,
@@ -177,7 +177,7 @@ class FcmWakeTest {
             wallet.state.value,
         )
 
-        val outcome = BittrMessagingService.deliver(
+        val outcome = WalletWake.deliver(
             context,
             mapOf(BackgroundWake.WAKE_KEY to "payment"),
         )
@@ -217,7 +217,7 @@ class FcmWakeTest {
         wallet.createWallet()
         wallet.setPin(PIN)
 
-        val outcome = BittrMessagingService.deliver(
+        val outcome = WalletWake.deliver(
             context,
             mapOf("title" to "Payment received", "body" to "1,000 sats"),
         )

@@ -99,25 +99,24 @@ class FirebaseMessagingGuardTest {
         val ALLOWED_FILES = setOf("FirebaseMessagingGuardTest.kt")
 
         /**
-         * The known collision these two assertions will almost certainly fire on first.
+         * The collision these two assertions exist to catch, and how it was settled.
          *
-         * `feature/bit-133-fcm-background-wake` adds a *second* `BittrMessagingService`, in
-         * `:app`, with its own `<service>` entry carrying the same intent filter and its own
-         * Firebase dependency. Neither branch is merged anywhere yet, and the two services do
-         * different jobs that both have to happen.
+         * BIT-133's background wake once added a *second* `BittrMessagingService`, in `:app`,
+         * with its own `<service>` entry and its own Firebase dependency. BIT-146 folded it into
+         * this module's service: the wake reaches it through `PushHost.dataMessageWake` and runs
+         * before the decode.
          *
          * Appended to the failure messages because the obvious way to make this test green is
          * also the wrong one: deleting a `<service>` entry silently turns off either the
          * background wake or the payout decode, and the build stays green either way.
          */
         val MERGE_NOTE =
-            "If this fired on a merge with feature/bit-133-fcm-background-wake: that branch " +
-                "adds a second BittrMessagingService with the same intent filter, and the " +
-                "manifest merger unions them rather than rejecting them — after which FCM " +
-                "starts whichever one it resolves first and the other silently never runs. " +
-                "The two are complementary (node wake vs. payload decode + token " +
-                "registration) and must become one service. Do not silence this test to make " +
-                "the merge green. See BIT-146."
+            "There is one FirebaseMessagingService, in :core:push-fcm (BIT-146). The manifest " +
+                "merger unions two services filtering MESSAGING_EVENT rather than rejecting " +
+                "them — after which FCM starts whichever one it resolves first and the other " +
+                "silently never runs. The background wake (node start) and the payload decode " +
+                "+ token registration both ride on that one service; add behaviour through " +
+                "PushHost, not a second <service>. Do not silence this test to make a merge green."
     }
 
     /**

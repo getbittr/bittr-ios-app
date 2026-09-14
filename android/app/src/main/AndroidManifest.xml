@@ -148,37 +148,12 @@
         </activity>
 
         <!--
-            The background wake (BIT-133). An FCM data message arrives, this
-            service is what the framework hands it to, and BackgroundWake starts
-            the node the way UnlockViewModel does.
-
-            THIS ENTRY IS THE WHOLE WIRING, AND IT CAN BE LOST SILENTLY
-
-            firebase-messaging's own AAR declares a FirebaseMessagingService for
-            the same action at android:priority="-500". That fallback is why a
-            missing or mistyped entry here does not crash and does not log: FCM
-            still resolves a service, it is just Google's base class, whose
-            onMessageReceived does nothing. The wake would go quiet and every
-            test that does not read the resolution order would stay green.
-            FcmWakeTest reads it, on the installed package, and asserts this
-            service wins.
-
-            No android:priority on this one. The default is 0 and the fallback is
-            -500, so ours already wins; writing a number here would make the
-            ordering look like a tuning choice rather than what it is.
-
-            android:exported="false" — the framework delivers through Play
-            services in-process, so nothing outside the app needs to reach it,
-            and a wake path another app could invoke is a way to make this device
-            start a Lightning node on demand.
-
-            NOT android:directBootAware. The base class sets it, and inheriting
-            it here would be wrong: the seed is behind a Keystore key whose
-            material is not available before first unlock, so a node start in
-            direct-boot mode has nothing to start against (BIT-8 rule 2 — the key
-            is afterFirstUnlockThisDeviceOnly's port, not an always-available
-            one). tools:replace is not needed; a child <service> does not inherit
-            the library's attributes.
+            No FCM <service> here. The one receiver for MESSAGING_EVENT is
+            :core:push-fcm's BittrMessagingService, declared in that module's
+            manifest; the background wake (BIT-133) reaches it through
+            PushHost.dataMessageWake (BIT-146). A second entry here would be
+            unioned in by the manifest merger and one of the two would silently
+            never receive anything — FirebaseMessagingGuardTest fails on it.
 
             The permissions firebase-messaging adds to the merged manifest —
             WAKE_LOCK and com.google.android.c2dm.permission.RECEIVE, the two of
@@ -189,13 +164,6 @@
             this file: those permissions are ours to decide, so they are written
             here.
         -->
-        <service
-            android:name=".messaging.BittrMessagingService"
-            android:exported="false">
-            <intent-filter>
-                <action android:name="com.google.firebase.MESSAGING_EVENT" />
-            </intent-filter>
-        </service>
     </application>
 
 </manifest>

@@ -4,12 +4,10 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.bittr.android.core.wallet.WalletState
 import com.bittr.android.di.WalletGraph
-import com.google.android.gms.tasks.Tasks
-import com.google.firebase.FirebaseApp
-import com.google.firebase.messaging.FirebaseMessaging
+import com.bittr.android.core.push.fcm.FirebaseDeviceTokenSource
 import dagger.hilt.android.EntryPointAccessors
 import java.io.File
-import java.util.concurrent.TimeUnit
+import kotlinx.coroutines.withTimeoutOrNull
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertTrue
@@ -23,7 +21,7 @@ import org.junit.runner.RunWith
  * wrong without Google: the `<service>` block out-ranks the library's fallback,
  * the graph hands out the app's own `BackgroundWake`, a keyed payload reaches
  * `WalletService.start()` and an unkeyed one does not. All of it drives
- * `BittrMessagingService.deliver` directly, which is the seam one call inside
+ * `WalletWake.deliver` directly, which is the seam one call inside
  * Google's dispatch.
  *
  * **This class exists to remove that one call**, and it cannot do so alone. The
@@ -48,12 +46,11 @@ import org.junit.runner.RunWith
  *
  * - The stated cost of the token route was *"a debug-only path in the app that
  *   surrenders it"*. **There is no such path and none is added.** Instrumented
- *   tests run inside the target application's process, so
- *   `FirebaseMessaging.getInstance()` below is the *app's* instance, initialised
- *   from the app's own `google-services.json`, and the token it mints is the app's
- *   own. Everything that surrenders it lives in `androidTest/`, which is compiled
- *   into the test APK and is not in any shipped artefact. `BittrMessagingService`
- *   is untouched and still logs the token's length and never its value.
+ *   tests run inside the target application's process, so the
+ *   `FirebaseDeviceTokenSource` below reads the *app's* Firebase instance,
+ *   initialised from the app's own `google-services.json`, and the token it returns
+ *   is the app's own. Everything that surrenders it lives in `androidTest/`, which
+ *   is compiled into the test APK and is not in any shipped artefact.
  * - The decisive cost is on the other side. A `/topics/<name>` send returns HTTP
  *   200 with a message name **whether or not anything is subscribed** — so the one
  *   failure this job exists to tell apart, "Google did not deliver" versus "the
@@ -176,16 +173,22 @@ class FcmDeliveryTest {
         // Firebase resolves the client config BY. Agreeing on the project while
         // disagreeing on the package would mean the token minted below belongs to
         // a client that is not this one.
-        val options = FirebaseApp.getInstance().options
+        //
+        // Read off the `project_id` resource the google-services plugin generated,
+        // which is exactly what FirebaseApp's default options are built from —
+        // rather than off FirebaseApp itself, because Firebase types stay inside
+        // :core:push-fcm, test sources included (FirebaseMessagingGuardTest).
+        val resource = context.resources.getIdentifier("project_id", "string", context.packageName)
+        val projectId = if (resource == 0) null else context.getString(resource)
 
         assertEquals(
-            "This APK initialised FirebaseApp against project '${options.projectId}', not " +
+            "This APK carries Firebase project '$projectId', not " +
                 "$REGTEST_PROJECT. Sending to it needs a credential for that project, and " +
                 "the only other Bittr project is bittr-prod — whose sender addresses real " +
                 "user devices. BIT-123's standing note forbids that path outright. Check " +
                 "app/src/debug/google-services.json and the google-services plugin.",
             REGTEST_PROJECT,
-            options.projectId,
+            projectId,
         )
         assertEquals(
             "The installed package is ${context.packageName}, not $REGTEST_APP_ID. Firebase " +
@@ -221,16 +224,14 @@ class FcmDeliveryTest {
         )
 
         // The APP's token, not a second Firebase client's: instrumented tests run
-        // in the target application's process, so this is the same
-        // FirebaseMessaging singleton BittrMessagingService would see.
-        val token = Tasks.await(
-            FirebaseMessaging.getInstance().token,
-            TOKEN_TIMEOUT_SECONDS,
-            TimeUnit.SECONDS,
-        )
+        // in the target application's process, so this is the same token source the
+        // app's own PushModule registers with the backend.
+        val token = kotlinx.coroutines.runBlocking {
+            withTimeoutOrNull(TOKEN_TIMEOUT_SECONDS * 1_000) { FirebaseDeviceTokenSource().current() }
+        }.orEmpty()
 
         assertTrue(
-            "Play services returned an empty registration token. Nothing can be addressed " +
+            "Play services returned no registration token. Nothing can be addressed " +
                 "to this install, so the send below would be aimed at nothing. On a cold " +
                 "emulator this is usually GMS not yet having reached Google; if it recurs, " +
                 "check that the emulator has network and that $REGTEST_PROJECT has Cloud " +
@@ -241,8 +242,8 @@ class FcmDeliveryTest {
         // The token is NOT printed, here or anywhere. It is a per-install device
         // identifier and shared/docs/privacy-disclosure.md lists it as one; a
         // println lands in <system-out>, in the HTML report and in the job log.
-        // Its LENGTH is printed, which is what BittrMessagingService.onNewToken
-        // does and is enough to tell "a token arrived" from "a blank one did".
+        // Its LENGTH is printed, which is enough to tell "a token arrived" from "a
+        // blank one did".
         println("FCM_DELIVERY_TOKEN handed off (${token.length} chars); value not logged.")
 
         val handoff = File(context.noBackupFilesDir, HANDOFF_FILE)

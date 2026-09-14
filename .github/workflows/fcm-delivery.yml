@@ -52,6 +52,8 @@ on:
       - 'android/app/src/androidTest/kotlin/com/bittr/android/FcmDeliveryTest.kt'
       - 'android/app/src/androidTest/kotlin/com/bittr/android/RequiresPlayServices.kt'
       - 'android/app/src/main/kotlin/com/bittr/android/messaging/**'
+      - 'android/app/src/main/kotlin/com/bittr/android/BittrApplication.kt'
+      - 'android/core/push-fcm/**'
       - 'android/app/src/main/kotlin/com/bittr/android/di/WalletModule.kt'
       - 'android/app/src/main/AndroidManifest.xml'
       - 'android/app/src/debug/google-services.json'

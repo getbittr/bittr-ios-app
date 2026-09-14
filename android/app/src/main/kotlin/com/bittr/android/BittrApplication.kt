@@ -1,8 +1,10 @@
 package com.bittr.android
 
 import android.app.Application
+import com.bittr.android.core.push.fcm.DataMessageWake
 import com.bittr.android.core.push.fcm.PushDelivery
 import com.bittr.android.core.push.fcm.PushHost
+import com.bittr.android.messaging.WalletWake
 import dagger.hilt.android.HiltAndroidApp
 import javax.inject.Inject
 
@@ -16,6 +18,9 @@ import javax.inject.Inject
  * dependency list is the thing `FirebaseMessagingGuardTest` keeps short. Asking the
  * `Application` costs one interface and reaches the same graph, because [pushDelivery] is
  * injected here.
+ *
+ * [dataMessageWake] is the same lookup for BIT-133's background wake, which since BIT-146 rides
+ * on that one service instead of declaring a second.
  */
 @HiltAndroidApp
 class BittrApplication : Application(), PushHost {
@@ -24,4 +29,6 @@ class BittrApplication : Application(), PushHost {
     lateinit var delivery: PushDelivery
 
     override val pushDelivery: PushDelivery get() = delivery
+
+    override val dataMessageWake: DataMessageWake by lazy { WalletWake(this) }
 }

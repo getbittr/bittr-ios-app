@@ -52,12 +52,39 @@ interface PushDelivery {
  */
 interface PushHost {
     val pushDelivery: PushDelivery
+
+    /** The wallet's background wake — see [DataMessageWake] and BIT-146. */
+    val dataMessageWake: DataMessageWake
+}
+
+/**
+ * What the app does with a data message *before* it is decoded — the wallet's background wake
+ * (BIT-133).
+ *
+ * A separate seam from [PushDelivery] because it is a different job on a different clock. The
+ * wake has to promote the process to a foreground service synchronously, inside
+ * `onMessageReceived`'s budget, and only a high-priority data message buys the exemption that
+ * permits that from the background; the decode is allowed to take as long as its one local write
+ * takes. Folding the wake into [PushDelivery.onPush] would put it behind the decode, which is the
+ * wrong order for the one call that has a deadline.
+ *
+ * Why it lives here at all (BIT-146): FCM dispatches `com.google.firebase.MESSAGING_EVENT` to one
+ * service. BIT-41 and BIT-133 each declared their own, and the manifest merger unions two
+ * `<service>` entries rather than rejecting them — after which whichever resolves first receives
+ * every message and the other silently never runs. So there is one service, in this module, and
+ * both jobs reach it. This module stays free of the wallet: the app binds this to
+ * `BackgroundWake`, which is in `:core:wallet-ldk`.
+ */
+fun interface DataMessageWake {
+
+    /** Called on FCM's thread, before the payload is decoded. Must not wait for a node start. */
+    fun onDataMessage(data: Map<String, String>)
 }
 
 /**
  * The FCM receiver — BIT-41 item 3.
  *
- * ## The two things it must get right, and nothing else
+ * ## The three things it must get right, and nothing else
  *
  * **1. Decode through `:core:push`, never inline.** §3.2 makes an FCM `data` map `string ->
  * string` carrying exactly one key — the discriminator — whose value is the JSON-encoded object
@@ -73,6 +100,11 @@ interface PushHost {
  * not lifetime. Handing the payload to a fire-and-forget scope would lose exactly the
  * background payouts this issue exists to make work, and would lose them invisibly, because the
  * foreground case (where the process survives) would test green.
+ *
+ * **3. Wake the wallet before decoding (BIT-146).** This is the only receiver for
+ * `MESSAGING_EVENT` in the app, so it also carries BIT-133's background wake, through
+ * [PushHost.dataMessageWake]. The wake goes first because it is the call with a deadline; the
+ * decode follows even if the wake throws.
  *
  * ## What it deliberately does not do
  *
@@ -103,9 +135,17 @@ class BittrMessagingService : FirebaseMessagingService() {
      * callback. The work itself is a decode plus at most one local write.
      */
     override fun onMessageReceived(message: RemoteMessage) {
-        val handler = delivery ?: return
-        val envelope = PushEnvelopeDecoder.decode(message.data)
-        runBlocking { handler.onPush(envelope) }
+        val host = application as? PushHost ?: return
+        try {
+            // Wake first: the promotion to a foreground service has a deadline and the decode
+            // does not. See [DataMessageWake].
+            host.dataMessageWake.onDataMessage(message.data)
+        } finally {
+            // And the decode regardless. A wake that throws must not cost the customer a payout
+            // push; the exception still surfaces once the payload has been handed over.
+            val envelope = PushEnvelopeDecoder.decode(message.data)
+            runBlocking { host.pushDelivery.onPush(envelope) }
+        }
     }
 
     /**

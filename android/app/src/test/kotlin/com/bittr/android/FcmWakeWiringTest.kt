@@ -46,7 +46,7 @@ class FcmWakeWiringTest {
     private companion object {
 
         const val MESSAGING_EVENT = "com.google.firebase.MESSAGING_EVENT"
-        const val SERVICE = "com.bittr.android.messaging.BittrMessagingService"
+        const val SERVICE = "com.bittr.android.core.push.fcm.BittrMessagingService"
         const val LIBRARY_FALLBACK = "com.google.firebase.messaging.FirebaseMessagingService"
 
         /**
@@ -116,7 +116,7 @@ class FcmWakeWiringTest {
         assertTrue(
             "Nothing in the merged manifest handles $MESSAGING_EVENT under this package name. " +
                 "Without it there is no background wake at all — BIT-133's whole subject. " +
-                "Restore the <service> block in app/src/main/AndroidManifest.xml.\n" +
+                "Restore the <service> block in core/push-fcm/src/main/AndroidManifest.xml.\n" +
                 "Resolved: $services",
             SERVICE in services,
         )
@@ -137,7 +137,7 @@ class FcmWakeWiringTest {
             "firebase-messaging no longer declares its own $LIBRARY_FALLBACK for " +
                 "$MESSAGING_EVENT. That changes the failure mode of a missing app entry from " +
                 "silent to loud, which is good news — update the comments in " +
-                "app/src/main/AndroidManifest.xml and FcmWakeTest that describe it.\n" +
+                "core/push-fcm/src/main/AndroidManifest.xml and FcmWakeTest that describe it.\n" +
                 "Resolved: $services",
             LIBRARY_FALLBACK in services,
         )

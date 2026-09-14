@@ -114,13 +114,13 @@ interface WalletGraph {
      * The background wake — BIT-133, `wallet-node-device-tests.md` §1.
      *
      * Here for its [BackgroundWake.last], which is the only way to see what a
-     * wake *did* after the fact: `BittrMessagingService.deliver` returns the
+     * wake *did* after the fact: `WalletWake.deliver` returns the
      * synchronous verdict, and the phase that says the start actually ran
      * arrives later, with nobody on the call stack. `FcmWakeTest` reads it.
      *
      * **Two doors to one object, on purpose.** The production caller is
      * `WalletWakeEntryPoint`, which exposes this and nothing else. That
-     * interface is not this one because a `Service` reachable from the framework
+     * interface is not this one because a push path reachable from the framework
      * should not be able to reach [walletService] and [lightningNode] — the wake
      * is allowed to start the wallet and nothing more. The cost is a second
      * six-line interface; the alternative is a push receiver holding the

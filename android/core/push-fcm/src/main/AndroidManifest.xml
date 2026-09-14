@@ -15,6 +15,21 @@
 
         No `android:permission` attribute: the intent is delivered by the Play
         services client library in-process, not by a remote sender.
+
+        THE ONLY ONE (BIT-146). This entry is also the background wake's wiring
+        (BIT-133), so losing it is silent twice over: the AAR's fallback entry
+        sits at android:priority="-500" and has an empty onMessageReceived, so
+        a missing entry neither crashes nor logs. FcmWakeTest asserts this
+        service out-ranks the fallback on the installed package.
+
+        No android:priority. The default is 0 and the fallback is -500, so this
+        already wins; a number here would make the ordering look like tuning.
+
+        NOT android:directBootAware. The base class sets it, and inheriting it
+        would be wrong: the seed is behind a Keystore key whose material is not
+        available before first unlock, so a wake in direct-boot mode has nothing
+        to start against (BIT-8 rule 2). A child <service> does not inherit the
+        library's attributes, so no tools:replace is needed.
     -->
     <application>
         <service

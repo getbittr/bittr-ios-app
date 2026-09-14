@@ -267,12 +267,11 @@ out to be far less close than the two paragraphs this section used to carry.
 **The token route's stated cost does not exist.** It was written down as *"a
 debug-only path in the app that surrenders the token"* — and no such path is
 needed. Instrumented tests run inside the **target application's process**, so
-`FirebaseMessaging.getInstance()` in `androidTest/` is the *app's* instance,
-initialised from the app's own `google-services.json`, and the token it mints is
-the app's own. Everything that surrenders it lives in `FcmDeliveryTest`, which is
-compiled into the test APK and is in no shipped artefact.
-`BittrMessagingService.onNewToken` is untouched and still logs the token's length
-and never its value.
+the `FirebaseDeviceTokenSource` `FcmDeliveryTest` reads in `androidTest/` goes
+through the *app's* Firebase instance, initialised from the app's own
+`google-services.json`, and the token it returns is the app's own. Everything that
+surrenders it lives in `FcmDeliveryTest`, which is compiled into the test APK and
+is in no shipped artefact. No shipped code logs the token's value.
 
 That observation applies to the topic route too — a test could call
 `subscribeToTopic` from the same place — so it does not by itself decide

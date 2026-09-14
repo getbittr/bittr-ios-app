@@ -68,9 +68,10 @@ sealed interface WakeOutcome {
  * `Node.start()`. Until this class there was nothing on the client listening —
  * `verify-fcm-service-account.sh` checks a *backend* credential — so the claim
  * had no path to be true or false about. The Android entry point is
- * `com.bittr.android.messaging.BittrMessagingService`, which is twenty lines and
- * lives in `:app` because it needs the Hilt graph; everything that decides
- * anything is here, where it runs on the JVM.
+ * `:core:push-fcm`'s `BittrMessagingService`, which hands every data message to
+ * `com.bittr.android.messaging.WalletWake` in `:app` before decoding it (BIT-146);
+ * `WalletWake` is a few lines and lives in `:app` because it needs the Hilt graph.
+ * Everything that decides anything is here, where it runs on the JVM.
  *
  * ## Why the seam is [start] and not `WalletNodeHost` directly
  *

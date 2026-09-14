@@ -145,8 +145,8 @@ object WalletModule {
      * *different* wallet from the one `UnlockViewModel` starts, and both halves
      * would look like they worked.
      *
-     * Reached through two `@EntryPoint`s and no `@Inject` site: `BittrMessagingService`
-     * uses `WalletWakeEntryPoint`, which exposes this and nothing else, and
+     * Reached through two `@EntryPoint`s and no `@Inject` site: `WalletWake`, which
+     * FCM's one service calls, uses `WalletWakeEntryPoint`, which exposes this and nothing else, and
      * `FcmWakeTest` uses [WalletGraph]. Both of those say why there are two.
      */
     @Provides

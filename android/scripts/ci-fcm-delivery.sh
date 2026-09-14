@@ -16,7 +16,7 @@
 #
 # WHAT THIS PROVES THAT NO ANDROID TEST CAN
 #
-# `FcmWakeTest` drives `BittrMessagingService.deliver()` directly, because the
+# `FcmWakeTest` drives `WalletWake.deliver()` directly, because the
 # platform will not let a test start a background service on API 26+. That leaves
 # exactly one call untested, and it is the one with Google in it: the framework
 # receiving a real message and dispatching it to our `<service>`.
