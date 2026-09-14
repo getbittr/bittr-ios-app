@@ -4,6 +4,7 @@ import android.content.Context
 import android.os.SystemClock
 import android.util.Log
 import com.bittr.android.BuildConfig
+import com.bittr.android.buy.BittrRegistrationKeys
 import com.bittr.android.core.network.HttpClient
 import com.bittr.android.core.wallet.SecureStore
 import com.bittr.android.core.wallet.WalletOverviewSource
@@ -14,6 +15,8 @@ import com.bittr.android.core.wallet.ldk.adapter.LdkEventPumpRunner
 import com.bittr.android.core.wallet.ldk.adapter.LdkNodeFactory
 import com.bittr.android.core.wallet.ldk.adapter.LdkNodeStartErrors
 import com.bittr.android.core.wallet.ldk.adapter.lightningNodePort
+import com.bittr.android.core.wallet.ldk.bip.Bip84Account
+import com.bittr.android.core.wallet.ldk.bip.RegistrationSigner
 import com.bittr.android.core.wallet.ldk.adapter.nodeOnchainPort
 import com.bittr.android.core.wallet.ldk.cache.CachedChannelClosureStore
 import com.bittr.android.core.wallet.ldk.cache.CachedOnchainAddressStore
@@ -641,6 +644,26 @@ object WalletModule {
             // A reading now, so what Send just did reaches the overview without waiting
             // for the sync loop's next tick.
             refresh = { balances.read() },
+            // Buy's `POST /customer`: the first receive address, the account xpub and the
+            // BIP137 signature by that address's key, all over this composition's seed and
+            // BDK wallet. Debug builds are regtest, coin type 1 — iOS's isDevelopment.
+            registration = object : BittrRegistrationKeys {
+                private val signer = RegistrationSigner(mnemonic = vault::read, mainnet = !BuildConfig.DEBUG)
+
+                override suspend fun bittrAddress(): String? {
+                    // `while bdkWallet == nil`, four 3-second waits (Transfer2ViewController:322).
+                    repeat(5) { attempt ->
+                        onchainWallet.peekAddress(0)?.let { return it }
+                        if (attempt < 4) kotlinx.coroutines.delay(3_000)
+                    }
+                    return null
+                }
+
+                override fun xpub(): String? = onchainWallet.accountXpub
+                    ?: vault.read()?.let { Bip84Account.accountXpub(it, mainnet = !BuildConfig.DEBUG) }
+
+                override fun signBitcoinMessage(message: String): String? = signer.sign(message)
+            },
         )
     }
 
@@ -688,4 +711,6 @@ class WalletComposition(
     val onchainSend: OnchainSendSupport?,
     /** Take a wallet reading now and publish it to [overview]. */
     val refresh: () -> Unit,
+    /** What bittr registration signs with. Null in a build with no node. */
+    val registration: BittrRegistrationKeys? = null,
 )

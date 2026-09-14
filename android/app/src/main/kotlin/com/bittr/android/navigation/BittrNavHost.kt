@@ -29,7 +29,13 @@ import com.bittr.android.core.common.destination.Destination
 import com.bittr.android.feature.send.SendQuestionScreen
 import com.bittr.android.feature.send.SendRoute
 import com.bittr.android.send.SendViewModel
+import com.bittr.android.buy.BuyViewModel
+import com.bittr.android.buy.ProfitsViewModel
+import com.bittr.android.feature.buy.BuyRoute
+import com.bittr.android.feature.buy.ProfitSummary
+import com.bittr.android.feature.buy.ProfitsScreen
 import com.bittr.android.feature.home.HomeScreen
+import com.bittr.android.feature.home.ProfitPill
 import com.bittr.android.feature.home.MoveScreen
 import com.bittr.android.feature.home.TransactionScreen
 import com.bittr.android.feature.home.TransactionViewModel
@@ -97,6 +103,10 @@ object Routes {
 
     /** The balance screen (`MoveViewController`), from Home's balance card. */
     const val MOVE = "move"
+
+    /** Buy (`HomeToBuy`), with the bittr signup it opens, and Profits (`profitButtonTapped`). */
+    const val BUY = "buy"
+    const val PROFITS = "profits"
 
     /** A transaction (`TransactionViewController`), by id — from Home's history and after a send. */
     const val TRANSACTION = "transaction/{${TransactionViewModel.ID_ARG}}"
@@ -234,6 +244,8 @@ fun BittrNavHost(
         }
 
         composable(Routes.HOME) {
+            val profits: ProfitsViewModel = hiltViewModel()
+            val profit by profits.summary.collectAsState()
             HomeScreen(
                 onSettings = { navController.navigate(Routes.SETTINGS) },
                 // Wave 1, landed by BIT-99. These three are the entry points
@@ -252,7 +264,23 @@ fun BittrNavHost(
                 onReceive = { navController.navigate(Routes.RECEIVE) },
                 onBalanceDetails = { navController.navigate(Routes.MOVE) },
                 // Wave 3. Not guarded by the sync on iOS either — see HomeScreen.
-                onBuy = { notPorted = "Buying bitcoin" },
+                onBuy = { navController.navigate(Routes.BUY) },
+                profitPill = profit?.let { ProfitPill(it.percentText, it.isLoss) },
+                onProfit = { navController.navigate(Routes.PROFITS) },
+            )
+        }
+
+        composable(Routes.BUY) {
+            val buy: BuyViewModel = hiltViewModel()
+            BuyRoute(source = buy.source, onDown = { navController.popBackStack() })
+        }
+
+        composable(Routes.PROFITS) {
+            val profits: ProfitsViewModel = hiltViewModel()
+            val summary by profits.summary.collectAsState()
+            ProfitsScreen(
+                summary = summary ?: ProfitSummary(0, 0, 0, "€"),
+                onDown = { navController.popBackStack() },
             )
         }
 

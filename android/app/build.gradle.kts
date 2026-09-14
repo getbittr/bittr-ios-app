@@ -548,6 +548,8 @@ dependencies {
     implementation(project(":feature:receive"))
     // Send (ios/bittr/Move, Send, Receive/SendVC). :app implements its SendSource.
     implementation(project(":feature:send"))
+    // Buy, the bittr signup and Profits.
+    implementation(project(":feature:buy"))
 
     // BIT-41 item 1. :core:network holds BittrEnvironment, which BittrNavHost reads
     // out of BuildConfig and hands down — the same shape as BitcoinNetwork above it.

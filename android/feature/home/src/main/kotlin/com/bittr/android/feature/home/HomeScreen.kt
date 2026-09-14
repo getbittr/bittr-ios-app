@@ -104,6 +104,8 @@ fun HomeScreen(
     onBalanceDetails: () -> Unit = {},
     onAcademy: () -> Unit = {},
     onTransaction: (String) -> Unit = {},
+    profitPill: ProfitPill? = null,
+    onProfit: () -> Unit = {},
     viewModel: HomeViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsState()
@@ -123,6 +125,8 @@ fun HomeScreen(
         onBalanceDetails = onBalanceDetails,
         onAcademy = onAcademy,
         onTransaction = onTransaction,
+        profitPill = profitPill,
+        onProfit = onProfit,
         modifier = modifier,
     )
 }
@@ -151,6 +155,8 @@ internal fun HomeScreen(
     onAcademy: () -> Unit,
     modifier: Modifier = Modifier,
     onTransaction: (String) -> Unit = {},
+    profitPill: ProfitPill? = null,
+    onProfit: () -> Unit = {},
 ) {
     alert?.let {
         BittrAlertDialog(
@@ -185,6 +191,8 @@ internal fun HomeScreen(
             onBuy = onBuy,
             onSyncStatus = guarded(onBalanceDetails),
             onBalanceCard = guarded(onBalanceDetails),
+            profitPill = profitPill,
+            onProfit = onProfit,
         )
 
         if (state.history.isNotEmpty()) {
@@ -251,6 +259,8 @@ private fun HomeHeader(
     onBuy: () -> Unit,
     onSyncStatus: () -> Unit,
     onBalanceCard: () -> Unit = onSyncStatus,
+    profitPill: ProfitPill? = null,
+    onProfit: () -> Unit = {},
 ) {
     val colors = BittrTheme.colors
     CompositionLocalProvider(LocalContentColor provides colors.onCanvas) {
@@ -330,8 +340,8 @@ private fun HomeHeader(
                     )
                 }
 
-                // The balance, once the wallet has read one. The fiat conversion and the
-                // profit pill follow it on iOS and are still to be ported.
+                // The balance, once the wallet has read one, with its fiat conversion and
+                // the profit pill under it.
                 if (balanceSats != null) {
                     CanvasSpacer(BittrTokens.Spacing.xl)
                     // `balanceCardButton` — a transparent layer under the balance, so the
@@ -355,6 +365,11 @@ private fun HomeHeader(
                             textAlign = TextAlign.Center,
                             modifier = Modifier.fillMaxWidth(),
                         )
+                    }
+                    // `balanceCardProfitView` — shown with the balance, once profits are known.
+                    if (profitPill != null) {
+                        CanvasSpacer(BittrTokens.Spacing.sm)
+                        ProfitPillView(pill = profitPill, onClick = onProfit)
                     }
                 }
 
