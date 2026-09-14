@@ -9,6 +9,9 @@ The pipeline behind `android/docs/tile-pipeline.md`. That document decides *what
 | `make-buffer.py` | Switzerland + 25 km, in metres, as GeoJSON (for osmium) and `.poly` (for planetiler) |
 | `merge-mbtiles.py` | Joins the z0–z5 planet pass to the z6–z14 Switzerland pass |
 | `inspect-tile.py` | Reads layer names and feature counts out of given tiles — how the claims in §1 were checked rather than assumed |
+| `make-style.py` | Generates the style document `MapBasemap.STYLE_URI` points at |
+| `check-style-hosts.py` | Fails if the built style would send the client to a non-bittr host. Run by both scripts below; `--selftest` proves it both ways |
+| `verify-deploy.sh` | Client-side checks against a deployed version, before its URL is handed to the app |
 
 **The archive is not checked in and never should be.** It is gigabytes and it is
 regenerable; §4 of the document asks for a quarterly rebuild, which a committed blob
@@ -139,13 +142,20 @@ access logging is off too, per §5.
 ./verify-deploy.sh https://tiles.getbittr.com/basemap/<yyyy-mm>
 ```
 
-Ten client-side checks — the serving host is under a bittr apex, ranges return 206
-with the right `Content-Range`, exactly one `Accept-Ranges: bytes`, immutable
-`Cache-Control` on the 206, the archive really begins with the PMTiles magic bytes
-rather than being an error page with a healthy status, the style is served and names
-*this* version's archive, and the glyphs are on the same host and resolve. It exits
-with the number of failures, so it works as a gate. It needs no access to the host
-and anyone can run it from anywhere.
+Ten client-side checks plus one per fontstack the style names — the serving host is
+under a bittr apex, ranges return 206 with the right `Content-Range`, exactly one
+`Accept-Ranges: bytes`, immutable `Cache-Control` on the 206, the archive really
+begins with the PMTiles magic bytes rather than being an error page with a healthy
+status, the style is served and names *this* version's archive, every URL in that
+style is https on a bittr apex, and each fontstack resolves. It exits with the number
+of failures, so it works as a gate. It needs no access to the host and anyone can run
+it from anywhere.
+
+The style-host check runs twice on purpose: `build-basemap.sh` runs it on the file it
+just generated, so a bad edit to `make-style.py` fails the build rather than a deploy,
+and `verify-deploy.sh` runs it again on what the server actually returned. Those are
+the same bytes right up until someone uploads by hand, which is the case the second
+run exists for.
 
 Then the one that matters, by hand, on the edge:
 
@@ -169,8 +179,27 @@ more things on the same bittr host:
 - **A glyph range endpoint** — any style with text labels fetches
   `{fontstack}/{range}.pbf` per label. The public default for this schema is a
   third-party host, and pointing at it would send the client IP off to that third
-  party on every label render. It is also a gap in the guard:
-  `TileHostGuardTest.TILE_URL_MARKERS` looks for `{z}`, `{x}`, `{y}`, `style.json`,
-  `.pmtiles`, `.mbtiles` — a glyphs URL contains none of them, so a foreign font host
-  would pass the scan. Glyphs are served from `tiles.getbittr.com` alongside the
-  archive, and that rule lives here because the build cannot hold it.
+  party on every label render. Glyphs are served from `tiles.getbittr.com` alongside
+  the archive.
+
+### Which check covers which half
+
+A foreign glyph host used to pass `TileHostGuardTest` outright — its URL markers were
+`{z}`, `{x}`, `{y}`, `style.json`, `.pmtiles` and `.mbtiles`, and a glyphs URL contains
+none of them. The Head of App (Android) has widened `TILE_URL_MARKERS` with
+`{fontstack}`, `{range}` and `/sprite` (BIT-119); the first two are required by the
+MapLibre style spec in any `glyphs` value, so there is no spelling that evades them.
+
+That closes the half of the problem that lives in the `android/` tree. It cannot close
+this half, and the split is worth stating because each side looks complete on its own:
+
+| Where the URL is | What sees it |
+|---|---|
+| Hard-coded in a Kotlin or XML file | `TileHostGuardTest` — scans the `android/` tree |
+| In the generated `style.json` | `check-style-hosts.py` — the file is built here, uploaded, and never enters that tree |
+
+Pointing the app-side scan at `make-style.py` would be worse than leaving the gap:
+this pipeline fetches from Geofabrik and from GitHub releases at build time, both
+legitimately, and no regex over the generator tells a build-time fetch from one the
+client will make. The built artefact carries no such ambiguity — every URL in it is a
+URL the renderer resolves on the device.

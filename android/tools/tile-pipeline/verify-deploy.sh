@@ -13,6 +13,10 @@
 
 set -uo pipefail
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+tmp_style="$(mktemp)"
+trap 'rm -f "$tmp_style"' EXIT
+
 BASE="${1:-}"
 if [ -z "$BASE" ]; then
   echo "usage: $0 <base-url, e.g. https://tiles.getbittr.com/basemap/2026-09>" >&2
@@ -107,15 +111,30 @@ else
   fail "style does not name $BASE/ch.pmtiles — a style pinned to a different version is exactly what the versioned path exists to prevent"
 fi
 
-# Any style with labels fetches one of these per label. A foreign glyph host would
-# send the client IP to a third party on every label render, and TileHostGuardTest
-# cannot see it — its URL markers do not appear in a glyphs URL.
-for u in $(printf '%s' "$style" | tr ',' '\n' | sed -n 's#.*"glyphs": *"\([^"]*\)".*#\1#p'); do
-  case "$u" in
-    "$BASE"/*) pass "glyphs are on this host" ;;
-    *) fail "glyphs URL is off-host: $u" ;;
-  esac
-done
+# Every host the style would send the client to, checked against the bittr apexes.
+# This covers the glyphs URL, the sprite, and the archive behind `pmtiles://`, and it
+# is deliberately a catch-all rather than a check per known key: a style revision can
+# add a source, and the failure mode is a third party receiving the client IP on every
+# label render or every pan. The app-side guards cannot see any of it — the style is
+# generated here and never exists in the `android/` tree.
+#
+# Run against what the server returned, not against what the build produced. Those are
+# the same file until someone uploads by hand, and this script exists for the case
+# where they are not.
+if [ -x "$SCRIPT_DIR/check-style-hosts.py" ] || [ -f "$SCRIPT_DIR/check-style-hosts.py" ]; then
+  printf '%s' "$style" > "$tmp_style"
+  if out="$(python3 "$SCRIPT_DIR/check-style-hosts.py" "$tmp_style" 2>&1)"; then
+    pass "every URL in the served style is https on a bittr apex"
+    printf '%s' "$out" | grep '^  note' || true
+  else
+    fail "the served style references hosts the client must not talk to:"
+    # The nested run names the temp file it was handed, which is meaningless to
+    # whoever is reading this — drop its header and keep the findings.
+    printf '%s\n' "$out" | grep -v 'references hosts the client' | sed '/^[[:space:]]*$/d; s/^ *FAIL */      - /; s/^ */        /'
+  fi
+else
+  fail "check-style-hosts.py is not next to this script — the host check did not run"
+fi
 
 # Every fontstack the style names, checked against what was actually deployed.
 # MapLibre asks for a stack as one comma-joined path, so a name that is not a

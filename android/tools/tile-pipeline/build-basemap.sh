@@ -149,6 +149,15 @@ VERSION="${BASEMAP_VERSION:-$(date -u +%Y-%m)}"
 STAGE="$WORKDIR/stage/basemap/$VERSION"
 mkdir -p "$STAGE"
 python3 "$SCRIPT_DIR/make-style.py" "$VERSION" "$STAGE/style.json"
+
+# Gate the generated style before anything is staged next to it. The app-side guards
+# scan the `android/` tree and this file is never in it, so this is the only place the
+# artefact the client actually fetches gets checked — see check-style-hosts.py for why
+# scanning the generator instead would be worse. Run against the built style, not the
+# uploaded one, so a bad edit to make-style.py fails here rather than after a deploy;
+# verify-deploy.sh runs the same check against what the server returns.
+python3 "$SCRIPT_DIR/check-style-hosts.py" "$STAGE/style.json"
+
 mv "$WORKDIR/ch.pmtiles" "$STAGE/ch.pmtiles"
 
 # Glyphs are served from the bittr host for the reason make-style.py gives: the
