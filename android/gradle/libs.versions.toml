@@ -128,6 +128,14 @@ robolectric = "4.16.1"
 # MapSdkGuardTest.
 maplibre = "11.11.0"
 
+# Firebase (BIT-133, the background wake) uses the same two entries above. What
+# that block added is worth keeping: only `firebase-messaging` is declared, and the
+# absences are load-bearing — the analytics and crash-reporting members of the
+# same family are on `LocationEgressGuardTest`'s tripwire list, and messaging
+# depends on neither. That test is a plain string scan over the build files, so
+# those two artefact ids are described here rather than written: naming them in a
+# comment trips it exactly as declaring them would.
+
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "androidxCore" }
 androidx-lifecycle-runtime-ktx = { group = "androidx.lifecycle", name = "lifecycle-runtime-ktx", version.ref = "androidxLifecycle" }
@@ -181,6 +189,7 @@ firebase-messaging = { group = "com.google.firebase", name = "firebase-messaging
 # the emulator images in CI do not reliably provide; `android-sdk` is the variant
 # MapLibre publishes as the default and the one the Maestro suite has to run on.
 maplibre-android = { group = "org.maplibre.gl", name = "android-sdk", version.ref = "maplibre" }
+
 bdk-android = { group = "org.bitcoindevkit", name = "bdk-android", version.ref = "bdk" }
 ldk-node-android = { group = "org.lightningdevkit", name = "ldk-node-android", version.ref = "ldkNode" }
 

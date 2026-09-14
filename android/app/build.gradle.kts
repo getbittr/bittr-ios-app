@@ -572,6 +572,25 @@ dependencies {
     debugImplementation(libs.androidx.compose.ui.tooling)
     debugImplementation(libs.androidx.compose.ui.test.manifest)
 
+    // BIT-133 — the background wake. Only the messaging artefact, and the set is
+    // the point the same way CameraX's is: the analytics and crash-reporting
+    // members of the same family are on LocationEgressGuardTest's tripwire list,
+    // and firebase-messaging depends on neither. Its POM names
+    // firebase-measurement-connector, which is the empty interface such an SDK
+    // would implement if one were present. (Those two ids are described rather
+    // than written, because that test is a string scan over build files and a
+    // comment naming them trips it — see libs.versions.toml.)
+    //
+    // What it adds to the *shipped* permission set is two: WAKE_LOCK and
+    // com.google.android.c2dm.permission.RECEIVE. Its AAR declares four, and the
+    // other two were already in the merge — POST_NOTIFICATIONS is the app's own
+    // and ACCESS_NETWORK_STATE arrives from MapLibre. Measured against the
+    // merged manifest rather than read off the docs, and pinned by
+    // FcmWakeWiringTest so that a third arriving in a version bump is a red test
+    // rather than a line on the Play listing nobody reviewed.
+    implementation(platform(libs.firebase.bom))
+    implementation(libs.firebase.messaging)
+
     implementation(libs.androidx.navigation.compose)
     implementation(libs.androidx.hilt.navigation.compose)
     implementation(libs.hilt.android)
@@ -629,4 +648,25 @@ dependencies {
     // WalletPaths and AndroidKeystoreBlobCodec to write the material it then
     // looks for in a backup set.
     androidTestImplementation(project(":core:wallet-ldk"))
+
+    // BIT-133. FcmWakeTest drives `WalletService`'s suspending API from a plain
+    // JUnit4 instrumented test and polls a `StateFlow`, so it needs coroutines
+    // on the compile classpath. :core:wallet-ldk declares them `implementation`,
+    // not `api`, so they do not arrive through the line above.
+    androidTestImplementation(libs.kotlinx.coroutines.core)
+
+    // BIT-135. FcmDeliveryTest asks Play services for this install's registration
+    // token and reads FirebaseApp's resolved project id, so it needs
+    // firebase-messaging on the TEST compile classpath. The `implementation` line
+    // above puts it on the app's, and androidTest does not inherit that — which is
+    // why `project(":core:wallet-ldk")` is repeated here too.
+    //
+    // It is the same BOM and therefore the same version, so this cannot become a
+    // second Firebase on the device: the test APK and the app APK are installed
+    // side by side and `FirebaseMessaging.getInstance()` in the test resolves the
+    // APP's singleton, because instrumented tests run in the target application's
+    // process. That is the whole reason the token can be obtained without a single
+    // line of debug-only code in `main` — see FcmDeliveryTest's class comment.
+    androidTestImplementation(platform(libs.firebase.bom))
+    androidTestImplementation(libs.firebase.messaging)
 }

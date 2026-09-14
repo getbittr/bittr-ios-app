@@ -15,6 +15,8 @@ import com.bittr.android.core.wallet.ldk.adapter.lightningNodePort
 import com.bittr.android.core.wallet.ldk.adapter.nodeOnchainPort
 import com.bittr.android.core.wallet.ldk.cache.CachedChannelClosureStore
 import com.bittr.android.core.wallet.ldk.cache.FileWalletCache
+import com.bittr.android.core.wallet.ldk.host.BackgroundWake
+import com.bittr.android.core.wallet.ldk.host.ForegroundPresence
 import com.bittr.android.core.wallet.ldk.host.NodeBackedWalletService
 import com.bittr.android.core.wallet.ldk.host.ServiceForegroundPresence
 import com.bittr.android.core.wallet.ldk.host.WalletNodeHost
@@ -132,6 +134,25 @@ object WalletModule {
     fun provideNodeOnchainPort(composition: WalletComposition): NodeOnchainPort =
         composition.onchain
 
+    /**
+     * The background wake — BIT-133's client half, and the third piece of the
+     * one composition.
+     *
+     * Bound out of [WalletComposition] for exactly the reason
+     * [provideLightningNodePort] is: it must share the wallet's scope, its
+     * foreground presence and its `WalletService`. A wake built over a second
+     * composition would promote a *different* foreground service and start a
+     * *different* wallet from the one `UnlockViewModel` starts, and both halves
+     * would look like they worked.
+     *
+     * Reached through two `@EntryPoint`s and no `@Inject` site: `BittrMessagingService`
+     * uses `WalletWakeEntryPoint`, which exposes this and nothing else, and
+     * `FcmWakeTest` uses [WalletGraph]. Both of those say why there are two.
+     */
+    @Provides
+    @Singleton
+    fun provideBackgroundWake(composition: WalletComposition): BackgroundWake = composition.wake
+
     @Provides
     @Singleton
     fun provideWalletComposition(
@@ -139,6 +160,38 @@ object WalletModule {
         store: SecureStore,
     ): WalletComposition {
         val seed = SeedWalletService(store)
+
+        /*
+         * The wallet's scope: process-lifetime, and nothing above it.
+         *
+         * `NodeStartGate` and `ScanCoordinator` both say in their class comments
+         * why this cannot be a `lifecycleScope` or a `viewModelScope` — a
+         * rotation during a start would cancel the start and leave every caller
+         * attached to it holding a cancelled `Deferred`. A `SupervisorJob` is
+         * what stops one runner's failure cancelling the node start beside it.
+         *
+         * `Dispatchers.IO` because every leaf of the work under it is a blocking
+         * FFI call into Rust — `Node.start()`, `nextEventAsync()`, BDK's full
+         * scan — and none of them is a coroutine that suspends. On
+         * `Dispatchers.Default` they would occupy the CPU-bound pool for the
+         * length of a network round trip.
+         *
+         * Nothing cancels it, which is the other half of `WalletNodeHost`'s
+         * "survives backgrounding, dies with the process": a stop cancels the
+         * runners, explicitly, and the scope outlives them so the next start has
+         * somewhere to run. It is built here rather than as its own `@Provides`
+         * so there is no unqualified `CoroutineScope` in the graph for an
+         * unrelated feature to inject by accident.
+         *
+         * **Above the environment branch, not inside it (BIT-133).** The
+         * background wake needs a scope on both sides: in an unconfigured build
+         * the wake still runs, still reaches `WalletService.start()`, and still
+         * finds a no-op behind it — which is what lets the wiring be proved on
+         * the device CI actually installs. One scope per process either way; the
+         * unconfigured build simply never launches anything in it.
+         */
+        val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+
         val environment: LdkEnvironment? = LdkEnvironmentConfig.fromBuildConfig()
         if (environment == null) {
             Log.i(
@@ -157,6 +210,20 @@ object WalletModule {
                 // so it has no on-chain wallet to reveal an address from and
                 // the port says so rather than inventing one.
                 onchain = nodeOnchainPort(null),
+                // `ForegroundPresence.None`, and that is the honest binding
+                // rather than a degraded one: a build with no node has nothing
+                // to hold the process up for. The wake still runs — it reaches
+                // `SeedWalletService.start()`, which is a no-op — and that is
+                // deliberate, because it is the only wake path an unconfigured
+                // APK has and therefore the only one `FcmWakeTest` can measure
+                // in the `wallet-instrumented` job.
+                wake = BackgroundWake(
+                    scope = scope,
+                    presence = ForegroundPresence.None,
+                    walletState = { seed.state.value },
+                    start = seed::start,
+                    report = { outcome -> Log.i(TAG, "Background wake (no node in this build): $outcome") },
+                ),
             )
         }
 
@@ -181,30 +248,6 @@ object WalletModule {
          * disk. Two would be two answers to "has this event been shown".
          */
         val cache = FileWalletCache(paths.cacheDir)
-
-        /*
-         * The wallet's scope: process-lifetime, and nothing above it.
-         *
-         * `NodeStartGate` and `ScanCoordinator` both say in their class comments
-         * why this cannot be a `lifecycleScope` or a `viewModelScope` — a
-         * rotation during a start would cancel the start and leave every caller
-         * attached to it holding a cancelled `Deferred`. A `SupervisorJob` is
-         * what stops one runner's failure cancelling the node start beside it.
-         *
-         * `Dispatchers.IO` because every leaf of the work under it is a blocking
-         * FFI call into Rust — `Node.start()`, `nextEventAsync()`, BDK's full
-         * scan — and none of them is a coroutine that suspends. On
-         * `Dispatchers.Default` they would occupy the CPU-bound pool for the
-         * length of a network round trip.
-         *
-         * Nothing cancels it, which is the other half of `WalletNodeHost`'s
-         * "survives backgrounding, dies with the process": a stop cancels the
-         * runners, explicitly, and the scope outlives them so the next start has
-         * somewhere to run. It is built here rather than as its own `@Provides`
-         * so there is no unqualified `CoroutineScope` in the graph for an
-         * unrelated feature to inject by accident.
-         */
-        val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
         /*
          * The seed, read fresh on every use rather than held.
@@ -390,20 +433,37 @@ object WalletModule {
             },
         )
 
+        /*
+         * What holds the process up, as one object with two callers.
+         *
+         * Hoisted out of the `WalletNodeHost(...)` argument list it used to be
+         * written inside (BIT-133), because the background wake promotes it too
+         * — synchronously, before the node start it then launches, which is the
+         * only thing that can happen inside `onMessageReceived`'s budget. Two
+         * `ServiceForegroundPresence` instances would be two `stopService` calls
+         * racing one service, and the demote that lands second would tear down a
+         * promotion the other one still believes in.
+         */
+        val presence = ServiceForegroundPresence(context) { refused ->
+            // A node running without foreground protection, which is the state
+            // it was already in. Logged rather than surfaced: deciding what the
+            // user should be told about a wallet the OS will freeze is BIT-123's,
+            // and it needs K8's measurement of what freezing actually costs
+            // before there is anything true to say.
+            //
+            // On the wake path this is the *expected* outcome for a
+            // normal-priority message: only a high-priority FCM data message
+            // buys the temporary exemption that lets a backgrounded app start a
+            // foreground service on Android 12+.
+            Log.w(TAG, "Foreground service refused; node runs unprotected", refused)
+        }
+
         val wallet = NodeBackedWalletService(
             seed = seed,
             host = WalletNodeHost(
                 scope = scope,
                 lifecycle = lifecycle,
-                presence = ServiceForegroundPresence(context) { refused ->
-                    // A node running without foreground protection, which is
-                    // the state it was already in. Logged rather than surfaced:
-                    // deciding what the user should be told about a wallet the
-                    // OS will freeze is BIT-123's, and it needs K8's measurement
-                    // of what freezing actually costs before there is anything
-                    // true to say.
-                    Log.w(TAG, "Foreground service refused; node runs unprotected", refused)
-                },
+                presence = presence,
                 /*
                  * The event pump, which is what a `NodeRunner` was defined for:
                  * cancelled on every stop, relaunched on every start, because
@@ -478,18 +538,37 @@ object WalletModule {
             // which is the whole reason this class exists — see
             // WalletModule.provideNodeOnchainPort.
             onchain = nodeOnchainPort(lifecycle),
+            /*
+             * BIT-133. `wallet::start` and not `host::start` — the seam
+             * `UnlockViewModel` uses, which here *is* `WalletNodeHost.start()`
+             * through `NodeBackedWalletService`, so the start collapsing and the
+             * runner restart come for free. `BackgroundWake`'s class comment has
+             * the argument for binding to the interface rather than to the host.
+             *
+             * The same `presence` the host holds, promoted first and
+             * synchronously: `onMessageReceived` returns long before a node
+             * start finishes, and a process that has not been promoted by then
+             * can be frozen with the start half-done.
+             */
+            wake = BackgroundWake(
+                scope = scope,
+                presence = presence,
+                walletState = { wallet.state.value },
+                start = wallet::start,
+                report = { outcome -> Log.i(TAG, "Background wake: $outcome") },
+            ),
         )
     }
 }
 
 /**
- * The two halves of one wallet, so two `@Provides` can name one composition.
+ * The three parts of one wallet, so three `@Provides` can name one composition.
  *
  * [WalletModule.provideWalletComposition] builds the node, its host, its
- * runners and its scope in a single pass — they share a `NodeLifecycle` and a
- * `CoroutineScope`, and every one of those relationships is load-bearing. This
- * class is how the result is handed out in two pieces without the pieces coming
- * from two passes.
+ * runners and its scope in a single pass — they share a `NodeLifecycle`, a
+ * `CoroutineScope` and a `ForegroundPresence`, and every one of those
+ * relationships is load-bearing. This class is how the result is handed out in
+ * pieces without the pieces coming from separate passes.
  *
  * It exists because of Dagger rather than because of the design: a `@Provides`
  * returns one type, and the alternative — a second provider that rebuilds the
@@ -509,4 +588,6 @@ class WalletComposition(
      * a transaction that confirms.
      */
     val onchain: NodeOnchainPort,
+    /** BIT-133 — what an FCM data message is handed. Present in every build. */
+    val wake: BackgroundWake,
 )

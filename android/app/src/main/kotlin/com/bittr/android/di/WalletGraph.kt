@@ -1,6 +1,7 @@
 package com.bittr.android.di
 
 import com.bittr.android.core.wallet.WalletService
+import com.bittr.android.core.wallet.ldk.host.BackgroundWake
 import com.bittr.android.core.wallet.ldk.lightning.LightningNodePort
 import com.bittr.android.core.wallet.ldk.lightning.NodeOnchainPort
 import dagger.hilt.EntryPoint
@@ -108,4 +109,22 @@ interface WalletGraph {
      * before a payment test draws a conclusion.
      */
     fun nodeOnchain(): NodeOnchainPort
+
+    /**
+     * The background wake — BIT-133, `wallet-node-device-tests.md` §1.
+     *
+     * Here for its [BackgroundWake.last], which is the only way to see what a
+     * wake *did* after the fact: `BittrMessagingService.deliver` returns the
+     * synchronous verdict, and the phase that says the start actually ran
+     * arrives later, with nobody on the call stack. `FcmWakeTest` reads it.
+     *
+     * **Two doors to one object, on purpose.** The production caller is
+     * `WalletWakeEntryPoint`, which exposes this and nothing else. That
+     * interface is not this one because a `Service` reachable from the framework
+     * should not be able to reach [walletService] and [lightningNode] — the wake
+     * is allowed to start the wallet and nothing more. The cost is a second
+     * six-line interface; the alternative is a push receiver holding the
+     * payment surface.
+     */
+    fun backgroundWake(): BackgroundWake
 }

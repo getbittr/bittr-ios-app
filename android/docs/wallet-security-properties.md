@@ -980,14 +980,19 @@ worth making to the product to satisfy a test.
     its methods are in `check-wallet-instrumented-results.py`'s `REQUIRED` set by
     name, including the negative control — without that one, "the seed was
     readable while locked" and "the device never locked" are the same green.
-  - **K2's FCM half is closed unrun, and its force-stop half is withdrawn as
-    specified.** There is no `FirebaseMessagingService` in this app, the
-    AOSP image the suite needs for the backup transport has no Play
-    services to deliver a message, and — separately from any of that — Android
-    does not deliver FCM to a package in the *stopped state*, which is what
-    `am force-stop` produces. The claim underneath is **process death**, a
-    different event reproduced by `am kill`. That is a correction to
-    `wallet-core-spec` §6 rather than a hardware limit.
+  - **K2's FCM half now has a receiver; its delivery half is still unrun, and
+    its force-stop half is withdrawn as specified.** BIT-133 built the wake —
+    `BackgroundWake` in `:core:wallet-ldk` and `BittrMessagingService` in `:app`,
+    with `FcmWakeTest`'s five methods in `REQUIRED` — so the leg that used to
+    have nothing behind it is now under test on every wallet run. What is still
+    unrun is **delivery**: the AOSP image the suite needs for the backup
+    transport has no Play services, so that half needs a `google_apis` job of its
+    own and a non-production service-account key nobody has provisioned yet.
+    Separately from any of that, Android does not deliver FCM to a package in the
+    *stopped state*, which is what `am force-stop` produces. The claim underneath
+    is **process death**, a different event reproduced by `am kill`; that was a
+    correction to `wallet-core-spec` §6 rather than a hardware limit, and the row
+    was corrected on 2026-09-14.
   - **K7 and K8 are closed unrun**, and the reason is upstream of hardware: the
     `wallet-instrumented` job builds an **unconfigured** APK, which composes
     `SeedWalletService` and contains no node at all. Giving the runner a phone

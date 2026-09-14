@@ -301,8 +301,29 @@ fi
 #
 # If this option is ever dropped or renamed by AGP, the phase below says so out
 # loud rather than grepping an empty set: it checks `pm list packages` first.
+# `notAnnotation`, which is BIT-135's half of a one-APK/two-images split.
+#
+# FcmDeliveryTest lives in this same :app test APK and needs Google Play
+# services, which this job's image does not and must not have — it runs `default`
+# because BackupExclusionTest needs com.android.localtransport, an AOSP component
+# absent from every Play-flavoured image. The two requirements are mutually
+# exclusive on one AVD, so the class is EXCLUDED here and is the whole of the
+# `fcm-delivery` job, which passes the matching `annotation=` filter.
+#
+# Excluded and not @Ignore'd and not assumed: the runner drops a filtered test
+# before it emits a <testcase> at all, whereas an @Assume writes <skipped/> — and
+# check-wallet-instrumented-results.py treats any skip as a failed run, which is
+# the rule that makes this job's green mean something. RequiresPlayServices.kt
+# carries the full argument.
+#
+# The FULL package name. The runner matches the annotation's binary name, and a
+# bare `RequiresPlayServices` matches nothing — which here fails SAFE: the class
+# would run on AOSP and fail loudly on playServicesAreOnThisImage, naming the
+# image. It is the other job that a mistyped filter would make vacuously green,
+# and check-fcm-delivery-results.py is what refuses that.
 run_gradle "installed app — backup exclusion under bmgr" \
   :app:connectedDebugAndroidTest \
+  -Pandroid.testInstrumentationRunnerArguments.notAnnotation=com.bittr.android.RequiresPlayServices \
   -Pandroid.injected.androidTest.leaveApksInstalledAfterRun=true || status=$?
 
 # Before the device-transfer phase below, not after. That phase drives a backup
