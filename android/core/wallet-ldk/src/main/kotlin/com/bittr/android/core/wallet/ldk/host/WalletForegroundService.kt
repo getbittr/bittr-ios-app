@@ -74,15 +74,22 @@ import com.bittr.android.core.wallet.ldk.R
  * stale-node case — a service restart finding an old object — is
  * `NodeLifecycle.buildAndStart`'s, and it discards before it builds.
  *
- * ## The copy in this notification is not approved
+ * ## The copy in this notification is not this file's to change
  *
- * `R.string.wallet_node_service_*` is placeholder copy. It is user-visible and
- * permanently on screen while the wallet runs, which puts it squarely inside the
- * approved-copy process (`shared/strings/README.md`), and it has no iOS
- * analogue to port from because iOS has no foreground service. It must not ship
- * as written. See the issue this landed under for the follow-up.
+ * `R.string.wallet_node_service_*` is permanently on the user's screen while the
+ * wallet runs, which makes it shipped copy. It is authored in
+ * `shared/strings/en.json` and mirrored into this module's `strings.xml` by hand
+ * until the generator exists (BIT-127); the wording is approved under three
+ * standing constraints — no freshness claim, no amount, nothing that reads as
+ * custody — recorded in `shared/strings/README.md`. Reword the canonical file and
+ * repeat the approval, never this module alone.
  *
- * Proved by `WalletForegroundServiceTest`.
+ * In particular the text says instant payments *need* the app running. It does
+ * not say they will work because it is: that would assert exactly the
+ * `BackgroundSyncPlan` property nothing here measures.
+ *
+ * Proved by `WalletForegroundServiceTest`, and by `ServiceNotificationCopyTest`
+ * for the part that is about the words.
  */
 class WalletForegroundService : Service() {
 

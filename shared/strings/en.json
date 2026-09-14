@@ -18,5 +18,9 @@
   "swapliveupdate.complete.subtitle": "Ready for instant payments ⚡️",
 
   "swapliveupdate.failed.title": "Swap didn't go through",
-  "swapliveupdate.failed.subtitle": "Tap to sort it out"
+  "swapliveupdate.failed.subtitle": "Tap to sort it out",
+
+  "wallet_node_service_channel": "Wallet running",
+  "wallet_node_service_title": "Your bittr wallet is running",
+  "wallet_node_service_text": "Instant payments need the app running."
 }

@@ -91,6 +91,8 @@ Some strings are not marketing copy — they are statements about what the app d
 | Key | Reviewed under | Represents |
 |---|---|---|
 | `mapvcpoweredbyalert` | BIT-56 (from BIT-45) | That the places lookup sends the user's location nowhere, and that whoever serves the map tiles sees the on-screen area |
+| `wallet_node_service_title` | BIT-127 (from BIT-126) | What the app is doing with the user's wallet while they are not looking at it |
+| `wallet_node_service_text` | BIT-127 (from BIT-126) | What the wallet running does and does not get the user — a necessary condition for instant payments, not a working one |
 
 **Review trail for `mapvcpoweredbyalert`** — both reads are complete against the wording at `d610cac`, which is the wording that ships:
 
@@ -170,3 +172,34 @@ Even subtracting both a 34pt home-indicator inset and the 20pt status bar, the c
 **If it ever does not fit, the fix is the container, not the copy.** Wrap the message in a `UIScrollView`, or lower the priority of the height cap. Shortening the message is not available as a remedy: every paragraph is load-bearing (see the two standing conditions above), the shortest thing to cut is the tile disclosure, and any reword re-triggers both reads. A container fix needs neither.
 
 The Maestro flow does not cover this. `alert.button.0` is pinned to the card and stays visible while the label is what compresses, so the flow passes on a truncated alert.
+
+## The wallet's foreground-service notification
+
+Three keys, Android-only: `wallet_node_service_channel`, `wallet_node_service_title`, `wallet_node_service_text`. They are the only copy in the shared tree that was **written** here rather than moved here, and the exception is deliberate — BIT-126 needed a foreground service, iOS has no foreground service, so there was no `allWords` entry to port. Writing new copy is out of scope for a lifecycle issue, so BIT-126 shipped them marked `UNAPPROVED PLACEHOLDER COPY` and BIT-127 replaced them with approved copy in the canonical file.
+
+They are snake_case where the rest of this file is not. Android resource names have to be, these have no iOS counterpart to agree with, and the key is what `R.string.*` resolves to — a prettier key here would be a rename in `:core:wallet-ldk` buying nothing.
+
+**Why they carry a review trail at all.** They are not a privacy representation like `mapvcpoweredbyalert`. They are in this section for the other reason a string stops being a typo risk and becomes a claim risk: **they are permanently on screen**, for as long as the wallet runs, on a surface with no dismiss and no context around it. Nothing else in either app is read that often by a user who is not doing anything. A sentence in that position that overstates what the app is doing is a sentence the user will rely on.
+
+### Standing constraints — these are why the words are what they are
+
+- **No freshness claim.** Not "syncing", not "up to date", not "connected". ldk-node's 30-second intervals run on Rust threads Doze and App Standby freeze; the foreground service is the mitigation and **how well it works is unmeasured** until K8 (BIT-123, `wallet-core-spec` §6). A notification asserting freshness would be the app asserting the thing the measurement exists to find out.
+- **No balance, no amount, nothing financial.** The notification is `VISIBILITY_SECRET` precisely so it does not render on the lock screen. Anything financial added here reopens that decision first, not afterwards.
+- **Nothing that reads as custody or protection.** No "secure", "safe", "protected". bittr is non-custodial and cannot recover anything — see `bittr-regulatory-perimeter`.
+- **Necessary, never sufficient.** `wallet_node_service_text` says instant payments *need* the app running. It must not be rewritten into a promise that they work because it is — "Ready to receive", "You can now be paid" and similar all cross that line while sounding smaller than the placeholder did.
+
+### Two word choices that are load-bearing
+
+- **"running", not "open".** iOS copy says "both you and the sender need to have the app open" (`htlc_expired_body`), and on iOS that means foregrounded, because iOS has no background node. On Android the entire point of the service is that the wallet runs while the app is *not* in front. Borrowing "open" would understate what Android actually does and tell users to sit and watch a screen they do not need to watch.
+- **Not "node", and not "connection".** "Node" appears nowhere in the app's user-facing copy in the user's sense — where the app does say node, it means *bittr's* node (`closechannel7`, `forceclose2`), so "your node" would be a new word that collides with an existing one. "Connection" is worse: in bittr's vocabulary a lightning connection is the user's **channel**, with funds in it (`lightningchannels`, `questionvc7`), so any sentence about keeping a connection alive reads as a statement about their money. The placeholder's "Keeping your Lightning node connected" managed both at once, which is the clearest reason it could not ship.
+- **"Instant payments"** is the app's own term for lightning (`limitlightning`, `questionvc13`). It is also true for a user with no channel yet — a necessary condition does not stop being true when the thing it conditions is not available.
+
+### Review trail
+
+- **Factual check against the code** — BIT-127, Growth & Content, 2026-09-14, against `WalletForegroundService.kt`: the notification is posted only while a node is meant to run, it carries no balance and no sync state, it is `VISIBILITY_SECRET` and `PRIORITY_LOW`, and the copy asserts nothing the file does not do.
+- **Approval** — Ruben, BIT-127. Pending at time of writing; this section ships with the strings and is the thing to update, not re-derive, when it lands.
+- **Compliance read** — not yet run. Tier 1 under `bittr-regulatory-perimeter` (a new customer-facing surface that is entirely copy). Route it before this reaches a store build.
+
+### What checks it
+
+`ServiceNotificationCopyTest` in `:core:wallet-ldk` asserts that the three resources in `android/core/wallet-ldk/src/main/res/values/strings.xml` equal the values here, character for character, and that the notification the service actually posts is built from those resources. It pins the equality, not a wording: an approved reword changes both files and stays green. None of the constraints above are assertable — no string comparison distinguishes an honest sentence from a confident one — so they live here and are enforced by whoever reviews the reword.
