@@ -7,7 +7,7 @@
     "payload": "text the flow itself injects (e.g. an APNs payload it posts)",
     "review": "proposed by --update, needs a human decision"
   },
-  "source": "ios/bittr/Language.swift",
+  "source": "ios/bittr/Language.swift + shared/strings/en.json",
   "matchers": [
     {
       "matcher": "${output.amountBeforeFee}",
@@ -144,6 +144,16 @@
         "shared/flows/features/send_lightning.yaml",
         "shared/flows/features/send_swap_suggestion_lightning.yaml",
         "shared/flows/helpers/show_invoice.yaml"
+      ]
+    },
+    {
+      "matcher": ".+@.+[.].+",
+      "class": "data",
+      "keys": [],
+      "texts": {},
+      "why": "The user's own lightning address on the Receive screen's LNURL type, served by the backend as lightning_address_username. Runtime account data, not copy. The matcher asserts only the user@host shape — a bare username would render an unpayable QR — because the username is per-wallet and this flow's wallet is created fresh by onboarding. --update's proposed keys were false positives: the regex is broad enough to match the five support@getbittr.com copy strings, none of which this flow ever asserts on.",
+      "flows": [
+        "shared/flows/features/receive_lnurl.yaml"
       ]
     },
     {
