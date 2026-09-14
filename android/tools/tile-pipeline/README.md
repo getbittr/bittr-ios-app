@@ -101,6 +101,11 @@ server {
     # every tile and looks nothing like a permissions problem from the client.
     root /srv/tiles;
 
+    # Without this a .pmtiles is served as text/plain, because nginx's mime.types
+    # has never heard of it. MapLibre reads bytes and does not care, but a proxy
+    # or a scanner in the path might, and the correct type costs one line.
+    types { application/octet-stream pmtiles; application/json json; }
+
     # Section 5: tile-request access logs are not retained. If an incident forces
     # this on, it goes on with the truncation and the 24 h cap that section
     # specifies, and the incident is written into that section.
@@ -131,28 +136,27 @@ access logging is off too, per §5.
 ### Verify before handing the URL over
 
 ```sh
-BASE=https://tiles.getbittr.com/basemap/<yyyy-mm>
-
-# 1. Ranges work, and exactly one Accept-Ranges comes back.
-curl -sD- -o /dev/null -r 1024-2047 $BASE/ch.pmtiles | grep -iE 'HTTP|content-range|accept-ranges|cache-control'
-#    Expect: 206, `content-range: bytes 1024-2047/<size>`, one `accept-ranges: bytes`,
-#    and the immutable cache-control — on the 206, not just on a 200.
-
-# 2. It is really a PMTiles v3 archive and not an HTML error page with a good status.
-curl -s -r 0-7 $BASE/ch.pmtiles | xxd        # expect the ASCII "PMTiles" then 0x03
-
-# 3. The style and the glyphs resolve too. A working archive behind a 404 style is
-#    a blank map, and STYLE_URI points at the style.
-curl -so /dev/null -w '%{http_code}\n' $BASE/style.json
-curl -so /dev/null -w '%{http_code}\n' "$BASE/glyphs/Noto%20Sans%20Regular/0-255.pbf"
-
-# 4. Nothing is being logged. Expect zero new lines from everything above.
-sudo wc -l /var/log/nginx/access.log
+./verify-deploy.sh https://tiles.getbittr.com/basemap/<yyyy-mm>
 ```
 
-Check 4 is the one worth doing by hand every time. It is the only one that fails
-silently, the only one no test in this repo can make for you, and the one that decides
-whether §5 is true.
+Ten client-side checks — the serving host is under a bittr apex, ranges return 206
+with the right `Content-Range`, exactly one `Accept-Ranges: bytes`, immutable
+`Cache-Control` on the 206, the archive really begins with the PMTiles magic bytes
+rather than being an error page with a healthy status, the style is served and names
+*this* version's archive, and the glyphs are on the same host and resolve. It exits
+with the number of failures, so it works as a gate. It needs no access to the host
+and anyone can run it from anywhere.
+
+Then the one that matters, by hand, on the edge:
+
+```sh
+sudo wc -l /var/log/nginx/access.log      # expect zero new lines from the run above
+```
+
+That check is last on purpose. It is the only one that fails silently, the only one
+no test in this repo and no client-side script can make for you, and the one that
+decides whether §5 is true. The same goes for the §2 requirement above it: nothing
+you can run from outside tells you who terminated the TLS.
 
 ## Still needed before `STYLE_URI` can be set
 
