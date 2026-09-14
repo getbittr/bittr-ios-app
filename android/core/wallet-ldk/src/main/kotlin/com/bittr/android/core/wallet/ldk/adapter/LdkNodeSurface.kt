@@ -9,6 +9,7 @@ import com.bittr.android.core.wallet.ldk.lightning.LightningBalanceView
 import com.bittr.android.core.wallet.ldk.lightning.LightningNodePort
 import com.bittr.android.core.wallet.ldk.lightning.NodeUnavailableException
 import com.bittr.android.core.wallet.ldk.lightning.PaymentDirectionView
+import com.bittr.android.core.wallet.ldk.lightning.OnchainConfirmationView
 import com.bittr.android.core.wallet.ldk.lightning.PaymentKindView
 import com.bittr.android.core.wallet.ldk.lightning.PaymentStatusView
 import com.bittr.android.core.wallet.ldk.lightning.PaymentView
@@ -30,6 +31,7 @@ import org.lightningdevkit.ldknode.Node
 import org.lightningdevkit.ldknode.Offer
 import org.lightningdevkit.ldknode.PaymentDetails
 import org.lightningdevkit.ldknode.PaymentDirection
+import org.lightningdevkit.ldknode.ConfirmationStatus
 import org.lightningdevkit.ldknode.PaymentKind
 import org.lightningdevkit.ldknode.PaymentStatus
 import org.lightningdevkit.ldknode.PeerDetails
@@ -242,6 +244,22 @@ class LdkNodeSurface(
         return invoice.use { it.toString() }
     }
 
+    override fun receiveBolt11VariableAmount(
+        description: Bolt11DescriptionView,
+        expirySecs: UInt,
+    ): String {
+        val ldkDescription = when (description) {
+            is Bolt11DescriptionView.Direct ->
+                Bolt11InvoiceDescription.Direct(description.description)
+            is Bolt11DescriptionView.Hash ->
+                Bolt11InvoiceDescription.Hash(description.hash)
+        }
+        val invoice = require("create an invoice")
+            .bolt11Payment()
+            .receiveVariableAmount(ldkDescription, expirySecs)
+        return invoice.use { it.toString() }
+    }
+
     override fun sendBolt11(invoice: String, routeLimits: RouteLimitsView?): String =
         Bolt11Invoice.fromStr(invoice).use {
             require("send a payment").bolt11Payment().send(it, routeLimits?.toLdk())
@@ -353,6 +371,7 @@ internal object LdkNodeMapping {
             PaymentStatus.SUCCEEDED -> PaymentStatusView.Succeeded
             PaymentStatus.FAILED -> PaymentStatusView.Failed
         },
+        latestUpdateTimestampSecs = payment.latestUpdateTimestamp.toLong(),
     )
 
     /**
@@ -366,7 +385,16 @@ internal object LdkNodeMapping {
      * remember which it wanted.
      */
     fun toView(kind: PaymentKind): PaymentKindView = when (kind) {
-        is PaymentKind.Onchain -> PaymentKindView.Onchain(txId = kind.txid)
+        is PaymentKind.Onchain -> PaymentKindView.Onchain(
+            txId = kind.txid,
+            confirmation = when (val status = kind.status) {
+                is ConfirmationStatus.Confirmed -> OnchainConfirmationView.Confirmed(
+                    height = status.height.toInt(),
+                    timestampSecs = status.timestamp.toLong(),
+                )
+                is ConfirmationStatus.Unconfirmed -> OnchainConfirmationView.Unconfirmed
+            },
+        )
 
         is PaymentKind.Bolt11 -> PaymentKindView.Bolt11(
             hash = kind.hash,

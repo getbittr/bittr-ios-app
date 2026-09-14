@@ -123,6 +123,11 @@ internal class ReadingOnlyPort(private val reading: WalletNodeReading?) : Lightn
         expirySecs: UInt,
     ): String = "invoice"
 
+    override fun receiveBolt11VariableAmount(
+        description: Bolt11DescriptionView,
+        expirySecs: UInt,
+    ): String = "variable-invoice"
+
     override fun sendBolt11(invoice: String, routeLimits: RouteLimitsView?): String = "hash"
 
     override fun sendBolt11UsingAmount(

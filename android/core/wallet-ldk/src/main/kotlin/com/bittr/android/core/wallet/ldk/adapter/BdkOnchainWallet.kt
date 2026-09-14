@@ -26,6 +26,9 @@ import org.bitcoindevkit.SyncRequest
 import org.bitcoindevkit.Update
 import org.bitcoindevkit.Wallet
 import java.io.File
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 
 /**
  * BDK's `Wallet` behind [OnchainSyncPort] — the FFI half of `didSyncBdkWallet`.
@@ -340,6 +343,14 @@ class BdkOnchainWalletHolder(
     @Volatile
     private var electrum: ElectrumClient? = null
 
+    private val _opened = MutableStateFlow(false)
+
+    /**
+     * Whether a wallet is open. The address pool waits on it: every address it hands out
+     * is peeked from this wallet, and before `didStartBDK` there is nothing to peek.
+     */
+    val opened: StateFlow<Boolean> = _opened.asStateFlow()
+
     /** The BIP84 account xpub of the open wallet, or null. iOS's `self.xpub`. */
     val accountXpub: String? get() = current?.accountXpub
 
@@ -375,6 +386,7 @@ class BdkOnchainWalletHolder(
             val words = mnemonic() ?: return false
 
             current = BdkWalletFactory.open(words, network, databaseFile)
+            _opened.value = true
             // Built here as well as lazily below, because iOS builds it inside
             // `didStartBDK` (`BDKManager.swift:166`) and treats a failure there
             // as a failed start rather than as a failed sync. A wallet that
@@ -424,9 +436,42 @@ class BdkOnchainWalletHolder(
         closures = closures,
     )
 
+    /**
+     * `getAddress(atIndex:doReveal: false)` — the external address at [index], without
+     * revealing it. Null when no wallet is open.
+     *
+     * The `AddressInfo` is a native handle, and so is the `Address` inside it; both are
+     * freed here once the string is out, for the reason [BdkWalletTransactions] frees what
+     * it walks.
+     */
+    fun peekAddress(index: Int): String? {
+        val wallet = current?.wallet ?: return null
+        val info = wallet.peekAddress(KeychainKind.EXTERNAL, index.toUInt())
+        return try {
+            info.address.use { it.toString() }
+        } finally {
+            info.destroy()
+        }
+    }
+
+    /**
+     * `revealAddresses(toIndex:)` — reveal every external address up to [index] and persist,
+     * so a light sync watches them. A no-op when nothing new was revealed, as on iOS.
+     */
+    fun revealAddressesTo(index: Int) = synchronized(lock) {
+        val open = current ?: return@synchronized
+        val revealed = open.wallet.revealAddressesTo(KeychainKind.EXTERNAL, index.toUInt())
+        try {
+            if (revealed.isNotEmpty()) open.wallet.persist(open.connection)
+        } finally {
+            revealed.forEach { it.destroy() }
+        }
+    }
+
     private fun closeLocked() {
         // Wallet first, for the ordering `BdkWallet.close` states; the Electrum
         // client holds no reference to either and goes last.
+        _opened.value = false
         runCatching { current?.close() }
         current = null
         runCatching { electrum?.close() }

@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -22,6 +23,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
@@ -34,6 +38,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.bittr.android.core.common.TestID
 import com.bittr.android.core.designsystem.BittrAlertDialog
@@ -164,6 +169,8 @@ internal fun HomeScreen(
             .background(MaterialTheme.colorScheme.surfaceBright),
     ) {
         HomeHeader(
+            showSyncSpinner = state.showSyncSpinner,
+            balanceSats = state.balanceSats,
             onMap = onMap,
             onCurrency = onCurrency,
             onSend = guarded(onSend),
@@ -219,6 +226,8 @@ internal fun HomeScreen(
  */
 @Composable
 private fun HomeHeader(
+    showSyncSpinner: Boolean,
+    balanceSats: Long?,
     onMap: () -> Unit,
     onCurrency: () -> Unit,
     onSend: () -> Unit,
@@ -267,6 +276,18 @@ private fun HomeHeader(
                             .weight(1f)
                             .testTag(TestID.Home.headerLabel),
                     )
+                    // `headerSpinner` — spinning until `finalizeSync()`. Composed only while
+                    // it spins, so a flow waiting for it to be not visible is waiting for
+                    // the sync, not for an animation to be hidden.
+                    if (showSyncSpinner) {
+                        CircularProgressIndicator(
+                            color = LocalContentColor.current,
+                            strokeWidth = 2.dp,
+                            modifier = Modifier
+                                .size(18.dp)
+                                .testTag(TestID.Home.headerSpinner),
+                        )
+                    }
                     HeaderIcon(
                         path = BittrIconPaths.MAP,
                         label = "Bitcoin map",
@@ -292,8 +313,12 @@ private fun HomeHeader(
                     )
                 }
 
-                // The balance, the fiat conversion and the profit pill belong between
-                // these two rows. BIT-6 — see the note on HomeScreen.
+                // The balance, once the wallet has read one. The fiat conversion and the
+                // profit pill follow it on iOS and are still to be ported.
+                if (balanceSats != null) {
+                    CanvasSpacer(BittrTokens.Spacing.xl)
+                    BalanceLabel(balance = balanceText(balanceSats), dimmedColor = colors.balanceDimmed)
+                }
 
                 CanvasSpacer(BittrTokens.Spacing.xxl)
                 Row(
@@ -333,6 +358,38 @@ private fun HomeHeader(
         }
     }
 }
+
+/**
+ * The balance, in `displayMedium` — the slot the scale keeps for it — shrinking a step at a
+ * time until it fits one line, with a 20sp floor (`loadBalanceLabel`'s
+ * `adjustsFontSizeToFitWidth`, DEV-23).
+ */
+@Composable
+private fun BalanceLabel(balance: BalanceText, dimmedColor: androidx.compose.ui.graphics.Color) {
+    val base = MaterialTheme.typography.displayMedium
+    var fontSize by remember(balance) { mutableStateOf(base.fontSize) }
+    Text(
+        text = buildAnnotatedString {
+            withStyle(SpanStyle(color = dimmedColor)) { append(balance.dimmed) }
+            append(balance.filled)
+        },
+        style = base.copy(fontSize = fontSize, lineHeight = fontSize * LINE_HEIGHT_RATIO),
+        textAlign = TextAlign.Center,
+        maxLines = 1,
+        softWrap = false,
+        onTextLayout = { layout ->
+            if (layout.didOverflowWidth && fontSize > BALANCE_MIN_FONT_SIZE) {
+                fontSize = maxOf(BALANCE_MIN_FONT_SIZE.value, fontSize.value - 2f).sp
+            }
+        },
+        modifier = Modifier
+            .fillMaxWidth()
+            .testTag(TestID.Home.balanceLabel),
+    )
+}
+
+private val BALANCE_MIN_FONT_SIZE = 20.sp
+private const val LINE_HEIGHT_RATIO = 1.2f
 
 @Composable
 private fun HeaderIcon(

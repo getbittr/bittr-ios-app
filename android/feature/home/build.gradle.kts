@@ -43,6 +43,9 @@ dependencies {
     // balance in behind this line.
     implementation(project(":core:wallet"))
 
+    // BalanceTextTest — the first plain JVM test in this module.
+    testImplementation(libs.junit)
+
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.compose.ui)
     implementation(libs.androidx.compose.material3)
@@ -54,12 +57,12 @@ dependencies {
     implementation(libs.hilt.android)
     ksp(libs.hilt.compiler)
 
-    // No `testImplementation` lines, deliberately — this module has no `src/test`.
-    // Under Gradle 9 a test dependency without a test is not inert: it puts
-    // classes on the unit-test runtime classpath, so the Test task counts as
-    // having sources, discovers nothing, and FAILS with "There are test sources
-    // present ... but the test task did not discover any tests to execute". That
-    // held the `./gradlew test` CI gate red on android-parity, together with
-    // :core:preferences and :feature:settings. Add them back with the tests.
+    // Test dependencies only alongside real tests. Under Gradle 9 a test dependency
+    // without a test is not inert: it puts classes on the unit-test runtime
+    // classpath, so the Test task counts as having sources, discovers nothing, and
+    // FAILS with "There are test sources present ... but the test task did not
+    // discover any tests to execute". That held the `./gradlew test` CI gate red on
+    // android-parity, together with :core:preferences and :feature:settings. The
+    // junit line above is there because BalanceTextTest is; remove both together.
     debugImplementation(libs.androidx.compose.ui.test.manifest)
 }

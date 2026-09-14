@@ -88,6 +88,17 @@ data class PeerView(
 /** `PaymentStatus`. */
 enum class PaymentStatusView { Pending, Succeeded, Failed }
 
+/**
+ * `ConfirmationStatus`: confirmed at a height and block time, or not yet.
+ *
+ * Only on-chain payments carry one. Home colours an unconfirmed row differently, and a
+ * confirmed row is dated by its block rather than by its last update.
+ */
+sealed interface OnchainConfirmationView {
+    data class Confirmed(val height: Int, val timestampSecs: Long) : OnchainConfirmationView
+    data object Unconfirmed : OnchainConfirmationView
+}
+
 /** `PaymentDirection`. */
 enum class PaymentDirectionView { Inbound, Outbound }
 
@@ -127,7 +138,15 @@ sealed interface PaymentKindView {
     /** iOS's `isBolt12`. */
     val isBolt12: Boolean get() = false
 
-    data class Onchain(val txId: String) : PaymentKindView {
+    /**
+     * @param confirmation `PaymentKind.onchain(txid:status:)`'s status. iOS reads it in
+     *   `createTransaction` for the row's timestamp and height; defaulted so a caller
+     *   that only cares about the txid does not have to invent one.
+     */
+    data class Onchain(
+        val txId: String,
+        val confirmation: OnchainConfirmationView = OnchainConfirmationView.Unconfirmed,
+    ) : PaymentKindView {
         override val transactionId: String get() = txId
         override val stableId: String get() = txId
         override val isOnchain: Boolean get() = true
@@ -219,6 +238,11 @@ data class PaymentView(
     val feePaidMsat: ULong?,
     val direction: PaymentDirectionView,
     val status: PaymentStatusView,
+    /**
+     * `PaymentDetails.latestUpdateTimestamp`, in seconds. What iOS dates an unconfirmed
+     * on-chain row by (`Transaction.swift:163`). Defaulted for the fixtures that predate it.
+     */
+    val latestUpdateTimestampSecs: Long = 0L,
 ) {
 
     /** `hasSucceeded()`. */

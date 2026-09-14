@@ -193,6 +193,18 @@ interface LightningNodePort {
     ): String
 
     /**
+     * `bolt11Payment().receiveVariableAmount(...)` — iOS's `getZeroInvoice`
+     * (`ReceiveLightning.swift:15–47`), the invoice Receive shows when no amount was entered.
+     * The payer chooses the amount.
+     *
+     * @return the invoice, as the BOLT11 string.
+     */
+    fun receiveBolt11VariableAmount(
+        description: Bolt11DescriptionView,
+        expirySecs: UInt,
+    ): String
+
+    /**
      * `bolt11Payment().send(invoice:routeParameters:)`
      * (`BitcoinManager.swift:599–602`).
      *

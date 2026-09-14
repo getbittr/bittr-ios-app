@@ -139,3 +139,8 @@ include(":feature:academy")
 // data. No LNURL bridge is attached on any origin; androidx.webkit is not a
 // dependency of it, so the bridge API is not on the classpath at all.
 include(":feature:website")
+
+// Receive (ios/bittr/Move, Send, Receive/ReceiveVC) — the address, invoice, Bitcoin QR and
+// lightning address. Depends on nothing wallet-specific: :app implements ReceiveSource
+// over the engine.
+include(":feature:receive")

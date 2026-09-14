@@ -82,6 +82,11 @@ class WalletBalanceReader(
     private val closures: ChannelClosureCache,
     /** Where a swallowed failure goes. Defaulted to a no-op; `WalletModule` logs. */
     private val onFailure: (Throwable) -> Unit = {},
+    /**
+     * Every successful reading, after its cache writes — where Home's overview is
+     * published from (`updateTransactionHistory()` follows `loadWalletData()` on iOS).
+     */
+    private val onReading: (WalletNodeReading, WalletBalanceSnapshot) -> Unit = { _, _ -> },
 ) {
 
     /**
@@ -121,6 +126,7 @@ class WalletBalanceReader(
             closures.removeChannelFundingOutpoint()
         }
 
+        onReading(reading, snapshot)
         return snapshot
     }
 }

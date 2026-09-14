@@ -4,7 +4,9 @@ import android.content.Context
 import android.os.SystemClock
 import android.util.Log
 import com.bittr.android.BuildConfig
+import com.bittr.android.core.network.HttpClient
 import com.bittr.android.core.wallet.SecureStore
+import com.bittr.android.core.wallet.WalletOverviewSource
 import com.bittr.android.core.wallet.WalletService
 import com.bittr.android.core.wallet.keystore.KeystoreSecureStore
 import com.bittr.android.core.wallet.ldk.adapter.BdkOnchainWalletHolder
@@ -14,25 +16,31 @@ import com.bittr.android.core.wallet.ldk.adapter.LdkNodeStartErrors
 import com.bittr.android.core.wallet.ldk.adapter.lightningNodePort
 import com.bittr.android.core.wallet.ldk.adapter.nodeOnchainPort
 import com.bittr.android.core.wallet.ldk.cache.CachedChannelClosureStore
+import com.bittr.android.core.wallet.ldk.cache.CachedOnchainAddressStore
 import com.bittr.android.core.wallet.ldk.cache.FileWalletCache
 import com.bittr.android.core.wallet.ldk.host.BackgroundWake
 import com.bittr.android.core.wallet.ldk.host.ForegroundPresence
 import com.bittr.android.core.wallet.ldk.host.NodeBackedWalletService
+import com.bittr.android.core.wallet.ldk.host.NodeRunner
 import com.bittr.android.core.wallet.ldk.host.ServiceForegroundPresence
 import com.bittr.android.core.wallet.ldk.host.WalletNodeHost
 import com.bittr.android.core.wallet.ldk.lightning.LightningNodePort
 import com.bittr.android.core.wallet.ldk.lightning.NodeOnchainPort
 import com.bittr.android.core.wallet.ldk.lightning.WalletBalanceReader
+import com.bittr.android.core.wallet.ldk.lightning.WalletOverviewPublisher
 import com.bittr.android.core.wallet.ldk.lightning.openChannelFundingTxIds
 import com.bittr.android.core.wallet.ldk.node.LdkEnvironment
 import com.bittr.android.core.wallet.ldk.node.NodeConfigPlan
 import com.bittr.android.core.wallet.ldk.node.NodeLifecycle
+import com.bittr.android.core.wallet.ldk.onchain.AddressDerivation
 import com.bittr.android.core.wallet.ldk.onchain.ChannelClosureRecorder
+import com.bittr.android.core.wallet.ldk.onchain.OnchainAddressPool
 import com.bittr.android.core.wallet.ldk.onchain.OnchainSyncLoop
 import com.bittr.android.core.wallet.ldk.onchain.ScanCoordinator
 import com.bittr.android.core.wallet.ldk.seed.SecureStoreSeedVault
 import com.bittr.android.core.wallet.ldk.state.WalletPaths
 import com.bittr.android.core.wallet.seed.SeedWalletService
+import com.bittr.android.receive.EsploraAddressUsage
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -42,6 +50,7 @@ import javax.inject.Singleton
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.flow.first
 
 /**
  * The one place the app names a wallet implementation.
@@ -158,6 +167,7 @@ object WalletModule {
     fun provideWalletComposition(
         @ApplicationContext context: Context,
         store: SecureStore,
+        http: HttpClient,
     ): WalletComposition {
         val seed = SeedWalletService(store)
 
@@ -224,6 +234,12 @@ object WalletModule {
                     start = seed::start,
                     report = { outcome -> Log.i(TAG, "Background wake (no node in this build): $outcome") },
                 ),
+                // No on-chain wallet, so no address pool: Receive shows "Unavailable"
+                // rather than an address nothing is watching.
+                addressPool = null,
+                // Never publishes, so Home never reports a sync for a wallet with no
+                // node — and, with `hasNode` false, shows no sync spinner either.
+                overview = WalletOverviewPublisher(hasNode = false),
             )
         }
 
@@ -422,6 +438,13 @@ object WalletModule {
          * own; that decision, and the ordering of the read against the closure
          * scan, are argued in that class.
          */
+        /*
+         * Home's overview — the UI half of `loadWalletData()`. Published from every
+         * reading below; the first one is `finalizeSync()`, which opens Send and
+         * Receive on Home.
+         */
+        val overview = WalletOverviewPublisher(hasNode = true)
+
         val balances = WalletBalanceReader(
             node = lightning,
             closures = closureCache,
@@ -431,6 +454,28 @@ object WalletModule {
                 // Logged so a cache entry that was not written leaves a trace.
                 Log.w(TAG, "Wallet balance read failed", failure)
             },
+            onReading = overview::publish,
+        )
+
+        /*
+         * The on-chain receive pool — `manageOnchainAddresses()`. BDK derives and
+         * reveals the addresses so light syncs watch them; ldk-node's revealed index
+         * is dragged along behind so the two wallets agree on what has been handed
+         * out. `OnchainAddressPool` has the argument for why Receive does not just
+         * ask the node for a fresh address.
+         */
+        val onchainPort = nodeOnchainPort(lifecycle)
+        val addressPool = OnchainAddressPool(
+            store = CachedOnchainAddressStore(cache),
+            derivation = object : AddressDerivation {
+                override fun peek(index: Int): String? = onchainWallet.peekAddress(index)
+                override fun revealTo(index: Int) = onchainWallet.revealAddressesTo(index)
+            },
+            node = { runCatching { onchainPort.newReceiveAddress().address }.getOrNull() },
+            // Esplora is the node's chain source on every network but mainnet —
+            // see EsploraAddressUsage on what that means for a mainnet build.
+            usage = EsploraAddressUsage(esploraBaseUrl = environment.chainSourceUrl, http = http),
+            log = { message -> Log.i(TAG, "Address pool: $message") },
         )
 
         /*
@@ -517,7 +562,29 @@ object WalletModule {
                         balances = { balances.read() != null },
                         report = { event -> Log.i(TAG, "On-chain sync: $event") },
                     ),
+                    /*
+                     * The address pool, once BDK has opened — iOS runs
+                     * `manageOnchainAddresses()` straight after `didStartBDK()`, off
+                     * the main thread and beside the scan rather than after it.
+                     */
+                    object : NodeRunner {
+                        override val name: String = "address-pool"
+                        override suspend fun run() {
+                            onchainWallet.opened.first { it }
+                            addressPool.manage()
+                        }
+                    },
                 ),
+                // A runner that ends — returning or throwing, `Error`s included — ends
+                // silently otherwise, and a scan loop that died at start looks exactly
+                // like one that is still scanning.
+                onRunnerStopped = { name, failure ->
+                    if (failure == null) {
+                        Log.i(TAG, "Runner $name finished")
+                    } else {
+                        Log.e(TAG, "Runner $name failed", failure)
+                    }
+                },
             ),
             // Deliberately left as the no-op default. Removing a wallet erases
             // the seed and nothing else, which is `WalletService.removeWallet`'s
@@ -537,7 +604,7 @@ object WalletModule {
             // The same `lifecycle` the wallet and the Lightning port are over,
             // which is the whole reason this class exists — see
             // WalletModule.provideNodeOnchainPort.
-            onchain = nodeOnchainPort(lifecycle),
+            onchain = onchainPort,
             /*
              * BIT-133. `wallet::start` and not `host::start` — the seam
              * `UnlockViewModel` uses, which here *is* `WalletNodeHost.start()`
@@ -557,8 +624,16 @@ object WalletModule {
                 start = wallet::start,
                 report = { outcome -> Log.i(TAG, "Background wake: $outcome") },
             ),
+            addressPool = addressPool,
+            overview = overview,
         )
     }
+
+    /** What Home reads — the balance, the history, and whether the first sync finished. */
+    @Provides
+    @Singleton
+    fun provideWalletOverviewSource(composition: WalletComposition): WalletOverviewSource =
+        composition.overview
 }
 
 /**
@@ -590,4 +665,8 @@ class WalletComposition(
     val onchain: NodeOnchainPort,
     /** BIT-133 — what an FCM data message is handed. Present in every build. */
     val wake: BackgroundWake,
+    /** The on-chain receive pool. Null in a build with no node. */
+    val addressPool: OnchainAddressPool?,
+    /** Home's balance, history and sync state. */
+    val overview: WalletOverviewSource,
 )

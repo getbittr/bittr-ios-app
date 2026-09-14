@@ -23,6 +23,7 @@ import com.bittr.android.core.network.HttpClient
 import com.bittr.android.core.network.okhttp.OkHttpBittrHttpClient
 import com.bittr.android.core.wallet.WalletState
 import com.bittr.android.feature.academy.AcademyScreen
+import com.bittr.android.receive.ReceiveViewModel
 import com.bittr.android.feature.home.HomeScreen
 import com.bittr.android.feature.map.MapScreen
 import com.bittr.android.feature.scanner.ScannerScreen
@@ -31,6 +32,7 @@ import com.bittr.android.feature.settings.DeviceViewModel
 import com.bittr.android.feature.settings.LightningQuestionScreen
 import com.bittr.android.feature.settings.SettingsScreen
 import com.bittr.android.feature.settings.WebsitePage
+import com.bittr.android.feature.receive.ReceiveRoute
 import com.bittr.android.feature.value.ValueScreen
 import com.bittr.android.feature.website.WebsiteScreen
 import com.bittr.android.feature.signup.CreateWalletScreen
@@ -74,6 +76,9 @@ object Routes {
     const val VALUE = "value"
     const val MAP = "map"
     const val ACADEMY = "academy"
+
+    /** Receive (`HomeToReceive`). Reached from Home once the wallet has synced. */
+    const val RECEIVE = "receive"
 }
 
 /**
@@ -197,7 +202,7 @@ fun BittrNavHost(
                 // they are wired anyway so that flipping that flag does not leave a
                 // dead button behind it.
                 onSend = { notPorted = "Sending bitcoin" },
-                onReceive = { notPorted = "Receiving bitcoin" },
+                onReceive = { navController.navigate(Routes.RECEIVE) },
                 onBalanceDetails = { notPorted = "Your balance" },
                 // Wave 3. Not guarded by the sync on iOS either — see HomeScreen.
                 onBuy = { notPorted = "Buying bitcoin" },
@@ -218,6 +223,11 @@ fun BittrNavHost(
 
         composable(Routes.ACADEMY) {
             AcademyScreen(onBack = { navController.popBackStack() })
+        }
+
+        composable(Routes.RECEIVE) {
+            val receive: ReceiveViewModel = hiltViewModel()
+            ReceiveRoute(source = receive.source, onDown = { navController.popBackStack() })
         }
 
         composable(Routes.SCANNER) {

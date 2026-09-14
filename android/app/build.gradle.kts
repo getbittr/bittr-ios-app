@@ -544,6 +544,8 @@ dependencies {
     implementation(project(":core:lnurl"))
     implementation(project(":feature:signup"))
     implementation(project(":feature:website"))
+    // Receive (ios/bittr/Move, Send, Receive/ReceiveVC). :app implements its ReceiveSource.
+    implementation(project(":feature:receive"))
 
     // BIT-41 item 1. :core:network holds BittrEnvironment, which BittrNavHost reads
     // out of BuildConfig and hands down — the same shape as BitcoinNetwork above it.

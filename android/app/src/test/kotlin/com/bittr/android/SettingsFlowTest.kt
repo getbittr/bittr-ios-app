@@ -22,12 +22,15 @@ import com.bittr.android.core.designsystem.BittrTheme
 import com.bittr.android.core.preferences.AppPreferences
 import com.bittr.android.core.preferences.Currency
 import com.bittr.android.core.preferences.DarkModeSetting
+import com.bittr.android.core.wallet.WalletOverview
+import com.bittr.android.core.wallet.WalletOverviewSource
 import com.bittr.android.core.wallet.stub.StubWalletService
 import com.bittr.android.feature.home.HomeScreen
 import com.bittr.android.feature.home.HomeViewModel
 import com.bittr.android.feature.settings.DeviceViewModel
 import com.bittr.android.navigation.Routes
 import com.bittr.android.navigation.settingsArea
+import kotlinx.coroutines.flow.MutableStateFlow
 import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
@@ -89,6 +92,11 @@ class SettingsFlowTest {
      * The two `ViewModel`s are passed in because a unit test has no Hilt graph and
      * `:app` deliberately carries no `hilt-android-testing` dependency.
      */
+    /** A wallet with no node: Home never reports a sync, which is what this flow's JVM walk expects. */
+    private val neverSynced = object : WalletOverviewSource {
+        override val overview = MutableStateFlow(WalletOverview())
+    }
+
     private fun launchOnHome() {
         composeRule.runOnUiThread {
             composeRule.activity.setContent {
@@ -102,7 +110,7 @@ class SettingsFlowTest {
                             composable(Routes.HOME) {
                                 HomeScreen(
                                     onSettings = { navController.navigate(Routes.SETTINGS) },
-                                    viewModel = remember { HomeViewModel(wallet) },
+                                    viewModel = remember { HomeViewModel(wallet, neverSynced) },
                                 )
                             }
                             // `remember`, and it is load-bearing rather than tidy:
