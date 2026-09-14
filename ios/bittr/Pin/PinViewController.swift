@@ -17,7 +17,6 @@ class PinViewController: UIViewController, UITextFieldDelegate, UICollectionView
     @IBOutlet weak var pinCollectionViewWidth: NSLayoutConstraint!
     @IBOutlet weak var imageBackspace: UIImageView!
     @IBOutlet weak var pinTextField: UITextField!
-    @IBOutlet weak var pinSpinner: UIActivityIndicatorView!
     
     // Keypad elements
     @IBOutlet var keyButtons:[UIButton]!
@@ -142,11 +141,9 @@ class PinViewController: UIViewController, UITextFieldDelegate, UICollectionView
             if CacheManager.verifyPin(self.pinTextField.text ?? "") {
                 // Correct pin.
                 CacheManager.resetFailedPinAttempts()
-                self.pinSpinner.startAnimating()
                 
                 // Hide pin and sync wallet.
                 self.coreVC?.userHasSignedIn = true
-                self.pinSpinner.stopAnimating()
                 self.coreVC?.fromPinToHome()
                 self.coreVC?.startWallet()
             } else {
