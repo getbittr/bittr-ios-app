@@ -33,7 +33,36 @@ class WalletOverviewPublisher(
     private val _overview = MutableStateFlow(WalletOverview(hasNode = hasNode))
     override val overview: StateFlow<WalletOverview> = _overview.asStateFlow()
 
-    fun publish(reading: WalletNodeReading, snapshot: WalletBalanceSnapshot) {
+    private val lock = Any()
+
+    /** The overview a pull-to-refresh hid, until a reading replaces it or [endResync] restores it. */
+    private var beforeResync: WalletOverview? = null
+
+    /**
+     * `resetWallet()`: report the wallet as not synced while a pull-to-refresh runs, so Home
+     * hides the balance and history and Send and Receive take their syncing guard. A no-op
+     * before the first sync — there is nothing to hide.
+     */
+    fun markResyncing() = synchronized(lock) {
+        val current = _overview.value
+        if (current.hasSynced) {
+            beforeResync = current
+            _overview.value = current.copy(hasSynced = false)
+        }
+    }
+
+    /**
+     * The refresh is over. If no reading landed while it ran, the overview it hid comes back,
+     * so a refresh that could not read the node never leaves Home spinning with no balance.
+     */
+    fun endResync() = synchronized(lock) {
+        val hidden = beforeResync ?: return@synchronized
+        beforeResync = null
+        if (!_overview.value.hasSynced) _overview.value = hidden
+    }
+
+    fun publish(reading: WalletNodeReading, snapshot: WalletBalanceSnapshot) = synchronized(lock) {
+        beforeResync = null
         _overview.value = WalletOverview(
             hasNode = hasNode,
             hasSynced = true,

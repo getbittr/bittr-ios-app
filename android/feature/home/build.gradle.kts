@@ -45,6 +45,8 @@ dependencies {
 
     // BalanceTextTest — the first plain JVM test in this module.
     testImplementation(libs.junit)
+    // HomeViewModelRefreshTest drives the view model's `viewModelScope` on a test dispatcher.
+    testImplementation(libs.kotlinx.coroutines.test)
 
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.compose.ui)

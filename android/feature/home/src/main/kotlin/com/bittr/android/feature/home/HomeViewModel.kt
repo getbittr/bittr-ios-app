@@ -1,5 +1,7 @@
 package com.bittr.android.feature.home
 
+import com.bittr.android.core.wallet.WalletRefresher
+
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.bittr.android.core.wallet.FiatPrice
@@ -44,6 +46,10 @@ data class HomeUiState(
     val history: List<HistoryRow> = emptyList(),
     /** The sync overlay's first row: a conversion rate has been fetched. */
     val conversionFetched: Boolean = false,
+    /** A pull-to-refresh resync is running (`ReloadWallet.swift`); the balance and history are hidden meanwhile. */
+    val refreshing: Boolean = false,
+    /** Pulling Home down resyncs the wallet: it has a node, has synced, and no refresh is running. */
+    val canRefresh: Boolean = false,
 )
 
 /**
@@ -55,7 +61,8 @@ data class HomeAlert(val title: String, val message: String)
 @HiltViewModel
 class HomeViewModel @Inject constructor(
     walletService: WalletService,
-    overview: WalletOverviewSource,
+    private val overview: WalletOverviewSource,
+    private val refresher: WalletRefresher = WalletRefresher.None,
     prices: FiatPriceSource,
 ) : ViewModel() {
 
@@ -81,7 +88,12 @@ class HomeViewModel @Inject constructor(
         }
     }
 
-    val uiState: StateFlow<HomeUiState> = combine(walletService.state, overview.overview, price) { state, wallet, price ->
+    val uiState: StateFlow<HomeUiState> = combine(
+        walletService.state,
+        overview.overview,
+        price,
+        refresher.isRefreshing,
+    ) { state, wallet, price, refreshing ->
         HomeUiState(
             walletState = state,
             walletHasSynced = wallet.hasSynced,
@@ -90,6 +102,8 @@ class HomeViewModel @Inject constructor(
             balanceFiat = if (wallet.hasSynced) balanceFiat(wallet.totalSatoshis, price) else null,
             history = if (wallet.hasSynced) historyRows(wallet.transactions, price, wallet.currentHeight) else emptyList(),
             conversionFetched = price != null,
+            refreshing = refreshing,
+            canRefresh = wallet.hasNode && wallet.hasSynced && !refreshing,
         )
     }.stateIn(
         scope = viewModelScope,
@@ -109,6 +123,15 @@ class HomeViewModel @Inject constructor(
 
     fun dismissAlert() {
         alert.value = null
+    }
+
+    /**
+     * Home was pulled down — `scrollViewDidScroll`'s `contentOffset.y < -200`. Ignored until the
+     * wallet has synced and while a refresh is running, as iOS ignores it while `headerSpinner`
+     * spins.
+     */
+    fun refresh() {
+        if (overview.overview.value.hasSynced && !refresher.isRefreshing.value) refresher.refresh()
     }
 
     private companion object {
