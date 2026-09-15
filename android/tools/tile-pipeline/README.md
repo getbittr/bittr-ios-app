@@ -21,7 +21,7 @@ cannot satisfy. The scripts are the artefact.
 
 ## Build
 
-Any Linux host with a JDK, ~12 GB free disk and ~4 GB free RAM:
+A Linux host with a JDK, **~13 GB free disk and ~8 GB free RAM**:
 
 ```sh
 apt-get install -y osmium-tool python3-shapely python3-pyproj
@@ -31,11 +31,40 @@ apt-get install -y osmium-tool python3-shapely python3-pyproj
 It downloads planetiler, the `pmtiles` CLI, ten Geofabrik extracts (~3.4 GB) and
 planetiler's Natural Earth and water-polygon sources.
 
-**Budget about 2h15m from cold, unattended** — measured on the first real build,
-2026-09-14: ~30 min to fetch and clip the ten extracts, ~1h40m for the two planetiler
-passes (run in parallel; the z6–z14 Switzerland render is the long one), then the merge
-and the PMTiles conversion. Run it under `nohup`/`tmux`; nothing here needs an operator
-after it starts.
+`build-basemap.sh` checks both figures before it downloads anything and refuses a host
+that is short. planetiler makes that check itself and would print it in the first
+fifteen seconds, but both passes run with `--force` — "overwriting output file and
+ignore disk/RAM warnings" — and the half that makes a rerun possible is not separable
+from the half that discards the warning.
+
+The two numbers are not equally well founded, and the script says so when it stops:
+
+- **Disk, 13 GB, measured.** Peak is ~11.8 GB during the z6–z14 render, when the raw
+  extracts, the clipped and merged ones, the planetiler sources, 4.5 GB of planetiler
+  temp and the growing `high.mbtiles` are all on disk together.
+- **RAM, 8 GB, reasoned.** planetiler asked for 573 MB of heap, so `-Xmx3g` is not the
+  constraint and a 4 GB box passes every check it makes. Page cache is the constraint:
+  the z6–z14 pass builds a 2.3 GB feature store, mmaps it and reads it back. This has
+  only ever run on a machine with 30 GB free, so what a 4 GB box does to the runtime is
+  unmeasured — and the failure would be a slow unattended build, not an error.
+
+**Budget 2h15m from cold as a floor, not an estimate.** Measured 2026-09-14: ~30 min to
+fetch and clip the ten extracts, then the renders, then the merge and the PMTiles
+conversion. Run it under `nohup`/`tmux`; nothing needs an operator after it starts.
+
+The render figure needs its rig stated, because the number came from one shape and the
+script is another. It was measured with the two passes **in parallel** — z0–z5 took
+33m30s, z6–z14 took 1h39m49s, wall clock 1h40m. `build-basemap.sh` runs them
+**sequentially**, so its render stage is their sum rather than their maximum. Running
+alone makes each pass somewhat faster than its contended time, but sequential cannot
+beat the parallel wall clock on the same machine, so the true render stage is somewhere
+in **1h40m–2h13m** and the total is **2h15m–2h50m**.
+
+Sequential is the deliberate choice and is worth not undoing: two passes at once need
+two planetiler temp directories, which puts peak disk near 9 GB of temp alone and the
+requirement above out of reach of the sort of host this gets deployed on. The parallel
+run was a one-off on a 30 GB container. If you do run it on a smaller box, put the time
+it actually took here — there is no measurement for one yet.
 
 Run it **after** the bucket and the edge exist, not before. The archive is 572 MiB and
 lives only on the machine that built it — it is deliberately never checked in and there
@@ -125,7 +154,7 @@ rollback — §2 again.
 §2 "Bucket retention" decides this; the operational form is three rules:
 
 - **No lifecycle expiration rule on `/basemap/`.** Deleting a superseded prefix costs a
-  2h15m rebuild to undo, so deletion is manual or it does not happen.
+  two-to-three-hour rebuild to undo, so deletion is manual or it does not happen.
 - **Keep the pinned version and the two before it.** A refresh only adds; version N−3
   becomes eligible for deletion when N lands. Three versions is under 2 GiB.
 - **The deploy identity cannot delete or overwrite.** Create-only on `/basemap/*`;

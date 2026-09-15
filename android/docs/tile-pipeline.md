@@ -109,7 +109,7 @@ version prefix is instant, whereas re-obtaining a superseded archive is another 
 
 **Decided by the Backend & API Engineer, 2026-09-14.** The line above promises a one-line
 rollback, and that promise is only true while the object it rolls back *to* still exists.
-Once a deploy is a 2h15m rebuild rather than an upload, a superseded prefix is not
+Once a deploy is a two-to-three-hour rebuild rather than an upload, a superseded prefix is not
 cheaply regenerable, so deleting one converts the rollback from a commit into an
 afternoon. The policy follows from that and from nothing else:
 
@@ -138,7 +138,7 @@ the one that just aged out. Three keeps a known-good prefix behind the fix, whic
 situation the rollback is for.
 
 **Size is not the constraint and should not be argued as one.** Three versions is under
-2 GiB of static objects against a rebuild that occupies a machine for 2h15m; no storage
+2 GiB of static objects against a rebuild that occupies a machine for two to three hours; no storage
 rate makes that trade close. The reason to bound retention at all is that an unbounded set
 of prefixes nobody reviews is its own small mess, not that the bytes matter.
 
@@ -149,7 +149,7 @@ definition, in the same calendar month as the build it is fixing — so the defa
 straight at the prefix currently being served. **An out-of-band rebuild sets
 `BASEMAP_VERSION=<yyyy-mm-dd>` explicitly**, and the script now refuses to start a build
 whose version prefix is already live (`BASEMAP_SERVE_BASE`), because the create-only
-credential above would otherwise turn that collision into a failure discovered 2h15m in.
+credential above would otherwise turn that collision into a failure discovered hours in.
 
 **This does not contradict §5.** What is retained here is map geometry — the same OSM
 extract everyone else can download — and nothing about who fetched it. §5's "retain
@@ -642,10 +642,20 @@ is the failure mode this section exists to prevent.
 in §1 exists only inside the container that built it; this section forbids checking the
 archive in, and no durable store outside the serving bucket is in scope. So every deploy —
 the first one and each quarterly refresh — is a **full unattended rebuild via
-`build-basemap.sh`, roughly 2h15m from cold** as measured by the BIT-139 owner on
-2026-09-14: about 30 minutes to fetch and clip the ten Geofabrik extracts covering the
-buffer ring, about 1h40m for the two planetiler passes run in parallel, then the merge and
-the PMTiles conversion.
+`build-basemap.sh`, 2h15m from cold at the low end and closer to 2h50m at the high**:
+about 30 minutes to fetch and clip the ten Geofabrik extracts covering the buffer ring,
+then the two planetiler passes, then the merge and the PMTiles conversion.
+
+The range rather than a single figure, because the measurement and the script are not the
+same shape. The BIT-139 owner measured the renders on 2026-09-14 with the two passes
+running **in parallel** — 33m30s for z0–z5, 1h39m49s for z6–z14, 1h40m of wall clock.
+`build-basemap.sh` runs them **sequentially**, so its render stage is the sum and not the
+maximum; running alone makes each pass faster than its contended time, but it cannot beat
+the parallel wall clock, which is what puts the floor at 2h15m and the ceiling near 2h50m.
+Sequential is deliberate — two concurrent passes need two planetiler temp directories,
+which is most of the reason this needs a host at all rather than the smallest VM on the
+price list. `android/tools/tile-pipeline/README.md` carries the resource requirement the
+rebuild host has to meet, and the script refuses to start on one that does not.
 
 Two consequences, and the first is a sequencing rule:
 

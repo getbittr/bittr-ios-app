@@ -102,7 +102,7 @@ EOF
 refusing to build: $probe could not be reached, so the collision check did not run.
 
 You set BASEMAP_SERVE_BASE, which says something is live there — either it is down,
-which is worth knowing before spending 2h15m producing something to deploy to it, or
+which is worth knowing before spending two to three hours producing something for it, or
 the URL is wrong, in which case this check was never going to fire. Neither is a
 state to start an unattended build in.
 
@@ -120,6 +120,99 @@ EOF
   esac
 else
   echo "  note  BASEMAP_SERVE_BASE unset; not checking whether '$VERSION' is already served"
+fi
+
+# Free disk and free RAM, checked here for the same reason as the collision check
+# above: this is the last point before the first download, and every cheaper place
+# to discover an undersized box is behind an hour and a half of rendering.
+#
+# planetiler makes this check itself and would print it in the first 15 seconds --
+# but both passes below run with --force, whose own help string reads "overwriting
+# output file and ignore disk/RAM warnings". The first half is why it is there (a
+# rerun has to be able to replace its own output) and the two halves are not
+# separable, so the flag that makes the script rerunnable is also the flag that
+# throws away the warning. Hence this.
+#
+# 13 GB: peak measured on the 2026-09-14 build, which is the high-zoom render --
+# 3.4 GB of raw extracts, ~1.0 GB clipped, 0.9 GB merged, 1.4 GB of planetiler's
+# Natural Earth and water-polygon sources, 4.5 GB of planetiler temp (its own
+# write-phase figure, from the log) and the 0.63 GB high.mbtiles accumulating
+# under it. That is ~11.8 GB, plus margin.
+#
+# 8 GB: derived, NOT measured, and the honest statement is in the message below.
+NEED_DISK_GB="${BASEMAP_NEED_DISK_GB:-13}"
+NEED_RAM_GB="${BASEMAP_NEED_RAM_GB:-8}"
+
+# Takes the script's own "$@" so the override hints below can echo back the
+# command the operator actually typed. Inside a function "$*" is the function's
+# arguments, not the script's -- the collision check above gets away with a bare
+# "$0 $*" only because it runs at top level.
+preflight() {
+  local avail_disk_gb avail_ram_gb failed=0
+  # POSIX df in 1K blocks; -P so a long device name cannot wrap the line and
+  # shift the column this reads.
+  avail_disk_gb=$(( $(df -Pk "$WORKDIR" | awk 'NR==2 {print $4}') / 1024 / 1024 ))
+  # MemAvailable, not MemFree: planetiler mmaps its temp feature files and leans
+  # on the page cache for them, so reclaimable cache is usable here and MemFree
+  # would understate the box by most of its RAM.
+  avail_ram_gb=$(( $(awk '/^MemAvailable:/ {print $2}' /proc/meminfo) / 1024 / 1024 ))
+
+  echo "  disk  ${avail_disk_gb} GB available at $WORKDIR (need ~${NEED_DISK_GB} GB)"
+  echo "  ram   ${avail_ram_gb} GB available (need ~${NEED_RAM_GB} GB)"
+
+  local disk_short=0 ram_short=0
+  [ "$avail_disk_gb" -lt "$NEED_DISK_GB" ] && { disk_short=1; failed=1; }
+  [ "$avail_ram_gb"  -lt "$NEED_RAM_GB"  ] && { ram_short=1; failed=1; }
+  [ "$failed" -eq 0 ] && return 0
+
+  echo "" >&2
+  echo "refusing to build: this host is smaller than the build needs." >&2
+
+  # Each arm explains only itself. They are not equally well founded and saying
+  # so is the point of splitting them: printing the RAM paragraph on a
+  # disk-only failure would lend it a measurement it does not have.
+  if [ "$disk_short" -eq 1 ]; then
+    cat >&2 <<EOF
+
+DISK: ${avail_disk_gb} GB free, want ${NEED_DISK_GB}. This one is measured. Peak
+on the 2026-09-14 build was ~11.8 GB, during the z6-z14 render -- the raw extracts,
+the clipped and merged ones, planetiler's Natural Earth and water-polygon sources,
+4.5 GB of planetiler temp and the growing high.mbtiles, all on disk at once.
+EOF
+  fi
+
+  if [ "$ram_short" -eq 1 ]; then
+    cat >&2 <<EOF
+
+RAM: ${avail_ram_gb} GB available, want ${NEED_RAM_GB}. This one is reasoned, not
+measured, and it is the arm to override if you have a reason to. The only machine
+this has ever run on had 30 GB free, and planetiler asked it for 573 MB of heap --
+so -Xmx3g is not the constraint and a 4 GB box passes every check planetiler makes.
+What a 4 GB box does not have is page cache: the z6-z14 pass builds a 2.3 GB feature
+store, mmaps it and reads it back, and with ~1 GB spare after the heap the OS goes
+to disk for most of it. That is not a crash, it is an unattended build that takes
+an unknown multiple of its normal runtime. ${NEED_RAM_GB} GB keeps that store
+cacheable.
+EOF
+  fi
+
+  cat >&2 <<EOF
+
+Both thresholds are settable, and the check can be skipped outright:
+
+  BASEMAP_NEED_DISK_GB=11 BASEMAP_NEED_RAM_GB=6 $0 $*
+  BASEMAP_SKIP_PREFLIGHT=1 $0 $*
+
+If you do run it on a smaller box, the time it actually took belongs in
+android/tools/tile-pipeline/README.md, which has no such measurement yet.
+EOF
+  exit 1
+}
+
+if [ "${BASEMAP_SKIP_PREFLIGHT:-}" = "1" ]; then
+  echo "  note  BASEMAP_SKIP_PREFLIGHT=1; not checking free disk or RAM"
+else
+  preflight "$@"
 fi
 
 step "tools"
