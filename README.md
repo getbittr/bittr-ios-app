@@ -177,6 +177,14 @@ maestro test shared/flows/features/bitcoin_map.yaml
 # unlocked lesson. Needs an existing wallet (unlocks with PIN):
 maestro test shared/flows/features/academy.yaml
 maestro test shared/flows/features/settings.yaml
+# Inactivity lockout: unlock, background the app, wait out the two-minute
+# window, then tap the app icon to resume and check the PIN screen is back.
+# Self-provisioning — creates a wallet in place if the simulator has none.
+# Reopens by coordinate tap, so "bittr regtest" must be in row 2 column 3 of the
+# simulator's home screen (its default spot unless other apps were installed
+# alongside it; Maestro's driver app takes column 4, after it).
+# Takes over two minutes; not part of suite.yaml:
+maestro test shared/flows/features/inactivity_lock.yaml
 
 # Forgot-PIN recovery test — needs the wallet's 12-word mnemonic so the
 # flow can type it on the RestoreVC screen. Pass it via --env:

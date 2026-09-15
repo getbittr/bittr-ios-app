@@ -143,9 +143,16 @@ class PinViewController: UIViewController, UITextFieldDelegate, UICollectionView
                 CacheManager.resetFailedPinAttempts()
                 
                 // Hide pin and sync wallet.
+                self.clearPinField()
                 self.coreVC?.userHasSignedIn = true
                 self.coreVC?.fromPinToHome()
-                self.coreVC?.startWallet()
+                
+                if self.coreVC?.walletHasSynced == true {
+                    // Re-entering the PIN after a background lock.
+                    self.coreVC?.handlePendingWork()
+                } else {
+                    self.coreVC?.startWallet()
+                }
             } else {
                 // Wrong pin.
                 CacheManager.increaseFailedPinAttempts()

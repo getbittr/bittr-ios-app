@@ -87,6 +87,7 @@ extension CoreViewController {
         } else if segue.identifier == "CoreToPin" {
             if let pinVC = segue.destination as? PinViewController {
                 pinVC.coreVC = self
+                self.pinVC = pinVC
             }
         } else if segue.identifier == "CoreToHome" {
             if let homeVC = segue.destination as? HomeViewController {
