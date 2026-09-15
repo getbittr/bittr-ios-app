@@ -41,7 +41,8 @@ import org.robolectric.annotation.GraphicsMode
  * (`GraphView.swift:120`). No parent constrains its contents and nothing raises a
  * layout error when they do not fit: the text wraps, the card grows downward, and
  * the result looks like a design decision. Both labels also moved recently — the
- * date in BIT-151, the price in BIT-152 — and neither move had been rendered.
+ * date in BIT-151 and again in BIT-157, the price in BIT-152 — and none of those
+ * moves had been rendered.
  *
  * ### Why this is measured rather than eyeballed
  *
@@ -88,6 +89,42 @@ class GraphCardFitTest {
     @Test
     @Config(qualifiers = "w320dp-h568dp-320dpi")
     fun `the scrub card fits on a 320 dp screen`() = assertCardFits("320dp")
+
+    /**
+     * The widest date `dd MMM yyyy` can produce, not the one the fixture happens to
+     * hold.
+     *
+     * BIT-157 restored iOS's year to this label, which takes it from ~42 dp to ~74 dp
+     * in an 80 dp card. At that margin "it fits" stops being a property of the two
+     * tests above, because [snapshot] is ten consecutive days in **September 2026** —
+     * one month, one year, and two days' worth of digits. Measuring `08 Sep 2026`
+     * twelve times over and calling it the date's width is how a six-dp margin turns
+     * out to have been a one-dp one.
+     *
+     * **Gilroy's digits are not tabular**, which is what makes the rest of the string
+     * matter as much as the month: per 1000 units of em, `0` advances 630 and `1`
+     * advances 340. So the fixture below pins the two widest digit runs the pattern
+     * can reach and sweeps the only field left —
+     *
+     * - **day `04`** — the widest of `01`…`31`. `0` is the widest tens digit and `4`
+     *   (580) the widest units digit that can follow it, so `04` beats `30` (1160)
+     *   and `28` (1073) at 1210.
+     * - **year `2040`** — the widest `20yy` this century: `2` `0` are fixed, and `4`
+     *   `0` is the widest pair after them at 2365, against `2026`'s 2210.
+     * - **month** — swept, all twelve. `May` is the widest at 1946 and `Jul` the
+     *   narrowest at 1317, a spread of 8 dp, which is larger than the margin.
+     *
+     * Same card, same `dateNode`, same production [CardDateFormat] — the strings are
+     * read off the rendered label, not spelled here.
+     */
+    @Test
+    fun `the widest date this format can produce fits the card`() =
+        assertWidestDateFits("411dp")
+
+    @Test
+    @Config(qualifiers = "w320dp-h568dp-320dpi")
+    fun `the widest date this format can produce fits the 320 dp card`() =
+        assertWidestDateFits("320dp")
 
     /**
      * The card tracks the price in y, not just the finger in x.
@@ -346,15 +383,76 @@ class GraphCardFitTest {
         assertFitsOneLine("$label price \"$priceText\"", price.layout())
 
         // The date moved from iOS's Gilroy-Regular 10 to the scale's 13 sp floor in
-        // BIT-151 and has not been rendered since. Same card, so same question.
+        // BIT-151 and has not been rendered since. Same card, so same question — and
+        // since BIT-157 put iOS's year back it is the wider of the two labels, so the
+        // sweep above is where the margin actually is.
         val date = dateNode()
+        assertCarriesIosYear(label, date.text())
         assertFitsOneLine("$label date \"${date.text()}\"", date.layout())
 
         capture(label)
     }
 
-    private fun showScreenWithSixFigureChfPrices() {
-        val loaded = snapshot()
+    /**
+     * iOS's `cardDateFormatter` is `dd MMM yyyy` (`GraphView.swift:25`), and this card
+     * read `dd MMM`.
+     *
+     * The fit sweep cannot notice that on its own — dropping the year makes every
+     * string 32 dp narrower, so a card that had lost it again would pass every
+     * assertion in this file with room to spare. Hence a check on the shape of the
+     * rendered string, which is the only thing that goes red for the defect BIT-157
+     * was. `reference_set_duplicate_audit.md:68` is the spec, and it gives
+     * `07 Sep 2026`.
+     */
+    private fun assertCarriesIosYear(label: String, text: String) {
+        assertTrue(
+            "$label: the card reads \"$text\", which is not iOS's `dd MMM yyyy`. The " +
+                "port shipped `dd MMM` from BIT-99 to BIT-157 with no decision behind " +
+                "it — the card said `08 Sep` where iOS says `08 Sep 2026`.",
+            IOS_CARD_DATE.matches(text),
+        )
+    }
+
+    /**
+     * Walks the finger across one sample per month and measures the date at each.
+     *
+     * The widest reading is printed whether or not it is close to the limit, so the
+     * margin is in the build log rather than only in a red assertion.
+     */
+    private fun assertWidestDateFits(label: String) {
+        showScreenWith(everyMonthSnapshot())
+
+        // The finger resolves to `(fraction * size).toInt()`, so aim at the middle of
+        // each sample's slice rather than at a boundary two indices can round to.
+        fun scrubToMonth(month: Int): SemanticsNodeInteraction {
+            scrubTo((month + 0.5f) / MONTHS_IN_YEAR)
+            return dateNode()
+        }
+
+        // Read before anything is asserted: with no font rasterisation every string in
+        // this sweep measures ~1 px per character, and a fit assertion on twelve of
+        // those is twelve times as green and no more meaningful.
+        val january = scrubToMonth(0)
+        assumeNativeTextMetrics(january.layout(), january.text())
+
+        val widest = (0 until MONTHS_IN_YEAR).map { month ->
+            val date = scrubToMonth(month)
+            assertFitsOneLine("$label date \"${date.text()}\"", date.layout())
+            date.text() to widestLinePx(date.layout())
+        }.maxBy { it.second }
+
+        println(
+            "GRAPH CARD $label widest date: \"${widest.first}\" at " +
+                "${"%.1f".format(widest.second / composeRule.density.density)}dp of " +
+                "${CARD_WIDTH_DP.toInt()}dp",
+        )
+        capture("$label-widest-date")
+    }
+
+    private fun showScreenWithSixFigureChfPrices() = showScreenWith(snapshot())
+
+    private fun showScreenWith(loaded: PriceSnapshot) {
+        shown = loaded
         val repository = object : PriceRepository {
             override suspend fun load(currency: PriceCurrency, today: LocalDate) = loaded
         }
@@ -396,6 +494,14 @@ class GraphCardFitTest {
 
     /** Whether [scrubTo] has already put a finger down in this composition. */
     private var scrubbing = false
+
+    /**
+     * The snapshot [showScreenWith] loaded, which is what is under the finger.
+     *
+     * Read rather than regenerated, because two of the helpers look the card's
+     * contents up in the fixture and the fixture is no longer a single one.
+     */
+    private var shown: PriceSnapshot = snapshot()
 
     /**
      * Moves the held finger to [fraction] of the chart's width and reads the card back.
@@ -442,7 +548,7 @@ class GraphCardFitTest {
      * that the expectation is independent of the production code it is checking.
      */
     private fun priceFractionOf(price: Double): Float {
-        for (series in snapshot().series.values) {
+        for (series in shown.series.values) {
             if (series.none { it.price == price }) continue
             val lowest = series.minOf { it.price }
             return ((price - lowest) / (series.maxOf { it.price } - lowest)).toFloat()
@@ -458,7 +564,7 @@ class GraphCardFitTest {
      * candidate and exactly one of them is on screen.
      */
     private fun dateNode(): SemanticsNodeInteraction {
-        val candidates = snapshot().series.values.flatten()
+        val candidates = shown.series.values.flatten()
             .map { CardDateFormat.format(it.at.atZone(ZoneId.systemDefault())) }
             .distinct()
         for (candidate in candidates) {
@@ -572,6 +678,27 @@ class GraphCardFitTest {
         return PriceSnapshot(series = series, currentPrice = 120_000.0)
     }
 
+    /**
+     * Twelve samples, one per month, all on the widest day-and-year the pattern can
+     * reach — see `the widest date this format can produce fits the card` for where
+     * `04` and `2040` come from.
+     *
+     * Prices keep [snapshot]'s shape so the rest of the harness reads this fixture the
+     * same way: six figures, CHF, one sample's price belonging to exactly one span.
+     */
+    private fun everyMonthSnapshot(): PriceSnapshot {
+        val series = GraphSpan.entries.associateWith { span ->
+            (0 until MONTHS_IN_YEAR).map { month ->
+                PricePoint(
+                    at = LocalDate.of(WIDEST_YEAR, month + 1, WIDEST_DAY)
+                        .atStartOfDay(ZoneId.systemDefault()).toInstant(),
+                    price = 110_000.0 + month * 1_000 + span.ordinal * 10,
+                )
+            }
+        }
+        return PriceSnapshot(series = series, currentPrice = 120_000.0)
+    }
+
     private companion object {
         const val TIMEOUT_MS = 10_000L
 
@@ -587,5 +714,21 @@ class GraphCardFitTest {
         const val PLACEMENT_TOLERANCE_PX = 2.0
 
         val SNAPSHOT_INSTANT: Instant = Instant.parse("2026-09-12T12:00:00Z")
+
+        /**
+         * `dd MMM yyyy` as a shape: two digits, an English abbreviation, four digits.
+         * Spelled here rather than derived from [CardDateFormat], which would agree
+         * with itself whatever it said.
+         */
+        val IOS_CARD_DATE = Regex("""\d{2} [A-Z][a-z]{2} \d{4}""")
+
+        /** One sample per abbreviation in [everyMonthSnapshot]. */
+        const val MONTHS_IN_YEAR = 12
+
+        /** The widest of `01`…`31` in Gilroy: `0` 630 + `4` 580 = 1210 per em. */
+        const val WIDEST_DAY = 4
+
+        /** The widest `20yy` in Gilroy: `2` 525 + `0` 630 + `4` 580 + `0` 630. */
+        const val WIDEST_YEAR = 2040
     }
 }

@@ -291,11 +291,33 @@ internal fun List<PricePoint>.scrub(x: Float, width: Float): ScrubbedPoint? {
 }
 
 /**
- * `GraphView.cardDateFormatter` — a day and a month, no year.
+ * `GraphView.cardDateFormatter` — `dd MMM yyyy` (`GraphView.swift:25`).
+ *
+ * This read `dd MMM` and said so in this KDoc, which was simply wrong about iOS: the
+ * card showed `08 Sep` where iOS shows `08 Sep 2026`, and
+ * `reference_set_duplicate_audit.md:68` — the spec that stands in for the screenshot
+ * this card cannot appear in, since `touchesEnded` tears it off before any capture —
+ * gives the format as `dd MMM yyyy`. It had been that way since BIT-99 with no
+ * decision recorded anywhere, so it was an oversight rather than a divergence. BIT-157.
+ *
+ * The reason to check rather than just restore it is the 80 dp card, which BIT-152
+ * already found the price wrapping in. The year costs ~32 dp and still fits on one
+ * line: `08 Sep 2026` measures **73.9 dp** of the 80, and the widest string the
+ * pattern can produce in any month of any `20yy` — `04 May 2040`, since Gilroy's
+ * digits are not tabular either — measures **78.4 dp**. `GraphCardFitTest` renders
+ * every month and holds both numbers.
+ *
+ * So this is now the card's tightest row rather than the price's 72.4 dp, and its
+ * worst case has **1.6 dp** of slack. That is a real fit and not a comfortable one;
+ * it is also the shape the card was already in, since neither label here shrinks to
+ * fit and neither does iOS's.
+ *
+ * The axis ticks below the chart stay `dd MMM` ([GraphSpan.Tick]) — those are iOS's
+ * too, and they are a different label.
  *
  * `internal` so `GraphCardFitTest` can find the date label by the string this card
  * actually puts in it, rather than re-spelling the pattern and measuring whatever
  * that produces.
  */
 internal val CardDateFormat: DateTimeFormatter =
-    DateTimeFormatter.ofPattern("dd MMM", Locale.ENGLISH)
+    DateTimeFormatter.ofPattern("dd MMM yyyy", Locale.ENGLISH)
