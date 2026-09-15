@@ -5,46 +5,84 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * BIT-33 R-2 and the scheme half of R-11.
+ * BIT-33 R-2, the scheme half of R-11, and the port of `decidePolicyFor`'s LNURL gate.
  *
- * The property that matters: **no trust level intercepts a Lightning
- * navigation.** R-2 requires it of third-party origins; v1 applies it to
- * first-party too, because there is no bridge for a `lightning:` URL to be handed
- * to. Every case here is therefore run against both [WebsiteTrust] values, which
- * is what keeps "first-party is special" from creeping back in as a special case.
+ * The property that matters: **only the main frame of a first-party page can hand a
+ * Lightning link to the wallet.** Every other trust level and every subframe gets the
+ * navigation cancelled and nothing else.
  */
 class WebsiteNavigationPolicyTest {
 
     private companion object {
-        /** A real `lnurl1…`, so the drop cannot be attributed to a parse failure. */
+        /** A real `lnurl1…`, so a decision cannot be attributed to a parse failure. */
         const val LNURL =
             "lnurl1dp68gurn8ghj7em9w33xjar5wghxxmmd9uh8wetvdskkkmn0wahz7mrww4excup0w3hk67r0vgs"
+
+        const val LOGIN_CALLBACK = "https://getbittr.com/lnurl/auth?tag=login&k1=AbCdEf0123&action=Login"
+
+        val LNURL_NAVIGATIONS = listOf(
+            "lightning:$LNURL",
+            "LIGHTNING:${LNURL.uppercase()}",
+            "lnurl:$LNURL",
+            LNURL,
+            LOGIN_CALLBACK,
+        )
     }
 
-    /**
-     * Runs [assertion] for both trust levels **and both frames**, so no
-     * combination of the two can behave differently (BIT-58).
-     *
-     * The frame dimension is swept everywhere rather than tested once, because
-     * the failure it guards against is not "the subframe case is wrong" — it is
-     * "somebody added a case that reads `trust` and forgot that a subframe
-     * carries the main frame's."
-     */
+    /** Runs [assertion] for both trust levels. */
     private fun onBothTrustLevels(assertion: (WebsiteTrust) -> Unit) {
         WebsiteTrust.entries.forEach(assertion)
     }
 
-    /** Both values of `isForMainFrame`, labelled for assertion messages. */
+    /** Both values of `isForMainFrame`. */
     private fun onBothFrames(assertion: (Boolean) -> Unit) {
         listOf(true, false).forEach(assertion)
     }
 
     @Test
-    fun `lightning and lnurl navigations are dropped on every origin`() {
-        val lightningUrls = listOf(
-            "lightning:$LNURL",
-            "LIGHTNING:${LNURL.uppercase()}",
-            "lnurl:$LNURL",
+    fun `a first-party page's main frame hands Lightning links to the wallet`() {
+        LNURL_NAVIGATIONS.forEach { url ->
+            val decision = WebsiteNavigationPolicy.decide(url, WebsiteTrust.FirstParty, isForMainFrame = true)
+            assertTrue("$url must be handed to the wallet. Got $decision", decision is NavigationDecision.HandleLnurl)
+        }
+    }
+
+    @Test
+    fun `third-party pages and subframes never start a Lightning flow`() {
+        LNURL_NAVIGATIONS.forEach { url ->
+            listOf(
+                WebsiteTrust.ThirdParty to true,
+                WebsiteTrust.ThirdParty to false,
+                WebsiteTrust.FirstParty to false,
+            ).forEach { (trust, isForMainFrame) ->
+                val decision = WebsiteNavigationPolicy.decide(url, trust, isForMainFrame)
+                assertTrue(
+                    "$url must be cancelled and dropped at trust=$trust, isForMainFrame=$isForMainFrame. Got $decision",
+                    decision is NavigationDecision.Drop,
+                )
+            }
+        }
+    }
+
+    @Test
+    fun `the code handed on is iOS's lnurlCode`() {
+        fun code(url: String) =
+            (WebsiteNavigationPolicy.decide(url, WebsiteTrust.FirstParty, isForMainFrame = true) as NavigationDecision.HandleLnurl).code
+
+        assertEquals(LNURL, code("lightning:$LNURL"))
+        // Bech32 must be uniform, so an all-uppercase LNURL is lowercased.
+        assertEquals(LNURL, code("LIGHTNING:${LNURL.uppercase()}"))
+        assertEquals(LNURL, code(LNURL.uppercase()))
+        // An https login callback is case-sensitive: passed through untouched.
+        assertEquals(LOGIN_CALLBACK, code(LOGIN_CALLBACK))
+        assertEquals(LOGIN_CALLBACK, code("lightning:$LOGIN_CALLBACK"))
+        // Only `lightning:` is stripped, as on iOS.
+        assertEquals("lnurl:$LNURL", code("lnurl:$LNURL"))
+    }
+
+    @Test
+    fun `other Lightning schemes are dropped on every origin`() {
+        val dropped = listOf(
             "lnurlp://pay.example.com/lnurlp/abc",
             "lnurlw://pay.example.com/withdraw/abc",
             "lnurlc://pay.example.com/channel/abc",
@@ -53,36 +91,15 @@ class WebsiteNavigationPolicyTest {
 
         onBothTrustLevels { trust ->
             onBothFrames { isForMainFrame ->
-                lightningUrls.forEach { url ->
+                dropped.forEach { url ->
                     val decision = WebsiteNavigationPolicy.decide(url, trust, isForMainFrame)
                     assertTrue(
-                        "$url must be cancelled and dropped at trust=$trust, " +
-                            "isForMainFrame=$isForMainFrame (R-2). Got $decision",
+                        "$url must be dropped at trust=$trust, isForMainFrame=$isForMainFrame. Got $decision",
                         decision is NavigationDecision.Drop,
                     )
                 }
             }
         }
-    }
-
-    @Test
-    fun `a dropped navigation produces no handler, only a drop`() {
-        // NavigationDecision has two cases and Drop carries nothing but a log
-        // string. There is deliberately no `HandleLnurl` case for a caller to
-        // switch on — which is what makes "no LNURL navigation interception"
-        // checkable rather than a claim about the current implementation.
-        val decision = WebsiteNavigationPolicy.decide(
-            "lightning:$LNURL",
-            WebsiteTrust.FirstParty,
-            isForMainFrame = true,
-        )
-
-        val reached = when (decision) {
-            is NavigationDecision.Drop -> "drop"
-            NavigationDecision.Load -> "load"
-        }
-
-        assertEquals("drop", reached)
     }
 
     @Test
@@ -117,8 +134,7 @@ class WebsiteNavigationPolicyTest {
                 blocked.forEach { url ->
                     val decision = WebsiteNavigationPolicy.decide(url, trust, isForMainFrame)
                     assertTrue(
-                        "'$url' must be dropped at trust=$trust, " +
-                            "isForMainFrame=$isForMainFrame. Got $decision",
+                        "'$url' must be dropped at trust=$trust, isForMainFrame=$isForMainFrame. Got $decision",
                         decision is NavigationDecision.Drop,
                     )
                 }
@@ -142,8 +158,7 @@ class WebsiteNavigationPolicyTest {
             onBothFrames { isForMainFrame ->
                 loadable.forEach { url ->
                     assertEquals(
-                        "'$url' must load at trust=$trust, " +
-                            "isForMainFrame=$isForMainFrame.",
+                        "'$url' must load at trust=$trust, isForMainFrame=$isForMainFrame.",
                         NavigationDecision.Load,
                         WebsiteNavigationPolicy.decide(url, trust, isForMainFrame),
                     )
@@ -153,40 +168,41 @@ class WebsiteNavigationPolicyTest {
     }
 
     @Test
-    fun `a URL that merely contains lnurl still loads as an ordinary page`() {
-        // The mirror image of R-6. iOS's substring match would route this into the
-        // LNURL handler; here it is simply a web page, because that is what it is.
-        assertEquals(
-            NavigationDecision.Load,
-            WebsiteNavigationPolicy.decide(
-                "https://evil.example/?utm=lnurl&tag=login",
-                WebsiteTrust.ThirdParty,
-                isForMainFrame = true,
-            ),
-        )
+    fun `a URL that merely contains lnurl or tag=login text still loads as an ordinary page`() {
+        // The mirror image of R-6: only a parsed `tag=login` query item makes a login attempt.
+        listOf(
+            "https://evil.example/?utm=lnurl",
+            "https://evil.example/tag=login",
+            "https://evil.example/?utm=tag%3Dlogin",
+        ).forEach { url ->
+            assertEquals(url, NavigationDecision.Load, WebsiteNavigationPolicy.decide(url, WebsiteTrust.ThirdParty, isForMainFrame = true))
+        }
     }
 
     @Test
-    fun `trust does not change any outcome in v1`() {
-        // Stated as its own test so that if a bridge ever ships and this starts
-        // failing, the diff that caused it is the one being reviewed.
-        val urls = listOf(
+    fun `a tag=login link on a third-party page is cancelled, as iOS cancels it`() {
+        val decision = WebsiteNavigationPolicy.decide(
+            "https://evil.example/?utm=x&TAG=Login&k1=abc",
+            WebsiteTrust.ThirdParty,
+            isForMainFrame = true,
+        )
+        assertTrue("Got $decision", decision is NavigationDecision.Drop)
+    }
+
+    @Test
+    fun `trust changes the outcome of Lightning navigations and nothing else`() {
+        val unaffected = listOf(
             "https://getbittr.com/support",
-            "lightning:$LNURL",
             "intent://x#Intent;end",
             "mailto:support@getbittr.com",
+            "lnurlp://pay.example.com/lnurlp/abc",
             "",
         )
 
-        urls.forEach { url ->
+        unaffected.forEach { url ->
             val first = WebsiteNavigationPolicy.decide(url, WebsiteTrust.FirstParty, true)
             val third = WebsiteNavigationPolicy.decide(url, WebsiteTrust.ThirdParty, true)
-
-            assertEquals(
-                "'$url' must be treated identically on both trust levels in v1.",
-                first::class,
-                third::class,
-            )
+            assertEquals("'$url' must be treated identically on both trust levels.", first::class, third::class)
         }
     }
 
@@ -194,14 +210,10 @@ class WebsiteNavigationPolicyTest {
 
     @Test
     fun `a subframe never inherits the main frame's first-party trust`() {
-        // The heart of BIT-58. `view.url` is the main frame's URL, so a
-        // cross-origin <iframe> on a getbittr.com page reaches the policy with
-        // trust=FirstParty. It must not be judged as first-party.
-        //
-        // The Drop reason is the observable: in v1 no *outcome* varies by trust,
-        // so asserting on the decision alone would pass even if the demotion were
-        // deleted. Reading the reason is what makes this test fail for the right
-        // change rather than for no change at all.
+        // `view.url` is the main frame's URL, so a cross-origin <iframe> on a
+        // getbittr.com page reaches the policy with trust=FirstParty. It must not be
+        // judged as first-party — or it could navigate itself to `lightning:` and be
+        // handed to the wallet.
         val decision = WebsiteNavigationPolicy.decide(
             "lightning:$LNURL",
             WebsiteTrust.FirstParty,
@@ -215,40 +227,28 @@ class WebsiteNavigationPolicyTest {
                 "frame is first-party (BIT-58). The reason recorded was: $reason",
             "trust=${WebsiteTrust.ThirdParty}" in reason,
         )
-        assertTrue(
-            "The decision must record which frame it was for, so a log line from a " +
-                "cross-origin iframe is distinguishable from a top-level navigation. " +
-                "Reason was: $reason",
-            "subframe" in reason,
-        )
+        assertTrue("The decision must record which frame it was for. Reason was: $reason", "subframe" in reason)
     }
 
     @Test
     fun `a main-frame navigation keeps the trust it was given`() {
         // The other half: the demotion applies to subframes only. Without this,
-        // "demote everything" would pass the test above and quietly make the
-        // trust argument meaningless.
-        val decision = WebsiteNavigationPolicy.decide(
-            "lightning:$LNURL",
-            WebsiteTrust.FirstParty,
-            isForMainFrame = true,
-        )
-
-        val reason = (decision as NavigationDecision.Drop).reason
-
+        // "demote everything" would pass the test above and quietly make first-party
+        // Lightning links unreachable.
         assertTrue(
-            "A main-frame navigation on a first-party page must be evaluated as " +
-                "FirstParty. Reason was: $reason",
-            "trust=${WebsiteTrust.FirstParty}" in reason && "main frame" in reason,
+            WebsiteNavigationPolicy.decide("lightning:$LNURL", WebsiteTrust.FirstParty, isForMainFrame = true)
+                is NavigationDecision.HandleLnurl,
         )
+        val reason = (
+            WebsiteNavigationPolicy.decide("lightning:$LNURL", WebsiteTrust.ThirdParty, isForMainFrame = true)
+                as NavigationDecision.Drop
+            ).reason
+        assertTrue("Reason was: $reason", "trust=${WebsiteTrust.ThirdParty}" in reason && "main frame" in reason)
     }
 
     @Test
     fun `an iframe may still load ordinary http and https documents`() {
-        // Demoting a subframe's trust must not break embedding. A browser that
-        // refuses to render an iframe is a regression, not a hardening measure —
-        // and it is the failure mode a blunter "drop everything in a subframe"
-        // fix would have introduced.
+        // Demoting a subframe's trust must not break embedding.
         val embeddable = listOf(
             "https://embed.example/widget",
             "https://www.youtube.com/embed/abc",
@@ -257,8 +257,7 @@ class WebsiteNavigationPolicyTest {
 
         embeddable.forEach { url ->
             assertEquals(
-                "'$url' must still load in a subframe — scoping the bridge to the main " +
-                    "frame is not a reason to stop rendering iframes.",
+                "'$url' must still load in a subframe.",
                 NavigationDecision.Load,
                 WebsiteNavigationPolicy.decide(url, WebsiteTrust.FirstParty, false),
             )

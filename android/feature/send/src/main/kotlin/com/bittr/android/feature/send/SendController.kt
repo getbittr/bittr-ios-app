@@ -290,6 +290,19 @@ class SendController(
     }
 
     /**
+     * `handleLNURL(code:)` for an LNURL from outside Send — a first-party page's Lightning link in
+     * the in-app browser. [origin] is what [LnurlSourcePolicy] judges it by, so a web page gets
+     * LNURL-auth and a refusal for pay or withdraw.
+     */
+    fun onLnurl(raw: String, origin: LnurlSource) {
+        pendingPay = null
+        pendingNote = null
+        _state.update { it.copy(toText = raw, mode = SendMode.Lightning) }
+        refreshAvailable()
+        handleLnurl(raw, null, origin)
+    }
+
+    /**
      * `handleScannedOrPastedString`, fed by the scanner or by [onPaste]. An LNURL is handled
      * straight away, as iOS calls `handleLNURL` from here.
      */

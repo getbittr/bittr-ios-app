@@ -22,6 +22,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -35,6 +36,7 @@ import androidx.compose.ui.viewinterop.AndroidView
 import com.bittr.android.core.common.TestID
 import com.bittr.android.core.designsystem.BittrTheme
 import com.bittr.android.core.lnurl.LnurlRequestSlot
+import com.bittr.android.core.lnurl.LnurlSource
 
 /**
  * S-36 · Website — the in-app browser, and the Android counterpart of
@@ -55,8 +57,10 @@ import com.bittr.android.core.lnurl.LnurlRequestSlot
  *    module, so `addWebMessageListener` is not on the classpath, and
  *    `addJavascriptInterface` is absent from the whole app and kept absent by a
  *    guard test and a CI grep (R-1).
- * 2. **No Lightning navigation interception** — [WebsiteNavigationPolicy] drops
- *    `lightning:` and `lnurl` navigations, everywhere, silently (R-2).
+ * 2. **Lightning links only from bittr's own pages** — [WebsiteNavigationPolicy]
+ *    hands `lightning:` / `lnurl` links to [onLnurl] from a first-party page's main
+ *    frame, and drops them silently everywhere else (R-2). What a page may then do
+ *    is `LnurlSourcePolicy`'s call: LNURL-auth, never pay or withdraw.
  * 3. **The R-11 hardening baseline**, applied in one place ([HardenedWebView]) and
  *    enforced by `WebViewHardeningGuardTest`.
  * 4. **Trust is derived from the loaded URL, on every navigation** — no call site
@@ -79,8 +83,10 @@ fun WebsiteScreen(
     url: String,
     onClose: () -> Unit,
     modifier: Modifier = Modifier,
+    onLnurl: (code: String, source: LnurlSource.FirstPartyWeb) -> Unit = { _, _ -> },
 ) {
     val context = LocalContext.current
+    val deliverLnurl by rememberUpdatedState(onLnurl)
 
     // Re-derived on every committed navigation rather than computed once. A
     // first-party page that redirects off-origin, or a third-party link followed
@@ -90,8 +96,8 @@ fun WebsiteScreen(
 
     var progress by remember { mutableFloatStateOf(0f) }
 
-    // R-10. Nothing can claim this in v1 (no bridge), but the cancel-on-teardown
-    // half is wired now because it is the half that gets forgotten.
+    // R-10: one Lightning hand-off at a time, cancelled on navigation and on teardown,
+    // so a page firing the same link twice hands it on once.
     val lnurlSlot = remember { LnurlRequestSlot() }
     DisposableEffect(Unit) {
         onDispose { lnurlSlot.cancel() }
@@ -127,6 +133,13 @@ fun WebsiteScreen(
                     context = factoryContext,
                     onProgress = { progress = it / 100f },
                     onPageUrlChanged = { newUrl -> if (newUrl != null) loadedUrl = newUrl },
+                    onLnurl = { code, pageUrl, pageTitle ->
+                        val origin = originOf(pageUrl)
+                        if (origin != null && lnurlSlot.inFlight == null) {
+                            lnurlSlot.begin(origin)
+                            deliverLnurl(code, LnurlSource.FirstPartyWeb(origin = origin, pageTitle = pageTitle))
+                        }
+                    },
                     lnurlSlot = lnurlSlot,
                 ).also { webView ->
                     // Loaded here rather than in an update block: `update` runs on
@@ -208,6 +221,17 @@ private fun WebsiteTopBar(
             )
         }
     }
+}
+
+/**
+ * `https://host` of the page that followed a Lightning link — the origin R-9 has the
+ * auth dialog show. Null for anything that is not a plain https origin, which the
+ * policy has already refused to call first-party.
+ */
+internal fun originOf(pageUrl: String?): String? {
+    if (FirstPartyOrigins.trustOf(pageUrl) != WebsiteTrust.FirstParty) return null
+    val host = runCatching { java.net.URI(pageUrl).host }.getOrNull()?.lowercase() ?: return null
+    return "https://$host"
 }
 
 /**

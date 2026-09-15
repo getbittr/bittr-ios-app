@@ -82,6 +82,16 @@ internal object SettingsStrings {
     const val TOTAL = "total"
     const val RESERVE = "reserve"
 
+    // Send's limit card, `lightningsendable`: `limitlightning`, and with no channel `questionvc12` /
+    // `questionvc13`, which replace both the header and the text on iOS.
+    const val LIMIT_LIGHTNING = "why a limit for instant payments?"
+    const val QUESTION_VC_12 = "why can't I receive instant payments?"
+    const val QUESTION_VC_13 =
+        "Your bittr wallet consists of a bitcoin wallet (for regular payments) and a bitcoin lightning connection " +
+            "(for instant payments).\n\nYou don't currently have a lightning connection.\n\nTo open a connection " +
+            "with bittr, buy bitcoin worth between 20 and 100 €. Check your wallet's Buy section or getbittr.com " +
+            "for all information."
+
     // The guard in front of every node-backed row. `syncingwallet` / `syncingwallet2`.
     const val SYNCING_WALLET = "Syncing wallet"
     const val SYNCING_WALLET_2 = "Please wait a moment while we're syncing your wallet."

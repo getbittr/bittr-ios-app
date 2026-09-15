@@ -62,11 +62,6 @@ internal object SendStrings {
         "Your bittr wallet consists of a bitcoin wallet (for regular payments) and a bitcoin lightning connection " +
             "(for instant payments).\n\nThe maximum amount you can send for regular payments, is your full regular " +
             "balance minus the minimum required transaction fees."
-    const val LIMIT_LIGHTNING = "why a limit for instant payments?"
-    const val LIMIT_LIGHTNING_ANSWER =
-        "Your bittr wallet consists of a bitcoin wallet (for regular payments) and a bitcoin lightning connection " +
-            "(for instant payments).\n\nIf you've received satoshis into your lightning connection, you can use those " +
-            "to pay lightning invoices.\n\nYou cannot make instant payments that exceed the funds in your lightning connection."
     const val NO_BITCOIN_ADDRESS_FOUND = "No bitcoin address found."
     const val PLEASE_SCAN = "Please scan a bitcoin or lightning address QR code or input the address manually."
     const val SYNCING = "Syncing"

@@ -65,19 +65,40 @@ fun LightningQuestionScreen(
 ) {
     QuestionScreen(
         title = SettingsStrings.LIGHTNING_CONNECTIONS_TITLE,
-        answer = if (channel == null) {
-            SettingsStrings.LIGHTNING_EXPLANATION
-        } else {
-            SettingsStrings.QUESTION_VC_7
-                .replace("<channelbalance>", group(channel.balanceSats))
-                .replace("<channelreserve>", group(channel.reserveSats))
-                .replace("<sendlimit>", group(channel.outboundSats))
-        },
+        answer = if (channel == null) SettingsStrings.LIGHTNING_EXPLANATION else questionVc7(channel),
         onDown = onDown,
         modifier = modifier,
         channel = channel,
     )
 }
+
+/**
+ * Send's "why a limit for instant payments?" card — `QuestionViewController` in its
+ * `lightningsendable` role. With an active channel: the chart and `questionvc7`'s figures under
+ * `limitlightning`. Without one, iOS replaces both the header and the text, with `questionvc12`
+ * and `questionvc13`.
+ */
+@Composable
+fun LightningSendableQuestionScreen(
+    onDown: () -> Unit,
+    modifier: Modifier = Modifier,
+    channel: ChannelSummary? = null,
+) {
+    QuestionScreen(
+        title = if (channel == null) SettingsStrings.QUESTION_VC_12 else SettingsStrings.LIMIT_LIGHTNING,
+        answer = if (channel == null) SettingsStrings.QUESTION_VC_13 else questionVc7(channel),
+        onDown = onDown,
+        modifier = modifier,
+        channel = channel,
+    )
+}
+
+/** `questionvc7` with the channel's balance, reserve and send limit filled in. */
+private fun questionVc7(channel: ChannelSummary): String =
+    SettingsStrings.QUESTION_VC_7
+        .replace("<channelbalance>", group(channel.balanceSats))
+        .replace("<channelreserve>", group(channel.reserveSats))
+        .replace("<sendlimit>", group(channel.outboundSats))
 
 /**
  * `QuestionViewController`: a lower-case header, the yellow card with the answer, and the channel
