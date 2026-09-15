@@ -86,3 +86,28 @@ overlay and transaction notes without someone to ask. Status: **Decided** · **Q
     `adb shell cmd clipboard` or an `am broadcast`). No Android clipboard mode was added. The LNURL part of
     `send_lightning.yaml` (type address → Enter → wait for `loading.handlingLnurl` → type amount → Done →
     Confirm) doesn't need the clipboard.
+
+## Follow-up: LNURL links in the in-app browser and the chart on Send's limit card (`port/ln-extras`)
+
+19. **Decided — a first-party page's Lightning links are handed to the wallet** (`WebsiteNavigationPolicy`,
+    the port of `decidePolicyFor`). A `lightning:` / `lnurl:` link, a bare `lnurl1…`, or an https link with a
+    `tag=login` query item is handed on from the main frame of a first-party page. Anywhere else — a
+    third-party page or any subframe — it is cancelled, as on iOS. `LnurlSourcePolicy` still decides what a page
+    may do: LNURL-auth only, never pay or withdraw.
+20. **Decided — first-party means exactly `https://getbittr.com`.** iOS also accepts subdomains
+    (`host.hasSuffix(".getbittr.com")`). `FirstPartyOrigins` and `WebViewBridgeOriginGuardTest` already pin the
+    exact host, and a subdomain failing to start LNURL-auth fails safe.
+21. **Decided — the link is handled on Send**, not over the browser. The browser hands the LNURL to Send in
+    memory (`WebLnurlHandoff`) and opens it, so the auth prompt (origin and page title, R-9) is Send's. iOS
+    shows it over the browser. Back from Send returns to the page.
+22. **Gap — iOS's injected anchor-scanning script is not ported.** It posts the first Lightning link on a
+    first-party page to a JavaScript message handler, which is a bridge R-1 keeps out of the app. Tapping the
+    link still works, because that is a navigation.
+23. **Decided — iOS cancels an https `tag=login` link on a third-party page**, so Android now does too (it
+    used to load it as an ordinary page). Only a parsed `tag` query item counts; the text `tag=login` elsewhere
+    in a URL still loads.
+24. **Decided — Send's "why a limit for instant payments?" card is iOS's `lightningsendable` card.** With an
+    active channel: the chart (`question.channelView`) and `questionvc7`'s figures. With none, iOS replaces
+    the header and text with `questionvc12` / `questionvc13`. The `limitlightninganswer` text iOS passes in is
+    never shown on this path, so Android no longer shows it either. **Question:** `questionvc12` reads "why
+    can't I receive instant payments?" on a card about *sending*. Ported as-is. Is that the intended copy?

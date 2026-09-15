@@ -69,6 +69,8 @@ import com.bittr.android.core.designsystem.rememberStrokeIcon
  * a clickable parent would merge the label's id away.
  *
  * @param scanned what the scanner handed back, consumed once it has been applied.
+ * @param lnurlRequest an LNURL handed over from outside Send (the in-app browser), handled
+ *   once when the screen opens.
  */
 @Composable
 fun SendRoute(
@@ -82,6 +84,7 @@ fun SendRoute(
     modifier: Modifier = Modifier,
     onSwapAndPayInvoice: (invoice: String, amountSats: Long) -> Unit = { _, _ -> },
     onSwapAndPayAddress: (address: String, amountSats: Long) -> Unit = { _, _ -> },
+    lnurlRequest: SendLnurlRequest? = null,
 ) {
     val scope = rememberCoroutineScope()
     val controller = remember(source) { SendController(source, scope) }
@@ -106,6 +109,9 @@ fun SendRoute(
             controller.onDestination(scanned)
             onScannedConsumed()
         }
+    }
+    LaunchedEffect(lnurlRequest) {
+        if (lnurlRequest != null) controller.onLnurl(lnurlRequest.raw, lnurlRequest.source)
     }
 
     val state by controller.state.collectAsState()
@@ -555,38 +561,6 @@ private fun Entry(
 @Composable
 private fun Gap(height: androidx.compose.ui.unit.Dp = BittrTokens.Spacing.md) =
     androidx.compose.foundation.layout.Spacer(Modifier.height(height))
-
-/**
- * "why a limit for instant payments?" — `QuestionViewController` launched with the
- * `lightningsendable` type from Send's question mark. The channel chart iOS draws above
- * the answer when a channel is open is not ported yet.
- */
-@Composable
-fun SendQuestionScreen(onDown: () -> Unit, modifier: Modifier = Modifier) {
-    BittrCanvas(modifier = modifier, appBar = false) {
-        BittrModalHeader(
-            title = SendStrings.LIMIT_LIGHTNING,
-            onDown = onDown,
-            titleTestTag = TestID.Header.titleLabel,
-            downTestTag = TestID.Header.downButton,
-        )
-        Column(
-            modifier = Modifier
-                .verticalScroll(rememberScrollState())
-                .padding(BittrTokens.Spacing.md),
-        ) {
-            BittrCard(modifier = Modifier.testTag(TestID.Question.yellowCard)) {
-                BittrBody(
-                    text = SendStrings.LIMIT_LIGHTNING_ANSWER,
-                    textAlign = TextAlign.Start,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .testTag(TestID.Question.answerLabel),
-                )
-            }
-        }
-    }
-}
 
 private const val SCAN_PATH = "M4 8V4h4M16 4h4v4M20 16v4h-4M8 20H4v-4M4 12h16"
 private const val PASTE_PATH = "M9 4h6v3H9zM7 5H5v15h14V5h-2"

@@ -45,14 +45,11 @@ sealed interface LnurlSource {
     data object ManualEntry : LnurlSource
 
     /**
-     * A page on a first-party origin handed us an LNURL through the in-app
-     * browser's message bridge.
-     *
-     * **No such bridge ships in v1** — see `FirstPartyOrigins` in
-     * `:feature:website` and the DEV-56 note in `shared/docs/parity.md`. This
-     * variant exists so that the policy below is already written, tested and
-     * enforced if the bridge is ever added, rather than being designed under
-     * time pressure by whoever adds it.
+     * A page on a first-party origin followed a Lightning link in the in-app
+     * browser's main frame (`WebsiteNavigationPolicy`, the port of iOS's
+     * `decidePolicyFor`). There is still no JavaScript bridge — see
+     * `FirstPartyOrigins` in `:feature:website` — so a navigation is the only way
+     * a page produces one.
      *
      * @param origin the scheme-and-host the message actually arrived from, e.g.
      *   `https://getbittr.com`. Never a value a page supplied about itself —

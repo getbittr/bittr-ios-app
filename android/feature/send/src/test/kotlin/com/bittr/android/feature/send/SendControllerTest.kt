@@ -2,6 +2,7 @@ package com.bittr.android.feature.send
 
 import com.bittr.android.core.common.destination.BitcoinNetwork
 import com.bittr.android.core.common.destination.Destination
+import com.bittr.android.core.lnurl.LnurlSource
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.toList
@@ -98,6 +99,29 @@ class SendControllerTest {
         controller.onConfirm()
         advanceUntilIdle()
         assertEquals("Pay to e2ebittr", source.notes["hash"])
+    }
+
+    /** The in-app browser's hand-off: a first-party page gets LNURL-auth, and a refusal for pay. */
+    @Test
+    fun `a first-party page may start a login but not a payment`() = runTest {
+        val web = LnurlSource.FirstPartyWeb(origin = "https://getbittr.com", pageTitle = "Support")
+        val source = FakeSource(lightningBalance = 10_000, responses = mapOf(wellKnown to payRequest(min = 1_000, max = 1_000_000_000)))
+        val controller = SendController(source, this)
+
+        controller.onLnurl(lightningAddress, web)
+        advanceUntilIdle()
+        val refused = controller.state.value.alert!!
+        assertTrue(refused.message, refused.message.contains("Payments can only be started"))
+        assertEquals(null, controller.state.value.confirm)
+        assertEquals(0, controller.state.value.focusAmountRequests)
+        controller.onAlertButton(0)
+
+        val k1 = "a".repeat(64)
+        controller.onLnurl("https://getbittr.com/lnurl/auth?tag=login&k1=$k1&action=login", web)
+        advanceUntilIdle()
+        val login = controller.state.value.alert!!
+        assertEquals(2, login.buttons.size)
+        assertTrue(login.message, login.message.contains("getbittr.com"))
     }
 
     @Test

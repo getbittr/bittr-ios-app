@@ -65,16 +65,19 @@ internal object HardenedWebView {
      *   can re-derive trust. **Load-bearing:** a page that redirects off
      *   `getbittr.com`, or a link followed three hops out, must be reclassified
      *   rather than keeping the trust of whatever opened the screen.
-     * @param lnurlSlot cancelled on every navigation (R-10). In v1 nothing can
-     *   claim it from a web page — no bridge — so this is the empty half of the
-     *   requirement, wired up because the cancellation site is the part that is
-     *   easy to forget when the bridge lands, not the claim site.
+     * @param onLnurl a first-party page's main frame followed a Lightning link
+     *   ([NavigationDecision.HandleLnurl]). Given the code, and the main frame's URL
+     *   and title at that moment — what the WebView reported, never what the page
+     *   said about itself.
+     * @param lnurlSlot cancelled on every navigation (R-10), so a hand-off claimed
+     *   by one page cannot outlive it.
      */
     @SuppressLint("SetJavaScriptEnabled")
     fun create(
         context: Context,
         onProgress: (Int) -> Unit,
         onPageUrlChanged: (String?) -> Unit,
+        onLnurl: (code: String, pageUrl: String?, pageTitle: String?) -> Unit,
         lnurlSlot: LnurlRequestSlot,
     ): WebView = WebView(context).apply {
         layoutParams = ViewGroup.LayoutParams(
@@ -158,6 +161,12 @@ internal object HardenedWebView {
                     // handling of a dropped navigation is to do nothing at all.
                     // No dialog, no intent, no handler, no network call (R-2).
                     is NavigationDecision.Drop -> true
+                    // Cancelled as a page load, and handed to the wallet instead —
+                    // iOS's `handleLNURL` then `decisionHandler(.cancel)`.
+                    is NavigationDecision.HandleLnurl -> {
+                        onLnurl(decision.code, view.url, view.title)
+                        true
+                    }
                     NavigationDecision.Load -> false
                 }
             }

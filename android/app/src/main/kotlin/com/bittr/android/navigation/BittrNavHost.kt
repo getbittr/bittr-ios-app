@@ -26,7 +26,7 @@ import com.bittr.android.core.wallet.WalletState
 import com.bittr.android.feature.academy.AcademyScreen
 import com.bittr.android.receive.ReceiveViewModel
 import com.bittr.android.core.common.destination.Destination
-import com.bittr.android.feature.send.SendQuestionScreen
+import com.bittr.android.feature.send.SendLnurlRequest
 import com.bittr.android.feature.send.SendRoute
 import com.bittr.android.send.SendViewModel
 import com.bittr.android.buy.BuyViewModel
@@ -49,6 +49,9 @@ import com.bittr.android.events.ChannelClosedCard
 import com.bittr.android.events.NodeEventsViewModel
 import com.bittr.android.feature.settings.LightningQuestionScreen
 import com.bittr.android.feature.settings.LightningQuestionViewModel
+import com.bittr.android.feature.settings.LightningSendableQuestionScreen
+import com.bittr.android.core.lnurl.LnurlSource
+import com.bittr.android.send.WebLnurlViewModel
 import com.bittr.android.feature.settings.QuestionScreen
 import com.bittr.android.feature.settings.SettingsScreen
 import com.bittr.android.feature.settings.WebsitePage
@@ -187,6 +190,8 @@ fun BittrNavHost(
 ) {
     val walletState by viewModel.walletState.collectAsState()
     val removal = hiltViewModel<WalletRemovalViewModel>().coordinator
+    // A first-party page's Lightning link, on its way to Send.
+    val webLnurl = hiltViewModel<WebLnurlViewModel>().handoff
 
     // The node's `channelClosed` event opens the "closed lightning connection" card over
     // whatever is on screen, as iOS's `launchQuestion` does.
@@ -365,6 +370,8 @@ fun BittrNavHost(
 
         composable(Routes.SEND) { entry ->
             val send: SendViewModel = hiltViewModel()
+            // Taken once, when Send opens: reopening Send must not replay a page's LNURL.
+            val lnurlRequest = remember { webLnurl.take() }
             // What the scanner put on this entry's saved state on its way out.
             val scanned by entry.savedStateHandle.getStateFlow<Destination?>(ScannerResult.KEY, null).collectAsState()
             SendRoute(
@@ -381,6 +388,7 @@ fun BittrNavHost(
                 onSwapAndPayAddress = { address, amount -> navController.navigate(SwapRoutes.payAddress(address, amount)) },
                 scanned = scanned,
                 onScannedConsumed = { ScannerResult.consume(entry.savedStateHandle) },
+                lnurlRequest = lnurlRequest,
             )
         }
 
@@ -398,7 +406,11 @@ fun BittrNavHost(
         swapArea(navController)
 
         composable(Routes.SEND_QUESTION) {
-            SendQuestionScreen(onDown = { navController.popBackStack() })
+            // `lightningsendable`: the channel chart when there is an active channel.
+            LightningSendableQuestionScreen(
+                onDown = { navController.popBackStack() },
+                channel = hiltViewModel<LightningQuestionViewModel>().channel.collectAsState().value,
+            )
         }
 
         composable(Routes.CHANNEL_CLOSED) {
@@ -445,6 +457,11 @@ fun BittrNavHost(
         settingsArea(
             navController = navController,
             onRemoveWallet = { removal.removeWalletTapped(RemovalOrigin.Settings) },
+            // iOS handles a first-party page's Lightning link over the browser; here Send handles it.
+            onWebsiteLnurl = { raw, source ->
+                webLnurl.post(SendLnurlRequest(raw, source))
+                navController.navigate(Routes.SEND)
+            },
         )
     }
     }
@@ -468,6 +485,7 @@ fun BittrNavHost(
 internal fun NavGraphBuilder.settingsArea(
     navController: NavHostController,
     onRemoveWallet: (() -> Unit)? = null,
+    onWebsiteLnurl: (raw: String, source: LnurlSource.FirstPartyWeb) -> Unit = { _, _ -> },
     lightningChannel: @Composable () -> ChannelSummary? = {
         hiltViewModel<LightningQuestionViewModel>().channel.collectAsState().value
     },
@@ -498,7 +516,7 @@ internal fun NavGraphBuilder.settingsArea(
         // here are three URLs; everything else about showing a URL — the R-11
         // hardening baseline, the navigation policy, the trust derivation — is
         // the in-app browser's job and belongs in one module (BIT-112).
-        WebsiteScreen(url = page.url, onClose = { navController.popBackStack() })
+        WebsiteScreen(url = page.url, onClose = { navController.popBackStack() }, onLnurl = onWebsiteLnurl)
     }
 
     composable(Routes.DEVICE) {
