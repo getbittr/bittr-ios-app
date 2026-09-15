@@ -33,6 +33,12 @@ interface BuySource {
     fun markNotificationPermissionRequested()
 
     /**
+     * The push token to register with — `registerForRemoteNotifications()` and the wait in
+     * `startTokenRegistrationTimeout()`: null when none arrives within the bound.
+     */
+    suspend fun deviceToken(): String?
+
+    /**
      * `gatherIbanDetails` — update the entity [currentId] or create one, and return its id.
      */
     fun saveIbanDetails(currentId: String?, email: String, iban: String, initiativeConfirmedAt: String?): String
@@ -50,6 +56,7 @@ interface BuySource {
     suspend fun register(
         entityId: String,
         notificationsDenied: Boolean,
+        deviceToken: String?,
         restoreDepositCode: String?,
         restoreMessage: String?,
     ): RegisterResult

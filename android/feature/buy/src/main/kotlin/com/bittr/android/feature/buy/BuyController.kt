@@ -53,6 +53,9 @@ enum class BuyAction {
     RequestNotifications,
     CancelLoading,
     ContinueWithoutNotifications,
+
+    /** `tokenregistrationfail`'s "Try again" — `askForPushNotifications()` once more. */
+    RetryDeviceToken,
     BackToStart,
     FinishSignup,
 }
@@ -98,6 +101,9 @@ class BuyController(
     private var sessionInitiativeAt: String? = null
     private var hasAutoTriggered = false
     private var notificationsDenied = false
+
+    /** The push token the registration carries — iOS's cached `registrationToken`. */
+    private var deviceToken: String? = null
     private var resendAvailableAt = 0L
     private var started = false
 
@@ -158,8 +164,19 @@ class BuyController(
     fun onStartSignup() {
         sessionInitiativeAt = null
         notificationsDenied = false
+        deviceToken = null
         hasAutoTriggered = false
         _state.update { it.copy(signup = SignupUiState()) }
+    }
+
+    /**
+     * Onboarding's "Your wallet is ready" → Continue (`Signup7ViewController.nextButtonTapped`,
+     * `signupVC.moveToPage(10)`): straight to the IBAN page, the Ready page having been shown by
+     * the create-wallet arc itself.
+     */
+    fun onStartSignupAtIban() {
+        onStartSignup()
+        onReadyNext()
     }
 
     fun onReadyNext() = updateSignup { it.copy(page = SignupPage.Start) }
@@ -265,9 +282,14 @@ class BuyController(
         checkPushNotificationStatus()
     }
 
+    /**
+     * `checkPushNotificationStatus()`. Authorised is not enough on its own: like iOS, the code is
+     * only sent once there is a push token to register with, or once the user has chosen on-chain
+     * payouts instead.
+     */
     private fun checkPushNotificationStatus() {
         when {
-            source.notificationsAuthorized() -> sendCodeToBittr()
+            source.notificationsAuthorized() -> awaitDeviceToken()
             !source.notificationPermissionRequested() -> showAlert(
                 BuyAlert(
                     title = BuyStrings.RECEIVE_NOTIFICATIONS,
@@ -295,7 +317,36 @@ class BuyController(
     /** The system dialog's answer. */
     fun onNotificationPermissionResult(granted: Boolean) {
         source.markNotificationPermissionRequested()
-        if (granted) sendCodeToBittr() else showDeniedAlert()
+        if (granted) awaitDeviceToken() else showDeniedAlert()
+    }
+
+    /**
+     * `registerForRemoteNotifications()` + `startTokenRegistrationTimeout()`: wait for the push
+     * token (bounded inside [BuySource.deviceToken]), then send the code. No token halts the
+     * signup with `tokenregistrationfail` — [Try again, Continue], Continue meaning on-chain
+     * payouts — exactly as `tokenRegistrationFailed()` does.
+     */
+    private fun awaitDeviceToken() {
+        updateSignup { it.copy(busy = true) }
+        scope.launch {
+            val token = source.deviceToken()
+            if (token == null) {
+                updateSignup { it.copy(busy = false) }
+                showAlert(
+                    BuyAlert(
+                        title = BuyStrings.RECEIVE_NOTIFICATIONS,
+                        message = BuyStrings.TOKEN_REGISTRATION_FAIL,
+                        buttons = listOf(
+                            BuyAlertButton(BuyStrings.TRY_AGAIN, BuyAction.RetryDeviceToken),
+                            BuyAlertButton(BuyStrings.CONTINUE, BuyAction.ContinueWithoutNotifications),
+                        ),
+                    ),
+                )
+            } else {
+                deviceToken = token
+                sendCodeToBittr()
+            }
+        }
     }
 
     private fun sendCodeToBittr() {
@@ -321,6 +372,7 @@ class BuyController(
         val result = source.register(
             entityId = entityId,
             notificationsDenied = notificationsDenied,
+            deviceToken = deviceToken.takeUnless { notificationsDenied },
             restoreDepositCode = verified.restoreDepositCode,
             restoreMessage = verified.restoreMessage,
         )
@@ -413,7 +465,12 @@ class BuyController(
             BuyAction.CancelLoading -> updateSignup { it.copy(busy = false) }
             BuyAction.ContinueWithoutNotifications -> {
                 notificationsDenied = true
+                deviceToken = null
                 sendCodeToBittr()
+            }
+            BuyAction.RetryDeviceToken -> {
+                updateSignup { it.copy(busy = true) }
+                checkPushNotificationStatus()
             }
         }
     }

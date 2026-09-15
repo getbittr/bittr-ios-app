@@ -71,6 +71,11 @@ object BuyStrings {
     const val RESEND_CODE = "Resend code"
     const val TRANSFER_15_VC = "Please enter the verification code in order to proceed."
     const val RECEIVE_NOTIFICATIONS = "Receive notifications"
+
+    /** `tokenregistrationfail`. */
+    const val TOKEN_REGISTRATION_FAIL =
+        "We couldn't register this device for notifications. Please check your internet connection and try again, " +
+            "or continue with regular payouts."
     const val RECEIVE_NOTIFICATIONS_2 =
         "To receive instant bitcoin payments, you must allow notifications.\n\n" +
             "Without them, your purchases are paid into the regular (on-chain) part of your wallet instead."

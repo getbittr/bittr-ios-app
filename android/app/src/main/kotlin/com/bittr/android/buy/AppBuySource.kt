@@ -96,6 +96,8 @@ class AppBuySource(
     private val tokens: DeviceTokenSource,
     private val notifications: NotificationAccess,
     private val clock: UnixClock = UnixClock.System,
+    /** `DeviceTokenLifecycle.onRegistered`: records a token `POST /customer` already delivered. */
+    private val onRegistered: (CustomerRegistration.Registered, String?) -> Unit = { _, _ -> },
 ) : BuySource {
 
     override val entities: StateFlow<List<IbanEntity>> = store.entities
@@ -170,6 +172,9 @@ class AppBuySource(
 
     override fun markNotificationPermissionRequested() = notifications.markRequested()
 
+    override suspend fun deviceToken(): String? =
+        withTimeoutOrNull(TOKEN_WAIT_MS) { runCatching { tokens.current() }.getOrNull() }
+
     override fun saveIbanDetails(currentId: String?, email: String, iban: String, initiativeConfirmedAt: String?): String {
         val existing = currentId?.let(::entity)
         if (existing != null) {
@@ -221,6 +226,7 @@ class AppBuySource(
     override suspend fun register(
         entityId: String,
         notificationsDenied: Boolean,
+        deviceToken: String?,
         restoreDepositCode: String?,
         restoreMessage: String?,
     ): RegisterResult {
@@ -234,10 +240,6 @@ class AppBuySource(
         val address = keys.bittrAddress() ?: return RegisterResult.WalletNotReady
         val pubkey = io { signer.pubkey() } ?: return RegisterResult.WalletNotReady
         val xpub = io { keys.xpub() } ?: return RegisterResult.WalletNotReady
-        // BIT-46 decision 1: a bounded wait for the FCM token, and no token is a normal
-        // registration — DeviceTokenLifecycle patches it in later.
-        val token = withTimeoutOrNull(TOKEN_WAIT_MS) { runCatching { tokens.current() }.getOrNull() }
-
         val request = CustomerRegistration.request(
             environment = environment,
             fields = CustomerRegistration.Fields(
@@ -254,11 +256,13 @@ class AppBuySource(
                 exclusiveInitiativeConfirmedAt = entity.initiativeConfirmedAt?.takeIf { it.isNotEmpty() },
                 depositCode = restoreDepositCode,
             ),
-            androidDeviceToken = token,
+            androidDeviceToken = deviceToken,
         )
         val response = execute(request) ?: return RegisterResult.Unreachable
         return when (val outcome = CustomerSignup.parse(response)) {
             is CustomerSignup.Outcome.Created -> {
+                // So the next app start does not post a token this registration already delivered.
+                CustomerRegistration.parse(response).valueOrNull()?.let { onRegistered(it, deviceToken) }
                 store.update(entityId) {
                     it.copy(
                         ourIbanNumber = outcome.ourIban,
@@ -290,6 +294,7 @@ class AppBuySource(
     private suspend fun <T> io(block: suspend () -> T): T = withContext(Dispatchers.IO) { block() }
 
     companion object {
+        /** `startTokenRegistrationTimeout()`'s 15 seconds. */
         private const val TOKEN_WAIT_MS = 15_000L
 
         /** `gatherParameters`' message, verbatim, with the first 32 characters of the email token. */

@@ -24,9 +24,12 @@ class BuyControllerTest {
         override val entities: StateFlow<List<IbanEntity>> = store
         var authorized = false
         var requested = false
+        var token: String? = "fcm-token"
+        var tokenRequests = 0
         var verify: VerifyEmailResult = VerifyEmailResult.Accepted
         var codes = mutableListOf<CheckCodeResult>()
         var registered = mutableListOf<Boolean>()
+        var sentTokens = mutableListOf<String?>()
         var verifyCalls = 0
         var now = 1_000L
         var modes = mutableListOf<String>()
@@ -40,6 +43,7 @@ class BuyControllerTest {
         override fun notificationsAuthorized() = authorized
         override fun notificationPermissionRequested() = requested
         override fun markNotificationPermissionRequested() { requested = true }
+        override suspend fun deviceToken(): String? { tokenRequests++; return token }
         override fun saveIbanDetails(currentId: String?, email: String, iban: String, initiativeConfirmedAt: String?): String {
             val id = currentId ?: "e1"
             store.update { list ->
@@ -54,10 +58,12 @@ class BuyControllerTest {
         override suspend fun register(
             entityId: String,
             notificationsDenied: Boolean,
+            deviceToken: String?,
             restoreDepositCode: String?,
             restoreMessage: String?,
         ): RegisterResult {
             registered += notificationsDenied
+            sentTokens += deviceToken
             store.update { list ->
                 list.map { if (it.id == entityId) it.copy(yourUniqueCode = "DC1", ourIbanNumber = "CH00") else it }
             }
@@ -74,6 +80,15 @@ class BuyControllerTest {
         onReadyNext()
         onIbanChange("NL27 ABNA 0451 1357 25")
         onEmailChange("e2ebittr@getbittr.com")
+    }
+
+    /** Through the IBAN page to the code page. */
+    private fun TestScope.toCodePage(c: BuyController) {
+        c.fillStart()
+        c.onVerify()
+        c.onInitiativeConfirm()
+        runCurrent()
+        assertEquals(SignupPage.Otp, c.state.value.signup!!.page)
     }
 
     @Test
@@ -96,6 +111,7 @@ class BuyControllerTest {
         runCurrent()
         assertEquals(SignupPage.Success, c.state.value.signup!!.page)
         assertEquals(listOf(false), source.registered)
+        assertEquals(listOf<String?>("fcm-token"), source.sentTokens)
 
         c.onSuccessNext()
         c.onLetsGo()
@@ -103,6 +119,56 @@ class BuyControllerTest {
         c.onAlertAction(BuyAction.FinishSignup)
         assertNull(c.state.value.signup)
         assertEquals("DC1", c.state.value.cards.single().yourUniqueCode)
+    }
+
+    /**
+     * Decision 23: no push token halts the signup with `tokenregistrationfail`
+     * [Try again, Continue], and Continue registers for on-chain payouts — iOS's
+     * `tokenRegistrationFailed()`.
+     */
+    @Test
+    fun `no push token halts the signup, and continue registers on-chain without one`() = runTest {
+        val source = FakeSource().apply {
+            authorized = true
+            token = null
+        }
+        val c = controller(source)
+        toCodePage(c)
+
+        c.onCodeChange("123456")
+        runCurrent()
+        val alert = c.state.value.alert!!
+        assertEquals(BuyStrings.TOKEN_REGISTRATION_FAIL, alert.message)
+        assertEquals(listOf(BuyAction.RetryDeviceToken, BuyAction.ContinueWithoutNotifications), alert.buttons.map { it.action })
+        assertTrue("nothing is registered while the signup is halted", source.registered.isEmpty())
+        assertFalse(c.state.value.signup!!.busy)
+
+        c.onAlertAction(BuyAction.ContinueWithoutNotifications)
+        runCurrent()
+        assertEquals(SignupPage.Success, c.state.value.signup!!.page)
+        assertEquals(listOf(true), source.registered)
+        assertEquals(listOf<String?>(null), source.sentTokens)
+    }
+
+    @Test
+    fun `try again waits for the token once more and registers with it`() = runTest {
+        val source = FakeSource().apply {
+            authorized = true
+            token = null
+        }
+        val c = controller(source)
+        toCodePage(c)
+        c.onCodeChange("123456")
+        runCurrent()
+        assertEquals(BuyStrings.TOKEN_REGISTRATION_FAIL, c.state.value.alert!!.message)
+
+        source.token = "late-token"
+        c.onAlertAction(BuyAction.RetryDeviceToken)
+        runCurrent()
+        assertEquals(2, source.tokenRequests)
+        assertEquals(SignupPage.Success, c.state.value.signup!!.page)
+        assertEquals(listOf(false), source.registered)
+        assertEquals(listOf<String?>("late-token"), source.sentTokens)
     }
 
     @Test
@@ -135,10 +201,7 @@ class BuyControllerTest {
             codes += CheckCodeResult.InvalidCode
         }
         val c = controller(source)
-        c.fillStart()
-        c.onVerify()
-        c.onInitiativeConfirm()
-        runCurrent()
+        toCodePage(c)
 
         c.onCodeChange("111111")
         assertEquals(TestID.Alert.receiveNotificationsDenied, c.state.value.alert!!.id)
@@ -154,16 +217,14 @@ class BuyControllerTest {
         runCurrent()
         assertEquals(SignupPage.Success, c.state.value.signup!!.page)
         assertEquals(listOf(true), source.registered)
+        assertEquals(listOf<String?>(null), source.sentTokens)
     }
 
     @Test
     fun `resend is limited to one per thirty seconds`() = runTest {
         val source = FakeSource()
         val c = controller(source)
-        c.fillStart()
-        c.onVerify()
-        c.onInitiativeConfirm()
-        runCurrent()
+        toCodePage(c)
 
         c.onResendCode()
         runCurrent()
@@ -205,5 +266,13 @@ class BuyControllerTest {
         assertEquals(BuyAction.GoToWallet, c.state.value.alert!!.buttons[0].action)
         c.onAlertAction(BuyAction.GoToWallet)
         assertNull(c.state.value.signup)
+    }
+
+    /** Onboarding's Continue: `signupVC.moveToPage(10)` — the IBAN page, no Buy Ready page. */
+    @Test
+    fun `onboarding starts the signup on the IBAN page`() = runTest {
+        val c = controller(FakeSource())
+        c.onStartSignupAtIban()
+        assertEquals(SignupPage.Start, c.state.value.signup!!.page)
     }
 }
