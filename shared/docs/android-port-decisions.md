@@ -174,13 +174,20 @@ Full log: `android/docs/port-specs/lnurl-decisions.md`.
    2 GB, cold starts took 8–36 s and the flows' 15 s launch wait failed; with 6 cores / 4 GB, 0.4–0.5 s.
    CI already uses `-camera-back none`.
 
-10b. **Gap — the overnight emulator runs were unreliable because the Mac ran out of memory.** From about
-    22:30 the Mac had 18 of 19 GB swap in use. The emulator got little CPU, Maestro's driver timed out
-    (`DEADLINE_EXCEEDED`, "Screenshot returned null"), the emulator's package service broke twice, and at 01:00
-    its Android system died (`DeadSystemException`). In the 23:30 run (batch8), `settings.yaml` unlocked and
-    Home was on screen with the new fiat line, profit pill and Buy button, but Maestro couldn't read the
-    accessibility tree. Every later flow failed at launch or in the driver. The app code was not the cause.
-    Flows are now rerun one at a time, with a health check that restarts the emulator between flows.
+10b. **Gap — none of tonight's new screens have passed a Maestro flow on the emulator yet.** Everything merged
+    tonight passes its JVM unit tests (app, send, home, settings, buy, swaps, LNURL, network, wallet-ldk), but
+    three emulator runs (23:30, 01:05 and a health-gated rerun until 03:45) failed on the emulator, not the app:
+    - The emulator's Android system repeatedly hung and restarted, even right after fresh cold boots. Its watchdog
+      logged `StorageManagerService`, `ActivityManagerService` and `PowerManagerService` blocked for 60–151 s,
+      from 22:38 on (before the merges). Once system_server crashed writing a battery-stats system property. After
+      each hang the apps died with `DeadSystemException`, and twice the package service broke.
+    - The app itself was not stuck: its only ANR (02:30) shows the main thread idle, waiting for a focus event
+      from the system. In the one run that got past unlocking, Home was on screen with the new fiat line, profit pill
+      and Buy button, but Maestro's driver could not read it (`DEADLINE_EXCEEDED`).
+    - The Mac had 18 of 19 GB swap in use and was busy (Spotlight, Wi-Fi daemon, browser). Disk had 199 GB free.
+    **Next step:** run the flows on a quiet Mac (reboot first) or the CI emulator, starting with `settings`,
+    `pin_warning`, `forgot_pin`, `notification_information`, `buy_signup`, `payment_mode`, then the destructive
+    `forgot_pin_remove_wallet`, `remove_wallet`, `wrong_pin`. The helper scripts are described in the summary.
 
 10a. **Decided — `notification_information.yaml` not run to a result yet.** It needs pushes delivered to the
     app, which the iOS runs inject through the simulator; on Android that path belongs to the notifications
