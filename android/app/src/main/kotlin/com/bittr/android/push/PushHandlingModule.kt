@@ -85,6 +85,7 @@ object PushHandlingModule {
         swapHandler: Optional<SwapPushHandler>,
         lnurlHandler: Optional<LnurlPushHandler>,
         payoutSwap: Optional<PayoutSwapLauncher>,
+        payoutTracker: BittrPayoutTracker,
     ): PushCoordinator = PushCoordinator(
         // Main, like every iOS handler (`DispatchQueue.main`): one thread owns the
         // pending push and the dedup record. Node and network work hops to IO.
@@ -100,5 +101,6 @@ object PushHandlingModule {
         swapHandler = swapHandler.orElse(null),
         lnurlHandler = lnurlHandler.orElse(null),
         payoutSwap = payoutSwap.orElse(null),
+        payoutTracker = payoutTracker,
     )
 }

@@ -2,6 +2,8 @@ package com.bittr.android.core.wallet.ldk.adapter
 
 import com.bittr.android.core.wallet.ldk.lightning.ClosureReasonView
 import com.bittr.android.core.wallet.ldk.lightning.NodeEvent
+import com.bittr.android.core.wallet.ldk.lightning.PaymentFailureReasonView
+import org.lightningdevkit.ldknode.PaymentFailureReason
 import org.lightningdevkit.ldknode.ClosureReason
 import org.lightningdevkit.ldknode.Event
 
@@ -16,7 +18,22 @@ object LdkNodeEvents {
         )
         is Event.PaymentReceived -> NodeEvent.PaymentReceived(event.paymentHash, event.amountMsat.toLong())
         is Event.PaymentSuccessful -> NodeEvent.PaymentSuccessful(event.paymentHash, event.feePaidMsat?.toLong())
+        is Event.ChannelPending -> NodeEvent.ChannelPending(event.channelId, event.fundingTxo.txid)
+        is Event.PaymentFailed -> NodeEvent.PaymentFailed(event.paymentHash, event.reason?.let(::failureReason))
         else -> null
+    }
+
+    private fun failureReason(reason: PaymentFailureReason): PaymentFailureReasonView = when (reason) {
+        PaymentFailureReason.RECIPIENT_REJECTED -> PaymentFailureReasonView.RecipientRejected
+        PaymentFailureReason.USER_ABANDONED -> PaymentFailureReasonView.UserAbandoned
+        PaymentFailureReason.RETRIES_EXHAUSTED -> PaymentFailureReasonView.RetriesExhausted
+        PaymentFailureReason.PAYMENT_EXPIRED -> PaymentFailureReasonView.PaymentExpired
+        PaymentFailureReason.ROUTE_NOT_FOUND -> PaymentFailureReasonView.RouteNotFound
+        PaymentFailureReason.UNEXPECTED_ERROR -> PaymentFailureReasonView.UnexpectedError
+        PaymentFailureReason.UNKNOWN_REQUIRED_FEATURES -> PaymentFailureReasonView.UnknownRequiredFeatures
+        PaymentFailureReason.INVOICE_REQUEST_EXPIRED -> PaymentFailureReasonView.InvoiceRequestExpired
+        PaymentFailureReason.INVOICE_REQUEST_REJECTED -> PaymentFailureReasonView.InvoiceRequestRejected
+        PaymentFailureReason.BLINDED_PATH_CREATION_FAILED -> PaymentFailureReasonView.BlindedPathCreationFailed
     }
 
     private fun reason(reason: ClosureReason): ClosureReasonView = when (reason) {

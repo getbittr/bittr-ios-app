@@ -22,6 +22,21 @@ sealed interface NodeEvent {
     /** `.paymentSuccessful` — an outgoing Lightning payment arrived (`addNewPaymentToTable`). */
     data class PaymentSuccessful(val paymentHash: String, val feePaidMsat: Long?) : NodeEvent
 
+    /**
+     * `.channelPending` — a channel's funding transaction was broadcast. iOS checks the funding
+     * transaction with bittr (`checkPaymentWithBittr(isFundingTransaction: true)`) and shows the
+     * purchase that opened it.
+     */
+    data class ChannelPending(val channelId: String, val fundingTxId: String) : NodeEvent
+
+    /**
+     * `.paymentFailed` — an outgoing Lightning payment gave up. iOS shows the `paymentfailed` alert
+     * with the reason.
+     *
+     * @property reason null when ldk-node gave none (`noReason`).
+     */
+    data class PaymentFailed(val paymentHash: String?, val reason: PaymentFailureReasonView?) : NodeEvent
+
 
     /**
      * `Event.channelClosed` — iOS launches the "closed lightning connection" Question card.
@@ -54,6 +69,20 @@ enum class ClosureReasonView {
     FundingBatchClosure,
     HtlcsTimedOut,
     PeerFeerateTooLow,
+}
+
+/** `PaymentFailureReason`, one case per reason iOS names in the `paymentfailed` alert. */
+enum class PaymentFailureReasonView {
+    RecipientRejected,
+    UserAbandoned,
+    RetriesExhausted,
+    PaymentExpired,
+    RouteNotFound,
+    UnexpectedError,
+    UnknownRequiredFeatures,
+    InvoiceRequestExpired,
+    InvoiceRequestRejected,
+    BlindedPathCreationFailed,
 }
 
 /**
