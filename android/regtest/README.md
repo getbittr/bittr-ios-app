@@ -162,6 +162,38 @@ the `build` job, on a machine with no emulator.
   45-minute timeout that one self-hosted runner serialises against two other
   emulator jobs. The home for this is `.github/workflows/wallet-regtest-nightly.yml`.
 
+## The bring-up order is load-bearing: mine before starting electrs and LND
+
+`up.sh` starts **bitcoind alone**, mines, and only then starts the other two.
+That is not tidiness, and the obvious simplification — one `compose up --wait`
+over all three services — is what the first two runs of this network did. It
+cannot work, and it fails by timing out rather than by saying anything.
+
+Neither dependent will report healthy on a chain still sitting on the genesis
+block, and each refuses for its own reason:
+
+| Service | Waits for | Where | Healthcheck therefore |
+|---|---|---|---|
+| `electrs` | bitcoind to leave initial block download | `src/daemon.rs`, `Daemon::new` loops on `getblockchaininfo` before returning | never binds `:3002`, so `curl /blocks/tip/height` gets connection refused — not an empty answer |
+| `lnd` | `Wallet.IsSynced()` | `lnd.go` blocks there before `SetServerActive`; `lnwallet/btcwallet` returns false while the best header is **more than two hours old** | `lncli getinfo` is refused, because the RPC server has not started |
+
+Bitcoin's genesis block is timestamped **2011-02-02**, and on a fresh regtest
+chain it is the tip — so bitcoind reports `initialblockdownload: true` and the
+tip reads as fifteen years stale. Both predicates are about the tip's timestamp,
+and mining is the only thing that clears either. With the mining on the far side
+of a wait that requires all three healthy, the wait can never return.
+
+Two consequences worth keeping:
+
+- **A tall chain is not a recent one.** `up.sh` is idempotent, so the warm case
+  is real: a network left up overnight has 101 blocks and a nine-hour-old tip,
+  which passes the height check and fails LND's two-hour one exactly like a fresh
+  chain. `up.sh` mines one block whenever the tip is over an hour old.
+- **The precondition is asserted, not assumed.** `up.sh` reads
+  `initialblockdownload` back from bitcoind before starting the other two, so
+  getting this wrong again costs one RPC call instead of a ten-minute healthcheck
+  timeout and an annotation full of a daemon reporting that it is waiting.
+
 ## Never mainnet, and what actually enforces it
 
 `up.sh` writes `"network": "regtest"` and `regtest-ldk-env.py` refuses to emit an
