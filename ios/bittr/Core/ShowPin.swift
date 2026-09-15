@@ -17,12 +17,34 @@ extension CoreViewController {
     }
     
     @objc func appWillEnterForeground() {
+        self.retryOnchainScanIfNeeded()
         guard let wentAway = self.backgroundedAt else { return }
         self.backgroundedAt = nil
         
         // If app was backgrounded for more than 120s, user needs to reauthenticate.
         guard Date().timeIntervalSince(wentAway) >= 120 else { return }
         self.lockForReauthentication()
+    }
+    
+    func retryOnchainScanIfNeeded() {
+        guard BitcoinManager.shared.bdkWallet != nil,
+                !BitcoinManager.shared.bdkWalletHasBeenScanned else { return }
+        Log.info("No BDK full scan has succeeded yet. Retrying it on foreground.")
+        
+        BitcoinManager.shared.didSyncBdkWallet { hasBeenSynced in
+            guard hasBeenSynced else { return }
+            Log.info("Retried BDK full scan succeeded.")
+            
+            // Restart background syncs.
+            if self.walletSync == nil {
+                self.walletSync = BackgroundSync()
+                self.walletSync!.start()
+            }
+            
+            // Update labels.
+            self.homeVC?.sendVC?.setSendAllLabel()
+            self.homeVC?.moveVC?.swapVC?.calculateSendableAmount()
+        }
     }
     
     func lockForReauthentication() {
