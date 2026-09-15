@@ -118,6 +118,48 @@ class OnchainSyncLoopTest {
         )
     }
 
+    /** Home's pull-to-refresh: a request brings the next tick forward and gets its reading. */
+    @Test
+    fun `sync now runs a tick on the loop at once and answers with the balance read`() = runTest {
+        val fixture = Fixture(this)
+        var reads = 0
+        val loop = fixture.loop(balances = { reads += 1; true })
+        val runner = launch { loop.run() }
+        runCurrent()
+        assertEquals("the node-start read", 1, reads)
+
+        var answer: Boolean? = null
+        val request = launch { answer = loop.syncNow() }
+        runCurrent()
+
+        assertEquals("the request does not wait for the 30 s interval", true, answer)
+        assertEquals(2, reads)
+        assertEquals(1, fixture.port.lightSyncs)
+
+        // The timer carries on from there.
+        advanceTimeBy(OnchainSyncLoop.LIGHT_SYNC_INTERVAL_MILLIS)
+        runCurrent()
+        assertEquals(2, fixture.port.lightSyncs)
+
+        request.cancelAndJoin()
+        runner.cancelAndJoin()
+    }
+
+    @Test
+    fun `a sync request still waiting when the loop stops is answered with no reading`() = runTest {
+        val fixture = Fixture(this, canOpen = false)
+        val loop = fixture.loop(balances = { true })
+        var answer: Boolean? = null
+        val request = launch { answer = loop.syncNow() }
+        runCurrent()
+        assertEquals(null, answer)
+
+        launch { loop.run() }
+        runCurrent()
+        assertEquals(false, answer)
+        request.cancelAndJoin()
+    }
+
     @Test
     fun `a start scans and then light-syncs on the iOS interval`() = runTest {
         val fixture = Fixture(this)

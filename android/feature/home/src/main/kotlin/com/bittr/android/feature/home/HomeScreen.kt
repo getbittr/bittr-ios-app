@@ -6,7 +6,6 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -16,12 +15,17 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.pulltorefresh.PullToRefreshDefaults
+import androidx.compose.material3.pulltorefresh.pullToRefresh
+import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.collectAsState
@@ -127,6 +131,7 @@ fun HomeScreen(
         onTransaction = onTransaction,
         profitPill = profitPill,
         onProfit = onProfit,
+        onRefresh = viewModel::refresh,
         modifier = modifier,
     )
 }
@@ -139,6 +144,7 @@ fun HomeScreen(
  *   taps a control iOS gates on `walletHasSynced` while the wallet has not synced,
  *   which today is always.
  */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 internal fun HomeScreen(
     state: HomeUiState,
@@ -157,6 +163,7 @@ internal fun HomeScreen(
     onTransaction: (String) -> Unit = {},
     profitPill: ProfitPill? = null,
     onProfit: () -> Unit = {},
+    onRefresh: () -> Unit = {},
 ) {
     alert?.let {
         BittrAlertDialog(
@@ -178,54 +185,84 @@ internal fun HomeScreen(
     // `syncingStatusTapped`: the balance screen once synced, the sync overlay before.
     var syncStatusVisible by remember { mutableStateOf(false) }
 
+    // `ReloadWallet.swift`: pulling Home down past a threshold resyncs the wallet. Everything
+    // above the tab bar is one list — the header, then the history — so the pull works from the
+    // header as well as from the rows, as `remove_wallet.yaml`'s swipe from 30% to 90% needs.
+    val pullState = rememberPullToRefreshState()
+
     Box(modifier = modifier.fillMaxSize()) {
     Column(
         modifier = Modifier
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.surfaceBright),
     ) {
-        HomeHeader(
-            showSyncSpinner = state.showSyncSpinner,
-            balanceSats = state.balanceSats,
-            balanceFiat = state.balanceFiat,
-            onMap = onMap,
-            onCurrency = onCurrency,
-            onSend = guarded(onSend),
-            onReceive = guarded(onReceive),
-            onBuy = onBuy,
-            onSyncStatus = { if (state.walletHasSynced) onBalanceDetails() else syncStatusVisible = true },
-            onBalanceCard = guarded(onBalanceDetails),
-            profitPill = profitPill,
-            onProfit = onProfit,
-        )
-
-        if (state.history.isNotEmpty()) {
-            HistoryList(
-                rows = state.history,
-                onTransaction = onTransaction,
-                modifier = Modifier
-                    .weight(1f)
-                    .fillMaxWidth(),
-            )
-        } else Box(
-            // `noTransactionsLabel`, which iOS shows when the history is empty.
-            contentAlignment = Alignment.TopCenter,
+        Box(
             modifier = Modifier
                 .weight(1f)
                 .fillMaxWidth()
-                .padding(horizontal = BittrTokens.Spacing.xxl, vertical = 46.dp),
+                .pullToRefresh(
+                    state = pullState,
+                    // `home.headerSpinner` is the refresh indicator, as on iOS; the pull
+                    // indicator only follows the finger and goes away on release.
+                    isRefreshing = false,
+                    enabled = state.canRefresh,
+                    threshold = PULL_THRESHOLD,
+                    onRefresh = onRefresh,
+                ),
         ) {
-            Text(
-                text = buildAnnotatedString {
-                    append(HomeStrings.NO_TRANSACTIONS_1)
-                    withStyle(SpanStyle(fontWeight = FontWeight.Bold)) {
-                        append(HomeStrings.BUY)
+            LazyColumn(modifier = Modifier.fillMaxSize()) {
+                item {
+                    HomeHeader(
+                        showSyncSpinner = state.showSyncSpinner,
+                        balanceSats = state.balanceSats,
+                        balanceFiat = state.balanceFiat,
+                        onMap = onMap,
+                        onCurrency = onCurrency,
+                        onSend = guarded(onSend),
+                        onReceive = guarded(onReceive),
+                        onBuy = onBuy,
+                        onSyncStatus = { if (state.walletHasSynced) onBalanceDetails() else syncStatusVisible = true },
+                        onBalanceCard = guarded(onBalanceDetails),
+                        profitPill = profitPill,
+                        onProfit = onProfit,
+                    )
+                }
+
+                if (state.history.isNotEmpty()) {
+                    historyItems(rows = state.history, onTransaction = onTransaction)
+                } else {
+                    item {
+                        Box(
+                            // `noTransactionsLabel`, which iOS shows when the history is empty.
+                            contentAlignment = Alignment.TopCenter,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = BittrTokens.Spacing.xxl, vertical = 46.dp),
+                        ) {
+                            Text(
+                                text = buildAnnotatedString {
+                                    append(HomeStrings.NO_TRANSACTIONS_1)
+                                    withStyle(SpanStyle(fontWeight = FontWeight.Bold)) {
+                                        append(HomeStrings.BUY)
+                                    }
+                                    append(HomeStrings.NO_TRANSACTIONS_2)
+                                },
+                                style = MaterialTheme.typography.bodyLarge,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                textAlign = TextAlign.Center,
+                            )
+                        }
                     }
-                    append(HomeStrings.NO_TRANSACTIONS_2)
-                },
-                style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                textAlign = TextAlign.Center,
+                }
+            }
+
+            PullToRefreshDefaults.Indicator(
+                state = pullState,
+                isRefreshing = false,
+                maxDistance = PULL_THRESHOLD,
+                modifier = Modifier
+                    .align(Alignment.TopCenter)
+                    .statusBarsPadding(),
             )
         }
 
@@ -448,6 +485,9 @@ private fun BalanceLabel(balance: BalanceText, dimmedColor: androidx.compose.ui.
 }
 
 private val BALANCE_MIN_FONT_SIZE = 20.sp
+
+/** How far Home is pulled before it refreshes — iOS reacts past 200 pt of overscroll. */
+private val PULL_THRESHOLD = 120.dp
 private const val LINE_HEIGHT_RATIO = 1.2f
 
 @Composable
@@ -523,14 +563,17 @@ private fun ActionButton(
  * its children's semantics, which would swallow `history.transactionAmountN` — the label
  * the flows copy the top row's amount from.
  */
-@Composable
-private fun HistoryList(rows: List<HistoryRow>, onTransaction: (String) -> Unit, modifier: Modifier = Modifier) {
-    LazyColumn(
-        modifier = modifier,
-        contentPadding = PaddingValues(horizontal = BittrTokens.Spacing.md, vertical = BittrTokens.Spacing.md),
-        verticalArrangement = Arrangement.spacedBy(BittrTokens.Spacing.sm),
-    ) {
-        itemsIndexed(rows) { position, row ->
+private fun LazyListScope.historyItems(rows: List<HistoryRow>, onTransaction: (String) -> Unit) {
+    itemsIndexed(rows) { position, row ->
+        Column(
+            verticalArrangement = Arrangement.spacedBy(BittrTokens.Spacing.sm),
+            modifier = Modifier.padding(
+                start = BittrTokens.Spacing.md,
+                end = BittrTokens.Spacing.md,
+                top = if (position == 0) BittrTokens.Spacing.md else BittrTokens.Spacing.sm,
+                bottom = if (position == rows.lastIndex) BittrTokens.Spacing.md else 0.dp,
+            ),
+        ) {
             row.year?.let {
                 Text(
                     text = it,

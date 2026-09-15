@@ -1,5 +1,8 @@
 package com.bittr.android.di
 
+import com.bittr.android.core.wallet.WalletRefresher
+import com.bittr.android.core.wallet.ldk.host.WalletResync
+
 import android.content.Context
 import android.os.SystemClock
 import android.util.Log
@@ -490,6 +493,22 @@ object WalletModule {
         )
 
         /*
+         * The on-chain scan loop, named rather than written inline in the runner list
+         * because Home's pull-to-refresh asks it for a sync (`syncNow`), which then runs on the
+         * loop's own coroutine instead of racing its light-sync timer.
+         */
+        val onchainLoop = OnchainSyncLoop(
+            wallet = onchainWallet,
+            sync = onchainWallet.sync(scans = scans, closures = closures),
+            scans = scans,
+            // The tick the balance read borrows. Named rather than
+            // defaulted, because a loop wired without one is exactly
+            // the silent failure BIT-144 was about.
+            balances = { balances.read() != null },
+            report = { event -> Log.i(TAG, "On-chain sync: $event") },
+        )
+
+        /*
          * What holds the process up, as one object with two callers.
          *
          * Hoisted out of the `WalletNodeHost(...)` argument list it used to be
@@ -564,16 +583,7 @@ object WalletModule {
                      * than sequencing — but a reader comparing the two files
                      * should not have to wonder.
                      */
-                    OnchainSyncLoop(
-                        wallet = onchainWallet,
-                        sync = onchainWallet.sync(scans = scans, closures = closures),
-                        scans = scans,
-                        // The tick the balance read borrows. Named rather than
-                        // defaulted, because a loop wired without one is exactly
-                        // the silent failure BIT-144 was about.
-                        balances = { balances.read() != null },
-                        report = { event -> Log.i(TAG, "On-chain sync: $event") },
-                    ),
+                    onchainLoop,
                     /*
                      * The address pool, once BDK has opened — iOS runs
                      * `manageOnchainAddresses()` straight after `didStartBDK()`, off
@@ -671,6 +681,18 @@ object WalletModule {
             },
             nodeEvents = nodeEvents,
             channelFundingTxId = { closureCache.channelFundingOutpoint()?.txId },
+            // Home's pull-to-refresh — `ReloadWallet.swift`: hide the wallet, sync the node, then
+            // the on-chain wallet through its loop, and publish a fresh reading.
+            refresher = WalletResync(
+                scope = scope,
+                canResync = { overview.overview.value.hasSynced },
+                markResyncing = overview::markResyncing,
+                endResync = overview::endResync,
+                syncNode = lightning::syncWallets,
+                syncOnchain = onchainLoop::syncNow,
+                readNow = { balances.read() != null },
+                onFailure = { failure -> Log.w(TAG, "Wallet refresh step failed", failure) },
+            ),
         )
     }
 
@@ -721,4 +743,6 @@ class WalletComposition(
     val nodeEvents: NodeEvents = NodeEvents(),
     /** `CacheManager.getTxoID()` — the active channel's funding transaction id, once one is cached. */
     val channelFundingTxId: () -> String? = { null },
+    /** Home's pull-to-refresh. Does nothing in a build with no node. */
+    val refresher: WalletRefresher = WalletRefresher.None,
 )

@@ -1,7 +1,9 @@
 package com.bittr.android.core.wallet.ldk.onchain
 
 import com.bittr.android.core.wallet.ldk.host.NodeRunner
-import kotlinx.coroutines.delay
+import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.withTimeoutOrNull
 
 /**
  * The BDK wallet's own lifetime, as the two calls a loop needs from it.
@@ -222,6 +224,27 @@ class OnchainSyncLoop(
 
     override val name: String = NAME
 
+    /**
+     * Requests for a sync now, from Home's pull-to-refresh. Each is answered by the loop's next
+     * tick, which a request brings forward, so a refresh never runs a light sync beside the
+     * timer's.
+     */
+    private val syncRequests = Channel<CompletableDeferred<Boolean>>(Channel.UNLIMITED)
+
+    /**
+     * Light-sync now and read the balances, on this loop's coroutine — `ReloadWallet.swift`'s
+     * `didSyncBdkWallet` after the pull.
+     *
+     * @return whether a balance reading was taken. Suspends until the loop gets to it, which is
+     *   never while the loop is not running (no node, or a failed full scan): the caller bounds
+     *   the wait.
+     */
+    suspend fun syncNow(): Boolean {
+        val answer = CompletableDeferred<Boolean>()
+        syncRequests.send(answer)
+        return answer.await()
+    }
+
     override suspend fun run() {
         try {
             if (!wallet.open()) {
@@ -247,8 +270,9 @@ class OnchainSyncLoop(
                 // Before the first sync, not after: iOS schedules the timer at
                 // `.now() + 30`, and the full scan immediately above has just
                 // read the chain. An immediate light sync would be a round trip
-                // for an answer nothing has had time to change.
-                delay(lightSyncIntervalMillis)
+                // for an answer nothing has had time to change. A pull-to-refresh
+                // request brings the tick forward.
+                val requested = withTimeoutOrNull(lightSyncIntervalMillis) { syncRequests.receive() }
                 report(
                     if (sync.lightSync()) {
                         OnchainLoopEvent.LightSyncApplied
@@ -261,15 +285,26 @@ class OnchainSyncLoop(
                 // because this reads the *node* and the node's channels can move
                 // without BDK seeing anything: a light sync skipped for want of
                 // an Electrum server is not a reason to stop watching a channel.
-                readBalances()
+                val read = readBalances()
+                requested?.complete(read)
+                // Requests that arrived while this tick ran share its answer.
+                answerPendingRequests(read)
             }
         } finally {
-            // Non-suspending, both of them, which is what makes this correct on
+            // Non-suspending, all of them, which is what makes this correct on
             // the cancellation path — a `suspend` call in a `finally` after a
-            // cancellation needs `NonCancellable` to run at all, and neither of
+            // cancellation needs `NonCancellable` to run at all, and none of
             // these does.
+            answerPendingRequests(false)
             scans.clear()
             wallet.close()
+        }
+    }
+
+    private fun answerPendingRequests(read: Boolean) {
+        while (true) {
+            val pending = syncRequests.tryReceive().getOrNull() ?: return
+            pending.complete(read)
         }
     }
 
@@ -279,12 +314,14 @@ class OnchainSyncLoop(
      * Silent when there is no [balances] — a loop wired without one has nothing
      * to say about a read it does not make, and an event claiming otherwise would
      * be the kind of log line that makes BIT-144 hard to find again.
+     *
+     * @return whether a reading was taken.
      */
-    private fun readBalances() {
-        val read = balances ?: return
-        report(
-            if (read.read()) OnchainLoopEvent.BalancesRead else OnchainLoopEvent.BalancesUnavailable,
-        )
+    private fun readBalances(): Boolean {
+        val read = balances ?: return false
+        val taken = read.read()
+        report(if (taken) OnchainLoopEvent.BalancesRead else OnchainLoopEvent.BalancesUnavailable)
+        return taken
     }
 
     companion object {
