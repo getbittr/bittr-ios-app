@@ -68,6 +68,9 @@ import com.bittr.android.removal.WalletRemovalViewModel
  */
 object Routes {
     const val SIGNUP_START = "signup/start"
+
+    /** The bittr signup at the end of onboarding (`Signup7` → `Transfer1`). */
+    const val SIGNUP_BITTR = "signup/bittr"
     const val SIGNUP_RESTORE = "signup/restore"
     const val PIN_UNLOCK = "pin/unlock"
     const val HOME = "home"
@@ -226,13 +229,20 @@ fun BittrNavHost(
             }
         },
     ) {
-    NavHost(
-        navController = navController,
-        startDestination = when (walletState) {
+    // Read once, at launch. A start destination that followed the state would rebuild the graph
+    // on every change and pop the back stack with it — creating a wallet unlocks it on the
+    // Ready page, which would throw the user out of onboarding before the bittr signup. Every
+    // later transition navigates explicitly: unlock, the end of onboarding or restore, removal.
+    val startDestination = remember {
+        when (walletState) {
             WalletState.Uninitialized -> Routes.SIGNUP_START
             WalletState.Locked -> Routes.PIN_UNLOCK
             WalletState.Ready -> Routes.HOME
-        },
+        }
+    }
+    NavHost(
+        navController = navController,
+        startDestination = startDestination,
     ) {
         composable(Routes.SIGNUP_START) {
             CreateWalletScreen(
@@ -244,6 +254,24 @@ fun BittrNavHost(
                     }
                 },
                 onRestoreWallet = { navController.navigate(Routes.SIGNUP_RESTORE) },
+                onContinueToSignup = {
+                    navController.navigate(Routes.SIGNUP_BITTR) {
+                        popUpTo(Routes.SIGNUP_START) { inclusive = true }
+                    }
+                },
+            )
+        }
+
+        composable(Routes.SIGNUP_BITTR) {
+            val buy: BuyViewModel = hiltViewModel()
+            BuyRoute(
+                source = buy.source,
+                onboarding = true,
+                onDown = {
+                    navController.navigate(Routes.HOME) {
+                        popUpTo(Routes.SIGNUP_BITTR) { inclusive = true }
+                    }
+                },
             )
         }
 

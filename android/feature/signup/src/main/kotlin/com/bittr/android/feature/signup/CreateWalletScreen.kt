@@ -30,6 +30,9 @@ fun CreateWalletScreen(
     onRestoreWallet: () -> Unit = {},
     modifier: Modifier = Modifier,
     viewModel: CreateWalletViewModel = hiltViewModel(),
+    // `Signup7ViewController.nextButtonTapped` — Continue on "Your wallet is ready" goes on
+    // into the bittr signup (`moveToPage(10)`); Skip is [onFinished], into the wallet.
+    onContinueToSignup: () -> Unit = onFinished,
 ) {
     val state by viewModel.uiState.collectAsState()
 
@@ -104,7 +107,7 @@ fun CreateWalletScreen(
         CreateWalletStep.Ready -> ReadyScreen(
             onContinue = {
                 viewModel.finish()
-                onFinished()
+                onContinueToSignup()
             },
             onSkip = {
                 viewModel.finish()

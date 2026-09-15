@@ -32,6 +32,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
@@ -70,6 +72,9 @@ fun BuyRoute(
     source: BuySource,
     onDown: () -> Unit,
     modifier: Modifier = Modifier,
+    // Onboarding's bittr signup (`SignupViewController` pages 10–13): opens on the IBAN page and
+    // leaves through [onDown] whenever the signup closes, instead of showing the Buy cards.
+    onboarding: Boolean = false,
 ) {
     val scope = rememberCoroutineScope()
     val controller = remember(source) { BuyController(source, scope) }
@@ -79,6 +84,7 @@ fun BuyRoute(
 
     LaunchedEffect(controller) {
         controller.start()
+        if (onboarding) controller.onStartSignupAtIban()
         controller.effects.collect { effect ->
             when (effect) {
                 BuyEffect.RequestNotificationPermission ->
@@ -94,10 +100,19 @@ fun BuyRoute(
     val state by controller.state.collectAsState()
     BackHandler(enabled = state.signup != null) { controller.onCloseSignup() }
 
+    if (onboarding) {
+        // Done, "Go to wallet", Back or the header's down button all end the signup; in
+        // onboarding that is the way into the wallet.
+        var signupShown by remember { mutableStateOf(false) }
+        LaunchedEffect(state.signup == null) {
+            if (state.signup != null) signupShown = true else if (signupShown) onDown()
+        }
+    }
+
     Box(modifier = modifier.fillMaxSize()) {
         val signup = state.signup
         if (signup == null) {
-            BuyCards(state = state, controller = controller, onDown = onDown)
+            if (!onboarding) BuyCards(state = state, controller = controller, onDown = onDown)
         } else {
             SignupContainer(signup = signup, controller = controller)
             if (signup.showInitiative) {
