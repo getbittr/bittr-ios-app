@@ -35,9 +35,9 @@ For the full feature-/interaction-level gap list (LNURL-withdraw, deep links, pu
 
 - **VC**: `ios/bittr/Pin/PinViewController.swift` (in `.core` embedding)
 - **Purpose**: unlock the app on launch when a wallet exists; also embedded by the signup/restore PIN-set steps.
-- **States**: visible / wrong-PIN alert / lockout warning.
-- **Flow**: `shared/flows/helpers/unlock.yaml` (subflow), `features/{wrong_pin,wrong_pin_with_channel,pin_warning,forgot_pin,forgot_pin_remove_wallet}.yaml`
-- **Screenshots**: `wrong_pin/01_unlock.png`, `pin_warning/01_unlock.png`, `pin_warning/02_warning.png`, `forgot_pin/01_unlock.png`
+- **States**: visible / wrong-PIN alert / lockout warning. Also returned to from Home, without a relaunch, once the app has been backgrounded past the inactivity window.
+- **Flow**: `shared/flows/helpers/unlock.yaml` (subflow), `features/{wrong_pin,wrong_pin_with_channel,pin_warning,forgot_pin,forgot_pin_remove_wallet,inactivity_lock}.yaml`
+- **Screenshots**: `wrong_pin/01_unlock.png`, `pin_warning/01_unlock.png`, `pin_warning/02_warning.png`, `forgot_pin/01_unlock.png`, `inactivity_lock/04_locked_again.png`
 
 ### Syncing status
 
