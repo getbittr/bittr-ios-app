@@ -674,11 +674,8 @@ object WalletModule {
         )
     }
 
-    /** What Home reads — the balance, the history, and whether the first sync finished. */
-    @Provides
-    @Singleton
-    fun provideWalletOverviewSource(composition: WalletComposition): WalletOverviewSource =
-        composition.overview
+    // What Home reads — `WalletOverviewSource` — is bound in `history/HistoryModule`, which applies
+    // descriptions and swap matching to `WalletComposition.overview`.
 }
 
 /**

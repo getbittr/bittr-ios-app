@@ -4,6 +4,7 @@ import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.provider.Settings
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.ui.platform.LocalContext
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavGraphBuilder
@@ -13,6 +14,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
 import com.bittr.android.feature.swap.SwapLaunch
 import com.bittr.android.feature.swap.SwapRoute
+import com.bittr.android.swap.SwapLaunchViewModel
 import com.bittr.android.swap.SwapViewModel
 import java.io.File
 
@@ -25,8 +27,10 @@ object SwapRoutes {
     private const val AMOUNT = "amount"
     private const val ADDRESS = "address"
     private const val BOLTZ_ID = "boltzId"
+    private const val PAYOUT_SWAP_SATS = "payoutSwapSats"
 
-    const val SWAP = "swap?$INVOICE={$INVOICE}&$AMOUNT={$AMOUNT}&$ADDRESS={$ADDRESS}&$BOLTZ_ID={$BOLTZ_ID}"
+    const val SWAP = "swap?$INVOICE={$INVOICE}&$AMOUNT={$AMOUNT}&$ADDRESS={$ADDRESS}&$BOLTZ_ID={$BOLTZ_ID}" +
+        "&$PAYOUT_SWAP_SATS={$PAYOUT_SWAP_SATS}"
 
     /** The Move screen's swap button. */
     fun swap(): String = "swap"
@@ -41,7 +45,10 @@ object SwapRoutes {
     /** An existing swap's status card. */
     fun status(boltzId: String): String = "swap?$BOLTZ_ID=${Uri.encode(boltzId)}"
 
-    internal val arguments = listOf(INVOICE, AMOUNT, ADDRESS, BOLTZ_ID).map { name ->
+    /** "Swap & Instant Receive" on a channel-full payout: a lightning-to-onchain swap of [sats]. */
+    fun payoutSwap(sats: Long): String = "swap?$PAYOUT_SWAP_SATS=$sats"
+
+    internal val arguments = listOf(INVOICE, AMOUNT, ADDRESS, BOLTZ_ID, PAYOUT_SWAP_SATS).map { name ->
         navArgument(name) {
             type = NavType.StringType
             nullable = true
@@ -57,6 +64,7 @@ object SwapRoutes {
             payoutAddress = arguments?.getString(ADDRESS),
             payoutAmountSats = amount,
             boltzId = arguments?.getString(BOLTZ_ID),
+            payoutSwapSats = arguments?.getString(PAYOUT_SWAP_SATS)?.toLongOrNull(),
         )
     }
 }
@@ -64,7 +72,13 @@ object SwapRoutes {
 internal fun NavGraphBuilder.swapArea(navController: NavHostController) {
     composable(route = SwapRoutes.SWAP, arguments = SwapRoutes.arguments) { entry ->
         val swap: SwapViewModel = hiltViewModel()
+        val launches = hiltViewModel<SwapLaunchViewModel>().requests
         val context = LocalContext.current
+        // A swap push is ignored while a swap screen is showing (iOS `swapVC != nil`).
+        DisposableEffect(launches) {
+            launches.setSwapScreenOpen(true)
+            onDispose { launches.setSwapScreenOpen(false) }
+        }
         SwapRoute(
             coordinator = swap.coordinator,
             fiat = swap.fiat,

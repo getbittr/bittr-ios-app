@@ -176,19 +176,49 @@ class PushCoordinator(
                 question(envelope.headerText ?: PushStrings.HTLC_EXPIRED_TITLE, envelope.bodyText ?: PushStrings.HTLC_EXPIRED_BODY)
             }
             is PushEnvelope.Unknown -> question(PushStrings.OOPS, PushStrings.BITTR_NOTIFICATION_FAIL)
-            is PushEnvelope.Swap -> delegate(envelope) { swapHandler?.onSwapPush(envelope) ?: log("No swap handler bound; swap push dropped.") }
+            is PushEnvelope.Swap -> handleSwap(envelope)
             is PushEnvelope.LightningAddress -> handleLightningAddress(envelope)
         }
     }
 
-    private fun delegate(envelope: PushEnvelope, handle: suspend () -> Unit) {
-        if (!signedIn || !synced) {
-            pending = envelope
-            if (!signedIn) wasNotified = true
+    // ---- Swap status (`HandlePaymentNotification.swift:602-650`). ----
+
+    /**
+     * `handleSwapNotificationFromBackground`: ignored while a swap screen is open; locked, the
+     * user is asked to sign in and the push is kept; syncing, it waits; synced, the latest swap's
+     * status opens. Nothing here claims or refunds.
+     */
+    private fun handleSwap(push: PushEnvelope.Swap) {
+        val handler = swapHandler
+        if (handler == null) {
+            log("No swap handler bound; swap push dropped.")
             return
         }
-        if (pending === envelope) pending = null
-        scope.launch { handle() }
+        if (push.swapId.isNullOrBlank()) {
+            if (pending === push) pending = null
+            return
+        }
+        if (handler.swapScreenOpen()) {
+            log("A swap screen is already open; ignoring the swap push.")
+            return
+        }
+        when {
+            !signedIn -> {
+                wasNotified = true
+                pending = push
+                alert(null, PushStrings.SWAP_STATUS_UPDATE, PushStrings.PLEASE_SIGN_IN, okay())
+            }
+            !synced -> {
+                pending = push
+                showLoading(TestID.Loading.syncingWallet, PushStrings.SYNCING_WALLET_3)
+            }
+            else -> {
+                // `handleSwapNotificationImmediately`.
+                pending = null
+                hideLoading()
+                scope.launch { handler.onSwapPush(push) }
+            }
+        }
     }
 
     // ---- Lightning payout (`HandlePaymentNotification.swift:13-37, 144-303`). ----

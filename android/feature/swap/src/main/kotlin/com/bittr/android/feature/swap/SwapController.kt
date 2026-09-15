@@ -34,6 +34,9 @@ interface SwapFiat {
  * @property invoice Swap & Pay from Send: the invoice to pay with an onchain-to-lightning swap.
  * @property payoutAddress Swap & Pay from Send: where a lightning-to-onchain swap pays out.
  * @property boltzId an existing swap's status card.
+ * @property payoutSwapSats "Swap & Instant Receive" on a channel-full payout (iOS
+ *   `pendingOnchainAmount` → `handleNotificationSwap`): a lightning-to-onchain swap of this amount,
+ *   started straight away.
  */
 data class SwapLaunch(
     val invoice: String? = null,
@@ -41,6 +44,7 @@ data class SwapLaunch(
     val payoutAddress: String? = null,
     val payoutAmountSats: Long? = null,
     val boltzId: String? = null,
+    val payoutSwapSats: Long? = null,
 )
 
 data class SwapUiButton(val label: String, val onClick: () -> Unit)
@@ -105,6 +109,11 @@ class SwapController(
             launch.payoutAddress != null -> startSuggested(SwapDirection.LightningToOnchain, launch.payoutAmountSats ?: 0) {
                 SwapRequest(SwapDirection.LightningToOnchain, it, payoutAddress = launch.payoutAddress, suggested = true)
             }
+            // `handleNotificationSwap`: not a suggested swap — `lightningToOnchain(payoutAddress: nil)`.
+            launch.payoutSwapSats != null && launch.payoutSwapSats > 0 ->
+                startSuggested(SwapDirection.LightningToOnchain, launch.payoutSwapSats) {
+                    SwapRequest(SwapDirection.LightningToOnchain, it)
+                }
             else -> refreshLimit()
         }
     }

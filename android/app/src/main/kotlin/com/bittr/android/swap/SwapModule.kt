@@ -10,13 +10,13 @@ import com.bittr.android.core.preferences.AppPreferences
 import com.bittr.android.core.swaps.BoltzApi
 import com.bittr.android.core.swaps.BoltzEndpoints
 import com.bittr.android.core.swaps.BoltzWebhookMinter
-import com.bittr.android.core.swaps.FileSwapStore
 import com.bittr.android.core.swaps.InvoiceFacts
 import com.bittr.android.core.swaps.InvoiceInspector
 import com.bittr.android.core.swaps.SwapCoordinator
-import com.bittr.android.core.swaps.SwapPushHandler
+import com.bittr.android.core.swaps.SwapStore
 import com.bittr.android.core.swaps.WebhookUrlCache
 import com.bittr.android.core.wallet.SecureStore
+import com.bittr.android.core.wallet.TransactionDescriptionStore
 import com.bittr.android.core.wallet.ldk.adapter.Bolt11Decoder
 import com.bittr.android.core.wallet.ldk.seed.SecureStoreSeedVault
 import com.bittr.android.core.wallet.seed.SeedWalletService
@@ -31,14 +31,18 @@ import dagger.hilt.InstallIn
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
-import java.io.File
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 
-/** Swaps' bindings: one [SwapCoordinator] for the process, over the one wallet composition. */
+/**
+ * Swaps' bindings: one [SwapCoordinator] for the process, over the one wallet composition.
+ *
+ * No push handler is bound to the coordinator: iOS never claims or refunds from a swap push, it
+ * only opens the status screen (`SwapPushHooksModule`).
+ */
 @Module
 @InstallIn(SingletonComponent::class)
 object SwapModule {
@@ -53,17 +57,17 @@ object SwapModule {
         signer: BittrRequestSigner,
         tokens: DeviceTokenSource,
         fees: MempoolFeeEstimates,
-        store: SecureStore,
+        secureStore: SecureStore,
+        swapStore: SwapStore,
+        descriptions: TransactionDescriptionStore,
     ): SwapCoordinator {
         val endpoints = BoltzEndpoints.forEnvironment(environment)
         val webhookCache = PrefsBoltzWebhookCache(context)
-        val vault = SecureStoreSeedVault(store, SeedWalletService.KEY_SEED)
+        val vault = SecureStoreSeedVault(secureStore, SeedWalletService.KEY_SEED)
         return SwapCoordinator(
             api = BoltzApi(http, endpoints),
-            wallet = AppSwapWallet(composition, fees, mnemonic = vault::read),
-            // App-private, and backup is off app-wide: the swap files hold refund keys in the clear,
-            // as iOS's do, because they are the user's rescue artifact for Boltz.
-            store = FileSwapStore(File(context.filesDir, "swaps")),
+            wallet = AppSwapWallet(composition, fees, descriptions, mnemonic = vault::read),
+            store = swapStore,
             pushGate = BoltzWebhookMinter(
                 environment = environment,
                 http = http,
@@ -80,11 +84,6 @@ object SwapModule {
             scope = CoroutineScope(SupervisorJob() + Dispatchers.IO),
         )
     }
-
-    /** What a `swap_notification` push is handed to — see [SwapPushHandler]. */
-    @Provides
-    @Singleton
-    fun provideSwapPushHandler(coordinator: SwapCoordinator): SwapPushHandler = coordinator
 
     @Provides
     @Singleton

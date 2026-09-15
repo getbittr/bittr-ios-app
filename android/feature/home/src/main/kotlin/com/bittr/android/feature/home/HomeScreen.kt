@@ -585,6 +585,22 @@ private fun HistoryCard(row: HistoryRow, position: Int, onClick: () -> Unit) {
                         .size(18.dp),
                 )
             }
+            row.swap?.let { swap ->
+                // `swapImage`: blue once complete, grey while pending, with a row-indexed id.
+                val complete = swap == HistorySwap.Complete
+                Image(
+                    imageVector = rememberStrokeIcon(
+                        SWAP_ICON_PATH,
+                        if (complete) colors.emphasis else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f),
+                        strokeWidth = 2f,
+                    ),
+                    contentDescription = if (complete) "Swap complete" else "Swap pending",
+                    modifier = Modifier
+                        .padding(start = BittrTokens.Spacing.sm)
+                        .size(18.dp)
+                        .testTag(if (complete) TestID.History.swapCompleteAt(position) else TestID.History.swapPendingAt(position)),
+                )
+            }
             Column(horizontalAlignment = Alignment.End, modifier = Modifier.weight(1f)) {
                 Text(
                     text = row.sats,
@@ -599,6 +615,9 @@ private fun HistoryCard(row: HistoryRow, position: Int, onClick: () -> Unit) {
         }
     }
 }
+
+/** Two opposed arrows — the history row's swap icon. */
+private const val SWAP_ICON_PATH = "M7 20V5M7 5L4 8M7 5l3 3M17 4v15M17 19l-3-3M17 19l3-3"
 
 /** The mock's 34 dp sweep under the yellow block. */
 private val HeaderShape = RoundedCornerShape(bottomStart = 34.dp, bottomEnd = 34.dp)

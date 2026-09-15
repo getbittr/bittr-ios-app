@@ -54,6 +54,10 @@ internal object PushStrings {
         "Swapping isn't available in the Android app yet. Tap Receive on-chain to get this payment paid " +
             "out to your regular balance instead."
 
+    // Swap status (`swapstatusupdate`, `pleasesignin`).
+    const val SWAP_STATUS_UPDATE = "Your swap status has been updated"
+    const val PLEASE_SIGN_IN = "Please sign in and wait a moment to receive your payment."
+
     // Lightning address (`paymentrequest`, `paymentrequest2`, `paymentrequest3`, `generatinginvoice`).
     const val PAYMENT_REQUEST = "Payment Request"
     const val PAYMENT_REQUEST_SIGN_IN = "Someone wants to pay you <b><amount> satoshis</b>! Please sign in to accept the payment."

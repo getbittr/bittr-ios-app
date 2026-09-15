@@ -14,11 +14,17 @@ fun interface DepositCodeSource {
 }
 
 /**
- * `swap_notification` — iOS's `SwapViewController.handleSwapNotification` /
- * `handleSwapNotificationFromBackground`. The swaps port binds one; until then swap
- * pushes are logged and dropped.
+ * `swap_notification` — iOS's `handleSwapNotificationFromBackground`. [PushCoordinator] decides
+ * when (sign-in, sync); this knows whether a swap screen is showing and opens the latest swap's
+ * status. It never claims or refunds — iOS does that from the swap screens, not from a push.
+ * Unbound, swap pushes are logged and dropped.
  */
-fun interface SwapPushHandler {
+interface SwapPushHandler {
+
+    /** A swap screen or status card is already open, so the push is ignored. */
+    fun swapScreenOpen(): Boolean
+
+    /** `handleSwapNotificationImmediately`: open the latest swap's status, if the app is active. */
     suspend fun onSwapPush(push: PushEnvelope.Swap)
 }
 

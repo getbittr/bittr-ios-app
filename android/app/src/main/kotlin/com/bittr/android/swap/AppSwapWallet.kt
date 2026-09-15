@@ -7,6 +7,7 @@ import com.bittr.android.core.swaps.SwapKey
 import com.bittr.android.core.swaps.SwapPayment
 import com.bittr.android.core.swaps.SwapPaymentState
 import com.bittr.android.core.swaps.SwapWallet
+import com.bittr.android.core.wallet.TransactionDescriptionStore
 import com.bittr.android.core.wallet.ldk.bip.Bip84Account
 import com.bittr.android.core.wallet.ldk.lightning.Bolt11DescriptionView
 import com.bittr.android.core.wallet.ldk.lightning.PaymentStatusView
@@ -29,6 +30,7 @@ import kotlinx.coroutines.withTimeoutOrNull
 class AppSwapWallet(
     private val composition: WalletComposition,
     private val fees: MempoolFeeEstimates,
+    private val descriptions: TransactionDescriptionStore,
     private val mnemonic: () -> String?,
 ) : SwapWallet {
 
@@ -124,11 +126,11 @@ class AppSwapWallet(
     }
 
     /**
-     * Android's history does not show descriptions yet, so the swap legs are not labelled or merged
-     * into one row. Logged so the gap is visible; see android/docs/port-specs/swaps-decisions.md.
+     * `CacheManager.storeInvoiceDescription`: the swap's `dateID` on each leg (payment hash or txid),
+     * which is how the history matches the two legs into one swap row.
      */
     override fun recordDescription(key: String, description: String) {
-        Log.i(TAG, "Swap label not stored (no description cache on Android yet): $description")
+        descriptions.store(key, description)
     }
 
     override fun recordPaymentFees(key: String, feesSats: Long) = Unit

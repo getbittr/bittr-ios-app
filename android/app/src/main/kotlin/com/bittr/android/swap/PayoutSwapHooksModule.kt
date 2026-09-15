@@ -9,15 +9,28 @@ import javax.inject.Inject
 import javax.inject.Singleton
 import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
+import kotlinx.coroutines.flow.asStateFlow
 
 /** A request, from outside any screen, to open the swap screen. The navigation graph collects it. */
-data class SwapLaunchRequest(val notificationId: String, val suggestedSats: Long)
+sealed interface SwapLaunchRequest {
+
+    /**
+     * "Swap & Instant Receive" on a channel-full payout — iOS `swapAndPayForNotification` →
+     * `CoreToSwap` with `pendingSuggestedSwapAmount`: a lightning-to-onchain swap of that amount.
+     */
+    data class PayoutSwap(val notificationId: String, val suggestedSats: Long) : SwapLaunchRequest
+
+    /** A swap push: the latest swap's status screen (`HomeToSwapStatus`). */
+    data class Status(val boltzId: String) : SwapLaunchRequest
+}
 
 /**
- * "Swap & Instant Receive" on a channel-full payout — iOS stores `pendingSuggestedSwapAmount` and
- * opens the swap screen. The push coordinator has no navigation, so it posts here.
+ * The push coordinator has no navigation, so it posts here; and the swap screen says here whether
+ * it is showing, which a swap push checks before opening another (iOS `swapVC != nil`).
  */
 @Singleton
 class SwapLaunchRequests @Inject constructor() {
@@ -28,7 +41,14 @@ class SwapLaunchRequests @Inject constructor() {
     )
     val requests: SharedFlow<SwapLaunchRequest> = _requests.asSharedFlow()
 
+    private val _swapScreenOpen = MutableStateFlow(false)
+    val swapScreenOpen: StateFlow<Boolean> = _swapScreenOpen.asStateFlow()
+
     fun post(request: SwapLaunchRequest): Boolean = _requests.tryEmit(request)
+
+    fun setSwapScreenOpen(open: Boolean) {
+        _swapScreenOpen.value = open
+    }
 }
 
 /** How the navigation graph reaches [SwapLaunchRequests]. */
@@ -42,6 +62,6 @@ object PayoutSwapHooksModule {
     @Provides
     fun providePayoutSwapLauncher(requests: SwapLaunchRequests): PayoutSwapLauncher =
         PayoutSwapLauncher { notificationId, suggestedSats ->
-            requests.post(SwapLaunchRequest(notificationId, suggestedSats))
+            requests.post(SwapLaunchRequest.PayoutSwap(notificationId, suggestedSats))
         }
 }
