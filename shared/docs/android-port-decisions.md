@@ -115,12 +115,14 @@ Full log: `android/docs/port-specs/buy-decisions.md`. What needs you:
     opens the system dialog, which the flow doesn't expect. Add an Android-only "Don't allow" step to the flow,
     or change the app?
 
-22. **Question — onboarding's "Your wallet is ready" → bittr signup isn't wired yet.** Continue still ends
-    onboarding, so `happy_path_signup.yaml` and `fresh_install_unhappy.yaml` don't reach the signup pages. The
-    Buy signup pages can be reused there as iOS does (pages 9–13). I can do that next if you want it.
+22. **Decided — onboarding continues into the bittr signup** as on iOS: Continue on "Your wallet is ready" opens
+    the Buy signup pages (IBAN, email, code, success, transfer); Skip still goes to the wallet. The navigation
+    graph's start destination is now read once at launch, so unlocking during onboarding no longer resets it.
 
 23. **Decided (Ruben, 2026-09-15) — no push token halts the signup**, and the user is asked whether they want
-    on-chain-only payouts, as iOS does. (Being implemented; replaces the "register without a token" behaviour.)
+    on-chain-only payouts, as iOS does: with notifications allowed the code is sent once a token arrives (up to
+    15 s); without one the signup stops on `tokenregistrationfail` [Try again, Continue], and Continue registers
+    for on-chain payouts. A registration that carried a token is recorded, so the next launch doesn't re-send it.
 
 24. **Decided — two iOS quirks not copied:**
     - A payout-mode change is applied even when the IBAN and other details didn't change. iOS only checks it
@@ -128,9 +130,9 @@ Full log: `android/docs/port-specs/buy-decisions.md`. What needs you:
     - A missing `lightning_address_username` doesn't count as a change, so "Update details" doesn't fire every
       time Buy opens.
 
-25. **Gap — profits don't count the channel-funding transaction yet** (iOS sends `getTxoID()` to
-    `/transaction_info` too). Also not ported: the article cards on the signup pages, the connectivity check
-    between pages, and the Sentry signup metric.
+25. **Decided — profits count the channel-funding purchase** (its txid goes to `/transaction_info`, as iOS's
+    `getTxoID()`). Still not ported: the article cards on the signup pages, the connectivity check between pages,
+    and the Sentry signup metric.
 
 26. **Decided — the push handlers read the deposit code from the Buy customer store**
     (`BuyPushHooksModule`), so `htlc-interceptor/ready` and payouts work once a customer has signed up.
