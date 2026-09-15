@@ -88,7 +88,13 @@ class PushCoordinator(
     /** iOS `lightningNotification`. */
     private var pending: PushEnvelope? = null
 
-    /** iOS `wasNotified`: the pending push arrived while the wallet was locked. */
+    /**
+     * iOS `wasNotified`: a push arrived while the wallet was locked, so signing in was the consent
+     * and payouts go ahead without the "you're receiving a payment" alert.
+     *
+     * **Never cleared**, as on iOS (decision 19, Ruben 2026-09-15: "pay out silently"): once a push
+     * has arrived while locked, later payment pushes in the same process pay out silently too.
+     */
     private var wasNotified = false
 
     /** iOS `isHandlingIncomingHTLC`. */
@@ -203,7 +209,6 @@ class PushCoordinator(
     }
 
     private fun triggerPayout() {
-        wasNotified = false
         showLoading(TestID.Loading.receivingPayment, PushStrings.RECEIVING_PAYMENT)
         scope.launch {
             pause(1_000)
@@ -374,7 +379,6 @@ class PushCoordinator(
     }
 
     private fun answerLightningAddress(push: PushEnvelope.LightningAddress, handler: LnurlPushHandler) {
-        wasNotified = false
         pending = null
         showLoading(null, PushStrings.GENERATING_INVOICE)
         scope.launch {
@@ -411,7 +415,6 @@ class PushCoordinator(
     }
 
     private fun triggerHtlcReady() {
-        wasNotified = false
         showLoading(TestID.Loading.receivingPayment, PushStrings.RECEIVING_PAYMENT)
         pending = null
         scope.launch {

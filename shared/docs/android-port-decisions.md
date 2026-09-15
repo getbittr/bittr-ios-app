@@ -98,11 +98,10 @@ Full log: `android/docs/port-specs/notifications-decisions.md`. The two that nee
     are merged. It opens the plain swap screen; iOS pre-fills the suggested amount, which the Android swap route
     can't take yet (small gap). The "Swapping isn't available…" copy is only left as a fallback for tests.
 
-19. **Question — "arrived while locked" flag.** Ruben needs context first (given 2026-09-15): when a payout or
-    incoming-payment push arrives while the app is locked, the app remembers it and, after unlock and sync, pays
-    out straight away without the "You're receiving a payment, tap Okay" alert — signing in counts as consent.
-    iOS never clears that flag, so every *later* push in the same session also skips the alert; Android clears it
-    after each payout. Still open.
+19. **Decided (Ruben, 2026-09-15) — "arrived while locked": pay out silently, as on iOS.** Once a payout,
+    incoming-payment or Lightning-address push has arrived while the app was locked, later payment pushes in the
+    same session also go ahead without the "You're receiving a payment, tap Okay" alert. The flag is never
+    cleared (Android used to clear it after each payout).
 
 20. **Decided — pushes are tested on Android through a debug-only broadcast receiver.** Start
     `BITTR_PUSH_PLATFORM=android node shared/flows/scripts/push_server.js` and the flows run unchanged.
@@ -147,9 +146,12 @@ bitcoin-kmp, with every iOS check on Boltz's answers and the evil-Boltz cases as
 28. **Decided — claims and refunds keep running after the swap screen closes** (process scope). iOS ties them
     to the view controller.
 
-29. **Question — FCM on the test emulator.** A swap needs a push token for Boltz's webhook, so without Firebase
-    set up on the emulator every swap stops at `alert.notificationsRequired`. Should the Android test emulator
-    get a Play-services image and `google-services.json`?
+29. **Decided (Ruben, 2026-09-15) — test on an emulator with Google Play services.** The local AVD moves from the
+    plain `default` image (no Play services, so no Firebase token) to `google_apis`, which can mint real FCM tokens
+    like a phone. `google_apis` rather than `google_apis_playstore`: same Play services, but it keeps `adb root`
+    and a writable system, which is why the `fcm-delivery.yml` CI job already uses it. The CI Maestro job still
+    boots `aosp_atd` (lightest, fastest); flows that need a real token (swaps, the signup's token step) need a
+    `google_apis` leg there too.
 
 30. **Decided (Ruben, 2026-09-15) — swap pushes behave as on iOS:** locked → "please sign in" alert, syncing →
     loading card, synced → open the swap status only when the app is in front. No claim or refund straight from

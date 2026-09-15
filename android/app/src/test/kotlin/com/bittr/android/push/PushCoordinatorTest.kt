@@ -293,4 +293,19 @@ class PushCoordinatorTest {
         assertEquals(1, requests.size)
         assertEquals(PushUiState(), state)
     }
+
+    /** Decision 19: once a push has arrived while locked, later payouts pay out silently, as on iOS. */
+    @Test
+    fun `after a push that arrived while locked, later payouts in the session do not ask`() {
+        reply = HttpResponse(200, """{"success":true,"pre_image":"pre"}""")
+        coordinator.receive(PushEnvelope.LightningPayout("n1", 1_000))
+        unlockAndSync()
+        assertEquals(1, requests.size)
+
+        now += 11_000
+        coordinator.receive(PushEnvelope.LightningPayout("n2", 2_000))
+        assertNull("no \"you're receiving a payment\" alert", state.alert)
+        assertEquals(2, requests.size)
+        assertTrue(requests.last().url.contains("notification_id=n2"))
+    }
 }
