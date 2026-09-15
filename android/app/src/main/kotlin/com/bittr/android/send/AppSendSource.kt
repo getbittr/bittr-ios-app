@@ -112,7 +112,8 @@ class AppSendSource(
     override suspend fun settledTransactionId(id: String): String? = io {
         runCatching { lightning.syncWallets() }
         refresh()
-        overview.overview.value.transactions.firstOrNull { it.id == id }?.id
+        // A Lightning row's id is its preimage once paid; the payment id Send holds is its hash.
+        overview.overview.value.transactions.firstOrNull { it.id == id || it.paymentHash.equals(id, ignoreCase = true) }?.id
     }
 
     override fun fiatCurrency(): FiatCurrency =

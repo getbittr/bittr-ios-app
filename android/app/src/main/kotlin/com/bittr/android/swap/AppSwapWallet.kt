@@ -32,6 +32,8 @@ class AppSwapWallet(
     private val fees: MempoolFeeEstimates,
     private val descriptions: TransactionDescriptionStore,
     private val mnemonic: () -> String?,
+    /** The matched history the transaction screen reads, where a swap's two legs are one row. */
+    private val history: com.bittr.android.core.wallet.WalletOverviewSource? = null,
 ) : SwapWallet {
 
     @Volatile private var lastRate: Long? = null
@@ -140,10 +142,24 @@ class AppSwapWallet(
         composition.refresh()
     }
 
+    /**
+     * `openCompletedSwapTransaction`: the completed swap's row, once both legs are matched into it.
+     * The Lightning leg is found by its payment hash (its id is the preimage); null until the matched
+     * history holds a succeeded swap row with that leg, so the caller retries as iOS does.
+     */
     override suspend fun transactionIdForPayment(paymentHash: String): String? = io {
         runCatching { lightning.syncWallets() }
         composition.refresh()
-        overview.transactions.firstOrNull { it.id.equals(paymentHash, ignoreCase = true) }?.id
+        val leg = overview.transactions.firstOrNull {
+            it.paymentHash.equals(paymentHash, ignoreCase = true) || it.id.equals(paymentHash, ignoreCase = true)
+        } ?: return@io null
+        history?.overview?.value?.transactions?.firstOrNull { row ->
+            row.swap?.let { swap ->
+                !swap.isSuggested &&
+                    swap.status == com.bittr.android.core.wallet.SwapActivityStatus.Succeeded &&
+                    (swap.lightningId == leg.id || swap.onchainId == leg.id)
+            } == true
+        }?.id
     }
 
     private suspend fun <T> io(block: suspend () -> T): T = withContext(Dispatchers.IO) { block() }

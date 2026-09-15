@@ -84,7 +84,7 @@ internal fun NavGraphBuilder.swapArea(navController: NavHostController) {
             fiat = swap.fiat,
             launch = SwapRoutes.launch(entry.arguments),
             onDown = { navController.popBackStack() },
-            onOpenTransaction = { id -> navController.navigate(Routes.transaction(id)) },
+            onOpenTransaction = { id -> navController.openTransaction(id) },
             onRequestNotifications = { openNotificationSettings(context) },
             onShareFile = { file -> shareSwapFile(context, file) },
         )

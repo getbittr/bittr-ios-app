@@ -86,7 +86,12 @@ class MatchedWalletOverviewSource(
 
     private fun matched(wallet: WalletOverview, stored: Map<String, String>): WalletOverview {
         val described = SwapHistory.withDescriptions(wallet.transactions, stored)
-        val rows = SwapHistory.matched(described, swaps::swapIdFor) { dateId ->
+        val rows = SwapHistory.matched(
+            transactions = described,
+            swapIdFor = swaps::swapIdFor,
+            // `loadSwapDetailsFromFile(swapID:)`: what the transaction screen shows as the swapped amount.
+            swapAmountFor = { dateId -> swaps.swapIdFor(dateId)?.let(swaps::load)?.satoshisAmount?.takeIf { it > 0 } },
+        ) { dateId ->
             when (swaps.suggestedStatus(dateId)) {
                 SuggestedSwapStatus.Pending -> SwapActivityStatus.Pending
                 SuggestedSwapStatus.Succeeded -> SwapActivityStatus.Succeeded

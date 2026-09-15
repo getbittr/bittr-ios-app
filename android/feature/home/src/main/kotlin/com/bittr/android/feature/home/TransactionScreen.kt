@@ -171,7 +171,7 @@ fun TransactionScreen(
                             .testTag(TestID.Transaction.labelDate),
                     )
                     DetailRow(HomeStrings.AMOUNT, shown.amount, valueTag = TestID.Transaction.labelAmount)
-                    DetailRow(HomeStrings.TYPE, if (shown.isLightning) HomeStrings.INSTANT else HomeStrings.REGULAR, bolt = shown.isLightning)
+                    DetailRow(HomeStrings.TYPE, shown.type, bolt = shown.typeBolt)
                     shown.fees?.let { DetailRow(HomeStrings.FEES_PAID, it) }
                     shown.confirmations?.let { DetailRow(HomeStrings.CONFIRMATIONS, it) }
                     shown.swap?.let { swap ->
