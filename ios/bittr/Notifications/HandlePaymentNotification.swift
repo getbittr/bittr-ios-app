@@ -650,6 +650,13 @@ extension CoreViewController {
     // Tapping the swap Live Activity (Dynamic Island / Lock Screen) routes here.
     @objc func openSwapStatus() {
         DispatchQueue.main.async {
+            // The swap screen carries amounts, so it waits for the PIN.
+            guard self.userHasSignedIn else {
+                Log.info("openSwapStatus while locked. Deferring until the PIN is entered.")
+                self.deferredPresentation = { [weak self] in self?.openSwapStatus() }
+                return
+            }
+            
             guard CacheManager.getLatestSwap() != nil else { return }
             
             if let swapVC = self.swapVC {
