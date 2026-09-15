@@ -9,6 +9,63 @@ import UIKit
 
 extension CoreViewController {
     
+    @objc func appWillResignActive() {
+        self.showPrivacyCover()
+    }
+    
+    @objc func appDidBecomeActive() {
+        self.hidePrivacyCover()
+    }
+    
+    func showPrivacyCover() {
+        guard self.privacyCover == nil, let window = self.view.window else { return }
+        
+        let cover = UIView(frame: window.bounds)
+        cover.autoresizingMask = [.flexibleWidth, .flexibleHeight]
+        cover.backgroundColor = Colors.getColor("yelloworblue3")
+        
+        let logoView = UIView()
+        logoView.translatesAutoresizingMaskIntoConstraints = false
+        cover.addSubview(logoView)
+        
+        let isDarkMode = CacheManager.darkModeIsOn()
+        let logo = UIImageView(image: UIImage(named: isDarkMode ? "logodarkmode80" : "logo80"))
+        logo.contentMode = .scaleAspectFit
+        logo.translatesAutoresizingMaskIntoConstraints = false
+        logoView.addSubview(logo)
+        
+        let text = UIImageView(image: UIImage(named: isDarkMode ? "bittrtextwhite" : "bittrtext"))
+        text.contentMode = .scaleAspectFit
+        text.translatesAutoresizingMaskIntoConstraints = false
+        logoView.addSubview(text)
+        
+        NSLayoutConstraint.activate([
+            logoView.widthAnchor.constraint(equalToConstant: 106),
+            logoView.heightAnchor.constraint(equalToConstant: 30),
+            logoView.centerXAnchor.constraint(equalTo: cover.centerXAnchor),
+            logoView.centerYAnchor.constraint(equalTo: cover.centerYAnchor),
+            
+            // Square, filling the icon slot at the leading edge.
+            logo.leadingAnchor.constraint(equalTo: logoView.leadingAnchor),
+            logo.centerYAnchor.constraint(equalTo: logoView.centerYAnchor),
+            logo.widthAnchor.constraint(equalTo: logoView.heightAnchor),
+            logo.heightAnchor.constraint(equalTo: logoView.heightAnchor),
+            
+            text.trailingAnchor.constraint(equalTo: logoView.trailingAnchor),
+            text.centerYAnchor.constraint(equalTo: logoView.centerYAnchor, constant: 0.5),
+            text.widthAnchor.constraint(equalTo: logoView.heightAnchor, multiplier: 2.17971),
+            text.heightAnchor.constraint(equalTo: logoView.heightAnchor, multiplier: 0.94)
+        ])
+        
+        window.addSubview(cover)
+        self.privacyCover = cover
+    }
+    
+    func hidePrivacyCover() {
+        self.privacyCover?.removeFromSuperview()
+        self.privacyCover = nil
+    }
+    
     @objc func appDidEnterBackground() {
         // Keep track of when the app was backgrounded.
         self.backgroundedAt = self.userHasSignedIn ? Date() : nil

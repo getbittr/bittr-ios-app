@@ -15,6 +15,7 @@ class CoreViewController: UIViewController {
     var walletHasSynced = false
     var backgroundedAt:Date?
     var deferredPresentation:(() -> Void)? // A screen someone asked for while the PIN was up.
+    var privacyCover:UIView? // Hides the wallet from the app switcher snapshot.
     
     // True while checkWalletAvailability is waiting for the Keychain to become
     // readable (device locked / transient read error) before it decides.
@@ -175,6 +176,8 @@ class CoreViewController: UIViewController {
         // Watch for the app being backgrounded.
         NotificationCenter.default.addObserver(self, selector: #selector(self.appDidEnterBackground), name: UIApplication.didEnterBackgroundNotification, object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(self.appWillEnterForeground), name: UIApplication.willEnterForegroundNotification, object: nil)
+        NotificationCenter.default.addObserver(self, selector: #selector(self.appWillResignActive), name: UIApplication.willResignActiveNotification, object: nil)
+        NotificationCenter.default.addObserver(self, selector: #selector(self.appDidBecomeActive), name: UIApplication.didBecomeActiveNotification, object: nil)
     }
     
     @objc func checkWalletAvailability() {
