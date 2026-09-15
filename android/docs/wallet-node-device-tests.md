@@ -26,7 +26,7 @@ passed.
 | K7 — interrupted payment resolves to one outcome | **written, not yet run** | **BIT-132** | §3 below |
 | K8 — Doze and App Standby machinery | **written, not yet run** | **BIT-132** | §4 below |
 | K8 — channel-monitor freshness after wake | **written, not yet run — and the claim is narrowed** | **BIT-132** | §4 below |
-| The configured regtest build and the private network | **built, and one green leg deep** | — | §0 below |
+| The configured regtest build and the private network | **built; no leg has run yet, and the bring-up is what three runs have been spent on** | **BIT-147** | §0 below |
 | `data_loss_protect` on channel re-establish | **verified, as far as a binary can be** | — | §5 below |
 
 ## The precondition that is upstream of three of these rows
@@ -115,13 +115,28 @@ than as three Keystore tests failing for a reason that is not about the Keystore
   per-push: K8's useful form is a soak, a cold run builds electrs from source, and
   `wallet-instrumented` already sits inside a 45-minute timeout that one
   self-hosted runner serialises against two other emulator jobs.
-- **One green leg, and it is the vacuity guard for the rest.**
+- **The vacuity guard for the rest — written, and it has not run either.**
   `RegtestEnvironmentTest` asserts on the device that this APK is on the
   node-backed side of the `fromBuildConfig()` branch, that every endpoint names
   the emulator's own host, and that all four of them answer. Six methods, all in
   `check-wallet-regtest-results.py`'s `REQUIRED` set by name.
-- **K7 now runs after it in the same job** — four host-driven phases, written and
-  not yet executed. §3 says what a first run is the first thing to test.
+
+  **This bullet said "One green leg" from `3c888ddf` until BIT-147, and there was
+  no green leg.** The commit that wrote the phrase wrote the job in the same
+  breath, before any run of it existed, and the sentence under it only ever
+  described what the test *asserts*. Three runs of `wallet-regtest-nightly` have
+  now started and all three died in the network bring-up, which is step 7 of 16 —
+  the instrumented tests are step 13. So `RegtestEnvironmentTest` has executed
+  nowhere, and the row in the summary table is *built, no leg run yet*.
+
+  It is worth naming what that was: this document's entire thesis is that
+  **written** and **green** are different words, it says so about
+  `SeedReadableWhileLockedTest`, about K7 and about K8 — and then claimed a green
+  leg it did not have, in the summary table, one row below three that were
+  scrupulous about it. `dd50f457` is cited four times in here as the commit that
+  exists because the distinction was elided once. It was elided twice.
+- **K7 runs after it in the same job** — four host-driven phases, written and not
+  yet executed. §3 says what a first run is the first thing to test.
 
 **What it cost the repository, stated because a future reader will hit it:**
 
@@ -139,6 +154,40 @@ than as three Keystore tests failing for a reason that is not about the Keystore
 **None of this is a K7 or a K8 result.** It is the precondition those two were
 blocked on, and it is now measured rather than argued. §3 and §4 say what each
 still needs.
+
+### What the runs have cost so far — BIT-147
+
+**BIT-147** carries the reading of these runs. Three have started. The first two
+never reached an instrumented test, and neither red was about the wallet:
+
+| Run | Head | Died | After | Cause |
+|---|---|---|---|---|
+| [34838385508](https://github.com/getbittr/bittr-ios-app/actions/runs/34838385508) | `2d917305` | step 7, bring-up | 53s | electrs was pinned to tag `v3.1.0`, which does not exist in `Blockstream/electrs`. `git clone --branch` failed, so nothing was built. |
+| [34838938412](https://github.com/getbittr/bittr-ios-app/actions/runs/34838938412) | `ef2dc2da` | step 7, bring-up | 13m 30s | The bring-up order. electrs and LND both `unhealthy`; the chain they were waiting on was mined on the far side of the wait that required them healthy. `android/regtest/README.md` has the table. |
+| [34931891108](https://github.com/getbittr/bittr-ios-app/actions/runs/34931891108) | `3792094c` | — | — | First run with the ordering fix. |
+
+Three things are worth keeping out of that, because none of them is obvious from
+a green run later:
+
+- **The escape hatch is what makes any of this readable.** The workflow is
+  `schedule` + `workflow_dispatch`, and the repository's default branch is
+  `master`, which carries no `.github/workflows` at all — so cron never fires and
+  there is no dispatch button. `2d917305` added a `push:` trigger on
+  `regtest-run/**`, the pattern `k1-keystore-lockscreen.yml` already used, and
+  pushing that branch is how a run is requested. **Waiting for a merge would not
+  have helped**: the merge target here is `android-parity`, not the default
+  branch.
+- **A bring-up failure has to say which service and show the end of its log.**
+  Run 2's annotation was 4086 characters of bitcoind — the one service that was
+  *healthy* — while electrs contributed one line and LND none. The annotation cap
+  is **4096 characters on the decoded message**, measured on that run, and on this
+  public repository job logs answer 403 and artifacts 401, so the annotation is
+  the whole channel. `up.sh`'s `fail_with_state` now names a per-service verdict
+  first and spends the remaining budget only on the services that are not healthy.
+- **The two reds were both in the harness, and the joins were not the suspect.**
+  `test_k7_host_phase.sh`, `test_k8_doze_soak.sh` and `test_regtest_ldk_env.py`
+  all pass on `3792094c` and need no device — so a red in this job is not a
+  drifted method name until those three say it is. Run them first.
 
 ---
 
