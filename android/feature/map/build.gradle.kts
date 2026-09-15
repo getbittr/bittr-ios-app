@@ -23,6 +23,18 @@ android {
     testOptions {
         unitTests {
             isIncludeAndroidResources = true
+
+            // Where OnePlaceNameFitTest writes its PNGs. Same arrangement as :app,
+            // :feature:scanner and :feature:value — passed in rather than derived in
+            // the test, because a unit test's working directory is an AGP
+            // implementation detail and the value of these files is being able to
+            // tell someone where they are.
+            all {
+                it.systemProperty(
+                    "bittr.screenshot.dir",
+                    layout.buildDirectory.dir("screenshots").get().asFile.absolutePath,
+                )
+            }
         }
     }
 }

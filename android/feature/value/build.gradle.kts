@@ -23,6 +23,17 @@ android {
     testOptions {
         unitTests {
             isIncludeAndroidResources = true
+
+            // Where GraphCardFitTest writes its PNGs. Same arrangement as :app and
+            // :feature:scanner — passed in rather than derived in the test, because a
+            // unit test's working directory is an AGP implementation detail and the
+            // value of these files is being able to tell someone where they are.
+            all {
+                it.systemProperty(
+                    "bittr.screenshot.dir",
+                    layout.buildDirectory.dir("screenshots").get().asFile.absolutePath,
+                )
+            }
         }
     }
 }

@@ -92,9 +92,13 @@ internal fun OnePlaceSheet(
                     modifier = Modifier.fillMaxWidth(),
                 ) {
                     Column(Modifier.weight(1f)) {
+                        // `placeNameLabel` is Gilroy-Bold **22** (`33m-oo-gb6`,
+                        // `Main.storyboard:2805`) — the headline of the sheet, not a
+                        // section header. `titleLarge` is the slot the scale fills at
+                        // 22; it was reading `titleMedium`'s 18. BIT-152.
                         Text(
                             text = place.name ?: MapCopy.UNAVAILABLE,
-                            style = MaterialTheme.typography.titleMedium,
+                            style = MaterialTheme.typography.titleLarge,
                             modifier = Modifier.testTag(TestID.Map.OnePlace.nameLabel),
                         )
                         // `typeLabel` is Gilroy-Bold 16 on iOS (`UqK-Av-YNJ`, wired

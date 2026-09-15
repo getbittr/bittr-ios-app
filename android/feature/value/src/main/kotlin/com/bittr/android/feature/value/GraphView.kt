@@ -26,6 +26,7 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.bittr.android.core.common.TestID
@@ -140,9 +141,16 @@ internal fun GraphView(
                     text = CardDateFormat.format(scrub.point.at.atZone(ZoneId.systemDefault())),
                     style = MaterialTheme.typography.labelMedium,
                 )
+                // `priceLabel` is Gilroy-**Bold** 12 (`GraphView.swift:144`), and 13 is
+                // the scale's floor, so this is `labelMedium` with the weight the
+                // storyboard asks for — the `copy` convention `Type.kt` spells out for
+                // a slot that carries one weight. It was reading `labelLarge`'s Bold
+                // 16, four sp over iOS, which does not fit: `CHF 120,000` wrapped onto
+                // two lines inside the 80 dp card, measured, not guessed. BIT-152.
                 Text(
                     text = "$currencySymbol ${formatPrice(scrub.point.price)}",
-                    style = MaterialTheme.typography.labelLarge,
+                    style = MaterialTheme.typography.labelMedium
+                        .copy(fontWeight = FontWeight.Bold),
                     modifier = Modifier.testTag(TestID.Value.graphValueLabel),
                 )
             }
@@ -172,6 +180,12 @@ internal fun List<PricePoint>.scrub(x: Float, width: Float): ScrubbedPoint? {
 
 private val LineColor = Color(0xFF1A1A1A)
 
-/** `GraphView.cardDateFormatter` — a day and a month, no year. */
-private val CardDateFormat: DateTimeFormatter =
+/**
+ * `GraphView.cardDateFormatter` — a day and a month, no year.
+ *
+ * `internal` so `GraphCardFitTest` can find the date label by the string this card
+ * actually puts in it, rather than re-spelling the pattern and measuring whatever
+ * that produces.
+ */
+internal val CardDateFormat: DateTimeFormatter =
     DateTimeFormatter.ofPattern("dd MMM", Locale.ENGLISH)
