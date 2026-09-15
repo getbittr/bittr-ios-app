@@ -29,6 +29,14 @@ Status key: **Decided** (done, reversible) · **Question** (needs your answer) �
 5. **Decided — Home shows the balance in fiat under the balance** ("CHF 190", iOS `conversionLabel`),
    and refetches the price when the currency changes in Settings.
 
+5a. **Decided — pull-to-refresh on Home** (iOS `ReloadWallet.swift`): once the wallet has synced, pulling Home's
+    list down hides the balance and history, spins `home.headerSpinner`, marks the wallet as not synced (Send and
+    Receive show their syncing guard), then resyncs the node and the on-chain wallet and takes a fresh reading.
+    If nothing can be read, the previous balance and history come back. Two differences: the pull triggers at
+    120 dp (iOS 200 pt of overscroll; tune after trying it), and there is no internet check before refreshing.
+    Home's header and history are now one scrolling list so the pull works from the header too, as
+    `remove_wallet.yaml`'s swipe needs.
+
 ## Scanner and alerts
 
 6. **Decided — every Compose dialog exposes its test ids** (`Modifier.exposeTestTags()`), and
