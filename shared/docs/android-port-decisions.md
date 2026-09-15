@@ -37,6 +37,18 @@ Status key: **Decided** (done, reversible) · **Question** (needs your answer) �
     Home's header and history are now one scrolling list so the pull works from the header too, as
     `remove_wallet.yaml`'s swipe needs.
 
+5b. **Decided — a swap's transaction screen shows what was swapped** (iOS `setTransactionData`): a completed swap
+    shows the amount that arrived, unsigned, with the type "Onchain to Lightning" / "Lightning to Onchain" and fees =
+    sent − received + fee. A pending swap shows the swap file's amount; a refunded on-chain → Lightning swap shows
+    0 sats; a Swap & Pay leg shows "- <amount paid>". Home's history row keeps the signed net amount, as on iOS.
+
+5c. **Decided — the transaction screen opens when a payment or swap completes**, as iOS does: a received or sent
+    Lightning payment (found by payment hash, retrying while the wallet catches up; Receive closes first) and a
+    completed swap (once both legs are in history). Nothing opens while locked or during the 10-wrong-PIN removal.
+    This also fixes Send falling back to a plain "success" alert after a Lightning payment (it looked the row up
+    by payment id instead of payment hash). **Gaps:** iOS's confetti mode is only used for bittr payouts and isn't
+    ported yet; confirmations for channel-pending / bittr purchases and the payment-failed alert aren't wired yet.
+
 ## Scanner and alerts
 
 6. **Decided — every Compose dialog exposes its test ids** (`Modifier.exposeTestTags()`), and
