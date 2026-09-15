@@ -76,7 +76,11 @@ class OkHttpBittrHttpClient(
     }
 
     private fun HttpRequest.toOkHttpRequest(): Request {
+        // A POST or PATCH with everything in the query — the payout calls — still needs a body:
+        // OkHttp refuses those verbs without one ("method POST must have a request body"). iOS's
+        // `makeApiCall` sends such a request with no body, so this is the empty equivalent.
         val body = jsonBody?.toRequestBody(JSON)
+            ?: if (method == HttpMethod.GET) null else ByteArray(0).toRequestBody(JSON)
         return Request.Builder()
             .url(url)
             // The verb is passed through as a string, which is the whole reason this

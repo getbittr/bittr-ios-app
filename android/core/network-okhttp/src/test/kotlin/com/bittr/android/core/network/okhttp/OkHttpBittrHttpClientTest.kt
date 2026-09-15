@@ -87,6 +87,30 @@ class OkHttpBittrHttpClientTest {
         assertEquals("", get.bodyText)
     }
 
+    /**
+     * The payout calls: a POST with everything in the query and no body. OkHttp rejects a POST
+     * built with a null body ("method POST must have a request body"), which surfaced as
+     * "Couldn't connect to Bittr to complete payout" on every payout.
+     */
+    @Test
+    fun `a POST or PATCH with no body is sent with an empty one`() = withServer { server ->
+        server.enqueue(MockResponse.Builder().code(200).body("""{"success":true}""").build())
+        server.enqueue(MockResponse.Builder().code(200).body("{}").build())
+
+        val client = OkHttpBittrHttpClient()
+        val payout = client.execute(
+            HttpRequest(HttpMethod.POST, server.url("/api/payout/lightning?notification_id=n1&invoice=lnbc1").toString()),
+        )
+        client.execute(HttpRequest(HttpMethod.PATCH, server.url("/api/customer/payment-mode").toString()))
+
+        assertEquals(200, payout.code)
+        val post = server.takeRequest()
+        assertEquals("POST", post.method)
+        assertEquals("", post.bodyText)
+        assertEquals("/api/payout/lightning?notification_id=n1&invoice=lnbc1", post.target)
+        assertEquals("PATCH", server.takeRequest().method)
+    }
+
     @Test
     fun `a non-2xx comes back as a response, not as an exception`() = withServer { server ->
         // Load-bearing for api-contract §2.3 rules 2-4: the client's correct
