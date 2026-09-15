@@ -204,6 +204,22 @@ class WalletRemovalCoordinatorTest {
     }
 
     @Test
+    fun `an unreachable bittr node force-closes straight away on a manual removal, as iOS does`() {
+        node.reading = reading(channels = listOf(openChannel()))
+        node.peerConnected = false
+        node.connects = false
+        removal.removeWalletTapped(RemovalOrigin.Settings)
+        tap(1)
+        tap(1)
+
+        assertTrue(node.closed.isEmpty())
+        assertEquals(listOf("user-1"), node.forceClosed)
+        assertEquals(RemovalStrings.FORCE_CLOSE_4, alert?.message)
+        assertTrue(flag.inProgress)
+        assertTrue(seedIsThere)
+    }
+
+    @Test
     fun `a failed close offers a force close, which also keeps the wallet`() {
         node.reading = reading(channels = listOf(openChannel()))
         node.closeFails = true

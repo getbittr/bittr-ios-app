@@ -23,7 +23,8 @@ Status key: **Decided** (done, reversible) · **Question** (needs your answer) �
    iOS reads the cap off LDK's route parameters for the invoice; ldk-node does not expose that call, so
    Android computes LDK's default formula directly.
 
-4. **Gap — "Add a note" on the transaction screen** is not ported yet (used by buy/swap flows).
+4. **Decided — "Add a note" on the transaction screen** is ported (`transaction.addNoteButton`, `alert.addNote`),
+   with the LNURL work.
 
 5. **Decided — Home shows the balance in fiat under the balance** ("CHF 190", iOS `conversionLabel`),
    and refetches the price when the currency changes in Settings.
@@ -52,8 +53,9 @@ Status key: **Decided** (done, reversible) · **Question** (needs your answer) �
     - iOS crashes on Pending payout when there's no node (it force-unwraps `nodeId()`); Android shows
       "syncing wallet" instead.
     - Like iOS, the pending-payout list stops reading at the first notification missing a field such as
-      `sent_at`, so a half-filled notification hides the ones after it. Ported as-is. **Question:** is that
-      intended on the backend side?
+      `sent_at`, so a half-filled notification hides the ones after it. Ported as-is so both platforms agree.
+      **Answered 2026-09-15:** a bug — tracked in https://github.com/getbittr/bittr-ios-app/issues/96; Android changes
+      with the iOS fix.
 
 ## Wallet removal (Device details, Forgot PIN, 10 wrong PINs)
 
@@ -63,11 +65,10 @@ Status key: **Decided** (done, reversible) · **Question** (needs your answer) �
     and the user gets `removalfailed` (with "Try again" when locked out). Before this, the Android 10-wrong-PIN
     wipe erased the seed with no channel check at all, which could have lost channel funds.
 
-12. **Question — when the bittr node can't be reached for a cooperative close, iOS force-closes straight away**
-    (`closeChannelConfirmed` → `forceCloseChannel()`), even though its own comment says "let the user explicitly
-    choose force close". Android shows the `closechannel6`/`closechannel7` alert with [Cancel, Force Close]
-    instead, the same alert iOS shows when the close call itself fails. A force close locks the funds for
-    about a day and costs more in fees, so I didn't want to start one without asking. Should iOS change to match?
+12. **Decided (Ruben, 2026-09-15) — when the bittr node can't be reached for a cooperative close, the manual
+    removal force-closes straight away, as iOS does** ("if the peer is not reachable something must be wrong").
+    A close call that fails with the peer connected still asks via `closechannel6`/`closechannel7`, also as iOS.
+    The 10-wrong-PIN lockout never force-closes.
 
 13. **Decided — the lockout shows `pinlock` first and works behind it (iOS order),** and never force-closes:
     locked out, an open channel is closed cooperatively and the only button is "Try again" until the funds
@@ -97,9 +98,11 @@ Full log: `android/docs/port-specs/notifications-decisions.md`. The two that nee
     are merged. It opens the plain swap screen; iOS pre-fills the suggested amount, which the Android swap route
     can't take yet (small gap). The "Swapping isn't available…" copy is only left as a fallback for tests.
 
-19. **Question — "arrived while locked" flag.** iOS never resets `wasNotified`, so after one push arrives while
-    the app is locked, every later push skips the "you're receiving a payment" alert until the app is relaunched.
-    Android resets it after each payout or HTLC. Keep that, or copy iOS?
+19. **Question — "arrived while locked" flag.** Ruben needs context first (given 2026-09-15): when a payout or
+    incoming-payment push arrives while the app is locked, the app remembers it and, after unlock and sync, pays
+    out straight away without the "You're receiving a payment, tap Okay" alert — signing in counts as consent.
+    iOS never clears that flag, so every *later* push in the same session also skips the alert; Android clears it
+    after each payout. Still open.
 
 20. **Decided — pushes are tested on Android through a debug-only broadcast receiver.** Start
     `BITTR_PUSH_PLATFORM=android node shared/flows/scripts/push_server.js` and the flows run unchanged.
@@ -117,9 +120,8 @@ Full log: `android/docs/port-specs/buy-decisions.md`. What needs you:
     onboarding, so `happy_path_signup.yaml` and `fresh_install_unhappy.yaml` don't reach the signup pages. The
     Buy signup pages can be reused there as iOS does (pages 9–13). I can do that next if you want it.
 
-23. **Question — a signup with no push token.** Emulators often have no FCM token, so Android registers after
-    15 s without `android_device_token` and sends the token later with `PATCH /customer/device-token`.
-    iOS shows `tokenregistrationfail` [Try again, Continue] instead. OK?
+23. **Decided (Ruben, 2026-09-15) — no push token halts the signup**, and the user is asked whether they want
+    on-chain-only payouts, as iOS does. (Being implemented; replaces the "register without a token" behaviour.)
 
 24. **Decided — two iOS quirks not copied:**
     - A payout-mode change is applied even when the IBAN and other details didn't change. iOS only checks it
@@ -149,8 +151,9 @@ bitcoin-kmp, with every iOS check on Boltz's answers and the evil-Boltz cases as
     set up on the emulator every swap stops at `alert.notificationsRequired`. Should the Android test emulator
     get a Play-services image and `google-services.json`?
 
-30. **Question — should Android claim or refund in the background after a swap push**, when the app isn't open?
-    iOS doesn't.
+30. **Decided (Ruben, 2026-09-15) — swap pushes behave as on iOS:** locked → "please sign in" alert, syncing →
+    loading card, synced → open the swap status only when the app is in front. No claim or refund straight from
+    a push in the background. (Being implemented; Android claimed from the push before.)
 
 31. **Gap — swap history rows.** Android's history has no description cache yet, so the two legs of a swap show
     as separate, unlabelled rows. The transaction screen has no swap status button, there's no swap from a payout
@@ -160,8 +163,8 @@ bitcoin-kmp, with every iOS check on Boltz's answers and the evil-Boltz cases as
 
 Full log: `android/docs/port-specs/lnurl-decisions.md`.
 
-32. **Question — new copy:** "The invoice we received doesn't match the requested amount." Android refuses an
-    LNURL-pay invoice for a different amount than was asked; iOS pays whatever invoice comes back.
+32. **Decided (Ruben, 2026-09-15) — the new copy is fine:** "The invoice we received doesn't match the requested
+    amount." Android refuses an LNURL-pay invoice for a different amount than was asked; iOS pays it.
 
 33. **Decided — LNURL service URLs, callbacks and the Lightning-address push endpoint must be public https.**
     iOS fetches or posts to any URL. `notification_lnurl.yaml` still ends on `alert.paymentRequestFailed`.
@@ -211,7 +214,8 @@ Full log: `android/docs/port-specs/lnurl-decisions.md`.
 10. **Decided — kept on GitHub:** `k1-run/*` and `regtest-run/bit-147-first` (they are how the K1/K7/K8 CI runs
     are requested, and `k1-result.py` looks runs up by branch name), the four unmerged `snapshot/*` branches,
     Tom's `fix/home-header-refactor` (open PR #94), and `ios-parity`. Deleted: 49 merged `feature/bit-*` and
-    `merge/bit-63-tokens-into-android`. **Question:** delete the CI-trigger and snapshot branches too?
+    `merge/bit-63-tokens-into-android`. **Answered 2026-09-15:** the `k1-run/*`, `regtest-run/*` and `snapshot/*`
+    branches were deleted from GitHub too (11 branches).
 
 ## Not ported yet (to be worked through overnight)
 

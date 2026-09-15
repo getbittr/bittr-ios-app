@@ -312,7 +312,14 @@ class WalletRemovalCoordinator(
 
         val connected = withContext(io) { node.isPeerConnected() || (node.connectPeer() && node.isPeerConnected()) }
         if (!connected) {
-            closeFailed()
+            if (lockout) {
+                closeFailed()
+            } else {
+                // iOS's `closeChannelConfirmed`: a bittr node that cannot be reached means
+                // something is wrong on its side, so the manual removal force-closes straight
+                // away rather than asking (decision 12).
+                forceCloseChannel()
+            }
             return
         }
 
