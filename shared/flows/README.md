@@ -200,6 +200,19 @@ shared/flows/
                           currency (EUR↔CHF, verified on Home), device token,
                           public key, Bittr peer / pending payout, and
                           Lightning connections (QuestionViewController).
+    inactivity_lock.yaml  Inactivity lockout — unlock, wait for the sync to
+                          finish, background the app with pressKey: Home, wait
+                          out the two-minute window (scripts/sleep.js), then tap
+                          the home screen icon to resume and check the PIN
+                          screen is back with Home no longer showing. Unlocks
+                          again at the end so the wallet is left as found.
+                          Self-provisioning: unlocks an existing wallet, or
+                          creates one in place via happy_path_wallet + Skip if
+                          there is none — deliberately not
+                          fresh_install_skip_signup, whose relaunch would move
+                          the app's home screen icon. Reopens by coordinate tap
+                          on that icon — see "Inactivity lockout" under
+                          Running. Takes over two minutes.
   helpers/         Reusable subflows invoked via runFlow.
     unlock.yaml           Enters PIN 1234 on the unlock screen.
     wrong_pin_until_lockout.yaml  Enters the wrong PIN ten times on the unlock
@@ -234,7 +247,9 @@ shared/flows/
                                 `.lnUrl` payload; static fallback if offline.
     sleep.js                    Busy-waits output.sleepMs ms (Maestro has no
                                 native sleep) so a flow can let the app handle a
-                                push before the next step (notification_htlcincoming).
+                                push before the next step (notification_htlcincoming),
+                                let a Boltz timer fire (swap), or sit out the
+                                two-minute lock window (inactivity_lock).
     trigger_screenshot.js       Asks screenshot_server.js to fire a real
                                 Simulator screenshot (posts the screenshot
                                 notification, unlike Maestro's takeScreenshot);
@@ -296,6 +311,46 @@ maestro test --env MNEMONIC="word1 word2 ... word12" shared/flows/features/forgo
 ```
 
 Use the same mnemonic the wallet was set up with (the one happy_path_wallet generated during onboarding). `parse_mnemonic.js` validates the count and splits the words into `output.words[1..12]`.
+
+### Inactivity lockout
+
+`features/inactivity_lock.yaml` backgrounds the app and comes back in by tapping
+the home screen icon, because that is the only way to *resume* an app under
+Maestro — `launchApp` stops and restarts it, and a cold launch shows the PIN
+screen whether the lockout works or not.
+
+Maestro can't address the home screen by name (its selectors query the app under
+test, which by then is SpringBoard), so the tap is a coordinate: `62%,25%` —
+**row 2, column 3** on the iPhone 15 simulator these flows always use, where
+"bittr regtest" sits by default. `maestro-driver-iOS` installs itself into column
+4, after it, so the position holds for the duration of a run.
+
+That ordering only survives while the app is not reinstalled. A `clearState`
+launch reinstalls it, and iOS then re-places its icon *after* the driver's —
+bittr lands in column 4 and the tap misses. That is why the no-wallet branch
+provisions with `happy_path_wallet` + Skip instead of
+`fresh_install_skip_signup`: no `launchApp`, no reinstall, icon stays in column
+3. Keep it that way if you edit the flow.
+
+Before running it the first time on a fresh simulator, glance at the home screen
+and check bittr is in row 2 column 3; installing other apps alongside it shifts
+the grid. If it has moved, either move it back or update the `tapOn: point` in
+the flow. A wrong coordinate taps wallpaper, and the flow then fails at the final
+gate rather than doing any damage.
+
+It runs against either starting state: with a wallet on the simulator it unlocks,
+and with none it creates one in place (`happy_path_wallet` + Skip). Nothing is
+cleared in either branch, so the flow is non-destructive either way, and both
+leave the PIN at 1234.
+
+Two other things worth knowing:
+
+- It takes over two minutes, nearly all of it `scripts/sleep.js` spinning the
+  host CPU. It is deliberately not in `suite.yaml`.
+- Across a two-minute background iOS may terminate the app under memory
+  pressure. The tap would then cold-launch it, which also lands on the PIN
+  screen — so a pass is good evidence rather than proof. A failure is
+  unambiguous.
 
 ### Lightning send
 

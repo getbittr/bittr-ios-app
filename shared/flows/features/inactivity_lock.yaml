@@ -1,0 +1,144 @@
+# Feature test: the inactivity lockout. Backgrounding the app for longer than
+# two minutes must bring the PIN screen back on return.
+#
+# Prerequisite: none — the flow provisions its own wallet if there isn't one,
+# via happy_path_wallet + Skip rather than fresh_install_skip_signup. That is
+# deliberate, and the reason is the icon position below: anything that reinstalls
+# the app re-places its icon after maestro-driver-iOS, moving it a column along.
+# happy_path_wallet is a pure subflow with no launchApp, so the app is never
+# relaunched and the icon stays put. Nothing is cleared either way, so the flow
+# is non-destructive in both branches. Either way the PIN ends up 1234.
+#
+# Why the app is backgrounded with pressKey rather than stopApp: stopApp kills
+# the process, and a cold launch always lands on the PIN screen whether the
+# lockout works or not. Only a suspended-then-resumed app tests anything. For
+# the same reason it cannot be reopened with launchApp, which stops and
+# restarts by default — there is no "foreground the existing app" command, so
+# the way back in is a tap on the home screen icon.
+#
+# THE ICON TAP IS SIMULATOR-LAYOUT-SPECIFIC. "bittr regtest" sits in row 2,
+# column 3 of the iPhone 15 simulator these flows always use, and
+# maestro-driver-iOS installs itself into column 4, after it. Column 3's centre
+# on a 393x852pt screen is about (243, 211)pt, hence 62%,25%.
+#
+# That order only holds while the app is not reinstalled. Reinstalling it — which
+# is what a clearState launch does — re-places its icon after the driver's, so
+# bittr ends up in column 4 and this tap would miss. Hence the provisioning
+# branch above avoids any relaunch. Installing other apps on the simulator shifts
+# the grid too. A wrong coordinate taps empty wallpaper, and the flow then fails
+# at the final gate rather than doing anything harmful.
+#
+# KNOWN LIMITATION: across a two-minute background iOS may terminate the app
+# under memory pressure. If it does, the tap cold-launches it, which also lands
+# on the PIN screen — so the flow would pass without the lockout having fired.
+# There is no clean signal to tell the two apart from the outside. Treat a pass
+# as good evidence rather than proof; a failure is unambiguous.
+#
+# The wait is a host-side busy-wait (scripts/sleep.js), the same helper swap.yaml
+# uses for its 40 second pause. It spins the host CPU for over two minutes,
+# which is why this flow is not cheap to run.
+#
+# Flow:
+#   1. Launch (preserve state). Unlock an existing wallet, or create one first
+#      if the simulator has none, then wait for the wallet to finish syncing —
+#      the header spinner stopping is the signal.
+#   2. Press Home to background the app. The privacy cover goes up here, so the
+#      app switcher snapshot shows the logo rather than the balance.
+#   3. Wait 130 seconds, comfortably past the 120 second threshold.
+#   4. Tap the app icon to resume. The PIN screen must be back, and Home must
+#      not be on screen behind it.
+#   5. Unlock again, to prove the re-unlock path works and to leave the wallet
+#      as the flow found it — the suite shares wallet state between flows.
+#
+# Run: maestro test shared/flows/features/inactivity_lock.yaml
+
+appId: com.bittr.bittr-regtest
+---
+- launchApp
+- runFlow: ../helpers/wait_for_launch.yaml
+
+# Two ways in, and only one of them runs.
+#
+#   No wallet → launch lands on Signup1, so create a wallet in place:
+#   happy_path_wallet drives Signup1 → Signup7, then Skip lowers the signup
+#   stack onto Home, already signed in. The unlock block below then finds no PIN
+#   screen and is skipped. No launchApp anywhere in that path, so the app is
+#   never reinstalled and its home screen icon does not move.
+#
+#   Existing wallet → launch lands on the PIN screen, so just unlock.
+#
+# Both blocks test for a screen that is actually there, rather than one testing
+# for the absence of the other: a `notVisible: unlock.topLabel` block would fire
+# after a successful unlock too, and provision a wallet over the top of the one
+# just unlocked.
+- runFlow:
+    when:
+      visible:
+        id: "signup.create.start.createWalletButton"
+    commands:
+      - runFlow: ../onboarding/happy_path_wallet.yaml
+      # Signup7 (wallet-ready): Skip the bittr signup rather than continuing
+      # into it. Signup7VC.skipButtonTapped lowers the stack onto Home.
+      - assertVisible:
+          id: "signup.create.ready.skipButton"
+      - tapOn:
+          id: "signup.create.ready.skipButton"
+
+- runFlow:
+    when:
+      visible:
+        id: "unlock.topLabel"
+    commands:
+      - takeScreenshot: shared/docs/screenshots/inactivity_lock/01_unlock
+      - runFlow: ../helpers/unlock.yaml
+
+# Land on Home and let the wallet finish syncing before backgrounding. Going
+# out mid-sync would leave the suspended BDK scan to be retried on return,
+# which is a different test.
+- assertVisible:
+    id: "home.headerLabel"
+- extendedWaitUntil:
+    notVisible:
+      id: "home.headerSpinner"
+    timeout: 120000
+- takeScreenshot: shared/docs/screenshots/inactivity_lock/02_home_synced
+
+# Background the app. iOS photographs the screen on the way out; the cover
+# CoreViewController puts up on willResignActive is what that photograph shows.
+- pressKey: Home
+- takeScreenshot: shared/docs/screenshots/inactivity_lock/03_backgrounded
+
+# Wait out the lock window. 130 seconds rather than 120 so a slow host, or a
+# clock read a moment early, cannot land just inside the threshold.
+- evalScript: ${output.sleepMs = 130000}
+- runScript: ../scripts/sleep.js
+
+# Back in. The tap resumes the app rather than relaunching it. Column 3 — the
+# driver app sits in column 4, after bittr, as long as bittr is not reinstalled
+# during the run.
+- tapOn:
+    point: "62%,25%"
+
+# The PIN screen must be back. This is the assertion the whole flow exists for:
+# before the lockout the app resumed straight onto Home, where pinContainerView
+# is transparent and slid away, so unlock.topLabel would not be visible.
+- extendedWaitUntil:
+    visible:
+      id: "unlock.topLabel"
+    timeout: 15000
+- takeScreenshot: shared/docs/screenshots/inactivity_lock/04_locked_again
+
+# And Home must not be showing behind it — the balance is the thing the lock is
+# there to hide. The home container is pinned off the bottom of the screen at
+# this point, not merely covered. (If this ever proves flaky it is the
+# assertion to drop; the gate above is the load-bearing one.)
+- assertNotVisible:
+    id: "home.headerLabel"
+
+# Unlock again. Proves the second unlock works on a wallet that never stopped —
+# it takes the handlePendingWork path rather than a full startWallet — and
+# leaves the wallet on Home for whatever runs next.
+- runFlow: ../helpers/unlock.yaml
+- assertVisible:
+    id: "home.headerLabel"
+- takeScreenshot: shared/docs/screenshots/inactivity_lock/05_unlocked_again

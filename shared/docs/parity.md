@@ -61,6 +61,7 @@ Every flow under `shared/flows/` is listed below. iOS is the source of truth and
 
 | Feature | iOS | Android | Maestro flow | Notes |
 |---|---|---|---|---|
+| Inactivity lockout | done | not started | `features/inactivity_lock.yaml` | Unlocks, waits out the sync, backgrounds the app with `pressKey: Home`, sleeps past the two-minute window, then resumes by coordinate tap on the home screen icon (row 2 column 3, fixed iPhone 15 geometry; maestro-driver-iOS installs into column 4, after it) and checks the PIN screen is back with Home no longer visible; unlocks again to leave the wallet as found. Self-provisioning: unlocks an existing wallet, or creates one in place via `happy_path_wallet.yaml` + Skip when the simulator has none — not `fresh_install_skip_signup.yaml`, whose relaunch would reinstall the app and move its home screen icon out from under the coordinate tap. Runs over two minutes, so it is not in `suite.yaml`. |
 | Settings (all items + device details) | done | not started | `features/settings.yaml` | Exercises every Settings item and Device-details row, the website pages, dark-mode toggle and currency switch. Needs a synced wallet (unlocks with PIN). |
 | Remove wallet (from Settings) | done | not started | `features/remove_wallet.yaml` | Settings → Device details → Remove wallet; covers both the no-channel (direct reset) and active-channel (close on-chain, mine, then reset) branches. Preserves state until the wipe. Destructive. |
 
