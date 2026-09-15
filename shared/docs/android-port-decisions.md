@@ -174,6 +174,14 @@ Full log: `android/docs/port-specs/lnurl-decisions.md`.
    2 GB, cold starts took 8–36 s and the flows' 15 s launch wait failed; with 6 cores / 4 GB, 0.4–0.5 s.
    CI already uses `-camera-back none`.
 
+10b. **Gap — the overnight emulator runs were unreliable because the Mac ran out of memory.** From about
+    22:30 the Mac had 18 of 19 GB swap in use. The emulator got little CPU, Maestro's driver timed out
+    (`DEADLINE_EXCEEDED`, "Screenshot returned null"), the emulator's package service broke twice, and at 01:00
+    its Android system died (`DeadSystemException`). In the 23:30 run (batch8), `settings.yaml` unlocked and
+    Home was on screen with the new fiat line, profit pill and Buy button, but Maestro couldn't read the
+    accessibility tree. Every later flow failed at launch or in the driver. The app code was not the cause.
+    Flows are now rerun one at a time, with a health check that restarts the emulator between flows.
+
 10a. **Decided — `notification_information.yaml` not run to a result yet.** It needs pushes delivered to the
     app, which the iOS runs inject through the simulator; on Android that path belongs to the notifications
     port. The overnight batch stuck in its timeouts was stopped so the emulator could be reused.
