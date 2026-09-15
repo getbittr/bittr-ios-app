@@ -612,6 +612,7 @@ extension CoreViewController {
         // Check if SwapViewController is already open - if so, ignore the notification
         if self.swapScreenIsVisible() {
             Log.info("A swap screen is already on screen, ignoring notification")
+            self.lightningNotification = nil
             return
         }
         

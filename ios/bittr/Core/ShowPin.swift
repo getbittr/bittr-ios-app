@@ -122,7 +122,7 @@ extension CoreViewController {
         self.hidePinAndSignup {
             self.pinContainerView.alpha = 0
             
-            if self.lightningNotification != nil || self.needsToHandleURI() {
+            if !self.walletHasSynced, self.lightningNotification != nil || self.needsToHandleURI() {
                 // A notification will be handled after syncing the wallet.
                 self.showLoading(message: Language.getWord(withID: "syncingwallet3"))
             }
