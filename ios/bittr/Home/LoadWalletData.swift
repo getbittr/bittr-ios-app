@@ -324,41 +324,7 @@ extension HomeViewController {
         self.prefetchPriceData()
         
         // Check if notification needs handling.
-        if self.coreVC!.needsToHandleURI() {
-            Log.info("Needs to handle URI.")
-            self.coreVC!.hideLoading()
-            self.coreVC!.checkForPendingURIs()
-        } else if let actualNotification = self.coreVC!.lightningNotification {
-            Log.info("Needs to handle push notification.")
-            // Check if it's a swap notification or payment notification.
-            if actualNotification.type == .swap {
-                // It's a swap notification.
-                self.coreVC!.handleSwapNotificationFromBackground(actualNotification)
-            } else if actualNotification.type == .lightningPayout {
-                // It's a payout notification.
-                self.coreVC!.handlePayoutNotification(actualNotification)
-            } else if actualNotification.type == .htlcIncoming {
-                self.coreVC!.handleHTLCNotification(actualNotification)
-            } else if actualNotification.type == .lnUrl {
-                // It's an LNURL notification.
-                self.coreVC!.handleLightningAddressNotification(actualNotification)
-            }
-        } else if UserDefaults.standard.bool(forKey: "pendingSwapResume") {
-            Log.info("Resuming swap payment from Live Activity tap.")
-            self.coreVC!.resumeSwapPayment()
-        } else {
-            var userHasBittrAccount = false
-            for eachIbanEntity in BitcoinManager.shared.bittrWallet.ibanEntities where eachIbanEntity.yourUniqueCode != "" {
-                userHasBittrAccount = true
-            }
-            // Skip the payout check when a wipe / PIN reset is in progress: the
-            // node is about to be torn down, so signing a message against it
-            // would race the teardown (force-unwrap of a nil ldkNode).
-            if userHasBittrAccount, !self.coreVC!.resettingPin, !self.coreVC!.removingWalletForIncorrectPin {
-                Log.info("Check for pending payout.")
-                self.coreVC!.checkPendingPayout()
-            }
-        }
+        self.coreVC!.handlePendingWork()
         
         // Check if peer connection has been successful.
         self.fetchAndPrintPeers()
@@ -369,6 +335,48 @@ extension HomeViewController {
         }
     }
 
+}
+
+extension CoreViewController {
+    
+    func handlePendingWork() {
+        
+        if self.needsToHandleURI() {
+            Log.info("Needs to handle URI.")
+            self.hideLoading()
+            self.checkForPendingURIs()
+        } else if let actualNotification = self.lightningNotification {
+            Log.info("Needs to handle push notification.")
+            // Check if it's a swap notification or payment notification.
+            if actualNotification.type == .swap {
+                // It's a swap notification.
+                self.handleSwapNotificationFromBackground(actualNotification)
+            } else if actualNotification.type == .lightningPayout {
+                // It's a payout notification.
+                self.handlePayoutNotification(actualNotification)
+            } else if actualNotification.type == .htlcIncoming {
+                self.handleHTLCNotification(actualNotification)
+            } else if actualNotification.type == .lnUrl {
+                // It's an LNURL notification.
+                self.handleLightningAddressNotification(actualNotification)
+            }
+        } else if UserDefaults.standard.bool(forKey: "pendingSwapResume") {
+            Log.info("Resuming swap payment from Live Activity tap.")
+            self.resumeSwapPayment()
+        } else {
+            var userHasBittrAccount = false
+            for eachIbanEntity in BitcoinManager.shared.bittrWallet.ibanEntities where eachIbanEntity.yourUniqueCode != "" {
+                userHasBittrAccount = true
+            }
+            // Skip the payout check when a wipe / PIN reset is in progress: the
+            // node is about to be torn down, so signing a message against it
+            // would race the teardown (force-unwrap of a nil ldkNode).
+            if userHasBittrAccount, !self.resettingPin, !self.removingWalletForIncorrectPin {
+                Log.info("Check for pending payout.")
+                self.checkPendingPayout()
+            }
+        }
+    }
 }
 
 extension BalanceDetails {
