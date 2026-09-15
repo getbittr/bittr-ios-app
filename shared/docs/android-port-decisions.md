@@ -94,9 +94,9 @@ Status key: **Decided** (done, reversible) · **Question** (needs your answer) �
 
 Full log: `android/docs/port-specs/notifications-decisions.md`. The two that need you:
 
-18. **Decided — "Swap & Instant Receive" on the "channel full" payout alert opens the swap screen** now that swaps
-    are merged. It opens the plain swap screen; iOS pre-fills the suggested amount, which the Android swap route
-    can't take yet (small gap). The "Swapping isn't available…" copy is only left as a fallback for tests.
+18. **Decided — "Swap & Instant Receive" on the "channel full" payout alert opens a Lightning → on-chain swap of
+    the suggested amount**, as iOS's `handleNotificationSwap`. The "Swapping isn't available…" copy is only left
+    as a fallback for tests.
 
 19. **Decided (Ruben, 2026-09-15) — "arrived while locked": pay out silently, as on iOS.** Once a payout,
     incoming-payment or Lightning-address push has arrived while the app was locked, later payment pushes in the
@@ -155,13 +155,18 @@ bitcoin-kmp, with every iOS check on Boltz's answers and the evil-Boltz cases as
     boots `aosp_atd` (lightest, fastest); flows that need a real token (swaps, the signup's token step) need a
     `google_apis` leg there too.
 
-30. **Decided (Ruben, 2026-09-15) — swap pushes behave as on iOS:** locked → "please sign in" alert, syncing →
-    loading card, synced → open the swap status only when the app is in front. No claim or refund straight from
-    a push in the background. (Being implemented; Android claimed from the push before.)
+30. **Decided (Ruben, 2026-09-15) — swap pushes behave as on iOS:** ignored while a swap screen is open;
+    locked → "Your swap status has been updated / please sign in" and the push is kept; syncing → loading card;
+    synced → open the latest swap's status, only while the app is on screen. A push never claims or refunds.
 
-31. **Gap — swap history rows.** Android's history has no description cache yet, so the two legs of a swap show
-    as separate, unlabelled rows. The transaction screen has no swap status button, there's no swap from a payout
-    push, and there's no Live Activity equivalent. The `-evilBoltz` test harness isn't ported (JVM tests cover it).
+31. **Decided — swap history is ported** (`performSwapMatching`): a swap's two legs are one row, a lone leg is a
+    pending swap row (`history.swapComplete<N>` / `history.swapPending<N>`), and the transaction screen shows the
+    swap id and status with `transaction.swapStatusButton` / `transaction.copyBottomIdButton`. Received Lightning
+    payments show their invoice description, and "Swap & Instant Receive" on a channel-full payout opens a
+    Lightning → on-chain swap of the suggested amount. **Gaps left:** a Swap & Pay leg doesn't show iOS's second
+    id or the amount from the swap file, a pending swap's amount isn't read from the swap file, payout
+    notification ids aren't stored as descriptions, no Live Activity equivalent, and the `-evilBoltz` harness
+    isn't ported (JVM tests cover it).
 
 ## LNURL, Lightning address, channel chart, sync overlay, notes (merged from `port/lnurl`)
 
@@ -177,7 +182,6 @@ Full log: `android/docs/port-specs/lnurl-decisions.md`.
     site carries over from iOS. Not tested against a live site.
 
 35. **Gap — still missing here:**
-    - Lightning invoice descriptions on received payments (being ported with swap history).
     - An Android clipboard bridge for the invoice-paste steps in `send_lightning.yaml` / `receive_invoice.yaml`.
     - iOS's injected script that finds Lightning links on a web page: it needs a JavaScript bridge, which the
       app's WebView guard tests forbid. Tapping a link works.
