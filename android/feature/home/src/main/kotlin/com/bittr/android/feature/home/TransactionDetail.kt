@@ -37,8 +37,14 @@ internal data class SwapDetail(
  * on-chain and Lightning transactions and swaps. Bittr purchases have their own section on iOS
  * and are not ported here.
  *
+ * @property amount iOS's `labelAmount`: signed net for a payment; for a swap, what was swapped —
+ *   the amount received once complete, the swap file's amount while pending, "- amount" for a
+ *   Swap & Pay leg.
+ * @property type iOS's `labelType`: "Instant" / "Regular", or the swap's direction.
+ * @property typeBolt the bolt next to "Instant" (`typeBoltImage`); never for a swap.
  * @property idTitle "ID", or "Onchain ID" / "Lightning ID" for a swap's first id.
- * @property fees only for a transaction that took money out (`received - sent - fee < 0`).
+ * @property fees for a payment that took money out (`received - sent - fee < 0`); for a swap, what
+ *   it cost on top of the swapped amount.
  * @property confirmations only on-chain, and not for a swap; "Unconfirmed" until it has one.
  * @property explorerId set when the (first) id is an on-chain transaction.
  * @property description `descriptionText()`: the stored invoice description, else the
@@ -58,6 +64,8 @@ internal data class TransactionDetail(
     val note: String? = null,
     val idTitle: String = HomeStrings.ID,
     val swap: SwapDetail? = null,
+    val type: String = if (isLightning) HomeStrings.INSTANT else HomeStrings.REGULAR,
+    val typeBolt: Boolean = isLightning,
 )
 
 internal fun transactionDetail(
@@ -73,6 +81,7 @@ internal fun transactionDetail(
     val height = activity.confirmationHeight
     val swap = activity.swap
     val fullSwap = swap?.takeIf { !it.isSuggested }
+    val suggestedSwap = swap?.takeIf { it.isSuggested }
 
     var idTitle = HomeStrings.ID
     var id = activity.id
@@ -127,16 +136,40 @@ internal fun transactionDetail(
         }
     }
 
+    // `labelAmount`.
+    val amount = when {
+        fullSwap != null -> when (fullSwap.status) {
+            SwapActivityStatus.Succeeded -> sats(activity.receivedSats)
+            SwapActivityStatus.Pending -> sats(fullSwap.amountSats ?: gross)
+            SwapActivityStatus.Failed ->
+                // A failed swap is an on-chain → Lightning one refunded: nothing was swapped.
+                if (fullSwap.direction == SwapActivityDirection.OnchainToLightning) "0 sats" else sats(gross)
+        }
+        // The paid invoice amount, not the whole on-chain outflow with the swap's cut and fee in it.
+        suggestedSwap != null -> "- ${sats(suggestedSwap.amountSats ?: (activity.sentSats - activity.receivedSats))}"
+        else -> "${if (gross < 0) "-" else "+"} ${sats(gross)}"
+    }
+
+    // `labelFees`.
+    val fees = when {
+        fullSwap != null -> when {
+            // Completed or failed: Boltz's spread plus the network fee the user paid.
+            fullSwap.status != SwapActivityStatus.Pending -> sats(activity.sentSats - activity.receivedSats + activity.feeSats)
+            else -> fullSwap.amountSats?.let { sats(activity.sentSats - activity.receivedSats - it) } ?: "0 sats"
+        }
+        suggestedSwap != null -> suggestedSwap.amountSats
+            ?.let { sats(activity.sentSats - activity.receivedSats + activity.feeSats - it) }
+            ?: sats(activity.feeSats)
+        activity.netSats < 0 -> sats(activity.feeSats)
+        else -> null
+    }
+
     return TransactionDetail(
         id = id,
         date = format.format(Date(activity.timestampSecs * 1000)).removePrefix("0"),
-        amount = "${if (gross < 0) "-" else "+"} ${groupThousands(abs(gross))} sats",
+        amount = amount,
         isLightning = activity.isLightning,
-        fees = when {
-            fullSwap != null && activity.netSats < 0 -> "${groupThousands(abs(activity.netSats))} sats"
-            activity.netSats < 0 -> "${groupThousands(activity.feeSats)} sats"
-            else -> null
-        },
+        fees = fees,
         confirmations = when {
             activity.isLightning || fullSwap != null -> null
             height == null || (currentHeight ?: 0) - height + 1 < 1 -> HomeStrings.UNCONFIRMED
@@ -154,8 +187,17 @@ internal fun transactionDetail(
         note = note?.takeIf { it.isNotBlank() },
         idTitle = idTitle,
         swap = swapDetail,
+        type = when {
+            fullSwap == null -> if (activity.isLightning) HomeStrings.INSTANT else HomeStrings.REGULAR
+            fullSwap.direction == SwapActivityDirection.OnchainToLightning -> HomeStrings.ONCHAIN_TO_LIGHTNING
+            else -> HomeStrings.LIGHTNING_TO_ONCHAIN
+        },
+        typeBolt = fullSwap == null && activity.isLightning,
     )
 }
+
+/** A satoshi figure without its sign, as iOS strips the "-" from every one of these labels. */
+private fun sats(value: Long): String = "${groupThousands(abs(value))} sats"
 
 /** A fiat figure with its whole part grouped and two decimals, e.g. "1 234.50". */
 internal fun twoDecimals(value: Double): String {

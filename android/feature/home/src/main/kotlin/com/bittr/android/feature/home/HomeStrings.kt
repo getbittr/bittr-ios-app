@@ -103,6 +103,10 @@ internal object HomeStrings {
     const val REFUND_ID = "Refund ID"
     const val EXPECTING = "Expecting"
 
+    /** The Type row for a swap: `onchaintolightning`, `lightningtoonchain`. */
+    const val ONCHAIN_TO_LIGHTNING = "Onchain to Lightning"
+    const val LIGHTNING_TO_ONCHAIN = "Lightning to Onchain"
+
     /** What iOS shows for a swap whose Boltz id is not in the cache. */
     const val UNAVAILABLE = "Unavailable"
 

@@ -13,6 +13,8 @@ enum class SwapActivityDirection { OnchainToLightning, LightningToOnchain }
  * @property boltzId `CacheManager.getSwapID(dateID:)`, or null when unknown ("Unavailable").
  * @property isSuggested a Swap & Pay leg: it stays the payment it paid, with the swap's id and
  *   status shown on the transaction screen.
+ * @property amountSats the swap file's `satoshisAmount` — what was swapped, which the transaction
+ *   screen shows for a pending swap and a Swap & Pay leg. Null when the swap file is not on the device.
  */
 data class SwapActivity(
     val dateId: String,
@@ -22,6 +24,7 @@ data class SwapActivity(
     val isSuggested: Boolean = false,
     val onchainId: String? = null,
     val lightningId: String? = null,
+    val amountSats: Long? = null,
 )
 
 /** Where transaction descriptions are kept — iOS `CacheManager.storeInvoiceDescription`. */
@@ -57,11 +60,13 @@ object SwapHistory {
      * swap's status. Newest first, as the history is.
      *
      * @param swapIdFor `CacheManager.getSwapID(dateID:)`.
+     * @param swapAmountFor the swap file's `satoshisAmount` for a `dateID`, when the file is on the device.
      * @param suggestedStatus `CacheManager.getSuggestedSwapStatus(dateID:)`.
      */
     fun matched(
         transactions: List<WalletActivity>,
         swapIdFor: (String) -> String?,
+        swapAmountFor: (String) -> Long? = { null },
         suggestedStatus: (String) -> SwapActivityStatus?,
     ): List<WalletActivity> {
         val groups = transactions
@@ -73,20 +78,20 @@ object SwapHistory {
         for ((dateId, legs) in groups) {
             when (legs.size) {
                 2 -> {
-                    val combined = completed(dateId, legs[0], legs[1], swapIdFor(dateId))
+                    val combined = completed(dateId, legs[0], legs[1], swapIdFor(dateId), swapAmountFor(dateId))
                     current.removeAll { it === legs[0] || it === legs[1] }
                     current += combined
                 }
                 1 -> {
                     val index = current.indexOfFirst { it === legs[0] }
-                    current[index] = pending(dateId, legs[0], swapIdFor(dateId), suggestedStatus(dateId))
+                    current[index] = pending(dateId, legs[0], swapIdFor(dateId), suggestedStatus(dateId), swapAmountFor(dateId))
                 }
             }
         }
         return current.sortedByDescending { it.timestampSecs }
     }
 
-    private fun completed(dateId: String, first: WalletActivity, second: WalletActivity, boltzId: String?): WalletActivity {
+    private fun completed(dateId: String, first: WalletActivity, second: WalletActivity, boltzId: String?, amount: Long?): WalletActivity {
         val direction = direction(dateId)
         var sent = first.receivedSats + second.receivedSats - first.sentSats - second.sentSats
         var received = 0L
@@ -141,16 +146,16 @@ object SwapHistory {
             isLightning = dateId.contains("lightning to onchain"),
             confirmationHeight = height,
             description = dateId,
-            swap = SwapActivity(dateId, boltzId, status, direction, onchainId = onchainId, lightningId = lightningId),
+            swap = SwapActivity(dateId, boltzId, status, direction, onchainId = onchainId, lightningId = lightningId, amountSats = amount),
         )
     }
 
-    private fun pending(dateId: String, leg: WalletActivity, boltzId: String?, suggested: SwapActivityStatus?): WalletActivity {
+    private fun pending(dateId: String, leg: WalletActivity, boltzId: String?, suggested: SwapActivityStatus?, amount: Long?): WalletActivity {
         val direction = direction(dateId)
         val onchainId = leg.id.takeIf { !leg.isLightning }
         val lightningId = leg.id.takeIf { leg.isLightning }
         if (suggested != null) {
-            return leg.copy(swap = SwapActivity(dateId, boltzId, suggested, direction, isSuggested = true, onchainId = onchainId, lightningId = lightningId))
+            return leg.copy(swap = SwapActivity(dateId, boltzId, suggested, direction, isSuggested = true, onchainId = onchainId, lightningId = lightningId, amountSats = amount))
         }
         return WalletActivity(
             id = stripped(dateId),
@@ -161,7 +166,7 @@ object SwapHistory {
             isLightning = leg.isLightning,
             confirmationHeight = if (leg.isLightning) null else leg.confirmationHeight,
             description = dateId,
-            swap = SwapActivity(dateId, boltzId, SwapActivityStatus.Pending, direction, onchainId = onchainId, lightningId = lightningId),
+            swap = SwapActivity(dateId, boltzId, SwapActivityStatus.Pending, direction, onchainId = onchainId, lightningId = lightningId, amountSats = amount),
         )
     }
 
