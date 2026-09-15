@@ -756,7 +756,13 @@ class SendController(
             pendingNote = null
             val paymentId = result.getOrElse { failure ->
                 _state.update { it.copy(confirm = null) }
-                raise(okay(SendStrings.UNEXPECTED_ERROR, SendStrings.FAILED_INVOICE_PAYMENT_1.replace("<message>", failure.message.orEmpty())))
+                if (failure is LightningPaymentFailedException) {
+                    // The network gave up on it: the node's `paymentFailed` alert explains why, as on
+                    // iOS, where Send only resets its fields. A second alert here would stack on it.
+                    setSending(false)
+                } else {
+                    raise(okay(SendStrings.UNEXPECTED_ERROR, SendStrings.FAILED_INVOICE_PAYMENT_1.replace("<message>", failure.message.orEmpty())))
+                }
                 return@launch
             }
             finishSend(paymentId, note)

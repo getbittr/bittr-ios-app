@@ -124,9 +124,12 @@ object Routes {
     const val PROFITS = "profits"
 
     /** A transaction (`TransactionViewController`), by id — from Home's history and after a send. */
-    const val TRANSACTION = "transaction/{${TransactionViewModel.ID_ARG}}"
+    const val TRANSACTION =
+        "transaction/{${TransactionViewModel.ID_ARG}}?${TransactionViewModel.CONFETTI_ARG}={${TransactionViewModel.CONFETTI_ARG}}"
 
-    fun transaction(id: String) = "transaction/$id"
+    /** [confetti] opens the bittr payout summary (`showConfetti`). */
+    fun transaction(id: String, confetti: Boolean = false) =
+        "transaction/$id" + if (confetti) "?${TransactionViewModel.CONFETTI_ARG}=true" else ""
 
     /** The block explorer page for an on-chain transaction (`TransactionToWebsite`). */
     const val EXPLORER_ARG = "txid"
@@ -225,8 +228,19 @@ fun BittrNavHost(
     // A completed payment or swap opens its transaction over whatever is showing, as iOS's
     // `launchTransactionVC`, `addNewPaymentToTable` and `openCompletedSwapTransaction` do.
     val confirmations = hiltViewModel<com.bittr.android.events.TransactionConfirmationsViewModel>().confirmations
+    // `.paymentFailed`: iOS's `paymentfailed` alert, over whatever is on screen.
+    val paymentFailure by confirmations.paymentFailure.collectAsState()
+    paymentFailure?.let { failure ->
+        BittrAlertDialog(
+            title = failure.title,
+            message = failure.message,
+            confirmLabel = "Okay",
+            onConfirm = confirmations::dismissPaymentFailure,
+            confirmTestTag = TestID.Alert.buttonAt(0),
+        )
+    }
     LaunchedEffect(confirmations) {
-        confirmations.requests.collect { id -> navController.openTransaction(id) }
+        confirmations.requests.collect { request -> navController.openTransaction(request.id, request.confetti) }
     }
 
     // See [NotPortedDialog]. Held here rather than in a screen because it is
@@ -438,7 +452,13 @@ fun BittrNavHost(
 
         composable(
             route = Routes.TRANSACTION,
-            arguments = listOf(navArgument(TransactionViewModel.ID_ARG) { type = NavType.StringType }),
+            arguments = listOf(
+                navArgument(TransactionViewModel.ID_ARG) { type = NavType.StringType },
+                navArgument(TransactionViewModel.CONFETTI_ARG) {
+                    type = NavType.BoolType
+                    defaultValue = false
+                },
+            ),
         ) {
             TransactionScreen(
                 onDown = { navController.popBackStack() },

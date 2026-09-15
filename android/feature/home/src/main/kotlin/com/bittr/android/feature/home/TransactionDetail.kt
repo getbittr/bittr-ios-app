@@ -1,5 +1,6 @@
 package com.bittr.android.feature.home
 
+import com.bittr.android.core.wallet.BittrPurchase
 import com.bittr.android.core.wallet.FiatPrice
 import com.bittr.android.core.wallet.SwapActivityDirection
 import com.bittr.android.core.wallet.SwapActivityStatus
@@ -11,6 +12,7 @@ import java.util.Date
 import java.util.Locale
 import java.util.TimeZone
 import kotlin.math.abs
+import kotlin.math.floor
 
 /**
  * The swap stack on the transaction screen — Swap ID and Swap status (`swapStack`), and the second
@@ -33,9 +35,31 @@ internal data class SwapDetail(
 )
 
 /**
+ * A bittr purchase's own section (`bittrFeesStack`) — what bittr received, its fees, the purchase
+ * value, the exchange rate and today's value and profit. Fiat figures are in the purchase's currency.
+ *
+ * @property surcharge null when there was none, which hides the row (`surchargeStack`).
+ * @property transferFeeExplanation what tapping the transfer fee says: `transferfee1` for the
+ *   payout that funded the lightning connection, `transferfee2` for later Lightning payouts,
+ *   `transferfee3` on-chain.
+ * @property isLoss colours the profit (`losstext` / `profittext`).
+ */
+internal data class BittrDetail(
+    val receivedAtBittr: String,
+    val surcharge: String?,
+    val bittrFee: String,
+    val transferFee: String,
+    val transferFeeExplanation: String,
+    val purchaseValue: String,
+    val currentValue: String,
+    val exchangeRate: String,
+    val profit: String,
+    val isLoss: Boolean,
+)
+
+/**
  * What the transaction screen shows — `TransactionViewController.setTransactionData()` for
- * on-chain and Lightning transactions and swaps. Bittr purchases have their own section on iOS
- * and are not ported here.
+ * on-chain and Lightning transactions, swaps and bittr purchases.
  *
  * @property amount iOS's `labelAmount`: signed net for a payment; for a swap, what was swapped —
  *   the amount received once complete, the swap file's amount while pending, "- amount" for a
@@ -47,9 +71,13 @@ internal data class SwapDetail(
  *   it cost on top of the swapped amount.
  * @property confirmations only on-chain, and not for a swap; "Unconfirmed" until it has one.
  * @property explorerId set when the (first) id is an on-chain transaction.
+ * @property currentValue `valueStack`; null for a bittr purchase, whose section carries its own.
  * @property description `descriptionText()`: the stored invoice description, else the
- *   channel-closure sentence; never for a swap.
+ *   channel-closure sentence; never for a swap, never on the payout summary.
  * @property note the user's note, or null for "Add a note".
+ * @property bittr the purchase section, when bittr confirmed this transaction.
+ * @property confetti the bittr payout summary (`showConfetti`): the piggy-bank header and the
+ *   reminder show, and the type row, the ids, the description and the note are hidden.
  */
 internal data class TransactionDetail(
     val id: String,
@@ -66,8 +94,16 @@ internal data class TransactionDetail(
     val swap: SwapDetail? = null,
     val type: String = if (isLightning) HomeStrings.INSTANT else HomeStrings.REGULAR,
     val typeBolt: Boolean = isLightning,
+    val bittr: BittrDetail? = null,
+    val confetti: Boolean = false,
 )
 
+/**
+ * @param purchase bittr's record of this transaction, when it is a bittr purchase or payout.
+ * @param confetti opened as the bittr payout summary.
+ * @param isFunding the purchase that funded the lightning connection (`isFundingTransaction`).
+ * @param purchasePrice one bitcoin in the purchase's currency, for its current value and profit.
+ */
 internal fun transactionDetail(
     activity: WalletActivity,
     price: FiatPrice?,
@@ -75,6 +111,10 @@ internal fun transactionDetail(
     timeZone: TimeZone = TimeZone.getDefault(),
     closureTxIds: Set<String> = emptySet(),
     note: String? = null,
+    purchase: BittrPurchase? = null,
+    confetti: Boolean = false,
+    isFunding: Boolean = false,
+    purchasePrice: Double? = null,
 ): TransactionDetail {
     val format = SimpleDateFormat("dd MMM yyyy HH:mm", Locale.ENGLISH).apply { this.timeZone = timeZone }
     val gross = activity.receivedSats - activity.sentSats
@@ -164,6 +204,8 @@ internal fun transactionDetail(
         else -> null
     }
 
+    val chosenValue = price?.let { "${twoDecimals(abs(activity.netSats) / SATS_PER_BITCOIN * it.pricePerBitcoin)} ${it.symbol}" }
+
     return TransactionDetail(
         id = id,
         date = format.format(Date(activity.timestampSecs * 1000)).removePrefix("0"),
@@ -176,15 +218,16 @@ internal fun transactionDetail(
             else -> groupThousands(((currentHeight ?: 0) - height + 1).toLong())
         },
         explorerId = explorerId,
-        currentValue = price?.let { "${twoDecimals(abs(activity.netSats) / SATS_PER_BITCOIN * it.pricePerBitcoin)} ${it.symbol}" },
+        // `valueStack` is hidden for a bittr purchase: its section shows the value instead.
+        currentValue = if (purchase != null) null else chosenValue,
         description = when {
-            swap != null -> null
+            swap != null || confetti -> null
             !activity.description.isNullOrBlank() -> activity.description
             // `isChannelClosure`: the payout's txid is one the closure scan recorded.
             !activity.isLightning && activity.id in closureTxIds -> HomeStrings.CHANNEL_CLOSURE_TRANSACTION
             else -> null
         },
-        note = note?.takeIf { it.isNotBlank() },
+        note = note?.takeIf { it.isNotBlank() && !confetti },
         idTitle = idTitle,
         swap = swapDetail,
         type = when {
@@ -193,8 +236,83 @@ internal fun transactionDetail(
             else -> HomeStrings.LIGHTNING_TO_ONCHAIN
         },
         typeBolt = fullSwap == null && activity.isLightning,
+        bittr = purchase?.let { bittrDetail(activity, it, chosenValue, isFunding, purchasePrice) },
+        confetti = confetti,
     )
 }
+
+/**
+ * The `isBittr` branch of `setTransactionData()`.
+ *
+ * iOS writes the current value in the chosen currency and then, when it can convert, in the
+ * purchase's currency; the profit is that value minus the purchase value. A purchase bittr has not
+ * priced yet (net amount 0) shows its current value as the purchase value and no profit. When the
+ * transfer fee is 0, iOS recomputes the purchase value as gross − surcharge − bittr fee.
+ */
+private fun bittrDetail(
+    activity: WalletActivity,
+    purchase: BittrPurchase,
+    chosenValue: String?,
+    isFunding: Boolean,
+    purchasePrice: Double?,
+): BittrDetail {
+    val symbol = if (purchase.currency == "EUR") "€" else "CHF"
+    val bitcoin = activity.netSats / SATS_PER_BITCOIN
+    val valueInPurchaseCurrency = purchasePrice?.let { bitcoin * it }
+    val currentValue = valueInPurchaseCurrency?.let { "${twoDecimals(abs(it))} $symbol" } ?: chosenValue ?: "0.00 $symbol"
+    val gross = purchase.fiatGrossAmount ?: 0.0
+    val surcharge = purchase.surcharge ?: 0.0
+    val bittrFee = purchase.bittrFee ?: 0.0
+    val transferFeeSats = purchase.transferFeeSats ?: 0L
+    val net = purchase.fiatNetAmount ?: 0.0
+
+    val purchaseValue: String
+    val profit: String
+    val isLoss: Boolean
+    if (net == 0.0) {
+        purchaseValue = currentValue
+        profit = "0.00 $symbol"
+        isLoss = false
+    } else {
+        val fixedNet = if (transferFeeSats == 0L) gross - surcharge - bittrFee else net
+        purchaseValue = "${twoDecimals(fixedNet)} $symbol"
+        val profitValue = valueInPurchaseCurrency?.minus(fixedNet)
+        profit = if (profitValue == null) "0.00 $symbol" else "${if (profitValue < 0) "- " else ""}${twoDecimals(abs(profitValue))} $symbol"
+        isLoss = (profitValue ?: 0.0) < 0
+    }
+
+    return BittrDetail(
+        receivedAtBittr = "${twoDecimals(gross)} $symbol",
+        surcharge = if (surcharge == 0.0) null else "${twoDecimals(surcharge)} $symbol",
+        bittrFee = "${twoDecimals(bittrFee)} $symbol",
+        transferFee = "${groupThousands(transferFeeSats)} sats",
+        transferFeeExplanation = when {
+            isFunding -> HomeStrings.TRANSFER_FEE_1
+            activity.isLightning -> HomeStrings.TRANSFER_FEE_2
+            else -> HomeStrings.TRANSFER_FEE_3
+        },
+        purchaseValue = purchaseValue,
+        currentValue = currentValue,
+        exchangeRate = "${purchase.historicalExchangeRate?.let(::plainNumber) ?: "0"} $symbol/btc",
+        profit = profit,
+        isLoss = isLoss,
+    )
+}
+
+/**
+ * A bittr purchase that is not in the wallet's history — the transaction that funded the lightning
+ * connection. iOS builds a `Transaction` for it from bittr's record (`createTransaction(isFundingTransaction: true)`).
+ */
+internal fun purchaseActivity(purchase: BittrPurchase, nowSecs: Long = System.currentTimeMillis() / 1000): WalletActivity =
+    WalletActivity(
+        id = purchase.txId,
+        receivedSats = purchase.bitcoinAmountSats ?: 0L,
+        sentSats = 0L,
+        feeSats = 0L,
+        timestampSecs = purchase.timestampSecs ?: nowSecs,
+        isLightning = true,
+        confirmationHeight = null,
+    )
 
 /** A satoshi figure without its sign, as iOS strips the "-" from every one of these labels. */
 private fun sats(value: Long): String = "${groupThousands(abs(value))} sats"
@@ -206,5 +324,9 @@ internal fun twoDecimals(value: Double): String {
     val cents = rounded.remainder(BigDecimal.ONE).movePointRight(2).toInt()
     return "${groupThousands(whole)}.${cents.toString().padStart(2, '0')}"
 }
+
+/** A rate as iOS's `toString().addSpaces()` shows it: grouped, with decimals only when it has them. */
+private fun plainNumber(value: Double): String =
+    if (value == floor(value)) groupThousands(value.toLong()) else twoDecimals(value)
 
 private const val SATS_PER_BITCOIN = 100_000_000.0

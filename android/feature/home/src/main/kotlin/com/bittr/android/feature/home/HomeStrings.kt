@@ -56,6 +56,42 @@ internal object HomeStrings {
     const val START_LIGHTNING_NODE = "Start lightning node"
     const val FINAL_CALCULATIONS = "Final calculations"
     const val DESCRIPTION = "Description"
+
+    // The bittr payout summary (`showConfetti`) and a bittr purchase's section — `TransactionVCLanguage.swift`.
+    /** `goodjob`. */
+    const val GOOD_JOB = "Good job, you've just added new satoshis to your bitcoin piggy bank!"
+    /** `reminder` / `reminderbody`. */
+    const val REMINDER = "Reminder"
+    const val REMINDER_BODY =
+        "The funds in your lightning connection exist only on this device. Don't delete this app before closing the connection."
+    /** `receivedatbittr`. */
+    const val RECEIVED_AT_BITTR = "Received at bittr"
+    const val TRANSFER_FEE = "Transfer fee"
+    const val BITTR_FEE = "Bittr fee"
+    const val SURCHARGE = "Surcharge"
+    /** `purchasevalue`. */
+    const val PURCHASE_VALUE = "Purchase value"
+    const val EXCHANGE_RATE = "Exchange rate"
+    const val PROFIT = "Profit"
+    /** `transferfee1` — the first payout, into a new lightning connection. */
+    const val TRANSFER_FEE_1 =
+        "This is the first payout into your new lightning connection. For the setup of the connection, bittr incurs a one-time fee of 10 000 satoshis.\n\nThis fee covers the mining fees for opening and closing the connection, plus the reservation of funds on our side of the connection.\n\nFor any future payouts into this connection, there will be no additional mining fees."
+    /** `transferfee2`. */
+    const val TRANSFER_FEE_2 =
+        "You have paid the mining fees for opening and closing a lightning connection in advance. While you are connected, there will be no additional mining fees."
+    /** `transferfee3`. */
+    const val TRANSFER_FEE_3 =
+        "This fee does not go to bittr, but directly to the bitcoin miners. Due to the decentralized nature of the bitcoin network, miners have to be incentivized (partially with transaction fees) to keep the network secure."
+    /** `bittrfee1`. */
+    const val BITTR_FEE_1 =
+        "Bittr does not charge subscription fees or take a cut in your gains. We charge a fixed fee of 1.5% on incoming funds."
+    /** `surcharge1`. */
+    const val SURCHARGE_1 = "Bittr charges a € 1,00 surcharge for payments below € 100,00."
+
+    // `checkInternetConnection()` — before a pull-to-refresh.
+    /** `checkyourconnection` / `trytoconnect`. */
+    const val CHECK_YOUR_CONNECTION = "Check your connection"
+    const val TRY_TO_CONNECT = "You don't seem to be connected to the internet. Please try to connect."
     const val NOTE = "Note"
     /** `addanote` — the button, the alert's title and its placeholder. */
     const val ADD_A_NOTE = "Add a note"

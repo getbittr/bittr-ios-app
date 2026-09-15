@@ -41,6 +41,8 @@ class HomeViewModelRefreshTest {
         }
     }
 
+    private var online = true
+
     private val wallet = object : WalletService {
         override val state: StateFlow<WalletState> = MutableStateFlow(WalletState.Ready)
         override suspend fun createWallet(): Mnemonic = error("unused")
@@ -61,6 +63,7 @@ class HomeViewModelRefreshTest {
             override val overview: StateFlow<WalletOverview> = this@HomeViewModelRefreshTest.overview
         },
         refresher = refresher,
+        internet = { online },
         prices = { null },
     )
 
@@ -97,5 +100,18 @@ class HomeViewModelRefreshTest {
 
         home.refresh()
         assertEquals(0, refresher.starts)
+    }
+
+    /** `checkInternetConnection()`: offline, the pull says so instead of refreshing. */
+    @Test
+    fun `pulling while offline asks to check the connection and doesn't refresh`() = runTest {
+        online = false
+        val home = viewModel()
+        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { home.uiState.collect {} }
+
+        home.refresh()
+        assertEquals(0, refresher.starts)
+        assertEquals(HomeAlert(HomeStrings.CHECK_YOUR_CONNECTION, HomeStrings.TRY_TO_CONNECT), home.currentAlert.value)
+        assertTrue(home.uiState.value.canRefresh)
     }
 }

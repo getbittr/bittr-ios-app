@@ -267,6 +267,12 @@ data class BittrTransactionInfo(
     val bitcoinAmount: Double?,
     val fiatAmountNet: Double?,
     val fiatAmountGross: Double?,
+    /** BTC: the on-chain fee, or the lightning connection's one-time setup fee. */
+    val transferFee: Double? = null,
+    /** Fiat: 1.5 % of the purchase after the surcharge. */
+    val bittrFee: Double? = null,
+    /** Fiat: the surcharge on purchases under 100. */
+    val surcharge: Double? = null,
 )
 
 /**
@@ -316,6 +322,9 @@ object TransactionInfo {
                 bitcoinAmount = number(row, "bitcoin_amount"),
                 fiatAmountNet = number(row, "fiat_amount_net"),
                 fiatAmountGross = number(row, "fiat_amount_gross"),
+                transferFee = number(row, "transfer_fee"),
+                bittrFee = number(row, "bittr_fee"),
+                surcharge = number(row, "surcharge"),
             )
         }
     }

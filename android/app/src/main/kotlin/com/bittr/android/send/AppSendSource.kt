@@ -1,5 +1,6 @@
 package com.bittr.android.send
 
+import com.bittr.android.feature.send.LightningPaymentFailedException
 import com.bittr.android.core.common.destination.BitcoinNetwork
 import com.bittr.android.core.lnurl.LnurlAuthKeys
 import com.bittr.android.core.network.HttpClient
@@ -104,7 +105,7 @@ class AppSendSource(
                 }
                 current
             }
-            check(status != PaymentStatusView.Failed) { "Payment failed" }
+            if (status == PaymentStatusView.Failed) throw LightningPaymentFailedException()
             id
         }
     }

@@ -74,6 +74,8 @@ class PushCoordinator(
     private val swapHandler: SwapPushHandler?,
     private val lnurlHandler: LnurlPushHandler?,
     private val payoutSwap: PayoutSwapLauncher?,
+    /** iOS keeps `lightningNotification` until the payout's payment is checked with bittr; see [BittrPayoutTracker]. */
+    private val payoutTracker: BittrPayoutTracker = BittrPayoutTracker(),
     private val clockMillis: () -> Long = System::currentTimeMillis,
     private val pause: suspend (Long) -> Unit = { delay(it) },
     private val log: (String) -> Unit = { Log.i(TAG, it) },
@@ -290,6 +292,8 @@ class PushCoordinator(
             return
         }
 
+        // Expected before the call: the payment can settle before bittr's answer arrives.
+        payoutTracker.expect(notificationId, clockMillis())
         val outcome = withContext(io) {
             try {
                 val response = http.execute(LightningPayout.request(environment, notificationId, invoice, signature, pubkey))
@@ -301,6 +305,7 @@ class PushCoordinator(
             }
         }
         log("Payout outcome: ${outcome::class.simpleName}")
+        if (outcome !is LightningPayout.Outcome.Paid) payoutTracker.clear()
         hideLoading()
         when (outcome) {
             // The payment itself arrives through the node; there is nothing left to replay.

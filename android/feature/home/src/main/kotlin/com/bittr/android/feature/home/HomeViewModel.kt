@@ -1,5 +1,6 @@
 package com.bittr.android.feature.home
 
+import com.bittr.android.core.wallet.InternetConnection
 import com.bittr.android.core.wallet.WalletRefresher
 
 import androidx.lifecycle.ViewModel
@@ -63,6 +64,7 @@ class HomeViewModel @Inject constructor(
     walletService: WalletService,
     private val overview: WalletOverviewSource,
     private val refresher: WalletRefresher = WalletRefresher.None,
+    private val internet: InternetConnection = InternetConnection.Always,
     prices: FiatPriceSource,
 ) : ViewModel() {
 
@@ -131,7 +133,13 @@ class HomeViewModel @Inject constructor(
      * spins.
      */
     fun refresh() {
-        if (overview.overview.value.hasSynced && !refresher.isRefreshing.value) refresher.refresh()
+        if (!overview.overview.value.hasSynced || refresher.isRefreshing.value) return
+        // `guard self.coreVC!.checkInternetConnection() else { return }`.
+        if (!internet.isConnected()) {
+            alert.value = HomeAlert(HomeStrings.CHECK_YOUR_CONNECTION, HomeStrings.TRY_TO_CONNECT)
+            return
+        }
+        refresher.refresh()
     }
 
     private companion object {

@@ -210,6 +210,9 @@ class FileBittrCustomerStore(private val file: File) : BittrCustomerStore {
                 "bitcoin_amount" to d(p.bitcoinAmount),
                 "fiat_amount_net" to d(p.fiatAmountNet),
                 "fiat_amount_gross" to d(p.fiatAmountGross),
+                "transfer_fee" to d(p.transferFee),
+                "bittr_fee" to d(p.bittrFee),
+                "surcharge" to d(p.surcharge),
             ),
         )
 
@@ -224,6 +227,9 @@ class FileBittrCustomerStore(private val file: File) : BittrCustomerStore {
                 bitcoinAmount = num("bitcoin_amount"),
                 fiatAmountNet = num("fiat_amount_net"),
                 fiatAmountGross = num("fiat_amount_gross"),
+                transferFee = num("transfer_fee"),
+                bittrFee = num("bittr_fee"),
+                surcharge = num("surcharge"),
             )
         }
     }
