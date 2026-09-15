@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModel
 import com.bittr.android.core.network.BittrCustomerStore
 import com.bittr.android.core.network.BittrEnvironment
 import com.bittr.android.core.network.BittrRequestSigner
+import com.bittr.android.core.network.DeviceTokenLifecycle
 import com.bittr.android.core.network.DeviceTokenSource
 import com.bittr.android.core.network.FileBittrCustomerStore
 import com.bittr.android.core.network.HttpClient
@@ -54,6 +55,7 @@ object BuyModule {
         signer: BittrRequestSigner,
         tokens: DeviceTokenSource,
         composition: WalletComposition,
+        deviceTokens: DeviceTokenLifecycle,
     ): BuySource = AppBuySource(
         store = store,
         environment = environment,
@@ -62,6 +64,7 @@ object BuyModule {
         keys = composition.registration,
         tokens = tokens,
         notifications = NotificationAccess(context),
+        onRegistered = deviceTokens::onRegistered,
     )
 
     @Provides
@@ -77,6 +80,7 @@ object BuyModule {
     ): AppProfits = AppProfits(
         store = store,
         overview = composition.overview,
+        fundingTxId = composition.channelFundingTxId,
         prices = prices,
         preferences = preferences,
         http = http,

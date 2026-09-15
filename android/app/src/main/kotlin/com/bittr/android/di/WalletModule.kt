@@ -670,6 +670,7 @@ object WalletModule {
                 override fun signBitcoinMessage(message: String): String? = signer.sign(message)
             },
             nodeEvents = nodeEvents,
+            channelFundingTxId = { closureCache.channelFundingOutpoint()?.txId },
         )
     }
 
@@ -721,4 +722,6 @@ class WalletComposition(
     val registration: BittrRegistrationKeys? = null,
     /** Node events the UI reacts to. Never emits in a build with no node. */
     val nodeEvents: NodeEvents = NodeEvents(),
+    /** `CacheManager.getTxoID()` — the active channel's funding transaction id, once one is cached. */
+    val channelFundingTxId: () -> String? = { null },
 )

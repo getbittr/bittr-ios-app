@@ -36,6 +36,8 @@ import kotlinx.coroutines.sync.withLock
 class AppProfits(
     private val store: BittrCustomerStore,
     private val overview: WalletOverviewSource,
+    /** `CacheManager.getTxoID()`: the channel-funding transaction bittr opened for the customer. */
+    private val fundingTxId: () -> String? = { null },
     private val prices: BitcoinPriceSource,
     private val preferences: AppPreferences,
     private val http: HttpClient,
@@ -70,9 +72,15 @@ class AppProfits(
         val depositCodes = store.depositCodes()
         if (depositCodes.isEmpty()) return@withLock
         val sent = store.sentToBittr()
-        val txIds = overview.overview.value.transactions
+        val transactions = overview.overview.value.transactions
+        val received = transactions
             .filter { it.receivedSats > 0 && it.netSats > 0 && it.id !in sent }
             .map { it.id }
+        // `getBittrTransactions`: the funding transaction too, unless it was already sent and is
+        // already in the history. A channel bittr funded is a purchase the history does not list
+        // as a received transaction of this wallet.
+        val funding = fundingTxId()?.takeUnless { id -> id in sent && transactions.any { it.id == id } }
+        val txIds = (received + listOfNotNull(funding)).distinct()
         if (txIds.isEmpty()) return@withLock
         val pubkey = signer.pubkey() ?: return@withLock
         val signature = signer.sign(TransactionInfo.message(txIds, depositCodes)) ?: return@withLock
@@ -100,7 +108,24 @@ class AppProfits(
                 currency = purchase.currency,
                 fiatNetAmount = purchase.fiatAmountNet ?: 0.0,
             )
-        }
+        } + fundingPurchase(transactions.map { it.id }.toSet(), purchases)
         _summary.value = ProfitCalculator.summarise(inputs, chosen.symbol, chosenPrice, eur, chf)
+    }
+
+    /**
+     * iOS turns the funding transaction's bittr row into a history transaction
+     * (`createTransaction(isFundingTransaction: true)`) and counts it like any purchase; here it
+     * is counted from the row itself, at the bitcoin amount bittr reports, unless the history
+     * already has it.
+     */
+    private fun fundingPurchase(
+        historyIds: Set<String>,
+        purchases: Map<String, com.bittr.android.core.network.BittrTransactionInfo>,
+    ): List<PurchaseForProfit> {
+        val id = fundingTxId() ?: return emptyList()
+        if (id in historyIds) return emptyList()
+        val purchase = purchases[id] ?: return emptyList()
+        val btc = purchase.bitcoinAmount ?: return emptyList()
+        return listOf(PurchaseForProfit(receivedBtc = btc, currency = purchase.currency, fiatNetAmount = purchase.fiatAmountNet ?: 0.0))
     }
 }
