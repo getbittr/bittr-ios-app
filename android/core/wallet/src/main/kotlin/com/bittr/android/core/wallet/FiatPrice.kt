@@ -17,6 +17,12 @@ fun interface FiatPriceSource {
     suspend fun current(): FiatPrice?
 
     /**
+     * The symbol of the currency the user chose, without fetching a price — what Home looks up a
+     * cached conversion rate by before the live one arrives. Null for a source that cannot say.
+     */
+    fun currentSymbol(): String? = null
+
+    /**
      * Emits whenever the user picks a different display currency, so a screen holding a
      * price can fetch it again — Home's conversion and history otherwise keep showing the
      * old currency after Settings changes it. Empty for a source whose currency is fixed.

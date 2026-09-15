@@ -15,6 +15,8 @@ class AppFiatPriceSource(
     /** The preference's later values; the current one is what [current] already reads. */
     override val currencyChanges: Flow<Any> = preferences.currency.drop(1)
 
+    override fun currentSymbol(): String = preferences.currency.value.symbol
+
     override suspend fun current(): FiatPrice? {
         val currency = preferences.currency.value
         return prices.price(currency)?.let { FiatPrice(pricePerBitcoin = it, symbol = currency.symbol) }

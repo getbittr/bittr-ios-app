@@ -8,6 +8,8 @@ import com.bittr.android.core.network.HttpTransportException
 import com.bittr.android.core.network.TransactionInfo
 import com.bittr.android.core.preferences.AppPreferences
 import com.bittr.android.core.preferences.Currency
+import com.bittr.android.core.wallet.CachedProfit
+import com.bittr.android.core.wallet.HomeCache
 import com.bittr.android.core.wallet.WalletOverviewSource
 import com.bittr.android.feature.buy.ProfitCalculator
 import com.bittr.android.feature.buy.ProfitSummary
@@ -44,6 +46,8 @@ class AppProfits(
     private val environment: BittrEnvironment,
     private val signer: BittrRequestSigner,
     private val scope: CoroutineScope,
+    /** Where the last summary is kept, so Home's pill is there on the next launch. */
+    private val homeCache: HomeCache = HomeCache.None,
 ) {
 
     private val _summary = MutableStateFlow<ProfitSummary?>(null)
@@ -110,6 +114,11 @@ class AppProfits(
             )
         } + fundingPurchase(transactions.map { it.id }.toSet(), purchases)
         _summary.value = ProfitCalculator.summarise(inputs, chosen.symbol, chosenPrice, eur, chf)
+        _summary.value?.let { summary ->
+            homeCache.saveProfit(
+                CachedProfit(summary.totalProfit, summary.totalInvestment, summary.currentValue, summary.currencySymbol),
+            )
+        }
     }
 
     /**
