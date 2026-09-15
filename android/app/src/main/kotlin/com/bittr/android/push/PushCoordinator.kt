@@ -292,13 +292,15 @@ class PushCoordinator(
 
         val outcome = withContext(io) {
             try {
-                LightningPayout.parse(
-                    http.execute(LightningPayout.request(environment, notificationId, invoice, signature, pubkey)),
-                )
+                val response = http.execute(LightningPayout.request(environment, notificationId, invoice, signature, pubkey))
+                log("POST payout/lightning (notification $notificationId) -> HTTP ${response.code}: ${redactedBody(response.body)}")
+                LightningPayout.parse(response)
             } catch (e: Exception) {
+                log("POST payout/lightning (notification $notificationId) failed: ${e.javaClass.simpleName}: ${e.message}")
                 LightningPayout.Outcome.Error(LightningPayout.COULD_NOT_CONNECT)
             }
         }
+        log("Payout outcome: ${outcome::class.simpleName}")
         hideLoading()
         when (outcome) {
             // The payment itself arrives through the node; there is nothing left to replay.
@@ -358,8 +360,11 @@ class PushCoordinator(
                         LightningPayout.NO_DATA
                     } else {
                         try {
-                            OnchainPayout.parse(http.execute(OnchainPayout.request(environment, notificationId, signature, pubkey)))
+                            val response = http.execute(OnchainPayout.request(environment, notificationId, signature, pubkey))
+                            log("POST payout/onchain (notification $notificationId) -> HTTP ${response.code}: ${redactedBody(response.body)}")
+                            OnchainPayout.parse(response)
                         } catch (e: Exception) {
+                            log("POST payout/onchain (notification $notificationId) failed: ${e.javaClass.simpleName}: ${e.message}")
                             OnchainPayout.COULD_NOT_CONNECT
                         }
                     }
@@ -507,6 +512,15 @@ class PushCoordinator(
     }
 
     private fun close() = PushAlertButton(PushStrings.CLOSE, dismisses = true)
+
+    /**
+     * A response body for logcat: the first 500 characters, with the values of fields that carry
+     * payment secrets or credentials blanked, so a failed payout can be diagnosed from the logs.
+     */
+    private fun redactedBody(body: String): String =
+        body.replace(Regex("\"(pre_image|preimage|invoice|signature|token)\"\\s*:\\s*\"[^\"]*\""), "\"$1\":\"…\"")
+            .take(500)
+            .ifEmpty { "(empty body)" }
 
     private fun okay() = PushAlertButton(PushStrings.OKAY, dismisses = true)
 
