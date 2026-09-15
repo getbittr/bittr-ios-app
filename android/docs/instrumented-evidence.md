@@ -255,17 +255,35 @@ re-run. Telling them apart cost a full local `./gradlew test --rerun-tasks`.
 `Say which unit test failed` step. It runs only on the red path (`if: failure()`),
 **always exits 0** — the step above has already failed the job, and a reporter that could
 change the outcome would only replace one uninformative failure with another — and puts
-its answer where the annotations are, as one of three `::error::` commands:
+its answer where the annotations are, as one of four `::error::` commands:
 
 - each failing test by class and name, with its message;
 - *failed with no test results*, when the task died before any test ran — a compile error
-  in a test source set, a Gradle configuration failure; or
+  in a test source set, a Gradle configuration failure;
 - *failed but every test passed*, when result files exist and none of them records a
-  failure.
+  failure; or
+- *the unit tests are not what failed*, when the job went red at some other step.
 
-The last is the one run 98 needed. The absence of a failing test *is* the finding: it
+The third is the one run 98 needed. The absence of a failing test *is* the finding: it
 points at the toolchain rather than at the wallet, and saying so is a conclusion where
-silence was not. Its self-test, `test_report_test_failures.py`, runs in the build job
+silence was not.
+
+The fourth exists because `if: failure()` fires when **any** earlier step failed, not only
+the test step, and the first two verdicts are false in that case. On run `34857179285` the
+job's first step — an unretried actionlint download — exited 22, the test task never ran,
+and *failed with no test results* duly announced "a compile error in a test source set"
+about a network blip. It sorted above GitHub's own `exit code 22` line, which names no
+step, and it was believed. So the step now passes `steps.unit_tests.outcome` to the script:
+anything but `failure` means the tests are not the finding, and the annotation says where
+not to look instead of diagnosing them. A failing testcase in the XML is still named on
+that path — evidence is evidence whichever step took the job down.
+
+That same run is why both actionlint downloads and the Maestro installer carry
+`--retry 3 --retry-all-errors --retry-delay 2`. `--retry-all-errors` rather than bare
+`--retry`: exit 22 does not say which status came back, and bare `--retry` recovers from
+503 but gives up on 403 and 404 after one request.
+
+Its self-test, `test_report_test_failures.py`, runs in the build job
 beside the other readers, because a reporter that only ever speaks on the red path would
 otherwise stay broken unnoticed until the day it is needed.
 

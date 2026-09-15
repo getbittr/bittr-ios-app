@@ -85,9 +85,13 @@ jobs:
         # .github/workflows, which is the point — this must cover files that do
         # not exist yet, including any workflow whose own triggers would never
         # have fired on the push that broke it.
+        #
+        # Retried for the reason android-maestro.yml's copy gives in full: an unretried
+        # fetch here reds the branch on a network blip. Keep the two flag sets the same
+        # as well as the two versions.
         run: |
           set -euo pipefail
-          curl -fsSL -o /tmp/actionlint.tar.gz \
+          curl -fsSL --retry 3 --retry-all-errors --retry-delay 2 -o /tmp/actionlint.tar.gz \
             "https://github.com/rhysd/actionlint/releases/download/v${ACTIONLINT_VERSION}/actionlint_${ACTIONLINT_VERSION}_linux_amd64.tar.gz"
           tar -xzf /tmp/actionlint.tar.gz -C /tmp actionlint
           /tmp/actionlint -color

@@ -128,9 +128,27 @@ jobs:
         # actionlint validates ${{ }} expressions against the real context types and runs
         # shellcheck over every `run:` block. Pinned so the check itself cannot change
         # under a run; runs first because it costs about two seconds.
+        #
+        # On run 34857179285 this fetch exited 22 — `--fail` saw an HTTP error from the
+        # release URL — and took the whole job down on a commit that touches one Kotlin
+        # file. The same step had succeeded on the previous commit eighteen minutes
+        # earlier, so the pin and the URL were fine; the fetch simply had one attempt.
+        #
+        # --retry-all-errors rather than bare --retry, because exit 22 does not say
+        # WHICH status came back and the two flag sets differ on exactly that. Measured
+        # against a local server: bare `--retry 3` recovers from 503 but gives up on 403
+        # and 404 after a single request, still exit 22; adding --retry-all-errors
+        # recovers from all three. A GitHub release download can produce either half —
+        # 5xx from the service, 403 from the CDN under rate limiting — so covering only
+        # the transient set would leave the more likely cause unretried.
+        #
+        # Deliberately not actions/cache. A cache restore is itself a network round trip
+        # against a different GitHub service, so it trades one remote dependency for
+        # another while leaving this curl as the miss path that still has to work. The
+        # download is about two seconds; retrying it is the whole of the fix.
         run: |
           set -euo pipefail
-          curl -fsSL -o /tmp/actionlint.tar.gz \
+          curl -fsSL --retry 3 --retry-all-errors --retry-delay 2 -o /tmp/actionlint.tar.gz \
             "https://github.com/rhysd/actionlint/releases/download/v${ACTIONLINT_VERSION}/actionlint_${ACTIONLINT_VERSION}_linux_amd64.tar.gz"
           tar -xzf /tmp/actionlint.tar.gz -C /tmp actionlint
           /tmp/actionlint -color
@@ -603,6 +621,7 @@ jobs:
           fi
 
       - name: Unit tests
+        id: unit_tests
         working-directory: android
         # `test`, not `testDebugUnitTest`. The pure-Kotlin modules (:core:common,
         # :core:wallet, :core:wallet-stub) have no Android variants, so their test
@@ -687,8 +706,23 @@ jobs:
         # which lands in that list. Always exits 0 — the step above has already
         # failed the job, and failing twice would just replace one uninformative
         # failure with another.
+        #
+        # The outcome of the test step is passed in because `if: failure()` fires
+        # when ANY earlier step failed, not only that one. On run 34857179285 the
+        # actionlint download two hundred lines above exited 22, the test step
+        # never ran, and this step annotated "the failure happened before any test
+        # ran — a compile error in a test source set" about a network blip. It
+        # sorted above the only true annotation and it was believed. With the
+        # outcome in hand the script redirects instead of diagnosing; `skipped`
+        # (an earlier step failed) and `success` (a later one did) both take that
+        # path. Kept on `if: failure()` rather than narrowed to the test step, so
+        # a job that dies elsewhere still gets one annotation saying where not to
+        # look — the step list is readable by a signed-in human and by nobody
+        # else, which is the whole premise of this step.
         if: failure()
-        run: python3 android/scripts/report-test-failures.py
+        run: |
+          python3 android/scripts/report-test-failures.py \
+            --unit-tests-outcome '${{ steps.unit_tests.outcome }}'
 
       - name: Upload unit test report
         # if: failure(), not always(). On green this report says nothing that the
@@ -938,9 +972,15 @@ jobs:
         # The version is echoed so each run's log records which Maestro produced its
         # result — without that, comparing three "consecutive" runs assumes something
         # nobody actually checked.
+        #
+        # Retried on the same argument as `Lint this workflow`: the other unretried
+        # remote fetch in this file, and this one is worse placed — it sits after the
+        # AVD has come up, so a single HTTP blip costs an emulator boot as well as a
+        # red run. Piping to bash means --fail only guards the fetch, not the installer;
+        # the `--version` line below is what proves the install actually landed.
         run: |
           set -euo pipefail
-          curl -fsSL "https://get.maestro.mobile.dev" | MAESTRO_VERSION="${MAESTRO_VERSION}" bash
+          curl -fsSL --retry 3 --retry-all-errors --retry-delay 2 "https://get.maestro.mobile.dev" | MAESTRO_VERSION="${MAESTRO_VERSION}" bash
           echo "$HOME/.maestro/bin" >> "$GITHUB_PATH"
           "$HOME/.maestro/bin/maestro" --version
 

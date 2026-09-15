@@ -4,6 +4,7 @@
     android/scripts/report-test-failures.py                  # scan android/**/build/test-results
     android/scripts/report-test-failures.py --root <dir>     # scan somewhere else
     android/scripts/report-test-failures.py --max 5          # cap the annotations
+    android/scripts/report-test-failures.py --unit-tests-outcome skipped
 
 Always exits 0. This runs when the job has ALREADY failed; its job is to say
 what failed, and a non-zero exit here would only replace one uninformative
@@ -49,13 +50,29 @@ The pure-Kotlin modules (:core:common, :core:wallet, :core:wallet-stub,
 build/test-results/testDebugUnitTest/ and testReleaseUnitTest/. A glob over
 test-results/ covers whichever module broke without naming the layouts.
 
-NO XML AT ALL IS A FINDING
+NO XML AT ALL IS A FINDING — BUT ONLY IF THE TEST TASK IS WHAT FAILED
 
-If the task died before any test ran — a Kotlin compile error in a test source
-set, a Gradle configuration failure — there are no result files, and saying so
-out loud is worth an annotation of its own. Otherwise this script would be
-silent in exactly the case where the log is the only evidence and the log cannot
-be read.
+If the test task died before any test ran — a Kotlin compile error in a test
+source set, a Gradle configuration failure — there are no result files, and
+saying so out loud is worth an annotation of its own. Otherwise this script would
+be silent in exactly the case where the log is the only evidence and the log
+cannot be read.
+
+That reasoning holds only when the unit-test step is the step that failed, and
+the workflow runs this one on `if: failure()`, i.e. whenever ANY earlier step
+failed. On run 34857179285 the first step in the job — an unretried actionlint
+download — exited 22, the unit-test step never ran, and this script printed
+"the failure happened before any test ran, a compile error in a test source set"
+about a network blip. It ranked above the one true annotation ("Process
+completed with exit code 22", which names no step), and it was believed.
+
+So the step's outcome is now an input: --unit-tests-outcome takes
+`steps.<id>.outcome` from the workflow. Anything other than `failure` means the
+tests are not the cause, and this script says that instead of diagnosing them.
+A correct redirect is worth its annotation for the same reason the rest of this
+file exists — the step list is visible to a signed-in human, and the annotation
+list is what everyone else gets. The default is `failure`, so running this by
+hand keeps the old behaviour.
 
 NO DEPENDENCIES, DELIBERATELY
 
@@ -139,13 +156,57 @@ def main(argv=None):
         default=DEFAULT_MAX,
         help=f"Most annotations to emit (default: {DEFAULT_MAX}).",
     )
+    parser.add_argument(
+        "--unit-tests-outcome",
+        default="failure",
+        help=(
+            "`steps.<id>.outcome` of the step that ran the tests: failure, success, "
+            "skipped or cancelled. Anything but `failure` means the job died "
+            "somewhere else and the tests are not the finding (default: failure)."
+        ),
+    )
     args = parser.parse_args(argv)
+
+    # No argparse `choices`: an unrecognised value there is SystemExit(2), and this
+    # script exiting non-zero would fail the job a second time with a message about
+    # its own arguments — replacing the diagnosis with noise, which is the failure
+    # mode the whole file is built against. An unknown value is simply not
+    # "failure", which lands on the conservative branch.
+    tests_are_the_suspect = args.unit_tests_outcome == "failure"
 
     # sorted() so a run is reproducible and two runs of the same failure produce
     # the same annotation order — otherwise comparing runs means comparing sets.
     reports = sorted(args.root.glob("**/build/test-results/**/*.xml"))
 
-    if not reports:
+    found = []
+    for report in reports:
+        found.extend(failures_in(report))
+
+    if not tests_are_the_suspect:
+        # The redirect. Both diagnoses below assume the test task is what went
+        # red; neither is true when some other step failed the job, and the
+        # no-XML one in particular reads as a confident compile-error verdict.
+        print(
+            "::error title=The unit tests are not what failed::"
+            + escape(
+                "A different step in this job failed; the unit-test step's own "
+                f"outcome is `{args.unit_tests_outcome}`, not `failure`. Do not "
+                "look for a broken test or a compile error in a test source "
+                "set — neither is implicated. The failing step is named in the "
+                "step list on the run page, and its exit code is the "
+                "`Process completed with exit code N` annotation alongside "
+                "this one. A step that fetches something over the network is "
+                "the first thing to rule out: run 34857179285 was an actionlint "
+                "download exiting 22, and re-running the job was the fix."
+            )
+        )
+        if not found:
+            return 0
+        # Fall through when the XML does hold a failing testcase. That is real
+        # evidence whichever step failed the job, and dropping it here would
+        # re-create this script's own silent-when-it-matters failure mode.
+
+    elif not reports:
         print(
             "::error title=Unit tests failed with no test results::"
             + escape(
@@ -167,11 +228,7 @@ def main(argv=None):
         )
         return 0
 
-    found = []
-    for report in reports:
-        found.extend(failures_in(report))
-
-    if not found:
+    elif not found:
         # Worth its own annotation. A red task whose every result file is green
         # is a real and specific situation — the task failed outside the tests
         # themselves (a Robolectric/JVM crash after the last result was flushed,

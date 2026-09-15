@@ -95,6 +95,56 @@ class ReportTestFailuresTest(unittest.TestCase):
         self.assertIn("::error title=Unit tests failed but every test passed::", out)
         self.assertIn("outside the tests themselves", out)
 
+    def test_an_earlier_step_failing_is_not_diagnosed_as_a_compile_error(self):
+        """Run 34857179285: the actionlint download exited 22 and this script
+        said "a compile error in a test source set". The test step is SKIPPED in
+        that shape, and no XML is written — the same inputs as the test above,
+        so the outcome flag is the only thing that can tell them apart."""
+        code, out = self.run_script("--unit-tests-outcome", "skipped")
+        self.assertEqual(code, 0)
+        self.assertIn("::error title=The unit tests are not what failed::", out)
+        # The wrong verdict must be absent, not merely outranked: it sorted above
+        # the true annotation last time and was the first thing anyone read.
+        self.assertNotIn("Unit tests failed with no test results", out)
+        self.assertNotIn("before any test ran", out)
+        # Not a bare `assertNotIn("compile error")`: the redirect names that
+        # verdict in order to rule it out, and the assertion has to tell the
+        # claim apart from its denial.
+
+    def test_a_later_step_failing_does_not_blame_the_green_tests(self):
+        """The mirror case. `Compile the instrumented tests` runs after `Unit
+        tests`, so the XML exists and is green, and the old code called that
+        "the task failed outside the tests themselves" — true of the job, but
+        stated about a test task that had succeeded."""
+        write_report(self.root, "app", "testDebugUnitTest", "TEST-Green.xml", PASSING_XML)
+        code, out = self.run_script("--unit-tests-outcome", "success")
+        self.assertEqual(code, 0)
+        self.assertIn("::error title=The unit tests are not what failed::", out)
+        self.assertNotIn("Unit tests failed but every test passed", out)
+
+    def test_a_real_failure_is_still_named_when_another_step_failed(self):
+        """The redirect must not swallow evidence: a failing testcase in the XML
+        is worth naming whichever step took the job down."""
+        write_report(self.root, "app", "testDebugUnitTest", "TEST-Red.xml", FAILING_XML)
+        code, out = self.run_script("--unit-tests-outcome", "cancelled")
+        self.assertEqual(code, 0)
+        self.assertIn("::error title=The unit tests are not what failed::", out)
+        self.assertIn("::error title=com.bittr.android.RedTest.itFails (failure)::", out)
+
+    def test_an_unrecognised_outcome_takes_the_conservative_branch(self):
+        """A value argparse has never heard of must not be SystemExit(2): this
+        script exiting non-zero replaces the diagnosis with a usage error."""
+        code, out = self.run_script("--unit-tests-outcome", "")
+        self.assertEqual(code, 0)
+        self.assertIn("::error title=The unit tests are not what failed::", out)
+
+    def test_the_default_outcome_keeps_the_hand_run_behaviour(self):
+        """No flag — a human running this locally — still gets the test-task
+        diagnosis rather than a redirect to a step list that does not exist."""
+        code, out = self.run_script()
+        self.assertIn("::error title=Unit tests failed with no test results::", out)
+        self.assertNotIn("The unit tests are not what failed", out)
+
     def test_a_failure_becomes_an_annotation_naming_the_test(self):
         write_report(self.root, "app", "testDebugUnitTest", "TEST-Red.xml", FAILING_XML)
         code, out = self.run_script()
