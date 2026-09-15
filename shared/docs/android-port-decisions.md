@@ -46,8 +46,18 @@ Status key: **Decided** (done, reversible) · **Question** (needs your answer) �
     Lightning payment (found by payment hash, retrying while the wallet catches up; Receive closes first) and a
     completed swap (once both legs are in history). Nothing opens while locked or during the 10-wrong-PIN removal.
     This also fixes Send falling back to a plain "success" alert after a Lightning payment (it looked the row up
-    by payment id instead of payment hash). **Gaps:** iOS's confetti mode is only used for bittr payouts and isn't
-    ported yet; confirmations for channel-pending / bittr purchases and the payment-failed alert aren't wired yet.
+    by payment id instead of payment hash).
+
+5d. **Decided — bittr payouts and purchases open the celebration version of the transaction screen** (iOS
+    `checkPaymentWithBittr` → `showConfetti`): a Lightning payment that arrives while a payout is expected, or a new
+    channel's funding transaction, is checked with bittr's `/transaction_info`; if bittr confirms it, the screen
+    opens with the piggy header, "Good job", the reminder card and hearts, plus the purchase breakdown (surcharge,
+    bittr fee, transfer fee, purchase value, rate, current value, profit). Also ported: the "Payment failed" alert
+    (Send no longer shows a second one) and the internet check before pull-to-refresh. Differences from iOS:
+    - A payment only counts as the expected payout within 10 minutes of the payout request (iOS has no limit).
+    - A funding purchase's screen is built from bittr's record, since that transaction isn't in the wallet history.
+    - After a failed Lightning payment Send keeps the form filled in (iOS clears it).
+    - The hearts are a hand-made animation (iOS uses SPConfetti) and need a visual check.
 
 ## Scanner and alerts
 
