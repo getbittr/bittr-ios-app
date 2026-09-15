@@ -86,9 +86,20 @@ internal object SettingsStrings {
     const val SYNCING_WALLET = "Syncing wallet"
     const val SYNCING_WALLET_2 = "Please wait a moment while we're syncing your wallet."
 
+    // The node-backed rows. `bittrpeer2`/`3`, `bittrpendingpayout2`/`3`.
+    const val BITTR_PEER_2 = "You're connected to bittr."
+    const val BITTR_PEER_3 = "You're not connected to bittr."
+    const val PENDING_PAYOUT_2 =
+        "There are no pending payouts available at this time. If you need our help, please contact support@getbittr.com."
+    const val PENDING_PAYOUT_3 = "There's a pending payout available for handling. Would you like to do so now?"
+
     // Shared.
     const val OKAY = "Okay"
     const val CANCEL = "Cancel"
+    const val CLOSE = "Close"
+    const val COPY = "Copy"
+    const val CONNECT = "Connect"
+    const val CONFIRM = "Confirm"
 }
 
 /**

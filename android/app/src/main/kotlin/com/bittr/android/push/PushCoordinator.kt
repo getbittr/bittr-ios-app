@@ -137,6 +137,18 @@ class PushCoordinator(
         }
     }
 
+    /**
+     * Device details → Pending payout → Confirm (`handlePendingPayout`): the payout bittr is
+     * still holding, handled as if its push had been tapped — no "you're receiving a payment"
+     * alert, straight to the payout.
+     */
+    fun handlePendingPayout(notificationId: String, amountMsats: Long) {
+        scope.launch {
+            wasNotified = true
+            handlePayout(PushEnvelope.LightningPayout(notificationId, amountMsats))
+        }
+    }
+
     fun onAlertButton(button: PushAlertButton) {
         _uiState.update { it.copy(alert = null) }
         button.onClick()

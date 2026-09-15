@@ -42,6 +42,19 @@ Status key: **Decided** (done, reversible) · **Question** (needs your answer) �
    camera features and list no camera (the CI emulator with `-camera-back none`); the scanner now shows the
    "Scanning not supported" alert there, like iOS.
 
+## Device details
+
+8a. **Decided — Public key, Bittr peer and Pending payout are ported** (they showed "syncing wallet" whatever
+    the wallet's state). Public key shows the node id with [Copy, Close]. Bittr peer shows connected, or not
+    connected with [Close, Connect]. Pending payout makes the signed `GET /notifications` call and hands a
+    payout to the push handler. Lightning connections shows the channel count once the wallet has synced. Two
+    notes:
+    - iOS crashes on Pending payout when there's no node (it force-unwraps `nodeId()`); Android shows
+      "syncing wallet" instead.
+    - Like iOS, the pending-payout list stops reading at the first notification missing a field such as
+      `sent_at`, so a half-filled notification hides the ones after it. Ported as-is. **Question:** is that
+      intended on the backend side?
+
 ## Wallet removal (Device details, Forgot PIN, 10 wrong PINs)
 
 11. **Decided — one removal coordinator, ported from `ResetApp.swift`, for all three entry points.**

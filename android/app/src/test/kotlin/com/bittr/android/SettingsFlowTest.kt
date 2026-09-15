@@ -27,7 +27,9 @@ import com.bittr.android.core.wallet.WalletOverviewSource
 import com.bittr.android.core.wallet.stub.StubWalletService
 import com.bittr.android.feature.home.HomeScreen
 import com.bittr.android.feature.home.HomeViewModel
+import com.bittr.android.feature.settings.DeviceNode
 import com.bittr.android.feature.settings.DeviceViewModel
+import com.bittr.android.feature.settings.PendingPayoutCheck
 import com.bittr.android.navigation.Routes
 import com.bittr.android.navigation.settingsArea
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -97,7 +99,10 @@ class SettingsFlowTest {
         override val overview = MutableStateFlow(WalletOverview())
     }
 
-    private fun launchOnHome() {
+    private fun launchOnHome(
+        node: DeviceNode = DeviceNode.None,
+        deviceOverview: WalletOverviewSource = neverSynced,
+    ) {
         composeRule.runOnUiThread {
             composeRule.activity.setContent {
                 BittrTheme {
@@ -120,7 +125,7 @@ class SettingsFlowTest {
                             // a fresh ViewModel, discarding the open picker or alert
                             // that the tap under test had just set.
                             settingsArea(navController, lightningChannel = { null }) {
-                                remember { DeviceViewModel(preferences, wallet) }
+                                remember { DeviceViewModel(preferences, deviceOverview, node) }
                             }
                         }
                     }
@@ -282,7 +287,6 @@ class SettingsFlowTest {
 
         listOf(
             TestID.Device.Row.publickey,
-            TestID.Device.Row.bittrpeer,
             TestID.Device.Row.pendingpayouts,
             TestID.Device.Row.restore,
         ).forEach { row ->
@@ -295,6 +299,64 @@ class SettingsFlowTest {
 
             composeRule.onNodeWithTag(row).assertExists()
         }
+
+        // With no node iOS's peer check reports "not connected", with [Close, Connect].
+        composeRule.onNodeWithTag(TestID.Device.Row.bittrpeer).performScrollTo().performClick()
+        awaitTag(TestID.Alert.buttonAt(1))
+        composeRule.onNodeWithText(CONNECT).assertIsDisplayed()
+        composeRule.onNodeWithTag(TestID.Alert.buttonAt(0)).performClick()
+        composeRule.onNodeWithTag(TestID.Device.Row.bittrpeer).assertExists()
+    }
+
+    /**
+     * A synced wallet with a running node: the key with Copy, a live peer, the channel
+     * count, and a pending payout that Confirm hands on to the payout handler.
+     */
+    @Test
+    fun `with a node the rows report what the node says`() {
+        val handled = mutableListOf<PendingPayoutCheck.Available>()
+        val payout = PendingPayoutCheck.Available("n1", 10_000_000)
+        val node = object : DeviceNode {
+            override fun publicKey() = "02abc"
+            override suspend fun isConnectedToBittr() = true
+            override suspend fun reconnectToBittr() = Unit
+            override suspend fun pendingPayout(): PendingPayoutCheck = payout
+            override fun handlePendingPayout(payout: PendingPayoutCheck.Available) {
+                handled += payout
+            }
+        }
+        val synced = object : WalletOverviewSource {
+            override val overview = MutableStateFlow(WalletOverview(hasNode = true, hasSynced = true, channelCount = 1))
+        }
+        launchOnHome(node = node, deviceOverview = synced)
+        composeRule.onNodeWithTag(TestID.Nav.settingsButton).performClick()
+        awaitTag(TestID.Settings.Row.device)
+        composeRule.onNodeWithTag(TestID.Settings.Row.device).performClick()
+        awaitTag(TestID.Device.Darkmode.moonButton)
+
+        // Public key: the key, [Copy, Close].
+        composeRule.onNodeWithTag(TestID.Device.Row.publickey).performScrollTo().performClick()
+        awaitTag(TestID.Alert.buttonAt(1))
+        composeRule.onNodeWithText("02abc").assertIsDisplayed()
+        composeRule.onNodeWithTag(TestID.Alert.buttonAt(1)).performClick()
+
+        // Bittr peer: connected, one button.
+        composeRule.onNodeWithTag(TestID.Device.Row.bittrpeer).performScrollTo().performClick()
+        awaitTag(TestID.Alert.buttonAt(0))
+        composeRule.onNodeWithText(CONNECTED).assertIsDisplayed()
+        composeRule.onNodeWithTag(TestID.Alert.buttonAt(1)).assertDoesNotExist()
+        composeRule.onNodeWithTag(TestID.Alert.buttonAt(0)).performClick()
+
+        // Lightning connections: the count.
+        composeRule.onNodeWithTag(TestID.Device.Row.lightningchannels).performScrollTo()
+        composeRule.onNodeWithText("1").assertExists()
+
+        // Pending payout: [Cancel, Confirm], and Confirm hands it on.
+        composeRule.onNodeWithTag(TestID.Device.Row.pendingpayouts).performScrollTo().performClick()
+        awaitTag(TestID.Alert.buttonAt(1))
+        composeRule.onNodeWithTag(TestID.Alert.buttonAt(1)).performClick()
+        composeRule.waitUntil(TIMEOUT_MS) { handled.isNotEmpty() }
+        assertEquals(listOf(payout), handled)
     }
 
     /** Lightning connections → the question card → `header.downButton` back. */
@@ -355,5 +417,7 @@ class SettingsFlowTest {
 
         /** `SettingsStrings.CANCEL`, which is `internal` to `:feature:settings`. */
         const val CANCEL = "Cancel"
+        const val CONNECT = "Connect"
+        const val CONNECTED = "You're connected to bittr."
     }
 }

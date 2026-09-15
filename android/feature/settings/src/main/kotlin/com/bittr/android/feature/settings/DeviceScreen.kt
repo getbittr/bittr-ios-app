@@ -1,6 +1,8 @@
 package com.bittr.android.feature.settings
 
 import android.Manifest
+import android.content.ClipData
+import android.content.ClipboardManager
 import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -15,11 +17,13 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -28,7 +32,8 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.bittr.android.core.common.TestID
-import com.bittr.android.core.designsystem.BittrAlertDialog
+import com.bittr.android.core.designsystem.BittrAlert
+import com.bittr.android.core.designsystem.BittrAlertButton
 import com.bittr.android.core.designsystem.BittrBody
 import com.bittr.android.core.designsystem.BittrCanvas
 import com.bittr.android.core.designsystem.BittrChoiceDialog
@@ -46,15 +51,10 @@ import com.bittr.android.core.preferences.DarkModeSetting
 /**
  * Device details — `ios/bittr/Settings/DeviceViewController`.
  *
- * All nine rows, in iOS's order, each carrying its `device.row.*` identifier. Four of
- * them — Public key, Bittr peer, Pending payout, Remove wallet — report facts only a
- * running Lightning node has, and take the `syncingwallet` branch iOS itself takes
- * when there is no node. See [DeviceViewModel.nodeBackedRowTapped].
- *
- * The two that fully work today are the two `features/settings.yaml` asserts a
- * *visible* consequence of: the dark-mode control recolours the whole app, and the
- * currency switch changes what Home displays amounts in. Both persist through a
- * process death, because both are read at launch — the theme before the first frame.
+ * All nine rows, in iOS's order, each carrying its `device.row.*` identifier. Public key,
+ * Bittr peer and Pending payout ask the node and bittr through [DeviceNode]; Lightning
+ * connections shows the channel count once the wallet has a reading; Remove wallet is the
+ * app's removal coordinator.
  */
 @Composable
 fun DeviceScreen(
@@ -67,25 +67,16 @@ fun DeviceScreen(
     val state by viewModel.uiState.collectAsState()
     val picker by viewModel.openPicker.collectAsState()
     val alert by viewModel.currentAlert.collectAsState()
+    val context = LocalContext.current
 
     /**
-     * iOS's `askForPushNotifications()`, in Android's terms.
-     *
-     * There is no FCM token to fetch until Firebase is provisioned (BIT-39, and only
-     * Ruben can do it), so the whole of what this row can honestly do today is the
-     * half that does not need it: ask for the notification permission. That is
-     * precisely what the iOS row does on a device where authorization is
-     * `.notDetermined`, and `features/settings.yaml` already tolerates the branch
-     * where no token alert follows — "or nothing (a simulator often can't mint an
-     * APNs token)". Showing an invented "no token" alert would be the one behaviour
-     * the flow does *not* expect.
-     *
-     * Below API 33 there is no runtime notification permission and nothing happens,
-     * which matches an already-authorized iOS device.
+     * iOS's `askForPushNotifications()`, in Android's terms: ask for the notification
+     * permission. Below API 33 there is no runtime notification permission and nothing
+     * happens, which matches an already-authorized iOS device.
      */
     val notificationPermission = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission(),
-    ) { /* Granted or not, there is no token to show until BIT-39. */ }
+    ) { }
 
     DeviceScreen(
         state = state,
@@ -102,9 +93,17 @@ fun DeviceScreen(
                 notificationPermission.launch(Manifest.permission.POST_NOTIFICATIONS)
             }
         },
-        onNodeBackedRow = viewModel::nodeBackedRowTapped,
+        onPublicKey = viewModel::publicKeyTapped,
+        onBittrPeer = viewModel::bittrPeerTapped,
+        onPendingPayout = viewModel::pendingPayoutTapped,
         onOpenLightningQuestion = onOpenLightningQuestion,
-        onDismissAlert = viewModel::dismissAlert,
+        onAlertButton = { button ->
+            (button.action as? DeviceAlertAction.Copy)?.let { copy ->
+                context.getSystemService(ClipboardManager::class.java)
+                    ?.setPrimaryClip(ClipData.newPlainText(SettingsStrings.PUBLIC_KEY, copy.text))
+            }
+            viewModel.onAlertButton(button)
+        },
         onRemoveWallet = onRemoveWallet,
         modifier = modifier,
     )
@@ -123,19 +122,25 @@ internal fun DeviceScreen(
     onSelectEnglish: () -> Unit,
     onSelectCurrency: (Currency) -> Unit,
     onDeviceToken: () -> Unit,
-    onNodeBackedRow: () -> Unit,
+    onPublicKey: () -> Unit,
+    onBittrPeer: () -> Unit,
+    onPendingPayout: () -> Unit,
     onOpenLightningQuestion: () -> Unit,
-    onDismissAlert: () -> Unit,
+    onAlertButton: (DeviceAlertButton) -> Unit,
+    onRemoveWallet: () -> Unit,
     modifier: Modifier = Modifier,
-    onRemoveWallet: () -> Unit = onNodeBackedRow,
 ) {
     alert?.let {
-        BittrAlertDialog(
+        BittrAlert(
             title = it.title,
             message = it.message,
-            confirmLabel = SettingsStrings.OKAY,
-            onConfirm = onDismissAlert,
-            confirmTestTag = TestID.Alert.buttonAt(0),
+            buttons = it.buttons.map { button ->
+                BittrAlertButton(
+                    label = button.label,
+                    dismissesAlert = button.action == DeviceAlertAction.Dismiss,
+                    onClick = { onAlertButton(button) },
+                )
+            },
         )
     }
 
@@ -227,39 +232,37 @@ internal fun DeviceScreen(
                 BittrRowValue(SettingsStrings.FETCH)
             }
 
-            // 5. Public key. Node-backed.
+            // 5. Public key.
             BittrListRow(
                 label = SettingsStrings.PUBLIC_KEY,
                 icon = BittrIconPaths.KEY,
-                onClick = onNodeBackedRow,
+                onClick = onPublicKey,
                 testTag = TestID.Device.Row.publickey,
             ) {
                 BittrRowValue(SettingsStrings.FETCH)
             }
 
-            // 6. Bittr peer. Node-backed.
+            // 6. Bittr peer.
             BittrListRow(
                 label = SettingsStrings.BITTR_PEER,
                 icon = BittrIconPaths.PEER,
-                onClick = onNodeBackedRow,
+                onClick = onBittrPeer,
                 testTag = TestID.Device.Row.bittrpeer,
             ) {
-                BittrRowValue(SettingsStrings.CHECK)
+                CheckValue(checking = state.checkingRow == DeviceRow.BittrPeer)
             }
 
-            // 7. Pending payout. Node-backed — and the row BIT-7's thread asked
-            //    specifically not to lose. BIT-28's support playbook ends here.
+            // 7. Pending payout — the support path BIT-28's playbook sends customers down.
             BittrListRow(
                 label = SettingsStrings.PENDING_PAYOUT,
                 icon = BittrIconPaths.HOURGLASS,
-                onClick = onNodeBackedRow,
+                onClick = onPendingPayout,
                 testTag = TestID.Device.Row.pendingpayouts,
             ) {
-                BittrRowValue(SettingsStrings.CHECK)
+                CheckValue(checking = state.checkingRow == DeviceRow.PendingPayout)
             }
 
-            // 8. Lightning connections. The row's *value* needs the node; the card
-            //    behind it does not, so the tap works and the count reads "Syncing".
+            // 8. Lightning connections: the count once the wallet has a reading.
             BittrListRow(
                 label = SettingsStrings.LIGHTNING_CONNECTIONS,
                 icon = BittrIconPaths.BOLT,
@@ -279,6 +282,16 @@ internal fun DeviceScreen(
                 testTag = TestID.Device.Row.restore,
             )
         }
+    }
+}
+
+/** "Check", or a spinner while the check runs — iOS's `animateCell()`. */
+@Composable
+private fun CheckValue(checking: Boolean) {
+    if (checking) {
+        CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp)
+    } else {
+        BittrRowValue(SettingsStrings.CHECK)
     }
 }
 
@@ -357,7 +370,7 @@ private fun DeviceScreenPreview() {
     }
 }
 
-/** Device details as this build renders it. Shared by the preview and the captures. */
+/** Device details before the wallet has synced. Shared by the preview and the captures. */
 @Composable
 fun DeviceNoNode(modifier: Modifier = Modifier) {
     DeviceScreen(
@@ -371,9 +384,12 @@ fun DeviceNoNode(modifier: Modifier = Modifier) {
         onSelectEnglish = {},
         onSelectCurrency = {},
         onDeviceToken = {},
-        onNodeBackedRow = {},
+        onPublicKey = {},
+        onBittrPeer = {},
+        onPendingPayout = {},
         onOpenLightningQuestion = {},
-        onDismissAlert = {},
+        onAlertButton = {},
+        onRemoveWallet = {},
         modifier = modifier,
     )
 }
