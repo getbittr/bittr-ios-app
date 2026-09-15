@@ -1,5 +1,6 @@
 package com.bittr.android.receive
 
+import com.bittr.android.core.network.BittrCustomerStore
 import com.bittr.android.core.preferences.AppPreferences
 import com.bittr.android.core.wallet.TransactionDescriptionStore
 import com.bittr.android.core.wallet.ldk.adapter.Bolt11Decoder
@@ -30,15 +31,19 @@ class AppReceiveSource(
     private val preferences: AppPreferences,
     private val prices: BitcoinPriceSource,
     private val descriptions: TransactionDescriptionStore? = null,
+    private val customers: BittrCustomerStore? = null,
 ) : ReceiveSource {
 
     override fun lightningAvailable(): Boolean = lightning.listChannels().activeChannel() != null
 
     /**
-     * The bittr account's lightning address. The bittr account (signup, deposit codes and
-     * the lightning address that comes with them) is not ported yet, so there is none.
+     * The bittr account's lightning address — iOS's `userLNURL()`: the first saved bittr account
+     * that has a `lightning_address_username`. It is saved when the signup completes and updated
+     * whenever Buy refreshes its deposit details, so an address bittr adds later shows up here
+     * once Buy has been opened, as on iOS.
      */
-    override fun lightningAddress(): String? = null
+    override fun lightningAddress(): String? =
+        customers?.entities?.value?.firstOrNull { it.lightningAddressUsername.isNotBlank() }?.lightningAddressUsername
 
     override val addressesVerified: StateFlow<Boolean> = addressPool?.verified ?: MutableStateFlow(true)
 

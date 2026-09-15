@@ -1,5 +1,6 @@
 package com.bittr.android.receive
 
+import com.bittr.android.core.network.BittrCustomerStore
 import androidx.lifecycle.ViewModel
 import com.bittr.android.core.network.BittrEnvironment
 import com.bittr.android.core.network.HttpClient
@@ -38,12 +39,14 @@ object ReceiveModule {
         preferences: AppPreferences,
         prices: BitcoinPriceSource,
         descriptions: TransactionDescriptionStore,
+        customers: BittrCustomerStore,
     ): ReceiveSource = AppReceiveSource(
         lightning = composition.lightning,
         addressPool = composition.addressPool,
         preferences = preferences,
         prices = prices,
         descriptions = descriptions,
+        customers = customers,
     )
 }
 
