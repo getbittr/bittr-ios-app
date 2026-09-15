@@ -14,6 +14,8 @@ object LdkNodeEvents {
             reason = event.reason?.let(::reason),
             processingError = (event.reason as? ClosureReason.ProcessingError)?.err,
         )
+        is Event.PaymentReceived -> NodeEvent.PaymentReceived(event.paymentHash, event.amountMsat.toLong())
+        is Event.PaymentSuccessful -> NodeEvent.PaymentSuccessful(event.paymentHash, event.feePaidMsat?.toLong())
         else -> null
     }
 

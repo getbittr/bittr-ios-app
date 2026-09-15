@@ -14,6 +14,16 @@ import kotlinx.coroutines.flow.asSharedFlow
 sealed interface NodeEvent {
 
     /**
+     * `.paymentReceived` — an incoming Lightning payment was claimed. iOS opens its transaction
+     * (`launchTransactionVC`). [paymentHash] is hex, as the history rows carry it.
+     */
+    data class PaymentReceived(val paymentHash: String, val amountMsat: Long) : NodeEvent
+
+    /** `.paymentSuccessful` — an outgoing Lightning payment arrived (`addNewPaymentToTable`). */
+    data class PaymentSuccessful(val paymentHash: String, val feePaidMsat: Long?) : NodeEvent
+
+
+    /**
      * `Event.channelClosed` — iOS launches the "closed lightning connection" Question card.
      *
      * @property reason null when ldk-node gave none.

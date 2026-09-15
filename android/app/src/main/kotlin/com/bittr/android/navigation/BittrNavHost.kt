@@ -222,6 +222,13 @@ fun BittrNavHost(
         }
     }
 
+    // A completed payment or swap opens its transaction over whatever is showing, as iOS's
+    // `launchTransactionVC`, `addNewPaymentToTable` and `openCompletedSwapTransaction` do.
+    val confirmations = hiltViewModel<com.bittr.android.events.TransactionConfirmationsViewModel>().confirmations
+    LaunchedEffect(confirmations) {
+        confirmations.requests.collect { id -> navController.openTransaction(id) }
+    }
+
     // See [NotPortedDialog]. Held here rather than in a screen because it is
     // scaffolding for the port, not app behaviour, and keeping it out of the feature
     // modules is what makes it a single deletion when Wave 1 and Wave 3 finish.
@@ -386,7 +393,7 @@ fun BittrNavHost(
                 source = send.source,
                 onDown = { navController.popBackStack() },
                 onOpenScanner = { navController.navigate(Routes.SCANNER) },
-                onOpenTransaction = { id -> navController.navigate(Routes.transaction(id)) },
+                onOpenTransaction = { id -> navController.openTransaction(id) },
                 onOpenLightningQuestion = { navController.navigate(Routes.SEND_QUESTION) },
                 // iOS closes Send before opening the swap for an invoice (`swapAndPayLightning`), and
                 // pushes the swap over Send for an on-chain payment (`SendToSwap`).

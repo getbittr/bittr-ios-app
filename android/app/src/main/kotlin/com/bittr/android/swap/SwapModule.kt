@@ -60,13 +60,14 @@ object SwapModule {
         secureStore: SecureStore,
         swapStore: SwapStore,
         descriptions: TransactionDescriptionStore,
+        history: com.bittr.android.core.wallet.WalletOverviewSource,
     ): SwapCoordinator {
         val endpoints = BoltzEndpoints.forEnvironment(environment)
         val webhookCache = PrefsBoltzWebhookCache(context)
         val vault = SecureStoreSeedVault(secureStore, SeedWalletService.KEY_SEED)
         return SwapCoordinator(
             api = BoltzApi(http, endpoints),
-            wallet = AppSwapWallet(composition, fees, descriptions, mnemonic = vault::read),
+            wallet = AppSwapWallet(composition, fees, descriptions, mnemonic = vault::read, history = history),
             store = swapStore,
             pushGate = BoltzWebhookMinter(
                 environment = environment,
