@@ -18,7 +18,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.input.pointer.pointerInput
@@ -137,7 +136,15 @@ internal fun GraphView(
                 lineTo(last.x, last.y)
             }
 
-            drawPath(path = path, color = LineColor, style = Stroke(width = 4f))
+            // iOS strokes the curve with `whiteoryellow` (`GraphView.swift:175`), the
+            // token DEV-47 merged into `emphasis` — black in light, yellow in dark.
+            //
+            // This was a near-black literal, which does not move with the scheme and so
+            // was measured against one canvas only: 10.97 : 1 on the yellow, where it
+            // looks right by accident, and **2.43 : 1 on `blue1`**, under the 3 : 1 floor
+            // WCAG 1.4.11 puts on a graphical object. The token is 13.24 and 4.51.
+            // BIT-156, and `TokenContrastTest` holds both ends.
+            drawPath(path = path, color = colors.emphasis, style = Stroke(width = 4f))
         }
 
         // The floating value card. Positioned by hand rather than by a layout,
@@ -177,7 +184,15 @@ internal fun GraphView(
                         }
                     }
                     .width(CardWidth)
-                    .background(colors.scrim1, BittrCanvasShapes.wordRow)
+                    // A fixed light surface in both schemes, which is what iOS does
+                    // (`thisCard.backgroundColor = .white`, `GraphView.swift:112`) and,
+                    // less obviously, the only thing that works: this card sits on
+                    // `canvas`, and on the dark canvas no fill both has an edge and
+                    // carries white text. It filled with `scrim1` — the *field* token,
+                    // right in light by coincidence and `blue1` in dark, which is the
+                    // canvas, so the card was 1.00 : 1 against the page it floats on.
+                    // The arithmetic is on `BittrColors.chartSurface`. BIT-156.
+                    .background(colors.chartSurface, BittrCanvasShapes.wordRow)
                     .padding(vertical = 6.dp),
             ) {
                 // The scale's floor, and the one BIT-151 call site where iOS is not
@@ -187,18 +202,21 @@ internal fun GraphView(
                 // A11Y line the shrink-to-fit balance also respects, so the date
                 // takes it rather than reintroducing a 10 sp one-off.
                 //
-                // The de-emphasis is `mutedOnCanvas`, not iOS's `alpha = 0.4`
-                // (`GraphView.swift:131`). Copying that number gives ink at 40 % on
-                // this card — **2.62 : 1** light, 2.53 : 1 dark — which misses AA for a
-                // 13 sp regular label and misses the 3 : 1 large-text floor as well, so
-                // it is not readable under any reading of the rule. The token is the
-                // one the canvas already uses for a secondary label and clears AA on
-                // this fill in both schemes (6.90 and 5.71). Same call BIT-94 made.
-                // Measured in `TokenContrastTest`.
+                // The de-emphasis is a token, not iOS's `alpha = 0.4`
+                // (`GraphView.swift:131`). Copying that number gives black at 40 % on
+                // this card — **2.85 : 1** — which misses AA for a 13 sp regular label
+                // and misses the 3 : 1 large-text floor as well, so it is not readable
+                // under any reading of the rule. Same call BIT-94 made.
+                //
+                // It was `mutedOnCanvas` until BIT-156, which is right for a label on
+                // the canvas and wrong on this card: the card stopped following the
+                // canvas, and `mutedOnCanvas` is white in dark. `onChartSurfaceMuted`
+                // is that token's light value pinned — the same ink at 70 %, 7.39 : 1
+                // here. Measured in `TokenContrastTest`.
                 Text(
                     text = CardDateFormat.format(scrub.point.at.atZone(ZoneId.systemDefault())),
                     style = MaterialTheme.typography.labelMedium,
-                    color = colors.mutedOnCanvas,
+                    color = colors.onChartSurfaceMuted,
                 )
                 // `priceLabel` is Gilroy-**Bold** 12 (`GraphView.swift:144`), and 13 is
                 // the scale's floor, so this is `labelMedium` with the weight the
@@ -206,10 +224,16 @@ internal fun GraphView(
                 // a slot that carries one weight. It was reading `labelLarge`'s Bold
                 // 16, four sp over iOS, which does not fit: `CHF 120,000` wrapped onto
                 // two lines inside the 80 dp card, measured, not guessed. BIT-152.
+                //
+                // The colour is spelled rather than inherited, and that is load-bearing
+                // now: `BittrCanvas` provides `onCanvas` as the content colour and this
+                // card no longer is the canvas — in dark that inherited white would be
+                // the fill. `GraphCardFitTest` asserts both call sites. BIT-156.
                 Text(
                     text = "$currencySymbol ${formatPrice(scrub.point.price)}",
                     style = MaterialTheme.typography.labelMedium
                         .copy(fontWeight = FontWeight.Bold),
+                    color = colors.onChartSurface,
                     modifier = Modifier.testTag(TestID.Value.graphValueLabel),
                 )
             }
@@ -265,8 +289,6 @@ internal fun List<PricePoint>.scrub(x: Float, width: Float): ScrubbedPoint? {
         priceFraction = priceFractions()[index],
     )
 }
-
-private val LineColor = Color(0xFF1A1A1A)
 
 /**
  * `GraphView.cardDateFormatter` — a day and a month, no year.

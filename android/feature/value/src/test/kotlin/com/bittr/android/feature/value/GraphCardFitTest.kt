@@ -2,7 +2,9 @@ package com.bittr.android.feature.value
 
 import android.graphics.Bitmap
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asAndroidBitmap
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.test.SemanticsNodeInteraction
 import androidx.compose.ui.test.captureToImage
@@ -14,6 +16,7 @@ import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.text.TextLayoutResult
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.bittr.android.core.common.TestID
+import com.bittr.android.core.designsystem.BittrDarkColorsExtended
 import com.bittr.android.core.designsystem.BittrLightColorsExtended
 import com.bittr.android.core.designsystem.BittrTheme
 import java.io.File
@@ -21,6 +24,7 @@ import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertTrue
 import org.junit.Assume.assumeTrue
 import org.junit.Rule
@@ -162,17 +166,29 @@ class GraphCardFitTest {
      * The date reads as a caption, and the price as the value.
      *
      * iOS does this with `dateLabel.alpha = 0.4` (`GraphView.swift:131`) on black text
-     * over a hard-coded white card. The port themes the card, and 40 % of `onCanvas`
-     * on `scrim1` is 2.62 : 1 light and 2.53 : 1 dark — below even the large-text
-     * floor, for a 13 sp regular label. So the de-emphasis is `mutedOnCanvas`, the
-     * token the canvas already uses for a secondary label, and `TokenContrastTest`
-     * holds the measurement. BIT-155, and the same call BIT-94 made.
+     * over a hard-coded white card, which is 2.85 : 1 — below even the large-text
+     * floor, for a 13 sp regular label. So the de-emphasis is a token instead, and
+     * `TokenContrastTest` holds the measurement. BIT-155, and the same call BIT-94 made.
      *
      * This asserts the *call site*, which is the half the arithmetic cannot see: a
      * card that drew both labels in the same token would pass every contrast test.
+     *
+     * **Run in both schemes since BIT-156**, because the card stopped following the
+     * canvas. The tokens are fixed, so the expectation is the same in each — and the
+     * failure this catches is a label back on `onCanvas` or `mutedOnCanvas`, which is
+     * identical to the right answer in light and is the card itself in dark. Checking
+     * light alone cannot tell those apart.
      */
     @Test
-    fun `the date is de-emphasised with the token and the price is not`() {
+    fun `the date is de-emphasised with the token and the price is not`() =
+        assertCardLabelTokens("light")
+
+    @Test
+    @Config(qualifiers = "w411dp-h891dp-night-420dpi")
+    fun `the card's labels take the same tokens in dark mode`() =
+        assertCardLabelTokens("dark")
+
+    private fun assertCardLabelTokens(scheme: String) {
         showScreenWithSixFigureChfPrices()
         holdScrub()
 
@@ -180,18 +196,136 @@ class GraphCardFitTest {
         val price = composeRule.onNodeWithTag(TestID.Value.graphValueLabel)
             .layout().layoutInput.style.color
 
-        println("GRAPH CARD colours: date=$date price=$price")
+        println("GRAPH CARD colours ($scheme): date=$date price=$price")
 
         assertEquals(
-            "The date is drawn at full strength, so the card has no caption/value " +
-                "hierarchy — iOS dims it to 0.4 and this port's equivalent is the token.",
-            BittrLightColorsExtended.mutedOnCanvas,
+            "$scheme: the date is drawn at full strength, so the card has no " +
+                "caption/value hierarchy — iOS dims it to 0.4 and this port's " +
+                "equivalent is the token.",
+            BittrLightColorsExtended.onChartSurfaceMuted,
             date,
         )
         assertEquals(
-            "The price is the value in this card and takes the canvas's primary ink.",
-            BittrLightColorsExtended.onCanvas,
+            "$scheme: the price is the value in this card. It takes the chart card's " +
+                "own ink rather than the canvas's, because the card is a fixed light " +
+                "surface and the canvas's ink is white in dark.",
+            BittrLightColorsExtended.onChartSurface,
             price,
+        )
+    }
+
+    /**
+     * The card is a card in dark mode — measured off the render, not off the tokens.
+     *
+     * `TokenContrastTest` proves the chosen fill has an edge on the canvas. It cannot
+     * prove the call site picked that fill, and that is exactly what went wrong: the
+     * card filled with `scrim1`, which is right in light and is `blue1` in dark, where
+     * the canvas is also `blue1`. **The rendered card was byte-identical to the page
+     * behind it**, and every contrast assertion in the theme stayed green.
+     *
+     * So this samples the pixels. A pixel inside the card and a pixel on the canvas
+     * beside it, at the same height, and they have to differ — the single check that
+     * the BIT-155 render would have failed.
+     */
+    @Test
+    @Config(qualifiers = "w411dp-h891dp-night-420dpi")
+    fun `the scrub card is distinguishable from the dark canvas it floats on`() {
+        showScreenWithSixFigureChfPrices()
+        holdScrub()
+
+        val chart = composeRule.onNodeWithTag(TestID.Value.graphView)
+        val bounds = chart.fetchSemanticsNode().boundsInRoot
+        val card = dateNode().fetchSemanticsNode().boundsInRoot
+        val image = chart.captureToImage().asAndroidBitmap()
+
+        // Bitmap coordinates are relative to the captured node, so the chart's own
+        // origin comes off both.
+        fun sample(x: Float, y: Float) = image.getPixel(
+            (x - bounds.left).toInt().coerceIn(0, image.width - 1),
+            (y - bounds.top).toInt().coerceIn(0, image.height - 1),
+        )
+
+        val inside = sample(card.center.x, card.center.y)
+        // Far enough along the row to be outside an 80 dp card wherever it is sitting,
+        // and clamped into the chart, so this lands on the canvas at the card's height.
+        val beside = sample(
+            if (card.center.x < bounds.center.x) bounds.right - 1f else bounds.left + 1f,
+            card.center.y,
+        )
+
+        println(
+            "GRAPH CARD dark fill: inside=#%08X beside=#%08X".format(inside, beside),
+        )
+
+        assertNotEquals(
+            "The scrub card renders the same pixel as the canvas beside it, so it has " +
+                "no edge at all — the labels float over the chart and the curve runs " +
+                "through where the card's boundary should be. This is what `scrim1` did " +
+                "in dark: it is `blue1`, and so is the canvas.",
+            beside,
+            inside,
+        )
+
+        // The dark render the issue had to be reported with a hand capture for.
+        capture("411dp-night")
+    }
+
+    /**
+     * The curve is stroked in the scheme's own token, checked on the pixels.
+     *
+     * It was `Color(0x…)`, a near-black literal, so it did not move with the scheme:
+     * 10.97 : 1 on the light canvas — which is why nobody noticed — and **2.43 : 1 on
+     * the dark one**, under the 3 : 1 WCAG 1.4.11 puts on a graphical object. iOS
+     * strokes it with `whiteoryellow` (`GraphView.swift:175`), which DEV-47 merged into
+     * `emphasis`.
+     *
+     * `TokenContrastTest` can measure `emphasis` against both canvases and does. What
+     * it cannot do is notice that this `drawPath` went back to a literal, and a literal
+     * is what shipped — so the check that matters is this one, on the rendered stroke.
+     * A `Canvas` has no semantics to read, which is why it is pixels rather than a
+     * layout property. BIT-156.
+     */
+    @Test
+    fun `the curve is stroked in the light scheme's token`() =
+        assertCurveIsStrokedWith(BittrLightColorsExtended.emphasis, "light")
+
+    @Test
+    @Config(qualifiers = "w411dp-h891dp-night-420dpi")
+    fun `the curve is stroked in the dark scheme's token`() =
+        assertCurveIsStrokedWith(BittrDarkColorsExtended.emphasis, "dark")
+
+    /**
+     * Counts pixels of exactly [expected] in the chart.
+     *
+     * Exact equality, not a nearest-colour search: the stroke is 4 px wide, so its
+     * interior is the unblended colour even though its edges are antialiased. A
+     * tolerance would start matching the canvas as the two tokens approach each other,
+     * which is the failure this is here to catch.
+     *
+     * The card is excluded by construction — it is white with ink on it, and neither
+     * value of `emphasis` is either.
+     */
+    private fun assertCurveIsStrokedWith(expected: Color, scheme: String) {
+        showScreenWithSixFigureChfPrices()
+
+        val image = composeRule.onNodeWithTag(TestID.Value.graphView)
+            .captureToImage().asAndroidBitmap()
+        val wanted = expected.toArgb()
+        var found = 0
+        for (x in 0 until image.width) {
+            for (y in 0 until image.height) {
+                if (image.getPixel(x, y) == wanted) found++
+            }
+        }
+
+        println("GRAPH CURVE ($scheme): ${"%,d".format(found)} px of #%08X".format(wanted))
+
+        assertTrue(
+            "$scheme: not one pixel of the chart is the scheme's `emphasis` " +
+                "(#%08X), so the curve is drawn in something else. It was a near-black "
+                    .format(wanted) +
+                "literal, which is 2.43 : 1 on the dark canvas.",
+            found > 0,
         )
     }
 

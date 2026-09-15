@@ -306,8 +306,7 @@ data class BittrColors(
     /** Primary content on [canvas] — headings, body copy, icons. */
     val onCanvas: Color,
     /**
-     * Secondary content on [canvas], on [cardWash] and on [scrim1] — the text-button
-     * labels, and the date above the price in the Value screen's scrub card.
+     * Secondary content on [canvas] and on [cardWash] — the text-button labels.
      *
      * **70 %, where the mock says 42 % and `onSurfaceVariant` says 60 %.** 42 % is
      * 2.4 : 1 and fails outright. 60 % is the value A11Y-01 measured *against the
@@ -315,11 +314,12 @@ data class BittrColors(
      * white wash lifts the background and drops the same ink to 3.51 : 1. 70 % is
      * what clears AA on both: 4.88 : 1 on the card, 6.83 : 1 on the bare canvas.
      *
-     * The scrub card is the third surface, added in BIT-155. It is [scrim1] over the
-     * canvas, and this token reaches 6.90 : 1 on it light and 5.71 : 1 dark. It is
-     * here rather than iOS's `alpha = 0.4` (`GraphView.swift:131`) because that
-     * number lands at 2.62 : 1 and 2.53 : 1 — under even the large-text floor, for a
-     * 13 sp regular label. `TokenContrastTest` holds both halves of that.
+     * The Value screen's scrub card was a third surface for one issue — BIT-155 put
+     * this token on its date — and is not any more. That card does not follow the
+     * canvas: it is a fixed light surface in both schemes, so its date is
+     * [onChartSurfaceMuted], which is this token's *light* value pinned. The
+     * de-emphasis decision is unchanged and only the token moved; see [chartSurface]
+     * for why the card cannot be themed. BIT-156.
      */
     val mutedOnCanvas: Color,
     /**
@@ -381,6 +381,98 @@ data class BittrColors(
      * the mock draws it white, because brand-on-brand would disappear. See [BittrLogo].
      */
     val canvasArc: Color,
+
+    // -----------------------------------------------------------------------
+    // The Value screen's chart surfaces — the four tokens that do not switch
+    // on the scheme, and the arithmetic that says they cannot. BIT-156.
+    // -----------------------------------------------------------------------
+
+    /**
+     * The scrub card's fill, and the selected span button's. **Fixed: one value in
+     * both schemes.**
+     *
+     * iOS hard-codes every surface on this chart. The card is `.white`
+     * (`GraphView.swift:112`) with `.black` labels (`:130`, `:146`); the selected span
+     * button is `.white` and the rest are white at 70 %
+     * (`ValueViewController.swift:351`). None of it goes through `Colors.getColor`, so
+     * there is no iOS token to port — and the port reached for [scrim1] and [scrim2]
+     * instead. Those are the *field* tokens. They are white at 70 % in light, so they
+     * rendered the right pixels there, and they carried a dark value into a card that
+     * was never their call site.
+     *
+     * **The inherited dark value is the defect: [scrim1] is `blue1`, [canvas] is
+     * `blue1`, and the card was byte-identical to the page behind it at 1.00 : 1.** No
+     * edge, labels floating over the chart, the curve running through where the
+     * boundary should have been. That is the shape A11Y-22 / DEV-61 already found once
+     * for the Swap amount field, and the rule at the top of this file is the one that
+     * applies: a fill the same colour as the thing it sits in stops being a control.
+     *
+     * A fixed light surface is not a shortcut around theming it properly. It is the
+     * only assignment that works, because these sit on [canvas] rather than on a
+     * neutral card, and both canvases are extremes:
+     *
+     * - **Dark.** Clearing the 3 : 1 edge floor on `blue1` takes a relative luminance
+     *   of at least **0.390**. Still carrying white text at AA takes at most **0.183**.
+     *   The band is empty — no colour of any hue satisfies both, the same shape
+     *   [switchOn] ran into. A dark scrub card is a light card with ink on it, or it
+     *   is not a card.
+     * - **Light.** Nothing lighter than the brand yellow clears 3 : 1 against it at
+     *   all: the requirement is a luminance of **1.936** and white is 1.0. A light fill
+     *   here is 1.6 : 1 at best. That is what iOS ships, and it is what every other
+     *   card on this canvas already does — [cardWash] is 1.04.
+     *
+     * Both halves land in the same place, which is why this is one decision and not
+     * two. Ink on white in both schemes: **1.59 : 1 on the light canvas, 7.15 : 1 on
+     * the dark one**, against 1.37 and 1.00 for what it replaces. `TokenContrastTest`
+     * holds the empty band as well as the numbers, because the band is the part that
+     * makes the fixed value necessary rather than convenient.
+     */
+    val chartSurface: Color,
+
+    /**
+     * The unselected span buttons — iOS's white at 70 %
+     * (`ValueViewController.swift:351`), translucent there and translucent here, so it
+     * composites over whichever canvas it lands on.
+     *
+     * **Selection is carried by the fill, and before BIT-156 it was not.** Selected was
+     * [scrim1] and unselected [scrim2]; those two are byte-identical in light, so light
+     * mode had no fill difference at all and leant entirely on the label swap
+     * (`showSelectedSpan` — short title to long). In dark they did differ, and pointed
+     * the wrong way: the selected pill at 1.00 : 1 on the canvas and the unselected
+     * ones at 1.20, so the selected pill was the invisible one. The affordance was
+     * inverted, not merely weak.
+     *
+     * Now the selected pill is [chartSurface] — opaque, 1.59 and 7.15 — and the rest
+     * are this, at 1.37 and 4.46. The label swap stays: two signals, not one, and
+     * neither of them colour alone (WCAG 1.4.1).
+     */
+    val chartSurfaceDim: Color,
+
+    /**
+     * Content on [chartSurface] and [chartSurfaceDim] — the scrub card's price, and the
+     * four span labels. iOS's `.black`; [Ink] here, the canvas's own near-black, at
+     * 19.44 : 1 on the opaque fill and 12.13 : 1 on the translucent one over the dark
+     * canvas, which is its worst case.
+     *
+     * **It has to be spelled at the call site rather than inherited.** `BittrCanvas`
+     * provides [onCanvas] as the content colour and that is white in dark — on a fixed
+     * light card, the fill. `GraphCardFitTest` asserts the call sites for exactly this
+     * reason: contrast arithmetic cannot see which token a `Text` picked, and a card
+     * that drew everything in one token would pass every measurement in this file.
+     */
+    val onChartSurface: Color,
+
+    /**
+     * The scrub card's date — the caption half of the card's two labels.
+     *
+     * [Ink] at 70 %, which is [mutedOnCanvas]'s light value, reaching 7.39 : 1 on
+     * [chartSurface]. Not iOS's `dateLabel.alpha = 0.4` (`GraphView.swift:131`): black
+     * at 40 % on the white card is **2.85 : 1**, under even the 3 : 1 large-text floor
+     * for a 13 sp regular label. Same call BIT-155 made when this label was on
+     * [mutedOnCanvas]; it moves here because the card no longer follows the canvas and
+     * [mutedOnCanvas] is white in dark.
+     */
+    val onChartSurfaceMuted: Color,
 )
 
 /**
@@ -431,6 +523,12 @@ val BittrLightColorsExtended = BittrColors(
     switchOn = SwitchAccent,
     onSwitchOn = Color.White,
     canvasArc = Color.White,
+    // Fixed in both schemes — see [BittrColors.chartSurface] for the arithmetic that
+    // leaves no other option, and `TokenContrastTest` for the assertions. BIT-156.
+    chartSurface = Color.White,
+    chartSurfaceDim = Color.White.copy(alpha = 0.70f),
+    onChartSurface = Ink,
+    onChartSurfaceMuted = Ink.copy(alpha = 0.70f),
 )
 
 /**
@@ -491,6 +589,14 @@ val BittrDarkColorsExtended = BittrColors(
     // yellow is the one colour that reads on both, and dark mode keeps exactly seven
     // brand-yellow sites already (see `brandFixed`). This is the eighth.
     canvasArc = Yellow,
+    // Byte-identical to the light values on purpose, and the only group here that is.
+    // The dark canvas admits no fill that both has an edge on `blue1` and carries white
+    // text; the light canvas admits no light fill with an edge at all. Both arrive at a
+    // fixed light surface with ink on it, which is also what iOS ships. BIT-156.
+    chartSurface = Color.White,
+    chartSurfaceDim = Color.White.copy(alpha = 0.70f),
+    onChartSurface = Ink,
+    onChartSurfaceMuted = Ink.copy(alpha = 0.70f),
 )
 
 /**

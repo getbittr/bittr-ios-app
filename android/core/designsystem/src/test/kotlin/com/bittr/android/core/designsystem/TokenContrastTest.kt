@@ -440,35 +440,44 @@ class TokenContrastTest {
         }
     }
 
+    // -----------------------------------------------------------------------
+    // BIT-156 — the Value screen's chart surfaces, which do not follow the scheme
+    // -----------------------------------------------------------------------
+
     /**
-     * The Value screen's scrub card — [BittrColors.scrim1] over the canvas, which is a
-     * third background for [BittrColors.mutedOnCanvas] and not one the assertions above
-     * cover.
+     * The scrub card is a card in both schemes, and its labels are readable on it.
      *
-     * iOS de-emphasises the date in this card with `dateLabel.alpha = 0.4`
-     * (`GraphView.swift:131`) against a hard-coded white card and black text. The port
-     * themes the card, and at that point 40 % stops being readable: the second half of
-     * this test is the reason the number was not copied. BIT-155.
+     * It filled with [BittrColors.scrim1] until BIT-156 — the *field* token, which is
+     * white at 70 % in light and so rendered the right pixels there, and `blue1` in
+     * dark, which is [BittrColors.canvas]. **The card was byte-identical to the page it
+     * floats on: 1.00 : 1.** Same shape as A11Y-22's Swap field, one screen over.
+     *
+     * The floor is the 3 : 1 of WCAG 1.4.11 in dark and *not* in light, and that
+     * asymmetry is proved rather than asserted — see the empty-band test below.
      */
     @Test
-    fun `the scrub card's date is de-emphasised by the token, because 40 percent is not readable`() {
+    fun `BIT-156 the scrub card has an edge on the canvas, and carries both its labels`() {
         for ((name, c) in schemes) {
-            val card = composite(c.scrim1, c.canvas)
+            val card = c.chartSurface
 
-            // 13 sp regular — body text, so the 4.5 floor applies, not 3.0.
-            assertAtLeast(aa, c.mutedOnCanvas, card, "$name scrub-card date")
-            // The price beside it is full-strength. If the two ever coincide the card
-            // has lost the caption/value hierarchy this issue was about.
-            assertAtLeast(aa, c.onCanvas, card, "$name scrub-card price")
+            assertTrue(
+                "$name scrub card is %.2f : 1 against the canvas — a fill the same colour "
+                    .format(contrast(card, c.canvas)) +
+                    "as the thing it sits in stops being a card",
+                contrast(card, c.canvas) > 1.05,
+            )
+            // 13 sp regular and 13 sp bold — both body text at this size, so 4.5.
+            assertAtLeast(aa, c.onChartSurfaceMuted, card, "$name scrub-card date")
+            assertAtLeast(aa, c.onChartSurface, card, "$name scrub-card price")
             assertNotEquals(
                 "$name scrub-card date and price are the same colour — nothing is de-emphasised",
-                c.onCanvas.toArgbInt(),
-                c.mutedOnCanvas.toArgbInt(),
+                c.onChartSurface.toArgbInt(),
+                c.onChartSurfaceMuted.toArgbInt(),
             )
 
             // iOS's literal number, kept as an assertion so that "just copy the alpha"
-            // fails the build rather than shipping a 2.6 : 1 label.
-            val iosLiteral = c.onCanvas.copy(alpha = 0.40f)
+            // fails the build rather than shipping a 2.9 : 1 label. BIT-155.
+            val iosLiteral = c.onChartSurface.copy(alpha = 0.40f)
             assertTrue(
                 "$name: iOS's dateLabel alpha 0.4 is readable on this card now? " +
                     "re-check before adopting it — %.2f : 1"
@@ -476,6 +485,157 @@ class TokenContrastTest {
                 contrast(iosLiteral, card) < aaLarge,
             )
         }
+    }
+
+    /**
+     * **Why the card is a fixed light surface instead of a themed one.**
+     *
+     * This is the part that is not in any contrast table and is the whole of the
+     * decision, so it is arithmetic here rather than a sentence in a KDoc: on the dark
+     * canvas the set of fills that both have an edge and carry white text is *empty*.
+     * A fill clearing 3 : 1 on `blue1` needs a relative luminance of at least 0.390; a
+     * fill still carrying white at AA cannot exceed 0.183. No colour, of any hue, is
+     * both. Same shape as [BittrColors.switchOn]'s track, and the same kind of answer:
+     * the constraint is not met by picking a better colour, it is met by changing what
+     * carries the property — there, a border; here, inverting the card.
+     *
+     * Asserted as a property of the two canvases rather than of the chosen value, so it
+     * stays true — or fails loudly — if `blue1` ever moves.
+     */
+    @Test
+    fun `BIT-156 no dark fill both has an edge on the canvas and carries white text`() {
+        val darkCanvas = BittrDarkColorsExtended.canvas
+        val edgeFloor = aaLarge * (luminance(darkCanvas) + 0.05) - 0.05
+        val whiteCeiling = 1.05 / aa - 0.05
+
+        assertTrue(
+            "the band is no longer empty (edge needs L >= %.4f, white text allows L <= %.4f) "
+                .format(edgeFloor, whiteCeiling) +
+                "— a themed dark scrub card is possible again, so re-open BIT-156",
+            edgeFloor > whiteCeiling,
+        )
+
+        // And the light half, which fails for the opposite reason: the canvas is the
+        // brand yellow, so *no* lighter fill clears 3 : 1 against it — the requirement
+        // is a luminance above 1.0, which is brighter than white. A light card on this
+        // canvas is 1.6 : 1 at best. That is not a defect being tolerated: it is what
+        // every card on this canvas already is (`cardWash` is 1.04) and what iOS ships.
+        val lightCanvas = BittrLightColorsExtended.canvas
+        assertTrue(
+            "a light fill can now clear 3 : 1 on the brand canvas — re-check the whole " +
+                "card language on this screen, not just the scrub card",
+            aaLarge * (luminance(lightCanvas) + 0.05) - 0.05 > 1.0,
+        )
+        assertTrue(
+            "the scrub card is a light surface, so the light-canvas bound above is the " +
+                "one that applies to it",
+            luminance(BittrLightColorsExtended.chartSurface) > luminance(lightCanvas),
+        )
+    }
+
+    /**
+     * The span buttons, whose selected state is carried by the fill.
+     *
+     * The defect was not weakness but inversion: selected on `scrim1` (`blue1` = the
+     * canvas, 1.00 : 1) and unselected on `scrim2` (1.20 : 1), so in dark the selected
+     * pill was the one with no edge. In light the two tokens are byte-identical, so
+     * there was no fill signal at all. Both are now [BittrColors.chartSurface] and
+     * [BittrColors.chartSurfaceDim], and the ordering is asserted rather than the
+     * values: the selected pill has to be the one that stands out further.
+     */
+    @Test
+    fun `BIT-156 the selected span button is the one with the stronger edge`() {
+        for ((name, c) in schemes) {
+            val selected = contrast(c.chartSurface, c.canvas)
+            val unselected = contrast(composite(c.chartSurfaceDim, c.canvas), c.canvas)
+
+            assertTrue(
+                "$name selected span pill is %.2f : 1 on the canvas and the unselected "
+                    .format(selected) +
+                    "ones are %.2f : 1 — the affordance is inverted".format(unselected),
+                selected > unselected,
+            )
+            assertTrue(
+                "$name unselected span pills are %.2f : 1 on the canvas — indistinguishable "
+                    .format(unselected) + "from the page",
+                unselected > 1.05,
+            )
+            // Gilroy-Bold 16, which is large text, but these clear the body floor
+            // anyway on both fills and there is no reason to spend the margin.
+            assertAtLeast(aa, c.onChartSurface, c.chartSurface, "$name selected span label")
+            assertAtLeast(
+                aa, c.onChartSurface, composite(c.chartSurfaceDim, c.canvas),
+                "$name unselected span label",
+            )
+        }
+    }
+
+    /**
+     * The curve, which was a near-black literal and is now [BittrColors.emphasis].
+     *
+     * A literal does not move with the scheme, so it was only ever measured against one
+     * canvas: 10.97 : 1 on the yellow — which is why nobody noticed — and 2.43 : 1 on
+     * `blue1`, under the 3 : 1 floor WCAG 1.4.11 puts on a graphical object. iOS strokes
+     * it with `whiteoryellow` (`GraphView.swift:175`), which DEV-47 merged into
+     * `emphasis`, so the token was already the port's name for this. BIT-156.
+     */
+    @Test
+    fun `BIT-156 the graph line clears the non-text floor on both canvases`() {
+        for ((name, c) in schemes) {
+            assertAtLeast(aaLarge, c.emphasis, c.canvas, "$name graph line on the canvas")
+        }
+
+        // The shape of what it replaced, kept as the reason this test exists. The
+        // literal was a near-black at 2.43 : 1 on the dark canvas; the theme's own
+        // near-black stands in for it here at 2.98, so the assertion stays in the
+        // palette rather than re-introducing a fixed value in a file that bans them.
+        // Someone re-introducing one would pass the light half and fail this.
+        val nearBlack = BittrLightColorsExtended.onCanvas
+        assertTrue(
+            "a fixed near-black now clears the non-text floor on the dark canvas — the " +
+                "canvas moved, re-check why this line takes a token at all",
+            contrast(nearBlack, BittrDarkColorsExtended.canvas) < aaLarge,
+        )
+    }
+
+    /**
+     * The four chart tokens hold the same value in both schemes, on purpose.
+     *
+     * Every other token in this theme differs somewhere, and a reviewer meeting these
+     * for the first time will read them as an oversight. They are not: see the empty
+     * band above. This is the assertion that makes "someone helpfully themed them"
+     * fail the build rather than silently restore the 1.00 : 1 card.
+     */
+    @Test
+    fun `BIT-156 the chart surfaces are fixed, like the brand-yellow sites are`() {
+        val light = BittrLightColorsExtended
+        val dark = BittrDarkColorsExtended
+        val fixed = listOf(
+            "chartSurface" to (light.chartSurface to dark.chartSurface),
+            "chartSurfaceDim" to (light.chartSurfaceDim to dark.chartSurfaceDim),
+            "onChartSurface" to (light.onChartSurface to dark.onChartSurface),
+            "onChartSurfaceMuted" to (light.onChartSurfaceMuted to dark.onChartSurfaceMuted),
+        )
+        for ((name, pair) in fixed) {
+            assertEquals(
+                "$name differs between the schemes. It is fixed because the dark canvas " +
+                    "admits no themed fill that is both visible and readable — theming it " +
+                    "back is the defect BIT-156 fixed, not an improvement.",
+                pair.first.toArgbInt(),
+                pair.second.toArgbInt(),
+            )
+        }
+        // The card's ink is the canvas's ink, not a second near-black.
+        assertEquals(
+            "the chart card's content colour has drifted from the canvas's own ink",
+            light.onCanvas.toArgbInt(),
+            light.onChartSurface.toArgbInt(),
+        )
+        assertEquals(
+            "the chart card's muted content has drifted from the canvas's light muted ink",
+            light.mutedOnCanvas.toArgbInt(),
+            light.onChartSurfaceMuted.toArgbInt(),
+        )
     }
 
     /**

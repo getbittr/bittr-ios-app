@@ -241,6 +241,16 @@ private fun ProfitBadge(state: ValueUiState) {
  * (`showSelectedSpan`), which is why the flow taps `value.monthButton` and then
  * looks for the graph rather than for the label "m" — the label it just tapped has
  * changed to "1 month".
+ *
+ * **The fill says the same thing the label does, and until BIT-156 it did not.** iOS
+ * fills the selected button opaque white and the rest white at 70 %
+ * (`ValueViewController.swift:351`) — hard-coded, like the scrub card, so there is no
+ * `Colors.getColor` token to port. The port used `scrim1` and `scrim2`, which are
+ * byte-identical in light mode: light had no fill difference at all. In dark they
+ * differed and pointed the wrong way — `scrim1` is `blue1`, which is the canvas, so
+ * the *selected* pill was the invisible one at 1.00 : 1 while the unselected three had
+ * an edge at 1.20. An inverted affordance, one screen element away from the same
+ * collision in the scrub card, and the same decision. See `BittrColors.chartSurface`.
  */
 @Composable
 private fun SpanButtons(state: ValueUiState, onSelect: (GraphSpan) -> Unit) {
@@ -259,13 +269,20 @@ private fun SpanButtons(state: ValueUiState, onSelect: (GraphSpan) -> Unit) {
                     .weight(1f)
                     .height(BittrTokens.Size.minTouchTarget)
                     .background(
-                        if (selected) colors.scrim1 else colors.scrim2,
+                        if (selected) colors.chartSurface else colors.chartSurfaceDim,
                         BittrCanvasShapes.wordRow,
                     )
                     .clickable(role = Role.Button) { onSelect(span) }
                     .testTag(span.testTag),
             ) {
-                Text(state.titleFor(span), style = MaterialTheme.typography.labelLarge)
+                // Spelled, not inherited, for the reason the scrub card's price is:
+                // these fills do not follow the canvas, and `BittrCanvas` provides
+                // `onCanvas`, which is white in dark.
+                Text(
+                    state.titleFor(span),
+                    style = MaterialTheme.typography.labelLarge,
+                    color = colors.onChartSurface,
+                )
             }
         }
     }
