@@ -437,15 +437,20 @@ class GraphCardFitTest {
 
         val widest = (0 until MONTHS_IN_YEAR).map { month ->
             val date = scrubToMonth(month)
+            assertCarriesIosYear(label, date.text())
             assertFitsOneLine("$label date \"${date.text()}\"", date.layout())
-            date.text() to widestLinePx(date.layout())
-        }.maxBy { it.second }
+            Triple(month, date.text(), widestLinePx(date.layout()))
+        }.maxBy { it.third }
 
         println(
-            "GRAPH CARD $label widest date: \"${widest.first}\" at " +
-                "${"%.1f".format(widest.second / composeRule.density.density)}dp of " +
+            "GRAPH CARD $label widest date: \"${widest.second}\" at " +
+                "${"%.1f".format(widest.third / composeRule.density.density)}dp of " +
                 "${CARD_WIDTH_DP.toInt()}dp",
         )
+
+        // Put the finger back on the widest month before capturing, so the PNG is the
+        // worst case rather than whichever month the loop happened to end on.
+        scrubToMonth(widest.first)
         capture("$label-widest-date")
     }
 
