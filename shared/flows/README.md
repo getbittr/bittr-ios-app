@@ -359,9 +359,22 @@ Android `applicationId`s cannot contain hyphens, which is the entire reason the
 two differ. Parameterising it is what lets the **same flow file** run on both — a
 shared flow and its Android twin used to be two files that drifted apart.
 
+**It has to be `--env`.** A shell variable named `APP_ID` never reaches the flow:
+Maestro forwards shell vars into a flow's scope only when the name starts with
+`MAESTRO_`, and it does not strip the prefix, so there is no shell name that can
+set `${APP_ID}`. `APP_ID=… maestro test …` and `export APP_ID=…` look right and
+resolve to nothing — two Android READMEs documented that form until BIT-143. (The
+`APP_ID=…` override in the table above is a different thing: that is `test_suite.sh`
+reading a shell variable and passing it on as `--env` itself.)
+
 `shared/flows/check_app_ids.py` (run in the Android CI build job, seconds in) fails
 the build if a literal id reappears in a flow. It also catches the subtler form,
-a hardcoded default inside an `evalScript`.
+a hardcoded default inside an `evalScript`; a runner that invokes a flow without
+supplying the id; and — since BIT-143 — any *documented* invocation that omits it,
+which covers the `# Run:` header on each flow and the command blocks in the
+READMEs. Those are copy-pasted, so they are run, so they are checked. It matches on
+the `--env`/`-e` flag rather than on the name `APP_ID`, which is what makes it see
+the shell-variable form above.
 
 There is a second variable, `EVIL_APP_ID`, for the `Debug-EvilBoltz` build the
 `--evil` flows tamper with. That is a second *app*, not a second platform: the

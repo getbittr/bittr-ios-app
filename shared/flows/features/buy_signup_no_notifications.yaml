@@ -53,7 +53,7 @@
 #      the "lightningneedsnotifications" alert → tap Okay → switch back OFF.
 #      END.
 #
-# Run: maestro test shared/flows/features/buy_signup_no_notifications.yaml
+# Run: maestro test --env APP_ID=com.bittr.bittr-regtest shared/flows/features/buy_signup_no_notifications.yaml
 
 appId: ${APP_ID}
 ---

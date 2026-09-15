@@ -34,7 +34,7 @@
 # passing on iOS is what makes it a valid parity target. It then runs unchanged
 # against Android.
 #
-# Run: maestro test shared/flows/onboarding/seed_gate_rejects_wrong_words.yaml
+# Run: maestro test --env APP_ID=com.bittr.bittr-regtest shared/flows/onboarding/seed_gate_rejects_wrong_words.yaml
 
 appId: ${APP_ID}
 ---

@@ -1,7 +1,7 @@
 # Top-level: wipes app data + keychain and runs the full onboarding from
 # scratch. Use this when you want a guaranteed-clean wallet state.
 #
-# Run: maestro test shared/flows/onboarding/fresh_install.yaml
+# Run: maestro test --env APP_ID=com.bittr.bittr-regtest shared/flows/onboarding/fresh_install.yaml
 #
 # App injection: by default this onboards whatever ${APP_ID} names. A caller may
 # set output.APP_ID before runFlow-ing this file (e.g. helpers/evil_bootstrap.yaml

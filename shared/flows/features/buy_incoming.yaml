@@ -14,7 +14,7 @@
 #   6. Close the transaction + buy screens, then verify the Home profit label
 #      and the Profit screen have updated.
 #
-# Run: maestro test shared/flows/features/buy_incoming.yaml
+# Run: maestro test --env APP_ID=com.bittr.bittr-regtest shared/flows/features/buy_incoming.yaml
 #
 # App injection: by default this runs against ${APP_ID}. A caller may set
 # output.APP_ID before runFlow-ing this file to target a different build.

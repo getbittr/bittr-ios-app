@@ -4,7 +4,8 @@
 //
 // MNEMONIC is passed by the caller, e.g.:
 //
-//   maestro test --env MNEMONIC="word1 word2 ... word12" \
+//   maestro test --env APP_ID=com.bittr.bittr-regtest \
+//     --env MNEMONIC="word1 word2 ... word12" \
 //     shared/flows/features/forgot_pin.yaml
 
 if (typeof MNEMONIC === 'undefined' || !MNEMONIC) {

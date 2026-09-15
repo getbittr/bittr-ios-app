@@ -31,7 +31,7 @@
 #   6. Tap the user-location button (map.userLocationButton) to recentre on the
 #      user (falls back to the default region when no location is available).
 #
-# Run: maestro test shared/flows/features/bitcoin_map.yaml
+# Run: maestro test --env APP_ID=com.bittr.bittr-regtest shared/flows/features/bitcoin_map.yaml
 
 appId: ${APP_ID}
 ---

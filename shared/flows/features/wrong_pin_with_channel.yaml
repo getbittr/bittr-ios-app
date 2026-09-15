@@ -28,7 +28,7 @@
 #     funds have settled and channelsFullyClosedAndSwept() is true, at which
 #     point performWalletReset runs and relaunches Signup1.
 #
-# Run: maestro test shared/flows/features/wrong_pin_with_channel.yaml
+# Run: maestro test --env APP_ID=com.bittr.bittr-regtest shared/flows/features/wrong_pin_with_channel.yaml
 
 appId: ${APP_ID}
 ---

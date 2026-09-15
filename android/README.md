@@ -164,13 +164,15 @@ Android Studio's Compose preview without booting an emulator at all.
 
 ```sh
 ./gradlew :app:installDebug
-cd .. && APP_ID=com.bittr.android.regtest \
-  maestro test shared/flows/onboarding/smoke.yaml
+cd .. && maestro test --env APP_ID=com.bittr.android.regtest \
+  shared/flows/onboarding/smoke.yaml
 ```
 
 That is the *shared* smoke flow — the same file iOS runs. It takes the app id from
 `--env APP_ID`, which is the only difference between the two platforms' runs; see
-`shared/flows/README.md` → App id. `android/scripts/smoke-consecutive.sh` reads the
+`shared/flows/README.md` → App id. It must be passed as `--env`: a shell variable
+named `APP_ID` never reaches the flow, because Maestro only forwards shell vars whose
+name begins with `MAESTRO_` and does not strip that prefix. `android/scripts/smoke-consecutive.sh` reads the
 id off the workflow so you don't have to pass it.
 
 CI runs this on every push: `.github/workflows/android-maestro.yml`.

@@ -37,7 +37,7 @@
 # Entirely read-only: no amount is entered, no address is renewed, nothing is
 # sent. Safe to run anywhere in the suite once a channel is open.
 #
-# Run: maestro test shared/flows/features/receive_lnurl.yaml
+# Run: maestro test --env APP_ID=com.bittr.bittr-regtest shared/flows/features/receive_lnurl.yaml
 
 appId: ${APP_ID}
 ---

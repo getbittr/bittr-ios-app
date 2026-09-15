@@ -25,7 +25,7 @@
 # Colour changes from the dark-mode toggle can't be asserted in Maestro, so
 # they're captured as before/after screenshots for visual review.
 #
-# Run: maestro test shared/flows/features/settings.yaml
+# Run: maestro test --env APP_ID=com.bittr.bittr-regtest shared/flows/features/settings.yaml
 
 appId: ${APP_ID}
 ---

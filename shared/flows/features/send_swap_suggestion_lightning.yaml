@@ -30,9 +30,9 @@
 # Run the clipboard helper so the in-app Paste button has something to paste:
 #
 #   node shared/flows/scripts/clipboard_server.js   # keep running
-#   maestro test shared/flows/features/send_swap_suggestion_lightning.yaml
+#   maestro test --env APP_ID=com.bittr.bittr-regtest shared/flows/features/send_swap_suggestion_lightning.yaml
 #
-# Run: maestro test shared/flows/features/send_swap_suggestion_lightning.yaml
+# Run: maestro test --env APP_ID=com.bittr.bittr-regtest shared/flows/features/send_swap_suggestion_lightning.yaml
 
 appId: ${APP_ID}
 ---

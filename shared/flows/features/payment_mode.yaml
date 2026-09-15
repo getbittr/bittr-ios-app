@@ -16,7 +16,7 @@
 # on iOS in your Maestro version, drop the `checked:` lines and rely on the
 # screenshots instead.
 #
-# Run: maestro test shared/flows/features/payment_mode.yaml
+# Run: maestro test --env APP_ID=com.bittr.bittr-regtest shared/flows/features/payment_mode.yaml
 
 appId: ${APP_ID}
 ---

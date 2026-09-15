@@ -32,9 +32,9 @@
 # Start the push helper first (it can't be started from Maestro):
 #
 #   node shared/flows/scripts/push_server.js   # keep running
-#   maestro test shared/flows/features/notification_information.yaml
+#   maestro test --env APP_ID=com.bittr.bittr-regtest shared/flows/features/notification_information.yaml
 #
-# Run: maestro test shared/flows/features/notification_information.yaml
+# Run: maestro test --env APP_ID=com.bittr.bittr-regtest shared/flows/features/notification_information.yaml
 
 appId: ${APP_ID}
 ---

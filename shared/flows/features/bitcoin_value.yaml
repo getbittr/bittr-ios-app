@@ -24,7 +24,7 @@
 #      changeSpan ignores taps while isFetchingData is true, which is why the
 #      data-loaded wait in step 3 has to come first.
 #
-# Run: maestro test shared/flows/features/bitcoin_value.yaml
+# Run: maestro test --env APP_ID=com.bittr.bittr-regtest shared/flows/features/bitcoin_value.yaml
 
 appId: ${APP_ID}
 ---

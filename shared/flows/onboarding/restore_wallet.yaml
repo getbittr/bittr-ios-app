@@ -19,7 +19,7 @@
 #   6. Confirm PIN 1234 → Restore3.nextButtonTapped calls hideSignup, Home
 #      appears with the restored wallet attached.
 #
-# Run: maestro test shared/flows/onboarding/restore_wallet.yaml
+# Run: maestro test --env APP_ID=com.bittr.bittr-regtest shared/flows/onboarding/restore_wallet.yaml
 
 appId: ${APP_ID}
 ---

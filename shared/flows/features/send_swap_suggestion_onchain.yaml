@@ -39,7 +39,7 @@
 #   send = 50000 + max(0, lightningBalance - 75000)
 # e.g. 90000 in lightning → send 65000.
 #
-# Run: maestro test shared/flows/features/send_swap_suggestion_onchain.yaml
+# Run: maestro test --env APP_ID=com.bittr.bittr-regtest shared/flows/features/send_swap_suggestion_onchain.yaml
 
 appId: ${APP_ID}
 ---

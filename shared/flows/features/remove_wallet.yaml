@@ -22,7 +22,7 @@
 # restore_wallet.yaml / a fresh signup that hasn't topped up yet); the
 # conditional close-channel branch handles both.
 #
-# Run: maestro test shared/flows/features/remove_wallet.yaml
+# Run: maestro test --env APP_ID=com.bittr.bittr-regtest shared/flows/features/remove_wallet.yaml
 
 appId: ${APP_ID}
 ---

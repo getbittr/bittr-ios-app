@@ -21,7 +21,7 @@
 #     with a funded channel) plus a prior onchain deposit, or uncomment the
 #     step-1 helpers below to provision inline.
 #
-# Run: maestro test shared/flows/features/evil_boltz_wrong_address.yaml
+# Run: maestro test --env APP_ID=com.bittr.bittr-regtest shared/flows/features/evil_boltz_wrong_address.yaml
 
 appId: ${EVIL_APP_ID}
 ---

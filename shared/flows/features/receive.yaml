@@ -3,7 +3,7 @@
 # (state was wiped), it auto-runs the onboarding subflow first so the test
 # can be invoked in isolation.
 #
-# Run: maestro test shared/flows/features/receive.yaml
+# Run: maestro test --env APP_ID=com.bittr.bittr-regtest shared/flows/features/receive.yaml
 
 appId: ${APP_ID}
 ---

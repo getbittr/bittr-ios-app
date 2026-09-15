@@ -50,7 +50,7 @@
 # "check the flow" before "check the app".
 #
 # Run, on a booted iPhone SE (2nd or 3rd gen) simulator:
-#   maestro test shared/flows/diagnostics/btcmap_alert_iphone_se.yaml
+#   maestro test --env APP_ID=com.bittr.bittr-regtest shared/flows/diagnostics/btcmap_alert_iphone_se.yaml
 #
 # Then confirm in the PNG, by eye:
 #   - four paragraphs are present;

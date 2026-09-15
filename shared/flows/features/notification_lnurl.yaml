@@ -32,9 +32,9 @@
 # `xcrun simctl push`. Start the helper first:
 #
 #   node shared/flows/scripts/push_server.js   # keep running
-#   maestro test shared/flows/features/notification_lnurl.yaml
+#   maestro test --env APP_ID=com.bittr.bittr-regtest shared/flows/features/notification_lnurl.yaml
 #
-# Run: maestro test shared/flows/features/notification_lnurl.yaml
+# Run: maestro test --env APP_ID=com.bittr.bittr-regtest shared/flows/features/notification_lnurl.yaml
 
 appId: ${APP_ID}
 ---

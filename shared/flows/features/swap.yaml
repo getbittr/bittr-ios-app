@@ -29,7 +29,7 @@
 #   5. Reverse leg (onchain → lightning, 50000 sats) the same way.
 #   6. Verify Home with the new swap rows in the transaction list.
 #
-# Run: maestro test shared/flows/features/swap.yaml
+# Run: maestro test --env APP_ID=com.bittr.bittr-regtest shared/flows/features/swap.yaml
 
 appId: ${APP_ID}
 ---

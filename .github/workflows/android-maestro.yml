@@ -480,7 +480,19 @@ jobs:
         # `appId: com.bittr.bittr-regtest` parses fine and runs fine on iOS; on
         # Android it boots an emulator, installs the APK and then fails to launch
         # a package that was never installed. Seconds here, ~20 minutes there.
-        run: python3 shared/flows/check_app_ids.py
+        #
+        # It also checks the lines nobody executes — the `# Run:` headers and the
+        # README command blocks — because those are copy-pasted, and since BIT-102
+        # moved the id into the environment a copied one dies on an undefined
+        # variable that never mentions app ids. BIT-143 fixed 79 of them.
+        #
+        # The self-test runs first, same argument as the copy check above: two of
+        # its cases pin shapes that must keep PASSING (folder-run prose, a
+        # non-shared flow path), because this check reads every doc in the repo
+        # and the cheapest way to "fix" a false positive is to delete the prose.
+        run: |
+          python3 shared/flows/test_check_app_ids.py
+          python3 shared/flows/check_app_ids.py
 
       - name: Check the basemap style points only at bittr hosts
         # The one basemap URL no guard in the tree can see.

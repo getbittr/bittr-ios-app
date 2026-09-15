@@ -25,7 +25,7 @@
 # to receive its (small) invoice. If launched on a clean install it auto-runs
 # the onboarding subflow first. Does NOT clearState — wallet state is preserved.
 #
-# Run: maestro test shared/flows/features/receive_invoice.yaml
+# Run: maestro test --env APP_ID=com.bittr.bittr-regtest shared/flows/features/receive_invoice.yaml
 
 appId: ${APP_ID}
 ---

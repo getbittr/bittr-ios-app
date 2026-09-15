@@ -16,7 +16,7 @@
 #
 # No block mining — this is a lightning payment, settles instantly.
 #
-# Run: maestro test shared/flows/features/buy_more.yaml
+# Run: maestro test --env APP_ID=com.bittr.bittr-regtest shared/flows/features/buy_more.yaml
 
 appId: ${APP_ID}
 ---

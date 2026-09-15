@@ -31,8 +31,25 @@ capture pass. `bit14_topup.sh` shipped with exactly that on two of its five
 invocations. So the second check below reads the shell scripts that drive
 Maestro and requires every `maestro test` naming a flow to pass `--env APP_ID`.
 
-Exit status: 0 if every appId is parameterised AND every runner supplies one,
-1 otherwise.
+The third check is the same requirement for the lines nobody executes: the
+copy-pasteable `# Run:` headers on the flows themselves and the command blocks
+in the READMEs. Those are exempt from the literal-id rules above, because
+explaining why the two platforms differ is the point of several of them — which
+also made them invisible when BIT-102 moved the id into the environment, and
+left 79 commands that die on contact. Documentation is copy-pasted, so it is
+run, so it is checked.
+
+A note on what counts as supplying the id, because it is not what it looks
+like: it has to be a `--env`/`-e` flag. Maestro forwards a *shell* variable into
+a flow's scope only when its name starts with `MAESTRO_` — and it does not strip
+the prefix (`Env.withInjectedShellEnvVars`, read out of 2.10.0's bytecode), so
+no shell variable can ever set `${APP_ID}`. `APP_ID=… maestro test …` and
+`export APP_ID=…` look right, read right in review, and resolve to nothing. Two
+Android READMEs documented exactly that form until BIT-143. Matching on the flag
+rather than on the name is what makes this check see them.
+
+Exit status: 0 if every appId is parameterised, every runner supplies one, AND
+every documented invocation passes one, 1 otherwise.
 
     ./shared/flows/check_app_ids.py
 """
@@ -88,6 +105,44 @@ NAMES_A_FLOW = re.compile(r"\S+\.yaml\b")
 # runners so a vendored or sample script elsewhere cannot fail the build.
 RUNNER_DIRS = ("shared/flows", "android/scripts")
 
+# ── Documentation-side check ─────────────────────────────────────────────────
+
+# `maestro test` anywhere on the line, not just in command position: in a header
+# comment or a fenced block it never IS in command position, and that is the
+# whole population this check exists for.
+MENTIONS_MAESTRO_TEST = re.compile(r"maestro\s+test\b")
+
+# Only a path into the shared suite counts. A bare `some_flow.yaml` in a
+# docstring is an illustration, and `maestro test shared/flows/` (no file) is a
+# folder run that several comments correctly tell you NOT to do.
+NAMES_SHARED_FLOW = re.compile(r"shared/flows/\S*\.yaml\b")
+
+# Where prose lives. Markdown is checked line for line; in every other suffix
+# only comments are, which is also what keeps this from double-reporting the
+# runner invocations that `check_runner` above already owns.
+COMMENT_PREFIX = {
+    ".sh": ("#",),
+    ".py": ("#",),
+    ".yaml": ("#",),
+    ".yml": ("#",),
+    ".js": ("//", "*"),
+    ".kt": ("//", "*"),
+    ".swift": ("//", "*"),
+}
+PROSE_SUFFIX = ".md"
+DOC_SUFFIXES = {PROSE_SUFFIX, *COMMENT_PREFIX}
+
+# Build output and vendored trees, none of which are ours to fix.
+SKIP_DIRS = {
+    ".git", ".gradle", ".idea", ".build", "__pycache__", "build",
+    "node_modules", "DerivedData", "Pods", "venv",
+}
+
+# `test_check_app_ids.py` needs no exemption, and deliberately does not have
+# one: its broken fixtures live in string literals, and a string literal is not
+# a comment. If you add a case there, keep it that way — an exemption would be a
+# hole in the one file whose failures are supposed to be observable.
+
 
 def join_continuations(text: str) -> list[tuple[int, str]]:
     """Fold `\\`-continued shell lines into one, keeping the starting line no.
@@ -135,6 +190,54 @@ def check_runner(path: Path) -> list[str]:
     return problems
 
 
+def is_checkable_prose(path: Path, line: str) -> bool:
+    """Is this joined line documentation, as opposed to code?
+
+    Markdown is documentation throughout. Everywhere else only comments are —
+    a `maestro test` in command position belongs to `check_runner`.
+    """
+    if path.suffix == PROSE_SUFFIX:
+        return True
+    prefixes = COMMENT_PREFIX.get(path.suffix, ())
+    return line.lstrip().startswith(prefixes) if prefixes else False
+
+
+def check_doc(path: Path) -> list[str]:
+    problems = []
+    rel = path.relative_to(ROOT)
+
+    # Continuations joined for the same reason as in `check_runner`: the headers
+    # wrap too, and `#   maestro test \` on its own line names no flow while the
+    # line holding the path names no command. Split, each half looks innocent.
+    try:
+        text = path.read_text()
+    except (UnicodeDecodeError, OSError):
+        # A .md/.yaml that is not text is not documentation. Skipping beats
+        # failing the build on someone's fixture.
+        return problems
+
+    for lineno, line in join_continuations(text):
+        if not MENTIONS_MAESTRO_TEST.search(line):
+            continue
+        if not NAMES_SHARED_FLOW.search(line):
+            continue
+        if SUPPLIES_APP_ID.search(line):
+            continue
+        if not is_checkable_prose(path, line):
+            continue
+        problems.append(
+            f"{rel}:{lineno}: documented `maestro test` on a shared flow with no "
+            f"`--env APP_ID=…`. Copy-pasting this line fails: every flow "
+            f"declares `appId: ${{APP_ID}}` and names no id itself, so Maestro "
+            f"dies on an undefined variable before the app launches. Note a "
+            f"shell `APP_ID=…` does NOT count — only `--env`/`-e` reaches the "
+            f"flow. Use com.bittr.bittr-regtest (iOS) or "
+            f"com.bittr.android.regtest (Android)."
+        )
+
+    return problems
+
+
 def check(path: Path) -> list[str]:
     problems = []
     text = path.read_text()
@@ -164,6 +267,23 @@ def check(path: Path) -> list[str]:
     return problems
 
 
+def walk_docs() -> list[Path]:
+    """Every file in the repo that could document a Maestro invocation.
+
+    Repo-wide on purpose: the stale headers this check was written for were
+    spread over flows, two platform READMEs, a setup guide and a helper script,
+    and the next one will be somewhere none of those lists predicted.
+    """
+    found = []
+    for dirpath, dirnames, filenames in os.walk(ROOT):
+        dirnames[:] = [d for d in dirnames if d not in SKIP_DIRS]
+        for name in filenames:
+            path = Path(dirpath) / name
+            if path.suffix in DOC_SUFFIXES:
+                found.append(path)
+    return found
+
+
 def main() -> int:
     flows = sorted(FLOW_DIR.rglob("*.yaml"))
     if not flows:
@@ -180,6 +300,12 @@ def main() -> int:
         return 1
     problems += [p for runner in runners for p in check_runner(runner)]
 
+    docs = sorted(walk_docs())
+    if not docs:
+        print(f"No documentation files found under {ROOT} — nothing to check.")
+        return 1
+    problems += [p for doc in docs for p in check_doc(doc)]
+
     if problems:
         # `::error::` renders in the run's annotation box on GitHub; locally it is
         # noise, so it is keyed off the CI variable rather than off isatty() —
@@ -190,13 +316,15 @@ def main() -> int:
             print(f"{prefix}{problem}")
         print(
             f"\n{len(problems)} app-id problem(s) across {len(flows)} flow "
-            f"file(s) and {len(runners)} runner script(s)."
+            f"file(s), {len(runners)} runner script(s) and {len(docs)} "
+            f"documentation file(s)."
         )
         return 1
 
     print(
         f"All {len(flows)} flow files take their app id from the environment, "
-        f"and all {len(runners)} runner scripts supply one."
+        f"all {len(runners)} runner scripts supply one, and every documented "
+        f"invocation across {len(docs)} files passes one."
     )
     return 0
 

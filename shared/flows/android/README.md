@@ -25,8 +25,13 @@ yet" is not — fix the shared one.
 
 ```sh
 cd android && ./gradlew :app:installDebug
-cd .. && APP_ID=com.bittr.android.regtest maestro test shared/flows/onboarding/smoke.yaml
+cd .. && maestro test --env APP_ID=com.bittr.android.regtest shared/flows/onboarding/smoke.yaml
 ```
+
+It has to be `--env`. A shell variable of that name — `APP_ID=… maestro test …`, or an
+`export` — does **not** reach the flow: Maestro injects shell vars into a flow's scope
+only when the name starts with `MAESTRO_`, and it does not strip that prefix, so there
+is no shell name that can set `${APP_ID}`.
 
 Or, for the three-consecutive-runs number, which reads `APP_ID` off the workflow
 so you don't have to:

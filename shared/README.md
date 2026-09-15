@@ -72,36 +72,37 @@ node shared/flows/scripts/clipboard_server.js
 
 In another terminal, from the repo root, run a flow:
 
-> **The flows no longer name an app id, so every `maestro test` line below needs
-> one passed in.** They declare `appId: ${APP_ID}` and the runner supplies the
-> value, which is what lets the same file drive the iOS simulator and an Android
-> emulator (`shared/flows/README.md` → [App id](flows/README.md#app-id)).
-> Two ways to not think about it again:
+> **Why every line below carries `--env APP_ID=…`.** No flow names an app id any
+> more: they declare `appId: ${APP_ID}` and the caller supplies the value, which
+> is what lets the same file drive the iOS simulator and an Android emulator
+> (`shared/flows/README.md` → [App id](flows/README.md#app-id)). The value below
+> is the iOS debug id; on Android it is `com.bittr.android.regtest`.
+>
+> To stop typing it, let the suite runner do it — it also starts the helper
+> servers above, and takes the same flow paths:
 >
 > ```sh
-> # Prefix each command:
-> maestro test --env APP_ID=com.bittr.bittr-regtest shared/flows/onboarding/smoke.yaml
->
-> # Or let the suite runner do it — it also starts the helper servers above,
-> # and takes the same flow paths:
 > shared/flows/test_suite.sh onboarding/fresh_install.yaml
 > ```
 >
-> Maestro passes `--env` values into its JS scope as ordinary globals, so a
-> missing `APP_ID` fails the run as an undefined-variable error from the
-> JavaScript evaluation rather than as anything mentioning app ids. If a flow
-> dies on contact and the message names `APP_ID`, this is why.
+> It has to be `--env`, not a shell variable: Maestro forwards a shell var into a
+> flow only when the name starts with `MAESTRO_`, and it keeps the prefix, so
+> neither `APP_ID=… maestro test …` nor an `export` sets `${APP_ID}`.
+>
+> If you do drop it, the failure does not mention app ids. Maestro passes `--env`
+> values into its JS scope as ordinary globals, so a missing `APP_ID` dies as an
+> undefined-variable error out of the JavaScript evaluation. If a flow dies on
+> contact and the message names `APP_ID`, this is why.
 
 ```sh
 # Terminal B — from the repo root
-# (each of these needs --env APP_ID=com.bittr.bittr-regtest; see the note above)
 
 # Option 1: Full reset + onboarding from scratch:
-maestro test shared/flows/onboarding/fresh_install.yaml
+maestro test --env APP_ID=com.bittr.bittr-regtest shared/flows/onboarding/fresh_install.yaml
 
 # Option 1b: Full reset + wallet creation, skipping the bittr signup
 # (taps "Skip" on Signup7 and lands on Home):
-maestro test shared/flows/onboarding/fresh_install_skip_signup.yaml
+maestro test --env APP_ID=com.bittr.bittr-regtest shared/flows/onboarding/fresh_install_skip_signup.yaml
 
 # Option 1c: Full reset + wallet creation through every validation gate
 # (confirm-statements / screenshot-warning / invalid-word / wrong-phrase /
@@ -111,12 +112,12 @@ maestro test shared/flows/onboarding/fresh_install_skip_signup.yaml
 # permission), AND on the simulated device turn OFF Settings > General > Screen
 # Capture > Full-Screen Previews (else the screenshot preview covers the app and
 # blocks the flow). Without this setup the screenshot step is skipped.
-maestro test shared/flows/onboarding/fresh_install_unhappy.yaml
+maestro test --env APP_ID=com.bittr.bittr-regtest shared/flows/onboarding/fresh_install_unhappy.yaml
 
 # Option 2: Full reset + restore existing wallet.
 # Followed by onboarding through the Buy page.
-maestro test shared/flows/onboarding/restore_wallet.yaml
-maestro test shared/flows/features/buy_signup.yaml
+maestro test --env APP_ID=com.bittr.bittr-regtest shared/flows/onboarding/restore_wallet.yaml
+maestro test --env APP_ID=com.bittr.bittr-regtest shared/flows/features/buy_signup.yaml
 
 # Buy-signup validation + notification-gate test (unhappy path, then on-chain
 # fallback). Requires an existing wallet without a bittr account (run
@@ -129,49 +130,49 @@ maestro test shared/flows/features/buy_signup.yaml
 # On the Transfer3 success screen it copies the IBAN/name/code (Copied alerts)
 # and taps Screenshot (Saved alert), on Transfer4 taps Back → Transfer3 → Finish,
 # then ends on Buy with the payout-mode switch OFF:
-maestro test shared/flows/features/buy_signup_no_notifications.yaml
+maestro test --env APP_ID=com.bittr.bittr-regtest shared/flows/features/buy_signup_no_notifications.yaml
 
 # Then a feature test on the resulting wallet — opens the lightning channel:
-maestro test shared/flows/features/buy_incoming.yaml
+maestro test --env APP_ID=com.bittr.bittr-regtest shared/flows/features/buy_incoming.yaml
 
 # Subsequent feature tests reuse that channel:
-maestro test shared/flows/features/buy_more.yaml
+maestro test --env APP_ID=com.bittr.bittr-regtest shared/flows/features/buy_more.yaml
 
 # The three QuestionViewController-backed push types (.information, .htlcExpired,
 # .unknown), injected back-to-back → each opens the QuestionViewController.
 # Independent of wallet state (auto-provisions if needed); needs push_server.js:
-maestro test shared/flows/features/notification_information.yaml
+maestro test --env APP_ID=com.bittr.bittr-regtest shared/flows/features/notification_information.yaml
 
 # The .lnUrl (Lightning-Address) push, fired on the PIN screen → "please sign in"
 # alert, then deferred processing on unlock. Needs push_server.js:
-maestro test shared/flows/features/notification_lnurl.yaml
+maestro test --env APP_ID=com.bittr.bittr-regtest shared/flows/features/notification_lnurl.yaml
 
 # The .htlcIncoming push, fired on the PIN screen (silent) → deferred processing
 # on unlock through to the terminal "Incoming payment" alert. Needs push_server.js:
-maestro test shared/flows/features/notification_htlcincoming.yaml
+maestro test --env APP_ID=com.bittr.bittr-regtest shared/flows/features/notification_htlcincoming.yaml
 
-maestro test shared/flows/features/receive.yaml
-maestro test shared/flows/features/receive_onchain.yaml
-maestro test shared/flows/features/receive_invoice.yaml
-maestro test shared/flows/features/send_onchain.yaml
-maestro test shared/flows/features/send_onchain_all.yaml
-maestro test shared/flows/features/swap.yaml
+maestro test --env APP_ID=com.bittr.bittr-regtest shared/flows/features/receive.yaml
+maestro test --env APP_ID=com.bittr.bittr-regtest shared/flows/features/receive_onchain.yaml
+maestro test --env APP_ID=com.bittr.bittr-regtest shared/flows/features/receive_invoice.yaml
+maestro test --env APP_ID=com.bittr.bittr-regtest shared/flows/features/send_onchain.yaml
+maestro test --env APP_ID=com.bittr.bittr-regtest shared/flows/features/send_onchain_all.yaml
+maestro test --env APP_ID=com.bittr.bittr-regtest shared/flows/features/swap.yaml
 
 # Payout-mode toggle (lightning <-> onchain) on the Buy card. Self-provisioning
 # (restores a wallet + creates an order if needed), so it can run on its own:
-maestro test shared/flows/features/payment_mode.yaml
+maestro test --env APP_ID=com.bittr.bittr-regtest shared/flows/features/payment_mode.yaml
 
 # Lightning send (normal + zero-amount invoice + Lightning Address). All three
 # targets are server-side now (invoices via the e2e endpoint / request_invoice.js,
 # address = fixed e2e e2ebittr@staging.getbittr.com), so no --env is needed.
 # Needs "node shared/flows/scripts/clipboard_server.js" running (Terminal A, alongside push_server)
 # so the in-app Paste button has something to paste:
-maestro test shared/flows/features/send_lightning.yaml
+maestro test --env APP_ID=com.bittr.bittr-regtest shared/flows/features/send_lightning.yaml
 
 # Pay a lightning invoice with NO channel — the app suggests "Swap and pay",
 # which runs an onchain->lightning swap that pays the recipient. Requires a
 # wallet with onchain funds and no usable channel; also needs clipboard_server.js:
-maestro test shared/flows/features/send_swap_suggestion_lightning.yaml
+maestro test --env APP_ID=com.bittr.bittr-regtest shared/flows/features/send_swap_suggestion_lightning.yaml
 
 # The mirror image — pay an onchain address with too little onchain balance but a
 # funded channel; the app suggests "Swap and pay", running a lightning->onchain
@@ -179,34 +180,34 @@ maestro test shared/flows/features/send_swap_suggestion_lightning.yaml
 # payment off the lightning balance, and pays one of its own receive addresses.
 # Requires < 50000 sats onchain and > 75000 sats of Lightning outbound. No
 # clipboard helper needed (it copies its own address in-app):
-maestro test shared/flows/features/send_swap_suggestion_onchain.yaml
+maestro test --env APP_ID=com.bittr.bittr-regtest shared/flows/features/send_swap_suggestion_onchain.yaml
 
-maestro test shared/flows/features/remove_wallet.yaml
-maestro test shared/flows/features/forgot_pin_remove_wallet.yaml
+maestro test --env APP_ID=com.bittr.bittr-regtest shared/flows/features/remove_wallet.yaml
+maestro test --env APP_ID=com.bittr.bittr-regtest shared/flows/features/forgot_pin_remove_wallet.yaml
 # PIN lockout, no open channel (immediate wipe):
-maestro test shared/flows/features/wrong_pin.yaml
+maestro test --env APP_ID=com.bittr.bittr-regtest shared/flows/features/wrong_pin.yaml
 # PIN lockout with an open channel (close + Try again retry loop) — set up a
 # channel first (e.g. run buy_incoming.yaml):
-maestro test shared/flows/features/wrong_pin_with_channel.yaml
-maestro test shared/flows/features/bitcoin_value.yaml
+maestro test --env APP_ID=com.bittr.bittr-regtest shared/flows/features/wrong_pin_with_channel.yaml
+maestro test --env APP_ID=com.bittr.bittr-regtest shared/flows/features/bitcoin_value.yaml
 # Bitcoin map: open a place, optionally its website (in-app browser), tap Open
 # in Maps → Apple Maps and return via a coordinate tap on the "‹ bittr regtest"
 # breadcrumb (fixed iPhone 15 geometry). Needs an existing wallet (unlocks PIN):
-maestro test shared/flows/features/bitcoin_map.yaml
+maestro test --env APP_ID=com.bittr.bittr-regtest shared/flows/features/bitcoin_map.yaml
 # Academy: play a lesson to completion (Next → Complete), tapping Back to page 1
 # and forward again on page 2 to exercise the Back button; then open the next
 # unlocked lesson. Needs an existing wallet (unlocks with PIN):
-maestro test shared/flows/features/academy.yaml
-maestro test shared/flows/features/settings.yaml
+maestro test --env APP_ID=com.bittr.bittr-regtest shared/flows/features/academy.yaml
+maestro test --env APP_ID=com.bittr.bittr-regtest shared/flows/features/settings.yaml
 
 # Forgot-PIN recovery test — needs the wallet's 12-word mnemonic so the
 # flow can type it on the RestoreVC screen. Pass it via --env:
-maestro test --env MNEMONIC="word1 word2 word3 word4 word5 word6 word7 word8 word9 word10 word11 word12" shared/flows/features/forgot_pin.yaml
+maestro test --env APP_ID=com.bittr.bittr-regtest --env MNEMONIC="word1 word2 word3 word4 word5 word6 word7 word8 word9 word10 word11 word12" shared/flows/features/forgot_pin.yaml
 
 # Wrong-PIN warning test — checks the 3-wrong-attempt warning appears and
 # recovers via its Forgot PIN button. Self-contained (runs restore_wallet
 # first via runFlow), so no env var or separate setup is needed:
-maestro test shared/flows/features/pin_warning.yaml
+maestro test --env APP_ID=com.bittr.bittr-regtest shared/flows/features/pin_warning.yaml
 ```
 
 ### EvilBoltz swap-tamper testing ("bittr evil" app)
@@ -241,13 +242,13 @@ node shared/flows/scripts/push_server.js
 
 # SEC-01: reverse swap pays an invoice whose preimage only the attacker knows.
 # Vulnerable = lightning payment goes out, no onchain coins ever arrive:
-maestro test shared/flows/features/evil_boltz_wrong_invoice.yaml
+maestro test --env APP_ID=com.bittr.bittr-regtest shared/flows/features/evil_boltz_wrong_invoice.yaml
 
 # SEC-02: submarine swap pays an attacker-controlled lockup address.
 # Vulnerable = onchain tx lands at the attacker's address (watch
 # https://esplora.bittr.io/address/bcrt1pcz9mae53csyv8d0t4fansh446jdjey2pg2djn5utqver5e42gp5s507k3j),
 # no refund path exists:
-maestro test shared/flows/features/evil_boltz_wrong_address.yaml
+maestro test --env APP_ID=com.bittr.bittr-regtest shared/flows/features/evil_boltz_wrong_address.yaml
 ```
 
 Also, `onboarding/fresh_install.yaml` and `features/buy_incoming.yaml` accept an injected app: set `output.APP_ID` before `runFlow`-ing them (see `helpers/evil_bootstrap.yaml`) — the default stays `com.bittr.bittr-regtest`.

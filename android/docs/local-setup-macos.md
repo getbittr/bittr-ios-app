@@ -291,9 +291,14 @@ With an emulator up and the app installed (section 2 above):
 curl -fsSL "https://get.maestro.mobile.dev" | MAESTRO_VERSION=2.10.0 bash
 export PATH="$HOME/.maestro/bin:$PATH"
 
-# from the repo root; the flow reads its app id from the environment
-APP_ID=com.bittr.android.regtest maestro test shared/flows/onboarding/smoke.yaml
+# from the repo root; the flow takes its app id from --env
+maestro test --env APP_ID=com.bittr.android.regtest shared/flows/onboarding/smoke.yaml
 ```
+
+`--env` is the only spelling that works. Maestro forwards a shell variable into a
+flow's scope only if its name starts with `MAESTRO_`, and it keeps the prefix, so
+neither `APP_ID=… maestro test …` nor an `export` can set `${APP_ID}` — the flow
+dies on an undefined-variable error instead.
 
 Pin `MAESTRO_VERSION` to match `.github/workflows/android-maestro.yml`. Unpinned, the
 installer takes `releases/latest`, and Maestro moves under this — recent versions

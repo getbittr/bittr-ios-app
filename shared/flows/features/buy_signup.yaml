@@ -26,7 +26,7 @@
 #   7. Assert email / IBAN / deposit code are present on the Buy cell.
 #   8. Tap the down button → Home.
 #
-# Run: maestro test shared/flows/features/buy_signup.yaml
+# Run: maestro test --env APP_ID=com.bittr.bittr-regtest shared/flows/features/buy_signup.yaml
 
 appId: ${APP_ID}
 ---

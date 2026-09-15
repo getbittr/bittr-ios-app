@@ -21,7 +21,7 @@
 # If launched on a clean install it auto-runs onboarding first. Does NOT
 # clearState — wallet state is preserved.
 #
-# Run: maestro test shared/flows/features/send_onchain.yaml
+# Run: maestro test --env APP_ID=com.bittr.bittr-regtest shared/flows/features/send_onchain.yaml
 
 appId: ${APP_ID}
 ---

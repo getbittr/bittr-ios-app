@@ -34,7 +34,7 @@
 #
 # This flow is destructive: it removes the wallet and drops back to Signup1.
 #
-# Run: maestro test shared/flows/features/forgot_pin_remove_wallet.yaml
+# Run: maestro test --env APP_ID=com.bittr.bittr-regtest shared/flows/features/forgot_pin_remove_wallet.yaml
 
 appId: ${APP_ID}
 ---

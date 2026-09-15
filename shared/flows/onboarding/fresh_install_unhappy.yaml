@@ -28,7 +28,7 @@
 # Alert screenshots are taken after waitForAnimationToEnd so the alert is fully
 # slid up and cleanly visible.
 #
-# Run: maestro test shared/flows/onboarding/fresh_install_unhappy.yaml
+# Run: maestro test --env APP_ID=com.bittr.bittr-regtest shared/flows/onboarding/fresh_install_unhappy.yaml
 
 appId: ${APP_ID}
 ---

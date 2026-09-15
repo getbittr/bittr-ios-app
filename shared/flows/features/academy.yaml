@@ -27,7 +27,7 @@
 #   5. The lesson dismisses back to the Academy and the next lesson unlocks.
 #      Tap it (academy.nextLessonButton again) to open the following lesson.
 #
-# Run: maestro test shared/flows/features/academy.yaml
+# Run: maestro test --env APP_ID=com.bittr.bittr-regtest shared/flows/features/academy.yaml
 
 appId: ${APP_ID}
 ---

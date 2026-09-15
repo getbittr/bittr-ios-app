@@ -22,7 +22,7 @@
 # Assumes a wallet with an onchain balance. If launched on a clean install it
 # auto-runs onboarding first. Does NOT clearState.
 #
-# Run: maestro test shared/flows/features/send_onchain_all.yaml
+# Run: maestro test --env APP_ID=com.bittr.bittr-regtest shared/flows/features/send_onchain_all.yaml
 
 appId: ${APP_ID}
 ---

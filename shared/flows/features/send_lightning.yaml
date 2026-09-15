@@ -31,13 +31,13 @@
 # Run the clipboard helper so the in-app Paste button has something to paste:
 #
 #   node shared/flows/scripts/clipboard_server.js   # keep running
-#   maestro test shared/flows/features/send_lightning.yaml
+#   maestro test --env APP_ID=com.bittr.bittr-regtest shared/flows/features/send_lightning.yaml
 #
 # Sending requires an active lightning channel with enough outbound capacity
 # (run the buy/receive flows first). If launched on a clean install it
 # auto-runs onboarding first. Does NOT clearState — wallet state is preserved.
 #
-# Run: maestro test shared/flows/features/send_lightning.yaml
+# Run: maestro test --env APP_ID=com.bittr.bittr-regtest shared/flows/features/send_lightning.yaml
 
 appId: ${APP_ID}
 ---

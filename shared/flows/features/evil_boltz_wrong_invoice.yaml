@@ -19,7 +19,7 @@
 # The flow provisions (or reuses) the evil app via helpers/evil_bootstrap.yaml,
 # so it runs standalone:
 #
-# Run: maestro test shared/flows/features/evil_boltz_wrong_invoice.yaml
+# Run: maestro test --env APP_ID=com.bittr.bittr-regtest shared/flows/features/evil_boltz_wrong_invoice.yaml
 
 appId: ${EVIL_APP_ID}
 ---

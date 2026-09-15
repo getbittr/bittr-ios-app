@@ -25,7 +25,7 @@
 # leaves the counter mid-way, which would otherwise shift when the warning
 # fires. No separate prerequisite and no env var needed:
 #
-#   maestro test shared/flows/features/pin_warning.yaml
+#   maestro test --env APP_ID=com.bittr.bittr-regtest shared/flows/features/pin_warning.yaml
 #
 # Mnemonic: RestoreVC verifies the typed recovery words against
 # CacheManager.getMnemonic(). We bake in the same fixed test phrase

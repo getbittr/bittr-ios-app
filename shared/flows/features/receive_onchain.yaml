@@ -20,7 +20,7 @@
 # Assumes a wallet exists. If launched on a clean install it auto-runs the
 # onboarding subflow first. Does NOT clearState — wallet state is preserved.
 #
-# Run: maestro test shared/flows/features/receive_onchain.yaml
+# Run: maestro test --env APP_ID=com.bittr.bittr-regtest shared/flows/features/receive_onchain.yaml
 #
 # SLOW_SYNC (seconds, default 0 = off) forces the sync overlay to stay open so
 # step 0's header tap can capture it (design-system S-27, see

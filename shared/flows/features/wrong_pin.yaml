@@ -30,7 +30,7 @@
 #     no channel, channelsFullyClosedAndSwept() is already true, so
 #     performWalletReset runs -> 1s delay -> launchSignup(onPage: 3) -> Signup1.
 #
-# Run: maestro test shared/flows/features/wrong_pin.yaml
+# Run: maestro test --env APP_ID=com.bittr.bittr-regtest shared/flows/features/wrong_pin.yaml
 
 appId: ${APP_ID}
 ---
