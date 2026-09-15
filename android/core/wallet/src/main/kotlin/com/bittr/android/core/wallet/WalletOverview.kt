@@ -59,6 +59,12 @@ data class WalletOverview(
  *
  * @property confirmationHeight null for an unconfirmed on-chain transaction, which iOS
  *   colours `unconfirmed`, and null for every Lightning payment, which has no height.
+ * @property paymentHash the Lightning payment hash, which Receive and swaps key their
+ *   descriptions by. Null on-chain.
+ * @property description iOS `lnDescription`: the invoice or swap description stored for this
+ *   transaction (`CacheManager.getInvoiceDescription`). A swap's legs carry its `dateID`.
+ * @property swap set on a matched swap row, a swap with one leg so far, and a Swap & Pay leg —
+ *   see [SwapHistory].
  */
 data class WalletActivity(
     val id: String,
@@ -68,6 +74,9 @@ data class WalletActivity(
     val timestampSecs: Long,
     val isLightning: Boolean,
     val confirmationHeight: Int?,
+    val paymentHash: String? = null,
+    val description: String? = null,
+    val swap: SwapActivity? = null,
 ) {
 
     /** `received - sent - fee`, which is the figure the row shows and signs. */

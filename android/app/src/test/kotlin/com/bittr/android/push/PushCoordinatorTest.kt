@@ -48,6 +48,47 @@ class PushCoordinatorTest {
     private val answered = mutableListOf<PushEnvelope.LightningAddress>()
     private var answerSucceeds = true
 
+    private var swapScreenOpen = false
+    private val swapPushesOpened = mutableListOf<PushEnvelope.Swap>()
+    private val swapHandler = object : SwapPushHandler {
+        override fun swapScreenOpen() = swapScreenOpen
+        override suspend fun onSwapPush(push: PushEnvelope.Swap) {
+            swapPushesOpened += push
+        }
+    }
+
+    @Test
+    fun `a swap push while locked asks to sign in, then opens the swap status after the first sync`() {
+        coordinator.receive(PushEnvelope.Swap("hashed-id", "transaction.claimed"))
+        val signIn = state.alert!!
+        assertEquals(PushStrings.SWAP_STATUS_UPDATE, signIn.title)
+        assertEquals(PushStrings.PLEASE_SIGN_IN, signIn.message)
+        coordinator.onAlertButton(signIn.buttons.single())
+        assertTrue(swapPushesOpened.isEmpty())
+
+        walletState.value = WalletState.Ready
+        assertEquals(TestID.Loading.syncingWallet, state.loading?.testTag)
+        overview.value = overview.value.copy(hasSynced = true)
+        assertEquals(1, swapPushesOpened.size)
+        assertNull(state.loading)
+    }
+
+    @Test
+    fun `a swap push is ignored while a swap screen is open`() {
+        unlockAndSync()
+        swapScreenOpen = true
+        coordinator.receive(PushEnvelope.Swap("hashed-id", "invoice.settled"))
+        assertTrue(swapPushesOpened.isEmpty())
+        assertEquals(PushUiState(), state)
+    }
+
+    @Test
+    fun `a swap push without a swap id does nothing`() {
+        unlockAndSync()
+        coordinator.receive(PushEnvelope.Swap("", "invoice.settled"))
+        assertTrue(swapPushesOpened.isEmpty())
+    }
+
     // Unconfined and no pauses: each push is handled inside `receive`.
     private val coordinator = PushCoordinator(
         scope = CoroutineScope(Dispatchers.Unconfined),
@@ -59,7 +100,7 @@ class PushCoordinatorTest {
         http = http,
         environment = BittrEnvironment.DEVELOPMENT,
         depositCodes = DepositCodeSource { depositCode },
-        swapHandler = null,
+        swapHandler = swapHandler,
         lnurlHandler = LnurlPushHandler { push ->
             answered += push
             answerSucceeds

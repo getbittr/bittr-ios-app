@@ -93,17 +93,19 @@ class TransactionViewModel @Inject constructor(
 }
 
 /**
- * The transaction screen — `TransactionViewController`, for plain on-chain and Lightning
- * transactions: date, amount, type, fees, confirmations, the ID with copy and explorer
- * buttons, and the current value.
+ * The transaction screen — `TransactionViewController`: date, amount, type, fees, confirmations,
+ * the swap's id and status for a swap, the id(s) with copy and explorer buttons, and the current
+ * value.
  *
  * @param onOpenExplorer opens the block explorer on the given transaction id.
+ * @param onOpenSwapStatus `openSwapTapped` → `TransactionToSwapStatus`, with the Boltz swap id.
  */
 @Composable
 fun TransactionScreen(
     onDown: () -> Unit,
     onOpenExplorer: (String) -> Unit,
     modifier: Modifier = Modifier,
+    onOpenSwapStatus: (String) -> Unit = {},
     viewModel: TransactionViewModel = hiltViewModel(),
 ) {
     val detail by viewModel.detail.collectAsState()
@@ -153,6 +155,10 @@ fun TransactionScreen(
                 .padding(BittrTokens.Spacing.md),
         ) {
             val shown = detail ?: return@Column
+            fun copy(text: String) {
+                clipboard.setText(AnnotatedString(text))
+                copied = text
+            }
             BittrCard(modifier = Modifier.testTag(TestID.Transaction.yellowCard)) {
                 Column(verticalArrangement = Arrangement.spacedBy(BittrTokens.Spacing.sm)) {
                     Text(
@@ -168,14 +174,33 @@ fun TransactionScreen(
                     DetailRow(HomeStrings.TYPE, if (shown.isLightning) HomeStrings.INSTANT else HomeStrings.REGULAR, bolt = shown.isLightning)
                     shown.fees?.let { DetailRow(HomeStrings.FEES_PAID, it) }
                     shown.confirmations?.let { DetailRow(HomeStrings.CONFIRMATIONS, it) }
+                    shown.swap?.let { swap ->
+                        DetailRow(HomeStrings.SWAP_ID, swap.swapIdLabel)
+                        SwapStatusRow(
+                            status = swap.status,
+                            onClick = swap.boltzId?.let { boltzId -> { onOpenSwapStatus(boltzId) } },
+                        )
+                    }
                     IdRow(
+                        title = shown.idTitle,
                         id = shown.id,
-                        onCopy = {
-                            clipboard.setText(AnnotatedString(shown.id))
-                            copied = shown.id
-                        },
+                        onCopy = { copy(shown.id) },
+                        copyTag = TestID.Transaction.copyIdButton,
                         onExplorer = shown.explorerId?.let { explorerId -> { onOpenExplorer(explorerId) } },
+                        explorerTag = TestID.Transaction.urlIdButton,
                     )
+                    val swap = shown.swap
+                    if (swap?.bottomIdTitle != null) {
+                        val bottomId = swap.bottomId.orEmpty()
+                        IdRow(
+                            title = swap.bottomIdTitle,
+                            id = bottomId,
+                            onCopy = if (swap.bottomIdCopyable) ({ copy(bottomId) }) else null,
+                            copyTag = TestID.Transaction.copyBottomIdButton,
+                            onExplorer = swap.bottomExplorerId?.let { explorerId -> { onOpenExplorer(explorerId) } },
+                            explorerTag = null,
+                        )
+                    }
                     shown.currentValue?.let { DetailRow(HomeStrings.CURRENT_VALUE, it) }
                 }
             }
@@ -185,10 +210,7 @@ fun TransactionScreen(
                     text = description,
                     textTag = TestID.Transaction.descriptionLabel,
                     buttonTag = TestID.Transaction.descriptionButton,
-                    onClick = {
-                        clipboard.setText(AnnotatedString(description))
-                        copied = description
-                    },
+                    onClick = { copy(description) },
                 )
             }
             val note = shown.note
@@ -271,8 +293,44 @@ private fun DetailRow(title: String, value: String, valueTag: String? = null, bo
     }
 }
 
+/**
+ * The swap status row. `buttonSwapStatus` covers it on iOS; here the tap layer is drawn under the
+ * labels so they stay readable to the flows, and it carries `transaction.swapStatusButton`.
+ */
 @Composable
-private fun IdRow(id: String, onCopy: () -> Unit, onExplorer: (() -> Unit)?) {
+private fun SwapStatusRow(status: String, onClick: (() -> Unit)?) {
+    Box(modifier = Modifier.fillMaxWidth()) {
+        Box(
+            modifier = Modifier
+                .matchParentSize()
+                .background(MaterialTheme.colorScheme.surfaceContainerLowest, RoundedCornerShape(8.dp))
+                .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier)
+                .testTag(TestID.Transaction.swapStatusButton),
+        )
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = BittrTokens.Spacing.md, vertical = BittrTokens.Spacing.md),
+        ) {
+            Text(HomeStrings.SWAP_STATUS, style = MaterialTheme.typography.labelLarge, color = BittrTheme.colors.emphasis, modifier = Modifier.weight(1f))
+            Text(text = status, style = MaterialTheme.typography.bodyLarge)
+            if (onClick != null) {
+                Text(" ›", style = MaterialTheme.typography.bodyLarge, color = BittrTheme.colors.emphasis)
+            }
+        }
+    }
+}
+
+@Composable
+private fun IdRow(
+    title: String,
+    id: String,
+    onCopy: (() -> Unit)?,
+    copyTag: String,
+    onExplorer: (() -> Unit)?,
+    explorerTag: String?,
+) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier
@@ -280,7 +338,7 @@ private fun IdRow(id: String, onCopy: () -> Unit, onExplorer: (() -> Unit)?) {
             .background(MaterialTheme.colorScheme.surfaceContainerLowest, RoundedCornerShape(8.dp))
             .padding(start = BittrTokens.Spacing.md),
     ) {
-        Text(HomeStrings.ID, style = MaterialTheme.typography.labelLarge, color = BittrTheme.colors.emphasis)
+        Text(title, style = MaterialTheme.typography.labelLarge, color = BittrTheme.colors.emphasis)
         Text(
             text = id,
             style = MaterialTheme.typography.bodyMedium,
@@ -291,20 +349,22 @@ private fun IdRow(id: String, onCopy: () -> Unit, onExplorer: (() -> Unit)?) {
                 .padding(horizontal = BittrTokens.Spacing.sm),
         )
         if (onExplorer != null) {
-            IconButton(LINK_PATH, "Open in explorer", onExplorer, TestID.Transaction.urlIdButton)
+            IconButton(LINK_PATH, "Open in explorer", onExplorer, explorerTag)
         }
-        IconButton(COPY_PATH, HomeStrings.COPIED, onCopy, TestID.Transaction.copyIdButton)
+        if (onCopy != null) {
+            IconButton(COPY_PATH, HomeStrings.COPIED, onCopy, copyTag)
+        }
     }
 }
 
 @Composable
-private fun IconButton(path: String, label: String, onClick: () -> Unit, testTag: String) {
+private fun IconButton(path: String, label: String, onClick: () -> Unit, testTag: String?) {
     Box(
         contentAlignment = Alignment.Center,
         modifier = Modifier
             .size(BittrTokens.Size.minTouchTarget)
             .clickable(onClick = onClick)
-            .testTag(testTag),
+            .then(if (testTag != null) Modifier.testTag(testTag) else Modifier),
     ) {
         Image(
             imageVector = rememberStrokeIcon(path, MaterialTheme.colorScheme.onSurface, strokeWidth = 2f),

@@ -59,6 +59,10 @@ class MainActivity : ComponentActivity() {
     @Inject
     lateinit var pushCoordinator: PushCoordinator
 
+    /** Whether the app is on screen, for a swap push's status screen. */
+    @Inject
+    lateinit var appForeground: AppForeground
+
     /**
      * `api-contract` §2.3 rule 2's per-foreground reset, plus the reconciliation above.
      *
@@ -75,8 +79,14 @@ class MainActivity : ComponentActivity() {
      */
     override fun onStart() {
         super.onStart()
+        appForeground.setActive(true)
         deviceTokens.onAppForegrounded()
         lifecycleScope.launch { deviceTokens.syncOnAppStart() }
+    }
+
+    override fun onStop() {
+        appForeground.setActive(false)
+        super.onStop()
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {

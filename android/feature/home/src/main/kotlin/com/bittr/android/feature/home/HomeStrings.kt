@@ -91,6 +91,21 @@ internal object HomeStrings {
     const val VIEW_ACTIVE_CONNECTION = "View active connection"
     const val SWAP = "Swap"
 
+    // The transaction screen's swap stack: `swapid`, `swapstatus`, `swapsucceeded`, `swappending`,
+    // `swapfailed`, `onchainid`, `lightningid`, `refundid`, `expecting`.
+    const val SWAP_ID = "Swap ID"
+    const val SWAP_STATUS = "Swap status"
+    const val SWAP_SUCCEEDED = "Complete"
+    const val SWAP_PENDING = "Pending"
+    const val SWAP_FAILED = "Failed and refunded"
+    const val ONCHAIN_ID = "Onchain ID"
+    const val LIGHTNING_ID = "Lightning ID"
+    const val REFUND_ID = "Refund ID"
+    const val EXPECTING = "Expecting"
+
+    /** What iOS shows for a swap whose Boltz id is not in the cache. */
+    const val UNAVAILABLE = "Unavailable"
+
     /** Not iOS copy: swaps (`SwapViewController`) are not ported yet. */
     const val SWAP_NOT_ON_ANDROID = "Swapping between regular and instant isn't available on Android yet."
 }

@@ -1,6 +1,7 @@
 package com.bittr.android.feature.home
 
 import com.bittr.android.core.wallet.FiatPrice
+import com.bittr.android.core.wallet.SwapActivityStatus
 import com.bittr.android.core.wallet.WalletActivity
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -8,6 +9,9 @@ import java.util.Locale
 import java.util.TimeZone
 import kotlin.math.abs
 import kotlin.math.roundToLong
+
+/** The swap icon on a history row: blue once complete, grey otherwise (`iconswapblue` / `iconswapgrey`). */
+enum class HistorySwap { Complete, Pending }
 
 /**
  * One row of Home's history, already formatted — `HistoryTable.swift`'s
@@ -17,7 +21,9 @@ import kotlin.math.roundToLong
  *   second row on.
  * @property fiat null while there is no price to convert with.
  * @property unconfirmed an on-chain transaction with no confirmation yet, which iOS
- *   colours `unconfirmed`. Never true for Lightning.
+ *   colours `unconfirmed`. Never true for Lightning, nor for a swap that is no longer pending.
+ * @property swap the swap icon, with `history.swapComplete<N>` / `history.swapPending<N>`; null
+ *   for a plain transaction and for a Swap & Pay leg, which iOS shows as the payment it made.
  */
 data class HistoryRow(
     val id: String,
@@ -27,6 +33,7 @@ data class HistoryRow(
     val fiat: String?,
     val isLightning: Boolean,
     val unconfirmed: Boolean,
+    val swap: HistorySwap? = null,
 )
 
 internal fun historyRows(
@@ -42,15 +49,19 @@ internal fun historyRows(
     return transactions.mapIndexed { index, activity ->
         val net = activity.netSats
         val height = activity.confirmationHeight
+        val swap = activity.swap?.takeIf { !it.isSuggested }
         HistoryRow(
             id = activity.id,
             day = dayFormat.format(Date(activity.timestampSecs * 1000)),
             year = if (index != 0 && year(transactions[index - 1]) != year(activity)) year(activity) else null,
             sats = "${if (net < 0) "-" else "+"} ${groupThousands(abs(net))} sats",
             fiat = price?.let { "${groupThousands(abs((net / SATS_PER_BITCOIN * it.pricePerBitcoin).roundToLong()))} ${it.symbol}" },
-            isLightning = activity.isLightning,
+            // A swap row shows the swap icon instead of the lightning one (`hideLightningStack`).
+            isLightning = activity.isLightning && swap == null,
             unconfirmed = !activity.isLightning &&
-                (height == null || (currentHeight ?: 0) - height + 1 < 1),
+                (height == null || (currentHeight ?: 0) - height + 1 < 1) &&
+                !(swap != null && swap.status != SwapActivityStatus.Pending),
+            swap = swap?.let { if (it.status == SwapActivityStatus.Succeeded) HistorySwap.Complete else HistorySwap.Pending },
         )
     }
 }

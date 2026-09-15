@@ -200,10 +200,18 @@ fun BittrNavHost(
         }
     }
 
-    // "Swap & Instant Receive" on a channel-full payout push opens the swap screen.
+    // "Swap & Instant Receive" on a channel-full payout push opens a pre-filled swap, and a swap
+    // push opens the latest swap's status.
     val swapLaunches = hiltViewModel<com.bittr.android.swap.SwapLaunchViewModel>().requests
     LaunchedEffect(swapLaunches) {
-        swapLaunches.requests.collect { navController.navigate(SwapRoutes.swap()) }
+        swapLaunches.requests.collect { request ->
+            when (request) {
+                is com.bittr.android.swap.SwapLaunchRequest.PayoutSwap ->
+                    navController.navigate(SwapRoutes.payoutSwap(request.suggestedSats))
+                is com.bittr.android.swap.SwapLaunchRequest.Status ->
+                    navController.navigate(SwapRoutes.status(request.boltzId))
+            }
+        }
     }
 
     // See [NotPortedDialog]. Held here rather than in a screen because it is
@@ -388,6 +396,7 @@ fun BittrNavHost(
             TransactionScreen(
                 onDown = { navController.popBackStack() },
                 onOpenExplorer = { txId -> navController.navigate(Routes.explorer(txId)) },
+                onOpenSwapStatus = { boltzId -> navController.navigate(SwapRoutes.status(boltzId)) },
             )
         }
 

@@ -5,6 +5,7 @@ import com.bittr.android.core.network.BittrEnvironment
 import com.bittr.android.core.network.HttpClient
 import com.bittr.android.core.preferences.AppPreferences
 import com.bittr.android.core.wallet.FiatPriceSource
+import com.bittr.android.core.wallet.TransactionDescriptionStore
 import com.bittr.android.di.WalletComposition
 import com.bittr.android.feature.receive.ReceiveSource
 import dagger.Module
@@ -36,11 +37,13 @@ object ReceiveModule {
         composition: WalletComposition,
         preferences: AppPreferences,
         prices: BitcoinPriceSource,
+        descriptions: TransactionDescriptionStore,
     ): ReceiveSource = AppReceiveSource(
         lightning = composition.lightning,
         addressPool = composition.addressPool,
         preferences = preferences,
         prices = prices,
+        descriptions = descriptions,
     )
 }
 

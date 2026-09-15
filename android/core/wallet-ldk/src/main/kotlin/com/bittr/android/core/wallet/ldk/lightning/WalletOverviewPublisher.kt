@@ -81,6 +81,13 @@ class WalletOverviewPublisher(
                 timestampSecs = confirmed?.timestampSecs ?: payment.latestUpdateTimestampSecs,
                 isLightning = !kind.isOnchain,
                 confirmationHeight = confirmed?.height,
+                // What Receive and swaps key descriptions by: the id is the preimage once known.
+                paymentHash = when (kind) {
+                    is PaymentKindView.Bolt11Like -> kind.hash
+                    is PaymentKindView.Bolt12 -> kind.hash
+                    is PaymentKindView.Spontaneous -> kind.hash
+                    is PaymentKindView.Onchain -> null
+                },
             )
         }
     }

@@ -63,3 +63,29 @@ The calls made while porting `ios/bittr/Swaps` to `:core:swaps` / `:feature:swap
 3. **Swap from a bittr payout push** (`pendingSuggestedSwapAmount`) — belongs with the payout notification port.
 4. **Live Activity / Dynamic Island** — no Android counterpart built (an ongoing notification would be the analogue).
 5. Script-path (timeout) refunds and retries of a failed cooperative refund — not on iOS either.
+
+## Swap history and pushes (branch `port/swap-history`, 2026-09-15)
+
+1. **Decided — one description store for the whole history** (`TransactionDescriptionStore`, `transaction_descriptions.json`
+   in the app's files directory, like iOS's `invoicedescriptions` in `UserDefaults`). Keys are what iOS keys by: the
+   payment hash for Lightning (Receive stores each invoice's description; `WalletActivity.paymentHash` is new so a paid
+   row whose id is its preimage still finds it) and the txid on-chain. Swaps write their `dateID` through
+   `SwapWallet.recordDescription`, which only logged before.
+2. **Decided — `performSwapMatching()` runs in a decorated `WalletOverviewSource`** (`history/HistoryModule`): the node's
+   overview gets its descriptions, then legs sharing a "Swap …" description become one row (id = the date part, iOS's),
+   a lone leg a pending swap row, and a Swap & Pay leg keeps its row with the suggested swap's status. Everything that
+   injects `WalletOverviewSource` sees matched rows; the swap wallet adapter and the event pump still read the raw
+   overview through the composition. Not ported: iOS's cache of completed combined rows
+   (`CacheManager.storeLightningTransaction`), which Android doesn't need because it recomputes from the legs.
+3. **Decided — history rows show the swap icon** (`history.swapComplete<N>` / `history.swapPending<N>`), and the transaction
+   screen shows Swap ID, Swap status (`transaction.swapStatusButton` → the status screen) and the second id row
+   (`transaction.copyBottomIdButton`), per iOS's direction/status table. A swap's "Fees paid" is its total cost
+   (sent − received + fees). **Gap:** a Swap & Pay leg doesn't yet show iOS's bottom id and the amount from the swap
+   file (it shows its own amount and id plus the swap stack); a pending swap's amount isn't read from the swap file.
+4. **Decided — "Swap & Instant Receive" opens a lightning-to-onchain swap of the suggested amount straight away**
+   (`SwapRoutes.payoutSwap`, iOS `handleNotificationSwap`), not a suggested swap.
+5. **Decided (decision 30) — a swap push matches iOS and never claims or refunds:** ignored while a swap screen is open;
+   locked → `swapstatusupdate` / `pleasesignin` alert and the push is kept; syncing → `loading.syncingWallet`; synced →
+   the latest swap's status screen opens, only while the app is on screen (`AppForeground`, set from `MainActivity`'s
+   start/stop). `SwapCoordinator` is no longer bound as the push handler; claims and refunds stay with the swap screens
+   and the coordinator's status tracking.
