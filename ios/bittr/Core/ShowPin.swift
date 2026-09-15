@@ -12,6 +12,8 @@ extension CoreViewController {
     @objc func appDidEnterBackground() {
         // Keep track of when the app was backgrounded.
         self.backgroundedAt = self.userHasSignedIn ? Date() : nil
+        // Interrupt BDK scan if ongoing.
+        BitcoinManager.shared.markBdkScanInterrupted()
     }
     
     @objc func appWillEnterForeground() {

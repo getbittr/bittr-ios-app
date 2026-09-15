@@ -20,6 +20,7 @@ final class BdkScanState {
     private var _isScanning = false
     private var _hasBeenScanned = false
     private var _timedOut = false
+    private var _wasInterrupted = false
     private var waiters = [(Bool) -> Void]()
     
     var isScanning: Bool {
@@ -43,6 +44,13 @@ final class BdkScanState {
         return _timedOut
     }
     
+    var wasInterrupted: Bool {
+        // The app was backgrounded while this scan was running.
+        lock.lock()
+        defer { lock.unlock() }
+        return _wasInterrupted
+    }
+    
     func claim(orWaitWith waiter: @escaping (Bool) -> Void) -> Bool {
         // Claims the right to run a full scan.
         lock.lock()
@@ -54,6 +62,7 @@ final class BdkScanState {
         }
         _isScanning = true
         _timedOut = false
+        _wasInterrupted = false
         return true
     }
     
@@ -77,13 +86,22 @@ final class BdkScanState {
         guard _isScanning else { return }
         _timedOut = true
     }
-
+    
+    func markInterrupted() {
+        // The app went to the background mid-scan.
+        lock.lock()
+        defer { lock.unlock() }
+        guard _isScanning else { return }
+        _wasInterrupted = true
+    }
+    
     func clear() {
         // Forgets all of it.
         lock.lock()
         _isScanning = false
         _hasBeenScanned = false
         _timedOut = false
+        _wasInterrupted = false
         let waiting = waiters
         waiters.removeAll()
         lock.unlock()
@@ -187,6 +205,7 @@ extension BitcoinManager {
     var bdkWalletIsScanning: Bool { self.bdkScan.isScanning }
     var bdkWalletHasBeenScanned: Bool { self.bdkScan.hasBeenScanned }
     var bdkFullScanTimedOut: Bool { self.bdkScan.timedOut }
+    var bdkScanWasInterrupted: Bool { self.bdkScan.wasInterrupted }
 
     func claimBdkScan(orWaitWith waiter: @escaping (Bool) -> Void) -> Bool {
         return self.bdkScan.claim(orWaitWith: waiter)
@@ -196,6 +215,9 @@ extension BitcoinManager {
     }
     func markBdkScanTimedOut() {
         self.bdkScan.markTimedOut()
+    }
+    func markBdkScanInterrupted() {
+        self.bdkScan.markInterrupted()
     }
     func clearBdkScanState() {
         self.bdkScan.clear()
@@ -222,8 +244,10 @@ extension BitcoinManager {
         
         // TODO: Consider a higher timeout limit for mainnet wallets.
         DispatchQueue.global(qos: .background).asyncAfter(deadline: .now() + 180) {
-            Log.info("BDK full scan timed out after 180s; failing so callers don't hang.")
-            self.markBdkScanTimedOut()
+            if !self.bdkScanWasInterrupted {
+                Log.info("BDK full scan timed out after 180s; failing so callers don't hang.")
+                self.markBdkScanTimedOut()
+            }
             completion(false)
         }
         

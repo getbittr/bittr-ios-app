@@ -195,10 +195,7 @@ extension CoreViewController {
         BitcoinManager.shared.didSyncBdkWallet { hasBeenSynced in
             guard hasBeenSynced else {
                 Log.info("Could not scan BDK wallet.")
-                // A timed-out scan blocks Send and Swap for the rest of the
-                // session. On this path nobody else is listening — the user is
-                // on the home screen — so say so rather than failing silently.
-                if BitcoinManager.shared.bdkFullScanTimedOut {
+                if BitcoinManager.shared.bdkFullScanTimedOut, self.userHasSignedIn, self.currentPage == .home {
                     self.showAlert(title: Language.getWord(withID: "onchainsyncfailedtitle"), message: Language.getWord(withID: "onchainsynctimedout"), buttons: [.dismiss(Language.getWord(withID: "okay"))])
                 }
                 return
