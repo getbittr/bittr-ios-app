@@ -610,8 +610,8 @@ extension CoreViewController {
         Log.info("Received swap notification from background for ID.")
         
         // Check if SwapViewController is already open - if so, ignore the notification
-        if self.swapVC != nil || self.homeVC?.swapStatusVC != nil {
-            Log.info("SwapViewController is already open, ignoring notification")
+        if self.swapScreenIsVisible() {
+            Log.info("A swap screen is already on screen, ignoring notification")
             return
         }
         
@@ -644,7 +644,29 @@ extension CoreViewController {
             return
         }
         
-        self.homeVC?.performSegue(withIdentifier: "HomeToSwapStatus", sender: self.homeVC)
+        self.presentSwapStatus()
+    }
+    
+    func swapScreenIsVisible() -> Bool {
+        if let swapVC = self.swapVC, swapVC.presentingViewController != nil || swapVC.parent != nil {
+            return true
+        }
+        if let statusVC = self.homeVC?.swapStatusVC, statusVC.presentingViewController != nil || statusVC.parent != nil {
+            return true
+        }
+        return false
+    }
+    
+    func presentSwapStatus() {
+        guard let homeVC = self.homeVC else { return }
+        guard let statusVC = homeVC.swapStatusVC else {
+            // Nothing built yet.
+            homeVC.performSegue(withIdentifier: "HomeToSwapStatus", sender: homeVC)
+            return
+        }
+        // Reopen existing SwapStatusVC.
+        guard statusVC.presentingViewController == nil, statusVC.parent == nil else { return }
+        homeVC.present(statusVC, animated: true)
     }
     
     // Tapping the swap Live Activity (Dynamic Island / Lock Screen) routes here.
@@ -666,9 +688,8 @@ extension CoreViewController {
                 // with "already has a parent").
                 guard swapVC.presentingViewController == nil, swapVC.parent == nil else { return }
                 self.present(swapVC, animated: true)
-            } else if self.homeVC?.swapStatusVC == nil {
-                // The segue lives on the Home scene, so perform it on homeVC.
-                self.homeVC?.performSegue(withIdentifier: "HomeToSwapStatus", sender: self.homeVC)
+            } else {
+                self.presentSwapStatus()
             }
         }
     }
