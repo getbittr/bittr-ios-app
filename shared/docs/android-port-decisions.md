@@ -263,11 +263,16 @@ Full log: `android/docs/port-specs/lnurl-decisions.md`.
     `merge/bit-63-tokens-into-android`. **Answered 2026-09-15:** the `k1-run/*`, `regtest-run/*` and `snapshot/*`
     branches were deleted from GitHub too (11 branches).
 
-## Not ported yet (to be worked through overnight)
+## Porting status (2026-09-15)
 
-- Lightning address / LNURL pay, withdraw and auth (Send shows "not available on Android yet").
-- Swaps (Boltz) — Move's swap button and Send's swap suggestions say "not available on Android yet".
-- Buy and bittr signup, profits.
-- Notifications (incoming payment, payment requests, information).
-- Sync status overlay (`sync.statusView`), channel statistics chart (`question.channelView`), transaction notes.
-- Wallet removal from Device details / Forgot PIN.
+Every iOS feature area is ported: everyday wallet, Receive/Send, Lightning address and LNURL, swaps, Buy and the
+bittr signup, profits, notifications, wallet removal and the PIN flows, Device details, pull-to-refresh, and the
+transaction confirmations. All of it passes JVM unit tests. What remains:
+
+- **Verification:** only `restore_wallet`, `receive`, `receive_onchain`, `send_onchain`, `send_onchain_all`,
+  `bitcoin_value` and `academy` have passed Maestro on the emulator (2026-09-14). Everything since has been
+  tried by hand on Ruben's phone only (item 10b). Next: run the suite on `bittr-gapi` or CI.
+- **Open questions:** 21 (`buy_signup_no_notifications.yaml` on Android), 35b (Send limit card copy).
+- **Known gaps:** signup article cards, the connectivity check between signup pages and the Sentry signup
+  metric (25); Swap & Pay's second id (31); no Live Activity equivalent and no `-evilBoltz` harness (31); the
+  clipboard bridge for paste steps in flows and the injected link-finder script (35).
