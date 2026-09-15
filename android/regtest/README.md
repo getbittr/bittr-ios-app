@@ -194,6 +194,50 @@ Two consequences worth keeping:
   getting this wrong again costs one RPC call instead of a ten-minute healthcheck
   timeout and an annotation full of a daemon reporting that it is waiting.
 
+## Every `lncli` call names its cert and macaroon, because there is no `HOME`
+
+`lncli` is invoked in three places — LND's healthcheck in `docker-compose.yml`,
+`up.sh`'s `lnc()` wrapper, and `k7-interrupted-payment.sh`'s — and all three pass
+`--lnddir`, `--tlscertpath` and `--macaroonpath` explicitly. Removing them looks
+like tidying and is what run 3 of `wallet-regtest-nightly` was spent on.
+
+`lncli` derives the cert and macaroon from `--lnddir`, whose default is `~/.lnd`.
+Two facts make that unusable here:
+
+- **`polarlightning/lnd:0.18.3-beta` declares no `HOME` and no `USER`.** Its image
+  env is `PATH` and nothing else — read out of the registry config blob, not
+  inferred. So the call runs as root and resolves `/root/.lnd`.
+- **A Docker healthcheck does not run the entrypoint**, and neither does
+  `compose exec`. `/entrypoint.sh` is what sets up the `lnd` user and puts the
+  real wallet under `/home/lnd/.lnd`, and none of that is in scope for a probe.
+
+The result is the worst-shaped failure in this directory: LND starts completely,
+logs nothing wrong, listens on 9735, reports `Chain backend is fully synced` — and
+is marked **`unhealthy`** after sixty consecutive probe failures. On run 3 the
+annotation carried forty-eight lines of a perfectly healthy LND and not one word
+from `lncli`.
+
+The right paths come from LND's own log line, not from a guess:
+`CHBU: Updating backup file at /home/lnd/.lnd/data/chain/bitcoin/regtest/channel.backup`.
+
+Two things keep it fixed:
+
+- **`android/scripts/test_k7_host_phase.sh` pins all three flags in all three
+  files**, and needs no device — it runs in the `build` job on every push. Both of
+  its checks were driven to red and back.
+- **The probe does not redirect its own output.** It used to end
+  `> /dev/null 2>&1`, which suppressed nothing a reader would ever have seen —
+  Docker captures a healthcheck's output into `.State.Health.Log[].Output` and
+  prints it nowhere — while emptying the one field that says why the probe failed.
+  `up.sh`'s `fail_with_state` now reads that field and puts it **above** the daemon
+  log in the annotation, because "the daemon is fine and the probe is broken" is a
+  different question from "the daemon is broken" and the daemon's log cannot
+  answer it.
+
+Only LND's probe had this problem, and the other two say why: `bitcoin-cli` is
+given `-rpcuser`/`-rpcpassword` on the command line so it never reads a cookie out
+of a datadir, and electrs's probe is `curl`.
+
 ## Never mainnet, and what actually enforces it
 
 `up.sh` writes `"network": "regtest"` and `regtest-ldk-env.py` refuses to emit an

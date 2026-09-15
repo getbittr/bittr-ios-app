@@ -41,9 +41,23 @@ btc() {
   compose exec -T bitcoind \
     bitcoin-cli -regtest -rpcuser=bittr -rpcpassword=bittr "$@"
 }
+# Every path explicit, for the reason spelled out at LND's healthcheck in
+# docker-compose.yml: `polarlightning/lnd` sets no HOME and no USER, `compose
+# exec` does not run the entrypoint that would have set them, and `lncli`'s
+# defaults are all relative to `~/.lnd`. Without these three flags this wrapper
+# resolves `/root/.lnd` and fails on every call, and the failure is the same shape
+# every time — "unable to read cert file" from an LND that is perfectly healthy.
+#
+# This had the same bug as the healthcheck and would have failed at the very next
+# step, "Funding LND", had the healthcheck ever let the script reach it. Fixing
+# only the probe would have moved run 4's failure forty lines down.
 lnc() {
   compose exec -T lnd \
-    lncli --network=regtest --rpcserver=localhost:10009 "$@"
+    lncli --network=regtest --rpcserver=localhost:10009 \
+      --lnddir=/home/lnd/.lnd \
+      --tlscertpath=/home/lnd/.lnd/tls.cert \
+      --macaroonpath=/home/lnd/.lnd/data/chain/bitcoin/regtest/admin.macaroon \
+      "$@"
 }
 
 fail() {
@@ -91,6 +105,25 @@ fail_with_state() {
   compose ps -a --format json > "$dir/ps.json" 2> /dev/null || true
   for svc in $(compose ps -a --services 2> /dev/null); do
     compose logs --no-color --tail=60 "$svc" > "$dir/log-$svc.txt" 2>&1 || true
+    # WHAT THE PROBE ITSELF SAID, WHICH IS THE ANSWER AND WAS BEING THROWN AWAY.
+    #
+    # Docker keeps the last five healthcheck results — exit code and captured
+    # output — on the container, and the third run of this network is the reason
+    # this is read. It reported LND `running` + `unhealthy` over a log in which
+    # LND had started completely and was listening on 9735. A daemon that is fine
+    # and a probe that fails for three minutes is a statement about the PROBE, and
+    # there was no way to read it: the annotation carried forty-eight lines of a
+    # healthy-looking LND and not one word from `lncli`.
+    #
+    # This is in the same commit as removing `> /dev/null 2>&1` from the probes in
+    # docker-compose.yml, and neither half works alone — Docker records whatever
+    # the probe writes, so a probe that redirects its own streams away has an
+    # empty Output here, and reading an empty field is no better than not reading
+    # it. See the healthcheck comments in docker-compose.yml.
+    compose ps -aq "$svc" 2> /dev/null | head -1 | while read -r cid; do
+      [ -n "$cid" ] && docker inspect --format '{{json .State.Health}}' "$cid" \
+        > "$dir/health-$svc.json" 2> /dev/null || true
+    done
   done
 
   SUMMARY="$summary" DIR="$dir" python3 - <<'PY'
@@ -145,21 +178,56 @@ if not rows:
 
 head = [summary, "", "--- service health"] + verdict
 if unhealthy:
-    head += ["", "--- logs for the NOT-healthy services: " + ", ".join(unhealthy)]
+    head += ["", "--- the failing probe's own words, then the tail of its log"]
 else:
     # Either compose told us nothing or everything claims to be healthy and the
     # caller still failed. Both are worth all the logs rather than none.
     unhealthy = logged_services()
     head += ["", "--- no service reports unhealthy; all logs follow"]
 
+
+def probe_said(service):
+    """The last few healthcheck results Docker kept, newest first.
+
+    This goes ABOVE the daemon log and gets a reserved slice of the budget,
+    because it is a different question and usually the one that matters. Run 3 of
+    this network spent its whole annotation proving LND was fine; what nobody
+    could see was `lncli` — the probe — failing. When the daemon is healthy and
+    the probe is not, every line of the daemon log is a distraction.
+
+    Newest first because a probe that failed for three minutes has five identical
+    entries and the reader only needs one.
+    """
+    raw_health = read(os.path.join(d, "health-%s.json" % service)).strip()
+    if not raw_health or raw_health == "null":
+        return "  (docker kept no health record — service may have no healthcheck)"
+    try:
+        health = json.loads(raw_health)
+    except ValueError:
+        return "  (unparseable health record)"
+    lines = ["  Status=%s FailingStreak=%s" % (
+        health.get("Status"), health.get("FailingStreak"))]
+    for entry in reversed(health.get("Log") or []):
+        text = " ".join((entry.get("Output") or "").split()) or "(no output)"
+        lines.append("  exit=%s %s" % (entry.get("ExitCode"), text))
+    return "\n".join(lines)
+
+
 out = "\n".join(head)
+# Split the remaining budget in two: the probe verdicts first and in full, the
+# daemon logs into whatever is left. A probe message is a line or two, so this
+# reserves little and can lose the thing worth reading if it reserves nothing.
+probes = {service: probe_said(service) for service in unhealthy}
+for service in unhealthy:
+    out += "\n\n--- %s: probe\n%s" % (service, probes[service])
+
 share = max(200, (CAP - len(out) - 40 * (len(unhealthy) + 1)) // max(1, len(unhealthy)))
 
 for service in unhealthy:
     body = read(os.path.join(d, "log-%s.txt" % service)).rstrip()
     if len(body) > share:
         body = "...[earlier lines dropped]...\n" + body[-share:]
-    out += "\n\n--- %s\n%s" % (service, body)
+    out += "\n\n--- %s: log\n%s" % (service, body)
 
 # Keep the plain copy too, for anyone who CAN read the job log.
 print(out)

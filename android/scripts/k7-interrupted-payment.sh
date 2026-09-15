@@ -93,9 +93,25 @@ btc() {
   compose exec -T bitcoind \
     bitcoin-cli -regtest -rpcuser=bittr -rpcpassword=bittr "$@"
 }
+# The three path flags are not optional and are not decoration — see LND's
+# healthcheck in android/regtest/docker-compose.yml for the full account.
+# `polarlightning/lnd` declares no HOME and no USER, `compose exec` does not run
+# the entrypoint that sets them, and `lncli` derives its cert and macaroon from
+# `~/.lnd` — which resolves to `/root/.lnd` here and is empty. Every call fails
+# identically, on an LND that is fine.
+#
+# That matters more in this file than in up.sh: `addholdinvoice` and
+# `lookupinvoice` are how the kill window is opened and observed, so without these
+# flags K7 phase 3 fails as a harness error and the window never exists. Keep
+# these in step with up.sh's copy; both are checked by
+# android/scripts/test_k7_host_phase.sh.
 lnc() {
   compose exec -T lnd \
-    lncli --network=regtest --rpcserver=localhost:10009 "$@"
+    lncli --network=regtest --rpcserver=localhost:10009 \
+      --lnddir=/home/lnd/.lnd \
+      --tlscertpath=/home/lnd/.lnd/tls.cert \
+      --macaroonpath=/home/lnd/.lnd/data/chain/bitcoin/regtest/admin.macaroon \
+      "$@"
 }
 
 harness_fail() {

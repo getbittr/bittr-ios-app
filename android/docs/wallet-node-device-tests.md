@@ -164,7 +164,7 @@ never reached an instrumented test, and neither red was about the wallet:
 |---|---|---|---|---|
 | [34838385508](https://github.com/getbittr/bittr-ios-app/actions/runs/34838385508) | `2d917305` | step 7, bring-up | 53s | electrs was pinned to tag `v3.1.0`, which does not exist in `Blockstream/electrs`. `git clone --branch` failed, so nothing was built. |
 | [34838938412](https://github.com/getbittr/bittr-ios-app/actions/runs/34838938412) | `ef2dc2da` | step 7, bring-up | 13m 30s | The bring-up order. electrs and LND both `unhealthy`; the chain they were waiting on was mined on the far side of the wait that required them healthy. `android/regtest/README.md` has the table. |
-| [34931891108](https://github.com/getbittr/bittr-ios-app/actions/runs/34931891108) | `3792094c` | — | — | First run with the ordering fix. |
+| [34931891108](https://github.com/getbittr/bittr-ios-app/actions/runs/34931891108) | `3792094c` | step 7, bring-up | 14m 35s | The ordering fix worked — bitcoind **and electrs** both `healthy`. LND was `running` + `unhealthy` over a log showing it fully started and listening. `lncli` resolves its cert and macaroon from `~/.lnd`, the image sets no `HOME`, and a healthcheck does not run the entrypoint — so the probe read `/root/.lnd` and failed sixty times against a working daemon. |
 
 Three things are worth keeping out of that, because none of them is obvious from
 a green run later:
@@ -184,10 +184,25 @@ a green run later:
   public repository job logs answer 403 and artifacts 401, so the annotation is
   the whole channel. `up.sh`'s `fail_with_state` now names a per-service verdict
   first and spends the remaining budget only on the services that are not healthy.
-- **The two reds were both in the harness, and the joins were not the suspect.**
+- **All three reds were in the harness, and the joins were not the suspect.**
   `test_k7_host_phase.sh`, `test_k8_doze_soak.sh` and `test_regtest_ldk_env.py`
   all pass on `3792094c` and need no device — so a red in this job is not a
   drifted method name until those three say it is. Run them first.
+- **Every red so far has been a probe or a build, and none has been the wallet.**
+  A tag that did not exist, a wait that could never return, and a probe that could
+  not find its own macaroon. That is worth stating because it is the reason the
+  three rows below have not moved: **no instrumented test has executed in this job
+  yet**, so nothing in §3 or §4 has been tested by a run rather than by a reader.
+  The first run that reaches step 13 is the one that starts answering them, and
+  `RegtestEnvironmentTest` is what it has to get past first.
+- **What each red cost, since the pattern is the useful part.** Run 1 was 53
+  seconds and self-evident. Runs 2 and 3 were ~14 minutes each, and both of those
+  are almost entirely the electrs Rust build — which is paid on **every** run,
+  because a GitHub-hosted runner starts with no Docker layer cache. So the floor on
+  finding out anything about this network is about a quarter of an hour, and that
+  is the argument for making each run answer as much as possible: the
+  `initialblockdownload` assertion in `up.sh`, the health-record dump, and the
+  device-free guards above all exist to keep a diagnosis from costing another one.
 
 ---
 

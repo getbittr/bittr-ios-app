@@ -168,6 +168,87 @@ for method in $test_methods; do
   fi
 done
 
+# --- 8. Every `lncli` caller names its cert and macaroon -------------------------
+#
+# A fourth kind of join, and it cost run 3 of wallet-regtest-nightly outright.
+#
+# `lncli` derives `--tlscertpath` and `--macaroonpath` from `--lnddir`, whose
+# default is `~/.lnd`. `polarlightning/lnd:0.18.3-beta` declares NO `HOME` and no
+# `USER` — its image env is `PATH` alone — and neither a Docker healthcheck nor
+# `compose exec` runs the entrypoint that would have set them. So every `lncli`
+# here resolves `/root/.lnd`, which is empty, and fails identically on a
+# completely healthy LND: the container is `running` + `unhealthy` with nothing
+# wrong in its log.
+#
+# It is guarded rather than commented because it is invisible in all three
+# directions. It is not a compile error, the daemon it talks to reports no
+# problem, and the probe that discovers it is the one whose output Docker keeps
+# and nobody reads. Run 3 spent fifteen minutes and its whole annotation budget
+# on it. The paths come from LND's own log line —
+# `/home/lnd/.lnd/data/chain/bitcoin/regtest/channel.backup`.
+UP="$REPO_ROOT/android/regtest/up.sh"
+COMPOSE="$REPO_ROOT/android/regtest/docker-compose.yml"
+LNDDIR="/home/lnd/.lnd"
+for path in "$UP" "$COMPOSE"; do
+  if [ ! -f "$path" ]; then
+    fail "missing $path — cannot check its lncli invocation."
+    continue
+  fi
+done
+for path in "$SCRIPT" "$UP" "$COMPOSE"; do
+  [ -f "$path" ] || continue
+  name=$(basename "$path")
+  if ! grep -q 'lncli' "$path"; then
+    pass "$name invokes no lncli, so it needs no paths."
+    continue
+  fi
+  for flag in \
+    "--lnddir=$LNDDIR" \
+    "--tlscertpath=$LNDDIR/tls.cert" \
+    "--macaroonpath=$LNDDIR/data/chain/bitcoin/regtest/admin.macaroon"
+  do
+    if grep -qF -- "$flag" "$path"; then
+      pass "$name passes ${flag%%=*}."
+    else
+      fail "$name calls lncli without '$flag'. lncli resolves that path from"\
+        " \$HOME/.lnd, polarlightning/lnd sets no HOME, and a healthcheck does not run"\
+        " the entrypoint — so the call fails on a healthy LND and the only symptom is"\
+        " an 'unhealthy' container with a clean log. This is what run 3 of"\
+        " wallet-regtest-nightly was spent on."
+    fi
+  done
+done
+
+# And the probe must not throw away its own error, or the health record the
+# bring-up reads back is an empty string. Docker captures a healthcheck's output
+# and prints it nowhere, so the redirect buys nothing and deletes the diagnosis.
+#
+# Two things make this fiddly enough to be worth explaining, and the first version
+# of this check got both wrong and passed vacuously:
+#
+#   * The probe is a FOLDED YAML SCALAR, so `lncli` and the redirect are on
+#     different lines. `grep lncli | grep /dev/null` matches neither and reports
+#     success. It has to be the whole command block, not a line.
+#   * Comments have to be stripped FIRST, because the explanation of this bug
+#     right above LND's healthcheck quotes `getinfo > /dev/null 2>&1` verbatim —
+#     and a guard that reads comments as code fails on the paragraph describing
+#     what it is guarding against.
+#
+# So: drop comment lines, take the block from `lncli` down to the next healthcheck
+# field, and look in that.
+probe_block=$(
+  sed 's/[[:space:]]*#.*$//' "$COMPOSE" \
+    | awk '/lncli/ {inside = 1} inside {print} inside && /^[[:space:]]*(interval|timeout|retries|start_period):/ {exit}'
+)
+if printf '%s' "$probe_block" | grep -q '/dev/null'; then
+  fail "LND's healthcheck in docker-compose.yml redirects lncli's output to /dev/null."\
+    " Docker stores it in .State.Health.Log[].Output and prints it nowhere, so this"\
+    " suppresses nothing a reader would have seen and empties the one field that says"\
+    " why the probe failed."
+else
+  pass "LND's healthcheck keeps lncli's output for the health record."
+fi
+
 echo
 if [ "$failures" -ne 0 ]; then
   echo "::error::test_k7_host_phase.sh: $failures check(s) failed. K7's host phase and its"\

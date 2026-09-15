@@ -215,11 +215,51 @@ services:
       # `getinfo` answering at all means the wallet is unlocked and the RPC
       # server is up. Chain sync is checked separately in up.sh, because it is a
       # state this probe would have to wait on rather than assert.
+      #
+      # EVERY PATH IS EXPLICIT, BECAUSE `lncli` HAS NO HOME TO FIND THEM FROM.
+      #
+      # This is what killed run 3 of this network, on a completely healthy LND.
+      # `lncli` defaults `--lnddir` to `~/.lnd` and derives the cert and macaroon
+      # from it. `polarlightning/lnd:0.18.3-beta` declares **no `HOME` and no
+      # `USER`** — its image env is `PATH` and nothing else, checked in the
+      # registry config blob — so the probe runs as root and resolves
+      # `/root/.lnd/tls.cert`, which does not exist. And a **healthcheck does not
+      # run the entrypoint**, so `/entrypoint.sh`'s own HOME and user setup, which
+      # is what puts the real wallet under `/home/lnd/.lnd`, is not in scope here.
+      #
+      # The failure is therefore permanent and silent: LND starts, listens on
+      # 9735, logs nothing wrong, and is marked `unhealthy` after 60 straight
+      # probe failures. The container's own log is the proof of the right path —
+      # `CHBU: Updating backup file at /home/lnd/.lnd/data/chain/bitcoin/regtest/
+      # channel.backup`.
+      #
+      # Both derived paths are spelled out rather than left to `--lnddir`, so this
+      # does not depend on lncli's derivation order as well as on the directory.
+      #
+      # Why the other two probes were unaffected, since it is the obvious next
+      # question: `bitcoin-cli` is passed `-rpcuser`/`-rpcpassword` explicitly, so
+      # it never reads a cookie out of a datadir, and electrs's probe is `curl`.
+      # Only LND's probe needed a filesystem it could not name.
+      #
+      # NOTHING IS REDIRECTED AWAY, AND THAT IS THE POINT OF THIS SHAPE.
+      #
+      # This read `getinfo > /dev/null 2>&1` until run 3 of this network, which
+      # reported LND `running` + `unhealthy` over a log showing LND started
+      # completely and listening on 9735. A fine daemon and a probe failing for
+      # three minutes is a statement about the probe — and the redirection had
+      # deleted it. Docker captures a healthcheck's stdout and stderr into
+      # `.State.Health.Log[].Output` and does not print them anywhere, so
+      # suppressing them buys no log cleanliness at all; it only empties the field
+      # `up.sh`'s fail_with_state now reads. Exit status is what Docker judges, and
+      # dropping the redirect does not change it.
       test:
         - CMD-SHELL
         - >-
-          lncli --network=regtest
-          --rpcserver=localhost:10009 getinfo > /dev/null 2>&1
+          lncli --network=regtest --rpcserver=localhost:10009
+          --lnddir=/home/lnd/.lnd
+          --tlscertpath=/home/lnd/.lnd/tls.cert
+          --macaroonpath=/home/lnd/.lnd/data/chain/bitcoin/regtest/admin.macaroon
+          getinfo
       interval: 3s
       timeout: 10s
       retries: 60
