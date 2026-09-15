@@ -177,12 +177,20 @@ Full log: `android/docs/port-specs/lnurl-decisions.md`.
     site carries over from iOS. Not tested against a live site.
 
 35. **Gap — still missing here:**
-    - Lightning invoice descriptions on received payments, since Receive doesn't store them.
-    - LNURL links inside the in-app browser.
-    - The chart on Send's "why a limit" card.
+    - Lightning invoice descriptions on received payments (being ported with swap history).
     - An Android clipboard bridge for the invoice-paste steps in `send_lightning.yaml` / `receive_invoice.yaml`.
-    - ~~The Lightning-address push handler~~ — now bound: locked → `alert.paymentRequest` "please sign in", then
-      answered after the first sync; open → [Cancel, Handle now]; a failure → `alert.paymentRequestFailed`.
+    - iOS's injected script that finds Lightning links on a web page: it needs a JavaScript bridge, which the
+      app's WebView guard tests forbid. Tapping a link works.
+
+35a. **Decided — LNURL links in the in-app browser** (`lightning:`, `lnurl:`, bare `lnurl1…`, https with
+    `tag=login`) are handed to Send, only from the main frame of a `getbittr.com` page, as iOS does. From a web
+    page only LNURL-auth is allowed, not pay or withdraw. The link travels in memory only, never in a route.
+    Two differences from iOS: only exactly `getbittr.com` counts (iOS also accepts subdomains), and the login
+    prompt appears on Send rather than over the page.
+
+35b. **Decided — Send's "why a limit" card shows the channel chart** and balance/reserve/limit text when a
+    channel is active. **Question:** without a channel iOS's header reads "why can't I *receive* instant
+    payments?" on a Send screen — ported as-is; is that the intended copy?
 
 36. **Decided — the channel-closed card** (`question.yellowCard`, "closed lightning connection") now opens from
     LDK's `ChannelClosed` event, as `remove_wallet.yaml` expects, and like iOS it stays hidden during the
