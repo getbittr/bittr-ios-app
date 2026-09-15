@@ -347,8 +347,40 @@ def main(argv=None):
         f"\ncheck-wallet-regtest-results: all {len(REQUIRED)} required tests ran "
         "and passed."
     )
-    if evidence:
-        print(f"::notice::{shared.annotate(chr(10).join(evidence))}")
+    # ONE ANNOTATION PER PREFIX, NOT ONE FOR ALL THREE.
+    #
+    # `annotate` truncates at 4000 characters, which is the measured cap, and this
+    # suite's evidence does not fit in one. Counted on the classes as written: the
+    # environment lines, K7's four phases, K8's two result lines and the soak's
+    # `tick` line every 30s of two 120s windows come to roughly 4700 characters.
+    #
+    # The half that would be lost is the half this job exists to report. Evidence
+    # is appended in results-file order and K8's directories are passed last, so a
+    # single truncated notice cuts K8 — including the **freshness** line, whose
+    # narrowed wording (same channel ready and usable, peer reconnected, chain view
+    # advanced — and NOT channel-monitor freshness as wallet-core-spec §6 words it)
+    # is the one result here that cannot be re-derived from anything else. The
+    # truncation note would say "full text is above this line", pointing at a job
+    # log that answers 403 on this public repository.
+    #
+    # There is no limit on the NUMBER of annotations, only on each one's length, so
+    # grouping costs nothing and removes the cliff. Emitted in EVIDENCE_PREFIXES
+    # order rather than sorted, so the environment — the vacuity guard — is read
+    # first, which is the order android/docs/wallet-node-device-tests.md asks for.
+    for prefix in EVIDENCE_PREFIXES:
+        group = [line for line in evidence if line.startswith(prefix)]
+        if group:
+            print(f"::notice::{shared.annotate(chr(10).join(group))}")
+    # Anything that matched a prefix at collection time is in exactly one group
+    # above, so this is unreachable unless EVIDENCE_PREFIXES is edited in one place
+    # and not the other. Reported rather than dropped, because a line that no
+    # longer reaches an annotation is a line nobody can read at all.
+    ungrouped = [
+        line for line in evidence
+        if not any(line.startswith(p) for p in EVIDENCE_PREFIXES)
+    ]
+    if ungrouped:
+        print(f"::warning::{shared.annotate(chr(10).join(ungrouped))}")
     return 0
 
 

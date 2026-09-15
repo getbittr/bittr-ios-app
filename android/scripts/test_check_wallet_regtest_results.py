@@ -273,6 +273,59 @@ with tempfile.TemporaryDirectory() as tmp:
         output,
     )
 
+    # --- The evidence is grouped, so a green run cannot truncate away K8 ---------
+    #
+    # This suite's evidence does not fit in one annotation: roughly 4700 characters
+    # against a measured 4000-character cap. Evidence is appended in results-file
+    # order with K8's directories last, so one notice loses K8 — including the
+    # freshness line, whose narrowed wording is the one result in this job that
+    # cannot be re-derived from anything else. Three notices, one per prefix, cost
+    # nothing (there is no limit on the number of annotations) and remove the cliff.
+    #
+    # The fixture is deliberately oversized: ~2 KB per prefix, so a single-notice
+    # implementation truncates and drops the last group entirely, which is exactly
+    # the failure being guarded.
+    with tempfile.TemporaryDirectory() as tmp:
+        root = pathlib.Path(tmp)
+        grouped = root / "grouped"
+        bulky = []
+        for prefix in gate.EVIDENCE_PREFIXES:
+            for i in range(20):
+                bulky.append(f"{prefix} tick{i} " + "x" * 90)
+        write_results(grouped, cases_for(ALL_REQUIRED), evidence=bulky)
+        code, output = run(grouped)
+        notices = [
+            line for line in output.splitlines() if line.startswith("::notice::")
+        ]
+        check(
+            "one notice per evidence prefix, not one for all three",
+            code == 0 and len(notices) == len(gate.EVIDENCE_PREFIXES),
+            f"exit={code} notices={len(notices)}\n{output}",
+        )
+        check(
+            "every prefix reaches an annotation, K8 included",
+            all(
+                any(prefix in notice for notice in notices)
+                for prefix in gate.EVIDENCE_PREFIXES
+            ),
+            output,
+        )
+        check(
+            "no notice is truncated, so nothing is lost to the cap",
+            not any("truncated" in notice for notice in notices),
+            output,
+        )
+        check(
+            "the environment is read first, as the vacuity guard",
+            bool(notices) and gate.EVIDENCE_PREFIXES[0] in notices[0],
+            output,
+        )
+        check(
+            "no evidence line is left without an annotation",
+            "::warning::" not in output,
+            output,
+        )
+
 print()
 if FAILURES:
     print(f"{len(FAILURES)} failed:")
