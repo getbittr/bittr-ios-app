@@ -441,6 +441,44 @@ class TokenContrastTest {
     }
 
     /**
+     * The Value screen's scrub card — [BittrColors.scrim1] over the canvas, which is a
+     * third background for [BittrColors.mutedOnCanvas] and not one the assertions above
+     * cover.
+     *
+     * iOS de-emphasises the date in this card with `dateLabel.alpha = 0.4`
+     * (`GraphView.swift:131`) against a hard-coded white card and black text. The port
+     * themes the card, and at that point 40 % stops being readable: the second half of
+     * this test is the reason the number was not copied. BIT-155.
+     */
+    @Test
+    fun `the scrub card's date is de-emphasised by the token, because 40 percent is not readable`() {
+        for ((name, c) in schemes) {
+            val card = composite(c.scrim1, c.canvas)
+
+            // 13 sp regular — body text, so the 4.5 floor applies, not 3.0.
+            assertAtLeast(aa, c.mutedOnCanvas, card, "$name scrub-card date")
+            // The price beside it is full-strength. If the two ever coincide the card
+            // has lost the caption/value hierarchy this issue was about.
+            assertAtLeast(aa, c.onCanvas, card, "$name scrub-card price")
+            assertNotEquals(
+                "$name scrub-card date and price are the same colour — nothing is de-emphasised",
+                c.onCanvas.toArgbInt(),
+                c.mutedOnCanvas.toArgbInt(),
+            )
+
+            // iOS's literal number, kept as an assertion so that "just copy the alpha"
+            // fails the build rather than shipping a 2.6 : 1 label.
+            val iosLiteral = c.onCanvas.copy(alpha = 0.40f)
+            assertTrue(
+                "$name: iOS's dateLabel alpha 0.4 is readable on this card now? " +
+                    "re-check before adopting it — %.2f : 1"
+                        .format(contrast(iosLiteral, card)),
+                contrast(iosLiteral, card) < aaLarge,
+            )
+        }
+    }
+
+    /**
      * The two values the mock uses that this theme does not, kept as failing
      * assertions so that "just use the mock's number" fails the build rather than
      * shipping.

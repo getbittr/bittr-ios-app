@@ -306,13 +306,20 @@ data class BittrColors(
     /** Primary content on [canvas] — headings, body copy, icons. */
     val onCanvas: Color,
     /**
-     * Secondary content on [canvas] and on [cardWash] — the text-button labels.
+     * Secondary content on [canvas], on [cardWash] and on [scrim1] — the text-button
+     * labels, and the date above the price in the Value screen's scrub card.
      *
      * **70 %, where the mock says 42 % and `onSurfaceVariant` says 60 %.** 42 % is
      * 2.4 : 1 and fails outright. 60 % is the value A11Y-01 measured *against the
      * yellow itself* (4.95 : 1) — but these labels sit inside the card, where the
      * white wash lifts the background and drops the same ink to 3.51 : 1. 70 % is
      * what clears AA on both: 4.88 : 1 on the card, 6.83 : 1 on the bare canvas.
+     *
+     * The scrub card is the third surface, added in BIT-155. It is [scrim1] over the
+     * canvas, and this token reaches 6.90 : 1 on it light and 5.71 : 1 dark. It is
+     * here rather than iOS's `alpha = 0.4` (`GraphView.swift:131`) because that
+     * number lands at 2.62 : 1 and 2.53 : 1 — under even the large-text floor, for a
+     * 13 sp regular label. `TokenContrastTest` holds both halves of that.
      */
     val mutedOnCanvas: Color,
     /**

@@ -6,7 +6,6 @@ import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.material3.MaterialTheme
@@ -23,11 +22,13 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.layout
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import com.bittr.android.core.common.TestID
 import com.bittr.android.core.designsystem.BittrCanvasShapes
@@ -35,9 +36,33 @@ import com.bittr.android.core.designsystem.BittrTheme
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.util.Locale
+import kotlin.math.roundToInt
 
 /** The floating card's width. iOS's is 80pt (`GraphView.swift:118`). */
 private val CardWidth: Dp = 80.dp
+
+/**
+ * The gap iOS leaves between the card's bottom edge and the point it is reading.
+ *
+ * Not a number from the storyboard — it is what falls out of iOS's two formulas once
+ * they are put side by side, which is the only way to port the y position onto a chart
+ * whose curve is laid out differently.
+ *
+ * ```
+ * coordYFor(i)  = (H - 25) - (H - 30) * f      // the curve  (GraphView.swift:159-164)
+ * yConstraint   =  30      + (H - 30) * f      // the card   (GraphView.swift:108)
+ * card bottom   =  H - yConstraint             // (GraphView.swift:122)
+ *               =  coordYFor(i) - 5            // for every f
+ * ```
+ *
+ * So the card's bottom edge rides exactly 5 pt above the data point, everywhere. The
+ * `30` is not a top floor and not a gap: it is the inset of iOS's *curve* from the
+ * bottom of the view (25) carried into the card's constraint. Porting `30` literally
+ * would be wrong here, because [GraphView]'s curve has no such inset — it spans the
+ * full height — so a literal `30 + f * (H - 30)` drifts from a 30 dp gap at the
+ * bottom of the chart to none at the top. The 5 dp relationship is what transfers.
+ */
+private val CardGap: Dp = 5.dp
 
 /**
  * The price line, and the card that follows a finger across it.
@@ -64,13 +89,13 @@ internal fun GraphView(
     val colors = BittrTheme.colors
     val density = LocalDensity.current
     var scrubbed by remember(points) { mutableStateOf<ScrubbedPoint?>(null) }
-    var widthPx by remember { mutableStateOf(0) }
+    var chartSize by remember { mutableStateOf(IntSize.Zero) }
 
     Box(modifier = modifier) {
         Canvas(
             modifier = Modifier
                 .fillMaxSize()
-                .onSizeChanged { widthPx = it.width }
+                .onSizeChanged { chartSize = it }
                 .pointerInput(points) {
                     detectDragGestures(
                         onDragStart = { at -> scrubbed = points.scrub(at.x, size.width.toFloat()) },
@@ -84,14 +109,13 @@ internal fun GraphView(
         ) {
             if (points.size < 2) return@Canvas
 
-            val prices = points.map { it.price }
-            val lowest = prices.min()
-            val span = (prices.max() - lowest).takeIf { it > 0 } ?: 1.0
+            // The same 0…1 the card positions itself with, so the two cannot drift.
+            val fractions = points.priceFractions()
             val stepX = size.width / (points.size - 1)
 
             fun at(index: Int) = Offset(
                 x = index * stepX,
-                y = size.height - ((prices[index] - lowest) / span).toFloat() * size.height,
+                y = size.height - fractions[index] * size.height,
             )
 
             // Smooth through the midpoints: each segment curves toward the point it
@@ -120,13 +144,38 @@ internal fun GraphView(
         // because it tracks a finger rather than a slot.
         scrubbed?.let { scrub ->
             val cardWidthPx = with(density) { CardWidth.toPx() }
-            val left = ((scrub.fraction * widthPx) - cardWidthPx / 2f)
-                .coerceIn(0f, (widthPx - cardWidthPx).coerceAtLeast(0f))
+            val left = ((scrub.fraction * chartSize.width) - cardWidthPx / 2f)
+                .coerceIn(0f, (chartSize.width - cardWidthPx).coerceAtLeast(0f))
+            // iOS's `yConstraint`, rebuilt on this chart's geometry: the card's bottom
+            // edge sits [CardGap] above the point, so it rides the curve rather than
+            // sliding along the top edge while the line moves underneath it.
+            val bottom = with(density) { CardGap.toPx() } +
+                scrub.priceFraction * chartSize.height
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 modifier = Modifier
                     .align(Alignment.TopStart)
-                    .offset(x = with(density) { left.toDp() })
+                    // Placed rather than offset, because the vertical clamp needs the
+                    // card's own height and nothing else here knows it: the card is
+                    // two text labels and padding, where iOS pins a fixed 40 pt.
+                    //
+                    // The clamp is the port's, and it is the one place this deviates
+                    // from iOS deliberately. At the top of the series iOS's own formula
+                    // puts the card's bottom edge at y = 0 — the whole card above the
+                    // view, drawn outside its bounds. Compose clips it away instead of
+                    // overhanging, so the card would simply vanish at the peak of the
+                    // curve. Clamping into the chart is the same treatment `left`
+                    // already gets at the left and right edges.
+                    .layout { measurable, constraints ->
+                        val placeable = measurable.measure(constraints)
+                        val lowestTop = (chartSize.height - placeable.height)
+                            .toFloat().coerceAtLeast(0f)
+                        val top = (chartSize.height - bottom - placeable.height)
+                            .coerceIn(0f, lowestTop)
+                        layout(placeable.width, placeable.height) {
+                            placeable.place(left.roundToInt(), top.roundToInt())
+                        }
+                    }
                     .width(CardWidth)
                     .background(colors.scrim1, BittrCanvasShapes.wordRow)
                     .padding(vertical = 6.dp),
@@ -137,9 +186,19 @@ internal fun GraphView(
                 // `labelMedium`'s 13. That floor is the port's, from DEV-06 and the
                 // A11Y line the shrink-to-fit balance also respects, so the date
                 // takes it rather than reintroducing a 10 sp one-off.
+                //
+                // The de-emphasis is `mutedOnCanvas`, not iOS's `alpha = 0.4`
+                // (`GraphView.swift:131`). Copying that number gives ink at 40 % on
+                // this card — **2.62 : 1** light, 2.53 : 1 dark — which misses AA for a
+                // 13 sp regular label and misses the 3 : 1 large-text floor as well, so
+                // it is not readable under any reading of the rule. The token is the
+                // one the canvas already uses for a secondary label and clears AA on
+                // this fill in both schemes (6.90 and 5.71). Same call BIT-94 made.
+                // Measured in `TokenContrastTest`.
                 Text(
                     text = CardDateFormat.format(scrub.point.at.atZone(ZoneId.systemDefault())),
                     style = MaterialTheme.typography.labelMedium,
+                    color = colors.mutedOnCanvas,
                 )
                 // `priceLabel` is Gilroy-**Bold** 12 (`GraphView.swift:144`), and 13 is
                 // the scale's floor, so this is `labelMedium` with the weight the
@@ -158,8 +217,33 @@ internal fun GraphView(
     }
 }
 
-/** Which point a horizontal touch lands on, and where along the chart that is. */
-internal data class ScrubbedPoint(val point: PricePoint, val fraction: Float)
+/**
+ * Which point a horizontal touch lands on, and where on the chart that is — in both
+ * axes, because the card tracks both.
+ *
+ * @property fraction where along the chart's width the finger is, 0…1.
+ * @property priceFraction where [point]'s price sits in the series' range, 0 at the
+ *   lowest sample and 1 at the highest. This is the curve's own y, so the card derived
+ *   from it lands on the line rather than near it.
+ */
+internal data class ScrubbedPoint(
+    val point: PricePoint,
+    val fraction: Float,
+    val priceFraction: Float,
+)
+
+/**
+ * Every sample's price as a 0…1 position in the series' range.
+ *
+ * One definition, used by the curve and by the card. A flat series has no range to
+ * divide by and maps to 0 — the bottom of the chart, which is where [GraphView] draws
+ * a flat line.
+ */
+internal fun List<PricePoint>.priceFractions(): List<Float> {
+    val lowest = minOfOrNull { it.price } ?: return emptyList()
+    val span = (maxOf { it.price } - lowest).takeIf { it > 0 } ?: 1.0
+    return map { ((it.price - lowest) / span).toFloat() }
+}
 
 /**
  * Resolves a touch to a point.
@@ -175,7 +259,11 @@ internal fun List<PricePoint>.scrub(x: Float, width: Float): ScrubbedPoint? {
     if (isEmpty() || width <= 0f) return null
     val fraction = (x / width).coerceIn(0f, 1f)
     val index = (fraction * size).toInt().coerceIn(0, size - 1)
-    return ScrubbedPoint(point = this[index], fraction = fraction)
+    return ScrubbedPoint(
+        point = this[index],
+        fraction = fraction,
+        priceFraction = priceFractions()[index],
+    )
 }
 
 private val LineColor = Color(0xFF1A1A1A)

@@ -14,6 +14,7 @@ import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.text.TextLayoutResult
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.bittr.android.core.common.TestID
+import com.bittr.android.core.designsystem.BittrLightColorsExtended
 import com.bittr.android.core.designsystem.BittrTheme
 import java.io.File
 import java.time.Instant
@@ -84,6 +85,116 @@ class GraphCardFitTest {
     @Config(qualifiers = "w320dp-h568dp-320dpi")
     fun `the scrub card fits on a 320 dp screen`() = assertCardFits("320dp")
 
+    /**
+     * The card tracks the price in y, not just the finger in x.
+     *
+     * iOS pins the card's bottom edge 5 pt above the data point at every position
+     * (`GraphView.swift:108` and `:122`, resolved against `coordYFor` at `:159`); the
+     * port slid it along the top edge while the line moved underneath. BIT-155.
+     *
+     * **Asserted as a difference between two scrub positions**, which is what makes it
+     * exact without the test knowing anything about the card. The gap and the card's
+     * own height are identical at both positions, so they cancel, and what is left is
+     * the chart's height times the change in price — arithmetic this test can do.
+     *
+     * Needs no font metrics, so unlike the fit assertions it is meaningful under
+     * `LEGACY` graphics too.
+     */
+    @Test
+    fun `the card rides the curve instead of the top edge`() {
+        showScreenWithSixFigureChfPrices()
+
+        val low = scrubTo(0.15f)
+        val high = scrubTo(0.55f)
+
+        assertTrue(
+            "Both scrubs landed on the same sample (${low.price}), so there is no " +
+                "vertical movement to measure. Pick x positions further apart.",
+            high.price > low.price,
+        )
+
+        val chartHeightPx = composeRule.onNodeWithTag(TestID.Value.graphView)
+            .fetchSemanticsNode().boundsInRoot.height
+        val expectedShift = -(high.priceFraction - low.priceFraction) * chartHeightPx
+
+        println(
+            "GRAPH CARD y-tracking: ${low.price} at ${"%.1f".format(low.top)}px, " +
+                "${high.price} at ${"%.1f".format(high.top)}px, " +
+                "expected shift ${"%.1f".format(expectedShift)}px",
+        )
+
+        assertEquals(
+            "The card moved ${"%.1f".format(high.top - low.top)} px between two prices " +
+                "that are ${"%.1f".format(-expectedShift)} px apart on the curve. A card " +
+                "pinned to the top edge moves 0.",
+            expectedShift.toDouble(),
+            (high.top - low.top).toDouble(),
+            PLACEMENT_TOLERANCE_PX,
+        )
+    }
+
+    /**
+     * The one place this deviates from iOS on purpose.
+     *
+     * At the top of the series iOS's own formula puts the card's bottom edge at y = 0 —
+     * the whole card above the view, which UIKit happily draws outside the bounds and
+     * Compose clips away. So the port clamps, the same way the horizontal position is
+     * already clamped at the left and right edges. Without the clamp the card is
+     * roughly a card-height above the chart here, so this is not a tolerance check.
+     */
+    @Test
+    fun `the card stays inside the chart at the peak of the curve`() {
+        showScreenWithSixFigureChfPrices()
+        scrubTo(0.98f)
+
+        val chartTop = composeRule.onNodeWithTag(TestID.Value.graphView)
+            .fetchSemanticsNode().boundsInRoot.top
+        val cardTop = dateNode().fetchSemanticsNode().boundsInRoot.top
+
+        assertTrue(
+            "The card's top label is ${"%.1f".format(chartTop - cardTop)} px above the " +
+                "chart at the highest sample, where it would be clipped away.",
+            cardTop >= chartTop - PLACEMENT_TOLERANCE_PX,
+        )
+    }
+
+    /**
+     * The date reads as a caption, and the price as the value.
+     *
+     * iOS does this with `dateLabel.alpha = 0.4` (`GraphView.swift:131`) on black text
+     * over a hard-coded white card. The port themes the card, and 40 % of `onCanvas`
+     * on `scrim1` is 2.62 : 1 light and 2.53 : 1 dark — below even the large-text
+     * floor, for a 13 sp regular label. So the de-emphasis is `mutedOnCanvas`, the
+     * token the canvas already uses for a secondary label, and `TokenContrastTest`
+     * holds the measurement. BIT-155, and the same call BIT-94 made.
+     *
+     * This asserts the *call site*, which is the half the arithmetic cannot see: a
+     * card that drew both labels in the same token would pass every contrast test.
+     */
+    @Test
+    fun `the date is de-emphasised with the token and the price is not`() {
+        showScreenWithSixFigureChfPrices()
+        holdScrub()
+
+        val date = dateNode().layout().layoutInput.style.color
+        val price = composeRule.onNodeWithTag(TestID.Value.graphValueLabel)
+            .layout().layoutInput.style.color
+
+        println("GRAPH CARD colours: date=$date price=$price")
+
+        assertEquals(
+            "The date is drawn at full strength, so the card has no caption/value " +
+                "hierarchy — iOS dims it to 0.4 and this port's equivalent is the token.",
+            BittrLightColorsExtended.mutedOnCanvas,
+            date,
+        )
+        assertEquals(
+            "The price is the value in this card and takes the canvas's primary ink.",
+            BittrLightColorsExtended.onCanvas,
+            price,
+        )
+    }
+
     private fun assertCardFits(label: String) {
         showScreenWithSixFigureChfPrices()
         holdScrub()
@@ -147,6 +258,62 @@ class GraphCardFitTest {
             moveTo(Offset(center.x + 120f, center.y))
         }
         composeRule.waitForIdle()
+    }
+
+    /** Whether [scrubTo] has already put a finger down in this composition. */
+    private var scrubbing = false
+
+    /**
+     * Moves the held finger to [fraction] of the chart's width and reads the card back.
+     *
+     * The finger is put down once and then moved, because the card only exists while it
+     * is down. The first move starts from the far end so it clears touch slop in one
+     * event whichever way it is heading — a move shorter than slop never reaches
+     * `detectDragGestures` and no card appears at all. Inset from the edge rather than
+     * on it: `x = width` is one past the last pixel of the chart and the press lands
+     * outside it, which is a silent no-gesture rather than an error.
+     */
+    private fun scrubTo(fraction: Float): ScrubReading {
+        composeRule.onNodeWithTag(TestID.Value.graphView).performTouchInput {
+            if (!scrubbing) {
+                down(Offset(width * if (fraction > 0.5f) 0.05f else 0.95f, center.y))
+                scrubbing = true
+            }
+            moveTo(Offset(width * fraction, center.y))
+        }
+        composeRule.waitForIdle()
+
+        val node = composeRule.onNodeWithTag(TestID.Value.graphValueLabel)
+        val price = node.text().filter { it.isDigit() }.toDouble()
+        return ScrubReading(
+            price = price,
+            priceFraction = priceFractionOf(price),
+            top = node.fetchSemanticsNode().boundsInRoot.top,
+        )
+    }
+
+    /** What the card is showing, and where it is. [top] is the price label's, in px. */
+    private data class ScrubReading(
+        val price: Double,
+        val priceFraction: Float,
+        val top: Float,
+    )
+
+    /**
+     * Where [price] sits in its own span's range.
+     *
+     * Which span is selected is the screen's business, so the price is looked up across
+     * all of them — [snapshot] offsets each span by a different amount, so a price
+     * belongs to exactly one. Computed here rather than through `priceFractions()` so
+     * that the expectation is independent of the production code it is checking.
+     */
+    private fun priceFractionOf(price: Double): Float {
+        for (series in snapshot().series.values) {
+            if (series.none { it.price == price }) continue
+            val lowest = series.minOf { it.price }
+            return ((price - lowest) / (series.maxOf { it.price } - lowest)).toFloat()
+        }
+        error("Price $price is in none of the spans this test loaded")
     }
 
     /**
@@ -276,6 +443,14 @@ class GraphCardFitTest {
 
         /** From `GraphView.kt`'s `CardWidth`, and iOS's 80 pt constraint. */
         const val CARD_WIDTH_DP = 80f
+
+        /**
+         * The card is placed at a rounded pixel and the chart's height is read back
+         * through a `Rect`, so two roundings separate the expectation from the
+         * measurement. Two pixels covers both and is far under the ~115 px card height
+         * that the defect this guards against was worth.
+         */
+        const val PLACEMENT_TOLERANCE_PX = 2.0
 
         val SNAPSHOT_INSTANT: Instant = Instant.parse("2026-09-12T12:00:00Z")
     }
