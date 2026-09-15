@@ -9,38 +9,88 @@ import UIKit
 
 extension CoreViewController {
     
-    func fromSignupToPin(completion: (() -> Void)? = nil) {
-        guard self.currentPage == .signup else {
+    @objc func appDidEnterBackground() {
+        // Keep track of when the app was backgrounded.
+        self.backgroundedAt = self.userHasSignedIn ? Date() : nil
+    }
+    
+    @objc func appWillEnterForeground() {
+        guard let wentAway = self.backgroundedAt else { return }
+        self.backgroundedAt = nil
+        
+        // If app was backgrounded for more than 120s, user needs to reauthenticate.
+        guard Date().timeIntervalSince(wentAway) >= 120 else { return }
+        self.lockForReauthentication()
+    }
+    
+    func lockForReauthentication() {
+        guard self.userHasSignedIn, self.currentPage == .home else { return }
+        guard CacheManager.hasPin() else { return }
+        guard !self.resettingPin, !self.removingWalletForIncorrectPin, !self.isRemovalInFlight else { return }
+        Log.info("App was backgrounded for longer than 120s. Asking for the PIN again.")
+        
+        self.view.endEditing(true)
+        
+        // Close any active segues.
+        if self.presentedViewController != nil { self.dismiss(animated: false) }
+        self.hideSettings()
+        
+        // Prepare and show PinVC.
+        self.pinVC?.clearPinField()
+        self.userHasSignedIn = false
+        UIView.performWithoutAnimation { self.showPin() }
+    }
+    
+    func showPin(completion: (() -> Void)? = nil) {
+        guard self.currentPage != .pin else {
             completion?()
             return
         }
         
-        // Place PinVC above SignupVC.
-        NSLayoutConstraint.deactivate([self.pinBottom])
-        self.pinBottom = NSLayoutConstraint(item: self.pinContainerView, attribute: .bottom, relatedBy: .equal, toItem: self.view, attribute: .top, multiplier: 1, constant: 0)
-        NSLayoutConstraint.activate([self.pinBottom])
-        self.view.layoutIfNeeded()
-        self.pinContainerView.alpha = 1
-        
-        // Lower SignupVC out of view, and PinVC into view.
-        UIView.animate(withDuration: 0.8, delay: 0, usingSpringWithDamping: 0.75, initialSpringVelocity: 0, options: .curveEaseInOut) {
-            NSLayoutConstraint.deactivate([self.signupBottom, self.pinBottom])
-            self.pinBottom = NSLayoutConstraint(item: self.pinContainerView, attribute: .bottom, relatedBy: .equal, toItem: self.view, attribute: .bottom, multiplier: 1, constant: 0)
-            self.signupBottom = NSLayoutConstraint(item: self.signupContainerView, attribute: .top, relatedBy: .equal, toItem: self.view, attribute: .bottom, multiplier: 1, constant: 0)
-            NSLayoutConstraint.activate([self.signupBottom, self.pinBottom])
+        if self.currentPage == .signup {
+            // Place PinVC above SignupVC.
+            NSLayoutConstraint.deactivate([self.pinBottom])
+            self.pinBottom = NSLayoutConstraint(item: self.pinContainerView, attribute: .bottom, relatedBy: .equal, toItem: self.view, attribute: .top, multiplier: 1, constant: 0)
+            NSLayoutConstraint.activate([self.pinBottom])
             self.view.layoutIfNeeded()
-        } completion: { finished in
+            self.pinContainerView.alpha = 1
             
-            // Reset signup positioning.
-            self.signupContainerView.alpha = 0
-            NSLayoutConstraint.deactivate([self.signupBottom])
-            self.signupBottom = NSLayoutConstraint(item: self.signupContainerView, attribute: .bottom, relatedBy: .equal, toItem: self.view, attribute: .bottom, multiplier: 1, constant: 0)
-            NSLayoutConstraint.activate([self.signupBottom])
-            self.view.layoutIfNeeded()
-            
-            self.currentPage = .pin
-            self.hideSignup()
-            completion?()
+            // Lower SignupVC out of view, and PinVC into view.
+            UIView.animate(withDuration: 0.8, delay: 0, usingSpringWithDamping: 0.75, initialSpringVelocity: 0, options: .curveEaseInOut) {
+                NSLayoutConstraint.deactivate([self.signupBottom, self.pinBottom])
+                self.pinBottom = NSLayoutConstraint(item: self.pinContainerView, attribute: .bottom, relatedBy: .equal, toItem: self.view, attribute: .bottom, multiplier: 1, constant: 0)
+                self.signupBottom = NSLayoutConstraint(item: self.signupContainerView, attribute: .top, relatedBy: .equal, toItem: self.view, attribute: .bottom, multiplier: 1, constant: 0)
+                NSLayoutConstraint.activate([self.signupBottom, self.pinBottom])
+                self.view.layoutIfNeeded()
+            } completion: { finished in
+                
+                // Reset signup positioning.
+                self.signupContainerView.alpha = 0
+                NSLayoutConstraint.deactivate([self.signupBottom])
+                self.signupBottom = NSLayoutConstraint(item: self.signupContainerView, attribute: .bottom, relatedBy: .equal, toItem: self.view, attribute: .bottom, multiplier: 1, constant: 0)
+                NSLayoutConstraint.activate([self.signupBottom])
+                self.view.layoutIfNeeded()
+                
+                self.currentPage = .pin
+                self.hideSignup()
+                completion?()
+            }
+        } else {
+            // Slide from Home back to Pin.
+            self.pinContainerView.alpha = 1
+            UIView.animate(withDuration: 0.8, delay: 0, usingSpringWithDamping: 0.75, initialSpringVelocity: 0, options: .curveEaseInOut) {
+                NSLayoutConstraint.deactivate([self.signupBottom, self.pinBottom, self.homeContainerTop, self.menuBarBottom])
+                self.pinBottom = NSLayoutConstraint(item: self.pinContainerView, attribute: .bottom, relatedBy: .equal, toItem: self.view, attribute: .bottom, multiplier: 1, constant: 0)
+                self.signupBottom = NSLayoutConstraint(item: self.signupContainerView, attribute: .bottom, relatedBy: .equal, toItem: self.view, attribute: .bottom, multiplier: 1, constant: 0)
+                self.homeContainerTop = NSLayoutConstraint(item: self.homeContainerView, attribute: .top, relatedBy: .equal, toItem: self.view, attribute: .bottom, multiplier: 1, constant: 0)
+                self.menuBarBottom = NSLayoutConstraint(item: self.menuBarContainer, attribute: .bottom, relatedBy: .equal, toItem: self.homeContainerView, attribute: .bottom, multiplier: 1, constant: -30)
+                NSLayoutConstraint.activate([self.signupBottom, self.pinBottom, self.homeContainerTop, self.menuBarBottom])
+                self.view.layoutIfNeeded()
+            } completion: { finished in
+                self.userHasSignedIn = false
+                self.currentPage = .pin
+                completion?()
+            }
         }
     }
     
