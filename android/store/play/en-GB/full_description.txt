@@ -6,7 +6,7 @@ The wallet is non-custodial. Your recovery phrase is generated on your device an
 
 On-chain and Lightning in one wallet
 
-Send and receive on the Bitcoin network, or over Lightning for payments that settle in seconds. Smaller amounts can open a Lightning connection for you automatically, so you can send and receive instantly without setting one up yourself.
+Send and receive on the Bitcoin network, or over Lightning for payments that settle in seconds.
 
 Learn as you go
 

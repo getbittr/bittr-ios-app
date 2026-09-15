@@ -13,7 +13,18 @@
     "exist in the Android build today either. The rule is the same rule; it just",
     "has to be applied to every claim rather than to the one that was noticed.",
     "",
-    "`feature` matches column 1 of a parity.md row exactly."
+    "`feature` matches column 1 of a parity.md row exactly.",
+    "",
+    "One claim was deleted from this file rather than gated: `lightning-auto-",
+    "connection`, the sentence \"Smaller amounts can open a Lightning connection",
+    "for you automatically ...\". It was the only claim here that a finished port",
+    "would not have made true, because the capability is delivered by the purchase",
+    "service and not by the wallet: connectOpenChannel has one call site and it is",
+    "commented out (DeviceViewController.swift:197), so the app never opens a",
+    "channel itself. Ruben deleted it permanently on 2026-09-13 (BIT-37 card",
+    "f7f8ac6f, `delete-permanently`). It does not come back when the Lightning",
+    "parity rows go green, and check_listing.py now carries a hard rule so an edit",
+    "cannot reintroduce it quietly — that rule, not this note, is the guard."
   ],
 
   "claims": [
@@ -40,12 +51,6 @@
       "quote": "or over Lightning for payments that settle in seconds",
       "requires": ["Send lightning", "Receive invoice → Send round-trip"],
       "note": "Phase 4 stage 4 and 6."
-    },
-    {
-      "id": "lightning-auto-connection",
-      "quote": "Smaller amounts can open a Lightning connection for you automatically, so you can send and receive instantly without setting one up yourself",
-      "requires": ["Buy — first incoming bank transaction"],
-      "note": "READ THIS ONE BEFORE EDITING IT. The dependency is not a mistake. In the shipped app the only route to a Lightning connection is a bittr purchase: BitcoinManager.connectOpenChannel has exactly one call site and it is commented out (DeviceViewController.swift:197), so the app never opens a channel itself — bittr's node opens one against a purchase, and the app's own copy says so three times (Language.swift lightningexplanation1, questionvc13, closedlightningchannel2), sizing it at ten times the first purchase (theresalimit). Swaps move funds into an existing connection; they do not create one. So this claim is delivered by the service, not by the wallet, and it cannot be true of a build that has no buy flow. Raised with Compliance on BIT-51 — if they replace the sentence, delete this entry with it."
     },
     {
       "id": "academy",

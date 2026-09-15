@@ -143,6 +143,36 @@ HARD_RULES = [
         ),
     ),
     (
+        # Ruben, 2026-09-13 (BIT-37 card f7f8ac6f): delete the Lightning
+        # auto-connection sentence permanently. It read as a wallet feature and
+        # is not one — the only route to a channel is a bittr purchase
+        # (connectOpenChannel has one call site, commented out,
+        # DeviceViewController.swift:197), so the wallet never opens one itself.
+        # That put it on the wrong side of perimeter §6 on a worldwide page: the
+        # purchase service promoted without the word "buy" in it, which is
+        # exactly why the service-vocabulary rule above cannot catch it. The
+        # sentence does not become true when the Lightning parity rows go green,
+        # so this is a hard rule rather than a claims.json gate. Both directions
+        # are matched, within one sentence, because the fix is not a wording
+        # choice: any copy saying a channel opens for the user by itself is
+        # describing the service.
+        #
+        # The one way this rule could become wrong: if the Android wallet ever
+        # opens a channel on its own, without a purchase, the claim stops being
+        # about the service. That is a Tier 1 copy change and a new Compliance
+        # read — not a quiet edit to this regex.
+        "capability the service delivers, not the wallet (channel opened for the user)",
+        re.compile(
+            r"(?:open|opens|opened|opening|creat\w+|set up|sets up|setting up)"
+            r"[^.\n]{0,80}(?:lightning )?(?:connection|channel)"
+            r"[^.\n]{0,80}(?:for you|automatic\w*|on your behalf)"
+            r"|(?:automatic\w*|for you|on your behalf)[^.\n]{0,80}"
+            r"(?:open|opens|opened|opening|creat\w+)"
+            r"[^.\n]{0,80}(?:lightning )?(?:connection|channel)",
+            re.IGNORECASE,
+        ),
+    ),
+    (
         "Tier 1 prohibited claim",
         re.compile(
             r"\bno[ -]KYC\b|\banonymous(ly)?\b|\bno registration\b|"
