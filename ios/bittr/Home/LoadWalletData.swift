@@ -341,6 +341,12 @@ extension CoreViewController {
     
     func handlePendingWork() {
         
+        // Check whether swap Dynamic Island tap is waiting to present.
+        if let deferred = self.deferredPresentation {
+            self.deferredPresentation = nil
+            deferred()
+        }
+        
         if self.needsToHandleURI() {
             Log.info("Needs to handle URI.")
             self.hideLoading()

@@ -14,6 +14,7 @@ class CoreViewController: UIViewController {
     var userHasSignedIn = false
     var walletHasSynced = false
     var backgroundedAt:Date?
+    var deferredPresentation:(() -> Void)? // A screen someone asked for while the PIN was up.
     
     // True while checkWalletAvailability is waiting for the Keychain to become
     // readable (device locked / transient read error) before it decides.
