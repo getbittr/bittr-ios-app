@@ -195,6 +195,15 @@ a green run later:
   yet**, so nothing in §3 or §4 has been tested by a run rather than by a reader.
   The first run that reaches step 13 is the one that starts answering them, and
   `RegtestEnvironmentTest` is what it has to get past first.
+- **The first green run would have truncated K8 out of its own report.** Found by
+  measuring rather than by hitting it: the gate emitted all evidence as one
+  `::notice::`, `annotate` cuts at 4000 characters, and this suite's evidence is
+  about 4700 — the environment lines, K7's four phases, K8's two result lines and
+  the soak's `tick` every 30s of two 120-second windows. Evidence is appended in
+  results-file order and K8's directories are passed last, so the truncation lands
+  on the freshness line, which is the one result here that cannot be re-derived
+  from anything else. It is now one notice per prefix, in the order this section
+  asks the reds to be read in, covered by `test_check_wallet_regtest_results.py`.
 - **What each red cost, since the pattern is the useful part.** Run 1 was 53
   seconds and self-evident. Runs 2 and 3 were ~14 minutes each, and both of those
   are almost entirely the electrs Rust build — which is paid on **every** run,
