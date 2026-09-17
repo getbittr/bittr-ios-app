@@ -23,6 +23,8 @@ import com.bittr.android.core.designsystem.BittrTextButton
 import com.bittr.android.core.designsystem.BittrTheme
 import com.bittr.android.core.designsystem.BittrTokens
 import com.bittr.android.core.designsystem.CanvasSpacer
+import com.bittr.android.feature.academy.ArticleCard
+import com.bittr.android.feature.academy.BittrArticles
 
 /**
  * Android counterpart of iOS `Signup1ViewController` — the create-or-restore entry
@@ -34,9 +36,8 @@ import com.bittr.android.core.designsystem.CanvasSpacer
  * sign-off on BIT-15. Reintroducing it on the first screen of the app would undo the
  * single largest accessibility fix the port has made.
  *
- * What is still not ported: the "What is bittr?" article chip, which needs the article
- * fetch BIT-7 owns. Restore is a button with nothing behind it for the same reason —
- * BIT-93 is the create arc.
+ * The "What is bittr?" article card sits under the card (`pageArticle1Slug`), carrying
+ * `signup.create.start.articleButton`; it is shown when [onOpenArticle] is given.
  *
  * **Create wallet no longer generates anything.** It advances to [ConfirmScreen],
  * which is where the seed is made — so the spinner that used to live in this button
@@ -47,6 +48,7 @@ fun SignupStartScreen(
     onCreateWallet: () -> Unit = {},
     onRestoreWallet: () -> Unit = {},
     modifier: Modifier = Modifier,
+    onOpenArticle: ((String) -> Unit)? = null,
 ) {
     BittrCanvas(modifier = modifier) {
         Column(
@@ -82,6 +84,15 @@ fun SignupStartScreen(
                     text = SignupStrings.RESTORE_WALLET,
                     onClick = onRestoreWallet,
                     modifier = Modifier.testTag(TestID.Signup.Create.Start.restoreButton),
+                )
+            }
+            if (onOpenArticle != null) {
+                CanvasSpacer(BittrTokens.Spacing.lg)
+                // `pageArticle1Slug = "what-is-bittr"`.
+                ArticleCard(
+                    slug = BittrArticles.WHAT_IS_BITTR,
+                    onOpen = onOpenArticle,
+                    testTag = TestID.Signup.Create.Start.articleButton,
                 )
             }
         }

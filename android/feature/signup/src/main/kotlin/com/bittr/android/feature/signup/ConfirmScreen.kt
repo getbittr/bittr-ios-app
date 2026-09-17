@@ -30,6 +30,8 @@ import com.bittr.android.core.designsystem.BittrTheme
 import com.bittr.android.core.designsystem.BittrTokens
 import com.bittr.android.core.designsystem.CanvasSpacer
 import com.bittr.android.core.designsystem.bittrSwitchColors
+import com.bittr.android.feature.academy.ArticleCard
+import com.bittr.android.feature.academy.BittrArticles
 
 /**
  * Android counterpart of iOS `Signup2ViewController` — the two things the user has to
@@ -55,6 +57,7 @@ fun ConfirmScreen(
     onBack: () -> Unit,
     busy: Boolean = false,
     modifier: Modifier = Modifier,
+    onOpenArticle: ((String) -> Unit)? = null,
 ) {
     var ownBank by remember { mutableStateOf(false) }
     var noRecovery by remember { mutableStateOf(false) }
@@ -105,6 +108,11 @@ fun ConfirmScreen(
                         }
                     },
                 )
+            }
+            if (onOpenArticle != null) {
+                CanvasSpacer(BittrTokens.Spacing.lg)
+                // Signup2's `pageArticle1Slug = "what-is-a-bitcoin-wallet"`.
+                ArticleCard(slug = BittrArticles.WHAT_IS_A_BITCOIN_WALLET, onOpen = onOpenArticle)
             }
         }
     }

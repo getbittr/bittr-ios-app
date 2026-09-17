@@ -23,6 +23,8 @@ import com.bittr.android.core.designsystem.BittrTextButton
 import com.bittr.android.core.designsystem.BittrTheme
 import com.bittr.android.core.designsystem.BittrTokens
 import com.bittr.android.core.designsystem.CanvasSpacer
+import com.bittr.android.feature.academy.ArticleCard
+import com.bittr.android.feature.academy.BittrArticles
 
 /**
  * Android counterpart of iOS `Signup7ViewController` — the wallet exists. Artboard 11.
@@ -43,6 +45,7 @@ fun ReadyScreen(
     onContinue: () -> Unit,
     onSkip: () -> Unit,
     modifier: Modifier = Modifier,
+    onOpenArticle: ((String) -> Unit)? = null,
 ) {
     BittrCanvas(modifier = modifier) {
         Column(
@@ -76,6 +79,11 @@ fun ReadyScreen(
                     onClick = onSkip,
                     modifier = Modifier.testTag(TestID.Signup.Create.Ready.skipButton),
                 )
+            }
+            if (onOpenArticle != null) {
+                CanvasSpacer(BittrTokens.Spacing.lg)
+                // Signup7's `pageArticle1Slug = "what-is-bittr"`.
+                ArticleCard(slug = BittrArticles.WHAT_IS_BITTR, onOpen = onOpenArticle)
             }
         }
     }

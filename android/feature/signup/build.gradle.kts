@@ -40,6 +40,8 @@ kotlin {
 dependencies {
     implementation(project(":core:common"))
     implementation(project(":core:designsystem"))
+    // The onboarding pages' article cards and the article they open (`BittrArticles.json`).
+    implementation(project(":feature:academy"))
     implementation(project(":core:wallet"))
     // The signup arc runs the seed challenge (BIP-39 word validation, the
     // three-word check) directly; it is pure Kotlin and stays out of the UI.

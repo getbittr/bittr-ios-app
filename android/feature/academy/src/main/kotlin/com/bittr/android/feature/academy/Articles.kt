@@ -32,8 +32,14 @@ object BittrArticles {
     /** Transfer1's article card. */
     const val SUPPORTED_COUNTRIES = "supported-countries"
 
-    /** Signup7's article card. */
+    /** Signup1's and Signup7's article card. */
     const val WHAT_IS_BITTR = "what-is-bittr"
+
+    /** Signup2's article card. */
+    const val WHAT_IS_A_BITCOIN_WALLET = "what-is-a-bitcoin-wallet"
+
+    /** Signup3's and RestoreViewController's article card. */
+    const val WALLET_RECOVERY = "wallet-recovery"
 
     @Volatile
     private var cached: Map<String, Article>? = null
@@ -75,6 +81,8 @@ object BittrArticles {
     fun imageRes(slug: String): Int? = when (slug) {
         SUPPORTED_COUNTRIES -> R.drawable.article_supported_countries
         WHAT_IS_BITTR -> R.drawable.article_what_is_bittr
+        WHAT_IS_A_BITCOIN_WALLET -> R.drawable.article_what_is_a_bitcoin_wallet
+        WALLET_RECOVERY -> R.drawable.article_wallet_recovery
         else -> null
     }
 }

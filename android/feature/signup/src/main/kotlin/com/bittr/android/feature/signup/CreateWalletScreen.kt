@@ -34,6 +34,9 @@ fun CreateWalletScreen(
     // `Signup7ViewController.nextButtonTapped` — Continue on "Your wallet is ready" goes on
     // into the bittr signup (`moveToPage(10)`); Skip is [onFinished], into the wallet.
     onContinueToSignup: () -> Unit = onFinished,
+    // The pages' article cards (`launchArticle(articleTag:)`). The article opens as its own
+    // destination on top of this one, so the arc's view model — and the phrase — survive it.
+    onOpenArticle: ((String) -> Unit)? = null,
 ) {
     val state by viewModel.uiState.collectAsState()
 
@@ -55,6 +58,7 @@ fun CreateWalletScreen(
             onCreateWallet = viewModel::startCreate,
             onRestoreWallet = onRestoreWallet,
             modifier = modifier,
+            onOpenArticle = onOpenArticle,
         )
 
         CreateWalletStep.Confirm -> ConfirmScreen(
@@ -62,6 +66,7 @@ fun CreateWalletScreen(
             onBack = viewModel::backToStart,
             busy = state.busy,
             modifier = modifier,
+            onOpenArticle = onOpenArticle,
         )
 
         CreateWalletStep.Phrase -> {
@@ -75,6 +80,7 @@ fun CreateWalletScreen(
                     mnemonic = mnemonic,
                     onNext = viewModel::confirmPhraseSeen,
                     modifier = modifier,
+                    onOpenArticle = onOpenArticle,
                 )
             }
         }
@@ -118,6 +124,7 @@ fun CreateWalletScreen(
                 onFinished()
             },
             modifier = modifier,
+            onOpenArticle = onOpenArticle,
         )
     }
 }

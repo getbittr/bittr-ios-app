@@ -295,6 +295,7 @@ fun BittrNavHost(
                     }
                 },
                 onRestoreWallet = { navController.navigate(Routes.SIGNUP_RESTORE) },
+                onOpenArticle = { slug -> navController.navigate(Routes.article(slug)) },
                 onContinueToSignup = {
                     navController.navigate(Routes.SIGNUP_BITTR) {
                         popUpTo(Routes.SIGNUP_START) { inclusive = true }
@@ -330,6 +331,7 @@ fun BittrNavHost(
                     }
                 },
                 onCancelled = { navController.popBackStack() },
+                onOpenArticle = { slug -> navController.navigate(Routes.article(slug)) },
             )
         }
 
