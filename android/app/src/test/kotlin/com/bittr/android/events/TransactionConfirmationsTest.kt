@@ -37,6 +37,10 @@ class TransactionConfirmationsTest {
         val confirms = mutableSetOf<String>()
         val checked = mutableListOf<String>()
         val descriptions = mutableMapOf<String, String>()
+        val funding = mutableListOf<String>()
+        override fun rememberFunding(txId: String) {
+            funding += txId
+        }
         override fun alreadySent(txId: String) = txId in sent
         override fun isPurchase(txId: String) = txId in purchases
         override suspend fun check(txId: String): Boolean {
@@ -188,6 +192,17 @@ class TransactionConfirmationsTest {
         lookup.confirms += "funding-1"
         nodeEvents.tryEmit(NodeEvent.ChannelPending("channel-2", "funding-1"))
         assertEquals(listOf(TransactionRequest("funding-1", confetti = true)), opened)
+        // Only the confirmed purchase becomes a history row.
+        assertEquals(listOf("funding-1"), lookup.funding)
+    }
+
+    @Test
+    fun `a confirmed funding purchase is kept for the history even while nothing can open`() {
+        showable = false
+        lookup.confirms += "funding-4"
+        nodeEvents.tryEmit(NodeEvent.ChannelPending("channel-5", "funding-4"))
+        assertTrue(opened.isEmpty())
+        assertEquals(listOf("funding-4"), lookup.funding)
     }
 
     @Test
@@ -197,6 +212,7 @@ class TransactionConfirmationsTest {
         nodeEvents.tryEmit(NodeEvent.ChannelPending("channel-3", "funding-2"))
         nodeEvents.tryEmit(NodeEvent.ChannelPending("channel-4", "funding-3"))
         assertEquals(listOf(TransactionRequest("funding-3", confetti = true)), opened)
+        assertEquals(listOf("funding-3"), lookup.funding)
     }
 
     @Test

@@ -4,6 +4,10 @@ import android.content.Context
 import com.bittr.android.core.swaps.FileSwapStore
 import com.bittr.android.core.swaps.SuggestedSwapStatus
 import com.bittr.android.core.swaps.SwapStore
+import com.bittr.android.core.network.BittrCustomerStore
+import com.bittr.android.core.wallet.BittrPurchaseSource
+import com.bittr.android.core.wallet.WalletActivity
+import com.bittr.android.core.wallet.toActivity
 import com.bittr.android.core.wallet.SwapActivityStatus
 import com.bittr.android.core.wallet.SwapFileIds
 import com.bittr.android.core.wallet.ldk.adapter.Bolt11Decoder
@@ -22,11 +26,13 @@ import javax.inject.Singleton
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.serialization.json.Json
@@ -62,29 +68,50 @@ object HistoryModule {
         composition: WalletComposition,
         descriptions: TransactionDescriptionStore,
         swaps: SwapStore,
+        customers: BittrCustomerStore,
+        purchases: BittrPurchaseSource,
     ): WalletOverviewSource = MatchedWalletOverviewSource(
         raw = composition.overview,
         descriptions = descriptions,
         swaps = swaps,
         scope = CoroutineScope(SupervisorJob() + Dispatchers.Default),
+        fundingRows = combine(customers.fundingTransactions, purchases.purchases) { ids, bought ->
+            // iOS drops cached rows without a date (`timestamp != 0`).
+            ids.mapNotNull { id -> bought[id]?.let { purchase -> purchase.timestampSecs?.let(purchase::toActivity) } }
+        },
     )
 }
 
 /**
  * The node's overview with iOS's history treatment applied: each row's stored description, then
- * `performSwapMatching()`. Recomputed whenever the node publishes or a description is stored —
- * a swap stores its description right after its id, so a new swap is matched as soon as it lands.
+ * `performSwapMatching()`, then the cached bittr rows the node has no payment for. Recomputed
+ * whenever the node publishes, a description is stored or a row is cached — a swap stores its
+ * description right after its id, so a new swap is matched as soon as it lands, and a confirmed
+ * funding purchase shows on Home straight away, as `addLightningTransaction` adds it on iOS.
+ *
+ * @param fundingRows `CacheManager.getLightningTransactions()` as far as Android caches them: the
+ *   purchases that funded a channel bittr opened. Not payments of the node, so nothing else lists them.
  */
 class MatchedWalletOverviewSource(
     raw: WalletOverviewSource,
     descriptions: TransactionDescriptionStore,
     private val swaps: SwapStore,
     scope: CoroutineScope,
+    fundingRows: Flow<List<WalletActivity>> = flowOf(emptyList()),
 ) : WalletOverviewSource {
 
     override val overview: StateFlow<WalletOverview> =
-        combine(raw.overview, descriptions.descriptions) { wallet, stored -> matched(wallet, stored) }
-            .stateIn(scope, SharingStarted.Eagerly, raw.overview.value)
+        combine(raw.overview, descriptions.descriptions, fundingRows) { wallet, stored, funding ->
+            withCachedRows(matched(wallet, stored), funding)
+        }.stateIn(scope, SharingStarted.Eagerly, raw.overview.value)
+
+    /** The cached rows the history doesn't already have, in date order with the rest (newest first). */
+    private fun withCachedRows(wallet: WalletOverview, cached: List<WalletActivity>): WalletOverview {
+        val ids = wallet.transactions.mapTo(HashSet()) { it.id }
+        val missing = cached.filter { it.id !in ids }
+        if (missing.isEmpty()) return wallet
+        return wallet.copy(transactions = (wallet.transactions + missing).sortedByDescending { it.timestampSecs })
+    }
 
     private fun matched(wallet: WalletOverview, stored: Map<String, String>): WalletOverview {
         val described = SwapHistory.withDescriptions(wallet.transactions, stored)

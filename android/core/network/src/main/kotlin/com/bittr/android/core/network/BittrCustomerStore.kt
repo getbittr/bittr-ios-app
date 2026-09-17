@@ -92,9 +92,19 @@ interface BittrCustomerStore {
     fun addProcessedPayout(notificationId: String)
 
     /**
+     * Purchases that funded a lightning channel bittr opened, which Home lists as history rows —
+     * iOS's cached Lightning transactions (`CacheManager.storeLightningTransaction`) as far as the
+     * funding purchase goes. It is not a payment of the node, so nothing else puts it in the history.
+     * Ids only: the row is built from the matching entry in [purchases].
+     */
+    val fundingTransactions: StateFlow<Set<String>>
+
+    fun addFundingTransaction(txId: String)
+
+    /**
      * The wallet is gone — `CacheManager.deleteClientInfo()` removes `device` (the bittr accounts)
-     * and the cached bittr transactions with the wallet cache. The ids already sent to bittr are
-     * kept, as iOS keeps `senttobittr`.
+     * and the cached bittr and Lightning transactions with the wallet cache. The ids already sent to
+     * bittr are kept, as iOS keeps `senttobittr`.
      */
     fun clearAccount()
 }
@@ -116,6 +126,7 @@ class FileBittrCustomerStore(private val file: File) : BittrCustomerStore {
     private val _purchases: MutableStateFlow<Map<String, BittrTransactionInfo>>
     private var sent: Set<String>
     private var processed: Set<String>
+    private val _funding: MutableStateFlow<Set<String>>
 
     init {
         val root = runCatching { json.parseToJsonElement(file.readText()) as? JsonObject }.getOrNull()
@@ -135,10 +146,16 @@ class FileBittrCustomerStore(private val file: File) : BittrCustomerStore {
         processed = (root?.get("processedPayouts") as? JsonArray).orEmpty()
             .mapNotNull { (it as? JsonPrimitive)?.content }
             .toSet()
+        _funding = MutableStateFlow(
+            (root?.get("fundingTransactions") as? JsonArray).orEmpty()
+                .mapNotNull { (it as? JsonPrimitive)?.content }
+                .toSet(),
+        )
     }
 
     override val entities: StateFlow<List<IbanEntity>> = _entities.asStateFlow()
     override val purchases: StateFlow<Map<String, BittrTransactionInfo>> = _purchases.asStateFlow()
+    override val fundingTransactions: StateFlow<Set<String>> = _funding.asStateFlow()
 
     override fun upsert(entity: IbanEntity) = synchronized(lock) {
         _entities.update { list -> (list.filterNot { it.id == entity.id } + entity).sortedBy { it.order } }
@@ -170,9 +187,16 @@ class FileBittrCustomerStore(private val file: File) : BittrCustomerStore {
         write()
     }
 
+    override fun addFundingTransaction(txId: String) = synchronized(lock) {
+        if (txId.isBlank() || txId in _funding.value) return@synchronized
+        _funding.update { it + txId }
+        write()
+    }
+
     override fun clearAccount() = synchronized(lock) {
         _entities.value = emptyList()
         _purchases.value = emptyMap()
+        _funding.value = emptySet()
         write()
     }
 
@@ -183,6 +207,7 @@ class FileBittrCustomerStore(private val file: File) : BittrCustomerStore {
                 "purchases" to JsonArray(_purchases.value.values.map(::encodePurchase)),
                 "sentToBittr" to JsonArray(sent.map(::JsonPrimitive)),
                 "processedPayouts" to JsonArray(processed.map(::JsonPrimitive)),
+                "fundingTransactions" to JsonArray(_funding.value.map(::JsonPrimitive)),
             ),
         )
         file.parentFile?.mkdirs()
@@ -277,9 +302,11 @@ class InMemoryBittrCustomerStore(initial: List<IbanEntity> = emptyList()) : Bitt
     private val _purchases = MutableStateFlow<Map<String, BittrTransactionInfo>>(emptyMap())
     private var sent = emptySet<String>()
     private var processed = emptySet<String>()
+    private val _funding = MutableStateFlow<Set<String>>(emptySet())
 
     override val entities: StateFlow<List<IbanEntity>> = _entities.asStateFlow()
     override val purchases: StateFlow<Map<String, BittrTransactionInfo>> = _purchases.asStateFlow()
+    override val fundingTransactions: StateFlow<Set<String>> = _funding.asStateFlow()
 
     override fun upsert(entity: IbanEntity) =
         _entities.update { list -> (list.filterNot { it.id == entity.id } + entity).sortedBy { it.order } }
@@ -302,8 +329,13 @@ class InMemoryBittrCustomerStore(initial: List<IbanEntity> = emptyList()) : Bitt
         processed = processed + notificationId
     }
 
+    override fun addFundingTransaction(txId: String) {
+        if (txId.isNotBlank()) _funding.update { it + txId }
+    }
+
     override fun clearAccount() {
         _entities.value = emptyList()
         _purchases.value = emptyMap()
+        _funding.value = emptySet()
     }
 }

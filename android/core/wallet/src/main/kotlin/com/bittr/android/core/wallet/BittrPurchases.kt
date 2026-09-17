@@ -26,6 +26,20 @@ data class BittrPurchase(
     val timestampSecs: Long?,
 )
 
+/**
+ * This purchase as a history row — `createTransaction(isFundingTransaction:)`: what bittr sent as
+ * received, a Lightning row, dated [timestampSecs].
+ */
+fun BittrPurchase.toActivity(timestampSecs: Long): WalletActivity = WalletActivity(
+    id = txId,
+    receivedSats = bitcoinAmountSats ?: 0L,
+    sentSats = 0L,
+    feeSats = 0L,
+    timestampSecs = timestampSecs,
+    isLightning = true,
+    confirmationHeight = null,
+)
+
 /** What the transaction screen reads about bittr purchases. `:app` binds it over the customer store. */
 interface BittrPurchaseSource {
 

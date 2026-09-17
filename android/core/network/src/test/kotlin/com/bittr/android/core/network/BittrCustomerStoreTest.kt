@@ -69,6 +69,7 @@ class BittrCustomerStoreTest {
         store.upsert(IbanEntity(id = "a", order = 0, yourUniqueCode = "DC-A", lightningAddressUsername = "me@staging.getbittr.com"))
         store.addPurchases(listOf(BittrTransactionInfo("tx1", null, null, null, "EUR", 0.001, 60.0, 61.0)))
         store.addSentToBittr(listOf("tx1"))
+        store.addFundingTransaction("tx1")
 
         store.clearAccount()
         val reloaded = FileBittrCustomerStore(file)
@@ -76,5 +77,13 @@ class BittrCustomerStoreTest {
         assertTrue(reloaded.purchases.value.isEmpty())
         assertNull(reloaded.firstDepositCode())
         assertEquals(setOf("tx1"), reloaded.sentToBittr())
+        assertTrue(reloaded.fundingTransactions.value.isEmpty())
+    }
+
+    @Test
+    fun `funding transactions survive a reload`() {
+        val file = tempFile()
+        FileBittrCustomerStore(file).addFundingTransaction("funding")
+        assertEquals(setOf("funding"), FileBittrCustomerStore(file).fundingTransactions.value)
     }
 }
