@@ -34,6 +34,7 @@ import androidx.compose.ui.unit.em
 import androidx.compose.ui.unit.sp
 import com.bittr.android.core.common.TestID
 import com.bittr.android.core.designsystem.BittrCanvas
+import com.bittr.android.core.designsystem.dismissOnPullDown
 import com.bittr.android.core.designsystem.BittrCanvasShapes
 import com.bittr.android.core.designsystem.BittrModalHeader
 import com.bittr.android.core.designsystem.BittrTheme
@@ -47,7 +48,7 @@ import com.bittr.android.core.designsystem.BittrTokens
 fun ArticleScreen(slug: String, onDown: () -> Unit, modifier: Modifier = Modifier) {
     val context = LocalContext.current
     val article = remember(slug) { BittrArticles.article(context, slug) }
-    BittrCanvas(modifier = modifier, appBar = false) {
+    BittrCanvas(modifier = modifier.dismissOnPullDown(onDown), appBar = false) {
         BittrModalHeader(
             title = "",
             onDown = onDown,

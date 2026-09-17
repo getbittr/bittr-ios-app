@@ -13,6 +13,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import com.bittr.android.core.common.TestID
 import com.bittr.android.core.designsystem.BittrBody
+import com.bittr.android.core.designsystem.dismissOnPullDown
 import com.bittr.android.core.designsystem.BittrCanvas
 import com.bittr.android.core.designsystem.BittrCard
 import com.bittr.android.core.designsystem.BittrModalHeader
@@ -32,7 +33,7 @@ fun ProfitsScreen(
     onDown: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    BittrCanvas(modifier = modifier, appBar = false) {
+    BittrCanvas(modifier = modifier.dismissOnPullDown(onDown), appBar = false) {
         BittrModalHeader(
             title = BuyStrings.YOUR_PROFITS,
             onDown = onDown,

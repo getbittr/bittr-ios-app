@@ -45,6 +45,7 @@ import androidx.compose.ui.unit.dp
 import com.bittr.android.core.common.TestID
 import com.bittr.android.core.common.destination.Destination
 import com.bittr.android.core.designsystem.BittrAlert
+import com.bittr.android.core.designsystem.dismissOnPullDown
 import com.bittr.android.core.designsystem.BittrAlertButton
 import com.bittr.android.core.designsystem.BittrBody
 import com.bittr.android.core.designsystem.BittrCanvas
@@ -156,7 +157,7 @@ internal fun SendScreen(
     }
 
     Box(modifier = modifier) {
-    BittrCanvas(appBar = false) {
+    BittrCanvas(modifier = Modifier.dismissOnPullDown(onDown), appBar = false) {
         BittrModalHeader(
             title = SendStrings.SEND_BITCOIN,
             onDown = onDown,

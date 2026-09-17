@@ -48,6 +48,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.bittr.android.core.common.TestID
 import com.bittr.android.core.designsystem.BittrBody
+import com.bittr.android.core.designsystem.dismissOnPullDown
 import com.bittr.android.core.designsystem.BittrCanvas
 import com.bittr.android.core.designsystem.BittrCard
 import com.bittr.android.core.designsystem.BittrModalHeader
@@ -128,7 +129,7 @@ fun BuyRoute(
 @Composable
 private fun BuyCards(state: BuyUiState, controller: BuyController, onDown: () -> Unit) {
     val clipboard = LocalClipboardManager.current
-    BittrCanvas(appBar = false) {
+    BittrCanvas(modifier = Modifier.dismissOnPullDown(onDown), appBar = false) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             BittrModalHeader(
                 title = BuyStrings.BUY_BITCOIN,

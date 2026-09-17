@@ -56,6 +56,7 @@ import com.bittr.android.core.common.TestID
 import com.bittr.android.feature.academy.ArticleCard
 import com.bittr.android.feature.academy.BittrArticles
 import com.bittr.android.core.designsystem.BittrBody
+import com.bittr.android.core.designsystem.dismissOnPullDown
 import com.bittr.android.core.designsystem.BittrCanvas
 import com.bittr.android.core.designsystem.BittrCard
 import com.bittr.android.core.designsystem.BittrCheckBadge
@@ -73,7 +74,7 @@ import kotlinx.coroutines.withContext
 @Composable
 internal fun SignupContainer(signup: SignupUiState, controller: BuyController, onOpenArticle: (String) -> Unit = {}) {
     val focus = LocalFocusManager.current
-    BittrCanvas(appBar = false) {
+    BittrCanvas(modifier = Modifier.dismissOnPullDown(controller::onCloseSignup), appBar = false) {
         BittrModalHeader(
             title = BuyStrings.BUY_BITCOIN,
             onDown = controller::onCloseSignup,

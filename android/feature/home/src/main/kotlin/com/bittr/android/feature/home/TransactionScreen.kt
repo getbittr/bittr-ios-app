@@ -48,6 +48,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.bittr.android.core.common.TestID
 import com.bittr.android.core.designsystem.BittrAlertDialog
+import com.bittr.android.core.designsystem.dismissOnPullDown
 import com.bittr.android.core.designsystem.BittrCanvas
 import com.bittr.android.core.designsystem.BittrCard
 import com.bittr.android.core.designsystem.BittrIconPaths
@@ -207,7 +208,7 @@ fun TransactionScreen(
     }
 
     Box(modifier = modifier) {
-        BittrCanvas(modifier = Modifier.fillMaxSize(), appBar = false) {
+        BittrCanvas(modifier = Modifier.fillMaxSize().dismissOnPullDown(onDown), appBar = false) {
             BittrModalHeader(
                 title = HomeStrings.TRANSACTION,
                 onDown = onDown,

@@ -28,6 +28,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.bittr.android.core.common.TestID
 import com.bittr.android.core.designsystem.BittrCanvas
+import com.bittr.android.core.designsystem.dismissOnPullDown
 import com.bittr.android.core.designsystem.BittrCard
 import com.bittr.android.core.designsystem.BittrModalHeader
 import com.bittr.android.core.designsystem.BittrTheme
@@ -112,7 +113,7 @@ fun QuestionScreen(
     modifier: Modifier = Modifier,
     channel: ChannelSummary? = null,
 ) {
-    BittrCanvas(modifier = modifier, appBar = false) {
+    BittrCanvas(modifier = modifier.dismissOnPullDown(onDown), appBar = false) {
         BittrModalHeader(
             title = title.lowercase(),
             onDown = onDown,

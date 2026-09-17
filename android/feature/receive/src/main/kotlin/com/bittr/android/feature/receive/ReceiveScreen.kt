@@ -53,6 +53,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.bittr.android.core.common.TestID
 import com.bittr.android.core.designsystem.BittrAlert
+import com.bittr.android.core.designsystem.dismissOnPullDown
 import com.bittr.android.core.designsystem.BittrAlertButton
 import com.bittr.android.core.designsystem.BittrCanvas
 import com.bittr.android.core.designsystem.BittrCard
@@ -123,7 +124,7 @@ internal fun ReceiveScreen(
         )
     }
 
-    BittrCanvas(modifier = modifier, appBar = false) {
+    BittrCanvas(modifier = modifier.dismissOnPullDown(onDown), appBar = false) {
         BittrModalHeader(
             title = ReceiveStrings.RECEIVE_BITCOIN,
             onDown = onDown,

@@ -35,6 +35,7 @@ import com.bittr.android.core.designsystem.BittrCanvas
 import com.bittr.android.core.designsystem.BittrCard
 import com.bittr.android.core.designsystem.BittrInlineAlert
 import com.bittr.android.core.designsystem.BittrModalHeader
+import com.bittr.android.core.designsystem.dismissOnPullDown
 import com.bittr.android.core.designsystem.BittrTokens
 
 /**
@@ -78,7 +79,7 @@ private fun PushQuestionCard(question: PushQuestion, onDown: () -> Unit) {
     BittrCanvas(
         appBar = false,
         // Taps land here rather than on the screen underneath.
-        modifier = Modifier.pointerInput(Unit) { detectTapGestures { } },
+        modifier = Modifier.pointerInput(Unit) { detectTapGestures { } }.dismissOnPullDown(onDown),
     ) {
         BittrModalHeader(
             title = question.title,
