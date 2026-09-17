@@ -1,6 +1,7 @@
 package com.bittr.android.feature.home
 
 import com.bittr.android.core.wallet.BittrPurchase
+import com.bittr.android.core.wallet.toActivity
 import com.bittr.android.core.wallet.FiatPrice
 import com.bittr.android.core.wallet.SwapActivityDirection
 import com.bittr.android.core.wallet.SwapActivityStatus
@@ -329,15 +330,7 @@ private fun bittrDetail(
  * connection. iOS builds a `Transaction` for it from bittr's record (`createTransaction(isFundingTransaction: true)`).
  */
 internal fun purchaseActivity(purchase: BittrPurchase, nowSecs: Long = System.currentTimeMillis() / 1000): WalletActivity =
-    WalletActivity(
-        id = purchase.txId,
-        receivedSats = purchase.bitcoinAmountSats ?: 0L,
-        sentSats = 0L,
-        feeSats = 0L,
-        timestampSecs = purchase.timestampSecs ?: nowSecs,
-        isLightning = true,
-        confirmationHeight = null,
-    )
+    purchase.toActivity(purchase.timestampSecs ?: nowSecs)
 
 /** A satoshi figure without its sign, as iOS strips the "-" from every one of these labels. */
 private fun sats(value: Long): String = "${groupThousands(abs(value))} sats"

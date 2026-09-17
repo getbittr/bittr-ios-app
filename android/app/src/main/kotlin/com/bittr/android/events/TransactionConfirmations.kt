@@ -64,6 +64,12 @@ interface BittrLookup {
     /** `CacheManager.storeInvoiceDescription(preimage:desc:)`, keyed as the history reads descriptions. */
     fun storeDescription(key: String, description: String)
 
+    /**
+     * The purchase that funded a new channel, confirmed: kept as a row of Home's history, as iOS's
+     * `launchTransactionVC` caches it (`storeLightningTransaction`) and adds it to the table.
+     */
+    fun rememberFunding(txId: String) = Unit
+
     object None : BittrLookup {
         override fun alreadySent(txId: String) = false
         override fun isPurchase(txId: String) = false
@@ -214,7 +220,12 @@ class TransactionConfirmations(
 
     /** `.channelPending`: the purchase that funded the new channel, once bittr confirms it. */
     private suspend fun openFunding(fundingTxId: String) {
-        checkWithBittr(txId = fundingTxId, inHistory = false, otherwise = null)
+        checkWithBittr(
+            txId = fundingTxId,
+            inHistory = false,
+            otherwise = null,
+            onPurchase = { bittr.rememberFunding(fundingTxId) },
+        )
     }
 
     /**
@@ -223,21 +234,28 @@ class TransactionConfirmations(
      * @param inHistory the transaction is a row of this wallet's history, which iOS looks it up in
      *   when bittr already knows it. The funding transaction is not; bittr's stored record stands in.
      * @param otherwise what opens when bittr doesn't confirm it (iOS: the payment details, if any).
+     * @param onConfirmed bittr confirmed it just now.
+     * @param onPurchase it is a purchase bittr confirmed, now or on an earlier check — whether or not
+     *   the screen can open, since iOS adds the row to Home either way.
      */
     private suspend fun checkWithBittr(
         txId: String,
         inHistory: Boolean,
         otherwise: TransactionRequest?,
         onConfirmed: () -> Unit = {},
+        onPurchase: () -> Unit = {},
     ) {
         if (bittr.alreadySent(txId)) {
-            if (inHistory || bittr.isPurchase(txId)) request(TransactionRequest(txId, confetti = true))
+            val purchase = bittr.isPurchase(txId)
+            if (purchase) onPurchase()
+            if (inHistory || purchase) request(TransactionRequest(txId, confetti = true))
             return
         }
         pause(BITTR_CHECK_DELAY_MS)
         val confirmed = runCatching { bittr.check(txId) }.getOrDefault(false)
         if (confirmed) {
             onConfirmed()
+            onPurchase()
             request(TransactionRequest(txId, confetti = true))
         } else if (otherwise != null) {
             request(otherwise)

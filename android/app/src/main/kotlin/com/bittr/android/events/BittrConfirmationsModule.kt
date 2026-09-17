@@ -109,6 +109,8 @@ internal class AppBittrLookup(
     }
 
     override fun storeDescription(key: String, description: String) = descriptions.store(key, description)
+
+    override fun rememberFunding(txId: String) = store.addFundingTransaction(txId)
 }
 
 /** A `/transaction_info` row as the transaction screen reads it. */
