@@ -23,6 +23,7 @@ import com.bittr.android.core.network.DeviceTokenLifecycle
 import com.bittr.android.core.preferences.AppPreferences
 import com.bittr.android.core.preferences.DarkModeSetting
 import com.bittr.android.navigation.BittrNavHost
+import com.bittr.android.home.RemovedWalletReset
 import com.bittr.android.push.PushCoordinator
 import com.bittr.android.push.PushOverlayHost
 import dagger.hilt.android.AndroidEntryPoint
@@ -58,6 +59,10 @@ class MainActivity : ComponentActivity() {
 
     @Inject
     lateinit var pushCoordinator: PushCoordinator
+
+    /** Empties what the app holds in memory about a wallet once it is removed — see [RemovedWalletReset]. */
+    @Inject
+    lateinit var removedWalletReset: RemovedWalletReset
 
     /** Whether the app is on screen, for a swap push's status screen. */
     @Inject
@@ -98,6 +103,7 @@ class MainActivity : ComponentActivity() {
         // `restore_wallet.yaml` could not reach field 7 on an API 34 emulator.
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
+        removedWalletReset.start()
         setContent {
             val setting by preferences.darkMode.collectAsState()
             BittrTheme(darkTheme = setting.isDark()) {

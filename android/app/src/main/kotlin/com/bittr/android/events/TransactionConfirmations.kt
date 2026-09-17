@@ -103,7 +103,7 @@ interface BittrLookup {
  * @param refresh sync and take a reading, so a just-completed payment reaches [raw].
  */
 class TransactionConfirmations(
-    scope: CoroutineScope,
+    private val scope: CoroutineScope,
     nodeEvents: Flow<NodeEvent>,
     swapCompletions: Flow<String>,
     private val raw: StateFlow<WalletOverview>,
@@ -145,6 +145,17 @@ class TransactionConfirmations(
 
     fun dismissPaymentFailure() {
         _paymentFailure.value = null
+    }
+
+    /**
+     * The wallet is gone: forget which transactions were already opened (the next wallet's ids are
+     * new) and drop a payment-failed alert about the old one. On the scope that owns [asked].
+     */
+    fun reset() {
+        scope.launch {
+            asked.clear()
+            _paymentFailure.value = null
+        }
     }
 
     internal sealed interface Lookup {

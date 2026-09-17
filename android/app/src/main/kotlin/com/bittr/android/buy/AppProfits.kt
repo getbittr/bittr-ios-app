@@ -72,6 +72,14 @@ class AppProfits(
         }
     }
 
+    /**
+     * The wallet is gone: no summary until the next wallet's first synced reading computes one. The
+     * purchases and bittr account it is computed from are cleared with the customer store.
+     */
+    fun reset() {
+        _summary.value = null
+    }
+
     private suspend fun lookUpPurchases() = lookup.withLock {
         val depositCodes = store.depositCodes()
         if (depositCodes.isEmpty()) return@withLock

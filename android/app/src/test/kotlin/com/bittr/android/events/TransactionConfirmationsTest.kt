@@ -210,4 +210,18 @@ class TransactionConfirmationsTest {
         nodeEvents.tryEmit(NodeEvent.PaymentFailed(null, null))
         assertTrue(confirmations.paymentFailure.value!!.message.startsWith("Your Lightning payment didn't go through.\n\n"))
     }
+
+    /** After a wallet removal the next wallet's transactions open again, and the old alert is gone. */
+    @Test
+    fun `a reset forgets what was opened and drops the payment failed alert`() {
+        publish(lightningRow("preimage1", "hash1"))
+        nodeEvents.tryEmit(NodeEvent.PaymentReceived("hash1", 1_000_000))
+        nodeEvents.tryEmit(NodeEvent.PaymentFailed(null, null))
+        assertEquals(1, opened.size)
+
+        confirmations.reset()
+        assertNull(confirmations.paymentFailure.value)
+        nodeEvents.tryEmit(NodeEvent.PaymentReceived("hash1", 1_000_000))
+        assertEquals(listOf(TransactionRequest("preimage1"), TransactionRequest("preimage1")), opened)
+    }
 }
