@@ -166,13 +166,28 @@ class TransactionConfirmationsTest {
     }
 
     @Test
-    fun `a payout already sent to bittr opens as the summary without asking again`() {
+    fun `a payout bittr already confirmed opens as the summary, with its description, without asking again`() {
         payouts.expect("notification-3", now)
         lookup.sent += "preimage8"
+        lookup.purchases += "preimage8"
         publish(lightningRow("preimage8", "hash8"))
         nodeEvents.tryEmit(NodeEvent.PaymentReceived("hash8", 1_000))
         assertEquals(listOf(TransactionRequest("preimage8", confetti = true)), opened)
         assertTrue(lookup.checked.isEmpty())
+        // buy_more.yaml: the profit lookup got to bittr first, and the description was never stored.
+        assertEquals("notification-3", lookup.descriptions["hash8"])
+    }
+
+    @Test
+    fun `a payout sent to bittr before bittr knew it is asked about again`() {
+        payouts.expect("notification-10", now)
+        lookup.sent += "preimage10"
+        lookup.confirms += "preimage10"
+        publish(lightningRow("preimage10", "hash10"))
+        nodeEvents.tryEmit(NodeEvent.PaymentReceived("hash10", 1_000))
+        assertEquals(listOf("preimage10"), lookup.checked)
+        assertEquals(listOf(TransactionRequest("preimage10", confetti = true)), opened)
+        assertEquals("notification-10", lookup.descriptions["hash10"])
     }
 
     @Test

@@ -214,7 +214,7 @@ class TransactionConfirmations(
             txId = found.id,
             inHistory = true,
             otherwise = TransactionRequest(found.id),
-            onConfirmed = { bittr.storeDescription(paymentHash, notificationId) },
+            onPurchase = { bittr.storeDescription(paymentHash, notificationId) },
         )
     }
 
@@ -234,7 +234,6 @@ class TransactionConfirmations(
      * @param inHistory the transaction is a row of this wallet's history, which iOS looks it up in
      *   when bittr already knows it. The funding transaction is not; bittr's stored record stands in.
      * @param otherwise what opens when bittr doesn't confirm it (iOS: the payment details, if any).
-     * @param onConfirmed bittr confirmed it just now.
      * @param onPurchase it is a purchase bittr confirmed, now or on an earlier check — whether or not
      *   the screen can open, since iOS adds the row to Home either way.
      */
@@ -242,19 +241,22 @@ class TransactionConfirmations(
         txId: String,
         inHistory: Boolean,
         otherwise: TransactionRequest?,
-        onConfirmed: () -> Unit = {},
         onPurchase: () -> Unit = {},
     ) {
         if (bittr.alreadySent(txId)) {
-            val purchase = bittr.isPurchase(txId)
-            if (purchase) onPurchase()
-            if (inHistory || purchase) request(TransactionRequest(txId, confetti = true))
-            return
+            if (bittr.isPurchase(txId)) {
+                onPurchase()
+                request(TransactionRequest(txId, confetti = true))
+                return
+            }
+            if (!inHistory) return
+            // Sent, but bittr didn't know it as a purchase. `AppProfits` sends a payment to bittr the
+            // moment it reaches the history, which can be before bittr has recorded the payout — so
+            // ask again after the delay rather than open the summary without its description.
         }
         pause(BITTR_CHECK_DELAY_MS)
         val confirmed = runCatching { bittr.check(txId) }.getOrDefault(false)
         if (confirmed) {
-            onConfirmed()
             onPurchase()
             request(TransactionRequest(txId, confetti = true))
         } else if (otherwise != null) {
