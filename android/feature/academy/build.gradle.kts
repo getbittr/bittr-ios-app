@@ -29,6 +29,14 @@ android {
     }
 }
 
+// ArticlesTest reads the bundled articles by path, so they are a declared input: a change to them
+// re-runs the tests rather than handing back a cached green (BIT-113).
+tasks.withType<Test>().configureEach {
+    inputs.file(layout.projectDirectory.file("src/main/res/raw/bittr_articles.json"))
+        .withPathSensitivity(PathSensitivity.RELATIVE)
+        .withPropertyName("sourcesReadAtRuntime")
+}
+
 kotlin {
     compilerOptions {
         jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17)

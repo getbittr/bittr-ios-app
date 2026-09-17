@@ -78,7 +78,7 @@ fun ArticleScreen(slug: String, onDown: () -> Unit, modifier: Modifier = Modifie
                     modifier = Modifier.padding(horizontal = 20.dp),
                 ) {
                     ArticleMarkup.paragraphs(block.html).forEach { runs ->
-                        Text(text = styled(runs), modifier = Modifier.fillMaxWidth())
+                        Text(text = styled(runs), style = MaterialTheme.typography.bodyLarge, modifier = Modifier.fillMaxWidth())
                     }
                 }
             }
@@ -116,7 +116,7 @@ fun ArticleCard(slug: String, onOpen: (String) -> Unit, modifier: Modifier = Mod
         }
         Text(
             text = article.title,
-            style = MaterialTheme.typography.titleSmall,
+            style = MaterialTheme.typography.titleMedium,
             color = BittrTheme.colors.onCanvas,
             modifier = Modifier
                 .weight(1f)
@@ -125,7 +125,7 @@ fun ArticleCard(slug: String, onOpen: (String) -> Unit, modifier: Modifier = Mod
     }
 }
 
-/** The `<title>` … `<normal>` spans of `OneArticleTableViewCell.setText`, at iOS's sizes and a 1.2 line height. */
+/** The `<title>` … `<normal>` spans of `OneArticleTableViewCell.setText`, at iOS's sizes, in the body face. */
 private fun styled(runs: List<ArticleRun>): AnnotatedString = buildAnnotatedString {
     runs.forEach { run ->
         val span = when (run.style) {
