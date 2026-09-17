@@ -1,5 +1,8 @@
 package com.bittr.android.swap
 
+import androidx.lifecycle.viewModelScope
+import com.bittr.android.feature.swap.SwapController
+import com.bittr.android.feature.swap.SwapLaunch
 import android.content.Context
 import androidx.lifecycle.ViewModel
 import com.bittr.android.core.network.BittrEnvironment
@@ -96,4 +99,15 @@ object SwapModule {
 
 /** How the navigation graph reaches the coordinator — `:feature:swap` has no Hilt of its own. */
 @HiltViewModel
-class SwapViewModel @Inject constructor(val coordinator: SwapCoordinator, val fiat: SwapFiat) : ViewModel()
+class SwapViewModel @Inject constructor(val coordinator: SwapCoordinator, val fiat: SwapFiat) : ViewModel() {
+
+    private var held: SwapController? = null
+
+    /**
+     * The swap screen's controller, kept for as long as its navigation entry. The transaction screen a
+     * completed swap opens sits over the swap screen and disposes its composition; a controller built in
+     * that composition would come back empty, without the status card iOS keeps under the modal.
+     */
+    fun controller(launch: SwapLaunch): SwapController =
+        held ?: SwapController(coordinator, fiat, viewModelScope, launch).also { held = it }
+}

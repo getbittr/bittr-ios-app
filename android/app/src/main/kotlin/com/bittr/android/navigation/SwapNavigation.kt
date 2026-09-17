@@ -79,14 +79,16 @@ internal fun NavGraphBuilder.swapArea(navController: NavHostController) {
             launches.setSwapScreenOpen(true)
             onDispose { launches.setSwapScreenOpen(false) }
         }
+        val launch = SwapRoutes.launch(entry.arguments)
         SwapRoute(
             coordinator = swap.coordinator,
             fiat = swap.fiat,
-            launch = SwapRoutes.launch(entry.arguments),
+            launch = launch,
             onDown = { navController.popBackStack() },
             onOpenTransaction = { id -> navController.openTransaction(id) },
             onRequestNotifications = { openNotificationSettings(context) },
             onShareFile = { file -> shareSwapFile(context, file) },
+            heldController = swap.controller(launch),
         )
     }
 }

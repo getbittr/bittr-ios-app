@@ -77,9 +77,16 @@ fun SwapRoute(
     onRequestNotifications: () -> Unit,
     onShareFile: (File) -> Unit,
     modifier: Modifier = Modifier,
+    /**
+     * Held by the caller so it outlives this composition: a completed swap opens the transaction
+     * screen over this one, and a controller remembered here would be rebuilt when that screen
+     * closes — losing the status card that swap.yaml then looks for, where iOS keeps `SwapStatusVC`
+     * embedded under the modal transaction.
+     */
+    heldController: SwapController? = null,
 ) {
     val scope = rememberCoroutineScope()
-    val controller = remember(coordinator, launch) { SwapController(coordinator, fiat, scope, launch) }
+    val controller = heldController ?: remember(coordinator, launch) { SwapController(coordinator, fiat, scope, launch) }
     val openTransaction by rememberUpdatedState(onOpenTransaction)
     val requestNotifications by rememberUpdatedState(onRequestNotifications)
     val shareFile by rememberUpdatedState(onShareFile)

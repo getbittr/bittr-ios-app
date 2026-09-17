@@ -352,13 +352,13 @@ private fun PlacesList(
  * where both identifiers are set on every cell (`MapVCTable.swift:44-47`) — the flow
  * taps `index: 0`, so they repeat rather than being unique.
  *
- * **The tap target is a sibling of the labels, not their parent**, which is the only
- * arrangement that keeps both identifiers addressable. `Modifier.clickable` sets
- * `mergeDescendants`, so a clickable row *containing* the name label collapses the
- * two into one node carrying only the row's tag — `map.placeName` then does not
- * exist, on the semantics tree or on the accessibility tree Maestro reads, while the
- * screen looks exactly right. iOS has the same shape for a different reason: a
- * transparent `cellButton` over the labels.
+ * **The tap target is a sibling of the labels, drawn under them.** `Modifier.clickable` sets
+ * `mergeDescendants`, so a clickable row *containing* the name label collapses the two into one
+ * node carrying only the row's tag. A sibling drawn *over* them is no better: a later sibling that
+ * covers a node entirely takes it off the accessibility tree, which is how `map.placeName` went
+ * missing while the screen looked exactly right. Under the labels, both identifiers stay
+ * addressable and the taps still land, because the labels handle no touches. iOS has the same
+ * shape for a different reason: a transparent `cellButton` over the labels.
  */
 @Composable
 private fun PlaceRow(place: BitcoinPlace, onOpen: (BitcoinPlace) -> Unit) {
@@ -367,6 +367,15 @@ private fun PlaceRow(place: BitcoinPlace, onOpen: (BitcoinPlace) -> Unit) {
             .fillMaxWidth()
             .background(BittrTheme.colors.scrim1, BittrCanvasShapes.field),
     ) {
+        // Drawn first, under the labels. A later sibling that covers a node entirely takes that node
+        // off the accessibility tree, so a tap layer on top removed `map.placeName` — which
+        // bitcoin_map.yaml asserts. The labels handle no touches, so taps reach this layer anyway.
+        Box(
+            modifier = Modifier
+                .matchParentSize()
+                .clickable(role = Role.Button) { onOpen(place) }
+                .testTag(TestID.Map.placeCellButton),
+        )
         Column(
             modifier = Modifier
                 .fillMaxWidth()
@@ -397,12 +406,6 @@ private fun PlaceRow(place: BitcoinPlace, onOpen: (BitcoinPlace) -> Unit) {
                 )
             }
         }
-        Box(
-            modifier = Modifier
-                .matchParentSize()
-                .clickable(role = Role.Button) { onOpen(place) }
-                .testTag(TestID.Map.placeCellButton),
-        )
     }
 }
 
