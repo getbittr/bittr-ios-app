@@ -387,9 +387,11 @@ private fun HomeHeader(
                 // the profit pill under it.
                 if (balanceSats != null) {
                     CanvasSpacer(BittrTokens.Spacing.xl)
-                    // `balanceCardButton` — a transparent layer under the balance, so the
-                    // label keeps its own `home.balanceLabel` id (see HistoryCard on why
-                    // under and not over). Opens the balance screen.
+                    // `balanceCardButton` — a transparent layer under the balance, its fiat line and
+                    // the profit pill, as iOS's covers the card with `profitButton` over its lower half.
+                    // Under rather than over so the labels keep their own ids (see HistoryCard), and
+                    // larger than the balance label: a sibling that covers a node entirely takes it out
+                    // of the accessibility tree, which is how `home.balanceCardButton` went missing.
                     Box {
                         Box(
                             modifier = Modifier
@@ -397,22 +399,24 @@ private fun HomeHeader(
                                 .clickable(onClick = onBalanceCard)
                                 .testTag(TestID.Home.balanceCardButton),
                         )
-                        BalanceLabel(balance = balanceText(balanceSats), dimmedColor = colors.balanceDimmed)
-                    }
-                    // `conversionLabel`, under the balance: "CHF 190".
-                    balanceFiat?.let {
-                        Text(
-                            text = it,
-                            style = MaterialTheme.typography.bodyLarge,
-                            color = colors.mutedOnCanvas,
-                            textAlign = TextAlign.Center,
-                            modifier = Modifier.fillMaxWidth(),
-                        )
-                    }
-                    // `balanceCardProfitView` — shown with the balance, once profits are known.
-                    if (profitPill != null) {
-                        CanvasSpacer(BittrTokens.Spacing.sm)
-                        ProfitPillView(pill = profitPill, onClick = onProfit)
+                        Column {
+                            BalanceLabel(balance = balanceText(balanceSats), dimmedColor = colors.balanceDimmed)
+                            // `conversionLabel`, under the balance: "CHF 190".
+                            balanceFiat?.let {
+                                Text(
+                                    text = it,
+                                    style = MaterialTheme.typography.bodyLarge,
+                                    color = colors.mutedOnCanvas,
+                                    textAlign = TextAlign.Center,
+                                    modifier = Modifier.fillMaxWidth(),
+                                )
+                            }
+                            // `balanceCardProfitView` — shown with the balance, once profits are known.
+                            if (profitPill != null) {
+                                CanvasSpacer(BittrTokens.Spacing.sm)
+                                ProfitPillView(pill = profitPill, onClick = onProfit)
+                            }
+                        }
                     }
                 }
 
