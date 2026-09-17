@@ -19,7 +19,8 @@ if (invoice == null || invoice === '') {
 // introduced when its text was copied.
 invoice = invoice.replace(/\s/g, '');
 
-// Retry transient 5xx / network errors with linear busy-wait backoff so one
+// Retry transient 5xx, 429 (the suite's own rate limit) and network errors with linear
+// busy-wait backoff so one
 // staging-gateway blip doesn't kill a whole suite run. Retrying a payment is
 // safe: a bolt11 invoice settles at most once (same payment hash), so if an
 // ambiguous 5xx actually paid it, the retry just reports already-paid. 4xx is
@@ -34,14 +35,15 @@ function postWithRetry(url, options, label) {
             response = null;
             console.log(label + ' attempt ' + i + '/' + attempts + ' network error: ' + e);
         }
-        if (response != null && response.status < 500) {
+        if (response != null && response.status < 500 && response.status !== 429) {
             return response;
         }
         if (response != null) {
             console.log(label + ' attempt ' + i + '/' + attempts + ' got ' + response.status + ' — retrying');
         }
         if (i < attempts) {
-            var waitMs = 3000 * i;
+            // A rate limit clears on its own clock, so it waits longer than a 5xx blip.
+            var waitMs = (response != null && response.status === 429 ? 20000 : 3000) * i;
             var start = Date.now();
             while (Date.now() - start < waitMs) { /* spin */ }
         }

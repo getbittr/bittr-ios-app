@@ -73,6 +73,10 @@ done < <(grep -E '^[[:space:]]*-[[:space:]]*runFlow:' "${SUITE_FILE}" 2>/dev/nul
 
 MNEMONIC="attack urge across cupboard year armor list vital outer leader anxiety endorse"
 APP_ID="${APP_ID:-com.bittr.android.regtest}"
+
+# How long one flow may run before the watchdog kills it. The slowest (wrong_pin_with_channel,
+# which closes a channel; settings) take about fifteen minutes on a loaded emulator.
+FLOW_TIMEOUT_SECS="${FLOW_TIMEOUT_SECS:-1800}"
 ENV_FILE="${BITTR_ANDROID_ENV_FILE:-${HOME}/.bittr/android-regtest.env}"
 
 # The driver install and first connection are slow on a busy Mac; Maestro's default
@@ -383,11 +387,26 @@ for flow in "${FLOWS_TO_RUN[@]}"; do
     dev shell am force-stop "${APP_ID}" >/dev/null 2>&1 || true
     sleep 2
     START_TS=$(date +%s)
+    # A watchdog, because maestro can stop without exiting: when a runScript throws (a 429 from
+    # the e2e endpoints does it), its JS engine dies with "API object must not be garbage
+    # collected" and the process then sits there for ever, holding the whole suite. Killed here,
+    # the flow fails and the rest still run.
+    (
+        waited=0
+        while [[ ${waited} -lt ${FLOW_TIMEOUT_SECS} ]]; do
+            sleep 10
+            waited=$((waited + 10))
+        done
+        pkill -P $$ -f "maestro" 2>/dev/null || true
+    ) &
+    WATCHDOG_PID=$!
     if maestro --device "${SERIAL}" test --env APP_ID="${APP_ID}" --env MNEMONIC="${MNEMONIC}" \
             --env SLOW_SYNC=0 --test-output-dir "${OUT_DIR}" \
             "${FLOW_PATH}" 2>&1 | tee "${FLOW_LOG}"; then
+        kill "${WATCHDOG_PID}" 2>/dev/null || true
         RESULTS+=("${GREEN}✔${RESET} ${flow} ($(($(date +%s) - START_TS))s)")
     else
+        kill "${WATCHDOG_PID}" 2>/dev/null || true
         RESULTS+=("${RED}✖${RESET} ${flow} ($(($(date +%s) - START_TS))s) — log: ${FLOW_LOG}")
         FAILURES=$((FAILURES + 1))
         fail "${flow} failed — full output: ${FLOW_LOG}"

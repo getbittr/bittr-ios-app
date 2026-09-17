@@ -26,14 +26,15 @@ function postWithRetry(url, options, label) {
             response = null;
             console.log(label + ' attempt ' + i + '/' + attempts + ' network error: ' + e);
         }
-        if (response != null && response.status < 500) {
+        if (response != null && response.status < 500 && response.status !== 429) {
             return response;
         }
         if (response != null) {
             console.log(label + ' attempt ' + i + '/' + attempts + ' got ' + response.status + ' — retrying');
         }
         if (i < attempts) {
-            var waitMs = 3000 * i;
+            // A rate limit clears on its own clock, so it waits longer than a 5xx blip.
+            var waitMs = (response != null && response.status === 429 ? 20000 : 3000) * i;
             var start = Date.now();
             while (Date.now() - start < waitMs) { /* spin */ }
         }
