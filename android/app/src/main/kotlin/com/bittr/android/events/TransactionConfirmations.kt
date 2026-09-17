@@ -136,6 +136,18 @@ class TransactionConfirmations(
 
     private val asked = ArrayDeque<String>()
 
+    private val _transactionScreenOpen = MutableStateFlow(false)
+
+    /**
+     * A transaction screen is on top. iOS presents `TransactionViewController` modally over `CoreViewController`,
+     * where `AlertManager` adds its alerts, so an alert raised while it is up sits behind it until it closes.
+     */
+    val transactionScreenOpen: StateFlow<Boolean> = _transactionScreenOpen.asStateFlow()
+
+    fun onTransactionScreen(open: Boolean) {
+        _transactionScreenOpen.value = open
+    }
+
     init {
         scope.launch {
             nodeEvents.collect { event ->

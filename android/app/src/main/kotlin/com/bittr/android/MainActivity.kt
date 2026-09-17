@@ -63,6 +63,9 @@ class MainActivity : ComponentActivity() {
     @Inject
     lateinit var pushCoordinator: PushCoordinator
 
+    @Inject
+    lateinit var transactionConfirmations: com.bittr.android.events.TransactionConfirmations
+
     /** Empties what the app holds in memory about a wallet once it is removed — see [RemovedWalletReset]. */
     @Inject
     lateinit var removedWalletReset: RemovedWalletReset
@@ -121,7 +124,7 @@ class MainActivity : ComponentActivity() {
         setContent {
             val setting by preferences.darkMode.collectAsState()
             BittrTheme(darkTheme = setting.isDark()) {
-                BittrApp(pushCoordinator)
+                BittrApp(pushCoordinator, transactionConfirmations.transactionScreenOpen)
             }
         }
     }
@@ -163,7 +166,7 @@ private fun DarkModeSetting.isDark(): Boolean = when (this) {
  */
 @OptIn(ExperimentalComposeUiApi::class)
 @Composable
-private fun BittrApp(pushCoordinator: PushCoordinator) {
+private fun BittrApp(pushCoordinator: PushCoordinator, transactionScreenOpen: kotlinx.coroutines.flow.StateFlow<Boolean>) {
     Surface(modifier = Modifier.fillMaxSize()) {
         Box(
             modifier = Modifier
@@ -173,7 +176,7 @@ private fun BittrApp(pushCoordinator: PushCoordinator) {
         ) {
             BittrNavHost()
             // What a push shows, over every screen — see PushOverlayHost.
-            PushOverlayHost(pushCoordinator)
+            PushOverlayHost(pushCoordinator, transactionScreenOpen)
         }
     }
 }

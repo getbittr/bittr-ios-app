@@ -249,6 +249,11 @@ fun BittrNavHost(
     LaunchedEffect(confirmations) {
         confirmations.requests.collect { request -> navController.openTransaction(request.id, request.confetti) }
     }
+    LaunchedEffect(navController) {
+        navController.currentBackStackEntryFlow.collect { entry ->
+            confirmations.onTransactionScreen(entry.destination.route == Routes.TRANSACTION)
+        }
+    }
 
     // See [NotPortedDialog]. Held here rather than in a screen because it is
     // scaffolding for the port, not app behaviour, and keeping it out of the feature

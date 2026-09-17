@@ -1,5 +1,10 @@
 package com.bittr.android.push
 
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectTapGestures
@@ -48,28 +53,39 @@ import com.bittr.android.core.designsystem.BittrTokens
  * Question card, then the loading card, then an alert on top of both.
  */
 @Composable
-fun PushOverlayHost(coordinator: PushCoordinator) {
+fun PushOverlayHost(coordinator: PushCoordinator, transactionScreenOpen: StateFlow<Boolean> = MutableStateFlow(false)) {
     val state by coordinator.uiState.collectAsState()
+    val transactionOpen by transactionScreenOpen.collectAsState()
 
     state.question?.let { question ->
         PushQuestionCard(question = question, onDown = coordinator::closeQuestion)
     }
     state.loading?.let { PushLoadingCard(it) }
-    state.alert?.let { alert ->
-        BackHandler {
-            alert.buttons.firstOrNull { it.dismisses }?.let(coordinator::onAlertButton)
-        }
-        BittrInlineAlert(
-            title = alert.title,
-            message = alert.message,
-            buttons = alert.buttons.map { button ->
-                BittrAlertButton(label = button.label, dismissesAlert = button.dismisses) {
-                    coordinator.onAlertButton(button)
-                }
-            },
-            cardTestTag = alert.testTag,
-        )
+    state.alert?.let { alert -> PushAlertOverlay(alert, transactionOpen, coordinator::onAlertButton) }
+}
+
+/**
+ * An alert raised while a transaction screen is up waits behind it, as iOS's does (`AlertManager`
+ * adds it to `CoreViewController`, under the modal transaction); one already showing when a
+ * transaction opens stays on top. buy_incoming.yaml: bittr's answer to the first deposit's payout
+ * push landed over the purchase summary and hid it.
+ */
+@Composable
+internal fun PushAlertOverlay(alert: PushAlert, transactionOpen: Boolean, onButton: (PushAlertButton) -> Unit) {
+    var shown by remember(alert) { mutableStateOf(!transactionOpen) }
+    if (!transactionOpen) shown = true
+    if (!shown) return
+    BackHandler {
+        alert.buttons.firstOrNull { it.dismisses }?.let(onButton)
     }
+    BittrInlineAlert(
+        title = alert.title,
+        message = alert.message,
+        buttons = alert.buttons.map { button ->
+            BittrAlertButton(label = button.label, dismissesAlert = button.dismisses) { onButton(button) }
+        },
+        cardTestTag = alert.testTag,
+    )
 }
 
 /** `QuestionViewController` with a push's header and body. */
