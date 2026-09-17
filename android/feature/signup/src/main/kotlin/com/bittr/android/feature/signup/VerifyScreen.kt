@@ -1,12 +1,16 @@
 package com.bittr.android.feature.signup
 
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.LocalTextStyle
@@ -17,7 +21,10 @@ import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusDirection
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
@@ -53,6 +60,12 @@ import com.bittr.android.core.wallet.seed.SeedChallenge
  * of spaces through to it, which is exactly the input that should be told it is empty
  * rather than told it is wrong.
  *
+ * **The keyboard never hides Confirm.** Next moves to the next word; Done on the third
+ * submits once all three have something in them (iOS submits when the third field loses
+ * focus with the right words). Tapping the heading closes the keyboard, as iOS's
+ * `backgroundButtonTapped` does — `seed_gate_rejects_wrong_words.yaml` taps it before
+ * Confirm — and the content is padded above the keyboard so the button stays reachable.
+ *
  * **The typed words are not `rememberSaveable`.** Three of the twelve words are still
  * three of the twelve; saved state is written to disk on process death, so the fields
  * deliberately lose their contents on rotation rather than persist a third of the
@@ -78,19 +91,38 @@ fun VerifyScreen(
         TestID.Signup.Create.Verify.label2,
         TestID.Signup.Create.Verify.label3,
     )
+    val focusManager = LocalFocusManager.current
+    val keyboard = LocalSoftwareKeyboardController.current
+    fun closeKeyboard() {
+        focusManager.clearFocus()
+        keyboard?.hide()
+    }
+    fun submit() {
+        closeKeyboard()
+        onSubmit(answers.toList())
+    }
 
     BittrCanvas(modifier = modifier, onBack = onBack) {
         Column(
             verticalArrangement = Arrangement.Center,
             modifier = Modifier
                 .weight(1f)
+                // Before the scroll: the visible area ends at the keyboard, so Confirm
+                // can be scrolled into view above it.
+                .imePadding()
                 .verticalScroll(rememberScrollState())
                 .padding(horizontal = CanvasGutter),
         ) {
             BittrCard {
                 BittrStepHeading(
                     text = SignupStrings.CONFIRM_RECOVERY_PHRASE,
-                    modifier = Modifier.testTag(TestID.Signup.Create.Verify.topLabel),
+                    modifier = Modifier
+                        .clickable(
+                            interactionSource = remember { MutableInteractionSource() },
+                            indication = null,
+                            onClick = ::closeKeyboard,
+                        )
+                        .testTag(TestID.Signup.Create.Verify.topLabel),
                 )
                 CanvasSpacer(BittrTokens.Spacing.xl)
 
@@ -103,13 +135,17 @@ fun VerifyScreen(
                         labelTag = labelTags[index],
                         fieldTag = fieldTags[index],
                         last = index == SeedChallenge.ASK_COUNT - 1,
+                        onNext = { focusManager.moveFocus(FocusDirection.Down) },
+                        onDone = {
+                            if (answers.all { it.isNotBlank() }) submit() else closeKeyboard()
+                        },
                     )
                 }
 
                 CanvasSpacer(BittrTokens.Spacing.xl)
                 BittrPrimaryButton(
                     text = SignupStrings.CONFIRM,
-                    onClick = { onSubmit(answers.toList()) },
+                    onClick = ::submit,
                     enabled = answers.all { it.isNotBlank() },
                     modifier = Modifier.testTag(TestID.Signup.Create.Verify.nextButton),
                 )
@@ -143,6 +179,8 @@ private fun WordField(
     labelTag: String,
     fieldTag: String,
     last: Boolean,
+    onNext: () -> Unit,
+    onDone: () -> Unit,
 ) {
     BittrValueRow {
         BittrNumeral(
@@ -183,6 +221,10 @@ private fun WordField(
                     capitalization = KeyboardCapitalization.None,
                     autoCorrectEnabled = false,
                     imeAction = if (last) ImeAction.Done else ImeAction.Next,
+                ),
+                keyboardActions = KeyboardActions(
+                    onNext = { onNext() },
+                    onDone = { onDone() },
                 ),
                 modifier = Modifier
                     .fillMaxWidth()
