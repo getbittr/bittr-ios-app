@@ -100,13 +100,21 @@ class TransactionViewModel @Inject constructor(
     private val purchasePrice = MutableStateFlow<Double?>(null)
 
     init {
-        viewModelScope.launch { price.value = prices.current() }
+        // The last prices Home read stand in until the live ones land, so a payout summary opened
+        // the moment the payment arrives doesn't show a current value and profit of 0.00.
+        price.value = cache.cached.value?.price(prices.currentSymbol())
+        viewModelScope.launch { prices.current()?.let { price.value = it } }
         viewModelScope.launch {
             purchases.purchases.map { it[id]?.currency }.distinctUntilChanged().collect { currency ->
-                purchasePrice.value = currency?.let { purchases.pricePerBitcoin(it) }
+                purchasePrice.value = currency?.let { cachedPricePerBitcoin(it) }
+                purchasePrice.value = currency?.let { purchases.pricePerBitcoin(it) ?: cachedPricePerBitcoin(it) }
             }
         }
     }
+
+    /** The cached price for a purchase's currency code; the cache keys prices by display symbol. */
+    private fun cachedPricePerBitcoin(currencyCode: String): Double? =
+        cache.cached.value?.price(if (currencyCode == "EUR") "€" else currencyCode)?.pricePerBitcoin
 
     internal val detail: StateFlow<TransactionDetail?> = combine(
         overview.overview,
