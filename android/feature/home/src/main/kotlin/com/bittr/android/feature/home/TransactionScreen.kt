@@ -1,5 +1,7 @@
 package com.bittr.android.feature.home
 
+import androidx.compose.foundation.relocation.bringIntoViewRequester
+import androidx.compose.foundation.relocation.BringIntoViewRequester
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.tween
@@ -191,6 +193,9 @@ fun TransactionScreen(
             confirmTestTag = TestID.Alert.buttonAt(0),
         )
     }
+    // A saved note is scrolled into view: under a bittr purchase's card it lands below the fold.
+    val noteRequester = remember { BringIntoViewRequester() }
+    var revealNote by remember { mutableStateOf(false) }
     if (editingNote) {
         BittrTextFieldAlert(
             title = HomeStrings.ADD_A_NOTE,
@@ -202,6 +207,7 @@ fun TransactionScreen(
             onSave = { note ->
                 viewModel.saveNote(note)
                 editingNote = false
+                revealNote = true
             },
             testTag = TestID.Alert.addNote,
         )
@@ -255,6 +261,14 @@ fun TransactionScreen(
                                 onClick = swap.boltzId?.let { boltzId -> { onOpenSwapStatus(boltzId) } },
                             )
                         }
+                        // `descriptionStack` sits between Confirmations and the ids in the card (Main.storyboard).
+                        shown.description?.let { description ->
+                            DescriptionRow(
+                                description = description,
+                                singleLine = shown.bittr != null,
+                                onClick = { copy(description) },
+                            )
+                        }
                         if (!shown.confetti) {
                             IdRow(
                                 title = shown.idTitle,
@@ -286,26 +300,25 @@ fun TransactionScreen(
                 if (shown.confetti) {
                     ReminderCard()
                 }
-                shown.description?.let { description ->
-                    TextCard(
-                        title = HomeStrings.DESCRIPTION,
-                        text = description,
-                        textTag = TestID.Transaction.descriptionLabel,
-                        buttonTag = TestID.Transaction.descriptionButton,
-                        onClick = { copy(description) },
-                    )
-                }
                 // The payout summary offers no note (`addANoteStack` hidden under `showConfetti`).
                 if (!shown.confetti) {
                     val note = shown.note
                     if (note != null) {
-                        TextCard(
-                            title = HomeStrings.NOTE,
-                            text = note,
-                            textTag = TestID.Transaction.labelNote,
-                            buttonTag = null,
-                            onClick = { editingNote = true },
-                        )
+                        Box(modifier = Modifier.bringIntoViewRequester(noteRequester)) {
+                            TextCard(
+                                title = HomeStrings.NOTE,
+                                text = note,
+                                textTag = TestID.Transaction.labelNote,
+                                buttonTag = null,
+                                onClick = { editingNote = true },
+                            )
+                        }
+                        LaunchedEffect(note, revealNote) {
+                            if (revealNote) {
+                                noteRequester.bringIntoView()
+                                revealNote = false
+                            }
+                        }
                     } else {
                         Box(
                             contentAlignment = Alignment.Center,
@@ -498,6 +511,43 @@ private fun DetailRow(
             color = valueColor,
             modifier = if (valueTag != null) Modifier.testTag(valueTag) else Modifier,
         )
+    }
+}
+
+/**
+ * `descriptionStack`: "Description" and its text in a row like the others, copied when tapped. A bittr
+ * purchase's description (the payout's notification id) is one line, truncated in the middle, as iOS
+ * sets it; any other wraps. The tap layer sits under the labels so they stay readable to the flows.
+ */
+@Composable
+private fun DescriptionRow(description: String, singleLine: Boolean, onClick: () -> Unit) {
+    Box(modifier = Modifier.fillMaxWidth()) {
+        Box(
+            modifier = Modifier
+                .matchParentSize()
+                .background(MaterialTheme.colorScheme.surfaceContainerLowest, RoundedCornerShape(8.dp))
+                .clickable(onClick = onClick)
+                .testTag(TestID.Transaction.descriptionButton),
+        )
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = BittrTokens.Spacing.md, vertical = BittrTokens.Spacing.md),
+        ) {
+            Text(HomeStrings.DESCRIPTION, style = MaterialTheme.typography.labelLarge, color = BittrTheme.colors.emphasis)
+            Text(
+                text = description,
+                style = MaterialTheme.typography.bodyLarge,
+                textAlign = TextAlign.End,
+                maxLines = if (singleLine) 1 else Int.MAX_VALUE,
+                overflow = if (singleLine) TextOverflow.MiddleEllipsis else TextOverflow.Clip,
+                modifier = Modifier
+                    .weight(1f)
+                    .padding(start = BittrTokens.Spacing.md)
+                    .testTag(TestID.Transaction.descriptionLabel),
+            )
+        }
     }
 }
 
