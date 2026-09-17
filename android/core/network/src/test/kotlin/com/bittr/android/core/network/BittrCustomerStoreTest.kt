@@ -49,4 +49,21 @@ class BittrCustomerStoreTest {
         val file = tempFile().apply { parentFile.mkdirs(); writeText("not json") }
         assertTrue(FileBittrCustomerStore(file).entities.value.isEmpty())
     }
+
+    /** `deleteClientInfo()` removes `device`; `senttobittr` is kept, as on iOS. */
+    @Test
+    fun `clearing the account drops the accounts and purchases and keeps the sent ids`() {
+        val file = tempFile()
+        val store = FileBittrCustomerStore(file)
+        store.upsert(IbanEntity(id = "a", order = 0, yourUniqueCode = "DC-A", lightningAddressUsername = "me@staging.getbittr.com"))
+        store.addPurchases(listOf(BittrTransactionInfo("tx1", null, null, null, "EUR", 0.001, 60.0, 61.0)))
+        store.addSentToBittr(listOf("tx1"))
+
+        store.clearAccount()
+        val reloaded = FileBittrCustomerStore(file)
+        assertTrue(reloaded.entities.value.isEmpty())
+        assertTrue(reloaded.purchases.value.isEmpty())
+        assertNull(reloaded.firstDepositCode())
+        assertEquals(setOf("tx1"), reloaded.sentToBittr())
+    }
 }

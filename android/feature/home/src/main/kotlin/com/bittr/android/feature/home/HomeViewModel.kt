@@ -7,6 +7,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.bittr.android.core.wallet.FiatPrice
 import com.bittr.android.core.wallet.FiatPriceSource
+import com.bittr.android.core.wallet.HomeCache
 import com.bittr.android.core.wallet.WalletOverviewSource
 import com.bittr.android.core.wallet.WalletService
 import com.bittr.android.core.wallet.WalletState
@@ -51,6 +52,11 @@ data class HomeUiState(
     val refreshing: Boolean = false,
     /** Pulling Home down resyncs the wallet: it has a node, has synced, and no refresh is running. */
     val canRefresh: Boolean = false,
+    /**
+     * The balance, fiat line and history come from the last launch's cache (`showCachedData()`)
+     * while the wallet syncs. [walletHasSynced] stays false meanwhile, as iOS's does.
+     */
+    val showingCachedData: Boolean = false,
 )
 
 /**
@@ -65,18 +71,28 @@ class HomeViewModel @Inject constructor(
     private val overview: WalletOverviewSource,
     private val refresher: WalletRefresher = WalletRefresher.None,
     private val internet: InternetConnection = InternetConnection.Always,
+    private val cache: HomeCache = HomeCache.None,
     prices: FiatPriceSource,
 ) : ViewModel() {
 
     private val alert = MutableStateFlow<HomeAlert?>(null)
 
-    /** Re-fetched whenever the history changes, which is when a row needs converting. */
-    private val price = MutableStateFlow<FiatPrice?>(null)
+    /**
+     * Re-fetched whenever the history changes, which is when a row needs converting. Starts from the
+     * cached rate for the chosen currency (`cachedEurValue` / `cachedChfValue`) until the live one lands.
+     */
+    private val price = MutableStateFlow(cache.cached.value?.price(prices.currentSymbol()))
+
+    /** A live conversion rate: shown, and kept for the next launch. */
+    private fun applyPrice(live: FiatPrice) {
+        price.value = live
+        cache.savePrice(live)
+    }
 
     init {
         // iOS fetches conversion rates first thing at start (`SyncType.conversion`), before the
         // wallet has synced; the sync overlay's first row reports it.
-        viewModelScope.launch { prices.current()?.let { if (price.value == null) price.value = it } }
+        viewModelScope.launch { prices.current()?.let(::applyPrice) }
         // Refetched when the history changes and when Settings switches the currency —
         // Home stays on the back stack under Settings, so without the second trigger it
         // would keep showing the old currency until the next transaction.
@@ -85,7 +101,7 @@ class HomeViewModel @Inject constructor(
                 overview.overview.map { it.hasSynced to it.transactions }.distinctUntilChanged(),
                 prices.currencyChanges,
             ).collect {
-                if (overview.overview.value.hasSynced) prices.current()?.let { price.value = it }
+                if (overview.overview.value.hasSynced) prices.current()?.let(::applyPrice)
             }
         }
     }
@@ -95,17 +111,34 @@ class HomeViewModel @Inject constructor(
         overview.overview,
         price,
         refresher.isRefreshing,
-    ) { state, wallet, price, refreshing ->
+        cache.cached,
+    ) { state, wallet, price, refreshing, cached ->
+        // `showCachedData()`: what the last launch showed, until this launch's first reading. Not
+        // during a pull-to-refresh, which hides everything as `resetWallet()` does, and never
+        // without a wallet.
+        val fromCache = cached?.takeIf {
+            it.hasReading && !wallet.hasSynced && !refreshing && state != WalletState.Uninitialized
+        }
+        val balance = when {
+            wallet.hasSynced -> wallet.totalSatoshis
+            fromCache != null -> fromCache.totalSatoshis
+            else -> null
+        }
         HomeUiState(
             walletState = state,
             walletHasSynced = wallet.hasSynced,
             showSyncSpinner = wallet.hasNode && !wallet.hasSynced,
-            balanceSats = if (wallet.hasSynced) wallet.totalSatoshis else null,
-            balanceFiat = if (wallet.hasSynced) balanceFiat(wallet.totalSatoshis, price) else null,
-            history = if (wallet.hasSynced) historyRows(wallet.transactions, price, wallet.currentHeight) else emptyList(),
+            balanceSats = balance,
+            balanceFiat = balance?.let { balanceFiat(it, price) },
+            history = when {
+                wallet.hasSynced -> historyRows(wallet.transactions, price, wallet.currentHeight)
+                fromCache != null -> historyRows(fromCache.transactions, price, fromCache.currentHeight)
+                else -> emptyList()
+            },
             conversionFetched = price != null,
             refreshing = refreshing,
             canRefresh = wallet.hasNode && wallet.hasSynced && !refreshing,
+            showingCachedData = fromCache != null,
         )
     }.stateIn(
         scope = viewModelScope,

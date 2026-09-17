@@ -81,6 +81,13 @@ interface BittrCustomerStore {
     val purchases: StateFlow<Map<String, BittrTransactionInfo>>
 
     fun addPurchases(rows: Collection<BittrTransactionInfo>)
+
+    /**
+     * The wallet is gone — `CacheManager.deleteClientInfo()` removes `device` (the bittr accounts)
+     * and the cached bittr transactions with the wallet cache. The ids already sent to bittr are
+     * kept, as iOS keeps `senttobittr`.
+     */
+    fun clearAccount()
 }
 
 /**
@@ -139,6 +146,12 @@ class FileBittrCustomerStore(private val file: File) : BittrCustomerStore {
 
     override fun addPurchases(rows: Collection<BittrTransactionInfo>) = synchronized(lock) {
         _purchases.update { it + rows.associateBy { row -> row.txId } }
+        write()
+    }
+
+    override fun clearAccount() = synchronized(lock) {
+        _entities.value = emptyList()
+        _purchases.value = emptyMap()
         write()
     }
 
@@ -259,4 +272,9 @@ class InMemoryBittrCustomerStore(initial: List<IbanEntity> = emptyList()) : Bitt
 
     override fun addPurchases(rows: Collection<BittrTransactionInfo>) =
         _purchases.update { it + rows.associateBy { row -> row.txId } }
+
+    override fun clearAccount() {
+        _entities.value = emptyList()
+        _purchases.value = emptyMap()
+    }
 }

@@ -693,6 +693,7 @@ object WalletModule {
                 readNow = { balances.read() != null },
                 onFailure = { failure -> Log.w(TAG, "Wallet refresh step failed", failure) },
             ),
+            resetOverview = overview::reset,
         )
     }
 
@@ -745,4 +746,6 @@ class WalletComposition(
     val channelFundingTxId: () -> String? = { null },
     /** Home's pull-to-refresh. Does nothing in a build with no node. */
     val refresher: WalletRefresher = WalletRefresher.None,
+    /** Empty the in-memory [overview] once the wallet is removed, so the next wallet never shows its figures. */
+    val resetOverview: () -> Unit = {},
 )

@@ -61,6 +61,16 @@ class WalletOverviewPublisher(
         if (!_overview.value.hasSynced) _overview.value = hidden
     }
 
+    /**
+     * The wallet is gone — `bittrWallet = BittrWallet()` in `performWalletReset`. Back to an empty,
+     * not-synced overview, and the pull-to-refresh snapshot is dropped too, so neither Home nor a
+     * refresh that ends later can show the removed wallet's figures for the next one.
+     */
+    fun reset() = synchronized(lock) {
+        beforeResync = null
+        _overview.value = WalletOverview(hasNode = hasNode)
+    }
+
     fun publish(reading: WalletNodeReading, snapshot: WalletBalanceSnapshot) = synchronized(lock) {
         beforeResync = null
         _overview.value = WalletOverview(

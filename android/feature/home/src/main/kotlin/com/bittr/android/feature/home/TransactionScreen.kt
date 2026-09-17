@@ -59,6 +59,7 @@ import com.bittr.android.core.designsystem.rememberStrokeIcon
 import com.bittr.android.core.wallet.BittrPurchaseSource
 import com.bittr.android.core.wallet.FiatPrice
 import com.bittr.android.core.wallet.FiatPriceSource
+import com.bittr.android.core.wallet.HomeCache
 import com.bittr.android.core.wallet.TransactionNoteStore
 import com.bittr.android.core.wallet.WalletOverviewSource
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -85,6 +86,7 @@ class TransactionViewModel @Inject constructor(
     prices: FiatPriceSource,
     private val notes: TransactionNoteStore,
     private val purchases: BittrPurchaseSource,
+    private val cache: HomeCache = HomeCache.None,
 ) : ViewModel() {
 
     private val id: String = checkNotNull(savedStateHandle[ID_ARG]) { "transaction route without an id" }
@@ -111,14 +113,19 @@ class TransactionViewModel @Inject constructor(
         purchasePrice,
     ) { wallet, price, notes, bought, purchasePrice ->
         val purchase = bought[id]
+        // A row Home showed from the cache before the first sync opens too, as on iOS, where
+        // `transactionButtonTapped` is not guarded; confirmations count from `cachedHeight`.
+        val cached = cache.cached.value?.takeUnless { wallet.hasSynced }
         // The funding purchase is not a row of this wallet's history; bittr's record stands in for it.
-        val activity = wallet.transactions.firstOrNull { it.id == id } ?: purchase?.let(::purchaseActivity)
+        val activity = wallet.transactions.firstOrNull { it.id == id }
+            ?: cached?.transactions?.firstOrNull { it.id == id }
+            ?: purchase?.let(::purchaseActivity)
         activity?.let {
             transactionDetail(
                 activity = it,
                 price = price,
-                currentHeight = wallet.currentHeight,
-                closureTxIds = wallet.channelClosureTxIds,
+                currentHeight = wallet.currentHeight ?: cache.cached.value?.currentHeight,
+                closureTxIds = wallet.channelClosureTxIds.ifEmpty { cached?.channelClosureTxIds.orEmpty() },
                 note = notes[it.id],
                 purchase = purchase,
                 confetti = confetti,

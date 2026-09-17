@@ -26,7 +26,13 @@ import javax.inject.Singleton
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import androidx.lifecycle.viewModelScope
+import com.bittr.android.core.wallet.CachedProfit
+import com.bittr.android.core.wallet.HomeCache
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.stateIn
 
 @Module
 @InstallIn(SingletonComponent::class)
@@ -77,6 +83,7 @@ object BuyModule {
         http: HttpClient,
         environment: BittrEnvironment,
         signer: BittrRequestSigner,
+        homeCache: HomeCache,
     ): AppProfits = AppProfits(
         store = store,
         overview = composition.overview,
@@ -87,13 +94,22 @@ object BuyModule {
         environment = environment,
         signer = signer,
         scope = CoroutineScope(SupervisorJob() + Dispatchers.IO),
+        homeCache = homeCache,
     ).also { it.start() }
 }
 
 @HiltViewModel
 class BuyViewModel @Inject constructor(val source: BuySource) : ViewModel()
 
+/**
+ * Home's profit pill and the Profits screen: this launch's summary once it is computed, and the last
+ * launch's cached one until then — `showCachedData()` runs `calculateProfit()` on the cached history.
+ */
 @HiltViewModel
-class ProfitsViewModel @Inject constructor(profits: AppProfits) : ViewModel() {
-    val summary: StateFlow<ProfitSummary?> = profits.summary
+class ProfitsViewModel @Inject constructor(profits: AppProfits, cache: HomeCache) : ViewModel() {
+    val summary: StateFlow<ProfitSummary?> = combine(profits.summary, cache.cached) { live, cached ->
+        live ?: cached?.profit?.toSummary()
+    }.stateIn(viewModelScope, SharingStarted.Eagerly, profits.summary.value ?: cache.cached.value?.profit?.toSummary())
 }
+
+private fun CachedProfit.toSummary() = ProfitSummary(totalProfit, totalInvestment, currentValue, currencySymbol)
