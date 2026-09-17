@@ -34,6 +34,10 @@ import kotlinx.coroutines.sync.withLock
  * Each time the wallet overview publishes a new set of transactions, the received ones not yet
  * sent to bittr are sent to `GET /transaction_info`; the purchases it confirms are stored, and
  * the summary is recomputed from them at today's prices.
+ *
+ * The summary is recomputed from the last prices read, the moment a purchase or the history
+ * changes — iOS's `calculateProfit()` uses its cached conversion rates too. Waiting on two price
+ * requests first left the Profits screen on the old totals for a while after a payout.
  */
 class AppProfits(
     private val store: BittrCustomerStore,
@@ -57,6 +61,15 @@ class AppProfits(
 
     private val lookup = Mutex()
 
+    /** The last prices read, [Prices.NONE] until the first read lands. */
+    private val lastPrices = MutableStateFlow(Prices.NONE)
+
+    private data class Prices(val eur: Double?, val chf: Double?) {
+        companion object {
+            val NONE = Prices(null, null)
+        }
+    }
+
     fun start() {
         scope.launch {
             overview.overview
@@ -65,8 +78,17 @@ class AppProfits(
                 .distinctUntilChanged()
                 .collect { lookUpPurchases() }
         }
+        // Prices: read once synced, and again when the history changes or the currency does.
         scope.launch {
-            combine(overview.overview, store.purchases, preferences.currency) { snapshot, _, _ -> snapshot }
+            combine(overview.overview, preferences.currency) { snapshot, currency ->
+                snapshot.takeIf { it.hasSynced }?.let { it.transactions.map { tx -> tx.id } to currency }
+            }
+                .filter { it != null }
+                .distinctUntilChanged()
+                .collect { refreshPrices() }
+        }
+        scope.launch {
+            combine(overview.overview, store.purchases, preferences.currency, lastPrices) { snapshot, _, _, _ -> snapshot }
                 .filter { it.hasSynced }
                 .collect { recalculate() }
         }
@@ -78,6 +100,13 @@ class AppProfits(
      */
     fun reset() {
         _summary.value = null
+    }
+
+    private suspend fun refreshPrices() {
+        val eur = prices.price(Currency.EUR)
+        val chf = prices.price(Currency.CHF)
+        // A failed read keeps the price it replaces.
+        lastPrices.value = Prices(eur ?: lastPrices.value.eur, chf ?: lastPrices.value.chf)
     }
 
     private suspend fun lookUpPurchases() = lookup.withLock {
@@ -106,12 +135,11 @@ class AppProfits(
         if (rows.isNotEmpty()) store.addPurchases(rows)
     }
 
-    private suspend fun recalculate() {
+    private fun recalculate() {
         val purchases = store.purchases.value
         val transactions = overview.overview.value.transactions
         val chosen = preferences.currency.value
-        val eur = prices.price(Currency.EUR)
-        val chf = prices.price(Currency.CHF)
+        val (eur, chf) = lastPrices.value
         val chosenPrice = (if (chosen == Currency.EUR) eur else chf) ?: return
         val inputs = transactions.mapNotNull { tx ->
             val purchase = purchases[tx.id] ?: return@mapNotNull null
