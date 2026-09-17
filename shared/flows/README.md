@@ -309,6 +309,13 @@ shared/flows/
 shared/flows/test_suite.sh
 shared/flows/test_suite.sh --device "iPhone 15"   # extra args pass to maestro
 
+# The same suite on Android (emulator or phone). --boot starts the bittr-gapi AVD,
+# --install builds and installs the regtest app first (node settings from
+# ~/.bittr/android-regtest.env — never committed). Single flows work too.
+shared/flows/test_suite_android.sh --boot --install --keep-going
+shared/flows/test_suite_android.sh features/receive.yaml
+shared/flows/test_suite_android.sh --device <serial> --from bitcoin_map
+
 # Single flow — needs APP_ID, see "App id" below
 maestro test --env APP_ID=com.bittr.bittr-regtest \
              shared/flows/onboarding/fresh_install.yaml
@@ -353,7 +360,7 @@ differs between the two platforms:
 | | app id | supplied by |
 |---|---|---|
 | iOS debug | `com.bittr.bittr-regtest` | `test_suite.sh` (default; override with `APP_ID=…`) |
-| Android debug | `com.bittr.android.regtest` | `.github/workflows/android-maestro.yml` → `android/scripts/ci-smoke.sh` |
+| Android debug | `com.bittr.android.regtest` | `test_suite_android.sh` locally; `.github/workflows/android-maestro.yml` → `android/scripts/ci-smoke.sh` in CI |
 
 Android `applicationId`s cannot contain hyphens, which is the entire reason the
 two differ. Parameterising it is what lets the **same flow file** run on both — a
