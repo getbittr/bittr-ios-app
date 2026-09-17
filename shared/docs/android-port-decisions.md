@@ -101,9 +101,10 @@ Status key: **Decided** (done, reversible) · **Question** (needs your answer) �
 8b. **Decided — the pending-payout check skips payouts that are already finished.** bittr's `GET /notifications`
     kept listing a payout that `POST /payout/lightning` then answered "This payment has already been processed.",
     so the same payout was offered forever. Android now remembers payouts that paid out or got that answer
-    (`processedPayouts` in the customer store) and offers the newest one not among them, and logs each listed
-    notification's id and status (`DeviceNode` tag). iOS has the same problem; **Question:** should the backend
-    drop processed notifications from the list (or mark them with a status the apps can filter on)?
+    (`processedPayouts` in the customer store), skips notifications bittr marks `acknowledged` (paid), and offers the
+    newest remaining one; each listed notification's id and status is logged (`DeviceNode` tag). Reported with the
+    observed statuses on issue #96. iOS has the same problem; **Question:** should the backend
+    drop processed notifications from the list, and keep `status` in sync (one processed payout stayed `sent`)?
 
 ## Wallet removal (Device details, Forgot PIN, 10 wrong PINs)
 
@@ -158,10 +159,9 @@ Full log: `android/docs/port-specs/notifications-decisions.md`. The two that nee
 
 Full log: `android/docs/port-specs/buy-decisions.md`. What needs you:
 
-21. **Question — `buy_signup_no_notifications.yaml` on Android.** Maestro denies the notification permission
-    before the app has ever asked, so the app still shows its own "receive notifications" prompt, and Okay then
-    opens the system dialog, which the flow doesn't expect. Add an Android-only "Don't allow" step to the flow,
-    or change the app?
+21. **Decided (Ruben, 2026-09-17) — the app explains notifications first, then Android asks**, as on iOS. The flow
+    `buy_signup_no_notifications.yaml` gets an Android-only step that taps the system dialog's "Don't allow" after
+    the in-app prompt, because Maestro's `notifications: deny` doesn't answer that dialog on Android.
 
 22. **Decided — onboarding continues into the bittr signup** as on iOS: Continue on "Your wallet is ready" opens
     the Buy signup pages (IBAN, email, code, success, transfer); Skip still goes to the wallet. The navigation
@@ -241,8 +241,8 @@ Full log: `android/docs/port-specs/lnurl-decisions.md`.
     prompt appears on Send rather than over the page.
 
 35b. **Decided — Send's "why a limit" card shows the channel chart** and balance/reserve/limit text when a
-    channel is active. **Question:** without a channel iOS's header reads "why can't I *receive* instant
-    payments?" on a Send screen — ported as-is; is that the intended copy?
+    channel is active. Without a channel the header reads "why can't I *receive* instant payments?", as on iOS
+    (Ruben, 2026-09-17: keep it).
 
 36. **Decided — the channel-closed card** (`question.yellowCard`, "closed lightning connection") now opens from
     LDK's `ChannelClosed` event, as `remove_wallet.yaml` expects, and like iOS it stays hidden during the
@@ -290,7 +290,8 @@ transaction confirmations. All of it passes JVM unit tests. What remains:
 - **Verification:** only `restore_wallet`, `receive`, `receive_onchain`, `send_onchain`, `send_onchain_all`,
   `bitcoin_value` and `academy` have passed Maestro on the emulator (2026-09-14). Everything since has been
   tried by hand on Ruben's phone only (item 10b). Next: run the suite on `bittr-gapi` or CI.
-- **Open questions:** 21 (`buy_signup_no_notifications.yaml` on Android), 35b (Send limit card copy).
+- **Open questions:** 8b (backend: processed payouts in `/notifications`, issue #96).
 - **Known gaps:** signup article cards, the connectivity check between signup pages and the Sentry signup
-  metric (25); Swap & Pay's second id (31); no Live Activity equivalent and no `-evilBoltz` harness (31); the
-  clipboard bridge for paste steps in flows and the injected link-finder script (35).
+  metric (25); Swap & Pay's second id (31); the clipboard bridge for paste steps in flows and the injected
+  link-finder script (35); no `-evilBoltz` harness (31). No Live Activity equivalent: not needed (Ruben,
+  2026-09-17).

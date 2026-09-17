@@ -49,13 +49,17 @@ object PendingPayouts {
      * @param skip notification ids already paid out or answered "already processed" — the newest
      *   complete notification **not** in it is offered, so a processed payout the list still
      *   carries doesn't block the next one.
+     *
+     * Notifications bittr marks [ACKNOWLEDGED] are skipped too: that is the status a payout gets once
+     * it has been paid, and the list keeps returning them (issue #96). iOS doesn't look at the status.
      */
     fun parse(response: HttpResponse, skip: Set<String> = emptySet()): Outcome {
         val root = runCatching { Json.parseToJsonElement(response.body) }.getOrNull() as? JsonObject
             ?: return Outcome.None
         val data = root["data"] as? JsonArray ?: return Outcome.None
         val complete = data.takeWhile { it is JsonObject && it.isComplete() }.map { it as JsonObject }
-        val last = complete.lastOrNull { it.string("id") !in skip } ?: return Outcome.None
+        val last = complete.lastOrNull { it.string("id") !in skip && it.string("status") != ACKNOWLEDGED }
+            ?: return Outcome.None
         val id = last.string("id") ?: return Outcome.None
         val bitcoinAmount = (last["transaction"] as JsonObject).string("bitcoin_amount") ?: return Outcome.None
         val msats = bitcoinToMsats(bitcoinAmount) ?: return Outcome.None
@@ -72,6 +76,9 @@ object PendingPayouts {
             "${o?.string("id")}(${o?.string("status")}, ${o?.string("notification_type")}${if (o?.isComplete() == true) "" else ", incomplete"})"
         }
     }
+
+    /** The status of a payout notification that has been paid out. */
+    const val ACKNOWLEDGED = "acknowledged"
 
     private val REQUIRED_STRINGS = listOf("inserted_at", "sent_at", "status", "notification_type", "id", "last_attempt_at")
 

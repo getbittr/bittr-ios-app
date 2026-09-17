@@ -339,6 +339,20 @@ appId: ${APP_ID}
       - takeScreenshot: shared/docs/screenshots/buy_signup_no_notifications/05_notifications_prompt
       - tapOn:
           id: "alert.button.0"
+      # Android: `permissions: notifications: deny` doesn't answer the system dialog
+      # for an app that has never asked, so it still appears after the in-app prompt
+      # (the same order iOS uses: explain first, then the OS asks). Deny it here.
+      # "Don't allow" / "Don’t allow" varies in apostrophe between Android versions.
+      - runFlow:
+          when:
+            platform: Android
+          commands:
+            - extendedWaitUntil:
+                visible:
+                  text: "Don.t allow"
+                timeout: 10000
+            - tapOn:
+                text: "Don.t allow"
 
 # Alert B: the denied-notifications gate, [Cancel (button.0), Continue
 # (button.1)] — reached either after the system dialog (undetermined case) or

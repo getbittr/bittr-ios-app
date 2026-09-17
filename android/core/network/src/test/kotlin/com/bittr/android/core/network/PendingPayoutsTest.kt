@@ -5,8 +5,8 @@ import org.junit.Test
 
 class PendingPayoutsTest {
 
-    private fun item(id: String, amount: String = "0.0001", sentAt: String? = "2026-09-15T08:00:00") =
-        """{"inserted_at":"2026-09-15T07:59:00",${sentAt?.let { "\"sent_at\":\"$it\"," } ?: ""}"status":"sent",""" +
+    private fun item(id: String, amount: String = "0.0001", sentAt: String? = "2026-09-15T08:00:00", status: String = "sent") =
+        """{"inserted_at":"2026-09-15T07:59:00",${sentAt?.let { "\"sent_at\":\"$it\"," } ?: ""}"status":"$status",""" +
             """"notification_type":"lightning_payout","attempts_count":1,"id":"$id",""" +
             """"last_attempt_at":"2026-09-15T08:00:00","transaction":{"bitcoin_amount":"$amount"}}"""
 
@@ -42,6 +42,12 @@ class PendingPayoutsTest {
             PendingPayouts.parse(HttpResponse(200, body), skip = setOf("n2")),
         )
         assertEquals(PendingPayouts.Outcome.None, PendingPayouts.parse(HttpResponse(200, body), skip = setOf("n1", "n2")))
+    }
+
+    @Test
+    fun `a payout bittr marks acknowledged is already paid and is skipped`() {
+        val body = """{"data":[${item("n1", "0.0002")},${item("n2", "0.0001", status = "acknowledged")}]}"""
+        assertEquals(PendingPayouts.Outcome.Available("n1", 20_000_000), PendingPayouts.parse(HttpResponse(200, body)))
     }
 
     @Test
