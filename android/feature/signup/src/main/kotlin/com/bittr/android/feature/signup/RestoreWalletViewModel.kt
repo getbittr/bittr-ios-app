@@ -140,8 +140,9 @@ class RestoreWalletViewModel @Inject constructor(
      * reports `Uninitialized`, and landing on Home for a wallet the app does not
      * consider set up would put the user one relaunch away from signup again.
      *
-     * **The wallet is unlocked with the PIN just confirmed**, then started — what
-     * `UnlockViewModel` does on a correct PIN. iOS finishes Restore3 signed in, and
+     * **The wallet is unlocked with the PIN just confirmed**, and the node is started
+     * behind Home rather than before it — what `UnlockViewModel` does on a correct
+     * PIN, and what `RestoreViewController.swift:306` does with `startWallet()`. iOS finishes Restore3 signed in, and
      * [WalletService.setPin] alone leaves the wallet `Locked`: correct for the next
      * launch, wrong for this one, because the navigation graph follows the wallet's
      * state and a `Locked` wallet sends it to the PIN pad instead of Home. That is
@@ -163,9 +164,11 @@ class RestoreWalletViewModel @Inject constructor(
             try {
                 wallet.setPin(pin)
                 wallet.unlock(pin)
-                wallet.start()
                 finish()
                 onDone()
+                // Cancelled when this ViewModel is cleared; the start itself runs in
+                // `WalletNodeHost`'s own scope and only the waiting stops.
+                launch { wallet.start() }
             } catch (e: WalletStorageException) {
                 firstPin = null
                 _uiState.value = _uiState.value.copy(

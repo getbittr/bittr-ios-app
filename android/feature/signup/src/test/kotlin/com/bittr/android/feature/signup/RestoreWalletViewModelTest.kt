@@ -4,6 +4,7 @@ import com.bittr.android.core.wallet.SecureStore
 import com.bittr.android.core.wallet.WalletState
 import com.bittr.android.core.wallet.WalletStorageException
 import com.bittr.android.core.wallet.seed.SeedWalletService
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.StandardTestDispatcher
@@ -229,5 +230,28 @@ class RestoreWalletViewModelTest {
 
         vm.dismissAlert()
         assertNull(vm.uiState.value.alert)
+    }
+
+    /**
+     * `RestoreViewController.swift:306` calls `startWallet()` and hides signup; Home
+     * appears with the node still coming up. The hand-off must not wait for it.
+     */
+    @Test
+    fun `the hand-off to Home happens before the node start finishes`() = runTest(dispatcher) {
+        val nodeUp = CompletableDeferred<Unit>()
+        val wallet = SlowStartWallet(SeedWalletService(RestoreFakeStore(), derivation = Dispatchers.Unconfined), nodeUp)
+        val vm = RestoreWalletViewModel(wallet)
+        var finished = false
+
+        vm.submitPhrase(flowPhrase)
+        advanceUntilIdle()
+        vm.submitFirstPin("1234")
+        vm.submitConfirmationPin("1234") { finished = true }
+        advanceUntilIdle()
+
+        assertTrue("Restore3 must hand off to Home", finished)
+        assertTrue("the node start must still be requested", wallet.startRequested)
+        assertFalse("the hand-off must not wait for the node", nodeUp.isCompleted)
+        nodeUp.complete(Unit)
     }
 }

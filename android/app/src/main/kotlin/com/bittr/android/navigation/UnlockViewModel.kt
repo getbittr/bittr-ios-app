@@ -159,7 +159,13 @@ class UnlockViewModel @Inject constructor(
         removal.removeWalletTapped(RemovalOrigin.ForgotPin)
     }
 
-    /** @param onUnlocked runs only after the PIN was right and the wallet is up. */
+    /**
+     * @param onUnlocked runs as soon as the PIN was right. The node comes up *behind*
+     *   Home, not in front of it: iOS's `PinViewController` lowers the PIN view and
+     *   calls `startWallet()` in the same breath, and Home shows its cached figures
+     *   with the sync spinner until the reading lands. Awaiting the start here kept
+     *   the pad on screen for the seconds a node start takes (Ruben, 2026-09-17).
+     */
     fun submitPin(pin: String, onUnlocked: () -> Unit) {
         if (_uiState.value.busy) return
         _uiState.value = _uiState.value.copy(busy = true)
@@ -170,12 +176,9 @@ class UnlockViewModel @Inject constructor(
             }
 
             if (wallet.unlock(pin)) {
-                // No node to bring up until BIT-6 — start() is the stub's no-op today,
-                // but calling it here means the lifecycle hook already exists when it
-                // is not.
-                wallet.start()
                 _uiState.value = _uiState.value.copy(busy = false)
                 onUnlocked()
+                startWalletBehindHome()
                 return@launch
             }
 
@@ -190,6 +193,19 @@ class UnlockViewModel @Inject constructor(
             }
             _uiState.value = _uiState.value.copy(busy = false, alert = alert)
         }
+    }
+
+    /**
+     * `CoreViewController.startWallet()`, launched rather than awaited.
+     *
+     * Safe to leave running past this ViewModel: navigating to Home clears it, which
+     * cancels this coroutine, and `WalletNodeHost.start` runs the whole start —
+     * runners included — in its own process-lifetime scope, so a cancelled caller
+     * only stops waiting. (Its class comment is the argument.) In a build with no
+     * node the call is the seed service's no-op.
+     */
+    private fun startWalletBehindHome() {
+        viewModelScope.launch { wallet.start() }
     }
 
     /** The "Forgot PIN" button under the pad — `restoreButtonTapped`, `.core`. */

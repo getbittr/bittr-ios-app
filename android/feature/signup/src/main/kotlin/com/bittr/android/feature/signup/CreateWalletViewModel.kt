@@ -219,11 +219,10 @@ class CreateWalletViewModel @Inject constructor(
         viewModelScope.launch {
             try {
                 wallet.setPin(pin)
-                // Signed in, as iOS is on Signup7: unlock with the PIN just confirmed and
-                // start the wallet, as `UnlockViewModel` does. `setPin` alone leaves it
-                // `Locked`, and the navigation graph follows that state to the PIN pad.
+                // Signed in, as iOS is on Signup7: unlock with the PIN just confirmed, as
+                // `UnlockViewModel` does. `setPin` alone leaves it `Locked`, and the
+                // navigation graph follows that state to the PIN pad.
                 wallet.unlock(pin)
-                wallet.start()
                 firstPin = null
                 _uiState.value = _uiState.value.copy(
                     step = CreateWalletStep.Ready,
@@ -232,6 +231,12 @@ class CreateWalletViewModel @Inject constructor(
                     mnemonic = null,
                     challenge = null,
                 )
+                // Behind the Ready screen, not before it — `Signup6ViewController.swift:56`
+                // calls `startWallet()` and moves on. Awaiting it here held the PIN pad
+                // for as long as a node start takes. Cancelled when this ViewModel is
+                // cleared, which `WalletNodeHost.start` is built for: the start itself
+                // runs in the host's own scope and only the waiting stops.
+                launch { wallet.start() }
             } catch (e: WalletStorageException) {
                 firstPin = null
                 _uiState.value = _uiState.value.copy(

@@ -17,6 +17,7 @@ import com.bittr.android.core.designsystem.BittrTheme
 import com.bittr.android.core.wallet.Mnemonic
 import com.bittr.android.core.wallet.PinLockout
 import com.bittr.android.core.wallet.SecureStore
+import com.bittr.android.core.wallet.WalletService
 import com.bittr.android.core.wallet.WalletState
 import com.bittr.android.core.wallet.seed.SeedWalletService
 import com.bittr.android.navigation.UnlockScreen
@@ -27,6 +28,7 @@ import com.bittr.android.removal.RemovalFlagStore
 import com.bittr.android.removal.RemovalNode
 import com.bittr.android.removal.WalletRemovalCoordinator
 import com.bittr.android.removal.WalletRemovalHost
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
@@ -106,7 +108,7 @@ class PinGateFlowTest {
     private fun gate(
         onUnlocked: () -> Unit = {},
         onWalletWiped: () -> Unit = {},
-        over: SeedWalletService = wallet,
+        over: WalletService = wallet,
     ): UnlockViewModel {
         // No node in this build: the channel branches are WalletRemovalCoordinatorTest's.
         val removal = WalletRemovalCoordinator(
@@ -158,6 +160,29 @@ class PinGateFlowTest {
 
         composeRule.waitUntil(TIMEOUT_MS) { unlocked }
         assertEquals(WalletState.Ready, wallet.state.value)
+    }
+
+    /**
+     * `PinViewController` lowers the PIN view and calls `startWallet()` in the same
+     * breath; Home shows cached figures under the sync spinner until the node is up.
+     * Awaiting the start before `onUnlocked` held the pad for the seconds a node start
+     * takes (Ruben, 2026-09-17). The start still has to be asked for — a pad that
+     * opened Home and never started the node would pass a weaker version of this.
+     */
+    @Test
+    fun `a correct PIN opens Home before the node is up`() {
+        aWalletWithPin1234()
+        val nodeUp = CompletableDeferred<Unit>()
+        val slow = SlowStartWallet(wallet, nodeUp)
+        var unlocked = false
+        gate(onUnlocked = { unlocked = true }, over = slow)
+
+        enterPin(CORRECT_PIN)
+
+        composeRule.waitUntil(TIMEOUT_MS) { unlocked }
+        composeRule.waitUntil(TIMEOUT_MS) { slow.startRequested }
+        assertFalse("Home opened before the node start finished", nodeUp.isCompleted)
+        nodeUp.complete(Unit)
     }
 
     // -----------------------------------------------------------------------

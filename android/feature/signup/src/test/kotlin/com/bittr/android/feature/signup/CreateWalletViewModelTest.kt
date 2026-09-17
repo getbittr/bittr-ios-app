@@ -6,6 +6,7 @@ import com.bittr.android.core.wallet.WalletState
 import com.bittr.android.core.wallet.WalletStorageException
 import com.bittr.android.core.wallet.seed.SeedChallenge
 import com.bittr.android.core.wallet.seed.SeedWalletService
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.StandardTestDispatcher
@@ -15,8 +16,10 @@ import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 
@@ -258,5 +261,30 @@ class CreateWalletViewModelTest {
 
         assertEquals(SeedChallenge.ASK_COUNT, vm.uiState.value.challenge?.positions?.size)
         assertNotNull(first)
+    }
+
+    /**
+     * `Signup6ViewController.swift:56` calls `startWallet()` and moves on to Signup7;
+     * the node comes up behind the Ready screen. Awaiting it here kept the PIN pad on
+     * screen for as long as a node start takes (Ruben, 2026-09-17).
+     */
+    @Test
+    fun `Ready is reached before the node start finishes`() = runTest {
+        val nodeUp = CompletableDeferred<Unit>()
+        val wallet = SlowStartWallet(SeedWalletService(FakeStore(), derivation = Dispatchers.Unconfined), nodeUp)
+        val vm = CreateWalletViewModel(wallet)
+        vm.createWallet()
+        advanceUntilIdle()
+        vm.confirmPhraseSeen()
+        vm.submitVerification(correctAnswers(vm.uiState.value))
+        vm.submitFirstPin("4821")
+
+        vm.submitConfirmationPin("4821")
+        advanceUntilIdle()
+
+        assertEquals(CreateWalletStep.Ready, vm.uiState.value.step)
+        assertTrue("the node start must still be requested", wallet.startRequested)
+        assertFalse("Ready must not wait for the node", nodeUp.isCompleted)
+        nodeUp.complete(Unit)
     }
 }
