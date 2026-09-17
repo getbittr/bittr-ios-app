@@ -15,6 +15,8 @@ enum class SwapActivityDirection { OnchainToLightning, LightningToOnchain }
  *   status shown on the transaction screen.
  * @property amountSats the swap file's `satoshisAmount` — what was swapped, which the transaction
  *   screen shows for a pending swap and a Swap & Pay leg. Null when the swap file is not on the device.
+ * @property file a Swap & Pay leg's second id, from the swap file: the paid invoice's payment hash
+ *   (on-chain → Lightning) or the on-chain payout transaction (Lightning → on-chain).
  */
 data class SwapActivity(
     val dateId: String,
@@ -25,7 +27,14 @@ data class SwapActivity(
     val onchainId: String? = null,
     val lightningId: String? = null,
     val amountSats: Long? = null,
+    val file: SwapFileIds? = null,
 )
+
+/**
+ * The ids a Swap & Pay leg's transaction screen reads from the swap file (`TransactionViewController`,
+ * `isSuggestedSwap`): `createdInvoice?.getInvoiceHash()` and `sentOnchainTransactionID`.
+ */
+data class SwapFileIds(val paidInvoiceHash: String?, val sentOnchainTxId: String?)
 
 /** Where transaction descriptions are kept — iOS `CacheManager.storeInvoiceDescription`. */
 interface TransactionDescriptionStore {
@@ -61,12 +70,14 @@ object SwapHistory {
      *
      * @param swapIdFor `CacheManager.getSwapID(dateID:)`.
      * @param swapAmountFor the swap file's `satoshisAmount` for a `dateID`, when the file is on the device.
+     * @param swapFileIdsFor a Swap & Pay's ids from its swap file, for its second id row.
      * @param suggestedStatus `CacheManager.getSuggestedSwapStatus(dateID:)`.
      */
     fun matched(
         transactions: List<WalletActivity>,
         swapIdFor: (String) -> String?,
         swapAmountFor: (String) -> Long? = { null },
+        swapFileIdsFor: (String) -> SwapFileIds? = { null },
         suggestedStatus: (String) -> SwapActivityStatus?,
     ): List<WalletActivity> {
         val groups = transactions
@@ -84,7 +95,7 @@ object SwapHistory {
                 }
                 1 -> {
                     val index = current.indexOfFirst { it === legs[0] }
-                    current[index] = pending(dateId, legs[0], swapIdFor(dateId), suggestedStatus(dateId), swapAmountFor(dateId))
+                    current[index] = pending(dateId, legs[0], swapIdFor(dateId), suggestedStatus(dateId), swapAmountFor(dateId), swapFileIdsFor)
                 }
             }
         }
@@ -150,12 +161,24 @@ object SwapHistory {
         )
     }
 
-    private fun pending(dateId: String, leg: WalletActivity, boltzId: String?, suggested: SwapActivityStatus?, amount: Long?): WalletActivity {
+    private fun pending(
+        dateId: String,
+        leg: WalletActivity,
+        boltzId: String?,
+        suggested: SwapActivityStatus?,
+        amount: Long?,
+        fileIdsFor: (String) -> SwapFileIds?,
+    ): WalletActivity {
         val direction = direction(dateId)
         val onchainId = leg.id.takeIf { !leg.isLightning }
         val lightningId = leg.id.takeIf { leg.isLightning }
         if (suggested != null) {
-            return leg.copy(swap = SwapActivity(dateId, boltzId, suggested, direction, isSuggested = true, onchainId = onchainId, lightningId = lightningId, amountSats = amount))
+            return leg.copy(
+                swap = SwapActivity(
+                    dateId, boltzId, suggested, direction, isSuggested = true,
+                    onchainId = onchainId, lightningId = lightningId, amountSats = amount, file = fileIdsFor(dateId),
+                ),
+            )
         }
         return WalletActivity(
             id = stripped(dateId),

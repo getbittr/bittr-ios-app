@@ -3,6 +3,7 @@ package com.bittr.android.feature.home
 import com.bittr.android.core.wallet.SwapActivity
 import com.bittr.android.core.wallet.SwapActivityDirection
 import com.bittr.android.core.wallet.SwapActivityStatus
+import com.bittr.android.core.wallet.SwapFileIds
 import com.bittr.android.core.wallet.WalletActivity
 import java.util.TimeZone
 import org.junit.Assert.assertEquals
@@ -107,6 +108,38 @@ class SwapTransactionDetailTest {
         )
         assertEquals("- 21 500 sats", detail.amount)
         assertEquals("200 sats", detail.fees)
+    }
+
+    @Test
+    fun `a swap and pay leg shows its other side from the swap file below its own id`() {
+        fun leg(direction: SwapActivityDirection, file: SwapFileIds?) = WalletActivity(
+            id = "leg-id",
+            receivedSats = 0,
+            sentSats = 60_000,
+            feeSats = 200,
+            timestampSecs = 0,
+            isLightning = direction == SwapActivityDirection.LightningToOnchain,
+            confirmationHeight = null,
+            swap = SwapActivity("Swap onchain to lightning 1", "boltz1", SwapActivityStatus.Succeeded, direction, isSuggested = true, amountSats = 55_000, file = file),
+        )
+
+        val onchain = transactionDetail(leg(SwapActivityDirection.OnchainToLightning, SwapFileIds("hash1", null)), null, 100, utc)
+        assertEquals(HomeStrings.ONCHAIN_ID, onchain.idTitle)
+        assertEquals("leg-id", onchain.id)
+        assertEquals("leg-id", onchain.explorerId)
+        assertEquals(HomeStrings.LIGHTNING_ID, onchain.swap!!.bottomIdTitle)
+        assertEquals("hash1", onchain.swap!!.bottomId)
+        assertEquals(true, onchain.swap!!.bottomIdCopyable)
+
+        val lightning = transactionDetail(leg(SwapActivityDirection.LightningToOnchain, SwapFileIds(null, "tx9")), null, 100, utc)
+        assertEquals(HomeStrings.LIGHTNING_ID, lightning.idTitle)
+        assertEquals(null, lightning.explorerId)
+        assertEquals(HomeStrings.ONCHAIN_ID, lightning.swap!!.bottomIdTitle)
+        assertEquals("tx9", lightning.swap!!.bottomExplorerId)
+
+        val noFile = transactionDetail(leg(SwapActivityDirection.LightningToOnchain, null), null, 100, utc)
+        assertEquals(HomeStrings.UNAVAILABLE, noFile.swap!!.bottomId)
+        assertEquals(false, noFile.swap!!.bottomIdCopyable)
     }
 
     @Test

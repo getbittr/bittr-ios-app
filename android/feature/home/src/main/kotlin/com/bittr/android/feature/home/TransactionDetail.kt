@@ -176,6 +176,31 @@ internal fun transactionDetail(
         }
     }
 
+    if (suggestedSwap != null && swapDetail != null) {
+        // A Swap & Pay leg: the payment on top, the swap's other side from its file below.
+        id = activity.id
+        if (suggestedSwap.direction == SwapActivityDirection.OnchainToLightning) {
+            idTitle = HomeStrings.ONCHAIN_ID
+            explorerId = activity.id
+            val hash = suggestedSwap.file?.paidInvoiceHash
+            swapDetail = swapDetail.copy(
+                bottomIdTitle = HomeStrings.LIGHTNING_ID,
+                bottomId = hash ?: HomeStrings.UNAVAILABLE,
+                bottomIdCopyable = hash != null,
+            )
+        } else {
+            idTitle = HomeStrings.LIGHTNING_ID
+            explorerId = null
+            val txId = suggestedSwap.file?.sentOnchainTxId
+            swapDetail = swapDetail.copy(
+                bottomIdTitle = HomeStrings.ONCHAIN_ID,
+                bottomId = txId ?: HomeStrings.UNAVAILABLE,
+                bottomIdCopyable = txId != null,
+                bottomExplorerId = txId,
+            )
+        }
+    }
+
     // `labelAmount`.
     val amount = when {
         fullSwap != null -> when (fullSwap.status) {
