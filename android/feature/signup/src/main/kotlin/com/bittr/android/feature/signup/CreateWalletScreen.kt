@@ -5,6 +5,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.bittr.android.core.common.TestID
 import com.bittr.android.core.designsystem.BittrAlertDialog
@@ -43,6 +44,9 @@ fun CreateWalletScreen(
             confirmLabel = SignupStrings.OKAY,
             onConfirm = viewModel::dismissAlert,
             confirmTestTag = TestID.Alert.buttonAt(0),
+            // The alert's own id goes on the card, as iOS's `showAlert(id:)` does —
+            // BittrAlertDialog publishes it through exposeTestTags.
+            modifier = if (alert.tag != null) Modifier.testTag(alert.tag) else Modifier,
         )
     }
 

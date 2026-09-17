@@ -1,5 +1,6 @@
 package com.bittr.android.feature.signup
 
+import com.bittr.android.core.common.TestID
 import com.bittr.android.core.wallet.SecureStore
 import com.bittr.android.core.wallet.WalletState
 import com.bittr.android.core.wallet.WalletStorageException
@@ -128,6 +129,7 @@ class CreateWalletViewModelTest {
 
         assertEquals(CreateWalletStep.Verify, vm.uiState.value.step)
         assertEquals(SignupStrings.INCORRECT_PHRASE, vm.uiState.value.alert?.title)
+        assertEquals(TestID.Alert.incorrectPhrase, vm.uiState.value.alert?.tag)
     }
 
     @Test
@@ -142,6 +144,7 @@ class CreateWalletViewModelTest {
 
         assertEquals(CreateWalletStep.Verify, vm.uiState.value.step)
         assertEquals(SignupStrings.INVALID_WORDS, vm.uiState.value.alert?.title)
+        assertEquals(TestID.Alert.invalidWords, vm.uiState.value.alert?.tag)
     }
 
     @Test
@@ -155,6 +158,7 @@ class CreateWalletViewModelTest {
 
         assertEquals(CreateWalletStep.Verify, vm.uiState.value.step)
         assertEquals(SignupStrings.MISSING_WORDS, vm.uiState.value.alert?.title)
+        assertEquals(TestID.Alert.missingWords, vm.uiState.value.alert?.tag)
     }
 
     /** Rejection must be recoverable — the user retypes and gets through. */
@@ -191,6 +195,7 @@ class CreateWalletViewModelTest {
 
         assertEquals(CreateWalletStep.PinConfirm, vm.uiState.value.step)
         assertEquals(SignupStrings.INCORRECT_PIN, vm.uiState.value.alert?.title)
+        assertEquals(TestID.Alert.incorrectPin, vm.uiState.value.alert?.tag)
         assertEquals(WalletState.Uninitialized, wallet.state.value)
     }
 

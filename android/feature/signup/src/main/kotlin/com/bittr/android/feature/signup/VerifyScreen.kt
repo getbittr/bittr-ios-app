@@ -17,11 +17,15 @@ import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusDirection
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
@@ -43,6 +47,7 @@ import com.bittr.android.core.designsystem.BittrValueRow
 import com.bittr.android.core.designsystem.CanvasSpacer
 import com.bittr.android.core.wallet.Mnemonic
 import com.bittr.android.core.wallet.seed.SeedChallenge
+import com.bittr.android.core.wallet.seed.SeedCheck
 
 /**
  * Android counterpart of iOS `Signup4ViewController` — type three of the words back.
@@ -54,17 +59,27 @@ import com.bittr.android.core.wallet.seed.SeedChallenge
  * coverage here at all, which is the reason the check lives somewhere a unit test can
  * reach it.
  *
- * **Confirm dims until all three fields have something in them**, which is the mock's
- * `dim` state and better than iOS's "press it and get told off". The
- * `SeedCheck.Missing` branch behind it is *not* dead code — `isNotBlank` lets a field
- * of spaces through to it, which is exactly the input that should be told it is empty
- * rather than told it is wrong.
+ * **Confirm is always tappable, as on iOS.** The mock dims it until all three fields
+ * have something in them, and an earlier port did that — but
+ * `seed_gate_rejects_wrong_words.yaml` presses Confirm with a field empty and asserts
+ * `alert.missingWords`, and `shared/docs/parity.md` marks that flow parity-critical and
+ * to be passed unchanged. A dimmed button swallows the tap, so the `SeedCheck.Missing`
+ * branch never fires and the flow fails on Android alone. The rejection lives in the
+ * view model either way; this screen just lets the press through.
  *
  * **The keyboard never hides Confirm.** Next moves to the next word; Done on the third
- * submits once all three have something in them (iOS submits when the third field loses
- * focus with the right words). Tapping the heading closes the keyboard, as iOS's
- * `backgroundButtonTapped` does — `seed_gate_rejects_wrong_words.yaml` taps it before
- * Confirm — and the content is padded above the keyboard so the button stays reachable.
+ * submits once all three have something in them. Tapping the heading closes the
+ * keyboard, as iOS's `backgroundButtonTapped` does — `seed_gate_rejects_wrong_words.yaml`
+ * taps it before Confirm — and the content is padded above the keyboard so the button
+ * stays reachable.
+ *
+ * **The third field losing focus with the right words submits**, as
+ * `Signup4ViewController.textFieldDidEndEditing` does. Both `happy_path_wallet.yaml` and
+ * `seed_gate_rejects_wrong_words.yaml` type the three words, tap the heading to close
+ * the keyboard, and expect the PIN screen — never Confirm. Only a match advances:
+ * losing focus with wrong words must leave the user on this screen, and does. The
+ * screen remembers that it advanced so Done (which submits, then closes the keyboard)
+ * does not submit a second time on the focus change it causes.
  *
  * **The typed words are not `rememberSaveable`.** Three of the twelve words are still
  * three of the twelve; saved state is written to disk on process death, so the fields
@@ -97,7 +112,11 @@ fun VerifyScreen(
         focusManager.clearFocus()
         keyboard?.hide()
     }
+    // iOS advances once, on the blur; Done's own submit closes the keyboard, and that
+    // blur must not submit again.
+    var advanced by remember(challenge) { mutableStateOf(false) }
     fun submit() {
+        if (challenge.check(answers.toList()) == SeedCheck.Correct) advanced = true
         closeKeyboard()
         onSubmit(answers.toList())
     }
@@ -139,6 +158,13 @@ fun VerifyScreen(
                         onDone = {
                             if (answers.all { it.isNotBlank() }) submit() else closeKeyboard()
                         },
+                        onFocusLost = {
+                            if (index == SeedChallenge.ASK_COUNT - 1 && !advanced &&
+                                challenge.check(answers.toList()) == SeedCheck.Correct
+                            ) {
+                                submit()
+                            }
+                        },
                     )
                 }
 
@@ -146,7 +172,6 @@ fun VerifyScreen(
                 BittrPrimaryButton(
                     text = SignupStrings.CONFIRM,
                     onClick = ::submit,
-                    enabled = answers.all { it.isNotBlank() },
                     modifier = Modifier.testTag(TestID.Signup.Create.Verify.nextButton),
                 )
                 BittrTextButton(
@@ -181,7 +206,9 @@ private fun WordField(
     last: Boolean,
     onNext: () -> Unit,
     onDone: () -> Unit,
+    onFocusLost: () -> Unit,
 ) {
+    var focused by remember { mutableStateOf(false) }
     BittrValueRow {
         BittrNumeral(
             text = "$wordNumber",
@@ -228,6 +255,10 @@ private fun WordField(
                 ),
                 modifier = Modifier
                     .fillMaxWidth()
+                    .onFocusChanged { state ->
+                        if (focused && !state.isFocused) onFocusLost()
+                        focused = state.isFocused
+                    }
                     .testTag(fieldTag),
             )
         }

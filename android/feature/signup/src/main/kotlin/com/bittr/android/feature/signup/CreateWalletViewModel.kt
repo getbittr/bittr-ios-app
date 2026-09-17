@@ -2,6 +2,7 @@ package com.bittr.android.feature.signup
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.bittr.android.core.common.TestID
 import com.bittr.android.core.wallet.Mnemonic
 import com.bittr.android.core.wallet.WalletService
 import com.bittr.android.core.wallet.WalletStorageException
@@ -45,8 +46,16 @@ enum class CreateWalletStep {
     Ready,
 }
 
-/** A message the screen shows and the user dismisses. Mirrors the iOS alerts. */
-data class SignupAlert(val title: String, val message: String)
+/**
+ * A message the screen shows and the user dismisses. Mirrors the iOS alerts.
+ *
+ * [tag] is the alert's own test id (`alert.incorrectPhrase`, …), what iOS passes as
+ * `showAlert(id:)` and puts on the card. The flows tell the three seed-gate rejections
+ * apart by it, not by their wording — `seed_gate_rejects_wrong_words.yaml` asserts
+ * `alert.incorrectPhrase` is visible, and an alert without it is invisible to that
+ * assertion however right its copy is. Null where iOS shows the alert without an id.
+ */
+data class SignupAlert(val title: String, val message: String, val tag: String? = null)
 
 data class CreateWalletUiState(
     val step: CreateWalletStep = CreateWalletStep.Start,
@@ -153,11 +162,11 @@ class CreateWalletViewModel @Inject constructor(
                 return
             }
             SeedCheck.Missing ->
-                SignupAlert(SignupStrings.MISSING_WORDS, SignupStrings.MISSING_WORDS_2)
+                SignupAlert(SignupStrings.MISSING_WORDS, SignupStrings.MISSING_WORDS_2, TestID.Alert.missingWords)
             SeedCheck.NotInWordlist ->
-                SignupAlert(SignupStrings.INVALID_WORDS, SignupStrings.INVALID_WORDS_2)
+                SignupAlert(SignupStrings.INVALID_WORDS, SignupStrings.INVALID_WORDS_2, TestID.Alert.invalidWords)
             SeedCheck.Incorrect ->
-                SignupAlert(SignupStrings.INCORRECT_PHRASE, SignupStrings.INCORRECT_PHRASE_2)
+                SignupAlert(SignupStrings.INCORRECT_PHRASE, SignupStrings.INCORRECT_PHRASE_2, TestID.Alert.incorrectPhrase)
         }
         _uiState.value = _uiState.value.copy(alert = alert)
     }
@@ -202,7 +211,8 @@ class CreateWalletViewModel @Inject constructor(
         }
         if (pin != expected) {
             _uiState.value = _uiState.value.copy(
-                alert = SignupAlert(SignupStrings.INCORRECT_PIN, SignupStrings.REPEAT_NUMBER),
+                // `Signup6ViewController.swift:59` — the mismatch alert carries an id there too.
+                alert = SignupAlert(SignupStrings.INCORRECT_PIN, SignupStrings.REPEAT_NUMBER, TestID.Alert.incorrectPin),
             )
             return
         }

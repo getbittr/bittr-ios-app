@@ -1,5 +1,6 @@
 package com.bittr.android.feature.signup
 
+import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsFocused
 import androidx.compose.ui.test.assertIsNotFocused
 import androidx.compose.ui.test.junit4.createComposeRule
@@ -78,6 +79,58 @@ class VerifyScreenTest {
         field3.performClick()
         field3.performTextInput("accident")
         field3.performImeAction()
+
+        assertTrue(submitted.isEmpty())
+        field3.assertIsNotFocused()
+    }
+
+    /**
+     * `seed_gate_rejects_wrong_words.yaml` presses Confirm with a field empty and expects
+     * `alert.missingWords`. That alert is the view model's; the screen's part is to let
+     * the press through rather than dim the button and swallow it.
+     */
+    @Test
+    fun `Confirm with an empty field still submits so the missing-words alert can fire`() {
+        setContent()
+        composeRule.onNodeWithTag(TestID.Signup.Create.Verify.field2).performTextInput("absent")
+
+        val confirm = composeRule.onNodeWithTag(TestID.Signup.Create.Verify.nextButton)
+        confirm.assertIsEnabled()
+        confirm.performClick()
+
+        assertEquals(listOf(listOf("", "absent", "")), submitted)
+    }
+
+    /**
+     * `Signup4ViewController.textFieldDidEndEditing`: the third field losing focus with all
+     * three words right submits. `happy_path_wallet.yaml` and the seed-gate flow both rely
+     * on it — they tap the heading after the third word and expect the PIN screen.
+     */
+    @Test
+    fun `the third field losing focus with the right words submits once`() {
+        setContent()
+        composeRule.onNodeWithTag(TestID.Signup.Create.Verify.field1).performTextInput("abandon")
+        composeRule.onNodeWithTag(TestID.Signup.Create.Verify.field2).performTextInput("absent")
+        val field3 = composeRule.onNodeWithTag(TestID.Signup.Create.Verify.field3)
+        field3.performClick()
+        field3.performTextInput("accident")
+
+        composeRule.onNodeWithTag(TestID.Signup.Create.Verify.topLabel).performClick()
+
+        assertEquals(listOf(listOf("abandon", "absent", "accident")), submitted)
+    }
+
+    /** The blur alone must not advance — only a match does; wrong words stay put. */
+    @Test
+    fun `the third field losing focus with wrong words does not submit`() {
+        setContent()
+        composeRule.onNodeWithTag(TestID.Signup.Create.Verify.field1).performTextInput("abandon")
+        composeRule.onNodeWithTag(TestID.Signup.Create.Verify.field2).performTextInput("zoo")
+        val field3 = composeRule.onNodeWithTag(TestID.Signup.Create.Verify.field3)
+        field3.performClick()
+        field3.performTextInput("accident")
+
+        composeRule.onNodeWithTag(TestID.Signup.Create.Verify.topLabel).performClick()
 
         assertTrue(submitted.isEmpty())
         field3.assertIsNotFocused()
