@@ -102,15 +102,6 @@ object SignupStrings {
     const val CONTINUE = "Continue"
     const val SKIP = "Skip"
 
-    /**
-     * Shown on the Ready screen while BIT-6 is outstanding.
-     *
-     * BIT-93 ships a real seed and no funds on purpose: the key handling has not yet
-     * been reviewed by the Bitcoin Wallet Engineer, so the build must not show a
-     * mainnet receive address or take a deposit. Saying so on screen is cheaper than
-     * a user discovering it by sending money.
-     */
-    const val NO_FUNDS_YET =
-        "This build can create and protect your recovery phrase. Receiving and buying " +
-            "bitcoin are not switched on yet."
+    /** `firstbitcoin` — under "Your wallet is ready!" (Signup7). */
+    const val FIRST_BITCOIN = "Get your first bitcoin, hassle-free, here with one of our partners."
 }

@@ -28,6 +28,7 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.StrokeCap
@@ -195,6 +196,9 @@ fun BittrPrimaryButton(
         modifier = modifier
             .fillMaxWidth()
             .height(if (compact) ButtonHeightCompact else ButtonHeight)
+            // Clipped before `clickable`, so the press and focus highlight follows the pill
+            // instead of drawing a rectangle around it.
+            .clip(BittrCanvasShapes.pill)
             .background(
                 if (enabled) colors.actionFill else colors.actionFillDisabled,
                 BittrCanvasShapes.pill,
@@ -237,6 +241,7 @@ fun BittrTonalButton(
         modifier = modifier
             .fillMaxWidth()
             .height(if (compact) ButtonHeightCompact else ButtonHeight)
+            .clip(BittrCanvasShapes.pill)
             .background(colors.tonalFill, BittrCanvasShapes.pill)
             .clickable(role = Role.Button, onClick = onClick),
     ) {
