@@ -3,6 +3,7 @@ package com.bittr.android.feature.signup
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -182,30 +183,39 @@ fun RestoreScreen(
                 .padding(horizontal = CanvasGutter, vertical = BittrTokens.Spacing.lg),
         ) {
             BittrCard {
-                repeat(Bip39.WORD_COUNT) { index ->
-                    if (index > 0) CanvasSpacer(RowGap)
-                    val last = index == Bip39.WORD_COUNT - 1
-                    WordField(
-                        wordNumber = index + 1,
-                        value = words[index],
-                        onValueChange = { words[index] = it },
-                        fieldTag = RestoreFieldTags[index],
-                        last = last,
-                        focusRequester = focusRequesters[index],
-                        onPlaced = { top -> rowTops[index] = top },
-                        onFocusChange = { focused ->
-                            if (focused) {
-                                focusedIndex = index
-                            } else if (focusedIndex == index) {
-                                focusedIndex = NO_FOCUS
-                            }
-                        },
-                        // Next walks the fields; Done on the twelfth submits, which
-                        // is RestoreViewController's `textField.tag == 12` branch.
-                        onImeAction = {
-                            if (last) submit() else focusRequesters[index + 1].requestFocus()
-                        },
-                    )
+                // Two columns of six, as the storyboard lays them out (`Restore1`): twelve
+                // full-width rows push the buttons under them off the screen, and
+                // forgot_pin_remove_wallet.yaml taps `removeWalletButton` without scrolling.
+                repeat(Bip39.WORD_COUNT / FieldColumns) { row ->
+                    if (row > 0) CanvasSpacer(RowGap)
+                    Row(horizontalArrangement = Arrangement.spacedBy(RowGap)) {
+                        repeat(FieldColumns) { column ->
+                            val index = row * FieldColumns + column
+                            val last = index == Bip39.WORD_COUNT - 1
+                            WordField(
+                                wordNumber = index + 1,
+                                value = words[index],
+                                onValueChange = { words[index] = it },
+                                fieldTag = RestoreFieldTags[index],
+                                last = last,
+                                focusRequester = focusRequesters[index],
+                                onPlaced = { top -> rowTops[index] = top },
+                                onFocusChange = { focused ->
+                                    if (focused) {
+                                        focusedIndex = index
+                                    } else if (focusedIndex == index) {
+                                        focusedIndex = NO_FOCUS
+                                    }
+                                },
+                                // Next walks the fields; Done on the twelfth submits, which
+                                // is RestoreViewController's `textField.tag == 12` branch.
+                                onImeAction = {
+                                    if (last) submit() else focusRequesters[index + 1].requestFocus()
+                                },
+                                modifier = Modifier.weight(1f),
+                            )
+                        }
+                    }
                 }
 
                 CanvasSpacer(BittrTokens.Spacing.xl)
@@ -240,6 +250,9 @@ fun RestoreScreen(
 }
 
 private const val NO_FOCUS = -1
+
+/** The storyboard's two columns of six fields. */
+private const val FieldColumns = 2
 
 /** [BittrValueRow]'s default height, which every row here uses. */
 private val RowHeight = 56.dp
@@ -291,11 +304,12 @@ private fun WordField(
     onPlaced: (Int) -> Unit,
     onFocusChange: (Boolean) -> Unit,
     onImeAction: () -> Unit,
+    modifier: Modifier = Modifier,
 ) {
     BittrValueRow(
-        modifier = Modifier.onGloballyPositioned { onPlaced(it.positionInRoot().y.toInt()) },
+        modifier = modifier.onGloballyPositioned { onPlaced(it.positionInRoot().y.toInt()) },
     ) {
-        BittrNumeral(text = "$wordNumber", width = 22.dp)
+        BittrNumeral(text = "$wordNumber", width = 18.dp)
         Box(
             contentAlignment = Alignment.CenterStart,
             modifier = Modifier
