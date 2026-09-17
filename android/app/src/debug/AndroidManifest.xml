@@ -14,6 +14,15 @@
                 <action android:name="com.bittr.android.DEBUG_PUSH" />
             </intent-filter>
         </receiver>
+        <!-- The Maestro clipboard helper: see DebugClipboardReceiver and clipboard_server.js. -->
+        <receiver
+            android:name="com.bittr.android.push.DebugClipboardReceiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="com.bittr.android.DEBUG_CLIPBOARD_SET" />
+                <action android:name="com.bittr.android.DEBUG_CLIPBOARD_GET" />
+            </intent-filter>
+        </receiver>
     </application>
 
 </manifest>
