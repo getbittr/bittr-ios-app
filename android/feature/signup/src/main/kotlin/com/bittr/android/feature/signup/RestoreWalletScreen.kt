@@ -28,6 +28,9 @@ fun RestoreWalletScreen(
     onCancelled: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: RestoreWalletViewModel = hiltViewModel(),
+    // RestoreViewController's article card; opens on top of this destination, so the typed
+    // words' screen state is kept.
+    onOpenArticle: ((String) -> Unit)? = null,
 ) {
     val state by viewModel.uiState.collectAsState()
 
@@ -50,6 +53,7 @@ fun RestoreWalletScreen(
             },
             busy = state.busy,
             modifier = modifier,
+            onOpenArticle = onOpenArticle,
         )
 
         RestoreWalletStep.PinSet -> PinScreen(

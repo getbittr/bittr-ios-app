@@ -28,6 +28,8 @@ import com.bittr.android.core.designsystem.BittrStepHeading
 import com.bittr.android.core.designsystem.BittrTheme
 import com.bittr.android.core.designsystem.CanvasSpacer
 import com.bittr.android.core.wallet.Mnemonic
+import com.bittr.android.feature.academy.ArticleCard
+import com.bittr.android.feature.academy.BittrArticles
 
 /**
  * Android counterpart of iOS `Signup3ViewController` — the twelve words. Artboard 04.
@@ -56,6 +58,7 @@ fun MnemonicScreen(
     onNext: () -> Unit,
     onBack: (() -> Unit)? = null,
     modifier: Modifier = Modifier,
+    onOpenArticle: ((String) -> Unit)? = null,
 ) {
     BittrCanvas(modifier = modifier, onBack = onBack) {
         Column(
@@ -101,6 +104,11 @@ fun MnemonicScreen(
                 modifier = Modifier.testTag(TestID.Signup.Create.Mnemonic.nextButton),
             )
             CanvasSpacer(12.dp)
+            if (onOpenArticle != null) {
+                // Signup3's `pageArticle1Slug = "wallet-recovery"`.
+                ArticleCard(slug = BittrArticles.WALLET_RECOVERY, onOpen = onOpenArticle)
+                CanvasSpacer(12.dp)
+            }
         }
     }
 }

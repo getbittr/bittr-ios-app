@@ -54,6 +54,8 @@ import com.bittr.android.core.designsystem.BittrTokens
 import com.bittr.android.core.designsystem.BittrValueRow
 import com.bittr.android.core.designsystem.CanvasSpacer
 import com.bittr.android.core.wallet.seed.Bip39
+import com.bittr.android.feature.academy.ArticleCard
+import com.bittr.android.feature.academy.BittrArticles
 
 /**
  * Android counterpart of iOS `RestoreViewController` — the twelve fields.
@@ -97,8 +99,8 @@ import com.bittr.android.core.wallet.seed.Bip39
  * valid phrase was typed, resetting checks it against the phrase already on the
  * device and stores nothing. See `UnlockViewModel`.
  *
- * What is not ported: the "wallet recovery" article chip, which needs the article
- * fetch BIT-7 owns.
+ * The "wallet recovery" article card (`pageArticle1Slug`) sits under the card when
+ * [onOpenArticle] is given.
  *
  * @param submitLabel the primary button — "Restore wallet" when adopting a phrase,
  *   "Reset PIN" when proving one you already have.
@@ -113,6 +115,7 @@ fun RestoreScreen(
     busy: Boolean = false,
     submitLabel: String = SignupStrings.RESTORE_WALLET,
     onRemoveWallet: (() -> Unit)? = null,
+    onOpenArticle: ((String) -> Unit)? = null,
 ) {
     val words = remember { mutableStateListOf(*Array(Bip39.WORD_COUNT) { "" }) }
     val focusRequesters = remember { List(Bip39.WORD_COUNT) { FocusRequester() } }
@@ -220,6 +223,11 @@ fun RestoreScreen(
                         modifier = Modifier.testTag(TestID.Signup.Restore.removeWalletButton),
                     )
                 }
+            }
+            if (onOpenArticle != null) {
+                CanvasSpacer(BittrTokens.Spacing.lg)
+                // RestoreViewController's `pageArticle1Slug = "wallet-recovery"`.
+                ArticleCard(slug = BittrArticles.WALLET_RECOVERY, onOpen = onOpenArticle)
             }
 
             // Room to park even the last field one row from the top. Only while a field
