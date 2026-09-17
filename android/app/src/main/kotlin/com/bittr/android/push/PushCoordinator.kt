@@ -268,7 +268,9 @@ class PushCoordinator(
             return
         }
 
-        if (!withContext(io) { node.isConnectedToBittr() }) {
+        // The loading card stays up while the peer is (re)connected: the alert only comes once
+        // every attempt has failed, as on iOS.
+        if (!node.ensureConnectedToBittr()) {
             hideLoading()
             alert(
                 null,
@@ -276,10 +278,8 @@ class PushCoordinator(
                 PushStrings.COULDNT_CONNECT,
                 close(),
                 PushAlertButton(PushStrings.TRY_AGAIN, dismisses = false) {
-                    scope.launch {
-                        withContext(io) { node.reconnectToBittr() }
-                        facilitatePayout()
-                    }
+                    showLoading(TestID.Loading.receivingPayment, PushStrings.RECEIVING_PAYMENT)
+                    scope.launch { facilitatePayout() }
                 },
             )
             return
@@ -479,6 +479,9 @@ class PushCoordinator(
             incomingPaymentAlert(if (depositCode == null) PushStrings.BITTR_PAYOUT_FAIL else PushStrings.BITTR_PAYOUT_FAIL_2)
             return
         }
+        // bittr forwards the held payment over the peer connection, so have it up before saying
+        // we're ready. Best effort: bittr's answer decides what the user sees.
+        node.ensureConnectedToBittr()
         val timestamp = clockMillis() / 1_000
         val outcome = withContext(io) {
             val signature = signer.sign(HtlcReady.message(depositCode, timestamp))

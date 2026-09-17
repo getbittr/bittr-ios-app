@@ -6,11 +6,11 @@ import com.bittr.android.core.network.BittrEnvironment
 import com.bittr.android.core.network.BittrRequestSigner
 import com.bittr.android.core.network.HttpClient
 import com.bittr.android.core.network.PendingPayouts
+import com.bittr.android.core.wallet.ldk.lightning.BittrPeerConnection
 import com.bittr.android.core.wallet.ldk.lightning.LightningNodePort
 import com.bittr.android.feature.settings.DeviceNode
 import com.bittr.android.feature.settings.PendingPayoutCheck
 import com.bittr.android.push.PushCoordinator
-import com.bittr.android.push.PushNode
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -27,23 +27,23 @@ object DeviceNodeModule {
     @Singleton
     fun provideDeviceNode(
         lightning: LightningNodePort,
-        push: PushNode,
+        bittrPeer: BittrPeerConnection,
         signer: BittrRequestSigner,
         http: HttpClient,
         environment: BittrEnvironment,
         payouts: PushCoordinator,
         customers: BittrCustomerStore,
-    ): DeviceNode = AppDeviceNode(lightning, push, signer, http, environment, payouts, customers)
+    ): DeviceNode = AppDeviceNode(lightning, bittrPeer, signer, http, environment, payouts, customers)
 }
 
 /**
- * Device details over the one wallet composition: the node's key, the bittr peer (the same
- * check and reconnect the payout push uses), and the pending-payout lookup, whose payout is
+ * Device details over the one wallet composition: the node's key, the bittr peer (the one
+ * [BittrPeerConnection] the payout push uses too), and the pending-payout lookup, whose payout is
  * handed to [PushCoordinator] so its alerts are the push's.
  */
 internal class AppDeviceNode(
     private val lightning: LightningNodePort,
-    private val push: PushNode,
+    private val bittrPeer: BittrPeerConnection,
     private val signer: BittrRequestSigner,
     private val http: HttpClient,
     private val environment: BittrEnvironment,
@@ -54,9 +54,12 @@ internal class AppDeviceNode(
 
     override fun publicKey(): String? = runCatching { lightning.nodeId() }.getOrNull()
 
-    override suspend fun isConnectedToBittr(): Boolean = withContext(Dispatchers.IO) { push.isConnectedToBittr() }
+    override suspend fun isConnectedToBittr(): Boolean = bittrPeer.isConnected()
 
-    override suspend fun reconnectToBittr() = withContext(Dispatchers.IO) { push.reconnectToBittr() }
+    // The Connect button: retried as the payout push is, before Device details says it isn't.
+    override suspend fun reconnectToBittr() {
+        bittrPeer.ensureConnected()
+    }
 
     override suspend fun pendingPayout(): PendingPayoutCheck = withContext(Dispatchers.IO) {
         val pubkey = signer.pubkey() ?: return@withContext PendingPayoutCheck.NoNode

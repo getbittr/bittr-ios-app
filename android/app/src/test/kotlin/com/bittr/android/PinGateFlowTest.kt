@@ -137,7 +137,7 @@ class PinGateFlowTest {
         override suspend fun startAndSync() = true
         override fun read(): WalletNodeReading? = null
         override fun isPeerConnected() = false
-        override fun connectPeer() = false
+        override suspend fun connectPeer() = false
         override fun closeChannel(channel: ChannelView) = error("no channels without a node")
         override fun forceCloseChannel(channel: ChannelView) = error("no channels without a node")
         override fun didCloseChannel() = Unit

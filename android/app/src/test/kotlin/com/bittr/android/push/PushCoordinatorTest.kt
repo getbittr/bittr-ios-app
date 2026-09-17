@@ -9,6 +9,10 @@ import com.bittr.android.core.network.HttpResponse
 import com.bittr.android.core.push.PushEnvelope
 import com.bittr.android.core.wallet.WalletOverview
 import com.bittr.android.core.wallet.WalletState
+import com.bittr.android.core.wallet.ldk.lightning.BittrPeerConnection
+import com.bittr.android.core.wallet.ldk.lightning.LightningNodePort
+import com.bittr.android.core.wallet.ldk.lightning.PeerView
+import java.lang.reflect.Proxy
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -17,6 +21,8 @@ import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
+private val BITTR_NODE = "02".padEnd(66, 'a')
+
 class PushCoordinatorTest {
 
     private val walletState = MutableStateFlow(WalletState.Locked)
@@ -24,6 +30,10 @@ class PushCoordinatorTest {
     private var now = 1_000_000L
     private var depositCode: String? = null
     private var connected = true
+    /** Connect calls to the bittr node that fail before one succeeds. */
+    private var connectFailures = 0
+    private var connectCalls = 0
+    private val loadingWhileConnecting = mutableListOf<PushLoading?>()
     private val requests = mutableListOf<HttpRequest>()
     private var reply = HttpResponse(200, """{"success":false,"error":"no_held_htlc"}""")
 
@@ -32,9 +42,37 @@ class PushCoordinatorTest {
         override suspend fun sign(message: String): String? = "sig:$message"
     }
 
-    private val node = object : PushNode {
-        override fun isConnectedToBittr() = connected
-        override suspend fun reconnectToBittr() { connected = true }
+    /** The node's peer calls; everything else a payout doesn't touch. */
+    private val lightning: LightningNodePort = Proxy.newProxyInstance(
+        LightningNodePort::class.java.classLoader,
+        arrayOf(LightningNodePort::class.java),
+    ) { _, method, _ ->
+        when (method.name) {
+            "listPeers" -> if (connected) listOf(PeerView(BITTR_NODE, "bittr:9735", isPersisted = true, isConnected = true)) else emptyList()
+            "connect" -> {
+                connectCalls++
+                loadingWhileConnecting += coordinator.uiState.value.loading
+                if (connectFailures-- > 0) throw IllegalStateException("refused")
+                connected = true
+                Unit
+            }
+            "disconnect" -> Unit
+            else -> throw AssertionError("${method.name} was called")
+        }
+    } as LightningNodePort
+
+    /** The real connector, so the retries are the ones the app runs; no waiting between them. */
+    private val bittrPeer: BittrPeerConnection = BittrPeerConnection(
+        lightning = lightning,
+        nodeId = BITTR_NODE,
+        address = "bittr:9735",
+        scope = CoroutineScope(Dispatchers.Unconfined),
+        io = Dispatchers.Unconfined,
+        sleep = {},
+    )
+
+    private val node: PushNode = object : PushNode {
+        override suspend fun ensureConnectedToBittr() = bittrPeer.ensureConnected()
         override fun invoice(amountMsat: Long, description: String, expirySecs: Int) = "lnbcrt$amountMsat"
     }
 
@@ -110,7 +148,7 @@ class PushCoordinatorTest {
     }
 
     // Unconfined and no pauses: each push is handled inside `receive`.
-    private val coordinator = PushCoordinator(
+    private val coordinator: PushCoordinator = PushCoordinator(
         scope = CoroutineScope(Dispatchers.Unconfined),
         io = Dispatchers.Unconfined,
         walletState = walletState,
@@ -178,7 +216,7 @@ class PushCoordinatorTest {
         assertTrue(answered.isEmpty())
     }
 
-    private val state get() = coordinator.uiState.value
+    private val state: PushUiState get() = coordinator.uiState.value
 
     private fun unlockAndSync() {
         walletState.value = WalletState.Ready
@@ -297,16 +335,39 @@ class PushCoordinatorTest {
     fun `a payout that cannot reach bittr offers a retry that reconnects`() {
         unlockAndSync()
         connected = false
+        connectFailures = BittrPeerConnection.ATTEMPTS
         reply = HttpResponse(200, """{"success":true,"pre_image":"pre"}""")
         coordinator.receive(PushEnvelope.LightningPayout("n1", 1_000))
         coordinator.onAlertButton(state.alert!!.buttons.single())
         val offline = state.alert!!
         assertEquals(PushStrings.COULDNT_CONNECT, offline.message)
         assertEquals(listOf(PushStrings.CLOSE, PushStrings.TRY_AGAIN), offline.buttons.map { it.label })
+        assertEquals("Every attempt was made before the alert.", BittrPeerConnection.ATTEMPTS, connectCalls)
+        assertTrue(requests.isEmpty())
 
         coordinator.onAlertButton(offline.buttons[1])
         assertEquals(1, requests.size)
         assertNull(state.alert)
+    }
+
+    @Test
+    fun `a payout whose peer connects on the second attempt pays out without an alert`() {
+        unlockAndSync()
+        connected = false
+        connectFailures = 1
+        reply = HttpResponse(200, """{"success":true,"pre_image":"pre"}""")
+        coordinator.receive(PushEnvelope.LightningPayout("n1", 1_000))
+        coordinator.onAlertButton(state.alert!!.buttons.single())
+
+        assertEquals(2, connectCalls)
+        assertEquals(
+            "The receiving card stays up while connecting.",
+            listOf(TestID.Loading.receivingPayment, TestID.Loading.receivingPayment),
+            loadingWhileConnecting.map { it?.testTag },
+        )
+        assertEquals(1, requests.size)
+        assertEquals(listOf("n1"), finishedPayouts)
+        assertEquals(PushUiState(), state)
     }
 
     @Test

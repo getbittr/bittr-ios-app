@@ -52,6 +52,7 @@ object SendModule {
         preferences = preferences,
         prices = prices,
         network = BitcoinNetwork.fromBuildConfig(BuildConfig.BITCOIN_NETWORK),
+        ensureBittrPeer = composition.bittrPeer::ensureConnected,
     )
 }
 

@@ -30,6 +30,7 @@ import com.bittr.android.core.wallet.ldk.host.NodeBackedWalletService
 import com.bittr.android.core.wallet.ldk.host.NodeRunner
 import com.bittr.android.core.wallet.ldk.host.ServiceForegroundPresence
 import com.bittr.android.core.wallet.ldk.host.WalletNodeHost
+import com.bittr.android.core.wallet.ldk.lightning.BittrPeerConnection
 import com.bittr.android.core.wallet.ldk.lightning.LightningNodePort
 import com.bittr.android.core.wallet.ldk.lightning.NodeEvents
 import com.bittr.android.core.wallet.ldk.lightning.NodeOnchainPort
@@ -146,6 +147,12 @@ object WalletModule {
      * Like [provideLightningNodePort], its only caller today is [WalletGraph].
      * The receive screen that will use it does not exist on Android yet.
      */
+    /** The connection to the bittr node, over [provideLightningNodePort]'s port. */
+    @Provides
+    @Singleton
+    fun provideBittrPeerConnection(composition: WalletComposition): BittrPeerConnection =
+        composition.bittrPeer
+
     @Provides
     @Singleton
     fun provideNodeOnchainPort(composition: WalletComposition): NodeOnchainPort =
@@ -221,9 +228,12 @@ object WalletModule {
             // A port over no lifecycle, which is what this build has: reads
             // answer empty, writes throw. `lightningNodePort`'s comment is the
             // argument for why that is the contract rather than a null binding.
+            val noLightning = lightningNodePort(null)
             return WalletComposition(
                 wallet = seed,
-                lightning = lightningNodePort(null),
+                lightning = noLightning,
+                // No bittr node to connect to: every answer is `false`, and nothing is tried.
+                bittrPeer = BittrPeerConnection(noLightning, nodeId = null, address = null, scope = scope),
                 // Same null lifecycle, same contract: this build has no node,
                 // so it has no on-chain wallet to reveal an address from and
                 // the port says so rather than inventing one.
@@ -326,6 +336,13 @@ object WalletModule {
          * composition as well as outside it.
          */
         val lightning = lightningNodePort(lifecycle)
+        val bittrPeer = BittrPeerConnection(
+            lightning = lightning,
+            nodeId = environment.lightningNodeId,
+            address = environment.lightningNodeAddress,
+            scope = scope,
+            log = { message -> Log.i(BittrPeerConnection.TAG, message) },
+        )
 
         /*
          * The on-chain half: BDK's wallet, and the loop that scans it.
@@ -589,6 +606,17 @@ object WalletModule {
                      * `manageOnchainAddresses()` straight after `didStartBDK()`, off
                      * the main thread and beside the scan rather than after it.
                      */
+                    /*
+                     * The bittr peer, once the node is up — `StartLightning.swift:114`
+                     * connects straight after `start()`, so a payout push or a send
+                     * finds the peer there rather than having to connect first.
+                     */
+                    object : NodeRunner {
+                        override val name: String = "bittr-peer"
+                        override suspend fun run() {
+                            bittrPeer.ensureConnected()
+                        }
+                    },
                     object : NodeRunner {
                         override val name: String = "address-pool"
                         override suspend fun run() {
@@ -623,6 +651,7 @@ object WalletModule {
             // The same instance the closure scan reads through, not a second
             // port over the same lifecycle.
             lightning = lightning,
+            bittrPeer = bittrPeer,
             // The same `lifecycle` the wallet and the Lightning port are over,
             // which is the whole reason this class exists — see
             // WalletModule.provideNodeOnchainPort.
@@ -719,6 +748,8 @@ object WalletModule {
 class WalletComposition(
     val wallet: WalletService,
     val lightning: LightningNodePort,
+    /** The connection to the bittr node, over [lightning]. Answers `false` in a build with no node. */
+    val bittrPeer: BittrPeerConnection,
     /**
      * BIT-132 — the node's on-chain receive surface, over the same lifecycle.
      *

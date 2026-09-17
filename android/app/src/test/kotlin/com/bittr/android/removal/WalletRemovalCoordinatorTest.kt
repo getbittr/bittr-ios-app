@@ -52,7 +52,7 @@ class WalletRemovalCoordinatorTest {
         override suspend fun startAndSync() = starts
         override fun read() = reading
         override fun isPeerConnected() = peerConnected
-        override fun connectPeer(): Boolean {
+        override suspend fun connectPeer(): Boolean {
             if (connects) peerConnected = true
             return connects
         }
