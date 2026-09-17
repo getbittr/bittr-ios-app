@@ -291,7 +291,9 @@ transaction confirmations. All of it passes JVM unit tests. What remains:
   `bitcoin_value` and `academy` have passed Maestro on the emulator (2026-09-14). Everything since has been
   tried by hand on Ruben's phone only (item 10b). Next: run the suite on `bittr-gapi` or CI.
 - **Open questions:** 8b (backend: processed payouts in `/notifications`, issue #96).
-- **Known gaps:** signup article cards, the connectivity check between signup pages and the Sentry signup
-  metric (25); Swap & Pay's second id (31); the clipboard bridge for paste steps in flows and the injected
-  link-finder script (35); no `-evilBoltz` harness (31). No Live Activity equivalent: not needed (Ruben,
-  2026-09-17).
+- **Known gaps (2026-09-17):** fixed — signup article cards (Buy signup pages; the create-wallet pages' cards
+  aren't ported yet), the connection check between signup pages, Swap & Pay's second id, a clipboard helper for
+  the paste steps in flows (`BITTR_CLIPBOARD_PLATFORM=android node shared/flows/scripts/clipboard_server.js`),
+  and Lightning links on `getbittr.com` pages (checked once a second with `evaluateJavascript`, no JS bridge;
+  iOS observes the DOM). Not done: the Sentry signup metric (Android has no Sentry SDK — adding one is a
+  separate decision), the `-evilBoltz` harness (JVM tests cover it), and no Live Activity (not needed).
