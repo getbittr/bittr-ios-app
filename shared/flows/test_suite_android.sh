@@ -231,15 +231,29 @@ else
 fi
 
 # bitcoin_map.yaml taps "my location" and expects the map, where the app otherwise says
-# location details are unavailable. The iOS simulator is launched with a location; an
-# emulator has none until one is set, and a phone has its own. Sarnen, where the flow's
-# places are.
+# location details are unavailable. Two things it needs, neither of which Maestro's
+# `permissions: location:` delivers on Android (the grant silently does not take —
+# `dumpsys package … ACCESS_COARSE_LOCATION: granted=false` after a launch that asked):
+# the permission, and a position to read. The iOS simulator is launched with both.
+if dev shell pm grant "${APP_ID}" android.permission.ACCESS_COARSE_LOCATION >/dev/null 2>&1; then
+    ok "location permission granted to ${APP_ID}"
+else
+    warn "could not grant the location permission; bitcoin_map's my-location step will fail"
+fi
+
+# The emulator's GPS is a one-shot injection that only lands while a client is listening,
+# so a single `geo fix` before the run leaves last location=null. Fed in the background
+# for as long as the suite runs instead. A phone has its own position.
+GEO_FEEDER_PID=""
 if [[ "${SERIAL}" == emulator-* ]]; then
-    if adb -s "${SERIAL}" emu geo fix 8.245 46.897 >/dev/null 2>&1; then
-        ok "location set (Sarnen)"
-    else
-        warn "could not set a location on ${SERIAL}; bitcoin_map's my-location step will fail"
-    fi
+    (
+        while true; do
+            adb -s "${SERIAL}" emu geo fix 8.245 46.897 >/dev/null 2>&1 || exit 0
+            sleep 2
+        done
+    ) &
+    GEO_FEEDER_PID=$!
+    ok "feeding a location (Sarnen) while the suite runs"
 fi
 
 # ── Build + install ──────────────────────────────────────────────────────────
@@ -296,6 +310,7 @@ header "Helper servers"
 
 STARTED_PIDS=()
 cleanup() {
+    [[ -n "${GEO_FEEDER_PID}" ]] && kill "${GEO_FEEDER_PID}" 2>/dev/null
     if [[ ${#STARTED_PIDS[@]} -gt 0 ]]; then
         info "stopping helper servers we started (pids: ${STARTED_PIDS[*]})"
         kill "${STARTED_PIDS[@]}" 2>/dev/null || true

@@ -35,9 +35,13 @@
 
 appId: ${APP_ID}
 ---
+# `allow`, not `inuse`: Android ignores `inuse` and the app is left without the
+# permission (`dumpsys package … ACCESS_COARSE_LOCATION: granted=false`), so the map
+# says location details are unavailable and covers `map.mapView` with that alert. iOS
+# takes `allow` too; the app only ever asks while it is in use.
 - launchApp:
     permissions:
-      location: inuse
+      location: allow
 - runFlow: ../helpers/wait_for_launch.yaml
 
 # Existing wallet → launch lands on the PIN unlock screen. Enter the PIN.
