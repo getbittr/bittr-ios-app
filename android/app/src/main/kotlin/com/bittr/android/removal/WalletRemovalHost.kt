@@ -12,7 +12,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.pointer.pointerInput
-import com.bittr.android.core.designsystem.BittrAlert
+import com.bittr.android.core.designsystem.BittrInlineAlert
 import com.bittr.android.core.designsystem.BittrAlertButton
 import com.bittr.android.core.designsystem.BittrTheme
 
@@ -57,8 +57,12 @@ fun WalletRemovalHost(
             }
         }
 
+        // In the activity's own window, not a dialog: this alert can be up at launch (a removal
+        // resumed from the last run), and Maestro reads only the focused window — a dialog then
+        // hides `core.launchComplete` and the next flow cannot even see that the app started.
+        // iOS's AlertManager adds its alerts as subviews for the same effect.
         state.alert?.let { alert ->
-            BittrAlert(
+            BittrInlineAlert(
                 title = alert.title,
                 message = alert.message,
                 buttons = alert.buttons.map { button ->
