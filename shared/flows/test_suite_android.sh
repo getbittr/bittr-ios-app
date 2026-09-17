@@ -364,6 +364,12 @@ for flow in "${FLOWS_TO_RUN[@]}"; do
     echo
     info "${BOLD}maestro test ${FLOW_PATH}${RESET}"
     info "  log: ${FLOW_LOG}"
+    # Stop the app from the previous flow first. A flow that opens with `clearState` clears
+    # a running app's data while its window is still being torn down; Android then times out
+    # removing the old task and kills the app Maestro has just launched ("Destroy timeout of
+    # remove-task"), leaving a blank screen past wait_for_launch's 15 s.
+    dev shell am force-stop "${APP_ID}" >/dev/null 2>&1 || true
+    sleep 2
     START_TS=$(date +%s)
     if maestro --device "${SERIAL}" test --env APP_ID="${APP_ID}" --env MNEMONIC="${MNEMONIC}" \
             --env SLOW_SYNC=0 --test-output-dir "${OUT_DIR}" \
