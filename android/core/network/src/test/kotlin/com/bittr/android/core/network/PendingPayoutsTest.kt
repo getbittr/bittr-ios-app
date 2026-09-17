@@ -35,6 +35,16 @@ class PendingPayoutsTest {
     }
 
     @Test
+    fun `a payout already processed is skipped for the next one`() {
+        val body = """{"data":[${item("n1", "0.0002")},${item("n2", "0.0001")}]}"""
+        assertEquals(
+            PendingPayouts.Outcome.Available("n1", 20_000_000),
+            PendingPayouts.parse(HttpResponse(200, body), skip = setOf("n2")),
+        )
+        assertEquals(PendingPayouts.Outcome.None, PendingPayouts.parse(HttpResponse(200, body), skip = setOf("n1", "n2")))
+    }
+
+    @Test
     fun `no data, an empty list or an unreadable body is no payout`() {
         listOf("""{"data":[]}""", """{"success":false}""", "not json", "").forEach { body ->
             assertEquals(body, PendingPayouts.Outcome.None, PendingPayouts.parse(HttpResponse(200, body)))

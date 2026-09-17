@@ -12,6 +12,17 @@ class BittrCustomerStoreTest {
     private fun tempFile(): File = File(Files.createTempDirectory("bittr-store").toFile(), "customer.json")
 
     @Test
+    fun `finished payouts survive a reload`() {
+        val file = tempFile()
+        val store = FileBittrCustomerStore(file)
+        store.addProcessedPayout("n1")
+        store.addProcessedPayout("n1")
+        store.addProcessedPayout("n2")
+
+        assertEquals(setOf("n1", "n2"), FileBittrCustomerStore(file).processedPayouts())
+    }
+
+    @Test
     fun `entities survive a reload and keep their order`() {
         val file = tempFile()
         val store = FileBittrCustomerStore(file)

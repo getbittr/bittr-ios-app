@@ -146,7 +146,7 @@ class HomeViewModelCacheTest {
     }
 
     @Test
-    fun `a pull-to-refresh hides everything rather than falling back to the cache`() = runTest {
+    fun `a pull-to-refresh keeps the live figures rather than falling back to the cache`() = runTest {
         overview.value = WalletOverview(hasNode = true, hasSynced = true, satoshisOnchain = 1_000)
         val home = viewModel()
         backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { home.uiState.collect {} }
@@ -155,8 +155,8 @@ class HomeViewModelCacheTest {
         val state = home.uiState.value
         assertTrue(state.refreshing)
         assertFalse(state.showingCachedData)
-        assertNull(state.balanceSats)
-        assertTrue(state.history.isEmpty())
+        assertEquals(1_000L, state.balanceSats)
+        assertFalse(state.walletHasSynced)
     }
 
     @Test

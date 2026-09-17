@@ -8,6 +8,7 @@ import androidx.lifecycle.viewModelScope
 import com.bittr.android.core.wallet.FiatPrice
 import com.bittr.android.core.wallet.FiatPriceSource
 import com.bittr.android.core.wallet.HomeCache
+import com.bittr.android.core.wallet.WalletOverview
 import com.bittr.android.core.wallet.WalletOverviewSource
 import com.bittr.android.core.wallet.WalletService
 import com.bittr.android.core.wallet.WalletState
@@ -48,7 +49,7 @@ data class HomeUiState(
     val history: List<HistoryRow> = emptyList(),
     /** The sync overlay's first row: a conversion rate has been fetched. */
     val conversionFetched: Boolean = false,
-    /** A pull-to-refresh resync is running (`ReloadWallet.swift`); the balance and history are hidden meanwhile. */
+    /** A pull-to-refresh resync is running (`ReloadWallet.swift`); the balance and history it started from stay on screen. */
     val refreshing: Boolean = false,
     /** Pulling Home down resyncs the wallet: it has a node, has synced, and no refresh is running. */
     val canRefresh: Boolean = false,
@@ -76,6 +77,10 @@ class HomeViewModel @Inject constructor(
 ) : ViewModel() {
 
     private val alert = MutableStateFlow<HomeAlert?>(null)
+
+    /** The last synced overview, shown while a pull-to-refresh runs. */
+    @Volatile
+    private var lastSynced: WalletOverview? = null
 
     /**
      * Re-fetched whenever the history changes, which is when a row needs converting. Starts from the
@@ -113,14 +118,19 @@ class HomeViewModel @Inject constructor(
         refresher.isRefreshing,
         cache.cached,
     ) { state, wallet, price, refreshing, cached ->
-        // `showCachedData()`: what the last launch showed, until this launch's first reading. Not
-        // during a pull-to-refresh, which hides everything as `resetWallet()` does, and never
-        // without a wallet.
+        if (state == WalletState.Uninitialized) lastSynced = null
+        if (wallet.hasSynced) lastSynced = wallet
+        // A pull-to-refresh keeps the figures it started from on screen until the new reading
+        // lands (Ruben, 2026-09-17). iOS's `resetWallet()` blanks them instead.
+        val beforeRefresh = lastSynced?.takeIf { refreshing && !wallet.hasSynced }
+        // `showCachedData()`: what the last launch showed, until this launch's first reading.
+        // Never without a wallet.
         val fromCache = cached?.takeIf {
-            it.hasReading && !wallet.hasSynced && !refreshing && state != WalletState.Uninitialized
+            beforeRefresh == null && it.hasReading && !wallet.hasSynced && state != WalletState.Uninitialized
         }
         val balance = when {
             wallet.hasSynced -> wallet.totalSatoshis
+            beforeRefresh != null -> beforeRefresh.totalSatoshis
             fromCache != null -> fromCache.totalSatoshis
             else -> null
         }
@@ -132,6 +142,7 @@ class HomeViewModel @Inject constructor(
             balanceFiat = balance?.let { balanceFiat(it, price) },
             history = when {
                 wallet.hasSynced -> historyRows(wallet.transactions, price, wallet.currentHeight)
+                beforeRefresh != null -> historyRows(beforeRefresh.transactions, price, beforeRefresh.currentHeight)
                 fromCache != null -> historyRows(fromCache.transactions, price, fromCache.currentHeight)
                 else -> emptyList()
             },

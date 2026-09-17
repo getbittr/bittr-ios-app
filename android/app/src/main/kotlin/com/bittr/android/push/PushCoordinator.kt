@@ -76,6 +76,8 @@ class PushCoordinator(
     private val payoutSwap: PayoutSwapLauncher?,
     /** iOS keeps `lightningNotification` until the payout's payment is checked with bittr; see [BittrPayoutTracker]. */
     private val payoutTracker: BittrPayoutTracker = BittrPayoutTracker(),
+    /** A payout notification that is finished — paid, or "already processed" by bittr. */
+    private val onPayoutFinished: (notificationId: String) -> Unit = {},
     private val clockMillis: () -> Long = System::currentTimeMillis,
     private val pause: suspend (Long) -> Unit = { delay(it) },
     private val log: (String) -> Unit = { Log.i(TAG, it) },
@@ -305,6 +307,11 @@ class PushCoordinator(
             }
         }
         log("Payout outcome: ${outcome::class.simpleName}")
+        if (outcome is LightningPayout.Outcome.Paid ||
+            (outcome is LightningPayout.Outcome.Error && ALREADY_PROCESSED in outcome.message.lowercase())
+        ) {
+            onPayoutFinished(notificationId)
+        }
         if (outcome !is LightningPayout.Outcome.Paid) payoutTracker.clear()
         hideLoading()
         when (outcome) {
@@ -532,6 +539,9 @@ class PushCoordinator(
     companion object {
         private const val TAG = "PushCoordinator"
         const val DEDUP_WINDOW_MILLIS = 10_000L
+
+        /** bittr's answer for a payout that was already paid out: "This payment has already been processed." */
+        private const val ALREADY_PROCESSED = "already been processed"
         const val HANDLE_DELAY_MILLIS = 1_000L
         private const val INVOICE_EXPIRY_SECS = 3_600
         private const val DEFAULT_SUGGESTED_SWAP_SATS = 50_000L

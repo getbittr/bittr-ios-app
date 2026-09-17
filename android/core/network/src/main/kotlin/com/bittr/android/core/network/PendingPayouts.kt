@@ -45,17 +45,32 @@ object PendingPayouts {
      * reading **stops at the first incomplete one** (iOS's `break`), so a notification missing
      * `sent_at` hides the ones after it. The last complete one is the payout, provided its
      * `bitcoin_amount` is a string.
+     *
+     * @param skip notification ids already paid out or answered "already processed" — the newest
+     *   complete notification **not** in it is offered, so a processed payout the list still
+     *   carries doesn't block the next one.
      */
-    fun parse(response: HttpResponse): Outcome {
+    fun parse(response: HttpResponse, skip: Set<String> = emptySet()): Outcome {
         val root = runCatching { Json.parseToJsonElement(response.body) }.getOrNull() as? JsonObject
             ?: return Outcome.None
         val data = root["data"] as? JsonArray ?: return Outcome.None
         val complete = data.takeWhile { it is JsonObject && it.isComplete() }.map { it as JsonObject }
-        val last = complete.lastOrNull() ?: return Outcome.None
+        val last = complete.lastOrNull { it.string("id") !in skip } ?: return Outcome.None
         val id = last.string("id") ?: return Outcome.None
         val bitcoinAmount = (last["transaction"] as JsonObject).string("bitcoin_amount") ?: return Outcome.None
         val msats = bitcoinToMsats(bitcoinAmount) ?: return Outcome.None
         return Outcome.Available(notificationId = id, amountMsats = msats)
+    }
+
+    /** Each listed notification's id, status and type, for the log — no amounts or signatures. */
+    fun describe(response: HttpResponse): String {
+        val root = runCatching { Json.parseToJsonElement(response.body) }.getOrNull() as? JsonObject
+            ?: return "HTTP ${response.code}, unreadable body"
+        val data = root["data"] as? JsonArray ?: return "HTTP ${response.code}, no data"
+        return "HTTP ${response.code}, ${data.size} listed: " + data.joinToString { item ->
+            val o = item as? JsonObject
+            "${o?.string("id")}(${o?.string("status")}, ${o?.string("notification_type")}${if (o?.isComplete() == true) "" else ", incomplete"})"
+        }
     }
 
     private val REQUIRED_STRINGS = listOf("inserted_at", "sent_at", "status", "notification_type", "id", "last_attempt_at")

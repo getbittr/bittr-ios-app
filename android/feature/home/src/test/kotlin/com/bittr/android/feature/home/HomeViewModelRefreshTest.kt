@@ -74,7 +74,7 @@ class HomeViewModelRefreshTest {
     fun tearDown() = Dispatchers.resetMain()
 
     @Test
-    fun `pulling a synced Home starts a refresh, which hides the balance and spins the header`() = runTest {
+    fun `pulling a synced Home starts a refresh, which keeps the balance and spins the header`() = runTest {
         val home = viewModel()
         backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { home.uiState.collect {} }
         assertTrue(home.uiState.value.canRefresh)
@@ -84,7 +84,8 @@ class HomeViewModelRefreshTest {
         val state = home.uiState.value
         assertTrue(state.refreshing)
         assertFalse(state.canRefresh)
-        assertNull(state.balanceSats)
+        assertEquals("the balance stays on screen during the refresh", 1_000L, state.balanceSats)
+        assertFalse("Send and Receive stay guarded until the new reading", state.walletHasSynced)
         assertTrue(state.showSyncSpinner)
 
         home.refresh()

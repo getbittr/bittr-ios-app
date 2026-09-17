@@ -1,5 +1,7 @@
 package com.bittr.android.device
 
+import android.util.Log
+import com.bittr.android.core.network.BittrCustomerStore
 import com.bittr.android.core.network.BittrEnvironment
 import com.bittr.android.core.network.BittrRequestSigner
 import com.bittr.android.core.network.HttpClient
@@ -30,7 +32,8 @@ object DeviceNodeModule {
         http: HttpClient,
         environment: BittrEnvironment,
         payouts: PushCoordinator,
-    ): DeviceNode = AppDeviceNode(lightning, push, signer, http, environment, payouts)
+        customers: BittrCustomerStore,
+    ): DeviceNode = AppDeviceNode(lightning, push, signer, http, environment, payouts, customers)
 }
 
 /**
@@ -45,6 +48,7 @@ internal class AppDeviceNode(
     private val http: HttpClient,
     private val environment: BittrEnvironment,
     private val payouts: PushCoordinator,
+    private val customers: BittrCustomerStore,
     private val clockSeconds: () -> Long = { System.currentTimeMillis() / 1000 },
 ) : DeviceNode {
 
@@ -61,7 +65,9 @@ internal class AppDeviceNode(
             ?: return@withContext PendingPayoutCheck.NoNode
         val response = runCatching { http.execute(PendingPayouts.request(environment, timestamp, signature, pubkey)) }
             .getOrNull() ?: return@withContext PendingPayoutCheck.NoneAvailable
-        when (val outcome = PendingPayouts.parse(response)) {
+        Log.i(TAG, "GET notifications: ${PendingPayouts.describe(response)}")
+        val skip = customers.processedPayouts()
+        when (val outcome = PendingPayouts.parse(response, skip)) {
             PendingPayouts.Outcome.None -> PendingPayoutCheck.NoneAvailable
             is PendingPayouts.Outcome.Available -> PendingPayoutCheck.Available(outcome.notificationId, outcome.amountMsats)
         }
@@ -69,5 +75,9 @@ internal class AppDeviceNode(
 
     override fun handlePendingPayout(payout: PendingPayoutCheck.Available) {
         payouts.handlePendingPayout(payout.notificationId, payout.amountMsats)
+    }
+
+    private companion object {
+        const val TAG = "DeviceNode"
     }
 }

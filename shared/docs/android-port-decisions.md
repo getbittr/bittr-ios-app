@@ -30,12 +30,11 @@ Status key: **Decided** (done, reversible) · **Question** (needs your answer) �
    and refetches the price when the currency changes in Settings.
 
 5a. **Decided — pull-to-refresh on Home** (iOS `ReloadWallet.swift`): once the wallet has synced, pulling Home's
-    list down hides the balance and history, spins `home.headerSpinner`, marks the wallet as not synced (Send and
-    Receive show their syncing guard), then resyncs the node and the on-chain wallet and takes a fresh reading.
-    If nothing can be read, the previous balance and history come back. Two differences: the pull triggers at
-    120 dp (iOS 200 pt of overscroll; tune after trying it), and there is no internet check before refreshing.
-    Home's header and history are now one scrolling list so the pull works from the header too, as
-    `remove_wallet.yaml`'s swipe needs.
+    list down spins `home.headerSpinner`, marks the wallet as not synced (Send and Receive show their syncing
+    guard), resyncs the node and the on-chain wallet and takes a fresh reading. **Ruben, 2026-09-17:** the balance
+    and history stay on screen during the refresh instead of blanking as iOS's `resetWallet()` does. The pull
+    triggers at 120 dp (iOS 200 pt) and first checks the connection. Home's header and history are one scrolling
+    list so the pull works from the header too, as `remove_wallet.yaml`'s swipe needs.
 
 5b. **Decided — a swap's transaction screen shows what was swapped** (iOS `setTransactionData`): a completed swap
     shows the amount that arrived, unsigned, with the type "Onchain to Lightning" / "Lightning to Onchain" and fees =
@@ -98,6 +97,13 @@ Status key: **Decided** (done, reversible) · **Question** (needs your answer) �
       `sent_at`, so a half-filled notification hides the ones after it. Ported as-is so both platforms agree.
       **Answered 2026-09-15:** a bug — tracked in https://github.com/getbittr/bittr-ios-app/issues/96; Android changes
       with the iOS fix.
+
+8b. **Decided — the pending-payout check skips payouts that are already finished.** bittr's `GET /notifications`
+    kept listing a payout that `POST /payout/lightning` then answered "This payment has already been processed.",
+    so the same payout was offered forever. Android now remembers payouts that paid out or got that answer
+    (`processedPayouts` in the customer store) and offers the newest one not among them, and logs each listed
+    notification's id and status (`DeviceNode` tag). iOS has the same problem; **Question:** should the backend
+    drop processed notifications from the list (or mark them with a status the apps can filter on)?
 
 ## Wallet removal (Device details, Forgot PIN, 10 wrong PINs)
 

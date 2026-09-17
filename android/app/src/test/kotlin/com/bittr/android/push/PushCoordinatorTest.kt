@@ -45,6 +45,26 @@ class PushCoordinatorTest {
         }
     }
 
+    private val finishedPayouts = mutableListOf<String>()
+
+    @Test
+    fun `a payout bittr already processed is recorded as finished, and a paid one too`() {
+        unlockAndSync()
+        reply = HttpResponse(200, """{"success":false,"error":"This payment has already been processed."}""")
+        coordinator.handlePendingPayout("n1", 1_000)
+        assertEquals(listOf("n1"), finishedPayouts)
+
+        now += 11_000
+        reply = HttpResponse(500, "")
+        coordinator.handlePendingPayout("n2", 1_000)
+        assertEquals("a failure that isn't \"already processed\" is not recorded", listOf("n1"), finishedPayouts)
+
+        now += 11_000
+        reply = HttpResponse(200, """{"success":true,"pre_image":"pre"}""")
+        coordinator.handlePendingPayout("n3", 1_000)
+        assertEquals(listOf("n1", "n3"), finishedPayouts)
+    }
+
     private val answered = mutableListOf<PushEnvelope.LightningAddress>()
     private var answerSucceeds = true
 
@@ -106,6 +126,7 @@ class PushCoordinatorTest {
             answerSucceeds
         },
         payoutSwap = null,
+        onPayoutFinished = { finishedPayouts += it },
         clockMillis = { now },
         pause = {},
         log = {},

@@ -83,6 +83,15 @@ interface BittrCustomerStore {
     fun addPurchases(rows: Collection<BittrTransactionInfo>)
 
     /**
+     * Payout notifications that are finished: paid out, or answered "already processed" by bittr.
+     * `GET /notifications` can keep listing those, so Device details' pending-payout check skips them
+     * and offers the next one instead of the same processed payout forever.
+     */
+    fun processedPayouts(): Set<String>
+
+    fun addProcessedPayout(notificationId: String)
+
+    /**
      * The wallet is gone — `CacheManager.deleteClientInfo()` removes `device` (the bittr accounts)
      * and the cached bittr transactions with the wallet cache. The ids already sent to bittr are
      * kept, as iOS keeps `senttobittr`.
@@ -106,6 +115,7 @@ class FileBittrCustomerStore(private val file: File) : BittrCustomerStore {
     private val _entities: MutableStateFlow<List<IbanEntity>>
     private val _purchases: MutableStateFlow<Map<String, BittrTransactionInfo>>
     private var sent: Set<String>
+    private var processed: Set<String>
 
     init {
         val root = runCatching { json.parseToJsonElement(file.readText()) as? JsonObject }.getOrNull()
@@ -120,6 +130,9 @@ class FileBittrCustomerStore(private val file: File) : BittrCustomerStore {
                 .associateBy { it.txId },
         )
         sent = (root?.get("sentToBittr") as? JsonArray).orEmpty()
+            .mapNotNull { (it as? JsonPrimitive)?.content }
+            .toSet()
+        processed = (root?.get("processedPayouts") as? JsonArray).orEmpty()
             .mapNotNull { (it as? JsonPrimitive)?.content }
             .toSet()
     }
@@ -149,6 +162,14 @@ class FileBittrCustomerStore(private val file: File) : BittrCustomerStore {
         write()
     }
 
+    override fun processedPayouts(): Set<String> = synchronized(lock) { processed }
+
+    override fun addProcessedPayout(notificationId: String) = synchronized(lock) {
+        if (notificationId in processed) return@synchronized
+        processed = processed + notificationId
+        write()
+    }
+
     override fun clearAccount() = synchronized(lock) {
         _entities.value = emptyList()
         _purchases.value = emptyMap()
@@ -161,6 +182,7 @@ class FileBittrCustomerStore(private val file: File) : BittrCustomerStore {
                 "ibans" to JsonArray(_entities.value.map(::encodeEntity)),
                 "purchases" to JsonArray(_purchases.value.values.map(::encodePurchase)),
                 "sentToBittr" to JsonArray(sent.map(::JsonPrimitive)),
+                "processedPayouts" to JsonArray(processed.map(::JsonPrimitive)),
             ),
         )
         file.parentFile?.mkdirs()
@@ -254,6 +276,7 @@ class InMemoryBittrCustomerStore(initial: List<IbanEntity> = emptyList()) : Bitt
     private val _entities = MutableStateFlow(initial.sortedBy { it.order })
     private val _purchases = MutableStateFlow<Map<String, BittrTransactionInfo>>(emptyMap())
     private var sent = emptySet<String>()
+    private var processed = emptySet<String>()
 
     override val entities: StateFlow<List<IbanEntity>> = _entities.asStateFlow()
     override val purchases: StateFlow<Map<String, BittrTransactionInfo>> = _purchases.asStateFlow()
@@ -272,6 +295,12 @@ class InMemoryBittrCustomerStore(initial: List<IbanEntity> = emptyList()) : Bitt
 
     override fun addPurchases(rows: Collection<BittrTransactionInfo>) =
         _purchases.update { it + rows.associateBy { row -> row.txId } }
+
+    override fun processedPayouts(): Set<String> = processed
+
+    override fun addProcessedPayout(notificationId: String) {
+        processed = processed + notificationId
+    }
 
     override fun clearAccount() {
         _entities.value = emptyList()
