@@ -32,9 +32,17 @@ internal object UserLocationFix {
         ContextCompat.checkSelfPermission(context, BittrPermissions.LOCATION) ==
             PackageManager.PERMISSION_GRANTED
 
+    /**
+     * The providers to ask, in order. Network first — it is the cheap one and the coarse grant's
+     * natural match — then GPS, which is the only one an emulator (`adb emu geo fix`) and a phone
+     * outdoors with no network fix have. Since Android 12 a coarse grant reads any provider, fuzzed,
+     * so asking GPS costs nothing and iOS's location manager likewise takes whatever fix exists.
+     */
+    private val Providers = listOf(LocationManager.NETWORK_PROVIDER, LocationManager.GPS_PROVIDER)
+
     fun isAvailable(context: Context): Boolean {
-        val manager = context.getSystemService(Context.LOCATION_SERVICE) as? LocationManager
-        return manager?.isProviderEnabled(LocationManager.NETWORK_PROVIDER) == true
+        val manager = context.getSystemService(Context.LOCATION_SERVICE) as? LocationManager ?: return false
+        return Providers.any { provider -> runCatching { manager.isProviderEnabled(provider) }.getOrDefault(false) }
     }
 
     /**
@@ -55,22 +63,29 @@ internal object UserLocationFix {
         // that, the last known fix is the only non-subscribing option — and it is the
         // honest one: it reads a value the system already has rather than starting
         // anything.
-        val lastKnown = runCatching {
-            manager.getLastKnownLocation(LocationManager.NETWORK_PROVIDER)
-        }.getOrNull()
+        val lastKnown = Providers.firstNotNullOfOrNull { provider ->
+            runCatching { manager.getLastKnownLocation(provider) }.getOrNull()
+        }
 
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R) return lastKnown
 
-        return suspendCancellableCoroutine { continuation ->
+        for (provider in Providers.filter { runCatching { manager.isProviderEnabled(it) }.getOrDefault(false) }) {
+            currentFrom(context, manager, provider)?.let { return it }
+        }
+        return lastKnown
+    }
+
+    @Suppress("MissingPermission")
+    private suspend fun currentFrom(context: Context, manager: LocationManager, provider: String): Location? =
+        suspendCancellableCoroutine { continuation ->
             val signal = android.os.CancellationSignal()
             continuation.invokeOnCancellation { signal.cancel() }
             runCatching {
                 manager.getCurrentLocation(
-                    LocationManager.NETWORK_PROVIDER,
+                    provider,
                     signal,
                     ContextCompat.getMainExecutor(context),
-                ) { fix -> if (continuation.isActive) continuation.resume(fix ?: lastKnown) }
-            }.onFailure { if (continuation.isActive) continuation.resume(lastKnown) }
+                ) { fix -> if (continuation.isActive) continuation.resume(fix) }
+            }.onFailure { if (continuation.isActive) continuation.resume(null) }
         }
-    }
 }
