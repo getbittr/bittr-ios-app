@@ -226,6 +226,18 @@ else
     warn "no Google Play services on ${SERIAL} — no push token, so the signup stops at the token alert and swaps need notifications. Use the bittr-gapi AVD or a phone."
 fi
 
+# bitcoin_map.yaml taps "my location" and expects the map, where the app otherwise says
+# location details are unavailable. The iOS simulator is launched with a location; an
+# emulator has none until one is set, and a phone has its own. Sarnen, where the flow's
+# places are.
+if [[ "${SERIAL}" == emulator-* ]]; then
+    if adb -s "${SERIAL}" emu geo fix 8.245 46.897 >/dev/null 2>&1; then
+        ok "location set (Sarnen)"
+    else
+        warn "could not set a location on ${SERIAL}; bitcoin_map's my-location step will fail"
+    fi
+fi
+
 # ── Build + install ──────────────────────────────────────────────────────────
 
 if [[ ${INSTALL} -eq 1 ]]; then
