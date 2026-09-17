@@ -45,6 +45,12 @@ appId: ${APP_ID}
 # Transfer2: OTP entry. Test-mode fixed code 123456. Auto-submits at 6 digits.
 - assertVisible:
     id: "signup.bittr.otp.codeTextField"
+# Tap it before typing. The field takes focus by itself when the page appears, but
+# `inputText` types into whatever holds focus *now*: on a slow device the digits can
+# land before that, and the code is then silently dropped (forgot_pin_remove_wallet,
+# 2026-09-17). The tap is what a user does anyway.
+- tapOn:
+    id: "signup.bittr.otp.codeTextField"
 - takeScreenshot: shared/docs/screenshots/onboarding/15_bittr_otp_initial
 - inputText: "123456"
 - takeScreenshot: shared/docs/screenshots/onboarding/16_bittr_otp_entered
