@@ -162,6 +162,8 @@ class BuyController(
 
     /** `continueButtonTapped` → `BuyToRegister`. */
     fun onStartSignup() {
+        // `RegisterIbanViewController.moveToPage(0)` checks the connection before the first page too.
+        if (!online()) return
         sessionInitiativeAt = null
         notificationsDenied = false
         deviceToken = null
@@ -179,7 +181,23 @@ class BuyController(
         onReadyNext()
     }
 
-    fun onReadyNext() = updateSignup { it.copy(page = SignupPage.Start) }
+    fun onReadyNext() = moveToPage(SignupPage.Start)
+
+    /**
+     * `moveToPage(_:)`: every page move checks the connection first and stays put with
+     * `checkyourconnection` when there is none.
+     */
+    private fun moveToPage(page: SignupPage, transform: (SignupUiState) -> SignupUiState = { it }) {
+        if (!online()) return
+        updateSignup { transform(it).copy(page = page) }
+    }
+
+    /** `checkInternetConnection()`. */
+    private fun online(): Boolean {
+        if (source.isOnline()) return true
+        showAlert(BuyAlert(BuyStrings.CHECK_YOUR_CONNECTION, BuyStrings.TRY_TO_CONNECT))
+        return false
+    }
 
     /** Back out of the signup container. */
     fun onCloseSignup() = _state.update { it.copy(signup = null) }
@@ -248,7 +266,7 @@ class BuyController(
             when (result) {
                 VerifyEmailResult.Accepted -> {
                     hasAutoTriggered = false
-                    updateSignup { it.copy(page = SignupPage.Otp, code = "") }
+                    moveToPage(SignupPage.Otp) { it.copy(code = "") }
                 }
                 is VerifyEmailResult.Rejected -> showAlert(BuyAlert(BuyStrings.OOPS, result.message))
                 VerifyEmailResult.Unreachable -> showAlert(BuyAlert(BuyStrings.OOPS, BuyStrings.BITTR_SIGNUP_FAIL_4))
@@ -381,7 +399,7 @@ class BuyController(
         updateSignup { it.copy(busy = false, code = "") }
         val backToStart = listOf(BuyAlertButton(BuyStrings.OKAY, BuyAction.BackToStart))
         when (result) {
-            RegisterResult.Created -> updateSignup { it.copy(page = SignupPage.Success) }
+            RegisterResult.Created -> moveToPage(SignupPage.Success)
             RegisterResult.InvalidIban ->
                 showAlert(BuyAlert(BuyStrings.OOPS, BuyStrings.BITTR_SIGNUP_FAIL_2, backToStart))
             is RegisterResult.Message ->
@@ -433,9 +451,9 @@ class BuyController(
     fun signupEntity(): IbanEntity? =
         _state.value.signup?.entityId?.let { id -> source.entities.value.firstOrNull { it.id == id } }
 
-    fun onSuccessNext() = updateSignup { it.copy(page = SignupPage.TransferInfo) }
+    fun onSuccessNext() = moveToPage(SignupPage.TransferInfo)
 
-    fun onTransferInfoBack() = updateSignup { it.copy(page = SignupPage.Success) }
+    fun onTransferInfoBack() = moveToPage(SignupPage.Success)
 
     fun onScreenshotResult(saved: Boolean) = showAlert(
         if (saved) BuyAlert(BuyStrings.SAVED, BuyStrings.SCREENSHOT_2) else BuyAlert(BuyStrings.OOPS, BuyStrings.SCREENSHOT_3),
@@ -460,7 +478,7 @@ class BuyController(
         when (action) {
             BuyAction.Dismiss -> Unit
             BuyAction.GoToWallet, BuyAction.FinishSignup -> onCloseSignup()
-            BuyAction.ChangeEmail, BuyAction.BackToStart -> updateSignup { it.copy(page = SignupPage.Start, busy = false) }
+            BuyAction.ChangeEmail, BuyAction.BackToStart -> moveToPage(SignupPage.Start) { it.copy(busy = false) }
             BuyAction.RequestNotifications -> _effects.tryEmit(BuyEffect.RequestNotificationPermission)
             BuyAction.CancelLoading -> updateSignup { it.copy(busy = false) }
             BuyAction.ContinueWithoutNotifications -> {

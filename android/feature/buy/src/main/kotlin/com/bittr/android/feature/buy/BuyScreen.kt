@@ -75,6 +75,8 @@ fun BuyRoute(
     // Onboarding's bittr signup (`SignupViewController` pages 10–13): opens on the IBAN page and
     // leaves through [onDown] whenever the signup closes, instead of showing the Buy cards.
     onboarding: Boolean = false,
+    /** A signup page's article card was tapped (`launchArticle(articleTag:)`). */
+    onOpenArticle: (String) -> Unit = {},
 ) {
     val scope = rememberCoroutineScope()
     val controller = remember(source) { BuyController(source, scope) }
@@ -114,7 +116,7 @@ fun BuyRoute(
         if (signup == null) {
             if (!onboarding) BuyCards(state = state, controller = controller, onDown = onDown)
         } else {
-            SignupContainer(signup = signup, controller = controller)
+            SignupContainer(signup = signup, controller = controller, onOpenArticle = onOpenArticle)
             if (signup.showInitiative) {
                 InitiativeSheet(onConfirm = controller::onInitiativeConfirm, onCancel = controller::onInitiativeCancel)
             }

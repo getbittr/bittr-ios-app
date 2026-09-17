@@ -12,6 +12,7 @@
 # shared/flows/test_suite.sh, which starts them and runs this with the env):
 #   node shared/flows/scripts/push_server.js        # buy_incoming / buy_more
 #   node shared/flows/scripts/clipboard_server.js    # send_lightning
+#   (Android: prefix both with BITTR_PUSH_PLATFORM=android; set ANDROID_SERIAL with several devices attached)
 #   maestro test \
 #     --env APP_ID=com.bittr.bittr-regtest \
 #     --env MNEMONIC="attack urge across cupboard year armor list vital outer leader anxiety endorse" \

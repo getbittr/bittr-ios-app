@@ -22,6 +22,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -99,6 +100,10 @@ fun WebsiteScreen(
     // R-10: one Lightning hand-off at a time, cancelled on navigation and on teardown,
     // so a page firing the same link twice hands it on once.
     val lnurlSlot = remember { LnurlRequestSlot() }
+
+    // iOS's `isHandlingLnurlAuth`: a link found on the page (not tapped) is handed on once for this
+    // screen, so coming Back from Send doesn't send the user straight out again.
+    var pageLinkHandled by rememberSaveable { mutableStateOf(false) }
     DisposableEffect(Unit) {
         onDispose { lnurlSlot.cancel() }
     }
@@ -141,6 +146,14 @@ fun WebsiteScreen(
                         }
                     },
                     lnurlSlot = lnurlSlot,
+                    onPageLink = { code, pageUrl, pageTitle ->
+                        val origin = originOf(pageUrl)
+                        if (!pageLinkHandled && origin != null && lnurlSlot.inFlight == null) {
+                            pageLinkHandled = true
+                            lnurlSlot.begin(origin)
+                            deliverLnurl(code, LnurlSource.FirstPartyWeb(origin = origin, pageTitle = pageTitle))
+                        }
+                    },
                 ).also { webView ->
                     // Loaded here rather than in an update block: `update` runs on
                     // every recomposition, and progress changes cause those, so

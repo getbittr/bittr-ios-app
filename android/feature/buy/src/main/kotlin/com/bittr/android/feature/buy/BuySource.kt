@@ -15,6 +15,9 @@ interface BuySource {
     /** iOS's `bittrWallet.ibanEntities`. Every mutation below is reflected here. */
     val entities: StateFlow<List<IbanEntity>>
 
+    /** `Reachability.isConnectedToNetwork()`, which the signup checks before every page move. */
+    fun isOnline(): Boolean = true
+
     /** `getDepositCodeData` — refresh the partner details behind each deposit code. */
     suspend fun refreshDepositCodes(): DepositRefresh
 

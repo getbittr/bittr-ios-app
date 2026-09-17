@@ -71,6 +71,8 @@ internal object HardenedWebView {
      *   said about itself.
      * @param lnurlSlot cancelled on every navigation (R-10), so a hand-off claimed
      *   by one page cannot outlive it.
+     * @param onPageLink a first-party page's main frame *shows* a Lightning link, found by
+     *   [PageLinkScan] without a tap — iOS's injected script. Null to not scan.
      */
     @SuppressLint("SetJavaScriptEnabled")
     fun create(
@@ -79,7 +81,10 @@ internal object HardenedWebView {
         onPageUrlChanged: (String?) -> Unit,
         onLnurl: (code: String, pageUrl: String?, pageTitle: String?) -> Unit,
         lnurlSlot: LnurlRequestSlot,
+        onPageLink: ((code: String, pageUrl: String?, pageTitle: String?) -> Unit)? = null,
     ): WebView = WebView(context).apply {
+        // Bumped on every navigation, so a scan started for one page stops when it goes.
+        var scanGeneration = 0
         layoutParams = ViewGroup.LayoutParams(
             ViewGroup.LayoutParams.MATCH_PARENT,
             ViewGroup.LayoutParams.MATCH_PARENT,
@@ -175,11 +180,33 @@ internal object HardenedWebView {
                 // R-10: navigating away supersedes anything in flight, so a
                 // response cannot arrive against the page that has just gone.
                 lnurlSlot.cancel()
+                scanGeneration++
                 onPageUrlChanged(url)
             }
 
             override fun onPageFinished(view: WebView, url: String?) {
                 onPageUrlChanged(url)
+                if (onPageLink != null && FirstPartyOrigins.trustOf(view.url) == WebsiteTrust.FirstParty) {
+                    scanForLinks(view, ++scanGeneration)
+                }
+            }
+
+            /**
+             * [PageLinkScan.SCRIPT] now and every second after, like iOS's `MutationObserver`,
+             * until a link turns up, the page navigates, or the WebView leaves the window. Trust
+             * is re-checked on every answer against the page loaded *then*.
+             */
+            private fun scanForLinks(view: WebView, generation: Int) {
+                if (generation != scanGeneration || !view.isAttachedToWindow) return
+                view.evaluateJavascript(PageLinkScan.SCRIPT) { result ->
+                    if (generation != scanGeneration) return@evaluateJavascript
+                    val link = PageLinkScan.parse(result)
+                    if (link != null && FirstPartyOrigins.trustOf(view.url) == WebsiteTrust.FirstParty) {
+                        onPageLink?.invoke(WebsiteNavigationPolicy.lnurlCode(link), view.url, view.title)
+                    } else {
+                        view.postDelayed({ scanForLinks(view, generation) }, PageLinkScan.POLL_MILLIS)
+                    }
+                }
             }
 
             /**

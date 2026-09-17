@@ -4,6 +4,10 @@ package com.bittr.android.feature.buy
 object BuyStrings {
 
     const val OKAY = "Okay"
+
+    // `checkyourconnection` / `trytoconnect`.
+    const val CHECK_YOUR_CONNECTION = "Check your connection"
+    const val TRY_TO_CONNECT = "You don't seem to be connected to the internet. Please try to connect."
     const val CANCEL = "Cancel"
     const val CONTINUE = "Continue"
     const val CONFIRM = "Confirm"

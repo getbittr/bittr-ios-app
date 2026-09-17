@@ -5,6 +5,8 @@ import com.bittr.android.core.swaps.FileSwapStore
 import com.bittr.android.core.swaps.SuggestedSwapStatus
 import com.bittr.android.core.swaps.SwapStore
 import com.bittr.android.core.wallet.SwapActivityStatus
+import com.bittr.android.core.wallet.SwapFileIds
+import com.bittr.android.core.wallet.ldk.adapter.Bolt11Decoder
 import com.bittr.android.core.wallet.SwapHistory
 import com.bittr.android.core.wallet.TransactionDescriptionStore
 import com.bittr.android.core.wallet.WalletOverview
@@ -91,6 +93,14 @@ class MatchedWalletOverviewSource(
             swapIdFor = swaps::swapIdFor,
             // `loadSwapDetailsFromFile(swapID:)`: what the transaction screen shows as the swapped amount.
             swapAmountFor = { dateId -> swaps.swapIdFor(dateId)?.let(swaps::load)?.satoshisAmount?.takeIf { it > 0 } },
+            swapFileIdsFor = { dateId ->
+                swaps.swapIdFor(dateId)?.let(swaps::load)?.let { swap ->
+                    SwapFileIds(
+                        paidInvoiceHash = swap.createdInvoice?.let { Bolt11Decoder.decode(it)?.paymentHashHex },
+                        sentOnchainTxId = swap.sentOnchainTransactionId,
+                    )
+                }
+            },
         ) { dateId ->
             when (swaps.suggestedStatus(dateId)) {
                 SuggestedSwapStatus.Pending -> SwapActivityStatus.Pending

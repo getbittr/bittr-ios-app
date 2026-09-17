@@ -24,6 +24,7 @@ import com.bittr.android.core.network.HttpClient
 import com.bittr.android.core.network.okhttp.OkHttpBittrHttpClient
 import com.bittr.android.core.wallet.WalletState
 import com.bittr.android.feature.academy.AcademyScreen
+import com.bittr.android.feature.academy.ArticleScreen
 import com.bittr.android.receive.ReceiveViewModel
 import com.bittr.android.core.common.destination.Destination
 import com.bittr.android.feature.send.SendLnurlRequest
@@ -108,6 +109,12 @@ object Routes {
     const val VALUE = "value"
     const val MAP = "map"
     const val ACADEMY = "academy"
+
+    /** An article (`CoreToArticle`), by slug — from the signup pages' article cards. */
+    const val ARTICLE_ARG = "slug"
+    const val ARTICLE = "article/{$ARTICLE_ARG}"
+
+    fun article(slug: String) = "article/$slug"
 
     /** Receive (`HomeToReceive`). Reached from Home once the wallet has synced. */
     const val RECEIVE = "receive"
@@ -301,6 +308,7 @@ fun BittrNavHost(
             BuyRoute(
                 source = buy.source,
                 onboarding = true,
+                onOpenArticle = { slug -> navController.navigate(Routes.article(slug)) },
                 onDown = {
                     navController.navigate(Routes.HOME) {
                         popUpTo(Routes.SIGNUP_BITTR) { inclusive = true }
@@ -364,7 +372,11 @@ fun BittrNavHost(
 
         composable(Routes.BUY) {
             val buy: BuyViewModel = hiltViewModel()
-            BuyRoute(source = buy.source, onDown = { navController.popBackStack() })
+            BuyRoute(
+                source = buy.source,
+                onDown = { navController.popBackStack() },
+                onOpenArticle = { slug -> navController.navigate(Routes.article(slug)) },
+            )
         }
 
         composable(Routes.PROFITS) {
@@ -390,6 +402,16 @@ fun BittrNavHost(
 
         composable(Routes.ACADEMY) {
             AcademyScreen(onBack = { navController.popBackStack() })
+        }
+
+        composable(
+            route = Routes.ARTICLE,
+            arguments = listOf(navArgument(Routes.ARTICLE_ARG) { type = NavType.StringType }),
+        ) { entry ->
+            ArticleScreen(
+                slug = entry.arguments?.getString(Routes.ARTICLE_ARG).orEmpty(),
+                onDown = { navController.popBackStack() },
+            )
         }
 
         composable(Routes.RECEIVE) {

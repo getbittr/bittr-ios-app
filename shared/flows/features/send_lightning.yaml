@@ -31,6 +31,7 @@
 # Run the clipboard helper so the in-app Paste button has something to paste:
 #
 #   node shared/flows/scripts/clipboard_server.js   # keep running
+#   (Android: BITTR_CLIPBOARD_PLATFORM=android node shared/flows/scripts/clipboard_server.js)
 #   maestro test --env APP_ID=com.bittr.bittr-regtest shared/flows/features/send_lightning.yaml
 #
 # Sending requires an active lightning channel with enough outbound capacity
@@ -130,12 +131,17 @@ appId: ${APP_ID}
 - runScript: ../scripts/set_clipboard.js
 - tapOn:
     id: "send.pasteButton"
-- extendedWaitUntil:
-    visible:
-      text: "Allow Paste"
-    timeout: 10000
-- tapOn:
-    text: "Allow Paste"
+# iOS only: Android has no paste-permission prompt for a clipboard another process wrote.
+- runFlow:
+    when:
+      platform: iOS
+    commands:
+      - extendedWaitUntil:
+          visible:
+            text: "Allow Paste"
+          timeout: 10000
+      - tapOn:
+          text: "Allow Paste"
 
 # Pasting a lightning invoice switches the type to lightning: the "to" label
 # reads "Invoice and amount", the invoice lands in the field, and because this
@@ -197,12 +203,17 @@ appId: ${APP_ID}
 - runScript: ../scripts/set_clipboard.js
 - tapOn:
     id: "send.pasteButton"
-- extendedWaitUntil:
-    visible:
-      text: "Allow Paste"
-    timeout: 10000
-- tapOn:
-    text: "Allow Paste"
+# iOS only: Android has no paste-permission prompt for a clipboard another process wrote.
+- runFlow:
+    when:
+      platform: iOS
+    commands:
+      - extendedWaitUntil:
+          visible:
+            text: "Allow Paste"
+          timeout: 10000
+      - tapOn:
+          text: "Allow Paste"
 
 # The invoice lands in the field but, being a zero-amount invoice, no amount
 # appears.

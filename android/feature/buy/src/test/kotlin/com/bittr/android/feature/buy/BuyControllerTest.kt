@@ -33,6 +33,9 @@ class BuyControllerTest {
         var verifyCalls = 0
         var now = 1_000L
         var modes = mutableListOf<String>()
+        var online = true
+
+        override fun isOnline() = online
 
         override suspend fun refreshDepositCodes() = DepositRefresh.Unchanged
         override suspend fun setPaymentMode(entityId: String, mode: String): PaymentModeResult {
@@ -89,6 +92,23 @@ class BuyControllerTest {
         c.onInitiativeConfirm()
         runCurrent()
         assertEquals(SignupPage.Otp, c.state.value.signup!!.page)
+    }
+
+    /** `moveToPage(_:)`'s `checkInternetConnection()`: offline, the page stays put and says so. */
+    @Test
+    fun `offline, a page move stays put and asks to check the connection`() = runTest {
+        val source = FakeSource()
+        val c = controller(source)
+        c.onStartSignup()
+        source.online = false
+        c.onReadyNext()
+        assertEquals(SignupPage.Ready, c.state.value.signup!!.page)
+        assertEquals(BuyStrings.CHECK_YOUR_CONNECTION, c.state.value.alert?.title)
+
+        c.onAlertAction(BuyAction.Dismiss)
+        source.online = true
+        c.onReadyNext()
+        assertEquals(SignupPage.Start, c.state.value.signup!!.page)
     }
 
     @Test

@@ -1,4 +1,5 @@
-// Puts text on the booted iOS Simulator's clipboard by relaying through the
+// Puts text on the device clipboard (iOS Simulator, or Android with the helper in
+// BITTR_CLIPBOARD_PLATFORM=android mode) by relaying through the
 // local clipboard_server.js helper (Maestro's JS sandbox blocks shelling out
 // directly, and Maestro has no command to set the OS pasteboard itself).
 //
