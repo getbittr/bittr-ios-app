@@ -52,11 +52,12 @@ fun interface PayoutSwapLauncher {
 /** What the payout handler needs from the Lightning node, beyond the request signer. */
 interface PushNode {
 
-    /** iOS `isConnectedToPeer()`: connected to the bittr node right now. */
-    fun isConnectedToBittr(): Boolean
-
-    /** iOS `didEstablishPeerConnection()`. */
-    suspend fun reconnectToBittr()
+    /**
+     * Connected to the bittr node, connecting first when it isn't — up to three attempts, one
+     * and two seconds apart ([com.bittr.android.core.wallet.ldk.lightning.BittrPeerConnection]).
+     * False only once those have failed.
+     */
+    suspend fun ensureConnectedToBittr(): Boolean
 
     /** A BOLT11 invoice for [amountMsat] with [description], or null when one cannot be made. */
     fun invoice(amountMsat: Long, description: String, expirySecs: Int): String?

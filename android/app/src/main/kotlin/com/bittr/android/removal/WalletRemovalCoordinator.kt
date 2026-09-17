@@ -67,8 +67,8 @@ interface RemovalNode {
 
     fun isPeerConnected(): Boolean
 
-    /** `connectToLightningPeer()`. True when the connect call succeeded. */
-    fun connectPeer(): Boolean
+    /** `connectToLightningPeer()`, retried as the payout push is. True once the peer is connected. */
+    suspend fun connectPeer(): Boolean
 
     fun closeChannel(channel: ChannelView)
 
@@ -310,7 +310,7 @@ class WalletRemovalCoordinator(
         // The user confirmed the close, so the manual removal is committed.
         if (!lockout) flag.inProgress = true
 
-        val connected = withContext(io) { node.isPeerConnected() || (node.connectPeer() && node.isPeerConnected()) }
+        val connected = withContext(io) { node.isPeerConnected() || node.connectPeer() }
         if (!connected) {
             if (lockout) {
                 closeFailed()

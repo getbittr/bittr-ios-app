@@ -22,6 +22,9 @@ import com.bittr.android.core.designsystem.BittrTheme
 import com.bittr.android.core.network.DeviceTokenLifecycle
 import com.bittr.android.core.preferences.AppPreferences
 import com.bittr.android.core.preferences.DarkModeSetting
+import com.bittr.android.core.wallet.WalletService
+import com.bittr.android.core.wallet.WalletState
+import com.bittr.android.core.wallet.ldk.lightning.BittrPeerConnection
 import com.bittr.android.navigation.BittrNavHost
 import com.bittr.android.home.RemovedWalletReset
 import com.bittr.android.push.PushCoordinator
@@ -68,6 +71,13 @@ class MainActivity : ComponentActivity() {
     @Inject
     lateinit var appForeground: AppForeground
 
+    @Inject
+    lateinit var wallet: WalletService
+
+    /** Reconnected on every foreground while the node runs, as iOS's `SceneDelegate` does. */
+    @Inject
+    lateinit var bittrPeer: BittrPeerConnection
+
     /**
      * `api-contract` §2.3 rule 2's per-foreground reset, plus the reconciliation above.
      *
@@ -87,6 +97,10 @@ class MainActivity : ComponentActivity() {
         appForeground.setActive(true)
         deviceTokens.onAppForegrounded()
         lifecycleScope.launch { deviceTokens.syncOnAppStart() }
+        // Before unlock there's no node yet; the node start's `bittr-peer` runner connects then.
+        if (wallet.state.value == WalletState.Ready) {
+            lifecycleScope.launch { bittrPeer.ensureConnected() }
+        }
     }
 
     override fun onStop() {

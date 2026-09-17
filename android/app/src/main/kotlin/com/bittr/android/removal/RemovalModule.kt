@@ -77,12 +77,7 @@ internal class CompositionRemovalNode(
         return lightning.listPeers().any { it.nodeId == peer && it.isConnected }
     }
 
-    override fun connectPeer(): Boolean {
-        val env = environment ?: return false
-        return runCatching { lightning.connect(env.lightningNodeId, env.lightningNodeAddress, true) }
-            .onFailure { Log.w(TAG, "Could not connect to the bittr node", it) }
-            .isSuccess
-    }
+    override suspend fun connectPeer(): Boolean = composition.bittrPeer.ensureConnected()
 
     override fun closeChannel(channel: ChannelView) =
         lightning.closeChannel(channel.userChannelId, channel.counterpartyNodeId)

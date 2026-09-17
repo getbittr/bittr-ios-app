@@ -1,15 +1,14 @@
 package com.bittr.android.push
 
-import android.util.Log
 import com.bittr.android.core.network.BittrCustomerStore
 import com.bittr.android.core.network.BittrEnvironment
 import com.bittr.android.core.network.BittrRequestSigner
 import com.bittr.android.core.network.HttpClient
 import com.bittr.android.core.wallet.WalletOverviewSource
 import com.bittr.android.core.wallet.WalletService
+import com.bittr.android.core.wallet.ldk.lightning.BittrPeerConnection
 import com.bittr.android.core.wallet.ldk.lightning.Bolt11DescriptionView
 import com.bittr.android.core.wallet.ldk.lightning.LightningNodePort
-import com.bittr.android.di.LdkEnvironmentConfig
 import dagger.BindsOptionalOf
 import dagger.Module
 import dagger.Provides
@@ -49,20 +48,9 @@ object PushHandlingModule {
 
     @Provides
     @Singleton
-    fun providePushNode(lightning: LightningNodePort): PushNode = object : PushNode {
+    fun providePushNode(lightning: LightningNodePort, bittrPeer: BittrPeerConnection): PushNode = object : PushNode {
 
-        private val bittrNode = LdkEnvironmentConfig.fromBuildConfig()
-
-        override fun isConnectedToBittr(): Boolean {
-            val nodeId = bittrNode?.lightningNodeId ?: return false
-            return lightning.listPeers().any { it.nodeId == nodeId && it.isConnected }
-        }
-
-        override suspend fun reconnectToBittr() {
-            val environment = bittrNode ?: return
-            runCatching { lightning.connect(environment.lightningNodeId, environment.lightningNodeAddress, persist = true) }
-                .onFailure { Log.w("PushNode", "Reconnecting to the bittr node failed", it) }
-        }
+        override suspend fun ensureConnectedToBittr(): Boolean = bittrPeer.ensureConnected()
 
         override fun invoice(amountMsat: Long, description: String, expirySecs: Int): String? = runCatching {
             lightning.receiveBolt11(

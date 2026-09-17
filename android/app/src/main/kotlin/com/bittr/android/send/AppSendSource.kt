@@ -47,6 +47,12 @@ class AppSendSource(
     private val notes: TransactionNoteStore? = null,
     /** The recovery phrase, read when an LNURL-auth key is derived and not held. */
     private val mnemonic: () -> String? = { null },
+    /**
+     * Connect to the bittr node when it isn't connected, retrying — iOS's `SendLightning`
+     * reconnects before paying, since the wallet's channel is with bittr. The answer doesn't stop
+     * the send: a payment that still can't route fails with the existing alert.
+     */
+    private val ensureBittrPeer: suspend () -> Boolean = { true },
 ) : SendSource {
 
     override val walletUpdates: Flow<Any> = overview.overview
@@ -90,6 +96,7 @@ class AppSendSource(
     }
 
     override suspend fun payInvoice(invoice: String, amountSats: Long?): Result<String> = io {
+        ensureBittrPeer()
         runCatching {
             val id = if (amountSats == null) {
                 lightning.sendBolt11(invoice, null)
