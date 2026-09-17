@@ -59,6 +59,18 @@ Status key: **Decided** (done, reversible) · **Question** (needs your answer) �
     - After a failed Lightning payment Send keeps the form filled in (iOS clears it).
     - The hearts are a hand-made animation (iOS uses SPConfetti) and need a visual check.
 
+5e. **Decided — Home shows the last known data on launch** (iOS `WalletCache` + `showCachedData()`): the last
+    synced balance, fiat line, profit pill and history appear immediately while the header spinner runs, and the
+    live sync replaces them. As on iOS the wallet still counts as not synced, so Send, Receive, the balance card
+    and pull-to-refresh keep their guards; cached history rows can be opened. Saved per backend under `no_backup`
+    and cleared when the wallet is removed. Differences: rates are saved per currency (iOS saves EUR and CHF
+    only), and the profit summary is saved as numbers rather than recalculated from the cached history.
+
+5f. **Decided — removing a wallet clears the old wallet's figures from memory too**, so a new or restored wallet
+    never briefly shows them: the overview (and its refresh snapshot), profits, the saved bittr accounts and
+    purchases, the expected payout and the confirmations' opened ids. The sent-to-bittr ids and swap files are kept,
+    as on iOS (`deleteClientInfo`).
+
 ## Scanner and alerts
 
 6. **Decided — every Compose dialog exposes its test ids** (`Modifier.exposeTestTags()`), and
