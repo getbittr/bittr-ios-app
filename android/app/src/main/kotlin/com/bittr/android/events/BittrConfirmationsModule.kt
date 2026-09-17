@@ -105,6 +105,10 @@ internal class AppBittrLookup(
         // `updateSentToBittr` once the call succeeded, whatever it returned.
         store.addSentToBittr(txIds)
         if (rows.isNotEmpty()) store.addPurchases(rows)
+        android.util.Log.i(
+            TransactionConfirmations.TAG,
+            "transaction_info: HTTP ${response.code}, ${rows.size} row(s), matches ${rows.any { it.txId == txId }}",
+        )
         rows.size == 1 && rows.first().txId == txId
     }
 

@@ -1,5 +1,6 @@
 package com.bittr.android.events
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import com.bittr.android.core.swaps.SwapCoordinator
 import com.bittr.android.core.swaps.SwapEvent
@@ -120,6 +121,7 @@ class TransactionConfirmations(
     private val bittr: BittrLookup = BittrLookup.None,
     private val payouts: BittrPayoutTracker = BittrPayoutTracker(),
     private val clockMillis: () -> Long = System::currentTimeMillis,
+    private val log: (String) -> Unit = { runCatching { Log.i(TAG, it) } },
 ) {
 
     private val _requests = MutableSharedFlow<TransactionRequest>(extraBufferCapacity = 8)
@@ -202,8 +204,11 @@ class TransactionConfirmations(
 
     /** `.paymentReceived`: a bittr payout is checked with bittr first; anything else opens as it is. */
     private suspend fun openReceived(paymentHash: String) {
-        val found = findRow(paymentHash) as? Lookup.Row ?: return
+        val lookup = findRow(paymentHash)
+        val found = lookup as? Lookup.Row
         val notificationId = payouts.awaiting(clockMillis())
+        log("Payment received: ${lookup::class.simpleName}, payout expected: ${notificationId != null}")
+        if (found == null) return
         if (notificationId == null) {
             request(TransactionRequest(found.id))
             return
@@ -243,7 +248,9 @@ class TransactionConfirmations(
         otherwise: TransactionRequest?,
         onPurchase: () -> Unit = {},
     ) {
-        if (bittr.alreadySent(txId)) {
+        val sent = bittr.alreadySent(txId)
+        log("bittr check: already sent $sent, purchase ${bittr.isPurchase(txId)}, in history $inHistory")
+        if (sent) {
             if (bittr.isPurchase(txId)) {
                 onPurchase()
                 request(TransactionRequest(txId, confetti = true))
@@ -255,7 +262,10 @@ class TransactionConfirmations(
             // ask again after the delay rather than open the summary without its description.
         }
         pause(BITTR_CHECK_DELAY_MS)
-        val confirmed = runCatching { bittr.check(txId) }.getOrDefault(false)
+        val confirmed = runCatching { bittr.check(txId) }
+            .onFailure { log("bittr check failed: ${it.javaClass.simpleName}: ${it.message}") }
+            .getOrDefault(false)
+        log("bittr check: confirmed $confirmed")
         if (confirmed) {
             onPurchase()
             request(TransactionRequest(txId, confetti = true))
@@ -281,6 +291,7 @@ class TransactionConfirmations(
     }
 
     internal companion object {
+        const val TAG = "TxConfirmations"
         /** An immediate look, a quick second one for the matched history to catch up, then iOS's 5 s. */
         val RETRY_WAITS_MS = listOf(0L, 1_000L, 5_000L, 5_000L)
         const val REMEMBERED = 16

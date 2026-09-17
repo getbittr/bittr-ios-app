@@ -84,6 +84,7 @@ class PushCoordinatorTest {
     }
 
     private val finishedPayouts = mutableListOf<String>()
+    private val payoutInvoices = mutableListOf<Pair<String, String>>()
 
     @Test
     fun `a payout bittr already processed is recorded as finished, and a paid one too`() {
@@ -165,6 +166,7 @@ class PushCoordinatorTest {
         },
         payoutSwap = null,
         onPayoutFinished = { finishedPayouts += it },
+        onPayoutInvoice = { invoice, notificationId -> payoutInvoices += invoice to notificationId },
         clockMillis = { now },
         pause = {},
         log = {},
@@ -321,6 +323,8 @@ class PushCoordinatorTest {
             requests.single().url,
         )
         assertEquals(PushUiState(), state)
+        // The payout's payment gets the notification id as its description (buy_more.yaml).
+        assertEquals(listOf("lnbcrt5000000" to "n1"), payoutInvoices)
     }
 
     @Test

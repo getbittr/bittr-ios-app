@@ -78,6 +78,12 @@ class PushCoordinator(
     private val payoutTracker: BittrPayoutTracker = BittrPayoutTracker(),
     /** A payout notification that is finished — paid, or "already processed" by bittr. */
     private val onPayoutFinished: (notificationId: String) -> Unit = {},
+    /**
+     * The payout's invoice exists: its payment will be the payout, so the notification id is stored as
+     * that payment's description now (iOS: `storeInvoiceDescription` once bittr confirms the payment).
+     * Not left to the confirmation, which a race with the profit lookup could skip.
+     */
+    private val onPayoutInvoice: (invoice: String, notificationId: String) -> Unit = { _, _ -> },
     private val clockMillis: () -> Long = System::currentTimeMillis,
     private val pause: suspend (Long) -> Unit = { delay(it) },
     private val log: (String) -> Unit = { Log.i(TAG, it) },
@@ -296,6 +302,7 @@ class PushCoordinator(
 
         // Expected before the call: the payment can settle before bittr's answer arrives.
         payoutTracker.expect(notificationId, clockMillis())
+        runCatching { onPayoutInvoice(invoice, notificationId) }
         val outcome = withContext(io) {
             try {
                 val response = http.execute(LightningPayout.request(environment, notificationId, invoice, signature, pubkey))

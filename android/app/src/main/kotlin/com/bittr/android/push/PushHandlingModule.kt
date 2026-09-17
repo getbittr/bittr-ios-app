@@ -1,5 +1,7 @@
 package com.bittr.android.push
 
+import com.bittr.android.core.wallet.TransactionDescriptionStore
+import com.bittr.android.core.wallet.ldk.adapter.Bolt11Decoder
 import com.bittr.android.core.network.BittrCustomerStore
 import com.bittr.android.core.network.BittrEnvironment
 import com.bittr.android.core.network.BittrRequestSigner
@@ -76,6 +78,7 @@ object PushHandlingModule {
         payoutSwap: Optional<PayoutSwapLauncher>,
         payoutTracker: BittrPayoutTracker,
         customers: BittrCustomerStore,
+        descriptions: TransactionDescriptionStore,
     ): PushCoordinator = PushCoordinator(
         // Main, like every iOS handler (`DispatchQueue.main`): one thread owns the
         // pending push and the dedup record. Node and network work hops to IO.
@@ -93,5 +96,8 @@ object PushHandlingModule {
         payoutSwap = payoutSwap.orElse(null),
         payoutTracker = payoutTracker,
         onPayoutFinished = customers::addProcessedPayout,
+        onPayoutInvoice = { invoice, notificationId ->
+            Bolt11Decoder.decode(invoice)?.paymentHashHex?.let { descriptions.store(it, notificationId) }
+        },
     )
 }
