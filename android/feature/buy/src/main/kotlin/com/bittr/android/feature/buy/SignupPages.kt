@@ -53,6 +53,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.core.view.drawToBitmap
 import com.bittr.android.core.common.TestID
+import com.bittr.android.feature.academy.ArticleCard
+import com.bittr.android.feature.academy.BittrArticles
 import com.bittr.android.core.designsystem.BittrBody
 import com.bittr.android.core.designsystem.BittrCanvas
 import com.bittr.android.core.designsystem.BittrCard
@@ -69,7 +71,7 @@ import kotlinx.coroutines.withContext
 
 /** `RegisterIbanViewController` — the header, and whichever of the five pages is current. */
 @Composable
-internal fun SignupContainer(signup: SignupUiState, controller: BuyController) {
+internal fun SignupContainer(signup: SignupUiState, controller: BuyController, onOpenArticle: (String) -> Unit = {}) {
     val focus = LocalFocusManager.current
     BittrCanvas(appBar = false) {
         BittrModalHeader(
@@ -89,8 +91,8 @@ internal fun SignupContainer(signup: SignupUiState, controller: BuyController) {
                 .padding(BittrTokens.Spacing.md),
         ) {
             when (signup.page) {
-                SignupPage.Ready -> ReadyPage(onNext = controller::onReadyNext)
-                SignupPage.Start -> StartPage(signup, controller)
+                SignupPage.Ready -> ReadyPage(onNext = controller::onReadyNext, onOpenArticle = onOpenArticle)
+                SignupPage.Start -> StartPage(signup, controller, onOpenArticle)
                 SignupPage.Otp -> OtpPage(signup, controller)
                 SignupPage.Success -> SuccessPage(controller)
                 SignupPage.TransferInfo -> TransferInfoPage(controller)
@@ -101,7 +103,7 @@ internal fun SignupContainer(signup: SignupUiState, controller: BuyController) {
 
 /** `Signup7ViewController` as Buy shows it: no badge, no "wallet is ready", no Skip. */
 @Composable
-private fun ReadyPage(onNext: () -> Unit) {
+private fun ReadyPage(onNext: () -> Unit, onOpenArticle: (String) -> Unit) {
     BittrCard {
         Text(
             BuyStrings.FIRST_BITCOIN,
@@ -116,11 +118,14 @@ private fun ReadyPage(onNext: () -> Unit) {
             modifier = Modifier.testTag(TestID.Signup.Create.Ready.continueButton),
         )
     }
+    CanvasSpacer(BittrTokens.Spacing.lg)
+    // `pageArticle1Slug = "what-is-bittr"`.
+    ArticleCard(slug = BittrArticles.WHAT_IS_BITTR, onOpen = onOpenArticle)
 }
 
 /** `Transfer1ViewController`. */
 @Composable
-private fun StartPage(signup: SignupUiState, controller: BuyController) {
+private fun StartPage(signup: SignupUiState, controller: BuyController, onOpenArticle: (String) -> Unit) {
     val focus = LocalFocusManager.current
     val ibanFocus = remember { FocusRequester() }
     val emailFocus = remember { FocusRequester() }
@@ -205,6 +210,9 @@ private fun StartPage(signup: SignupUiState, controller: BuyController) {
             modifier = Modifier.testTag(TestID.Signup.Bittr.Start.skipButton),
         )
     }
+    CanvasSpacer(BittrTokens.Spacing.lg)
+    // Transfer1's `pageArticle1Slug = "supported-countries"`.
+    ArticleCard(slug = BittrArticles.SUPPORTED_COUNTRIES, onOpen = onOpenArticle)
 }
 
 /** `Transfer2ViewController`. */

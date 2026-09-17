@@ -29,6 +29,8 @@ kotlin {
 
 dependencies {
     implementation(project(":core:common"))
+    // The signup pages' article cards (`setSignupArticle`) — the articles live with the Academy.
+    implementation(project(":feature:academy"))
     implementation(project(":core:designsystem"))
     // IbanEntity and the endpoint result types. Pure Kotlin.
     implementation(project(":core:network"))

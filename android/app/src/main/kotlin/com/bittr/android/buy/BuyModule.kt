@@ -1,5 +1,6 @@
 package com.bittr.android.buy
 
+import com.bittr.android.core.wallet.InternetConnection
 import android.content.Context
 import androidx.lifecycle.ViewModel
 import com.bittr.android.core.network.BittrCustomerStore
@@ -62,6 +63,7 @@ object BuyModule {
         tokens: DeviceTokenSource,
         composition: WalletComposition,
         deviceTokens: DeviceTokenLifecycle,
+        internet: InternetConnection,
     ): BuySource = AppBuySource(
         store = store,
         environment = environment,
@@ -71,6 +73,7 @@ object BuyModule {
         tokens = tokens,
         notifications = NotificationAccess(context),
         onRegistered = deviceTokens::onRegistered,
+        internet = internet,
     )
 
     @Provides

@@ -1,5 +1,6 @@
 package com.bittr.android.buy
 
+import com.bittr.android.core.wallet.InternetConnection
 import android.Manifest
 import android.content.Context
 import android.content.pm.PackageManager
@@ -98,9 +99,12 @@ class AppBuySource(
     private val clock: UnixClock = UnixClock.System,
     /** `DeviceTokenLifecycle.onRegistered`: records a token `POST /customer` already delivered. */
     private val onRegistered: (CustomerRegistration.Registered, String?) -> Unit = { _, _ -> },
+    private val internet: InternetConnection = InternetConnection.Always,
 ) : BuySource {
 
     override val entities: StateFlow<List<IbanEntity>> = store.entities
+
+    override fun isOnline(): Boolean = internet.isConnected()
 
     override suspend fun refreshDepositCodes(): DepositRefresh {
         if (store.depositCodes().isEmpty()) return DepositRefresh.Unchanged
