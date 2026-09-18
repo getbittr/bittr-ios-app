@@ -5,13 +5,16 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.CircularProgressIndicator
@@ -25,6 +28,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.testTag
@@ -88,16 +92,16 @@ internal fun OneLessonScreen(
     }
 
     BittrCanvas(modifier = modifier, onBack = onClose) {
-        Text(
+        AcademyHeading(
             text = lesson.title,
-            style = MaterialTheme.typography.headlineSmall,
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = BittrTokens.Spacing.gutter),
+            modifier = Modifier.padding(
+                start = AcademyLayout.contentPadding,
+                end = AcademyLayout.contentPadding,
+                top = AcademyLayout.contentPadding,
+            ),
         )
-        CanvasSpacer(BittrTokens.Spacing.md)
 
-        Box(modifier = Modifier.weight(1f).fillMaxWidth()) {
+        BoxWithConstraints(modifier = Modifier.weight(1f).fillMaxWidth()) {
             if (state.isLoadingPage) {
                 CircularProgressIndicator(
                     color = BittrTheme.colors.onCanvas,
@@ -106,30 +110,25 @@ internal fun OneLessonScreen(
                         .testTag(TestID.Academy.lessonSpinner),
                 )
             } else {
+                // Centred in the space between the heading and the buttons, and still
+                // scrollable when a page outgrows it: the column is at least as tall as
+                // the viewport, so the centring has room to work, and grows past it
+                // rather than clipping.
                 Column(
-                    verticalArrangement = Arrangement.spacedBy(BittrTokens.Spacing.lg),
+                    verticalArrangement = Arrangement.Center,
                     modifier = Modifier
-                        .fillMaxSize()
+                        .fillMaxWidth()
                         .verticalScroll(rememberScrollState())
-                        .padding(horizontal = BittrTokens.Spacing.xxl),
+                        .heightIn(min = maxHeight)
+                        .padding(horizontal = AcademyLayout.contentPadding),
                 ) {
-                    state.page.components.forEach { component ->
-                        when (component) {
-                            is Component.Text -> Text(
-                                text = bittrMarkup(component.text),
-                                style = MaterialTheme.typography.bodyLarge,
-                                textAlign = TextAlign.Start,
-                                modifier = Modifier.fillMaxWidth(),
-                            )
-
-                            is Component.Image -> LessonImage(images[component.url])
-                        }
-                    }
+                    LessonCard(components = state.page.components, images = images)
                 }
             }
         }
 
         if (state.showsButtons) {
+            CanvasSpacer(BittrTokens.Spacing.md)
             LessonButtons(
                 state = state,
                 onBack = { state = state.previousPage() },
@@ -137,7 +136,42 @@ internal fun OneLessonScreen(
                 onComplete = onCompleted,
             )
         }
-        CanvasSpacer(BittrTokens.Spacing.lg)
+        CanvasSpacer(AcademyLayout.contentPadding)
+    }
+}
+
+/**
+ * A page's components on the review's white card.
+ *
+ * `chartSurface` rather than a white literal: it is the designsystem's fixed white
+ * with ink on it in both schemes, and ink-on-white is the only pairing that reads on
+ * either canvas — the reasoning is on `BittrColors.chartSurface`. iOS draws the page's
+ * text straight on the canvas and only its images on white cards (`Image.swift:17`);
+ * the review moves the whole page onto one card.
+ */
+@Composable
+private fun LessonCard(components: List<Component>, images: Map<String, ImageBitmap?>) {
+    val colors = BittrTheme.colors
+    Column(
+        verticalArrangement = Arrangement.spacedBy(LessonParagraphGap),
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(colors.chartSurface, LessonCardShape)
+            .padding(LessonCardPadding),
+    ) {
+        components.forEach { component ->
+            when (component) {
+                is Component.Text -> Text(
+                    text = bittrMarkup(component.text),
+                    style = AcademyType.lessonBody,
+                    color = colors.onChartSurface,
+                    textAlign = TextAlign.Start,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+
+                is Component.Image -> LessonImage(images[component.url])
+            }
+        }
     }
 }
 
@@ -160,10 +194,15 @@ private fun LessonImage(bitmap: ImageBitmap?) {
         contentScale = ContentScale.FillWidth,
         modifier = Modifier
             .fillMaxWidth()
-            .background(BittrTheme.colors.scrim1, BittrCanvasShapes.field),
+            .clip(BittrCanvasShapes.wordRow),
     )
 }
 
+/**
+ * Next (or Complete) as a content-width ink pill, with Back beside it from page 2 on;
+ * the pair is centred. Back is a rounded square rather than a circle because iOS draws
+ * it as one (`Button.swift:54-56`) and the review kept that shape at 56 dp.
+ */
 @Composable
 private fun LessonButtons(
     state: LessonUiState,
@@ -174,35 +213,37 @@ private fun LessonButtons(
     val colors = BittrTheme.colors
     Row(
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(7.dp),
+        horizontalArrangement = Arrangement.spacedBy(12.dp, Alignment.CenterHorizontally),
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = BittrTokens.Spacing.xxl),
+            .padding(horizontal = AcademyLayout.contentPadding),
     ) {
         if (!state.isFirstPage) {
             Box(
                 contentAlignment = Alignment.Center,
                 modifier = Modifier
-                    .size(40.dp)
-                    .background(colors.actionFill, BittrCanvasShapes.wordRow)
+                    .size(LessonButtonHeight)
+                    .clip(BittrCanvasShapes.field)
+                    .background(colors.actionFill)
                     .clickable(role = Role.Button, onClick = onBack)
                     .testTag(TestID.Academy.backPageButton),
             ) {
                 Image(
                     imageVector = rememberFillIcon(BittrIconPaths.BACK, colors.onActionFill),
                     contentDescription = "Back",
-                    modifier = Modifier.size(11.dp),
+                    modifier = Modifier.size(20.dp),
                 )
             }
         }
 
         Row(
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(10.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally),
             modifier = Modifier
-                .weight(1f)
-                .height(40.dp)
-                .background(colors.actionFill, BittrCanvasShapes.wordRow)
+                .height(LessonButtonHeight)
+                .widthIn(min = 160.dp)
+                .clip(BittrCanvasShapes.pill)
+                .background(colors.actionFill)
                 .clickable(role = Role.Button) {
                     if (state.isLastPage) onComplete() else onNext()
                 }
@@ -213,13 +254,12 @@ private fun LessonButtons(
                         TestID.Academy.nextPageButton
                     },
                 )
-                .padding(horizontal = 17.dp),
+                .padding(horizontal = 28.dp),
         ) {
             Text(
                 text = if (state.isLastPage) AcademyCopy.COMPLETE else AcademyCopy.NEXT,
                 style = MaterialTheme.typography.labelLarge,
                 color = colors.onActionFill,
-                modifier = Modifier.weight(1f),
             )
             // The forward chevron is hidden on the last page, where the label reads
             // "Complete" and there is nothing to go forward to (`Button.swift:141`).
@@ -227,12 +267,17 @@ private fun LessonButtons(
                 Image(
                     imageVector = rememberStrokeIcon(BittrIconPaths.ARROW_FORWARD, colors.onActionFill),
                     contentDescription = null,
-                    modifier = Modifier.size(11.dp),
+                    modifier = Modifier.size(18.dp),
                 )
             }
         }
     }
 }
+
+private val LessonButtonHeight = 56.dp
+private val LessonCardShape = RoundedCornerShape(20.dp)
+private val LessonCardPadding = 20.dp
+private val LessonParagraphGap = 16.dp
 
 @Preview(showBackground = true, widthDp = 412, heightDp = 892)
 @Composable

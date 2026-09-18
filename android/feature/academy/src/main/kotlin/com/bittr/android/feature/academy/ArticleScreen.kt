@@ -107,8 +107,10 @@ fun ArticleCard(slug: String, onOpen: (String) -> Unit, modifier: Modifier = Mod
     val article = remember(slug) { BittrArticles.article(context, slug) } ?: return
     val colors = BittrTheme.colors
     // The proposal's article chip (review S6): a cream 54 dp plate with the artwork as a
-    // flush 84 dp strip on its left, clipped by the plate, and the title centred in the rest.
-    // It was a bare rounded thumbnail with the title floating on the canvas beside it.
+    // flush 84 dp strip on its left, clipped by the plate, and the title beside it. It was a
+    // bare rounded thumbnail with the title floating on the canvas beside it. The title is
+    // start-aligned 16 dp after the strip (review pass 2); centred, a short title floated
+    // mid-plate, detached from its artwork.
     Row(
         verticalAlignment = Alignment.CenterVertically,
         modifier = modifier
@@ -139,12 +141,12 @@ fun ArticleCard(slug: String, onOpen: (String) -> Unit, modifier: Modifier = Mod
             text = article.title,
             style = MaterialTheme.typography.titleMedium.copy(fontSize = 15.5.sp, lineHeight = 20.sp),
             color = colors.onTonalFill,
-            textAlign = TextAlign.Center,
+            textAlign = TextAlign.Start,
             maxLines = 2,
             overflow = TextOverflow.Ellipsis,
             modifier = Modifier
                 .weight(1f)
-                .padding(horizontal = BittrTokens.Spacing.sm),
+                .padding(start = 16.dp, end = BittrTokens.Spacing.sm),
         )
     }
 }
