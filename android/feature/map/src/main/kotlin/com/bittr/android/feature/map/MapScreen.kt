@@ -254,6 +254,15 @@ internal fun MapScreen(
                 }
                 .testTag(TestID.Map.poweredByButton),
         )
+        // The basemap's credit, which the tile licences require wherever the map is drawn.
+        // Plain text, not a link — `BasemapAttributionGuardTest` explains why that makes the
+        // `.org` in the OpenMapTiles credit load-bearing.
+        Text(
+            text = MapCopy.BASEMAP_ATTRIBUTION,
+            style = MaterialTheme.typography.labelMedium,
+            color = BittrTheme.colors.mutedOnCanvas,
+            modifier = Modifier.padding(horizontal = BittrTokens.Spacing.gutter),
+        )
 
         CanvasSpacer(BittrTokens.Spacing.sm)
 

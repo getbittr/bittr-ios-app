@@ -385,3 +385,22 @@ Bitcoin-value branches merged after it. Not taken, or taken differently:
 - **Semibold (600) renders bold** throughout: the app bundles Gilroy Regular and Bold only.
 - **Not done yet:** numbering the three removal dialogs ("Step 2 of 3") is a copy change for iOS and
   Android together; the receive on-chain address wrap (`send_swap_suggestion_onchain/01b`).
+
+## 40. The map's tiles come from OpenFreeMap, not bittr's own host
+
+**2026-09-18, Ruben.** The self-hosted tile plan (map-sdk-decision.md, 2026-09-11; `tiles.getbittr.com`,
+BIT-139) never got its hosting, so the Android map drew only a blank background. Asked what Google Maps
+would imply instead, Ruben chose the middle option: **keep MapLibre and point it at a hosted tile
+service**, OpenFreeMap's Liberty style.
+
+- **Why not Google's map SDK:** on top of viewport and IP, it sends Google a pseudonymous install id and
+  pan/zoom interaction data (all declarable in the Play data-safety form), needs Play services, and
+  would have been a rewrite of the map screen.
+- **Why OpenFreeMap:** no API key, no account, no cookies; commercial use allowed; its privacy policy
+  keeps no IP addresses by default (30 days at most, for incidents). **Costs:** no SLA, it can stop
+  without notice; it may be behind Cloudflare, which would then see the IP too.
+- **What still leaves the device:** the viewport and the client IP, to OpenFreeMap, on every pan — as
+  with any tile host. The shipped copy already says this without naming anyone, so no copy change.
+- **In the code:** `MapBasemap.STYLE_URI`, the credit `MapCopy.BASEMAP_ATTRIBUTION` rendered under the
+  BTCMap line, and `TileHostGuardTest.APPROVED_VENDOR_HOSTS` naming `tiles.getbittr.com`'s stand-in by
+  exact hostname. Going back to self-hosted tiles is that constant again.

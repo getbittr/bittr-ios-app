@@ -74,7 +74,7 @@ class TileHostGuardTest {
          * Three kinds of entry, all excluded for different reasons:
          *
          * - **Commercial tile vendors** (`maptiler`, `mapbox`, `stadiamaps`,
-         *   `thunderforest`, `cartocdn`, `protomaps.com`, `openfreemap`) — each one
+         *   `thunderforest`, `cartocdn`, `protomaps.com`) — each one
          *   reinstates the third party the tile-hosting decision removed. Protomaps
          *   is on the list despite being the upstream this pipeline builds *from*:
          *   mirroring their archive is fine, pointing the app at their API is not,
@@ -96,7 +96,6 @@ class TileHostGuardTest {
             "thunderforest.com",
             "cartocdn.com",
             "protomaps.com",
-            "openfreemap.org",
             "demotiles.maplibre.org",
             "googleapis.com/maps",
         )
@@ -111,6 +110,18 @@ class TileHostGuardTest {
          * would fail the BIT-52 proxy capture even when bittr owns the bucket.
          */
         val BITTR_HOSTS = listOf("getbittr.com", "bittr.ch")
+
+        /**
+         * Tile hosts outside bittr that were chosen on purpose, by name, with the decision
+         * recorded. One today: OpenFreeMap, Ruben's call on 2026-09-18 when bittr's own host
+         * had not materialised (decision 40 in `shared/docs/android-port-decisions.md`) — no
+         * key, no account, no IP logging by default. Exact hostnames, not apex domains, so
+         * a sibling service under the same domain still needs its own decision.
+         *
+         * Adding a host here is the whole of "which third party sees the viewport", so it
+         * belongs in a commit that records why — never to clear a red build.
+         */
+        val APPROVED_VENDOR_HOSTS = listOf("tiles.openfreemap.org")
 
         /**
          * What makes a URL a basemap URL rather than any other URL in the repo.
@@ -181,7 +192,7 @@ class TileHostGuardTest {
                 val url = matcher.group(0) ?: continue
                 val host = matcher.group(1) ?: continue
                 if (TILE_URL_MARKERS.none { it in url }) continue
-                if (isBittrHost(host)) continue
+                if (isAllowedHost(host)) continue
                 offenders += url
             }
             return offenders
@@ -189,6 +200,9 @@ class TileHostGuardTest {
 
         fun isBittrHost(host: String): Boolean =
             BITTR_HOSTS.any { host == it || host.endsWith(".$it") }
+
+        /** A bittr host, or one of the [APPROVED_VENDOR_HOSTS] chosen by name. */
+        fun isAllowedHost(host: String): Boolean = isBittrHost(host) || host in APPROVED_VENDOR_HOSTS
 
         /**
          * The `STYLE_URI` literal, or null when the declaration is not found —
@@ -301,9 +315,9 @@ class TileHostGuardTest {
                     "including 'just for development', which is the case the decision calls " +
                     "out by name — reinstates the third party the copy was written to avoid " +
                     "conceding, and would fail the BIT-52 proxy capture.\n" +
-                    "Allowed: null (background-only style, no tile request at all) or a host " +
-                    "under $BITTR_HOSTS.",
-                isBittrHost(host),
+                    "Allowed: null (background-only style, no tile request at all), a host " +
+                    "under $BITTR_HOSTS, or one of $APPROVED_VENDOR_HOSTS (each a recorded decision).",
+                isAllowedHost(host),
             )
         }
     }

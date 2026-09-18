@@ -42,6 +42,19 @@ internal object MapCopy {
     /** `shared/strings/en.json`. Do not edit — see the class doc. */
     const val POWERED_BY: String = "Powered by BTCMap.org"
 
+    /**
+     * The basemap's credit — what OpenStreetMap's ODbL and the OpenMapTiles schema's CC-BY
+     * require wherever the tiles are drawn, plus the tile host. The first two phrases are
+     * `tile-pipeline.md`'s settled wording ("The wording, settled"), with non-breaking
+     * spaces after each ©; `BasemapAttributionGuardTest` pins them. "Tiles by OpenFreeMap"
+     * is OpenFreeMap's own request (optional, and courteous).
+     *
+     * Android only, not in `shared/strings`: iOS draws Apple's imagery, where this would
+     * be false.
+     */
+    const val BASEMAP_ATTRIBUTION: String =
+        "Map data \u00A9\u00A0OpenStreetMap contributors, design \u00A9\u00A0OpenMapTiles.org, tiles by OpenFreeMap"
+
     /** `shared/strings/en.json`. Do not edit — see the class doc. */
     const val POWERED_BY_ALERT: String =
         "<b>BTCMap.org</b> uses OpenStreetMap to tag places that accept bitcoin, and " +

@@ -1,5 +1,9 @@
 # Map SDK decision (BIT-53)
 
+> **Superseded on the tile host, 2026-09-18:** the map now draws OpenFreeMap's tiles while
+> bittr's own host does not exist — decision 40 in `shared/docs/android-port-decisions.md`.
+> The renderer, coarse-location and places-sync decisions below are unchanged.
+
 **Decision:** the Android map is built on **MapLibre Native**
 (`org.maplibre.gl:android-sdk:11.11.0`), rendering **tiles bittr serves itself**, with
 `ACCESS_COARSE_LOCATION` as the only location permission and the places sync kept on
