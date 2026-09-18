@@ -117,7 +117,7 @@ fun BittrAlert(
                 verticalArrangement = Arrangement.spacedBy(BittrTokens.Spacing.xs),
             ) {
                 buttons.forEachIndexed { position, button ->
-                    AlertButton(button = button, position = position)
+                    AlertButton(button = button, position = position, alone = buttons.size == 1)
                 }
             }
         },
@@ -178,7 +178,7 @@ fun BittrInlineAlert(
                 verticalArrangement = Arrangement.spacedBy(BittrTokens.Spacing.xs),
             ) {
                 buttons.forEachIndexed { position, button ->
-                    AlertButton(button = button, position = position)
+                    AlertButton(button = button, position = position, alone = buttons.size == 1)
                 }
             }
         }
@@ -199,13 +199,15 @@ private const val SCRIM_ALPHA = 0.45f
  * light, 5.28 : 1 dark. A11Y-22, BIT-94.
  */
 @Composable
-private fun AlertButton(button: BittrAlertButton, position: Int) {
+private fun AlertButton(button: BittrAlertButton, position: Int, alone: Boolean) {
     val buttonModifier = Modifier
         .fillMaxWidth()
         .padding(vertical = BittrTokens.Spacing.xs)
         .testTag(TestID.Alert.buttonAt(position))
 
-    if (position == 0 && button.dismissesAlert) {
+    // The way out is drawn quiet only beside another action; an alert's only button is the
+    // filled ink pill, whatever it does (review S2).
+    if (position == 0 && button.dismissesAlert && !alone) {
         TextButton(
             onClick = button.onClick,
             modifier = buttonModifier,
