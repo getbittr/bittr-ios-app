@@ -10,6 +10,9 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.draw.clip
 import androidx.compose.foundation.clickable
@@ -330,11 +333,17 @@ fun BittrDialogMessage(text: String) = BittrDialogMessage(bittrMarkup(text))
 /** [BittrDialogMessage] for a message with markup — bold spans, links. */
 @Composable
 fun BittrDialogMessage(text: AnnotatedString) {
+    // Scrolls rather than clips: the map's BTCMap explainer nearly fills a phone, and on a
+    // smaller screen or a larger font it would lose its last lines (review, pass 3). Capped
+    // so the dialog's buttons always stay on screen below it.
     Text(
         text = text,
         style = MaterialTheme.typography.bodyLarge,
         color = LocalContentColor.current.copy(alpha = 0.80f),
         textAlign = TextAlign.Center,
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .heightIn(max = 420.dp)
+            .verticalScroll(rememberScrollState()),
     )
 }

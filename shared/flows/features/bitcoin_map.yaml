@@ -140,9 +140,20 @@ appId: ${APP_ID}
 - evalScript: ${output.sleepMs = 3000}
 - runScript: ../scripts/sleep.js
 - takeScreenshot: shared/docs/screenshots/bitcoin_map/05b_apple_maps
-# Tap "‹ bittr regtest" (top-left) to return to Bittr.
-- tapOn:
-    point: "13%,4%"
+# Return to Bittr. iOS: tap "‹ bittr regtest" (top-left). Android opens the place in a maps
+# app or, with none installed (the test emulator), in the browser — or shows "Couldn't open this
+# place" — and system back returns from any of the three.
+- runFlow:
+    when:
+      platform: iOS
+    commands:
+      - tapOn:
+          point: "13%,4%"
+- runFlow:
+    when:
+      platform: Android
+    commands:
+      - back
 # The app doesn't re-lock on foreground, so OnePlace is still open on return.
 - extendedWaitUntil:
     visible:
