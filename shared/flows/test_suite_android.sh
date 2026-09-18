@@ -241,19 +241,28 @@ else
     warn "could not grant the location permission; bitcoin_map's my-location step will fail"
 fi
 
-# The emulator's GPS is a one-shot injection that only lands while a client is listening,
-# so a single `geo fix` before the run leaves last location=null. Fed in the background
-# for as long as the suite runs instead. A phone has its own position.
+# A position to read. The app reads the *network* provider only — coarse location is what
+# bittr's map copy promises, and LocationPrecisionGuardTest keeps it that way — and an
+# emulator's network provider has no fix (`adb emu geo fix` feeds GPS, and only while a
+# client is listening). A test provider stands in, refreshed while the suite runs because
+# a single reading goes stale. A phone has its own position and needs none of this.
 GEO_FEEDER_PID=""
 if [[ "${SERIAL}" == emulator-* ]]; then
-    (
-        while true; do
-            adb -s "${SERIAL}" emu geo fix 8.245 46.897 >/dev/null 2>&1 || exit 0
-            sleep 2
-        done
-    ) &
-    GEO_FEEDER_PID=$!
-    ok "feeding a location (Sarnen) while the suite runs"
+    adb -s "${SERIAL}" shell appops set com.android.shell android:mock_location allow >/dev/null 2>&1 || true
+    adb -s "${SERIAL}" shell cmd location providers add-test-provider network >/dev/null 2>&1 || true
+    if adb -s "${SERIAL}" shell cmd location providers set-test-provider-enabled network true >/dev/null 2>&1; then
+        (
+            while true; do
+                adb -s "${SERIAL}" shell cmd location providers set-test-provider-location network \
+                    --location 46.897,8.245 --accuracy 100 >/dev/null 2>&1 || exit 0
+                sleep 5
+            done
+        ) &
+        GEO_FEEDER_PID=$!
+        ok "feeding a location (Sarnen) while the suite runs"
+    else
+        warn "could not set a test location on ${SERIAL}; bitcoin_map's my-location step will fail"
+    fi
 fi
 
 # ── Build + install ──────────────────────────────────────────────────────────
