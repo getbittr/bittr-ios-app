@@ -266,11 +266,19 @@ private fun LessonTile(cell: LessonCell, onOpenLesson: (Lesson) -> Unit, modifie
             }
         }
         CanvasSpacer(8.dp)
+        // A two-line block whatever the title's length (design review pass 3): a
+        // one-line title left its tile short, so rows came out at different heights
+        // and the grid read as ragged. `minLines` reserves the second line at the
+        // style's 17 sp leading. Three stays the ceiling rather than two because the
+        // longest authored titles ("Can the 21 million limit be changed?") need a
+        // third line on a ~113 dp tile, and an ellipsis in a lesson's name hides what
+        // the lesson is; those rows are one line taller, which is the rare case.
         Text(
             text = cell.lesson.title,
             style = AcademyType.tileTitle,
             color = BittrTheme.colors.onCanvas,
             textAlign = TextAlign.Center,
+            minLines = 2,
             maxLines = 3,
             overflow = TextOverflow.Ellipsis,
             modifier = Modifier.fillMaxWidth(),

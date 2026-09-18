@@ -554,12 +554,12 @@ class GraphCardFitTest {
     )
 
     /**
-     * Where [price] sits on its own span's chart, bottom gridline to top.
+     * Where [price] sits on its own span's chart, bottom of the plot to top.
      *
      * Which span is selected is the screen's business, so the price is looked up across
      * all of them — [snapshot] offsets each span by a different amount, so a price
-     * belongs to exactly one. The gridlines' prices come from [PriceAxis], because
-     * where the round numbers fall is the axis's decision; the fraction itself is
+     * belongs to exactly one. The plot's price range comes from [PriceAxis], because
+     * how much headroom it pads the series with is the axis's decision; the fraction itself is
      * computed here rather than through [PriceAxis.fractionOf], so the expectation for
      * where the card goes is not the production code's own answer.
      */
@@ -567,8 +567,7 @@ class GraphCardFitTest {
         for (series in shown.series.values) {
             if (series.none { it.price == price }) continue
             val axis = checkNotNull(PriceAxis.of(series.map { it.price }))
-            val bottom = axis.ticks.first()
-            return ((price - bottom) / (axis.ticks.last() - bottom)).toFloat()
+            return ((price - axis.lowest) / (axis.highest - axis.lowest)).toFloat()
         }
         error("Price $price is in none of the spans this test loaded")
     }

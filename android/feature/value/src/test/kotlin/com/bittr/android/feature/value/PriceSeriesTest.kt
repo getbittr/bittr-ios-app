@@ -3,7 +3,6 @@ package com.bittr.android.feature.value
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import java.time.LocalDate
 import java.time.ZoneOffset
-import java.util.Locale
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
@@ -165,13 +164,13 @@ class PriceSeriesTest {
 
     @Test
     fun `the price is rounded and grouped`() {
-        assertEquals("98,451", formatPrice("98450.7", Locale.UK))
-        assertEquals("98,450", formatPrice(98_450.2, Locale.UK))
+        assertEquals("98\u00A0451", formatPrice("98450.7"))
+        assertEquals("98\u00A0450", formatPrice(98_450.2))
         assertEquals(
             "iOS's own fallback for a value that does not parse; matching it keeps a " +
                 "broken response looking identical on both platforms.",
             "0",
-            formatPrice("not a number", Locale.UK),
+            formatPrice("not a number"),
         )
     }
 

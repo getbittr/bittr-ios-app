@@ -22,8 +22,14 @@ internal object AcademyCopy {
         "Learn everything about bitcoin and take control of your financial future. " +
             "From basics to advanced topics, we've got you covered."
 
-    /** The screen's own title, in the app bar. */
-    const val TITLE: String = "Academy (beta)"
+    /**
+     * The list's heading. Lowercase, where iOS's `academybeta` reads "Academy (beta)":
+     * the third design review (S25) set screen headings in lowercase to match the top
+     * bars and "bitcoin value". Lesson titles are authored content and keep their case.
+     * No flow asserts this text — `academy.yaml` finds the screen by
+     * `academy.headerLabel`.
+     */
+    const val TITLE: String = "academy (beta)"
 
     /** `Button.swift:126` — the same button, relabelled on the last page. */
     const val NEXT: String = "Next"
