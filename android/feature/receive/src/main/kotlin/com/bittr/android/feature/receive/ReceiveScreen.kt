@@ -38,6 +38,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.onFocusChanged
 import com.bittr.android.core.designsystem.rememberFillIcon
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.ui.text.style.TextOverflow
@@ -456,7 +457,11 @@ private fun AmountStack(
     onDone: () -> Unit,
 ) {
     val colors = BittrTheme.colors
-    Column(verticalArrangement = Arrangement.spacedBy(BittrTokens.Spacing.sm)) {
+    var editing by remember { mutableStateOf(false) }
+    Column(
+        verticalArrangement = Arrangement.spacedBy(BittrTokens.Spacing.sm),
+        modifier = Modifier.onFocusChanged { editing = it.hasFocus },
+    ) {
         Row(horizontalArrangement = Arrangement.spacedBy(BittrTokens.Spacing.sm), verticalAlignment = Alignment.CenterVertically) {
             EntryField(
                 value = state.amountText,
@@ -482,15 +487,20 @@ private fun AmountStack(
                     modifier = Modifier.testTag(TestID.Receive.currencyLabel),
                 )
             }
-            Box(
-                contentAlignment = Alignment.Center,
-                modifier = Modifier
-                    .height(52.dp)
-                    .background(colors.actionFill, RoundedCornerShape(12.dp))
-                    .clickable(onClick = onDone)
-                    .padding(horizontal = BittrTokens.Spacing.md),
-            ) {
-                Text(ReceiveStrings.DONE, style = MaterialTheme.typography.labelLarge, color = colors.onActionFill)
+            // Only while an amount or description is being typed, as on Send and Swap: at rest it
+            // held the strongest spot on the screen (review S18, pass 4). IME Done commits too.
+            if (editing) {
+                Box(
+                    contentAlignment = Alignment.Center,
+                    modifier = Modifier
+                        .height(52.dp)
+                        .clip(BittrCanvasShapes.pill)
+                        .background(colors.actionFill)
+                        .clickable(onClick = onDone)
+                        .padding(horizontal = BittrTokens.Spacing.lg),
+                ) {
+                    Text(ReceiveStrings.DONE, style = MaterialTheme.typography.labelLarge, color = colors.onActionFill)
+                }
             }
         }
         if (state.showsDescription) {

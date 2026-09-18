@@ -16,6 +16,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.foundation.border
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
@@ -173,7 +174,9 @@ private fun ChannelChart(channel: ChannelSummary) {
             modifier = Modifier
                 .fillMaxWidth()
                 .height(8.dp)
-                .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.25f), RoundedCornerShape(4.dp)),
+                .background(BittrTheme.colors.barTrackWarm, RoundedCornerShape(4.dp))
+                // A warm track with a faint ink edge, not a grey one (review S30, pass 4).
+                .border(1.dp, MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f), RoundedCornerShape(4.dp)),
         ) {
             Box(
                 modifier = Modifier

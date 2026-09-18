@@ -120,6 +120,9 @@ appId: ${APP_ID}
           id: "map.onePlace.websiteButton"
       - assertVisible:
           id: "website.downButton"
+      # Let the place's page render before the capture (see settings.yaml, 04_support).
+      - evalScript: ${output.sleepMs = 3000}
+      - runScript: ../scripts/sleep.js
       - takeScreenshot: shared/docs/screenshots/bitcoin_map/05a_website
       - tapOn:
           id: "website.downButton"

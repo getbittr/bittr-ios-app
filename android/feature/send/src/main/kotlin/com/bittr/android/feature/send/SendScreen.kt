@@ -480,7 +480,16 @@ private fun RowScope.FeeTile(confirm: ConfirmState, tier: FeeTier, time: String,
             .weight(1f)
             .background(
                 if (selected) MaterialTheme.colorScheme.surfaceContainerLowest else BittrTheme.colors.tonalFill,
-                RoundedCornerShape(8.dp),
+                RoundedCornerShape(12.dp),
+            )
+            // White against cream alone did not read as chosen (review S28, pass 4): the
+            // selected rate also carries an ink edge, from the first frame as after a tap.
+            .then(
+                if (selected) {
+                    Modifier.border(1.5.dp, MaterialTheme.colorScheme.onSurface, RoundedCornerShape(12.dp))
+                } else {
+                    Modifier
+                },
             )
             .clickable { controller.onFee(tier) }
             .testTag(testTag)

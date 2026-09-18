@@ -397,6 +397,15 @@ data class BittrColors(
      * [tonalFill], so one app showed two dialog styles.
      */
     val dialogContainer: Color,
+    /** A progress track on a white card — warm rather than grey (review S30). */
+    val barTrackWarm: Color,
+    /**
+     * Behind the selected item of an icon toggle group — the theme toggle — and the glyph on
+     * it. Cream in light; brand yellow at 20 % over the dark surface in dark, where cream read
+     * as a cool near-white (review S32).
+     */
+    val toggleSelected: Color,
+    val onToggleSelected: Color,
     /**
      * The one filled action of an alert that cannot be undone — removing the wallet, closing
      * its connections. Material's error container, so "you are about to delete your wallet"
@@ -551,6 +560,9 @@ val BittrLightColorsExtended = BittrColors(
     onSwitchOn = Color.White,
     canvasArc = Color.White,
     dialogContainer = Color(0xFFFFFBEF),
+    barTrackWarm = Color(0xFFF1E6C2),
+    toggleSelected = Cream,
+    onToggleSelected = Ink,
     destructiveFill = Color(0xFFB3261E),
     onDestructiveFill = Color.White,
     onDialogContainer = Ink,
@@ -622,6 +634,9 @@ val BittrDarkColorsExtended = BittrColors(
     // brand-yellow sites already (see `brandFixed`). This is the eighth.
     canvasArc = Yellow,
     dialogContainer = Blue2,
+    barTrackWarm = Blue3,
+    toggleSelected = Yellow.copy(alpha = 0.20f),
+    onToggleSelected = Yellow,
     destructiveFill = Color(0xFFB3261E),
     onDestructiveFill = Color.White,
     onDialogContainer = Color.White,

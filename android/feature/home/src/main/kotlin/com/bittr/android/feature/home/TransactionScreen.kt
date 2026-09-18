@@ -32,6 +32,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.draw.clip
 import androidx.compose.foundation.layout.navigationBarsPadding
@@ -647,11 +648,12 @@ private fun IdRow(
             .padding(start = BittrTokens.Spacing.md),
     ) {
         BittrRowLabel(title)
+        // A hash is checked by its two ends, so it gives way in the middle (review S29).
         Text(
             text = id,
-            style = MaterialTheme.typography.bodyMedium,
+            style = MaterialTheme.typography.bodyMedium.copy(fontFamily = FontFamily.Monospace),
             maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
+            overflow = TextOverflow.MiddleEllipsis,
             modifier = Modifier
                 .weight(1f)
                 .padding(horizontal = BittrTokens.Spacing.sm),

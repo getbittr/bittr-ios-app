@@ -356,19 +356,19 @@ private fun DarkModeButton(
     testTag: String,
 ) {
     val tint = androidx.compose.material3.MaterialTheme.colorScheme.onSurface
-        .copy(alpha = if (active) 1f else 0.60f)
+        .copy(alpha = if (active) 1f else 0.70f)
     Box(
         contentAlignment = Alignment.Center,
         modifier = Modifier
             .size(40.dp)
             .clip(CircleShape)
-            .background(if (active) BittrTheme.colors.tonalFill else Color.Transparent)
+            .background(if (active) BittrTheme.colors.toggleSelected else Color.Transparent)
             .clickable(onClick = onClick)
             .testTag(testTag)
             .semantics { contentDescription = if (active) "$label, selected" else label },
     ) {
         Image(
-            imageVector = rememberFillIcon(path, if (active) BittrTheme.colors.onTonalFill else tint),
+            imageVector = rememberFillIcon(path, if (active) BittrTheme.colors.onToggleSelected else tint),
             contentDescription = null,
             modifier = Modifier.size(24.dp),
         )

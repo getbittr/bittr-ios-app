@@ -10,6 +10,10 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.layout.heightIn
@@ -333,9 +337,13 @@ fun BittrDialogMessage(text: String) = BittrDialogMessage(bittrMarkup(text))
 /** [BittrDialogMessage] for a message with markup — bold spans, links. */
 @Composable
 fun BittrDialogMessage(text: AnnotatedString) {
-    // Scrolls rather than clips: the map's BTCMap explainer nearly fills a phone, and on a
-    // smaller screen or a larger font it would lose its last lines (review, pass 3). Capped
-    // so the dialog's buttons always stay on screen below it.
+    // Scrolls rather than clips: the map's BTCMap explainer nearly fills a phone. Capped at
+    // 45 % of the screen so the title and the actions never scroll away, and faded at the
+    // bottom while there is more below, so the cut reads as "scroll" rather than as the end
+    // of the text (review S31, pass 4).
+    val scroll = rememberScrollState()
+    val fadeInto = BittrTheme.colors.dialogContainer
+    val maxHeight = (LocalConfiguration.current.screenHeightDp * 0.45f).dp
     Text(
         text = text,
         style = MaterialTheme.typography.bodyLarge,
@@ -343,7 +351,21 @@ fun BittrDialogMessage(text: AnnotatedString) {
         textAlign = TextAlign.Center,
         modifier = Modifier
             .fillMaxWidth()
-            .heightIn(max = 420.dp)
-            .verticalScroll(rememberScrollState()),
+            .heightIn(max = maxHeight)
+            .drawWithContent {
+                drawContent()
+                if (scroll.canScrollForward) {
+                    val fade = 24.dp.toPx()
+                    drawRect(
+                        brush = Brush.verticalGradient(
+                            colors = listOf(fadeInto.copy(alpha = 0f), fadeInto),
+                            startY = size.height - fade,
+                            endY = size.height,
+                        ),
+                        topLeft = Offset(0f, size.height - fade),
+                    )
+                }
+            }
+            .verticalScroll(scroll),
     )
 }

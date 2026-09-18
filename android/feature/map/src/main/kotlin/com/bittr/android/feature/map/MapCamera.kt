@@ -40,7 +40,9 @@ internal sealed interface CameraTarget {
     companion object {
         const val FIT_PADDING_DP = 48f
         const val MIN_ZOOM = 5.0
-        const val MAX_ZOOM = 12.0
+        // 15, not 12: the places are often a few hundred metres apart, and at 12 their pins
+        // stacked into what read as one (review S27, pass 4).
+        const val MAX_ZOOM = 15.0
 
         /**
          * With no fix the list is the ~200 places nearest the middle of Switzerland, which

@@ -24,6 +24,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.ui.unit.sp
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.ui.platform.testTag
@@ -166,11 +168,16 @@ fun MoveScreen(
                     // The total on its own card, with Regular and Instant as two halves under it, so
                     // the total reads as the sum of the two (review, Move).
                     TotalCard(balances.total, balances.totalFiat, TestID.Move.satsTotal)
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        HalfCard(HomeStrings.REGULAR, balances.regular, balances.regularFiat, TestID.Move.satsRegular, Modifier.weight(1f))
+                    // One height for both halves: Instant's help button makes its label row taller,
+                    // and the pair should read as a pair.
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        modifier = Modifier.height(IntrinsicSize.Min),
+                    ) {
+                        HalfCard(HomeStrings.REGULAR, balances.regular, balances.regularFiat, TestID.Move.satsRegular, Modifier.weight(1f).fillMaxHeight())
                         HalfCard(
                             title = HomeStrings.INSTANT,
-                            modifier = Modifier.weight(1f),
+                            modifier = Modifier.weight(1f).fillMaxHeight(),
                             sats = balances.instant,
                             fiat = balances.instantFiat,
                             satsTag = TestID.Move.satsInstant,
@@ -257,7 +264,7 @@ private fun HalfCard(
             .background(MaterialTheme.colorScheme.surfaceContainerLowest, RoundedCornerShape(20.dp))
             .padding(start = 16.dp, end = if (onQuestion == null) 16.dp else 0.dp, top = 8.dp, bottom = 12.dp),
     ) {
-        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.heightIn(min = 40.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.heightIn(min = BittrTokens.Size.minTouchTarget)) {
             if (bolt) {
                 Image(
                     rememberStrokeIcon(BittrIconPaths.BOLT, BittrTheme.colors.rowLabel, strokeWidth = 2f),

@@ -61,6 +61,10 @@ appId: ${APP_ID}
     id: "settings.row.support"
 - assertVisible:
     id: "website.downButton"
+# Let the page render before the capture: the chrome is up at once, the page a moment later,
+# and a capture in between reads as a blank screen.
+- evalScript: ${output.sleepMs = 3000}
+- runScript: ../scripts/sleep.js
 - takeScreenshot: shared/docs/screenshots/settings/04_support
 - tapOn:
     id: "website.downButton"
