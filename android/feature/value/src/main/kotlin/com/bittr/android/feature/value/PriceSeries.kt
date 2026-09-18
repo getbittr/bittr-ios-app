@@ -1,11 +1,9 @@
 package com.bittr.android.feature.value
 
-import java.text.NumberFormat
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
 import java.time.format.DateTimeParseException
-import java.util.Locale
 import org.json.JSONArray
 import org.json.JSONObject
 
@@ -90,25 +88,32 @@ private fun String.toInstantOrNull(): Instant? =
     }
 
 /**
- * The price as the screen shows it: rounded to whole units, grouped by the device's
- * locale.
+ * The price as the screen shows it: rounded to whole units, thousands grouped with a
+ * space — `70 365`.
  *
- * Ported from `formatEuroValue` and its `NumberFormatter`
- * (`ValueViewController.swift:312-328`), including the "0" fallback for a value that
- * does not parse — the label reading `0` is iOS's own answer, and matching it keeps
- * a broken response looking identical on both platforms.
+ * Ported from `formatEuroValue` (`ValueViewController.swift:312-328`), including the
+ * "0" fallback for a value that does not parse — the label reading `0` is iOS's own
+ * answer, and matching it keeps a broken response looking identical on both platforms.
+ *
+ * The grouping is not iOS's. `formatEuroValue` groups by the device locale, which gave
+ * `€ 70,365` on this screen beside `384 414 sats` everywhere else — the app's own
+ * `addSpaces()` (`groupThousands`, `SendMath.group`). The third design review asked for
+ * one grouping, so this is that one. The separator is a no-break space (U+00A0) rather
+ * than the helpers' plain one: it is the same width, and the price must not break
+ * across lines in the 80 dp scrub card (`GraphCardFitTest`).
  */
-internal fun formatPrice(value: String, locale: Locale = Locale.getDefault()): String {
-    val number = value.toDoubleOrNull() ?: return "0"
-    return NumberFormat.getNumberInstance(locale).apply {
-        maximumFractionDigits = 0
-    }.format(Math.round(number))
+internal fun formatPrice(value: String): String =
+    value.toDoubleOrNull()?.let { formatPrice(it) } ?: "0"
+
+internal fun formatPrice(value: Double): String {
+    val whole = Math.round(value)
+    val digits = kotlin.math.abs(whole).toString()
+        .reversed().chunked(3).joinToString(PRICE_GROUP_SEPARATOR).reversed()
+    return if (whole < 0) "-$digits" else digits
 }
 
-internal fun formatPrice(value: Double, locale: Locale = Locale.getDefault()): String =
-    NumberFormat.getNumberInstance(locale).apply {
-        maximumFractionDigits = 0
-    }.format(Math.round(value))
+/** A no-break space: see [formatPrice]. */
+internal const val PRICE_GROUP_SEPARATOR = " "
 
 /**
  * The percentage badge: the move from the first plotted point to the last.

@@ -38,9 +38,10 @@ import org.robolectric.annotation.GraphicsMode
  * never the screen. BIT-156.
  *
  * The design review (2026-09-18) moved the control onto the white chart card, which
- * is where it would invert again if it kept the old direction: a white selected
- * segment on a white card. So selected is now the cream and unselected the card's own
- * white — see `RangeSelector` — and this pins both, and that they differ.
+ * is where it would invert again: a white selected segment straight on a white card.
+ * Pass 2 answered with cream-selected; the third review asked again for white-selected
+ * on cream, so the whole control now sits on a cream track and the selected segment is
+ * white inside it — see `RangeSelector`. This pins both, and that they differ.
  *
  * Runs in dark because that is the scheme where a fill that follows the scheme would
  * give itself away: `tonalFill` there is `blue3`.
@@ -54,7 +55,7 @@ class SpanButtonAffordanceTest {
     val composeRule = createComposeRule()
 
     @Test
-    fun `the selected range segment is the cream and the rest are the card's white`() {
+    fun `the selected range segment is white on the cream track`() {
         showValueScreen()
 
         val selected = fillOf(TestID.Value.weekButton)
@@ -69,15 +70,15 @@ class SpanButtonAffordanceTest {
             selected,
         )
         assertEquals(
-            "The selected segment is not the pinned cream. On the white chart card a " +
-                "white selected segment is the one that disappears — the inversion " +
-                "BIT-156 fixed once on this screen.",
-            BittrLightColorsExtended.tonalFill.toArgb(),
+            "The selected segment is not the chart card's white.",
+            BittrLightColorsExtended.chartSurface.toArgb(),
             selected,
         )
         assertEquals(
-            "The unselected segments are not the chart card's white.",
-            BittrLightColorsExtended.chartSurface.toArgb(),
+            "The unselected segments are not the pinned cream track. It is fixed in " +
+                "both schemes; a track that followed the scheme would be blue3 here, " +
+                "and the white selected segment would lose the background it reads against.",
+            BittrLightColorsExtended.tonalFill.toArgb(),
             unselected,
         )
     }
@@ -85,9 +86,9 @@ class SpanButtonAffordanceTest {
     /**
      * A pixel of a segment's fill: horizontally centred, 15 dp above the middle.
      *
-     * The segment is a 48 dp touch target around a 40 dp drawn band, and the label is
-     * centred in it at 20 dp tall — so 15 dp up is inside the band and clear of the
-     * text, and at the horizontal centre it is clear of the rounded ends and the
+     * The segment is a 48 dp touch target around a 40 dp drawn band (the selected one
+     * inset 3 dp inside that, with a 1 dp outline), and the label is centred in it at
+     * 20 dp tall — so 15 dp up is inside either fill and clear of the text, and at the horizontal centre it is clear of the rounded ends and the
      * dividers.
      */
     private fun fillOf(testTag: String): Int {

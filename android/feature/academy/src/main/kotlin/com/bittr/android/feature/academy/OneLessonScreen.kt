@@ -41,7 +41,6 @@ import com.bittr.android.core.designsystem.BittrCanvas
 import com.bittr.android.core.designsystem.BittrCanvasShapes
 import com.bittr.android.core.designsystem.BittrIconPaths
 import com.bittr.android.core.designsystem.BittrTheme
-import com.bittr.android.core.designsystem.BittrTokens
 import com.bittr.android.core.designsystem.CanvasSpacer
 import com.bittr.android.core.designsystem.bittrMarkup
 import com.bittr.android.core.designsystem.rememberFillIcon
@@ -110,12 +109,19 @@ internal fun OneLessonScreen(
                         .testTag(TestID.Academy.lessonSpinner),
                 )
             } else {
-                // Centred in the space between the heading and the buttons, and still
-                // scrollable when a page outgrows it: the column is at least as tall as
-                // the viewport, so the centring has room to work, and grows past it
-                // rather than clipping.
+                // Bottom-aligned, so the card sits a fixed [LessonCardToButtons] above
+                // its button and all the spare height is above the card: the two read
+                // as a pair (design review pass 3, `academy/04`). Pass 2 centred the card,
+                // which split the spare height and left the button floating on its own.
+                //
+                // `Arrangement.Bottom` in a column at least as tall as the viewport is
+                // the review's `Spacer(Modifier.weight(1f))` above the card, in the only
+                // form a scrolling column accepts — a weight has no meaning inside
+                // `verticalScroll`. When a page is taller than the viewport the minimum
+                // height stops mattering, the arrangement has no spare height to place,
+                // and the column simply scrolls from its top.
                 Column(
-                    verticalArrangement = Arrangement.Center,
+                    verticalArrangement = Arrangement.Bottom,
                     modifier = Modifier
                         .fillMaxWidth()
                         .verticalScroll(rememberScrollState())
@@ -128,7 +134,7 @@ internal fun OneLessonScreen(
         }
 
         if (state.showsButtons) {
-            CanvasSpacer(BittrTokens.Spacing.md)
+            CanvasSpacer(LessonCardToButtons)
             LessonButtons(
                 state = state,
                 onBack = { state = state.previousPage() },
@@ -275,6 +281,9 @@ private fun LessonButtons(
 }
 
 private val LessonButtonHeight = 56.dp
+
+/** The review's fixed card-to-button gap (pass 3), which is what pairs them. */
+private val LessonCardToButtons = 32.dp
 private val LessonCardShape = RoundedCornerShape(20.dp)
 private val LessonCardPadding = 20.dp
 private val LessonParagraphGap = 16.dp

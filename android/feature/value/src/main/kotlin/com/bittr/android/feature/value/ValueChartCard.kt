@@ -37,7 +37,6 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
-import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.StrokeJoin
@@ -84,7 +83,7 @@ internal object ChartColors {
      */
     val inkMuted: Color = BittrLightColorsExtended.onChartSurfaceMuted
 
-    /** The cream: the selected range segment and the scrub card. See [RangeSelector]. */
+    /** The cream: the range selector's track and the scrub card. See [RangeSelector]. */
     val raised: Color = BittrLightColorsExtended.tonalFill
 
     /** Gridlines and the segmented control's outline — the review's ink @ 12 %. */
@@ -134,6 +133,9 @@ private val PlotInsetEnd: Dp = 8.dp
 private val YGutter: Dp = 32.dp
 
 private val SegmentHeight: Dp = 40.dp
+
+/** How far the white selected segment sits inside the cream track, so the track shows round it. */
+private val SelectedInset: Dp = 3.dp
 private val ChipShape = RoundedCornerShape(12.dp)
 private val GlyphSize: Dp = 14.dp
 
@@ -298,9 +300,8 @@ private fun ChartFrame(state: ValueUiState, axis: PriceAxis?) {
                     .drawBehind {
                         if (loading) return@drawBehind
                         val inset = PlotInsetVertical.toPx()
-                        val band = (size.height - 2 * inset) / (PriceAxis.GRIDLINES - 1)
-                        repeat(PriceAxis.GRIDLINES) { line ->
-                            val y = inset + band * line
+                        gridFractions(axis).forEach { fraction ->
+                            val y = inset + (1 - fraction) * (size.height - 2 * inset)
                             drawLine(
                                 color = ChartColors.hairline,
                                 start = Offset(0f, y),
@@ -385,11 +386,13 @@ private fun YAxisLabels(axis: PriceAxis?, modifier: Modifier) {
         val placeables = measurables.map { it.measure(Constraints()) }
         val inset = PlotInsetVertical.roundToPx()
         val gap = 4.dp.roundToPx()
-        val band = (constraints.maxHeight - 2 * inset).toFloat() / (PriceAxis.GRIDLINES - 1)
+        val plot = (constraints.maxHeight - 2 * inset).toFloat()
+        val fractions = gridFractions(axis)
         layout(constraints.maxWidth, constraints.maxHeight) {
-            // Bottom tick first, so label `i` sits `i` bands up from the bottom line.
+            // Same arithmetic as the gridlines in [ChartFrame], so each label centres
+            // on its own line.
             placeables.forEachIndexed { index, label ->
-                val centre = constraints.maxHeight - inset - band * index
+                val centre = constraints.maxHeight - inset - fractions[index] * plot
                 // Wider than the gutter overflows left into the card's padding rather
                 // than into the plot — a `98.25k` is rare, and clipped it would lie.
                 label.place(
@@ -428,6 +431,17 @@ private fun XAxisLabels(points: List<PricePoint>, span: GraphSpan, modifier: Mod
     }
 }
 
+/**
+ * Where the gridlines sit, 0 at the bottom of the plot and 1 at the top, bottom first.
+ *
+ * With data they are the axis's round prices, wherever those land inside the padded
+ * domain. Without (a span with no points), there are no prices to place, and evenly
+ * spaced lines keep the empty chart looking like the same chart.
+ */
+private fun gridFractions(axis: PriceAxis?): List<Float> =
+    axis?.ticks?.map(axis::fractionOf)
+        ?: List(PriceAxis.GRIDLINES) { it / (PriceAxis.GRIDLINES - 1f) }
+
 @Composable
 private fun AxisLabel(text: String) {
     Text(
@@ -443,15 +457,16 @@ private fun AxisLabel(text: String) {
  * The range selector: one connected, single-select segmented control where there were
  * four detached pills.
  *
- * **Selected is cream with a check; unselected is white.** The review specified the
- * reverse — white selected on cream — for a control sitting on the yellow canvas. It
- * now sits on the white card, where a white selected segment is the one that
- * disappears into its background: the inverted affordance BIT-156 already fixed once
- * on this screen. So the tonal fill moves to the selected segment and the rest take
- * the card's own white, which is Material's own segmented-button pattern (tonal
- * container plus a leading check). The fill alone is faint — cream on white is 1.16 : 1
- * — and is not relied on: the check, and the long label (`showSelectedSpan`), say it
- * without colour (WCAG 1.4.1).
+ * **A cream track with a white selected segment, which carries a check.** Pass 2 had
+ * this the other way round — cream selected, white unselected — because the segments
+ * then sat straight on the white card, where a white selected segment has nothing to
+ * stand out against (the inversion BIT-156 fixed once on this screen). The third
+ * review (2026-09-18) asked again for white-selected on cream, and the way to give it
+ * that without the inversion is to put the cream *under the whole control*: the track
+ * is the background the white segment reads against, not the card. The selected
+ * segment is inset inside the track and outlined, because cream against white is only
+ * 1.16 : 1 and the fill alone is not relied on — the check, and the long label
+ * (`showSelectedSpan`), say which is selected without colour (WCAG 1.4.1).
  *
  * The long label is also why the flow taps `value.monthButton` and then looks for the
  * graph rather than for "m": the label it just tapped has changed to "1 month".
@@ -468,6 +483,13 @@ private fun RangeSelector(state: ValueUiState, onSelect: (GraphSpan) -> Unit) {
         modifier = Modifier.fillMaxWidth(),
     ) {
         val showCheck = maxWidth / spans.size >= CheckMinSegmentWidth
+        // The track, drawn once under all four segments.
+        Box(
+            Modifier
+                .fillMaxWidth()
+                .height(SegmentHeight)
+                .background(ChartColors.raised, BittrCanvasShapes.pill),
+        )
         Row(Modifier.fillMaxWidth().selectableGroup()) {
             spans.forEachIndexed { index, span ->
                 val selected = span == state.selectedSpan
@@ -490,19 +512,28 @@ private fun RangeSelector(state: ValueUiState, onSelect: (GraphSpan) -> Unit) {
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(SegmentHeight)
-                            .background(
-                                if (selected) ChartColors.raised else ChartColors.surface,
-                                segmentShape(index, spans.size),
-                            )
                             .drawBehind {
-                                if (index == 0) return@drawBehind
+                                // Dividers only between two cream segments: beside the
+                                // white one, its own outline is the edge.
+                                val previous = spans.getOrNull(index - 1) ?: return@drawBehind
+                                if (selected || previous == state.selectedSpan) return@drawBehind
                                 drawLine(
                                     color = ChartColors.hairline,
                                     start = Offset(0f, 0f),
                                     end = Offset(0f, size.height),
                                     strokeWidth = 1.dp.toPx(),
                                 )
-                            },
+                            }
+                            .then(
+                                if (selected) {
+                                    Modifier
+                                        .padding(SelectedInset)
+                                        .background(ChartColors.surface, BittrCanvasShapes.pill)
+                                        .border(1.dp, ChartColors.hairline, BittrCanvasShapes.pill)
+                                } else {
+                                    Modifier
+                                },
+                            ),
                     ) {
                         val label = if (enabled) ChartColors.ink else ChartColors.disabledLabel
                         if (selected && showCheck) {
@@ -532,13 +563,6 @@ private fun RangeSelector(state: ValueUiState, onSelect: (GraphSpan) -> Unit) {
                 .border(1.dp, ChartColors.hairline, BittrCanvasShapes.pill),
         )
     }
-}
-
-/** The ends of the connected control are the pill's ends; the middle is square. */
-private fun segmentShape(index: Int, count: Int): Shape = when (index) {
-    0 -> RoundedCornerShape(topStartPercent = 50, bottomStartPercent = 50)
-    count - 1 -> RoundedCornerShape(topEndPercent = 50, bottomEndPercent = 50)
-    else -> RectangleShape
 }
 
 /** The id each segment carries, so the flow can tap m, y and 5y by name. */

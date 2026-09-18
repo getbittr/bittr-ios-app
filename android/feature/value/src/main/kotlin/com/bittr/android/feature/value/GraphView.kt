@@ -60,8 +60,8 @@ private val CardWidth: Dp = 80.dp
  * So the card's bottom edge rides exactly 5 pt above the data point, everywhere. The
  * `30` is not a top floor and not a gap: it is the inset of iOS's *curve* from the
  * bottom of the view (25) carried into the card's constraint. Porting `30` literally
- * would be wrong here, because [GraphView]'s scale has no such inset — its bottom and
- * top gridlines are its bottom and top edges — so a literal `30 + f * (H - 30)` drifts
+ * would be wrong here, because [GraphView]'s scale has no such inset — the bottom and
+ * top of its padded domain are its bottom and top edges — so a literal `30 + f * (H - 30)` drifts
  * from a 30 dp gap at the bottom of the chart to none at the top. The 5 dp
  * relationship is what transfers.
  */
@@ -92,8 +92,8 @@ private val CurveWidth: Dp = 3.dp
  * `value.graphView` is the element the flow swipes from the centre of and the tests
  * scrub by fraction of, and both of those mean "the curve's own width". Putting a
  * 32 dp label gutter inside it would have shifted every finger position by the gutter.
- * The top and bottom edges here are the top and bottom gridlines, so [PriceAxis]
- * fractions map straight onto this height.
+ * The top and bottom edges here are the top and bottom of [PriceAxis]'s padded domain,
+ * so its fractions map straight onto this height.
  */
 @Composable
 internal fun GraphView(
@@ -129,10 +129,11 @@ internal fun GraphView(
 
             // The same 0…1 the card positions itself with, so the two cannot drift.
             val fractions = points.map { axis.fractionOf(it.price) }
-            val stepX = size.width / (points.size - 1)
+            val xs = curveXRange(size.width, CurveWidth.toPx())
+            val stepX = (xs.endInclusive - xs.start) / (points.size - 1)
 
             fun at(index: Int) = Offset(
-                x = index * stepX,
+                x = xs.start + index * stepX,
                 y = size.height - fractions[index] * size.height,
             )
 
@@ -163,7 +164,8 @@ internal fun GraphView(
             // 3 : 1 WCAG 1.4.11 floor for a graphical object, the failure BIT-156 took
             // this stroke off a literal to fix. The review's own spec was a white line
             // with a shadow, drawn for a line on yellow; on white that is invisible.
-            // `onChartSurface` is the card's ink, 19.44 : 1.
+            // `onChartSurface` is the card's ink, 19.44 : 1. (The third review asked
+            // for the white line again; the card is still white, so the answer is too.)
             //
             // 3 dp with round caps and joins, from the review. It was 4 *px*, which is
             // 1.5 dp at 420 dpi.
@@ -227,8 +229,8 @@ internal fun GraphView(
                     // `tonalFill` is `blue3` in dark and this card does not follow the
                     // scheme — plus the chart's own hairline gives it an edge, and
                     // keeps both labels' ink: 16.7 : 1 for the price, 6.8 : 1 for the
-                    // 70 % date. The same fill marks the selected range segment, so
-                    // "cream on this card" means one thing.
+                    // 70 % date. The same fill is the range selector's track, so
+                    // "cream on this card" means one thing: a raised surface.
                     .background(ChartColors.raised, BittrCanvasShapes.wordRow)
                     .border(1.dp, ChartColors.hairline, BittrCanvasShapes.wordRow)
                     .padding(vertical = 6.dp),
@@ -280,12 +282,27 @@ internal fun GraphView(
 }
 
 /**
+ * The x-range the curve's sample points span inside a plot [width] px wide.
+ *
+ * A round cap draws half the stroke past the path's end point. The plot this draws in
+ * already stops `PlotInsetEnd` (8 dp) short of the card's content edge, but a
+ * path running to `width` put its cap 1.5 dp into that inset, and the third review
+ * (`bitcoin_value/06`–`07`) still saw the closing point meeting the edge. Pulling both
+ * ends in by half the stroke keeps the whole drawn line, caps included, inside the
+ * plot — so the 8 dp gap to the gridlines' end is all visible.
+ */
+internal fun curveXRange(width: Float, strokeWidth: Float): ClosedFloatingPointRange<Float> {
+    val half = (strokeWidth / 2).coerceAtMost(width / 2)
+    return half..(width - half)
+}
+
+/**
  * Which point a horizontal touch lands on, and where on the chart that is — in both
  * axes, because the card tracks both.
  *
  * @property fraction where along the chart's width the finger is, 0…1.
  * @property priceFraction where [point]'s price sits on the chart's [PriceAxis], 0 at
- *   the bottom gridline and 1 at the top. This is the curve's own y, so the card
+ *   the bottom of the plot and 1 at the top. This is the curve's own y, so the card
  *   derived from it lands on the line rather than near it.
  */
 internal data class ScrubbedPoint(
