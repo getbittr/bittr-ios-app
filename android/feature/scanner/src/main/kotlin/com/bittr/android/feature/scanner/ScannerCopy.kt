@@ -37,6 +37,7 @@ internal object ScannerCopy {
     object Id {
         const val HEADER = "scanner"
         const val CLOSE = "close"
+        const val HELPER = "scannerhelp"
         const val PERMISSION_TITLE = "camerapermission"
         const val RATIONALE_BODY = "camerapermission2"
         const val PERMANENTLY_DENIED_BODY = "camerapermission3"
@@ -50,6 +51,15 @@ internal object ScannerCopy {
 
     const val HEADER = "Scanner"
     const val CLOSE = "Close"
+
+    /**
+     * The line under the viewfinder. **Not part of the approved set above**: iOS's
+     * scanner has no helper line, so there was nothing to carry over, and this was
+     * added with the design review's sheet treatment. It makes no claim about the
+     * build, but it has not been through the BIT-15 sign-off the rest of this file
+     * has, and [Id.HELPER] does not exist in `shared/strings/` yet.
+     */
+    const val HELPER = "Point your camera at a QR code."
 
     const val PERMISSION_TITLE = "Camera access"
 
