@@ -102,7 +102,8 @@ fun ConfirmScreen(
                         {
                             CircularProgressIndicator(
                                 strokeWidth = 2.dp,
-                                color = BittrTheme.colors.onActionFill,
+                                // The pill is disabled while busy, so its label colour is.
+                                color = BittrTheme.colors.onActionFillDisabled,
                                 modifier = Modifier.size(20.dp),
                             )
                         }

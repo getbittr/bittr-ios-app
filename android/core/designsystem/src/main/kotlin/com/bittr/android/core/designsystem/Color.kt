@@ -334,14 +334,22 @@ data class BittrColors(
     /** The primary pill button's label. */
     val onActionFill: Color,
     /**
-     * The primary pill when its precondition is not met — the mock's `dim` state.
+     * The primary pill when its precondition is not met.
      *
-     * A dimmed fill rather than Material's disabled treatment, because on this canvas
-     * Material's `onSurface @ 12 %` is a pale yellow smear. Translucent, so it
-     * composites over whatever canvas it lands on. [onActionFill] on it is 4.64 : 1
-     * light, 5.44 : 1 dark.
+     * Light mode is Material's disabled container, ink @ 12 % over the canvas, with its
+     * label on [onActionFillDisabled]. It used to be ink @ 45 % under a white label, which
+     * the design review (2026-09-18, S3) read as an enabled button with a dirty fill:
+     * a dark mustard plate is not what "not yet" looks like. Dark mode keeps white @ 30 %
+     * under an ink label, which already reads as dimmed on blue. Translucent, so it
+     * composites over whatever canvas it lands on.
      */
     val actionFillDisabled: Color,
+    /**
+     * The label on [actionFillDisabled]. Light is ink @ 50 %, not Material's 38 %: 38 %
+     * lands at 2.26 : 1, under the 3 : 1 floor `TokenContrastTest` holds a disabled label
+     * to, and 50 % is the lightest that clears it (3.05 : 1).
+     */
+    val onActionFillDisabled: Color,
     /** The tonal container — PIN cells, secondary buttons. The mock's cream. */
     val tonalFill: Color,
     /** Content on [tonalFill]. */
@@ -381,6 +389,16 @@ data class BittrColors(
      * the mock draws it white, because brand-on-brand would disappear. See [BittrLogo].
      */
     val canvasArc: Color,
+    /**
+     * Every alert's container — [BittrAlert], [BittrInlineAlert], [BittrAlertDialog],
+     * [BittrTextFieldAlert] and [BittrChoiceDialog] share it. Light is the proposal's
+     * `#FFFBEF`; before the design review (2026-09-18, S1/S2) half of them sat on the
+     * scheme's `surface`, iOS's blue-grey `grey1`, and the other half on the cream
+     * [tonalFill], so one app showed two dialog styles.
+     */
+    val dialogContainer: Color,
+    /** Titles, messages and the cancelling button on [dialogContainer]. */
+    val onDialogContainer: Color,
 
     // -----------------------------------------------------------------------
     // The Value screen's chart surfaces — the four tokens that do not switch
@@ -517,12 +535,15 @@ val BittrLightColorsExtended = BittrColors(
     cardWash = Color.White.copy(alpha = 0.09f),
     actionFill = Ink,
     onActionFill = Color.White,
-    actionFillDisabled = Ink.copy(alpha = 0.45f),
+    actionFillDisabled = Ink.copy(alpha = 0.12f),
+    onActionFillDisabled = Ink.copy(alpha = 0.50f),
     tonalFill = Cream,
     onTonalFill = Ink,
     switchOn = SwitchAccent,
     onSwitchOn = Color.White,
     canvasArc = Color.White,
+    dialogContainer = Color(0xFFFFFBEF),
+    onDialogContainer = Ink,
     // Fixed in both schemes — see [BittrColors.chartSurface] for the arithmetic that
     // leaves no other option, and `TokenContrastTest` for the assertions. BIT-156.
     chartSurface = Color.White,
@@ -578,6 +599,7 @@ val BittrDarkColorsExtended = BittrColors(
     actionFill = Grey1,
     onActionFill = Ink,
     actionFillDisabled = Color.White.copy(alpha = 0.30f),
+    onActionFillDisabled = Ink,
     tonalFill = Blue3,
     onTonalFill = Color.White,
     // Not swapped for the blue family, unlike `actionFill`. Green means "yes, I
@@ -589,6 +611,8 @@ val BittrDarkColorsExtended = BittrColors(
     // yellow is the one colour that reads on both, and dark mode keeps exactly seven
     // brand-yellow sites already (see `brandFixed`). This is the eighth.
     canvasArc = Yellow,
+    dialogContainer = Blue2,
+    onDialogContainer = Color.White,
     // Byte-identical to the light values on purpose, and the only group here that is.
     // The dark canvas admits no fill that both has an edge on `blue1` and carries white
     // text; the light canvas admits no light fill with an edge at all. Both arrive at a

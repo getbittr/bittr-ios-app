@@ -19,6 +19,15 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.draw.shadow
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.background
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
@@ -96,35 +105,54 @@ fun ArticleScreen(slug: String, onDown: () -> Unit, modifier: Modifier = Modifie
 fun ArticleCard(slug: String, onOpen: (String) -> Unit, modifier: Modifier = Modifier, testTag: String? = null) {
     val context = LocalContext.current
     val article = remember(slug) { BittrArticles.article(context, slug) } ?: return
+    val colors = BittrTheme.colors
+    // The proposal's article chip (review S6): a cream 54 dp plate with the artwork as a
+    // flush 84 dp strip on its left, clipped by the plate, and the title centred in the rest.
+    // It was a bare rounded thumbnail with the title floating on the canvas beside it.
     Row(
         verticalAlignment = Alignment.CenterVertically,
         modifier = modifier
             .fillMaxWidth()
-            .clip(BittrCanvasShapes.card)
+            .height(54.dp)
+            .shadow(
+                elevation = 4.dp,
+                shape = ArticleChipShape,
+                ambientColor = ArticleChipShadow,
+                spotColor = ArticleChipShadow,
+            )
+            .clip(ArticleChipShape)
+            .background(colors.tonalFill)
             .clickable { onOpen(slug) }
-            .then(if (testTag != null) Modifier.testTag(testTag) else Modifier)
-            .padding(BittrTokens.Spacing.sm),
+            .then(if (testTag != null) Modifier.testTag(testTag) else Modifier),
     ) {
         BittrArticles.imageRes(slug)?.let { image ->
-            Box(Modifier.size(64.dp).clip(BittrCanvasShapes.field)) {
-                Image(
-                    painter = painterResource(image),
-                    contentDescription = null,
-                    contentScale = ContentScale.Crop,
-                    modifier = Modifier.fillMaxSize(),
-                )
-            }
+            Image(
+                painter = painterResource(image),
+                contentDescription = null,
+                contentScale = ContentScale.Crop,
+                modifier = Modifier
+                    .width(84.dp)
+                    .fillMaxHeight(),
+            )
         }
         Text(
             text = article.title,
-            style = MaterialTheme.typography.titleMedium,
-            color = BittrTheme.colors.onCanvas,
+            style = MaterialTheme.typography.titleMedium.copy(fontSize = 15.5.sp, lineHeight = 20.sp),
+            color = colors.onTonalFill,
+            textAlign = TextAlign.Center,
+            maxLines = 2,
+            overflow = TextOverflow.Ellipsis,
             modifier = Modifier
                 .weight(1f)
-                .padding(start = BittrTokens.Spacing.md),
+                .padding(horizontal = BittrTokens.Spacing.sm),
         )
     }
 }
+
+private val ArticleChipShape = RoundedCornerShape(14.dp)
+
+/** The proposal's `rgba(120, 80, 0, 0.12)` — a warm shadow, not Material's grey one. */
+private val ArticleChipShadow = Color(red = 120, green = 80, blue = 0, alpha = 31)
 
 /** The `<title>` … `<normal>` spans of `OneArticleTableViewCell.setText`, at iOS's sizes, in the body face. */
 private fun styled(runs: List<ArticleRun>): AnnotatedString = buildAnnotatedString {

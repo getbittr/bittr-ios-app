@@ -41,6 +41,7 @@ import com.bittr.android.core.designsystem.BittrCard
 import com.bittr.android.core.designsystem.BittrInlineAlert
 import com.bittr.android.core.designsystem.BittrModalHeader
 import com.bittr.android.core.designsystem.dismissOnPullDown
+import com.bittr.android.core.designsystem.BittrTheme
 import com.bittr.android.core.designsystem.BittrTokens
 
 /**
@@ -138,7 +139,7 @@ private fun PushLoadingCard(loading: PushLoading) {
             modifier = Modifier
                 .padding(horizontal = BittrTokens.Spacing.xl)
                 .fillMaxWidth()
-                .background(MaterialTheme.colorScheme.surface, RoundedCornerShape(28.dp))
+                .background(BittrTheme.colors.dialogContainer, RoundedCornerShape(28.dp))
                 .padding(25.dp)
                 .let { if (loading.testTag != null) it.testTag(loading.testTag) else it },
         ) {

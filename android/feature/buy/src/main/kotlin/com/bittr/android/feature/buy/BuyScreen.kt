@@ -48,6 +48,15 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.bittr.android.core.common.TestID
 import com.bittr.android.core.designsystem.BittrBody
+import androidx.compose.foundation.layout.RowScope
+import com.bittr.android.core.designsystem.BittrHelpButton
+import com.bittr.android.core.designsystem.BittrCopyButton
+import androidx.compose.foundation.layout.height
+import androidx.compose.runtime.CompositionLocalProvider
+import com.bittr.android.core.designsystem.BittrDialogTitle
+import com.bittr.android.core.designsystem.BittrDialogMessage
+import com.bittr.android.core.designsystem.BittrDialogButtonHeight
+import com.bittr.android.core.designsystem.BittrCanvasShapes
 import com.bittr.android.core.designsystem.dismissOnPullDown
 import com.bittr.android.core.designsystem.BittrCanvas
 import com.bittr.android.core.designsystem.BittrCard
@@ -218,16 +227,12 @@ private fun IbanCard(
         DetailRow(BuyStrings.OUR_IBAN, entity.ourIbanNumber, onCopy = { onCopy(entity.ourIbanNumber) })
         DetailRow(BuyStrings.OUR_NAME, entity.ourName, onCopy = { onCopy(entity.ourName) })
         DetailRow(BuyStrings.YOUR_CODE, entity.yourUniqueCode, valueTag = TestID.Buy.yourCode, onCopy = { onCopy(entity.yourUniqueCode) })
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier
-                .fillMaxWidth()
-                .heightIn(min = 52.dp),
-        ) {
+        DetailRowSurface {
             Text(BuyStrings.LIGHTNING, style = MaterialTheme.typography.labelLarge)
-            TextButton(onClick = onQuestion, modifier = Modifier.testTag(TestID.Buy.paymentModeButton)) {
-                Text("?", fontWeight = FontWeight.Bold)
-            }
+            BittrHelpButton(
+                onClick = onQuestion,
+                modifier = Modifier.testTag(TestID.Buy.paymentModeButton),
+            )
             Box(Modifier.weight(1f))
             if (pending) {
                 CircularProgressIndicator(
@@ -242,15 +247,22 @@ private fun IbanCard(
                 onCheckedChange = onToggle,
                 enabled = !pending,
                 colors = bittrSwitchColors(),
-                modifier = Modifier.testTag(TestID.Buy.paymentModeSwitch),
+                modifier = Modifier
+                    .padding(end = 12.dp)
+                    .testTag(TestID.Buy.paymentModeSwitch),
             )
         }
     }
 }
 
 /**
- * A label and a value, with a copy control beside the value when [onCopy] is given. The copy
- * control is a sibling of the value rather than a layer over it, so the value keeps its own id.
+ * A label and a value on a white row, with a copy button at the row's end when [onCopy] is
+ * given (review S4: the "Copy" text button was pale yellow on the yellow card and could not be
+ * seen). The copy control is a sibling of the value rather than a layer over it, so the value
+ * keeps its own id.
+ *
+ * The label stays [BittrColors.rowLabel] rather than the proposal's `#EFA900`: that yellow is
+ * about 2 : 1 on white, and `rowLabel` is the darkened one signed off for exactly this (DEV-40).
  */
 @Composable
 internal fun DetailRow(
@@ -260,35 +272,51 @@ internal fun DetailRow(
     onCopy: (() -> Unit)? = null,
     copyTag: String? = null,
 ) {
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = BittrTokens.Spacing.xs),
-    ) {
+    DetailRowSurface {
         Column(Modifier.weight(1f)) {
-            Text(label, style = MaterialTheme.typography.labelMedium, color = BittrTheme.colors.rowLabel)
+            Text(
+                label,
+                style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.SemiBold),
+                color = BittrTheme.colors.rowLabel,
+            )
             Text(
                 text = value,
-                style = MaterialTheme.typography.bodyLarge,
+                style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.SemiBold),
                 modifier = valueTag?.let { Modifier.testTag(it) } ?: Modifier,
             )
         }
         if (onCopy != null) {
-            TextButton(
+            BittrCopyButton(
                 onClick = onCopy,
                 modifier = copyTag?.let { Modifier.testTag(it) } ?: Modifier,
-            ) {
-                Text("Copy")
-            }
+            )
+        }
+    }
+}
+
+/** The white 64 dp row [DetailRow] and the Lightning toggle sit on, 8 dp apart. */
+@Composable
+private fun DetailRowSurface(content: @Composable RowScope.() -> Unit) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier
+            .padding(vertical = 4.dp)
+            .fillMaxWidth()
+            .heightIn(min = 64.dp)
+            .background(MaterialTheme.colorScheme.surfaceContainer, BittrCanvasShapes.field)
+            .padding(start = 16.dp, end = 4.dp),
+    ) {
+        CompositionLocalProvider(LocalContentColor provides MaterialTheme.colorScheme.onSurface) {
+            content()
         }
     }
 }
 
 /**
  * `AlertManager.showAlert`, drawn in the screen's own window. A dialog window would put the
- * alert where Maestro does not look — see `BittrInlineAlert` — and this one also needs the
- * card id (`alert.copied`, `alert.resendCode`, …) that the design-system alert does not take.
+ * alert where Maestro does not look — see `BittrInlineAlert`. Its own card rather than that
+ * one because the message carries markup and the buttons carry [BuyAction]s; the look is the
+ * design system's dialog, piece by piece.
  */
 @Composable
 internal fun BuyAlertCard(alert: BuyAlert, onAction: (BuyAction) -> Unit) {
@@ -296,7 +324,7 @@ internal fun BuyAlertCard(alert: BuyAlert, onAction: (BuyAction) -> Unit) {
         contentAlignment = Alignment.Center,
         modifier = Modifier
             .fillMaxSize()
-            .background(Color.Black.copy(alpha = 0.4f))
+            .background(Color.Black.copy(alpha = 0.45f))
             .pointerInput(Unit) { detectTapGestures { } },
     ) {
         Column(
@@ -304,26 +332,14 @@ internal fun BuyAlertCard(alert: BuyAlert, onAction: (BuyAction) -> Unit) {
             modifier = Modifier
                 .padding(horizontal = BittrTokens.Spacing.xl)
                 .fillMaxWidth()
-                .background(MaterialTheme.colorScheme.surface, RoundedCornerShape(28.dp))
+                .background(BittrTheme.colors.dialogContainer, BittrCanvasShapes.card)
                 .then(alert.id?.let { Modifier.testTag(it) } ?: Modifier)
-                .padding(BittrTokens.Spacing.xl),
+                .padding(24.dp),
         ) {
-            if (alert.title.isNotEmpty()) {
-                Text(
-                    text = alert.title,
-                    style = MaterialTheme.typography.headlineSmall,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier.fillMaxWidth(),
-                )
+            CompositionLocalProvider(LocalContentColor provides BittrTheme.colors.onDialogContainer) {
+                if (alert.title.isNotEmpty()) BittrDialogTitle(alert.title)
+                BittrDialogMessage(bittrMarkup(alert.message))
             }
-            Text(
-                text = bittrMarkup(alert.message),
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurface,
-                textAlign = TextAlign.Center,
-                modifier = Modifier.fillMaxWidth(),
-            )
             alert.buttons.forEachIndexed { position, button ->
                 val tag = Modifier
                     .fillMaxWidth()
@@ -332,15 +348,18 @@ internal fun BuyAlertCard(alert: BuyAlert, onAction: (BuyAction) -> Unit) {
                     (button.action == BuyAction.Dismiss || button.action == BuyAction.CancelLoading)
                 if (quiet) {
                     TextButton(onClick = { onAction(button.action) }, modifier = tag) {
-                        Text(button.label, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text(
+                            button.label,
+                            style = MaterialTheme.typography.labelLarge,
+                            color = BittrTheme.colors.onDialogContainer,
+                        )
                     }
                 } else {
                     BittrPrimaryButton(
                         text = button.label,
                         onClick = { onAction(button.action) },
-                        modifier = tag,
+                        modifier = tag.height(BittrDialogButtonHeight),
                         arrow = false,
-                        compact = true,
                     )
                 }
             }

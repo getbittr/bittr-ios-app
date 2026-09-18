@@ -672,10 +672,11 @@ class TokenContrastTest {
             )
             // A disabled control is exempt from 1.4.3, but a label nobody can read is
             // not a design — 3 : 1 is the floor this one is held to rather than 4.5.
+            val disabledFill = composite(c.actionFillDisabled, c.canvas)
             assertAtLeast(
                 aaLarge,
-                c.onActionFill,
-                composite(c.actionFillDisabled, c.canvas),
+                composite(c.onActionFillDisabled, disabledFill),
+                disabledFill,
                 "$name dimmed pill label",
             )
         }

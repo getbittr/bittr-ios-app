@@ -29,7 +29,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.SolidColor
@@ -56,6 +55,10 @@ import com.bittr.android.core.common.TestID
 import com.bittr.android.feature.academy.ArticleCard
 import com.bittr.android.feature.academy.BittrArticles
 import com.bittr.android.core.designsystem.BittrBody
+import androidx.compose.foundation.layout.height
+import com.bittr.android.core.designsystem.BittrTonalButton
+import androidx.compose.ui.unit.sp
+import com.bittr.android.core.designsystem.BittrCanvasShapes
 import com.bittr.android.core.designsystem.dismissOnPullDown
 import com.bittr.android.core.designsystem.BittrCanvas
 import com.bittr.android.core.designsystem.BittrCard
@@ -313,7 +316,8 @@ private fun SuccessPage(controller: BuyController) {
             onCopy = { copy(code) }, copyTag = TestID.Signup.Bittr.Success.codeButton,
         )
         CanvasSpacer(BittrTokens.Spacing.lg)
-        BittrTextButton(
+        // A tonal button directly above Finish, not a text link (review, `bittr_success`).
+        BittrTonalButton(
             text = BuyStrings.SCREENSHOT,
             onClick = {
                 scope.launch {
@@ -324,8 +328,11 @@ private fun SuccessPage(controller: BuyController) {
                     controller.onScreenshotResult(saved)
                 }
             },
-            modifier = Modifier.testTag(TestID.Signup.Bittr.Success.screenshotButton),
+            modifier = Modifier
+                .height(52.dp)
+                .testTag(TestID.Signup.Bittr.Success.screenshotButton),
         )
+        CanvasSpacer(12.dp)
         BittrPrimaryButton(
             text = BuyStrings.FINAL_DETAILS,
             onClick = controller::onSuccessNext,
@@ -372,14 +379,25 @@ private fun TransferInfoPage(controller: BuyController) {
 private fun InfoCard(title: String, label: String, titleTag: String, labelTag: String) {
     Column(
         modifier = Modifier
-            .padding(vertical = BittrTokens.Spacing.xs)
+            .padding(vertical = 4.dp)
             .fillMaxWidth()
-            .background(MaterialTheme.colorScheme.surface, RoundedCornerShape(8.dp))
-            .padding(BittrTokens.Spacing.md),
+            // White, 20 dp, as a card inside a sheet is in the proposal (review S1).
+            .background(MaterialTheme.colorScheme.surfaceContainer, RoundedCornerShape(20.dp))
+            .padding(16.dp),
     ) {
-        Text(title, style = MaterialTheme.typography.titleMedium, modifier = Modifier.testTag(titleTag))
+        Text(
+            title,
+            style = MaterialTheme.typography.titleMedium.copy(fontSize = 17.sp),
+            color = MaterialTheme.colorScheme.onSurface,
+            modifier = Modifier.testTag(titleTag),
+        )
         CanvasSpacer(BittrTokens.Spacing.xs)
-        Text(label, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.testTag(labelTag))
+        Text(
+            label,
+            style = MaterialTheme.typography.bodyLarge.copy(fontSize = 15.sp, lineHeight = 22.sp),
+            color = MaterialTheme.colorScheme.onSurface,
+            modifier = Modifier.testTag(labelTag),
+        )
     }
 }
 
@@ -405,14 +423,14 @@ private fun BuyField(
         contentAlignment = Alignment.CenterStart,
         modifier = Modifier
             .fillMaxWidth()
-            .heightIn(min = 52.dp)
-            .background(MaterialTheme.colorScheme.surface, RoundedCornerShape(8.dp))
+            .heightIn(min = 56.dp)
+            .background(MaterialTheme.colorScheme.surfaceContainer, BittrCanvasShapes.field)
             .pointerInput(Unit) { detectTapGestures { runCatching { focusRequester.requestFocus() } } }
             .testTag(buttonTag)
             .padding(horizontal = BittrTokens.Spacing.md),
     ) {
         if (value.isEmpty()) {
-            Text(placeholder, style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(placeholder, style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f))
         }
         BasicTextField(
             value = value,
@@ -447,17 +465,17 @@ private fun BusyButton(text: String, busy: Boolean, dimmed: Boolean, onClick: ()
             text = if (busy) "" else text,
             onClick = { if (!busy) onClick() },
             arrow = !busy,
+            // Dimmed until the fields are filled, as iOS's `nextView` is, but still
+            // tappable, so the "please fill in" alert is reachable.
+            dimmed = dimmed,
             modifier = Modifier
                 .fillMaxWidth()
-                // `nextView` at 60 % black until the fields are filled; still tappable, so
-                // the "please fill in" alert is reachable.
-                .then(if (dimmed) Modifier.alpha(0.6f) else Modifier)
                 .testTag(tag),
         )
         if (busy) {
             CircularProgressIndicator(
                 strokeWidth = 2.dp,
-                color = BittrTheme.colors.onActionFill,
+                color = if (dimmed) BittrTheme.colors.onActionFillDisabled else BittrTheme.colors.onActionFill,
                 modifier = Modifier
                     .align(Alignment.Center)
                     .size(22.dp),

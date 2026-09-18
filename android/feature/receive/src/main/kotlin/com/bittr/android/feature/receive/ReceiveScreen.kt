@@ -39,6 +39,10 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.draw.clip
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.asImageBitmap
@@ -53,6 +57,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.bittr.android.core.common.TestID
 import com.bittr.android.core.designsystem.BittrAlert
+import com.bittr.android.core.designsystem.BittrHelpButton
 import com.bittr.android.core.designsystem.dismissOnPullDown
 import com.bittr.android.core.designsystem.BittrAlertButton
 import com.bittr.android.core.designsystem.BittrCanvas
@@ -269,15 +274,7 @@ private fun AddressBox(state: ReceiveUiState, onQuestion: () -> Unit) {
                     .padding(start = if (display?.showBolt == true) BittrTokens.Spacing.xs else 0.dp)
                     .testTag(TestID.Receive.addressTitle),
             )
-            Box(
-                contentAlignment = Alignment.Center,
-                modifier = Modifier
-                    .size(BittrTokens.Size.minTouchTarget)
-                    .clickable(onClick = onQuestion)
-                    .testTag(TestID.Receive.questionButton),
-            ) {
-                Text("?", style = MaterialTheme.typography.titleMedium, color = BittrTheme.colors.emphasis)
-            }
+            BittrHelpButton(onClick = onQuestion, modifier = Modifier.testTag(TestID.Receive.questionButton))
             Text(
                 text = if (state.loading) "" else display?.addressLabel.orEmpty(),
                 style = MaterialTheme.typography.bodyLarge,
@@ -331,6 +328,11 @@ private fun CardsRow(
     }
 }
 
+/**
+ * One tonal action: the icon above its label, so the label has the whole width of the button.
+ * Side by side they truncated ("Rene", "Add") — review S8. A label that still does not fit, at a
+ * large font scale, is dropped rather than cut, and the icon carries the name for TalkBack.
+ */
 @Composable
 private fun ReceiveCard(
     label: String?,
@@ -341,23 +343,34 @@ private fun ReceiveCard(
     modifier: Modifier = Modifier,
 ) {
     val colors = BittrTheme.colors
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(6.dp, Alignment.CenterHorizontally),
+    var labelFits by remember(label) { mutableStateOf(true) }
+    val showLabel = label != null && labelFits
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(4.dp, Alignment.CenterVertically),
         modifier = modifier
-            .height(48.dp)
-            .background(colors.tonalFill, RoundedCornerShape(12.dp))
-            .clickable(onClick = onClick)
-            .padding(horizontal = BittrTokens.Spacing.sm)
+            .widthIn(min = 56.dp)
+            .height(64.dp)
+            .clip(RoundedCornerShape(16.dp))
+            .background(colors.tonalFill)
+            .clickable(role = Role.Button, onClick = onClick)
+            .padding(horizontal = 4.dp)
             .testTag(testTag),
     ) {
         Image(
             imageVector = rememberStrokeIcon(path, colors.onTonalFill, strokeWidth = 2f),
-            contentDescription = if (label == null) contentDescription else null,
-            modifier = Modifier.size(18.dp),
+            contentDescription = if (showLabel) null else contentDescription,
+            modifier = Modifier.size(20.dp),
         )
-        if (label != null) {
-            Text(label, style = MaterialTheme.typography.labelLarge, color = colors.onTonalFill, maxLines = 1)
+        if (label != null && labelFits) {
+            Text(
+                label,
+                style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
+                color = colors.onTonalFill,
+                maxLines = 1,
+                softWrap = false,
+                onTextLayout = { if (it.hasVisualOverflow) labelFits = false },
+            )
         }
     }
 }

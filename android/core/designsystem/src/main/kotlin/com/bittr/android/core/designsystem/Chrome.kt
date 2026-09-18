@@ -10,6 +10,9 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.draw.clip
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -96,7 +99,10 @@ fun BittrModalHeader(
             contentAlignment = Alignment.Center,
             modifier = Modifier
                 .size(BittrTokens.Size.minTouchTarget)
-                .clickable(onClick = onDown)
+                // Round, so the press and focus layer is the proposal's circle rather than
+                // a grey square (review S10).
+                .clip(CircleShape)
+                .clickable(role = Role.Button, onClick = onDown)
                 .then(downTestTag?.let { Modifier.testTag(it) } ?: Modifier),
         ) {
             Image(
@@ -195,11 +201,7 @@ fun BittrRowValue(text: String, modifier: Modifier = Modifier) {
 }
 
 /**
- * The bottom bar — artboard 18's Wallet / Academy / gear.
- *
- * The gear is a square rather than a labelled pill because the mock draws it that
- * way; it still gets the full [BittrTokens.Size.minTouchTarget] because it is the
- * only route into Settings in the whole app.
+ * The bottom bar — Wallet / Academy / Settings, three equal labelled pills.
  *
  * It is drawn by each screen that has one rather than hoisted into a `Scaffold` at
  * the nav host. On iOS the bar belongs to `CoreViewController` and Home is a child of
@@ -244,14 +246,17 @@ fun BittrBottomNavBar(
             testTag = academyTestTag,
             modifier = Modifier.weight(1f),
         )
+        // Labelled like the other two, with Material's outlined `settings` glyph. It was an
+        // unlabelled square with the mock's own gear, which the design review read as an
+        // unrecognisable third destination (2026-09-18, S9).
         NavTab(
-            label = null,
-            icon = BittrIconPaths.SETTINGS,
+            label = "Settings",
+            icon = BittrIconPaths.SETTINGS_OUTLINE,
+            iconFilled = true,
             active = selected == BittrNavTab.Settings,
             onClick = onSettings,
             testTag = settingsTestTag,
-            contentDescription = "Settings",
-            modifier = Modifier.width(64.dp),
+            modifier = Modifier.weight(1f),
         )
     }
 }
@@ -268,6 +273,7 @@ private fun NavTab(
     testTag: String?,
     modifier: Modifier = Modifier,
     contentDescription: String? = null,
+    iconFilled: Boolean = false,
 ) {
     val colors = BittrTheme.colors
     val content = if (active) colors.onCanvas else MaterialTheme.colorScheme.onSurface
@@ -284,7 +290,7 @@ private fun NavTab(
             .then(testTag?.let { Modifier.testTag(it) } ?: Modifier),
     ) {
         Image(
-            imageVector = rememberStrokeIcon(icon, content, strokeWidth = 2f),
+            imageVector = if (iconFilled) rememberFillIcon(icon, content) else rememberStrokeIcon(icon, content, strokeWidth = 2f),
             contentDescription = contentDescription,
             modifier = Modifier.size(21.dp),
         )
@@ -328,13 +334,13 @@ fun BittrChoiceDialog(
     androidx.compose.material3.AlertDialog(
         onDismissRequest = onCancel,
         shape = BittrCanvasShapes.card,
-        containerColor = colors.tonalFill,
-        titleContentColor = colors.onTonalFill,
-        textContentColor = colors.onTonalFill,
-        title = { Text(title, style = MaterialTheme.typography.titleMedium) },
+        containerColor = colors.dialogContainer,
+        titleContentColor = colors.onDialogContainer,
+        textContentColor = colors.onDialogContainer,
+        title = { BittrDialogTitle(title) },
         text = {
             Column {
-                Text(message, style = MaterialTheme.typography.bodyMedium)
+                BittrDialogMessage(message)
                 CanvasSpacer(BittrTokens.Spacing.md)
                 options.forEachIndexed { index, option ->
                     ChoiceRow(
@@ -349,7 +355,7 @@ fun BittrChoiceDialog(
                     label = cancelLabel,
                     onClick = onCancel,
                     background = Color.Transparent,
-                    contentColor = colors.onTonalFill,
+                    contentColor = colors.onDialogContainer,
                 )
             }
         },

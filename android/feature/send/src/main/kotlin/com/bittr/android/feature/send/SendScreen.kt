@@ -45,6 +45,7 @@ import androidx.compose.ui.unit.dp
 import com.bittr.android.core.common.TestID
 import com.bittr.android.core.common.destination.Destination
 import com.bittr.android.core.designsystem.BittrAlert
+import com.bittr.android.core.designsystem.BittrHelpButton
 import com.bittr.android.core.designsystem.dismissOnPullDown
 import com.bittr.android.core.designsystem.BittrAlertButton
 import com.bittr.android.core.designsystem.BittrBody
@@ -212,7 +213,7 @@ private fun BoxScope.LoadingCover(message: String, testTag: String) {
             horizontalArrangement = Arrangement.spacedBy(BittrTokens.Spacing.md),
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier
-                .background(MaterialTheme.colorScheme.surface, RoundedCornerShape(13.dp))
+                .background(BittrTheme.colors.dialogContainer, RoundedCornerShape(20.dp))
                 .padding(BittrTokens.Spacing.lg)
                 .testTag(testTag),
         ) {
@@ -493,15 +494,10 @@ private fun OverlaidTile(testTag: String, onClick: () -> Unit, content: @Composa
 
 @Composable
 private fun QuestionMark(testTag: String?, onClick: () -> Unit) {
-    Box(
-        contentAlignment = Alignment.Center,
-        modifier = Modifier
-            .size(BittrTokens.Size.minTouchTarget)
-            .clickable(onClick = onClick)
-            .then(if (testTag != null) Modifier.testTag(testTag) else Modifier),
-    ) {
-        Text("?", style = MaterialTheme.typography.titleMedium)
-    }
+    BittrHelpButton(
+        onClick = onClick,
+        modifier = if (testTag != null) Modifier.testTag(testTag) else Modifier,
+    )
 }
 
 @Composable

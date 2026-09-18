@@ -10,6 +10,9 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
+import androidx.compose.foundation.layout.height
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
@@ -21,6 +24,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.window.DialogProperties
 import com.bittr.android.core.common.TestID
@@ -93,25 +97,12 @@ fun BittrAlert(
         // comes out lavender, in a brand-led app whose theme deliberately avoids
         // Material You for exactly that reason. These three read from the scheme
         // BIT-4 owns.
-        containerColor = MaterialTheme.colorScheme.surface,
-        titleContentColor = MaterialTheme.colorScheme.onSurface,
-        textContentColor = MaterialTheme.colorScheme.onSurface,
-        title = {
-            Text(
-                text = title,
-                style = MaterialTheme.typography.headlineSmall,
-                textAlign = TextAlign.Center,
-                modifier = Modifier.fillMaxWidth(),
-            )
-        },
-        text = {
-            Text(
-                text = message,
-                style = MaterialTheme.typography.bodyMedium,
-                textAlign = TextAlign.Center,
-                modifier = Modifier.fillMaxWidth(),
-            )
-        },
+        containerColor = BittrTheme.colors.dialogContainer,
+        titleContentColor = BittrTheme.colors.onDialogContainer,
+        textContentColor = BittrTheme.colors.onDialogContainer,
+        shape = BittrCanvasShapes.card,
+        title = { BittrDialogTitle(title) },
+        text = { BittrDialogMessage(message) },
         // Both buttons go in one full-width stack rather than into AlertDialog's
         // confirm/dismiss slots. Those slots lay out side by side and truncate, and
         // the approved labels ("Continue", "Settings") sit next to a body of three
@@ -171,24 +162,14 @@ fun BittrInlineAlert(
             modifier = Modifier
                 .padding(horizontal = BittrTokens.Spacing.xl)
                 .fillMaxWidth()
-                .background(MaterialTheme.colorScheme.surface, RoundedCornerShape(28.dp))
+                .background(BittrTheme.colors.dialogContainer, BittrCanvasShapes.card)
                 .padding(BittrTokens.Spacing.xl)
                 .then(if (cardTestTag != null) Modifier.testTag(cardTestTag) else Modifier),
         ) {
-            Text(
-                text = title,
-                style = MaterialTheme.typography.headlineSmall,
-                color = MaterialTheme.colorScheme.onSurface,
-                textAlign = TextAlign.Center,
-                modifier = Modifier.fillMaxWidth(),
-            )
-            Text(
-                text = message,
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurface,
-                textAlign = TextAlign.Center,
-                modifier = Modifier.fillMaxWidth(),
-            )
+            CompositionLocalProvider(LocalContentColor provides BittrTheme.colors.onDialogContainer) {
+                BittrDialogTitle(title)
+                BittrDialogMessage(message)
+            }
             Column(
                 modifier = Modifier.fillMaxWidth(),
                 verticalArrangement = Arrangement.spacedBy(BittrTokens.Spacing.xs),
@@ -201,7 +182,7 @@ fun BittrInlineAlert(
     }
 }
 
-private const val SCRIM_ALPHA = 0.4f
+private const val SCRIM_ALPHA = 0.45f
 
 /**
  * Position 0 is the way out and is drawn quieter; everything after it is an action.
@@ -226,10 +207,10 @@ private fun AlertButton(button: BittrAlertButton, position: Int) {
             onClick = button.onClick,
             modifier = buttonModifier,
             colors = ButtonDefaults.textButtonColors(
-                contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                contentColor = BittrTheme.colors.onDialogContainer,
             ),
         ) {
-            Text(button.label)
+            Text(button.label, style = MaterialTheme.typography.labelLarge)
         }
     } else {
         // **Not a Material `Button`.** It would paint its container `primary`, and in
@@ -243,9 +224,41 @@ private fun AlertButton(button: BittrAlertButton, position: Int) {
         BittrPrimaryButton(
             text = button.label,
             onClick = button.onClick,
-            modifier = buttonModifier,
+            modifier = buttonModifier.height(BittrDialogButtonHeight),
             arrow = false,
-            compact = true,
         )
     }
+}
+
+/** The proposal's dialog action height — between the 48 dp compact pill and the 56 dp one. */
+val BittrDialogButtonHeight = 52.dp
+
+/**
+ * An alert's title: 22 sp bold, centred. Every alert in the app uses it, including the
+ * ones a feature draws in its own window, so there is one dialog style (review S2).
+ */
+@Composable
+fun BittrDialogTitle(text: String) {
+    Text(
+        text = text,
+        style = MaterialTheme.typography.titleLarge,
+        textAlign = TextAlign.Center,
+        modifier = Modifier.fillMaxWidth(),
+    )
+}
+
+/** An alert's message: 16 sp on 24, centred, at 80 % of the dialog's content colour. */
+@Composable
+fun BittrDialogMessage(text: String) = BittrDialogMessage(AnnotatedString(text))
+
+/** [BittrDialogMessage] for a message with markup — bold spans, links. */
+@Composable
+fun BittrDialogMessage(text: AnnotatedString) {
+    Text(
+        text = text,
+        style = MaterialTheme.typography.bodyLarge,
+        color = LocalContentColor.current.copy(alpha = 0.80f),
+        textAlign = TextAlign.Center,
+        modifier = Modifier.fillMaxWidth(),
+    )
 }

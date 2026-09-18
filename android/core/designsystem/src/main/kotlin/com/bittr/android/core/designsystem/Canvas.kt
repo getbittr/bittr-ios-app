@@ -174,8 +174,10 @@ fun BittrCard(
 /**
  * The primary action: an ink pill with a white label and a trailing arrow.
  *
- * @param enabled false draws the mock's `dim` state rather than Material's disabled
- *   colours — see [BittrColors.actionFillDisabled]. The button is still not clickable.
+ * @param enabled false draws the disabled pill, [BittrColors.actionFillDisabled] under
+ *   [BittrColors.onActionFillDisabled], and stops clicks.
+ * @param dimmed the disabled look without the disabled behaviour, for an action whose tap
+ *   explains what is missing (Buy signup's "please fill in" alert). Follows [enabled].
  * @param arrow the forward chevron. Present on every "carry on" action in the mock and
  *   absent on the ones that complete something in place (`Confirm` on the PIN pad).
  */
@@ -187,6 +189,7 @@ fun BittrPrimaryButton(
     enabled: Boolean = true,
     arrow: Boolean = true,
     compact: Boolean = false,
+    dimmed: Boolean = !enabled,
     content: (@Composable () -> Unit)? = null,
 ) {
     val colors = BittrTheme.colors
@@ -200,24 +203,25 @@ fun BittrPrimaryButton(
             // instead of drawing a rectangle around it.
             .clip(BittrCanvasShapes.pill)
             .background(
-                if (enabled) colors.actionFill else colors.actionFillDisabled,
+                if (dimmed) colors.actionFillDisabled else colors.actionFill,
                 BittrCanvasShapes.pill,
             )
             .clickable(enabled = enabled, role = Role.Button, onClick = onClick),
     ) {
+        val labelColor = if (dimmed) colors.onActionFillDisabled else colors.onActionFill
         if (content != null) {
             content()
         } else {
             Text(
                 text = text,
                 style = MaterialTheme.typography.labelLarge,
-                color = colors.onActionFill,
+                color = labelColor,
             )
             if (arrow) {
                 Image(
                     imageVector = rememberStrokeIcon(
                         BittrIconPaths.ARROW_FORWARD,
-                        colors.onActionFill,
+                        labelColor,
                     ),
                     contentDescription = null,
                     modifier = Modifier.size(18.dp),
@@ -276,6 +280,60 @@ fun BittrTextButton(
         )
     }
 }
+
+/**
+ * A round icon button: a 48 dp touch target with a circular press layer, so the highlight
+ * never draws as a square (review S10). [pathData] is a filled path from [BittrIconPaths].
+ */
+@Composable
+fun BittrIconButton(
+    pathData: String,
+    contentDescription: String?,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    tint: Color = LocalContentColor.current,
+    iconSize: Dp = 20.dp,
+    filled: Boolean = true,
+) {
+    Box(
+        contentAlignment = Alignment.Center,
+        modifier = modifier
+            .size(BittrTokens.Size.minTouchTarget)
+            .clip(CircleShape)
+            .clickable(role = Role.Button, onClick = onClick),
+    ) {
+        Image(
+            imageVector = if (filled) rememberFillIcon(pathData, tint) else rememberStrokeIcon(pathData, tint),
+            contentDescription = contentDescription,
+            modifier = Modifier.size(iconSize),
+        )
+    }
+}
+
+/** Copy this row's value — `content_copy`, ink, at a row's trailing edge (review S4). */
+@Composable
+fun BittrCopyButton(onClick: () -> Unit, modifier: Modifier = Modifier, contentDescription: String = "Copy") =
+    BittrIconButton(
+        pathData = BittrIconPaths.COPY,
+        contentDescription = contentDescription,
+        onClick = onClick,
+        modifier = modifier,
+        tint = MaterialTheme.colorScheme.onSurface,
+    )
+
+/**
+ * The inline "what is this?" control — `help_outline` at 70 % of the content colour, in
+ * place of a literal "?" in body type (review S5).
+ */
+@Composable
+fun BittrHelpButton(onClick: () -> Unit, modifier: Modifier = Modifier, contentDescription: String = "More information") =
+    BittrIconButton(
+        pathData = BittrIconPaths.HELP,
+        contentDescription = contentDescription,
+        onClick = onClick,
+        modifier = modifier,
+        tint = LocalContentColor.current.copy(alpha = 0.70f),
+    )
 
 /** A white value row — the mock's field, and the container for a phrase word. */
 @Composable
@@ -403,11 +461,11 @@ fun BittrAlertDialog(
     androidx.compose.material3.AlertDialog(
         onDismissRequest = if (dismissLabel != null) onDismiss else onConfirm,
         shape = BittrCanvasShapes.card,
-        containerColor = colors.tonalFill,
-        titleContentColor = colors.onTonalFill,
-        textContentColor = colors.onTonalFill,
-        title = { Text(title, style = MaterialTheme.typography.titleMedium) },
-        text = { Text(message, style = MaterialTheme.typography.bodyMedium) },
+        containerColor = colors.dialogContainer,
+        titleContentColor = colors.onDialogContainer,
+        textContentColor = colors.onDialogContainer,
+        title = { BittrDialogTitle(title) },
+        text = { BittrDialogMessage(message) },
         confirmButton = {
             AlertButton(
                 label = confirmLabel,
@@ -426,7 +484,7 @@ fun BittrAlertDialog(
                     onClick = onDismiss,
                     testTag = dismissTestTag,
                     background = Color.Transparent,
-                    contentColor = colors.onTonalFill,
+                    contentColor = colors.onDialogContainer,
                 )
             }
         },
@@ -447,7 +505,7 @@ private fun AlertButton(
     Box(
         contentAlignment = Alignment.Center,
         modifier = Modifier
-            .heightIn(min = BittrTokens.Size.minTouchTarget)
+            .height(BittrDialogButtonHeight)
             .background(background, BittrCanvasShapes.pill)
             .clickable(role = Role.Button, onClick = onClick)
             .padding(horizontal = 22.dp)
@@ -497,6 +555,18 @@ object BittrIconPaths {
 
     /** The balance-details bars. Filled in the mock, unlike its neighbours. */
     const val DETAILS = "M3 12h4v8H3z M10 6h4v14h-4z M17 9h4v11h-4z"
+
+    /**
+     * Material's `content_copy`, `help_outline` and outlined `settings` (Apache 2.0), as
+     * the design review asked for them by name (2026-09-18, S4, S5, S9). Filled paths:
+     * draw them with [rememberFillIcon].
+     */
+    const val COPY =
+        "M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"
+    const val HELP =
+        "M11 18h2v-2h-2v2zm1-16C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm0-14c-2.21 0-4 1.79-4 4h2c0-1.1.9-2 2-2s2 .9 2 2c0 2-3 1.75-3 5h2c0-2.25 3-2.5 3-5 0-2.21-1.79-4-4-4z"
+    const val SETTINGS_OUTLINE =
+        "M19.43 12.98c.04-.32.07-.64.07-.98 0-.34-.03-.66-.07-.98l2.11-1.65c.19-.15.24-.42.12-.64l-2-3.46c-.09-.16-.26-.25-.44-.25-.06 0-.12.01-.17.03l-2.49 1c-.52-.4-1.08-.73-1.69-.98l-.38-2.65C14.46 2.18 14.25 2 14 2h-4c-.25 0-.46.18-.49.42l-.38 2.65c-.61.25-1.17.59-1.69.98l-2.49-1c-.06-.02-.12-.03-.18-.03-.17 0-.34.09-.43.25l-2 3.46c-.13.22-.07.49.12.64l2.11 1.65c-.04.32-.07.65-.07.98 0 .33.03.66.07.98l-2.11 1.65c-.19.15-.24.42-.12.64l2 3.46c.09.16.26.25.44.25.06 0 .12-.01.17-.03l2.49-1c.52.4 1.08.73 1.69.98l.38 2.65c.03.24.24.42.49.42h4c.25 0 .46-.18.49-.42l.38-2.65c.61-.25 1.17-.59 1.69-.98l2.49 1c.06.02.12.03.18.03.17 0 .34-.09.43-.25l2-3.46c.12-.22.07-.49-.12-.64l-2.11-1.65zm-1.98-1.71c.04.31.05.52.05.73 0 .21-.02.43-.05.73l-.14 1.13.89.7 1.08.84-.7 1.21-1.27-.51-1.04-.42-.9.68c-.43.32-.84.56-1.25.73l-1.06.43-.16 1.13-.2 1.35h-1.4l-.19-1.35-.16-1.13-1.06-.43c-.43-.18-.83-.41-1.23-.71l-.91-.7-1.06.43-1.27.51-.7-1.21 1.08-.84.89-.7-.14-1.13c-.03-.31-.05-.54-.05-.74s.02-.43.05-.73l.14-1.13-.89-.7-1.08-.84.7-1.21 1.27.51 1.04.42.9-.68c.43-.32.84-.56 1.25-.73l1.06-.43.16-1.13.2-1.35h1.39l.19 1.35.16 1.13 1.06.43c.43.18.83.41 1.23.71l.91.7 1.06-.43 1.27-.51.7 1.21-1.07.85-.89.7.14 1.13zM12 8c-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4-1.79-4-4-4zm0 6c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2z"
 
     // The bottom bar, also artboard 18.
     const val WALLET = "M3 7.5A2.5 2.5 0 015.5 5H18a2 2 0 012 2v10a2 2 0 01-2 2H5.5A2.5 2.5 0 013 16.5z M16 12h2"
@@ -673,8 +743,11 @@ fun BittrBody(
 fun BittrNumeral(text: String, modifier: Modifier = Modifier, width: Dp = 24.dp) {
     Text(
         text = text,
-        style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold),
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.ExtraBold),
+        // Gold, as iOS numbers its words, but [BittrColors.rowLabel]'s darkened gold
+        // (5.07 : 1 on the white row) rather than the proposal's `#EFA900`, which is about
+        // 2 : 1 there. It was grey until the design review (2026-09-18).
+        color = BittrTheme.colors.rowLabel,
         textAlign = TextAlign.End,
         modifier = modifier.width(width),
     )

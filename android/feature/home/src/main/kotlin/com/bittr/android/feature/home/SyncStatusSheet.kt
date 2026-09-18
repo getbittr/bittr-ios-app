@@ -72,7 +72,7 @@ internal fun BoxScope.SyncStatusSheet(progress: SyncProgress, onClose: () -> Uni
                 .navigationBarsPadding()
                 .padding(BittrTokens.Spacing.md)
                 .fillMaxWidth()
-                .background(MaterialTheme.colorScheme.surface, RoundedCornerShape(13.dp))
+                .background(MaterialTheme.colorScheme.surfaceContainer, RoundedCornerShape(28.dp))
                 // Taps on the sheet stay on the sheet.
                 .pointerInput(Unit) { detectTapGestures { } }
                 .padding(BittrTokens.Spacing.lg)

@@ -32,6 +32,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.bittr.android.core.common.TestID
 import com.bittr.android.core.designsystem.BittrAlert
+import com.bittr.android.core.designsystem.BittrHelpButton
 import com.bittr.android.core.designsystem.BittrAlertButton
 import com.bittr.android.core.designsystem.BittrCanvas
 import com.bittr.android.core.designsystem.BittrCard
@@ -236,15 +237,7 @@ private fun BalanceRow(
             fiat?.let { Text(it, style = MaterialTheme.typography.bodyMedium) }
         }
         if (onQuestion != null) {
-            Box(
-                contentAlignment = Alignment.Center,
-                modifier = Modifier
-                    .size(BittrTokens.Size.minTouchTarget)
-                    .clickable(onClick = onQuestion)
-                    .testTag(TestID.Move.channelButton),
-            ) {
-                Text("?", style = MaterialTheme.typography.titleMedium)
-            }
+            BittrHelpButton(onClick = onQuestion, modifier = Modifier.testTag(TestID.Move.channelButton))
         }
     }
 }

@@ -44,6 +44,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.bittr.android.core.common.TestID
 import com.bittr.android.core.designsystem.BittrAlert
+import com.bittr.android.core.designsystem.BittrHelpButton
 import com.bittr.android.core.designsystem.BittrAlertButton
 import com.bittr.android.core.designsystem.BittrCanvas
 import com.bittr.android.core.designsystem.BittrCard
@@ -346,14 +347,7 @@ private fun AmountField(value: String, onValueChange: (String) -> Unit, onDone: 
 
 @Composable
 private fun QuestionMark(onClick: () -> Unit) {
-    Box(
-        contentAlignment = Alignment.Center,
-        modifier = Modifier
-            .size(BittrTokens.Size.minTouchTarget)
-            .clickable(onClick = onClick),
-    ) {
-        Text("?", style = MaterialTheme.typography.titleMedium)
-    }
+    BittrHelpButton(onClick = onClick)
 }
 
 @Composable
