@@ -227,7 +227,20 @@ class AppBuySource(
         }
     }
 
-    override suspend fun register(
+/**
+     * [read] until it answers, for up to [REGISTRATION_WAIT_MS]. What it reads — the node's key, its
+     * signature, the account xpub — arrives when the node finishes starting, which a signup can beat.
+     */
+    private suspend fun <T> waitFor(read: suspend () -> T?): T? {
+        val deadline = REGISTRATION_WAIT_MS / REGISTRATION_POLL_MS
+        repeat(deadline.toInt()) { attempt ->
+            read()?.let { return it }
+            if (attempt < deadline - 1) delay(REGISTRATION_POLL_MS)
+        }
+        return null
+    }
+
+        override suspend fun register(
         entityId: String,
         notificationsDenied: Boolean,
         deviceToken: String?,
@@ -238,12 +251,17 @@ class AppBuySource(
         val keys = keys ?: return RegisterResult.WalletNotReady
         val message = restoreMessage ?: registrationMessage(entity)
 
-        val bitcoinSignature = io { runCatching { keys.signBitcoinMessage(message) }.getOrNull() }
+        val bitcoinSignature = waitFor { io { runCatching { keys.signBitcoinMessage(message) }.getOrNull() } }
             ?: return RegisterResult.SigningFailed
-        val lightningSignature = io { signer.sign(message) } ?: return RegisterResult.WalletNotReady
+        // The lightning node answers these once it has started, and a signup right after the wallet
+        // was created gets here first: `POST /customer` was skipped and the screen showed "your
+        // wallet is still syncing" with the code cleared, which is where forgot_pin_remove_wallet.yaml
+        // stopped. iOS waits for its wallet the same way (`while bdkWallet == nil`,
+        // Transfer2ViewController:322) rather than failing on the first look.
+        val lightningSignature = waitFor { io { signer.sign(message) } } ?: return RegisterResult.WalletNotReady
         val address = keys.bittrAddress() ?: return RegisterResult.WalletNotReady
-        val pubkey = io { signer.pubkey() } ?: return RegisterResult.WalletNotReady
-        val xpub = io { keys.xpub() } ?: return RegisterResult.WalletNotReady
+        val pubkey = waitFor { io { signer.pubkey() } } ?: return RegisterResult.WalletNotReady
+        val xpub = waitFor { io { keys.xpub() } } ?: return RegisterResult.WalletNotReady
         val request = CustomerRegistration.request(
             environment = environment,
             fields = CustomerRegistration.Fields(
@@ -298,6 +316,10 @@ class AppBuySource(
     private suspend fun <T> io(block: suspend () -> T): T = withContext(Dispatchers.IO) { block() }
 
     companion object {
+
+        /** How long `POST /customer` waits for the node to come up — iOS waits four 3-second turns. */
+        const val REGISTRATION_WAIT_MS = 30_000L
+        const val REGISTRATION_POLL_MS = 2_000L
         /** `startTokenRegistrationTimeout()`'s 15 seconds. */
         private const val TOKEN_WAIT_MS = 15_000L
 
