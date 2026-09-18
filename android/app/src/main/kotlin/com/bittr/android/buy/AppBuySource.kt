@@ -231,6 +231,12 @@ class AppBuySource(
      * [read] until it answers, for up to [REGISTRATION_WAIT_MS]. What it reads — the node's key, its
      * signature, the account xpub — arrives when the node finishes starting, which a signup can beat.
      */
+    /** Why a registration stopped, for the debug log: no ids, no keys, nothing the customer typed. */
+    private fun report(why: String, result: RegisterResult): RegisterResult {
+        android.util.Log.i("BittrSignup", "POST /customer skipped: $why")
+        return result
+    }
+
     private suspend fun <T> waitFor(read: suspend () -> T?): T? {
         val deadline = REGISTRATION_WAIT_MS / REGISTRATION_POLL_MS
         repeat(deadline.toInt()) { attempt ->
@@ -247,21 +253,22 @@ class AppBuySource(
         restoreDepositCode: String?,
         restoreMessage: String?,
     ): RegisterResult {
-        val entity = entity(entityId) ?: return RegisterResult.Unrecognised
-        val keys = keys ?: return RegisterResult.WalletNotReady
+        val entity = entity(entityId) ?: return report("no entity", RegisterResult.Unrecognised)
+        val keys = keys ?: return report("no registration keys (no wallet composition)", RegisterResult.WalletNotReady)
         val message = restoreMessage ?: registrationMessage(entity)
 
         val bitcoinSignature = waitFor { io { runCatching { keys.signBitcoinMessage(message) }.getOrNull() } }
-            ?: return RegisterResult.SigningFailed
+            ?: return report("the seed would not sign", RegisterResult.SigningFailed)
         // The lightning node answers these once it has started, and a signup right after the wallet
         // was created gets here first: `POST /customer` was skipped and the screen showed "your
         // wallet is still syncing" with the code cleared, which is where forgot_pin_remove_wallet.yaml
         // stopped. iOS waits for its wallet the same way (`while bdkWallet == nil`,
         // Transfer2ViewController:322) rather than failing on the first look.
-        val lightningSignature = waitFor { io { signer.sign(message) } } ?: return RegisterResult.WalletNotReady
-        val address = keys.bittrAddress() ?: return RegisterResult.WalletNotReady
-        val pubkey = waitFor { io { signer.pubkey() } } ?: return RegisterResult.WalletNotReady
-        val xpub = waitFor { io { keys.xpub() } } ?: return RegisterResult.WalletNotReady
+        val lightningSignature = waitFor { io { signer.sign(message) } }
+            ?: return report("the node would not sign", RegisterResult.WalletNotReady)
+        val address = keys.bittrAddress() ?: return report("no on-chain address", RegisterResult.WalletNotReady)
+        val pubkey = waitFor { io { signer.pubkey() } } ?: return report("no node id", RegisterResult.WalletNotReady)
+        val xpub = waitFor { io { keys.xpub() } } ?: return report("no account xpub", RegisterResult.WalletNotReady)
         val request = CustomerRegistration.request(
             environment = environment,
             fields = CustomerRegistration.Fields(

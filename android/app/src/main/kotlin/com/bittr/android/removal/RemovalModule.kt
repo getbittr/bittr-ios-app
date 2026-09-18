@@ -63,7 +63,10 @@ internal class CompositionRemovalNode(
 
     override suspend fun startAndSync(): Boolean {
         composition.wallet.start()
-        if (lightning.nodeId() == null) return false
+        if (lightning.nodeId() == null) {
+            Log.w(TAG, "No node id after start; removal cannot verify the channel")
+            return false
+        }
         // A failed sync is not a reason to refuse outright: stale state errs towards "still
         // closing", which blocks the erase rather than allowing it.
         runCatching { lightning.syncWallets() }.onFailure { Log.w(TAG, "Sync before removal failed", it) }

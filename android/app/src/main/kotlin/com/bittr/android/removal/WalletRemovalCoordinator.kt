@@ -241,7 +241,7 @@ class WalletRemovalCoordinator(
         scope.launch {
             val running = !node.hasNode || withContext(io) { node.startAndSync() }
             if (!running) {
-                cannotVerify()
+                cannotVerify("the node would not start")
                 return@launch
             }
             evaluate()
@@ -252,7 +252,7 @@ class WalletRemovalCoordinator(
     private suspend fun evaluate() {
         val reading = if (node.hasNode) withContext(io) { node.read() } else null
         if (node.hasNode && reading == null) {
-            cannotVerify()
+            cannotVerify("the node could not be read")
             return
         }
         val safe = !node.hasNode ||
@@ -409,6 +409,7 @@ class WalletRemovalCoordinator(
         } catch (cancellation: CancellationException) {
             throw cancellation
         } catch (failure: Exception) {
+            android.util.Log.w("BittrRemoval", "Wallet removal failed", failure)
             resettingPin = wasResettingPin
             lockout = wasLockout
             setBusy(false)
@@ -430,7 +431,8 @@ class WalletRemovalCoordinator(
     }
 
     /** No node came up, or it could not be read: nothing is erased. */
-    private fun cannotVerify() {
+    private fun cannotVerify(why: String) {
+        android.util.Log.w("BittrRemoval", "Wallet removal stopped: $why")
         closeInFlight = false
         setBusy(false)
         show(

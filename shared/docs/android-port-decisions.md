@@ -297,3 +297,31 @@ transaction confirmations. All of it passes JVM unit tests. What remains:
   and Lightning links on `getbittr.com` pages (checked once a second with `evaluateJavascript`, no JS bridge;
   iOS observes the DOM). Not done: the Sentry signup metric (Android has no Sentry SDK — adding one is a
   separate decision), the `-evilBoltz` harness (JVM tests cover it), and no Live Activity (not needed).
+## 37. Open — a second wallet on the same install cannot start its node
+
+**Found 2026-09-18, running the suite.** Create a wallet, remove it, create another one on the same
+install, and the node refuses to come up:
+
+```
+BittrNode: Node start failed
+org.lightningdevkit.ldknode.BuildException$WalletSetupFailed: Failed to setup onchain wallet.
+```
+
+Nothing then works that needs the node — `forgot_pin_remove_wallet.yaml` fails because the removal
+cannot read the channel it has to close ("Something went wrong removing your wallet"), and a signup
+in that state cannot sign `POST /customer` either. Wiping the app's data makes the same flow pass, which
+is why it only shows up mid-suite, after `wrong_pin_with_channel` has removed a wallet.
+
+**Why.** `WalletService.removeWallet` erases the seed and deliberately leaves ldk-node's state directory
+where it is (`NodeBackedWalletService`'s comment: force-close sweep material is not ours to delete). The
+piece that was supposed to deal with the leftovers on the way in — `SeedImportGuard`, which quarantines
+state whose discriminator does not match the new seed, and `SeedImporter` around it — **is not wired into
+the app**: nothing outside its own tests calls `prepareForImport`. So the next wallet builds a node over
+the previous wallet's on-chain store.
+
+**The decision to take, Ruben:** what should happen to the old node state when a new wallet appears on a
+device that already had one — quarantine it (what the guard was written for, keeping the old channel's
+sweep material), or delete it? And should removal itself quarantine on the way out, rather than leaving it
+for the next seed? Both touch material that a force-close needs, so this is not a call to make in passing.
+
+Until it is wired, the suite passes it only from a clean install.
