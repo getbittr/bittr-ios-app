@@ -1,5 +1,6 @@
 package com.bittr.android.feature.map
 
+import com.bittr.android.core.designsystem.normalizeSvgPath
 import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.Canvas
@@ -353,7 +354,7 @@ internal class BasemapController(context: Context, private val colors: MarkerCol
         }
         canvas.drawCircle(centre, centre, radius - STROKE_DP * density / 2, ring)
 
-        val glyph = PathParser.createPathFromPathData(MapIconPaths.BITCOIN)
+        val glyph = PathParser.createPathFromPathData(normalizeSvgPath(MapIconPaths.BITCOIN))
         val glyphSize = GLYPH_DP * density
         val scale = glyphSize / ICON_VIEWPORT
         canvas.save()

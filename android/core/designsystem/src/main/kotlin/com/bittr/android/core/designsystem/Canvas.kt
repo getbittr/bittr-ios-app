@@ -718,7 +718,7 @@ fun rememberStrokeIcon(
         viewportHeight = 24f,
     ).apply {
         addPath(
-            pathData = PathParser().parsePathString(pathData).toNodes(),
+            pathData = PathParser().parsePathString(normalizeSvgPath(pathData)).toNodes(),
             stroke = SolidColor(tint),
             strokeLineWidth = strokeWidth,
             strokeLineCap = StrokeCap.Round,
@@ -738,7 +738,7 @@ fun rememberFillIcon(pathData: String, tint: Color): ImageVector =
             viewportHeight = 24f,
         ).apply {
             addPath(
-                pathData = PathParser().parsePathString(pathData).toNodes(),
+                pathData = PathParser().parsePathString(normalizeSvgPath(pathData)).toNodes(),
                 fill = SolidColor(tint),
             )
         }.build()

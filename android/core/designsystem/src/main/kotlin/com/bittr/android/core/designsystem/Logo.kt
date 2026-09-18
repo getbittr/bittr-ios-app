@@ -75,10 +75,10 @@ private fun logoVector(ink: Color, arc: Color, wordmark: Boolean): ImageVector {
         viewportHeight = height,
     ).apply {
         addGroup(translationY = -VIEWBOX_TOP)
-        addPath(PathParser().parsePathString(MARK_INK).toNodes(), fill = SolidColor(ink))
-        addPath(PathParser().parsePathString(MARK_ARC).toNodes(), fill = SolidColor(arc))
+        addPath(PathParser().parsePathString(normalizeSvgPath(MARK_INK)).toNodes(), fill = SolidColor(ink))
+        addPath(PathParser().parsePathString(normalizeSvgPath(MARK_ARC)).toNodes(), fill = SolidColor(arc))
         if (wordmark) {
-            addPath(PathParser().parsePathString(WORDMARK).toNodes(), fill = SolidColor(ink))
+            addPath(PathParser().parsePathString(normalizeSvgPath(WORDMARK)).toNodes(), fill = SolidColor(ink))
         }
         clearGroup()
     }.build()
