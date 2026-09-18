@@ -34,16 +34,10 @@ internal object MapBasemap {
     val STYLE_URI: String? = "https://tiles.openfreemap.org/styles/liberty"
 
     /**
-     * The land/background colour. Deliberately a neutral wash rather than the brand
-     * yellow: the place markers and the user dot have to stay legible on it, and the
-     * canvas is already yellow behind the map card.
-     */
-    private const val BACKGROUND_COLOR = "#E8E4DC"
-
-    /**
      * A valid MapLibre style with no sources. The renderer paints the background and
-     * nothing else; layers the app adds at runtime — the places circles — compose on
-     * top exactly as they would over a basemap.
+     * nothing else; layers the app adds at runtime — the place pins — compose on top
+     * exactly as they would over a basemap. It has no glyphs, so cluster counts do not
+     * draw on it; the clusters themselves do.
      */
     fun offlineStyleJson(): String =
         """
@@ -55,9 +49,37 @@ internal object MapBasemap {
             {
               "id": "background",
               "type": "background",
-              "paint": { "background-color": "$BACKGROUND_COLOR" }
+              "paint": { "background-color": "${BasemapPalette.LAND}" }
             }
           ]
         }
         """.trimIndent()
+}
+
+/**
+ * The basemap's colours — **the one place map style colours are written** (design review
+ * pass 3: "warm quiet ground").
+ *
+ * Liberty is restyled at runtime rather than forked ([basemapTreatment]), so these are
+ * MapLibre style values (hex strings handed to `setProperties`), not Compose colours.
+ * They are not `Color.kt` tokens for the reason that file gives tokens at all: a token
+ * has a dark counterpart and is measured against the canvas. The basemap has neither —
+ * it is a fixed light surface in both schemes, like the Value screen's chart card,
+ * because a dark basemap is a different style rather than a recolour. Anything drawn
+ * *over* the map (markers, the locate button) takes theme tokens. `LiteralColourGuardTest`
+ * scans for `Color(0x…)`, and nothing here is one.
+ */
+internal object BasemapPalette {
+    /** Land and the background layer. Also the offline style's only colour. */
+    const val LAND = "#F6F1E3"
+    const val WATER = "#CBD9DE"
+
+    /** Parks, landcover and landuse, in one flat colour — the review's "quiet". */
+    const val GREEN = "#E9E7D4"
+    const val ROAD = "#FFFFFF"
+    const val MOTORWAY = "#E2DCC8"
+    const val BUILDING = "#EDE7D6"
+
+    /** Town and city names, the review's warm ink, on a halo of [LAND]. */
+    const val PLACE_LABEL = "#3A342A"
 }

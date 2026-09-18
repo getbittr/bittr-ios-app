@@ -10,7 +10,8 @@ package com.bittr.android.feature.map
  *
  * The sibling `iconName()` is deliberately **not** ported: it maps to SF Symbols,
  * which do not exist here, and inventing an Android icon set for 40 categories is
- * design work rather than transcription. The sheet shows the words until it has one.
+ * design work rather than transcription. Design review pass 3 did that work at a
+ * coarser grain — four glyphs, see [placeGlyph] — and the sheet keeps the words.
  */
 internal fun categoryDescription(icon: String?): String = when (icon) {
     // Food & drink
