@@ -32,6 +32,7 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import com.bittr.android.core.designsystem.BittrCanvasShapes
+import com.bittr.android.core.designsystem.rememberTextClipboard
 import com.bittr.android.core.designsystem.BittrSpinner
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.mutableStateOf
@@ -45,7 +46,6 @@ import androidx.compose.foundation.border
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.SolidColor
-import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.input.ImeAction
@@ -240,7 +240,7 @@ private fun ColumnScope.SendPage(
     onScan: () -> Unit,
     clearFocus: () -> Unit,
 ) {
-    val clipboard = LocalClipboardManager.current
+    val clipboard = rememberTextClipboard()
     val amountFocus = remember { FocusRequester() }
     var amountFocused by remember { mutableStateOf(false) }
     // A pay request with a range: `amountTextField.becomeFirstResponder()`.
@@ -288,7 +288,7 @@ private fun ColumnScope.SendPage(
         ActionTile(SendStrings.SCAN, SCAN_PATH, TestID.Send.scanButton, Modifier.weight(1f), onScan)
         ActionTile(SendStrings.PASTE, PASTE_PATH, TestID.Send.pasteButton, Modifier.weight(1f)) {
             clearFocus()
-            controller.onPaste(clipboard.getText()?.text)
+            clipboard.paste(controller::onPaste)
         }
     }
     Gap(BittrTokens.Spacing.sm)

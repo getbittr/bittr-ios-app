@@ -41,6 +41,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.graphics.Color
 import com.bittr.android.core.designsystem.BittrCanvasShapes
+import com.bittr.android.core.designsystem.rememberTextClipboard
 import com.bittr.android.core.designsystem.BittrSpinner
 import com.bittr.android.core.designsystem.BittrMark
 import com.bittr.android.core.designsystem.BittrRowLabel
@@ -51,11 +52,9 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.asImageBitmap
-import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
@@ -106,12 +105,12 @@ internal fun ReceiveScreen(
     onDown: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val clipboard = LocalClipboardManager.current
+    val clipboard = rememberTextClipboard()
     val context = LocalContext.current
     val focusManager = LocalFocusManager.current
 
     fun copy() {
-        controller.onCopy()?.let { clipboard.setText(AnnotatedString(it)) }
+        controller.onCopy()?.let(clipboard::copy)
     }
 
     fun share() {

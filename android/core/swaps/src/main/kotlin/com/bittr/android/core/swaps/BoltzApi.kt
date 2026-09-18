@@ -110,14 +110,14 @@ class BoltzApi(
             put("webhook", buildJsonObject { put("url", webhookUrl); put("hashSwapId", true) })
         }
         val body = post("${endpoints.restBaseUrl}/swap/submarine", request)
-        val tree = body.obj("swapTree")
+        val tree = body.obj("swapTree") ?: missing()
         return SubmarineCreated(
             id = body.str("id") ?: missing(),
             address = body.str("address") ?: missing(),
             expectedAmount = body.num("expectedAmount")?.toLong() ?: missing(),
             claimPublicKey = body.str("claimPublicKey") ?: missing(),
-            claimLeafOutput = tree?.obj("claimLeaf")?.str("output") ?: missing(),
-            refundLeafOutput = tree?.obj("refundLeaf")?.str("output") ?: missing(),
+            claimLeafOutput = tree.obj("claimLeaf")?.str("output") ?: missing(),
+            refundLeafOutput = tree.obj("refundLeaf")?.str("output") ?: missing(),
         )
     }
 
@@ -139,14 +139,14 @@ class BoltzApi(
             )
         }
         val body = post("${endpoints.restBaseUrl}/swap/reverse", request)
-        val tree = body.obj("swapTree")
+        val tree = body.obj("swapTree") ?: missing()
         return ReverseCreated(
             id = body.str("id") ?: missing(),
             invoice = body.str("invoice") ?: missing(),
             lockupAddress = body.str("lockupAddress") ?: missing(),
             refundPublicKey = body.str("refundPublicKey") ?: missing(),
-            claimLeafOutput = tree?.obj("claimLeaf")?.str("output") ?: missing(),
-            refundLeafOutput = tree?.obj("refundLeaf")?.str("output") ?: missing(),
+            claimLeafOutput = tree.obj("claimLeaf")?.str("output") ?: missing(),
+            refundLeafOutput = tree.obj("refundLeaf")?.str("output") ?: missing(),
         )
     }
 

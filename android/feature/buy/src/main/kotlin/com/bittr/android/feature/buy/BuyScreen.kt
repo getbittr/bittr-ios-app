@@ -38,13 +38,12 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import com.bittr.android.core.designsystem.rememberStrokeIcon
+import com.bittr.android.core.designsystem.rememberTextClipboard
 import com.bittr.android.core.designsystem.BittrIconPaths
 import androidx.compose.foundation.Image
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -141,7 +140,7 @@ fun BuyRoute(
 
 @Composable
 private fun BuyCards(state: BuyUiState, controller: BuyController, onDown: () -> Unit) {
-    val clipboard = LocalClipboardManager.current
+    val clipboard = rememberTextClipboard()
     BittrCanvas(modifier = Modifier.dismissOnPullDown(onDown), appBar = false) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             BittrModalHeader(
@@ -201,7 +200,7 @@ private fun BuyCards(state: BuyUiState, controller: BuyController, onDown: () ->
                                 lightningOn = state.lightningOn(entity),
                                 pending = entity.id in state.pendingModes,
                                 onCopy = { value ->
-                                    clipboard.setText(AnnotatedString(value))
+                                    clipboard.copy(value)
                                     controller.showCopied(value)
                                 },
                                 onQuestion = controller::onPaymentModeQuestion,

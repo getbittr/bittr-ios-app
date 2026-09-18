@@ -198,7 +198,8 @@ class SwapCoordinatorTest {
         assertEquals(50_247L, boltz.onchainAmount)
         assertEquals(50_808L - 50_000L, swap.onchainFees)
         assertTrue(swap.hasVariableFee)
-        assertTrue(coordinator.feesMessage(swap, "EUR", 60_000.0).startsWith("The expected fee to move 50 000 satoshis (EUR 30) is between"))
+        // The figures keep their `<b>`: the fees alert renders them bold, as iOS does.
+        assertTrue(coordinator.feesMessage(swap, "EUR", 60_000.0).startsWith("The expected fee to move <b>50 000 satoshis</b> (EUR 30) is between <b>"))
 
         boltz.lastLockup = {
             BoltzTaproot.lockup(boltzKey.publicKey(), PublicKey(Hex.decode(swap.claimPublicKey!!)), Hex.decode(swap.claimLeafOutput!!), Hex.decode(swap.refundLeafOutput!!))

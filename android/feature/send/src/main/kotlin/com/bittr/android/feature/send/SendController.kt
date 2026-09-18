@@ -525,12 +525,12 @@ class SendController(
 
             val sendingMaximum = drain != null && (didTapAvailable || sats >= drain.sendableSats)
             var drainTotal: Long? = null
-            if (sendingMaximum && drain != null) {
+            if (sendingMaximum) {
                 sats = drain.sendableSats
                 drainTotal = drain.sendableSats + drain.feeSats
             }
 
-            val vsize = if (sendingMaximum && drain != null) {
+            val vsize = if (sendingMaximum) {
                 drain.vsize
             } else {
                 source.transactionVsize(address, sats, SendMath.wholeSatPerVb(estimates.hour)).getOrElse { failure ->
@@ -663,8 +663,9 @@ class SendController(
     private fun switchToFee(confirm: ConfirmState, tier: FeeTier) {
         var next = confirm.copy(selectedFee = tier)
         val feeInSats = next.feeFor(tier)
-        if (next.sendingMaximum && next.drainTotalSats != null) {
-            val amount = maxOf(next.drainTotalSats!! - feeInSats, 0L)
+        val drainTotal = next.drainTotalSats
+        if (next.sendingMaximum && drainTotal != null) {
+            val amount = maxOf(drainTotal - feeInSats, 0L)
             next = next.copy(amountSats = amount, amountFiat = SendMath.formattedFiat(amount, next.pricePerBitcoin, next.fiatSymbol))
         }
         _state.update { it.copy(confirm = next) }

@@ -37,10 +37,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.translate
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -51,6 +49,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.bittr.android.core.common.TestID
 import com.bittr.android.core.designsystem.BittrAlertDialog
+import com.bittr.android.core.designsystem.rememberTextClipboard
 import com.bittr.android.core.designsystem.BittrCanvasShapes
 import com.bittr.android.core.designsystem.BittrRowLabel
 import com.bittr.android.core.designsystem.dismissOnPullDown
@@ -179,7 +178,7 @@ fun TransactionScreen(
     viewModel: TransactionViewModel = hiltViewModel(),
 ) {
     val detail by viewModel.detail.collectAsState()
-    val clipboard = LocalClipboardManager.current
+    val clipboard = rememberTextClipboard()
     var copied by remember { mutableStateOf<String?>(null) }
     var editingNote by remember { mutableStateOf(false) }
     // `bittrFeesTapped`: a fee's explanation, as (title, body).
@@ -250,7 +249,7 @@ fun TransactionScreen(
                 ) {
                     val shown = detail ?: return@Column
                     fun copy(text: String) {
-                        clipboard.setText(AnnotatedString(text))
+                        clipboard.copy(text)
                         copied = text
                     }
                     if (shown.confetti) {

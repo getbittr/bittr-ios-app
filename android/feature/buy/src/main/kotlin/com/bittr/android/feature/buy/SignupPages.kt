@@ -38,12 +38,10 @@ import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.input.key.type
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.foundation.gestures.detectTapGestures
-import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
@@ -54,6 +52,7 @@ import com.bittr.android.core.common.TestID
 import com.bittr.android.feature.academy.ArticleCard
 import com.bittr.android.feature.academy.BittrArticles
 import com.bittr.android.core.designsystem.BittrBody
+import com.bittr.android.core.designsystem.rememberTextClipboard
 import com.bittr.android.core.designsystem.BittrSpinner
 import com.bittr.android.core.designsystem.BittrPartnerRow
 import androidx.compose.foundation.layout.height
@@ -278,12 +277,12 @@ private fun OtpPage(signup: SignupUiState, controller: BuyController) {
 @Composable
 private fun SuccessPage(controller: BuyController) {
     val entity = controller.signupEntity()
-    val clipboard = LocalClipboardManager.current
+    val clipboard = rememberTextClipboard()
     val view = LocalView.current
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     fun copy(value: String) {
-        clipboard.setText(AnnotatedString(value))
+        clipboard.copy(value)
         controller.showCopied(value)
     }
 
