@@ -1,11 +1,16 @@
 package com.bittr.android.feature.map
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -16,6 +21,7 @@ import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -28,6 +34,8 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
@@ -42,10 +50,11 @@ import com.bittr.android.core.designsystem.BittrAlertDialog
 import com.bittr.android.core.designsystem.BittrSpinner
 import com.bittr.android.core.designsystem.exposeTestTags
 import com.bittr.android.core.designsystem.BittrCanvas
-import com.bittr.android.core.designsystem.BittrCanvasShapes
 import com.bittr.android.core.designsystem.BittrTheme
 import com.bittr.android.core.designsystem.BittrTokens
 import com.bittr.android.core.designsystem.CanvasSpacer
+import com.bittr.android.core.designsystem.rememberFillIcon
+import com.bittr.android.core.designsystem.rememberStrokeIcon
 import com.bittr.android.feature.website.WebsiteScreen
 import kotlinx.coroutines.launch
 
@@ -71,22 +80,36 @@ private fun String.withScheme(): String =
  * - **The sync sequence.** Cached places first so a second visit is never blank,
  *   then the network sync, then the merge. `map.mapSpinner` stops when the sync
  *   returns, whichever way it returned.
- * - **The debounce.** A camera move schedules a refresh 0.6 s later
- *   (`MapVCLocations.swift:82-88`); panning does not re-filter the whole dataset on
- *   every frame.
+ * - **The debounce.** The list refreshes when the camera goes idle after a pan
+ *   (`MapVCLocations.swift:82-88` waits 0.6 s); panning does not re-filter the whole
+ *   dataset on every frame.
  * - **The proximity filter runs here, on the device.** That is the property the
  *   approved copy rests on — see [bitcoinMapUrl].
  * - **One position fix, taken on the my-location button and on arrival.** See
  *   [UserLocationFix].
  *
- * What does not: iOS's swipe-to-dismiss on the place sheet, and the Google Maps
- * chooser alert, which exists because iOS cannot know whether Google Maps is
- * installed without asking. On Android the hand-off is an implicit `geo:` intent and
- * the system's own chooser does that job, which is why there is no alert here.
+ * What does not: the Google Maps chooser alert, which exists because iOS cannot know
+ * whether Google Maps is installed without asking. On Android the hand-off is an
+ * implicit `geo:` intent and the system's own chooser does that job — see
+ * [OnePlaceSheet] for what happens when nothing answers it.
+ *
+ * The camera frames the places rather than following the region; [CameraMove] says why,
+ * and why that is what made the pins visible.
  */
 @Composable
 fun MapScreen(onBack: () -> Unit, modifier: Modifier = Modifier) =
     MapScreen(onBack = onBack, modifier = modifier, repository = null)
+
+/**
+ * What the screen hands its basemap. One value rather than four parameters so the
+ * stub in the flow tests does not change shape every time the map learns something.
+ */
+internal data class BasemapInputs(
+    val places: List<BitcoinPlace>,
+    val camera: CameraMove,
+    val onRegionChanged: (MapRegion) -> Unit,
+    val onPlaceTapped: (Int) -> Unit,
+)
 
 /**
  * The same screen with its places source and its basemap supplied.
@@ -106,18 +129,14 @@ internal fun MapScreen(
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
     repository: PlacesRepository? = null,
-    basemap: @Composable (
-        region: MapRegion,
-        places: List<BitcoinPlace>,
-        onRegionChanged: (MapRegion) -> Unit,
-        modifier: Modifier,
-    ) -> Unit = { region, places, onRegionChanged, basemapModifier ->
-        BasemapView(region, places, onRegionChanged, basemapModifier)
+    basemap: @Composable (inputs: BasemapInputs, modifier: Modifier) -> Unit = { inputs, basemapModifier ->
+        BasemapView(inputs, basemapModifier)
     },
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val places = remember(repository) { repository ?: HttpPlacesRepository(context) }
+    val colors = BittrTheme.colors
 
     var state by remember { mutableStateOf(MapUiState()) }
 
@@ -126,11 +145,13 @@ internal fun MapScreen(
     LaunchedEffect(places) {
         val cached = places.cached()
         if (cached.isNotEmpty()) {
-            state = state.copy(allPlaces = cached).withPlacesForRegion()
+            state = state.copy(allPlaces = cached).withPlacesForRegion().framedIfUntouched()
         }
         val synced = runCatching { places.sync() }
         state = synced.fold(
-            onSuccess = { state.copy(allPlaces = it, isSyncing = false).withPlacesForRegion() },
+            onSuccess = {
+                state.copy(allPlaces = it, isSyncing = false).withPlacesForRegion().framedIfUntouched()
+            },
             onFailure = {
                 // iOS only raises the alert when there is nothing cached to fall back
                 // on (`BitcoinPlace.swift:82-91`) — a failed refresh over a good
@@ -152,12 +173,13 @@ internal fun MapScreen(
         val fix = UserLocationFix.current(context) ?: return@LaunchedEffect
         state = state.copy(
             region = MapRegion(fix.latitude, fix.longitude, MapRegion.USER_SPAN_DEGREES),
-        ).withPlacesForRegion()
+            hasFix = true,
+        ).withPlacesForRegion().framed()
     }
 
     BittrCanvas(modifier = modifier, onBack = onBack) {
         Text(
-            text = MapCopy.TITLE,
+            text = MapCopy.HEADING,
             style = MaterialTheme.typography.headlineSmall,
             modifier = Modifier.padding(horizontal = BittrTokens.Spacing.gutter),
         )
@@ -167,13 +189,17 @@ internal fun MapScreen(
             style = MaterialTheme.typography.bodyMedium,
             modifier = Modifier.padding(horizontal = BittrTokens.Spacing.gutter),
         )
-        CanvasSpacer(BittrTokens.Spacing.sm)
+        CanvasSpacer(BittrTokens.Spacing.md)
 
+        // The map card (review pass 3): the gutter on both sides *before* the width, so
+        // the card is the screen less two equal margins; clipped to its radius, which
+        // the renderer honours because it draws in texture mode (see BasemapController).
         Box(
             modifier = Modifier
-                .fillMaxWidth()
-                .height(280.dp)
                 .padding(horizontal = BittrTokens.Spacing.gutter)
+                .fillMaxWidth()
+                .height(MapCardHeight)
+                .clip(MapCardShape)
                 // On the frame, not on the basemap. MapLibre is an AndroidView, and an
                 // embedded View takes over the accessibility of its node — a testTag on
                 // that modifier never reached Maestro, so `map.mapView` was not found on
@@ -181,31 +207,44 @@ internal fun MapScreen(
                 .testTag(TestID.Map.mapView),
         ) {
             basemap(
-                state.region,
-                state.visiblePlaces,
-                { moved -> state = state.copy(region = moved).withPlacesForRegion() },
+                BasemapInputs(
+                    places = state.visiblePlaces,
+                    camera = state.camera,
+                    onRegionChanged = { moved ->
+                        state = state.copy(region = moved, userMoved = true).withPlacesForRegion()
+                    },
+                    onPlaceTapped = { id ->
+                        state.allPlaces.firstOrNull { it.id == id }?.let { tapped ->
+                            state = state.copy(openPlace = tapped)
+                        }
+                    },
+                ),
                 Modifier.fillMaxSize(),
             )
 
             if (state.isSyncing) {
                 BittrSpinner(
-                    color = BittrTheme.colors.onCanvas,
+                    color = colors.onChartSurface,
                     modifier = Modifier
                         .align(Alignment.Center)
                         .testTag(TestID.Map.mapSpinner),
                 )
             }
 
-            // The my-location button. Tapping it takes a fresh fix and recentres;
-            // with no permission or no fix it says so, which is iOS's
+            // The my-location button. Tapping it takes a fresh fix and frames the places
+            // around it; with no permission or no fix it says so, which is iOS's
             // `locationunavailable` path rather than a silent no-op.
+            //
+            // Brand yellow with an ink glyph in both schemes: it sits on the basemap,
+            // which is a fixed light surface (see BasemapPalette), not on the canvas.
             Box(
                 contentAlignment = Alignment.Center,
                 modifier = Modifier
                     .align(Alignment.BottomEnd)
-                    .padding(BittrTokens.Spacing.sm)
-                    .size(44.dp)
-                    .background(BittrTheme.colors.scrim1, CircleShape)
+                    .padding(16.dp)
+                    .size(BittrTokens.Size.minTouchTarget)
+                    .clip(CircleShape)
+                    .background(colors.brandFixed)
                     .clickable(role = Role.Button) {
                         scope.launch {
                             val fix = UserLocationFix.current(context)
@@ -223,17 +262,22 @@ internal fun MapScreen(
                                         fix.longitude,
                                         MapRegion.USER_SPAN_DEGREES,
                                     ),
-                                ).withPlacesForRegion()
+                                    hasFix = true,
+                                ).withPlacesForRegion().framed()
                             }
                         }
                     }
                     .testTag(TestID.Map.userLocationButton),
             ) {
-                Text("◎", style = MaterialTheme.typography.titleMedium)
+                Image(
+                    imageVector = rememberFillIcon(MapIconPaths.MY_LOCATION, colors.onChartSurface),
+                    contentDescription = "Show places near me",
+                    modifier = Modifier.size(24.dp),
+                )
             }
         }
 
-        CanvasSpacer(BittrTokens.Spacing.sm)
+        CanvasSpacer(12.dp)
 
         // The BTCMap credit. Reading it is the only way the approved alert is seen,
         // which is why `shared/strings/README.md` is emphatic that it is good
@@ -241,11 +285,14 @@ internal fun MapScreen(
         //
         // Bold 14, which is what `poweredByLabel` is on iOS — the storyboard sets
         // Gilroy-Bold 14 on `Maz-HE-siC` and no code in `ios/bittr/Map/` overrides a
-        // font, so the storyboard is the whole story here. BIT-151.
+        // font, so the storyboard is the whole story here. BIT-151. Centred under the
+        // card since review pass 3.
         Text(
             text = MapCopy.POWERED_BY,
             style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
+            textAlign = TextAlign.Center,
             modifier = Modifier
+                .align(Alignment.CenterHorizontally)
                 .padding(horizontal = BittrTokens.Spacing.gutter)
                 .clickable(role = Role.Button) {
                     state = state.copy(
@@ -257,14 +304,22 @@ internal fun MapScreen(
         // The basemap's credit, which the tile licences require wherever the map is drawn.
         // Plain text, not a link — `BasemapAttributionGuardTest` explains why that makes the
         // `.org` in the OpenMapTiles credit load-bearing.
+        //
+        // Review pass 3 asked for this to move into MapLibre's ⓘ sheet. That sheet does show
+        // the tile source's own attribution, as links, which would meet the OpenMapTiles
+        // notice's other alternative — but only after a tap on an unlabelled glyph, and the
+        // guard pins the on-screen line. So it stays, as one small centred line.
         Text(
             text = MapCopy.BASEMAP_ATTRIBUTION,
             style = MaterialTheme.typography.labelMedium,
-            color = BittrTheme.colors.mutedOnCanvas,
-            modifier = Modifier.padding(horizontal = BittrTokens.Spacing.gutter),
+            color = colors.mutedOnCanvas,
+            textAlign = TextAlign.Center,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = BittrTokens.Spacing.gutter),
         )
 
-        CanvasSpacer(BittrTokens.Spacing.sm)
+        CanvasSpacer(BittrTokens.Spacing.md)
 
         if (state.showsNoPlaces) {
             Text(
@@ -289,6 +344,9 @@ internal fun MapScreen(
             place = place,
             onClose = { state = state.copy(openPlace = null) },
             onOpenWebsite = { state = state.copy(openWebsite = it) },
+            onMapsUnavailable = {
+                state = state.copy(alert = MapAlert(MapCopy.OOPS, MapCopy.MAPS_UNAVAILABLE))
+            },
         )
     }
 
@@ -332,6 +390,11 @@ internal fun MapScreen(
     }
 }
 
+/** Review pass 3: a 24 dp card, ~320 dp tall. Not a design-system shape; only the map is one. */
+private val MapCardShape = RoundedCornerShape(24.dp)
+private val MapCardHeight = 320.dp
+private val PlaceRowShape = RoundedCornerShape(16.dp)
+
 @Composable
 private fun PlacesList(
     places: List<BitcoinPlace>,
@@ -339,10 +402,11 @@ private fun PlacesList(
     modifier: Modifier = Modifier,
 ) {
     LazyColumn(
-        verticalArrangement = Arrangement.spacedBy(BittrTokens.Spacing.xs),
-        contentPadding = androidx.compose.foundation.layout.PaddingValues(
-            horizontal = BittrTokens.Spacing.gutter,
-            vertical = BittrTokens.Spacing.xs,
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+        contentPadding = PaddingValues(
+            start = BittrTokens.Spacing.gutter,
+            end = BittrTokens.Spacing.gutter,
+            bottom = BittrTokens.Spacing.md,
         ),
         modifier = modifier
             .fillMaxWidth()
@@ -368,13 +432,20 @@ private fun PlacesList(
  * missing while the screen looked exactly right. Under the labels, both identifiers stay
  * addressable and the taps still land, because the labels handle no touches. iOS has the same
  * shape for a different reason: a transparent `cellButton` over the labels.
+ *
+ * Review pass 3's row: a white card (the scheme's `surfaceContainer`, which is white in
+ * light mode and follows dark mode rather than staying white on blue), a cream disc with
+ * the category glyph in `rowLabel` gold, and the name allowed a second line.
  */
 @Composable
 private fun PlaceRow(place: BitcoinPlace, onOpen: (BitcoinPlace) -> Unit) {
+    val scheme = MaterialTheme.colorScheme
+    val colors = BittrTheme.colors
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .background(BittrTheme.colors.scrim1, BittrCanvasShapes.field),
+            .heightIn(min = 72.dp)
+            .background(scheme.surfaceContainer, PlaceRowShape),
     ) {
         // Drawn first, under the labels. A later sibling that covers a node entirely takes that node
         // off the accessibility tree, so a tap layer on top removed `map.placeName` — which
@@ -382,37 +453,52 @@ private fun PlaceRow(place: BitcoinPlace, onOpen: (BitcoinPlace) -> Unit) {
         Box(
             modifier = Modifier
                 .matchParentSize()
+                .clip(PlaceRowShape)
                 .clickable(role = Role.Button) { onOpen(place) }
                 .testTag(TestID.Map.placeCellButton),
         )
-        Column(
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = BittrTokens.Spacing.md, vertical = BittrTokens.Spacing.sm),
+                .padding(16.dp),
         ) {
-            // `PlaceTableViewCell`'s two labels: `placeName` is Gilroy-Bold 16
-            // (`gYc-Qy-tZC`) and `placeAddress` Gilroy-Regular 15 (`r0k-xV-iLu`).
-            // Bold 16 is the workhorse slot; 15 merges into 16 under DEV-05, so the
-            // pair separates by weight here where iOS separates by weight and one
-            // point. Both were wrong before BIT-151 — the name by weight, the
-            // address by family — and they have to move together: fixing only the
-            // address would have set it in the same style as the name above it.
-            Text(
-                text = place.name ?: MapCopy.PLACE_FALLBACK_NAME,
-                style = MaterialTheme.typography.labelLarge,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.testTag(TestID.Map.placeName),
-            )
-            // iOS collapses the address row to zero height when there is none
-            // (`MapVCTable.swift:49-56`) rather than leaving a gap.
-            place.address?.let { address ->
-                Text(
-                    text = address,
-                    style = MaterialTheme.typography.bodyLarge,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
+            Box(
+                contentAlignment = Alignment.Center,
+                modifier = Modifier
+                    .size(40.dp)
+                    .background(colors.tonalFill, CircleShape),
+            ) {
+                Image(
+                    imageVector = rememberStrokeIcon(placeGlyph(place.icon).path, colors.rowLabel, strokeWidth = 2f),
+                    contentDescription = null,
+                    modifier = Modifier.size(20.dp),
                 )
+            }
+            Spacer(Modifier.width(12.dp))
+            Column(Modifier.weight(1f)) {
+                // `PlaceTableViewCell`'s two labels: `placeName` is Gilroy-Bold 16
+                // (`gYc-Qy-tZC`) and `placeAddress` Gilroy-Regular 15 (`r0k-xV-iLu`).
+                // The address is 14 here since review pass 3, and steps back at 70 %.
+                Text(
+                    text = place.name ?: MapCopy.PLACE_FALLBACK_NAME,
+                    style = MaterialTheme.typography.labelLarge,
+                    color = scheme.onSurface,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.testTag(TestID.Map.placeName),
+                )
+                // iOS collapses the address row to zero height when there is none
+                // (`MapVCTable.swift:49-56`) rather than leaving a gap.
+                place.address?.let { address ->
+                    Text(
+                        text = address,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = scheme.onSurface.copy(alpha = 0.70f),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
             }
         }
     }
@@ -424,28 +510,40 @@ private fun PlaceRow(place: BitcoinPlace, onOpen: (BitcoinPlace) -> Unit) {
  * `MapView` is an Android `View` with its own `onStart`/`onStop`/`onDestroy` that
  * must be driven by hand — it holds a GL surface and a native map instance, and
  * skipping `onDestroy` leaks both. [DisposableEffect] is where that happens.
+ *
+ * The marker colours are resolved here, from tokens, because the controller has no
+ * theme: brand yellow, a white ring and ink, all fixed across schemes like the basemap
+ * they sit on.
  */
 @Composable
-private fun BasemapView(
-    region: MapRegion,
-    places: List<BitcoinPlace>,
-    onRegionChanged: (MapRegion) -> Unit,
-    modifier: Modifier = Modifier,
-) {
+private fun BasemapView(inputs: BasemapInputs, modifier: Modifier = Modifier) {
     val context = LocalContext.current
-    val controller = remember { BasemapController(context) }
+    val colors = BittrTheme.colors
+    val controller = remember {
+        BasemapController(
+            context,
+            MarkerColors(
+                fill = colors.brandFixed.toArgb(),
+                stroke = colors.chartSurface.toArgb(),
+                ink = colors.onChartSurface.toArgb(),
+            ),
+        )
+    }
 
     DisposableEffect(Unit) {
         controller.start()
         onDispose { controller.destroy() }
     }
 
-    LaunchedEffect(region) { controller.centre(region) }
-    LaunchedEffect(places) { controller.show(places) }
+    LaunchedEffect(inputs.camera) { controller.move(inputs.camera) }
+    LaunchedEffect(inputs.places) { controller.show(inputs.places) }
 
     androidx.compose.ui.viewinterop.AndroidView(
         factory = { controller.view },
         modifier = modifier,
-        update = { controller.onRegionChanged = onRegionChanged },
+        update = {
+            controller.onRegionChanged = inputs.onRegionChanged
+            controller.onPlaceTapped = inputs.onPlaceTapped
+        },
     )
 }

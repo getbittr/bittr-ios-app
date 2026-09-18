@@ -1,8 +1,11 @@
 package com.bittr.android.feature.map
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
@@ -89,7 +92,7 @@ class MapFlowStepsTest {
                 MapScreen(
                     onBack = {},
                     repository = repository,
-                    basemap = { _, _, _, modifier -> Box(modifier) },
+                    basemap = { _, modifier -> Box(modifier) },
                 )
             }
         }
@@ -231,7 +234,34 @@ class MapFlowStepsTest {
         composeRule.onNodeWithTag(TestID.Map.mapView).assertIsDisplayed()
     }
 
+    /** A pin tap reaches the screen as a place id; it must open the same sheet a row does. */
+    @Test
+    fun `tapping a marker opens its place sheet`() {
+        composeRule.setContent {
+            BittrTheme {
+                MapScreen(
+                    onBack = {},
+                    repository = repository,
+                    basemap = { inputs, modifier ->
+                        Box(
+                            modifier
+                                .clickable { inputs.onPlaceTapped(farther.id) }
+                                .testTag(STUB_PIN),
+                        )
+                    },
+                )
+            }
+        }
+        synced.complete(places)
+        awaitTag(TestID.Map.placeName)
+
+        composeRule.onNodeWithTag(STUB_PIN).performClick()
+        awaitTag(TestID.Map.OnePlace.nameLabel)
+        composeRule.onNodeWithTag(TestID.Map.OnePlace.nameLabel).assertTextEquals(farther.name!!)
+    }
+
     private companion object {
+        const val STUB_PIN = "test.stubPin"
         const val TIMEOUT_MS = 10_000L
     }
 }

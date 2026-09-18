@@ -35,7 +35,14 @@ internal object MapCopy {
         const val CLOSE = "close"
     }
 
+    /** iOS `paywithbitcoin`. Still the powered-by alert's title, where iOS uses it. */
     const val TITLE: String = "Pay with bitcoin"
+
+    /**
+     * The screen's heading. Lower case, as the top bars and "bitcoin value" are (design
+     * review pass 3, S25) — a heading style, so the alert keeps [TITLE] as iOS words it.
+     */
+    const val HEADING: String = "pay with bitcoin"
 
     const val TOP_LABEL: String = "Find spots in your area that accept bitcoin payments."
 
@@ -82,6 +89,12 @@ internal object MapCopy {
             "<b>Settings > Apps > Bittr > Permissions</b> to check your location permissions."
 
     const val OPEN_IN_MAPS: String = "Open in Maps"
+
+    /**
+     * Android only: neither a maps app nor a browser took the hand-off. iOS always has
+     * Apple Maps, so it has no such case to word.
+     */
+    const val MAPS_UNAVAILABLE: String = "Couldn't open this place in a maps app."
     const val UNAVAILABLE: String = "Unavailable"
     const val OOPS: String = "Oops!"
     const val OKAY: String = "Okay"

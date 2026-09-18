@@ -31,7 +31,11 @@ internal data class MapRegion(
          */
         val SWITZERLAND = MapRegion(centerLat = 46.8182, centerLon = 8.2275, spanDegrees = 3.8)
 
-        /** `latitudinalMeters: 1500` — the region iOS centres on the user with. */
+        /**
+         * `latitudinalMeters: 1500` — the region iOS centres on the user with. On Android
+         * this sets the list's reach; the camera frames what that list holds instead of
+         * showing this span (see [CameraMove]).
+         */
         val USER_SPAN_DEGREES = 1.5 / KM_PER_DEGREE
     }
 }
@@ -45,6 +49,12 @@ internal data class MapRegion(
  * @param visiblePlaces the nearest [MAX_VISIBLE_PLACES] to the centre, in order.
  *   Both the list and the markers read this, as on iOS where `currentPlaces` backs
  *   the table and the annotations.
+ * @param hasFix whether [region] came from a position fix; decides between fitting the
+ *   places and a country-level view in [openingCamera].
+ * @param userMoved set once a finger has moved the map, so a sync landing afterwards
+ *   refreshes the list without yanking the camera back.
+ * @param camera the latest camera request. Starts on the default region so the card
+ *   never opens on MapLibre's whole-world default.
  */
 internal data class MapUiState(
     val region: MapRegion = MapRegion.SWITZERLAND,
@@ -54,6 +64,16 @@ internal data class MapUiState(
     val openPlace: BitcoinPlace? = null,
     val openWebsite: String? = null,
     val alert: MapAlert? = null,
+    val hasFix: Boolean = false,
+    val userMoved: Boolean = false,
+    val camera: CameraMove = CameraMove(
+        serial = 0,
+        target = CameraTarget.Centre(
+            MapRegion.SWITZERLAND.centerLat,
+            MapRegion.SWITZERLAND.centerLon,
+            CameraTarget.COUNTRY_ZOOM,
+        ),
+    ),
 ) {
 
     /**
@@ -71,6 +91,14 @@ internal data class MapUiState(
             radiusKm = region.radiusKm,
         ),
     )
+
+    /** Frames [visiblePlaces] — for the arrival fix and the my-location button. */
+    fun framed(): MapUiState = copy(
+        camera = CameraMove(camera.serial + 1, openingCamera(visiblePlaces, region, hasFix)),
+    )
+
+    /** [framed], unless the user has already moved the map — for the cache and the sync. */
+    fun framedIfUntouched(): MapUiState = if (userMoved) this else framed()
 }
 
 /** The two alerts this screen raises, as `showAlert` calls on iOS. */
