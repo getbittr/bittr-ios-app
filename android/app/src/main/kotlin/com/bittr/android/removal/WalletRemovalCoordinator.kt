@@ -114,6 +114,13 @@ class WalletRemovalCoordinator(
     private val node: RemovalNode,
     private val flag: RemovalFlagStore,
     private val io: CoroutineDispatcher = Dispatchers.IO,
+    /**
+     * Why a removal stopped. Wired to logcat in [RemovalModule]: the screen says only "something went
+     * wrong", and the reason (the node would not start, the node could not be read) is the whole
+     * difference between a wallet that is safe and a bug. Defaulted, so this class stays plain Kotlin
+     * — an `android.util.Log` call here is not mocked in its own unit tests and swallows the alert.
+     */
+    private val log: (String) -> Unit = {},
 ) {
 
     private val _uiState = MutableStateFlow(RemovalUiState())
@@ -409,7 +416,7 @@ class WalletRemovalCoordinator(
         } catch (cancellation: CancellationException) {
             throw cancellation
         } catch (failure: Exception) {
-            android.util.Log.w("BittrRemoval", "Wallet removal failed", failure)
+            log("the erase itself failed: ${failure.javaClass.simpleName}: ${failure.message}")
             resettingPin = wasResettingPin
             lockout = wasLockout
             setBusy(false)
@@ -432,7 +439,7 @@ class WalletRemovalCoordinator(
 
     /** No node came up, or it could not be read: nothing is erased. */
     private fun cannotVerify(why: String) {
-        android.util.Log.w("BittrRemoval", "Wallet removal stopped: $why")
+        log("stopped before erasing: $why")
         closeInFlight = false
         setBusy(false)
         show(

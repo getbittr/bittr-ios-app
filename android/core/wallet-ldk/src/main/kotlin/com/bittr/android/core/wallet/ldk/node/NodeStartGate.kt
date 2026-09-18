@@ -122,12 +122,7 @@ class NodeStartGate(
     }
 
     private suspend fun runStart(): NodeStartResult = try {
-        if (start()) {
-            NodeStartResult.started()
-        } else {
-            android.util.Log.w("BittrNode", "Node start returned false")
-            NodeStartResult.failed(null)
-        }
+        if (start()) NodeStartResult.started() else NodeStartResult.failed(null)
     } catch (cancellation: kotlinx.coroutines.CancellationException) {
         // The gate's own scope is going down — the wallet is being torn down or
         // the process is ending. Not an outcome to report; let it propagate so
@@ -139,7 +134,6 @@ class NodeStartGate(
         // reports the error to Sentry at the throw site. Carrying the cause out
         // instead keeps the retry decision (NodeStartRetryPolicy) able to see
         // what actually failed.
-        android.util.Log.w("BittrNode", "Node start failed", error)
         NodeStartResult.failed(error)
     }
 }

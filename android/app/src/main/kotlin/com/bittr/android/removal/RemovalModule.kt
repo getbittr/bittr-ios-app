@@ -39,6 +39,7 @@ object RemovalModule {
         wallet = composition.wallet,
         node = CompositionRemovalNode(composition, LdkEnvironmentConfig.fromBuildConfig()),
         flag = FileRemovalFlagStore(File(context.noBackupFilesDir, "wallet_removal_in_progress")),
+        log = { why -> Log.w("BittrRemoval", "Wallet removal $why") },
     )
 }
 
