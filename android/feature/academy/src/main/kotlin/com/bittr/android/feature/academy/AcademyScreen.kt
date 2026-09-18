@@ -290,10 +290,12 @@ private fun CompletedBadge(modifier: Modifier = Modifier) {
         contentAlignment = Alignment.Center,
         modifier = modifier
             .size(22.dp)
-            .background(CompletedGreen, CircleShape),
+            // The consent switch's green, the one green token with white measured on it
+            // (`switchOn` / `onSwitchOn`); the review's `#1F8A4C` is a shade off it.
+            .background(BittrTheme.colors.switchOn, CircleShape),
     ) {
         Image(
-            imageVector = rememberStrokeIcon(BittrIconPaths.CHECK, Color.White, strokeWidth = 2.6f),
+            imageVector = rememberStrokeIcon(BittrIconPaths.CHECK, BittrTheme.colors.onSwitchOn, strokeWidth = 2.6f),
             contentDescription = "Completed",
             modifier = Modifier.size(12.dp),
         )
@@ -304,7 +306,6 @@ private const val TILE_COLUMNS = 3
 private val TileGap = 12.dp
 private val LevelCardPadding = 16.dp
 private val TileShape = RoundedCornerShape(14.dp)
-private val CompletedGreen = Color(0xFF1F8A4C)
 
 @Preview(showBackground = true, widthDp = 412, heightDp = 892)
 @Composable
