@@ -1,5 +1,6 @@
 package com.bittr.android.di
 
+import android.util.Log
 import android.content.Context
 import com.bittr.android.BuildConfig
 import com.bittr.android.core.network.BittrCustomerStore
@@ -48,7 +49,10 @@ object PushModule {
      */
     @Provides
     @Singleton
-    fun provideHttpClient(): HttpClient = OkHttpBittrHttpClient()
+    fun provideHttpClient(): HttpClient = OkHttpBittrHttpClient(
+        // Debug builds only: the regtest suite's failures against the API are otherwise invisible.
+        log = { line -> if (BuildConfig.DEBUG) Log.i("BittrHttp", line) },
+    )
 
     /**
      * Which backend this build talks to, read from the name `:app` compiles in.

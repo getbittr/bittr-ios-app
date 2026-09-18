@@ -196,7 +196,11 @@ fun BittrNavHost(
     // connection and thread pools live on it — a per-screen client is a per-screen
     // pool, which is the standard way to turn one app into several from the
     // backend's point of view.
-    http: HttpClient = remember { OkHttpBittrHttpClient() },
+    http: HttpClient = remember {
+        // Logged in debug builds, like the injected client in PushModule: the buy signup's calls
+        // are the ones the regtest suite fails on, and they left no trace.
+        OkHttpBittrHttpClient(log = { line -> if (BuildConfig.DEBUG) android.util.Log.i("BittrHttp", line) })
+    },
 ) {
     val walletState by viewModel.walletState.collectAsState()
     val removal = hiltViewModel<WalletRemovalViewModel>().coordinator

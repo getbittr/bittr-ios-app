@@ -38,6 +38,13 @@ import okhttp3.Response
  */
 class OkHttpBittrHttpClient(
     private val client: OkHttpClient = defaultClient(),
+    /**
+     * Each call's method, path and outcome — no query, no body, because those carry the
+     * customer's email, the deposit code and the payout signature. Off by default; the app
+     * wires it to logcat in debug builds, where a flow that fails against the API ("the
+     * verification code was refused") otherwise leaves no trace at all.
+     */
+    private val log: (String) -> Unit = {},
 ) : HttpClient {
 
     override suspend fun execute(request: HttpRequest): HttpResponse {
@@ -49,6 +56,7 @@ class OkHttpBittrHttpClient(
             call.enqueue(
                 object : Callback {
                     override fun onFailure(call: Call, e: IOException) {
+                        log("${request.method} ${request.url.substringBefore('?')} failed: ${e.javaClass.simpleName}")
                         // No response at all — DNS, refused, TLS, or timeout. This
                         // is the `unavailable` shape of `api-contract` §4.2: it says
                         // nothing about the token, so it must not reach the caller
@@ -68,6 +76,7 @@ class OkHttpBittrHttpClient(
                         val decoded = response.use {
                             HttpResponse(code = it.code, body = it.body.string())
                         }
+                        log("${request.method} ${request.url.substringBefore('?')} -> ${decoded.code}")
                         continuation.resume(decoded)
                     }
                 },
