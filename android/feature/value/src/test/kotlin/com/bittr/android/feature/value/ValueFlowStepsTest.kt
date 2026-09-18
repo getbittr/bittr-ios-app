@@ -1,6 +1,8 @@
 package com.bittr.android.feature.value
 
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsEnabled
+import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
@@ -81,6 +83,11 @@ class ValueFlowStepsTest {
         // from Home, long before the two price requests return.
         composeRule.onNodeWithTag(TestID.Value.graphView).assertIsDisplayed()
         composeRule.onNodeWithTag(TestID.Value.valueSpinner).assertIsDisplayed()
+        // The range selector is on screen and disabled during the fetch, rather than
+        // hidden (design review, `bitcoin_value/03`). Its taps were already dropped by
+        // `selectSpan`; now the control says so.
+        composeRule.onNodeWithTag(TestID.Value.monthButton).assertIsDisplayed()
+        composeRule.onNodeWithTag(TestID.Value.monthButton).assertIsNotEnabled()
         assertTrue(
             "profitLabel is the flow's \"data loaded\" signal. On screen during the " +
                 "fetch, extendedWaitUntil returns immediately and the span taps that " +
@@ -103,6 +110,7 @@ class ValueFlowStepsTest {
         // - assertVisible: value.currentValueLabel, value.profitLabel
         composeRule.onNodeWithTag(TestID.Value.currentValueLabel).assertIsDisplayed()
         composeRule.onNodeWithTag(TestID.Value.profitLabel).assertIsDisplayed()
+        composeRule.onNodeWithTag(TestID.Value.monthButton).assertIsEnabled()
     }
 
     @Test

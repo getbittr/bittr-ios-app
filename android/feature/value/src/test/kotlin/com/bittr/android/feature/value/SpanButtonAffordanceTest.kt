@@ -8,7 +8,7 @@ import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.bittr.android.core.common.TestID
-import com.bittr.android.core.designsystem.BittrDarkColorsExtended
+import com.bittr.android.core.designsystem.BittrLightColorsExtended
 import com.bittr.android.core.designsystem.BittrTheme
 import java.time.Instant
 import java.time.LocalDate
@@ -21,25 +21,29 @@ import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
 /**
- * Which span button looks selected, measured on the pixels.
+ * Which range segment looks selected, measured on the pixels.
  *
- * The four buttons say which one is active twice: the selected one swaps its short
+ * The segments say which one is active three ways: the selected one swaps its short
  * title for the long one (`showSelectedSpan`, and `bitcoin_value.yaml` depends on
- * that), and it fills differently from the other three. This is about the fill.
+ * that), it carries a leading check, and it fills differently from the other three.
+ * This is about the fill.
  *
  * ### Why this is rendered rather than read off the tokens
  *
- * `TokenContrastTest` can prove the selected fill stands further off the canvas than
- * the unselected one. It cannot prove these four call sites picked those two tokens,
- * and that is precisely what went wrong: the port filled selected with `scrim1` and
- * unselected with `scrim2`, which are **byte-identical in light mode** — so light had
- * no fill signal at all and every contrast assertion in the theme was green — while in
- * dark `scrim1` is `blue1`, which is also the canvas. The *selected* pill was the
- * invisible one and the three unselected ones were the ones with an edge. An inverted
- * affordance, reached by measuring the tokens and never the screen. BIT-156.
+ * Token arithmetic cannot prove these call sites picked the right fills, and that is
+ * precisely what went wrong once: the port filled selected with `scrim1` and
+ * unselected with `scrim2`, which are **byte-identical in light mode** — no fill signal
+ * at all — while in dark `scrim1` is `blue1`, also the canvas, so the *selected* pill
+ * was the invisible one. An inverted affordance, reached by measuring the tokens and
+ * never the screen. BIT-156.
  *
- * Runs in dark because that is the scheme where the two fills differ most, and where
- * the collision with the canvas lives.
+ * The design review (2026-09-18) moved the control onto the white chart card, which
+ * is where it would invert again if it kept the old direction: a white selected
+ * segment on a white card. So selected is now the cream and unselected the card's own
+ * white — see `RangeSelector` — and this pins both, and that they differ.
+ *
+ * Runs in dark because that is the scheme where a fill that follows the scheme would
+ * give itself away: `tonalFill` there is `blue3`.
  */
 @RunWith(AndroidJUnit4::class)
 @Config(sdk = [34], qualifiers = "w411dp-h891dp-night-420dpi")
@@ -50,49 +54,46 @@ class SpanButtonAffordanceTest {
     val composeRule = createComposeRule()
 
     @Test
-    fun `the selected span button is filled, and not with the canvas behind it`() {
+    fun `the selected range segment is the cream and the rest are the card's white`() {
         showValueScreen()
 
         val selected = fillOf(TestID.Value.weekButton)
         val unselected = fillOf(TestID.Value.yearButton)
-        val canvas = BittrDarkColorsExtended.canvas.toArgb()
 
-        println(
-            "SPAN FILLS: selected=#%08X unselected=#%08X canvas=#%08X"
-                .format(selected, unselected, canvas),
-        )
+        println("SPAN FILLS: selected=#%08X unselected=#%08X".format(selected, unselected))
 
         assertNotEquals(
-            "The selected span button renders the canvas's own colour, so it has no " +
-                "edge — it is the page. `scrim1` is `blue1` in dark and so is `canvas`, " +
-                "which is how this shipped.",
-            canvas,
-            selected,
-        )
-        assertNotEquals(
-            "The selected and unselected span buttons render the same fill, so the fill " +
-                "says nothing about which span is active. `scrim1` and `scrim2` are " +
-                "byte-identical in light mode, which is how that half went unnoticed.",
+            "The selected and unselected segments render the same fill, so the fill " +
+                "says nothing about which range is active.",
             unselected,
             selected,
         )
-        // The direction, which is the part that was backwards rather than missing:
-        // the selected pill is the opaque one, the other three are the wash.
         assertEquals(
-            "The selected span button is not the opaque fill, so the two are the wrong " +
-                "way round — the unselected pills are the ones standing off the canvas.",
-            BittrDarkColorsExtended.chartSurface.toArgb(),
+            "The selected segment is not the pinned cream. On the white chart card a " +
+                "white selected segment is the one that disappears — the inversion " +
+                "BIT-156 fixed once on this screen.",
+            BittrLightColorsExtended.tonalFill.toArgb(),
             selected,
+        )
+        assertEquals(
+            "The unselected segments are not the chart card's white.",
+            BittrLightColorsExtended.chartSurface.toArgb(),
+            unselected,
         )
     }
 
-    /** The centre of a button, inset from its own text by sampling the top-left area. */
+    /**
+     * A pixel of a segment's fill: horizontally centred, 15 dp above the middle.
+     *
+     * The segment is a 48 dp touch target around a 40 dp drawn band, and the label is
+     * centred in it at 20 dp tall — so 15 dp up is inside the band and clear of the
+     * text, and at the horizontal centre it is clear of the rounded ends and the
+     * dividers.
+     */
     private fun fillOf(testTag: String): Int {
         val image = composeRule.onNodeWithTag(testTag).captureToImage().asAndroidBitmap()
-        // Inside the rounded corner and clear of the centred label: a quarter in
-        // horizontally, a sixth down. The button is a 48 dp touch target, so this is
-        // fill in every density this test runs at.
-        return image.getPixel(image.width / 4, image.height / 6)
+        val up = (15 * composeRule.density.density).toInt()
+        return image.getPixel(image.width / 2, image.height / 2 - up)
     }
 
     private fun showValueScreen() {
@@ -118,8 +119,8 @@ class SpanButtonAffordanceTest {
                 )
             }
         }
-        // Same "data has landed" signal the flow waits on. The span buttons exist
-        // before it, but taps are dropped while the fetch is in flight.
+        // Same "data has landed" signal the flow waits on. The segments exist before
+        // it, but are disabled while the fetch is in flight.
         composeRule.waitUntil(TIMEOUT_MS) {
             composeRule.onAllNodesWithTag(TestID.Value.profitLabel)
                 .fetchSemanticsNodes().isNotEmpty()
