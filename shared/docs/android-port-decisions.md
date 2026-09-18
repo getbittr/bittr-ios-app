@@ -404,3 +404,24 @@ service**, OpenFreeMap's Liberty style.
 - **In the code:** `MapBasemap.STYLE_URI`, the credit `MapCopy.BASEMAP_ATTRIBUTION` rendered under the
   BTCMap line, and `TileHostGuardTest.APPROVED_VENDOR_HOSTS` naming `tiles.getbittr.com`'s stand-in by
   exact hostname. Going back to self-hosted tiles is that constant again.
+
+## 41. Design review, pass 3 — where the build departs from the review
+
+**2026-09-18.** Pass 3 went in as `6f6729cf` (shared pieces, Settings, Send, Receive), the Scanner,
+Bitcoin-value/Academy and Map branches merged after it, and `c3fce62f`. Not taken, or taken differently:
+
+- **S24's blank Support page was not reproducible.** It renders in about a second on the emulator; the
+  screenshot was taken the instant it opened. The explorer's DOM-storage fix (pass 2) covers the real cause.
+- **The value chart's line stays ink** (asked a third time for white): the card is white.
+- **S26 (one locale-driven number formatter) is not done.** The chart price now groups with a space like
+  the rest of the app; a locale-driven formatter touches every amount the flows assert, and is its own job.
+- **The map's credit line stays on screen**, one small centred line under "Powered by BTCMap.org", rather
+  than only in MapLibre's ⓘ sheet: `BasemapAttributionGuardTest` requires a visible credit for the
+  OpenMapTiles licence, which a tap-to-see sheet does not meet.
+- **Academy tile titles reserve two lines but allow three**: the longest titles need three at tile width,
+  and capping at two would cut them.
+- **The Question sheet's track is ink @ 25 %** as specified; on the white card that reads grey.
+- **The scanner's camera card stays black** in both themes (no theme token stays dark in both), and its
+  helper line "Point your camera at a QR code." is new copy iOS does not have — not yet approved.
+- **Decisions for Ruben:** keep the in-app "Copied" alert, or rely on Android 13+'s own clipboard chip
+  (the flows assert the alert today); "Academy (beta)"; numbering the removal dialogs.
