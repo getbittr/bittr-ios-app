@@ -173,6 +173,53 @@ class NodeBackedWalletServiceTest {
         }
 
     /**
+     * **A new seed never meets a running node's state.** The node goes down,
+     * the seed is written, and the state is fitted to it — in that order, so
+     * the quarantine does not move a directory a live node has open.
+     */
+    @Test
+    fun `createWallet stops the node and prepares its state for the new seed`() =
+        runTest(UnconfinedTestDispatcher()) {
+            val log = mutableListOf<String>()
+            val prepared = mutableListOf<Mnemonic>()
+            val wallet = NodeBackedWalletService(
+                seed = RecordingSeed(log),
+                host = hostOf(this, log),
+                prepareNodeState = { mnemonic ->
+                    log += "node state prepared"
+                    prepared += mnemonic
+                },
+            )
+
+            wallet.start()
+            val mnemonic = wallet.createWallet()
+
+            assertEquals(
+                listOf("node started", "node stopped", "createWallet", "node state prepared"),
+                log,
+            )
+            assertEquals(listOf(mnemonic.phrase), prepared.map { it.phrase })
+        }
+
+    @Test
+    fun `restoreWallet prepares the state for the restored phrase`() =
+        runTest(UnconfinedTestDispatcher()) {
+            val log = mutableListOf<String>()
+            val prepared = mutableListOf<String>()
+            val wallet = NodeBackedWalletService(
+                seed = RecordingSeed(log),
+                host = hostOf(this, log),
+                prepareNodeState = { prepared += it.phrase },
+            )
+            val phrase = Mnemonic(List(12) { "zoo" })
+
+            wallet.restoreWallet(phrase)
+
+            assertEquals(listOf("restoreWallet"), log)
+            assertEquals(listOf(phrase.phrase), prepared)
+        }
+
+    /**
      * **Node state before key material.**
      *
      * The direction a failure between the two should fail in. The LDK state

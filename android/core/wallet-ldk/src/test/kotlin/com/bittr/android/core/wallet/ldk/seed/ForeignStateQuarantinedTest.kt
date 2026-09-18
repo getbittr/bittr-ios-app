@@ -101,4 +101,38 @@ class ForeignStateQuarantinedTest {
         assertEquals("round-one", File(first, "ldk_node_data.sqlite").readText())
         assertEquals("round-two", File(second, "ldk_node_data.sqlite").readText())
     }
+
+    /**
+     * The app's create and restore write the phrase themselves and then ask,
+     * so the vault already holds the new seed. `prepareForImport` would stop
+     * at `AlreadyProvisioned` and leave the removed wallet's state live under
+     * it — the "Failed to setup onchain wallet" of decision 37.
+     */
+    @Test
+    fun `prepareStateFor quarantines the previous wallet's state even with the new seed stored`() {
+        fixture.importer.import(Mnemonics.OTHER)
+        seedStateDirectory(fixture.paths.ldkStateDir, marker = "removed-wallet")
+        fixture.vault.clear()
+        fixture.vault.store(Mnemonics.IOS_VECTOR)
+
+        val decision = fixture.guard.prepareStateFor(Mnemonics.IOS_VECTOR)
+
+        assertTrue(decision is SeedImportDecision.Quarantined)
+        assertEquals(
+            "removed-wallet",
+            File((decision as SeedImportDecision.Quarantined).directory!!, "ldk_node_data.sqlite").readText(),
+        )
+        assertFalse(fixture.stateStore.hasLightningState())
+    }
+
+    @Test
+    fun `prepareStateFor keeps the state of the seed being restored`() {
+        fixture.importer.import(Mnemonics.IOS_VECTOR)
+        seedStateDirectory(fixture.paths.ldkStateDir, marker = "own-state")
+
+        val decision = fixture.guard.prepareStateFor(Mnemonics.IOS_VECTOR)
+
+        assertTrue(decision is SeedImportDecision.KeepExistingState)
+        assertTrue(fixture.stateStore.hasLightningState())
+    }
 }

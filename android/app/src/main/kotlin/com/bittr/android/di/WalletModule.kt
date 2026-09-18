@@ -10,6 +10,7 @@ import com.bittr.android.BuildConfig
 import com.bittr.android.buy.BittrRegistrationKeys
 import com.bittr.android.core.network.HttpClient
 import com.bittr.android.core.wallet.SecureStore
+import com.bittr.android.core.wallet.WalletStorageException
 import com.bittr.android.core.wallet.WalletOverviewSource
 import com.bittr.android.core.wallet.WalletService
 import com.bittr.android.core.wallet.keystore.KeystoreSecureStore
@@ -47,6 +48,10 @@ import com.bittr.android.core.wallet.ldk.onchain.OnchainSendSupport
 import com.bittr.android.core.wallet.ldk.onchain.OnchainSyncLoop
 import com.bittr.android.core.wallet.ldk.onchain.ScanCoordinator
 import com.bittr.android.core.wallet.ldk.seed.SecureStoreSeedVault
+import com.bittr.android.core.wallet.ldk.seed.SeedImportDecision
+import com.bittr.android.core.wallet.ldk.seed.SeedImportGuard
+import com.bittr.android.core.wallet.ldk.state.DiscriminatorStore
+import com.bittr.android.core.wallet.ldk.state.LdkStateStore
 import com.bittr.android.core.wallet.ldk.state.WalletPaths
 import com.bittr.android.core.wallet.seed.SeedWalletService
 import com.bittr.android.receive.EsploraAddressUsage
@@ -636,14 +641,39 @@ object WalletModule {
                     }
                 },
             ),
-            // Deliberately left as the no-op default. Removing a wallet erases
-            // the seed and nothing else, which is `WalletService.removeWallet`'s
-            // stated contract; the LDK state directory is left where it is, and
-            // that is the safe direction rather than an omission. A later
-            // install's `SeedImportGuard` finds state whose discriminator does
-            // not match the new seed and *quarantines* it — BIT-20's design —
-            // instead of deleting force-close sweep material this issue has no
-            // business deciding about.
+            // `wipeNodeState` deliberately left as the no-op default. Removing a
+            // wallet erases the seed and nothing else, which is
+            // `WalletService.removeWallet`'s stated contract; the LDK state
+            // directory is left where it is, and that is the safe direction
+            // rather than an omission. The next create or restore runs
+            // `prepareNodeState` below, which finds state whose discriminator
+            // does not match the new seed and *quarantines* it — BIT-20's design —
+            // instead of deleting force-close sweep material.
+            prepareNodeState = { mnemonic ->
+                val guard = SeedImportGuard(
+                    vault = vault,
+                    stateStore = LdkStateStore(paths),
+                    discriminatorStore = DiscriminatorStore(paths.discriminatorFile),
+                    mainnet = !BuildConfig.DEBUG,
+                )
+                val decision = guard.prepareStateFor(mnemonic.phrase)
+                when (decision) {
+                    is SeedImportDecision.Abort -> throw WalletStorageException(
+                        "Could not quarantine the previous wallet's node state",
+                        decision.cause,
+                    )
+                    // iOS sets `didQuarantineForeignState` and nothing reads it yet;
+                    // the directory name is what support needs to sweep from it.
+                    is SeedImportDecision.Quarantined ->
+                        Log.w(TAG, "Quarantined earlier node state in ${decision.directory?.name}")
+                    else -> Unit
+                }
+                decision.discriminator?.let { digest ->
+                    if (!guard.recordDiscriminator(digest)) {
+                        Log.w(TAG, "Could not record the seed discriminator; the next import will quarantine")
+                    }
+                }
+            },
         )
 
         return WalletComposition(

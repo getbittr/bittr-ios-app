@@ -12,9 +12,8 @@ import kotlinx.coroutines.flow.StateFlow
  * Everything about the *seed* — the BIP-39 phrase, the PIN verifier, the failed
  * attempt counter, the state machine — stays with [seed], which is
  * `:core:wallet-seed`'s `SeedWalletService` in production and a fake in tests.
- * This class adds exactly three overrides and delegates the other nine, because
- * three is how many of `WalletService`'s methods have anything to do with a
- * node.
+ * This class adds five overrides and delegates the other seven, because five
+ * is how many of `WalletService`'s methods have anything to do with a node.
  *
  * ## Why a decorator and not a second implementation
  *
@@ -31,10 +30,12 @@ import kotlinx.coroutines.flow.StateFlow
  * side; `:core:wallet-ldk` does not depend on `:core:wallet-seed`, and the app's
  * wallet module is the one place the two are put together.
  *
- * ## The three overrides
+ * ## The five overrides
  *
  * [start] and [stop] are the issue. [removeWallet] is the ordering the issue
- * asks about, and it is the one with a rule worth stating.
+ * asks about, and it is the one with a rule worth stating. [createWallet] and
+ * [restoreWallet] put a new seed on the device, and the node state already
+ * there may belong to the one before it.
  *
  * Proved by `NodeBackedWalletServiceTest`.
  */
@@ -52,13 +53,49 @@ class NodeBackedWalletService(
      * without pretending to wipe something it never wrote.
      */
     private val wipeNodeState: suspend () -> Unit = {},
+    /**
+     * Make the node state on disk fit the seed that was just written: keep it
+     * if it is that seed's, quarantine it if it is not, and record whose it is
+     * now — `SeedImportGuard.prepareStateFor` in production. Throws
+     * [com.bittr.android.core.wallet.WalletStorageException] when state that had
+     * to be moved could not be, which signup shows as its save-failed alert.
+     * Defaulted to a no-op for the same reason [wipeNodeState] is.
+     */
+    private val prepareNodeState: suspend (Mnemonic) -> Unit = {},
 ) : WalletService {
 
     override val state: StateFlow<WalletState> get() = seed.state
 
-    override suspend fun createWallet(): Mnemonic = seed.createWallet()
+    /**
+     * A new seed, and the node state made to fit it before any node can start.
+     *
+     * Removal erases the seed and deliberately leaves ldk-node's state
+     * directory, because it is the only thing that can sweep a force-closed
+     * channel. Without this step the next wallet builds a node over the last
+     * one's on-chain store, and ldk-node refuses it ("Failed to setup onchain
+     * wallet") — decision 37 in the port log.
+     *
+     * **After the seed write, not before it**, which is the reverse of
+     * `SeedImporter` and is sound here for a reason `SeedImporter` cannot lean
+     * on: a seed without a PIN is not a wallet. `SeedWalletService` keeps the
+     * state `Uninitialized` until `setPin`, nothing starts a node for an
+     * uninitialized wallet, and running the arc again writes a fresh seed and
+     * comes back through here. So a crash between the write and the quarantine
+     * leaves no node running over foreign state, only a signup to do again.
+     * The phrase `createWallet` generates is also not known until it returns.
+     *
+     * Held down by [WalletNodeHost.withWalletDown] like [removeWallet], because
+     * a quarantine moves the directory a running node has open.
+     */
+    override suspend fun createWallet(): Mnemonic = host.withWalletDown {
+        seed.createWallet().also { prepareNodeState(it) }
+    }
 
-    override suspend fun restoreWallet(mnemonic: Mnemonic) = seed.restoreWallet(mnemonic)
+    /** As [createWallet]: the restored phrase's own state is kept, anything else quarantined. */
+    override suspend fun restoreWallet(mnemonic: Mnemonic) = host.withWalletDown {
+        seed.restoreWallet(mnemonic)
+        prepareNodeState(mnemonic)
+    }
 
     override suspend fun setPin(pin: String) = seed.setPin(pin)
 

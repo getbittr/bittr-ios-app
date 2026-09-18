@@ -297,7 +297,7 @@ transaction confirmations. All of it passes JVM unit tests. What remains:
   and Lightning links on `getbittr.com` pages (checked once a second with `evaluateJavascript`, no JS bridge;
   iOS observes the DOM). Not done: the Sentry signup metric (Android has no Sentry SDK — adding one is a
   separate decision), the `-evilBoltz` harness (JVM tests cover it), and no Live Activity (not needed).
-## 37. Open — a second wallet on the same install cannot start its node
+## 37. Resolved — a second wallet on the same install cannot start its node
 
 **Found 2026-09-18, running the suite.** Create a wallet, remove it, create another one on the same
 install, and the node refuses to come up:
@@ -324,4 +324,11 @@ device that already had one — quarantine it (what the guard was written for, k
 sweep material), or delete it? And should removal itself quarantine on the way out, rather than leaving it
 for the next seed? Both touch material that a force-close needs, so this is not a call to make in passing.
 
-Until it is wired, the suite passes it only from a clean install.
+**Decided 2026-09-18 (Ruben): quarantine, don't delete.** `NodeBackedWalletService.createWallet` and
+`restoreWallet` now take the node down, write the seed, and run `SeedImportGuard.prepareStateFor` on the new
+phrase: state that is this seed's is kept, anything else (a mismatched or missing discriminator) is moved to
+`no_backup/wallet/foreign_ldk_state/<n>-<random>/`, and the new seed's discriminator is recorded. Nothing is
+deleted, and removal itself still leaves the state where it is. The guard runs after the seed write rather
+than before (the reverse of `SeedImporter`) because a seed with no PIN is not a wallet and starts no node,
+so a crash between the two only means doing the signup again. A quarantine is logged (`WalletModule` tag) and not
+yet shown to the user; iOS's `didQuarantineForeignState` isn't read by any screen either.

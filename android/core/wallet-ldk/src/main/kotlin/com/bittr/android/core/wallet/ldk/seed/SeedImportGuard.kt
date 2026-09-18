@@ -81,6 +81,23 @@ class SeedImportGuard(
             MnemonicPresence.NoUsableMnemonic -> Unit
         }
 
+        return prepareStateFor(mnemonic)
+    }
+
+    /**
+     * The middle question alone: does the state on disk belong to [mnemonic]?
+     * Keeps it, quarantines it, or finds nothing, without asking the vault
+     * first.
+     *
+     * For a caller that has just *replaced* the seed on purpose — the app's
+     * create and restore, where `SeedWalletService` writes the phrase itself
+     * and the vault already answers `Present` for the new one. There
+     * [prepareForImport]'s early return would keep the previous wallet's state
+     * live under the new seed, which is exactly what this class exists to
+     * stop. The caller owns the ordering argument that [SeedImporter] makes
+     * here: see `NodeBackedWalletService.createWallet`.
+     */
+    fun prepareStateFor(mnemonic: String): SeedImportDecision {
         val digest = SeedDiscriminator.compute(Bip84Account.accountXpub(mnemonic, mainnet))
 
         if (!stateStore.hasLightningState()) {
