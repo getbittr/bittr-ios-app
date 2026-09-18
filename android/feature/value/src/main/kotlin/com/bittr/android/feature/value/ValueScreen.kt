@@ -1,15 +1,10 @@
 package com.bittr.android.feature.value
 
-import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -18,20 +13,13 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.semantics.Role
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.bittr.android.core.common.TestID
 import com.bittr.android.core.designsystem.BittrAlertDialog
 import com.bittr.android.core.designsystem.BittrCanvas
-import com.bittr.android.core.designsystem.BittrCanvasShapes
 import com.bittr.android.core.designsystem.BittrTheme
-import com.bittr.android.core.designsystem.BittrTokens
-import com.bittr.android.core.designsystem.CanvasSpacer
 import com.bittr.android.core.network.BittrEnvironment
 import com.bittr.android.core.network.HttpClient
 import java.time.LocalDate
@@ -43,10 +31,12 @@ import java.time.LocalDate
  *
  * 1. `value.graphView` exists from the moment the screen opens, empty, so the flow
  *    can assert it before the data lands.
- * 2. `value.valueSpinner` spins until both requests return; `value.profitLabel`
+ * 2. `value.valueSpinner` is up until both requests return; `value.profitLabel`
  *    appears at the same moment. The flow waits on the label and asserts the spinner
  *    is gone, so the two have to flip together — they are both derived from
- *    [ValueUiState.isFetchingData] here rather than set independently.
+ *    [ValueUiState.isFetchingData] here rather than set independently. Since the
+ *    design review the id is on the chart's loading placeholder rather than a
+ *    spinner (see [ValueChartCard]); it is still the loading indicator.
  * 3. Span taps are dropped while the fetch is in flight, which is why the wait has
  *    to come first. That guard lives in [ValueUiState.selectSpan] and is tested.
  */
@@ -117,74 +107,26 @@ internal fun ValueScreen(
     }
 
     BittrCanvas(modifier = modifier, onBack = onBack) {
-        Text(
-            text = ValueCopy.TITLE,
-            style = MaterialTheme.typography.headlineSmall,
-            modifier = Modifier.padding(horizontal = BittrTokens.Spacing.gutter),
-        )
-        CanvasSpacer(BittrTokens.Spacing.sm)
-
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(BittrTokens.Spacing.sm),
-            modifier = Modifier
+        // The design review's content column (2026-09-18, S13): 24 dp in from the
+        // sides and 24 dp down from the app bar, which the title used to sit flush
+        // against. The chart card shares the 24 dp side margin, so title and card
+        // align on one edge.
+        Column(
+            Modifier
                 .fillMaxWidth()
-                .padding(horizontal = BittrTokens.Spacing.gutter),
+                .padding(start = ContentGutter, end = ContentGutter, top = ContentGutter),
         ) {
-            // `displaySmall` is the scale's hero-amount slot and is Gilroy-Bold 36,
-            // which is what `currentValueLabel` is on iOS (`rwD-dr-40A`). It read
-            // `headlineMedium` until BIT-151 — a slot the scale does not fill, so
-            // the headline figure on this screen was drawing in the platform
-            // sans-serif at M3's 28. Found by the guard, not by the issue.
+            // `headlineSmall` is the scale's screen-title slot (Gilroy-Bold 26/32), and
+            // it stays that: the review's 28/34 would make this title a size larger
+            // than every other screen title in the app. If titles should be 28, that is
+            // the slot's change to make, in `Type.kt`.
             Text(
-                text = state.currentValue.orEmpty(),
-                style = MaterialTheme.typography.displaySmall,
-                modifier = Modifier
-                    .weight(1f)
-                    .testTag(TestID.Value.currentValueLabel),
+                text = ValueCopy.TITLE,
+                style = MaterialTheme.typography.headlineSmall,
             )
-            ProfitBadge(state)
+            Spacer(Modifier.height(16.dp))
+            ValueChartCard(state = state, onSelect = { state = state.selectSpan(it) })
         }
-
-        CanvasSpacer(BittrTokens.Spacing.md)
-
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(220.dp)
-                .padding(horizontal = BittrTokens.Spacing.gutter),
-        ) {
-            // Tagged and present from the first frame — the flow asserts it before
-            // the data arrives, so it must not be gated on having points.
-            GraphView(
-                points = state.visiblePoints,
-                currencySymbol = ValueCopy.currencySymbol(state),
-                modifier = Modifier
-                    .fillMaxSize()
-                    .testTag(TestID.Value.graphView),
-            )
-
-            if (state.isFetchingData) {
-                CircularProgressIndicator(
-                    color = BittrTheme.colors.onCanvas,
-                    modifier = Modifier
-                        .align(Alignment.Center)
-                        .testTag(TestID.Value.valueSpinner),
-                )
-            } else if (!state.hasData) {
-                // `noDataLabel` — a span with no points is a displayable state, not
-                // a failure (`ValueViewController.swift:366-372`).
-                Text(
-                    text = ValueCopy.NO_DATA,
-                    style = MaterialTheme.typography.bodyMedium,
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier.align(Alignment.Center),
-                )
-            }
-        }
-
-        CanvasSpacer(BittrTokens.Spacing.md)
-        SpanButtons(state = state, onSelect = { state = state.selectSpan(it) })
     }
 
     if (failed) {
@@ -204,98 +146,8 @@ internal fun ValueScreen(
     }
 }
 
-/**
- * The percentage badge.
- *
- * Its visibility is the flow's "data loaded" signal: `profitView` starts at alpha 0
- * and is faded in by `drawGraph` (`ValueViewController.swift:388-405`), so
- * `value.profitLabel` appearing means the series is parsed and drawn. Keeping it out
- * of the tree until then is what makes `extendedWaitUntil` return at the right
- * moment rather than immediately.
- */
-@Composable
-private fun ProfitBadge(state: ValueUiState) {
-    if (state.isFetchingData || !state.hasData) return
-    val percentage = profitPercentage(state.visiblePoints.map { it.price }) ?: return
-    val colors = BittrTheme.colors
-    val loss = percentage.startsWith("-")
-
-    Text(
-        text = percentage,
-        style = MaterialTheme.typography.labelLarge,
-        color = if (loss) colors.loss else colors.profit,
-        modifier = Modifier
-            .background(
-                if (loss) colors.lossBg else colors.profitBg,
-                BittrCanvasShapes.pill,
-            )
-            .padding(horizontal = BittrTokens.Spacing.sm, vertical = BittrTokens.Spacing.xs)
-            .testTag(TestID.Value.profitLabel),
-    )
-}
-
-/**
- * The four span buttons.
- *
- * The selected one shows the long title and the rest the short one
- * (`showSelectedSpan`), which is why the flow taps `value.monthButton` and then
- * looks for the graph rather than for the label "m" — the label it just tapped has
- * changed to "1 month".
- *
- * **The fill says the same thing the label does, and until BIT-156 it did not.** iOS
- * fills the selected button opaque white and the rest white at 70 %
- * (`ValueViewController.swift:351`) — hard-coded, like the scrub card, so there is no
- * `Colors.getColor` token to port. The port used `scrim1` and `scrim2`, which are
- * byte-identical in light mode: light had no fill difference at all. In dark they
- * differed and pointed the wrong way — `scrim1` is `blue1`, which is the canvas, so
- * the *selected* pill was the invisible one at 1.00 : 1 while the unselected three had
- * an edge at 1.20. An inverted affordance, one screen element away from the same
- * collision in the scrub card, and the same decision. See `BittrColors.chartSurface`.
- */
-@Composable
-private fun SpanButtons(state: ValueUiState, onSelect: (GraphSpan) -> Unit) {
-    val colors = BittrTheme.colors
-    Row(
-        horizontalArrangement = Arrangement.spacedBy(BittrTokens.Spacing.xs),
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = BittrTokens.Spacing.gutter),
-    ) {
-        GraphSpan.entries.forEach { span ->
-            val selected = span == state.selectedSpan
-            Box(
-                contentAlignment = Alignment.Center,
-                modifier = Modifier
-                    .weight(1f)
-                    .height(BittrTokens.Size.minTouchTarget)
-                    .background(
-                        if (selected) colors.chartSurface else colors.chartSurfaceDim,
-                        BittrCanvasShapes.wordRow,
-                    )
-                    .clickable(role = Role.Button) { onSelect(span) }
-                    .testTag(span.testTag),
-            ) {
-                // Spelled, not inherited, for the reason the scrub card's price is:
-                // these fills do not follow the canvas, and `BittrCanvas` provides
-                // `onCanvas`, which is white in dark.
-                Text(
-                    state.titleFor(span),
-                    style = MaterialTheme.typography.labelLarge,
-                    color = colors.onChartSurface,
-                )
-            }
-        }
-    }
-}
-
-/** The id each span button carries, so the flow can tap m, y and 5y by name. */
-private val GraphSpan.testTag: String
-    get() = when (this) {
-        GraphSpan.WEEK -> TestID.Value.weekButton
-        GraphSpan.MONTH -> TestID.Value.monthButton
-        GraphSpan.YEAR -> TestID.Value.yearButton
-        GraphSpan.FIVE_YEARS -> TestID.Value.fiveYearsButton
-    }
+/** The review's content-column gutter, top and sides. */
+private val ContentGutter = 24.dp
 
 @Preview(showBackground = true, widthDp = 412, heightDp = 892)
 @Composable

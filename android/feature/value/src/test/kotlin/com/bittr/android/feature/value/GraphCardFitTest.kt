@@ -252,21 +252,24 @@ class GraphCardFitTest {
     }
 
     /**
-     * The card is a card in dark mode — measured off the render, not off the tokens.
+     * The card is a card — measured off the render, not off the tokens.
      *
-     * `TokenContrastTest` proves the chosen fill has an edge on the canvas. It cannot
-     * prove the call site picked that fill, and that is exactly what went wrong: the
-     * card filled with `scrim1`, which is right in light and is `blue1` in dark, where
-     * the canvas is also `blue1`. **The rendered card was byte-identical to the page
-     * behind it**, and every contrast assertion in the theme stayed green.
+     * `TokenContrastTest` proves a chosen fill has an edge. It cannot prove the call
+     * site picked that fill, and that is exactly what went wrong once: the card filled
+     * with `scrim1`, which is `blue1` in dark, where the canvas was also `blue1`. **The
+     * rendered card was byte-identical to the page behind it**, and every contrast
+     * assertion in the theme stayed green. BIT-156.
      *
-     * So this samples the pixels. A pixel inside the card and a pixel on the canvas
-     * beside it, at the same height, and they have to differ — the single check that
-     * the BIT-155 render would have failed.
+     * Since the design review the scrub card floats on the white chart card rather than
+     * on the canvas, and the same collision was one step away from the other side: the
+     * scrub card was white too. So this samples a pixel in the card's own padding and a
+     * pixel on the chart beside it, at the same height, and they have to differ — and
+     * the card's has to be the cream it was given. Run in dark, where the card is most
+     * tempted to follow the scheme.
      */
     @Test
     @Config(qualifiers = "w411dp-h891dp-night-420dpi")
-    fun `the scrub card is distinguishable from the dark canvas it floats on`() {
+    fun `the scrub card is distinguishable from the chart card it floats on`() {
         showScreenWithSixFigureChfPrices()
         holdScrub()
 
@@ -282,12 +285,14 @@ class GraphCardFitTest {
             (y - bounds.top).toInt().coerceIn(0, image.height - 1),
         )
 
-        val inside = sample(card.center.x, card.center.y)
+        // Above the date label, inside the card's 6 dp top padding: fill, not glyph.
+        val paddingY = card.top - 3f * composeRule.density.density
+        val inside = sample(card.center.x, paddingY)
         // Far enough along the row to be outside an 80 dp card wherever it is sitting,
-        // and clamped into the chart, so this lands on the canvas at the card's height.
+        // and clamped into the chart, so this lands on the chart card at that height.
         val beside = sample(
             if (card.center.x < bounds.center.x) bounds.right - 1f else bounds.left + 1f,
-            card.center.y,
+            paddingY,
         )
 
         println(
@@ -295,11 +300,17 @@ class GraphCardFitTest {
         )
 
         assertNotEquals(
-            "The scrub card renders the same pixel as the canvas beside it, so it has " +
+            "The scrub card renders the same pixel as the chart beside it, so it has " +
                 "no edge at all — the labels float over the chart and the curve runs " +
-                "through where the card's boundary should be. This is what `scrim1` did " +
-                "in dark: it is `blue1`, and so is the canvas.",
+                "through where the card's boundary should be. A white card on the white " +
+                "chart card is this; so was `scrim1` on the dark canvas.",
             beside,
+            inside,
+        )
+        assertEquals(
+            "The scrub card is not the pinned cream. It is fixed in both schemes; a " +
+                "scheme-following fill here is `blue3` in dark.",
+            BittrLightColorsExtended.tonalFill.toArgb(),
             inside,
         )
 
@@ -308,39 +319,37 @@ class GraphCardFitTest {
     }
 
     /**
-     * The curve is stroked in the scheme's own token, checked on the pixels.
+     * The curve is stroked in the chart card's ink, in both schemes, checked on the
+     * pixels.
      *
-     * It was `Color(0x…)`, a near-black literal, so it did not move with the scheme:
-     * 10.97 : 1 on the light canvas — which is why nobody noticed — and **2.43 : 1 on
-     * the dark one**, under the 3 : 1 WCAG 1.4.11 puts on a graphical object. iOS
-     * strokes it with `whiteoryellow` (`GraphView.swift:175`), which DEV-47 merged into
-     * `emphasis`.
+     * It has been wrong in two directions. It was a near-black literal, which did not
+     * move with the scheme and was 2.43 : 1 on the dark canvas (BIT-156); it then took
+     * `emphasis`, iOS's `whiteoryellow` — right while the curve sat on the canvas. The
+     * design review moved it onto a fixed white card, where `emphasis` is yellow in
+     * dark and about 1.6 : 1. So the expectation is now the same token in both schemes,
+     * and the dark run is the one that tells a scheme-following stroke apart.
      *
-     * `TokenContrastTest` can measure `emphasis` against both canvases and does. What
-     * it cannot do is notice that this `drawPath` went back to a literal, and a literal
-     * is what shipped — so the check that matters is this one, on the rendered stroke.
      * A `Canvas` has no semantics to read, which is why it is pixels rather than a
-     * layout property. BIT-156.
+     * layout property.
      */
     @Test
-    fun `the curve is stroked in the light scheme's token`() =
-        assertCurveIsStrokedWith(BittrLightColorsExtended.emphasis, "light")
+    fun `the curve is stroked in the chart card's ink in light`() =
+        assertCurveIsStrokedWith(BittrLightColorsExtended.onChartSurface, "light")
 
     @Test
     @Config(qualifiers = "w411dp-h891dp-night-420dpi")
-    fun `the curve is stroked in the dark scheme's token`() =
-        assertCurveIsStrokedWith(BittrDarkColorsExtended.emphasis, "dark")
+    fun `the curve is stroked in the chart card's ink in dark`() =
+        assertCurveIsStrokedWith(BittrDarkColorsExtended.onChartSurface, "dark")
 
     /**
      * Counts pixels of exactly [expected] in the chart.
      *
-     * Exact equality, not a nearest-colour search: the stroke is 4 px wide, so its
+     * Exact equality, not a nearest-colour search: the stroke is 3 dp wide, so its
      * interior is the unblended colour even though its edges are antialiased. A
-     * tolerance would start matching the canvas as the two tokens approach each other,
-     * which is the failure this is here to catch.
+     * tolerance would start matching nearby colours, which is the failure this is here
+     * to catch — `emphasis` in light is pure black, a few units off this ink.
      *
-     * The card is excluded by construction — it is white with ink on it, and neither
-     * value of `emphasis` is either.
+     * The scrub card is not up, so the stroke is the only ink in the plot.
      */
     private fun assertCurveIsStrokedWith(expected: Color, scheme: String) {
         showScreenWithSixFigureChfPrices()
@@ -358,10 +367,10 @@ class GraphCardFitTest {
         println("GRAPH CURVE ($scheme): ${"%,d".format(found)} px of #%08X".format(wanted))
 
         assertTrue(
-            "$scheme: not one pixel of the chart is the scheme's `emphasis` " +
-                "(#%08X), so the curve is drawn in something else. It was a near-black "
+            "$scheme: not one pixel of the chart is the chart card's ink " +
+                "(#%08X), so the curve is drawn in something else. `emphasis` is yellow "
                     .format(wanted) +
-                "literal, which is 2.43 : 1 on the dark canvas.",
+                "in dark, about 1.6 : 1 on the white card.",
             found > 0,
         )
     }
@@ -545,18 +554,21 @@ class GraphCardFitTest {
     )
 
     /**
-     * Where [price] sits in its own span's range.
+     * Where [price] sits on its own span's chart, bottom gridline to top.
      *
      * Which span is selected is the screen's business, so the price is looked up across
      * all of them — [snapshot] offsets each span by a different amount, so a price
-     * belongs to exactly one. Computed here rather than through `priceFractions()` so
-     * that the expectation is independent of the production code it is checking.
+     * belongs to exactly one. The gridlines' prices come from [PriceAxis], because
+     * where the round numbers fall is the axis's decision; the fraction itself is
+     * computed here rather than through [PriceAxis.fractionOf], so the expectation for
+     * where the card goes is not the production code's own answer.
      */
     private fun priceFractionOf(price: Double): Float {
         for (series in shown.series.values) {
             if (series.none { it.price == price }) continue
-            val lowest = series.minOf { it.price }
-            return ((price - lowest) / (series.maxOf { it.price } - lowest)).toFloat()
+            val axis = checkNotNull(PriceAxis.of(series.map { it.price }))
+            val bottom = axis.ticks.first()
+            return ((price - bottom) / (axis.ticks.last() - bottom)).toFloat()
         }
         error("Price $price is in none of the spans this test loaded")
     }

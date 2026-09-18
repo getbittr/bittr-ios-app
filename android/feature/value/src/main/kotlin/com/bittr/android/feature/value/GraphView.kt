@@ -2,6 +2,7 @@ package com.bittr.android.feature.value
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -19,6 +20,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.layout
@@ -57,11 +60,15 @@ private val CardWidth: Dp = 80.dp
  * So the card's bottom edge rides exactly 5 pt above the data point, everywhere. The
  * `30` is not a top floor and not a gap: it is the inset of iOS's *curve* from the
  * bottom of the view (25) carried into the card's constraint. Porting `30` literally
- * would be wrong here, because [GraphView]'s curve has no such inset — it spans the
- * full height — so a literal `30 + f * (H - 30)` drifts from a 30 dp gap at the
- * bottom of the chart to none at the top. The 5 dp relationship is what transfers.
+ * would be wrong here, because [GraphView]'s scale has no such inset — its bottom and
+ * top gridlines are its bottom and top edges — so a literal `30 + f * (H - 30)` drifts
+ * from a 30 dp gap at the bottom of the chart to none at the top. The 5 dp
+ * relationship is what transfers.
  */
 private val CardGap: Dp = 5.dp
+
+/** The curve's stroke — the design review's 3 dp. */
+private val CurveWidth: Dp = 3.dp
 
 /**
  * The price line, and the card that follows a finger across it.
@@ -78,10 +85,20 @@ private val CardGap: Dp = 5.dp
  * That is reproduced here: [scrubbed] is set on drag and cleared on release, and
  * `value.graphValueLabel` exists exactly while it is set. Leaving the card up after
  * the gesture would look tidier and would make the flow's comment wrong.
+ *
+ * **This is the plot and only the plot.** Since the design review (2026-09-18) the
+ * gridlines, both axes' labels and the 8 dp right inset belong to the chart card
+ * around it (`ValueChartCard.kt`), and they sit *outside* this composable on purpose:
+ * `value.graphView` is the element the flow swipes from the centre of and the tests
+ * scrub by fraction of, and both of those mean "the curve's own width". Putting a
+ * 32 dp label gutter inside it would have shifted every finger position by the gutter.
+ * The top and bottom edges here are the top and bottom gridlines, so [PriceAxis]
+ * fractions map straight onto this height.
  */
 @Composable
 internal fun GraphView(
     points: List<PricePoint>,
+    axis: PriceAxis?,
     currencySymbol: String,
     modifier: Modifier = Modifier,
 ) {
@@ -97,19 +114,21 @@ internal fun GraphView(
                 .onSizeChanged { chartSize = it }
                 .pointerInput(points) {
                     detectDragGestures(
-                        onDragStart = { at -> scrubbed = points.scrub(at.x, size.width.toFloat()) },
+                        onDragStart = { at ->
+                            scrubbed = points.scrub(at.x, size.width.toFloat(), axis)
+                        },
                         onDragEnd = { scrubbed = null },
                         onDragCancel = { scrubbed = null },
                         onDrag = { change, _ ->
-                            scrubbed = points.scrub(change.position.x, size.width.toFloat())
+                            scrubbed = points.scrub(change.position.x, size.width.toFloat(), axis)
                         },
                     )
                 },
         ) {
-            if (points.size < 2) return@Canvas
+            if (points.size < 2 || axis == null) return@Canvas
 
             // The same 0…1 the card positions itself with, so the two cannot drift.
-            val fractions = points.priceFractions()
+            val fractions = points.map { axis.fractionOf(it.price) }
             val stepX = size.width / (points.size - 1)
 
             fun at(index: Int) = Offset(
@@ -136,15 +155,27 @@ internal fun GraphView(
                 lineTo(last.x, last.y)
             }
 
-            // iOS strokes the curve with `whiteoryellow` (`GraphView.swift:175`), the
-            // token DEV-47 merged into `emphasis` — black in light, yellow in dark.
+            // Ink on the chart card, in both schemes. iOS strokes the curve with
+            // `whiteoryellow` (`GraphView.swift:175`) — the token DEV-47 merged into
+            // `emphasis` — because on iOS the curve sits on the canvas. It does not any
+            // more: the design review put the chart in a fixed white card, and
+            // `emphasis` is yellow in dark, which on white is about 1.6 : 1 — under the
+            // 3 : 1 WCAG 1.4.11 floor for a graphical object, the failure BIT-156 took
+            // this stroke off a literal to fix. The review's own spec was a white line
+            // with a shadow, drawn for a line on yellow; on white that is invisible.
+            // `onChartSurface` is the card's ink, 19.44 : 1.
             //
-            // This was a near-black literal, which does not move with the scheme and so
-            // was measured against one canvas only: 10.97 : 1 on the yellow, where it
-            // looks right by accident, and **2.43 : 1 on `blue1`**, under the 3 : 1 floor
-            // WCAG 1.4.11 puts on a graphical object. The token is 13.24 and 4.51.
-            // BIT-156, and `TokenContrastTest` holds both ends.
-            drawPath(path = path, color = colors.emphasis, style = Stroke(width = 4f))
+            // 3 dp with round caps and joins, from the review. It was 4 *px*, which is
+            // 1.5 dp at 420 dpi.
+            drawPath(
+                path = path,
+                color = colors.onChartSurface,
+                style = Stroke(
+                    width = CurveWidth.toPx(),
+                    cap = StrokeCap.Round,
+                    join = StrokeJoin.Round,
+                ),
+            )
         }
 
         // The floating value card. Positioned by hand rather than by a layout,
@@ -184,15 +215,22 @@ internal fun GraphView(
                         }
                     }
                     .width(CardWidth)
-                    // A fixed light surface in both schemes, which is what iOS does
-                    // (`thisCard.backgroundColor = .white`, `GraphView.swift:112`) and,
-                    // less obviously, the only thing that works: this card sits on
-                    // `canvas`, and on the dark canvas no fill both has an edge and
-                    // carries white text. It filled with `scrim1` — the *field* token,
-                    // right in light by coincidence and `blue1` in dark, which is the
-                    // canvas, so the card was 1.00 : 1 against the page it floats on.
-                    // The arithmetic is on `BittrColors.chartSurface`. BIT-156.
-                    .background(colors.chartSurface, BittrCanvasShapes.wordRow)
+                    // A fixed light surface in both schemes, for the reason BIT-156
+                    // gave: no fill on the dark canvas both has an edge and carries
+                    // white text, so this is a light card with ink on it or no card.
+                    //
+                    // But not white any more. iOS's card is `.white`
+                    // (`GraphView.swift:112`) because it floats on the canvas; since the
+                    // design review it floats on the white chart card, and white on
+                    // white is the 1.00 : 1 BIT-156 was about, reached from the other
+                    // side. The cream tonal fill — pinned to its light value, because
+                    // `tonalFill` is `blue3` in dark and this card does not follow the
+                    // scheme — plus the chart's own hairline gives it an edge, and
+                    // keeps both labels' ink: 16.7 : 1 for the price, 6.8 : 1 for the
+                    // 70 % date. The same fill marks the selected range segment, so
+                    // "cream on this card" means one thing.
+                    .background(ChartColors.raised, BittrCanvasShapes.wordRow)
+                    .border(1.dp, ChartColors.hairline, BittrCanvasShapes.wordRow)
                     .padding(vertical = 6.dp),
             ) {
                 // The scale's floor, and the one BIT-151 call site where iOS is not
@@ -246,28 +284,15 @@ internal fun GraphView(
  * axes, because the card tracks both.
  *
  * @property fraction where along the chart's width the finger is, 0…1.
- * @property priceFraction where [point]'s price sits in the series' range, 0 at the
- *   lowest sample and 1 at the highest. This is the curve's own y, so the card derived
- *   from it lands on the line rather than near it.
+ * @property priceFraction where [point]'s price sits on the chart's [PriceAxis], 0 at
+ *   the bottom gridline and 1 at the top. This is the curve's own y, so the card
+ *   derived from it lands on the line rather than near it.
  */
 internal data class ScrubbedPoint(
     val point: PricePoint,
     val fraction: Float,
     val priceFraction: Float,
 )
-
-/**
- * Every sample's price as a 0…1 position in the series' range.
- *
- * One definition, used by the curve and by the card. A flat series has no range to
- * divide by and maps to 0 — the bottom of the chart, which is where [GraphView] draws
- * a flat line.
- */
-internal fun List<PricePoint>.priceFractions(): List<Float> {
-    val lowest = minOfOrNull { it.price } ?: return emptyList()
-    val span = (maxOf { it.price } - lowest).takeIf { it > 0 } ?: 1.0
-    return map { ((it.price - lowest) / span).toFloat() }
-}
 
 /**
  * Resolves a touch to a point.
@@ -279,14 +304,18 @@ internal fun List<PricePoint>.priceFractions(): List<Float> {
  * a difference of one sample under the finger, and the alternative is porting an
  * off-by-one.
  */
-internal fun List<PricePoint>.scrub(x: Float, width: Float): ScrubbedPoint? {
-    if (isEmpty() || width <= 0f) return null
+internal fun List<PricePoint>.scrub(
+    x: Float,
+    width: Float,
+    axis: PriceAxis? = PriceAxis.of(map { it.price }),
+): ScrubbedPoint? {
+    if (isEmpty() || width <= 0f || axis == null) return null
     val fraction = (x / width).coerceIn(0f, 1f)
     val index = (fraction * size).toInt().coerceIn(0, size - 1)
     return ScrubbedPoint(
         point = this[index],
         fraction = fraction,
-        priceFraction = priceFractions()[index],
+        priceFraction = axis.fractionOf(this[index].price),
     )
 }
 
@@ -312,8 +341,8 @@ internal fun List<PricePoint>.scrub(x: Float, width: Float): ScrubbedPoint? {
  * it is also the shape the card was already in, since neither label here shrinks to
  * fit and neither does iOS's.
  *
- * The axis ticks below the chart stay `dd MMM` ([GraphSpan.Tick]) — those are iOS's
- * too, and they are a different label.
+ * The date labels under the chart are a different label with their own, shorter
+ * format per span ([axisDateFormat]).
  *
  * `internal` so `GraphCardFitTest` can find the date label by the string this card
  * actually puts in it, rather than re-spelling the pattern and measuring whatever
