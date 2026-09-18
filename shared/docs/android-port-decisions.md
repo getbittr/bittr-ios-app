@@ -356,3 +356,32 @@ Onboarding.html`), screen by screen, from Maestro screenshots. Nearly all of it 
 
 Pass 2 of the review (academy, map, value, settings, swap, send on-chain, receive on-chain, payment mode,
 removal and PIN flows) has not happened yet.
+
+## 39. Design review, pass 2 — where the build departs from the review
+
+**2026-09-18.** Pass 2 went in as `7d8b08c4` (shared components and screens) and the Academy and
+Bitcoin-value branches merged after it. Not taken, or taken differently:
+
+- **S3 was already as specified.** The disabled pill is ink @ 12 % over `#FFC502` under an ink @ 50 %
+  label; the review measured `#C9A21A` off a JPEG. No change.
+- **S14 ("previous screen left painted") is the navigation crossfade caught mid-way by the screenshot**,
+  not a screen left behind: every destination paints its own canvas.
+- **The payout confetti already falls behind the rows** (`5ec98a52`); it shows through the card's
+  translucent 9 % wash, and the Reminder card is below the fold of a scrolling screen, not clipped.
+- **The switch's off state stays see-through with a 70 % ink border and thumb.** The review asked for a
+  cream track with a white thumb and a 20 % ink outline, which is well under the 3 : 1 edge WCAG 1.4.11
+  needs; `CanvasComponentColorsTest` (BIT-95) holds the current tokens for that reason.
+- **A copied value is one line with a middle ellipsis**, not two: Compose middle-ellipsizes single
+  lines only. Start and end of the hash stay visible; TalkBack and the flows read all of it.
+- **"How to recover my wallet?" sits under the Restore card** on the forgot-PIN restore screen, where the
+  restore arc already has it, rather than between Cancel and "Remove wallet from device".
+- **"Academy (beta)" is unchanged** — a product-copy question for Ruben (drop "(beta)", or show it as a
+  chip beside the title).
+- **Bitcoin value keeps the shared type scale** (title 26/32, price 36) rather than one-off 28/34 and
+  34 sp; if headings should be 28 sp, that belongs in `BittrTypography`, for every screen.
+- **Chart axis labels are 13 sp at 70 % ink**, not 12 sp at 55 %: 55 % on white is 4.3 : 1, under AA.
+- **The chart line is ink, and the selected range segment is cream with a check**: the card is white,
+  so the review's white line and white selected segment would not show on it.
+- **Semibold (600) renders bold** throughout: the app bundles Gilroy Regular and Bold only.
+- **Not done yet:** numbering the three removal dialogs ("Step 2 of 3") is a copy change for iOS and
+  Android together; the receive on-chain address wrap (`send_swap_suggestion_onchain/01b`).
