@@ -332,3 +332,27 @@ deleted, and removal itself still leaves the state where it is. The guard runs a
 than before (the reverse of `SeedImporter`) because a seed with no PIN is not a wallet and starts no node,
 so a crash between the two only means doing the signup again. A quarantine is logged (`WalletModule` tag) and not
 yet shown to the user; iOS's `didQuarantineForeignState` isn't read by any screen either.
+
+## 38. Design review, pass 1 — where the build departs from the review
+
+**2026-09-18.** Claude Design compared the Android build with its Android proposal (`Bittr Android
+Onboarding.html`), screen by screen, from Maestro screenshots. Nearly all of it went in as written
+(`70251eac` shared components, `5ec98a52` screens). These are the places it did not, and why:
+
+- **The canvas stays `#FFC502`**, not the review's `#FFC107`. The mock's value is Material amber in a
+  tweak panel; `#FFC502` is the iOS brand colour, signed off as DEV-01.
+- **Gold labels and word numerals use `rowLabel` (`#8A6A00`)**, not `#EFA900`. On a white row `#EFA900`
+  is about 2 : 1; `rowLabel` is the darkened gold signed off for exactly this (DEV-40, 5.07 : 1).
+- **The disabled button's label is ink @ 50 %**, not Material's 38 %. 38 % is 2.26 : 1 on the disabled
+  fill, under the 3 : 1 floor `TokenContrastTest` holds a disabled label to; 50 % is 3.05 : 1. The fill is
+  the review's ink @ 12 %.
+- **S7 (fields "drawn fully rounded") was not reproduced.** The recovery-phrase rows, send fields and Buy
+  fields already use the 16 dp field shape; the ones on 8 or 12 dp were moved to 16 dp as they were
+  touched. The grey word numerals the same finding mentions are gold now.
+- **The article card's title is `onTonalFill` (ink)** rather than `#2A2118`, so it also reads in dark mode,
+  where the card is blue.
+- **Settings in the bottom bar is a labelled tab** (S9), which changes Home's bottom bar from the mock's
+  unlabelled gear square.
+
+Pass 2 of the review (academy, map, value, settings, swap, send on-chain, receive on-chain, payment mode,
+removal and PIN flows) has not happened yet.
