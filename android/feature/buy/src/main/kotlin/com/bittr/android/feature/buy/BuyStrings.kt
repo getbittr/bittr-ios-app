@@ -10,6 +10,9 @@ object BuyStrings {
     const val TRY_TO_CONNECT = "You don't seem to be connected to the internet. Please try to connect."
     const val CANCEL = "Cancel"
     const val CONTINUE = "Continue"
+
+    /** The empty Buy screen's button — `Main.storyboard`'s "Check options". */
+    const val CHECK_OPTIONS = "Check options"
     const val CONFIRM = "Confirm"
     const val DONE = "Done"
     const val OOPS = "Oops!"

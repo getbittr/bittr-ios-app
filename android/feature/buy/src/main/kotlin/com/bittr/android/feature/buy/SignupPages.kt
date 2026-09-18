@@ -55,6 +55,7 @@ import com.bittr.android.core.common.TestID
 import com.bittr.android.feature.academy.ArticleCard
 import com.bittr.android.feature.academy.BittrArticles
 import com.bittr.android.core.designsystem.BittrBody
+import com.bittr.android.core.designsystem.BittrPartnerRow
 import androidx.compose.foundation.layout.height
 import com.bittr.android.core.designsystem.BittrTonalButton
 import androidx.compose.ui.unit.sp
@@ -116,6 +117,8 @@ private fun ReadyPage(onNext: () -> Unit, onOpenArticle: (String) -> Unit) {
             modifier = Modifier.fillMaxWidth(),
         )
         CanvasSpacer(BittrTokens.Spacing.xl)
+        BittrPartnerRow()
+        CanvasSpacer(16.dp)
         BittrPrimaryButton(
             text = BuyStrings.NEXT,
             onClick = onNext,

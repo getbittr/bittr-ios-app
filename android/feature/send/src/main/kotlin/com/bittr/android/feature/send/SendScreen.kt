@@ -32,6 +32,16 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import com.bittr.android.core.designsystem.BittrCanvasShapes
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.ui.draw.clip
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.semantics.Role
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.border
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.SolidColor
@@ -232,19 +242,36 @@ private fun ColumnScope.SendPage(
 ) {
     val clipboard = LocalClipboardManager.current
     val amountFocus = remember { FocusRequester() }
+    var amountFocused by remember { mutableStateOf(false) }
     // A pay request with a range: `amountTextField.becomeFirstResponder()`.
     LaunchedEffect(state.focusAmountRequests) {
         if (state.focusAmountRequests > 0) amountFocus.requestFocus()
     }
 
     Row(horizontalArrangement = Arrangement.spacedBy(BittrTokens.Spacing.sm), verticalAlignment = Alignment.CenterVertically) {
-        ModeTile(SendStrings.REGULAR, selected = state.mode == SendMode.Onchain, bolt = false, testTag = TestID.Send.regularButton, modifier = Modifier.weight(1f)) {
-            clearFocus()
-            controller.onModeSelected(SendMode.Onchain)
-        }
-        ModeTile(SendStrings.INSTANT, selected = state.mode == SendMode.Lightning, bolt = true, testTag = null, modifier = Modifier.weight(1f)) {
-            clearFocus()
-            controller.onModeSelected(SendMode.Lightning)
+        // One connected, single-select control — the proposal's segmented button — rather than
+        // two detached chips (review, `send_lightning/02`).
+        Row(
+            modifier = Modifier
+                .weight(1f)
+                .height(48.dp)
+                .clip(BittrCanvasShapes.pill)
+                .border(1.dp, MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f), BittrCanvasShapes.pill),
+        ) {
+            ModeTile(SendStrings.REGULAR, selected = state.mode == SendMode.Onchain, bolt = false, testTag = TestID.Send.regularButton, modifier = Modifier.weight(1f)) {
+                clearFocus()
+                controller.onModeSelected(SendMode.Onchain)
+            }
+            Box(
+                Modifier
+                    .width(1.dp)
+                    .fillMaxHeight()
+                    .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f)),
+            )
+            ModeTile(SendStrings.INSTANT, selected = state.mode == SendMode.Lightning, bolt = true, testTag = null, modifier = Modifier.weight(1f)) {
+                clearFocus()
+                controller.onModeSelected(SendMode.Lightning)
+            }
         }
         QuestionMark(TestID.Send.switchQuestionButton) {
             clearFocus()
@@ -289,7 +316,8 @@ private fun ColumnScope.SendPage(
             testTag = TestID.Send.amountTextField,
             modifier = Modifier
                 .weight(1f)
-                .focusRequester(amountFocus),
+                .focusRequester(amountFocus)
+                .onFocusChanged { amountFocused = it.hasFocus },
         )
         OverlaidTile(TestID.Send.currencyButton, onClick = {
             clearFocus()
@@ -297,18 +325,23 @@ private fun ColumnScope.SendPage(
         }) {
             Text(state.currencyLabel, style = MaterialTheme.typography.labelLarge, modifier = Modifier.testTag(TestID.Send.currencyLabel))
         }
-        Box(
-            contentAlignment = Alignment.Center,
-            modifier = Modifier
-                .height(52.dp)
-                .background(BittrTheme.colors.actionFill, RoundedCornerShape(8.dp))
-                .clickable {
-                    clearFocus()
-                    controller.onNext()
-                }
-                .padding(horizontal = BittrTokens.Spacing.md),
-        ) {
-            Text(SendStrings.DONE, style = MaterialTheme.typography.labelLarge, color = BittrTheme.colors.onActionFill)
+        // The keyboard's companion, so only there while the amount is being typed: with the
+        // keyboard down it competed with the screen's own Next (review, `send_lightning/02`).
+        if (amountFocused) {
+            Box(
+                contentAlignment = Alignment.Center,
+                modifier = Modifier
+                    .height(56.dp)
+                    .clip(BittrCanvasShapes.pill)
+                    .background(BittrTheme.colors.actionFill)
+                    .clickable {
+                        clearFocus()
+                        controller.onNext()
+                    }
+                    .padding(horizontal = BittrTokens.Spacing.lg),
+            ) {
+                Text(SendStrings.DONE, style = MaterialTheme.typography.labelLarge, color = BittrTheme.colors.onActionFill)
+            }
         }
     }
 
@@ -431,27 +464,35 @@ private fun InfoBox(content: @Composable ColumnScope.() -> Unit) {
     )
 }
 
+/** One segment of the payment-mode selector: white with a leading glyph when selected, cream when not. */
 @Composable
 private fun ModeTile(label: String, selected: Boolean, bolt: Boolean, testTag: String?, modifier: Modifier, onClick: () -> Unit) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.Center,
         modifier = modifier
-            .height(44.dp)
-            .background(if (selected) MaterialTheme.colorScheme.surfaceContainerLowest else BittrTheme.colors.tonalFill, RoundedCornerShape(8.dp))
-            .clickable(onClick = onClick)
+            .fillMaxHeight()
+            .background(if (selected) MaterialTheme.colorScheme.surfaceContainer else BittrTheme.colors.tonalFill)
+            .selectable(selected = selected, role = Role.RadioButton, onClick = onClick)
             .then(if (testTag != null) Modifier.testTag(testTag) else Modifier),
     ) {
-        if (bolt) {
+        // The lightning segment always shows its bolt; the selected segment leads with a check
+        // otherwise, as Material's segmented button does.
+        val glyph = when {
+            bolt -> BittrIconPaths.BOLT
+            selected -> BittrIconPaths.CHECK
+            else -> null
+        }
+        if (glyph != null) {
             Image(
-                rememberStrokeIcon(BittrIconPaths.BOLT, MaterialTheme.colorScheme.onSurface, strokeWidth = 2f),
+                rememberStrokeIcon(glyph, MaterialTheme.colorScheme.onSurface, strokeWidth = 2f),
                 contentDescription = null,
                 modifier = Modifier
-                    .padding(end = BittrTokens.Spacing.xs)
-                    .size(16.dp),
+                    .padding(end = 6.dp)
+                    .size(18.dp),
             )
         }
-        Text(label, style = MaterialTheme.typography.labelLarge)
+        Text(label, style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurface)
     }
 }
 
@@ -533,8 +574,8 @@ private fun Entry(
     Box(
         contentAlignment = Alignment.CenterStart,
         modifier = modifier
-            .height(52.dp)
-            .background(MaterialTheme.colorScheme.surfaceContainerLowest, RoundedCornerShape(8.dp))
+            .height(56.dp)
+            .background(MaterialTheme.colorScheme.surfaceContainerLowest, BittrCanvasShapes.field)
             .padding(horizontal = BittrTokens.Spacing.md),
     ) {
         if (value.isEmpty()) {

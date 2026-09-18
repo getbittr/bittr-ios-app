@@ -33,6 +33,7 @@ import com.bittr.android.core.designsystem.BittrCard
 import com.bittr.android.core.designsystem.BittrModalHeader
 import com.bittr.android.core.designsystem.BittrTheme
 import com.bittr.android.core.designsystem.BittrTokens
+import com.bittr.android.core.designsystem.CanvasSpacer
 import com.bittr.android.core.wallet.ChannelSummary
 import com.bittr.android.core.wallet.WalletOverviewSource
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -127,7 +128,6 @@ fun QuestionScreen(
                 .verticalScroll(rememberScrollState())
                 .padding(BittrTokens.Spacing.md),
         ) {
-            if (channel != null) ChannelChart(channel)
             BittrCard(modifier = Modifier.testTag(TestID.Question.yellowCard)) {
                 Text(
                     text = boldTagged(answer),
@@ -137,6 +137,12 @@ fun QuestionScreen(
                         .fillMaxWidth()
                         .testTag(TestID.Question.answerLabel),
                 )
+                // The explanation first and the channel's figures under it, inside the same
+                // card — the proposal's order (review, `send_lightning/01b`).
+                if (channel != null) {
+                    CanvasSpacer(BittrTokens.Spacing.lg)
+                    ChannelChart(channel)
+                }
             }
         }
     }
@@ -149,8 +155,8 @@ private fun ChannelChart(channel: ChannelSummary) {
         verticalArrangement = Arrangement.spacedBy(BittrTokens.Spacing.sm),
         modifier = Modifier
             .fillMaxWidth()
-            .background(MaterialTheme.colorScheme.surfaceContainerLowest, RoundedCornerShape(8.dp))
-            .padding(BittrTokens.Spacing.md)
+            .background(MaterialTheme.colorScheme.surfaceContainer, RoundedCornerShape(20.dp))
+            .padding(16.dp)
             .testTag(TestID.Question.channelView),
     ) {
         Row(modifier = Modifier.fillMaxWidth()) {
@@ -167,13 +173,13 @@ private fun ChannelChart(channel: ChannelSummary) {
             modifier = Modifier
                 .fillMaxWidth()
                 .height(8.dp)
-                .background(MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(2.dp)),
+                .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.25f), RoundedCornerShape(4.dp)),
         ) {
             Box(
                 modifier = Modifier
                     .fillMaxHeight()
                     .fillMaxWidth(channel.balanceFraction)
-                    .background(BittrTheme.colors.canvas, RoundedCornerShape(2.dp)),
+                    .background(BittrTheme.colors.brandFixed, RoundedCornerShape(4.dp)),
             )
         }
         Text(

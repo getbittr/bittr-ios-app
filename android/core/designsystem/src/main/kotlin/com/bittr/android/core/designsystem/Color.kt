@@ -81,7 +81,7 @@ private val BarTrack = Color(0xFFC5A03A)
  * a contrast claim — these are fills that carry their own content, never a border that
  * has to be perceived against the canvas).
  */
-private val Ink = Color(0xFF0D0D0D)
+internal val Ink = Color(0xFF0D0D0D)
 private val Cream = Color(0xFFF8EEC6)
 
 /**

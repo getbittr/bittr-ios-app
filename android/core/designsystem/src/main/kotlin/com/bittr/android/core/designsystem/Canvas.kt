@@ -335,6 +335,41 @@ fun BittrHelpButton(onClick: () -> Unit, modifier: Modifier = Modifier, contentD
         tint = LocalContentColor.current.copy(alpha = 0.70f),
     )
 
+/**
+ * The selected partner above "Next" on the signup's ready page — Signup7's white bittr row,
+ * which the port had dropped, so the user confirmed a partner they could not see (review,
+ * `signup7`). bittr is the only partner, so the row is a statement rather than a picker: it
+ * is drawn selected and takes no taps.
+ */
+@Composable
+fun BittrPartnerRow(modifier: Modifier = Modifier) {
+    val colors = BittrTheme.colors
+    Box(
+        contentAlignment = Alignment.Center,
+        modifier = modifier
+            .fillMaxWidth()
+            .height(56.dp)
+            .background(Color.White, BittrCanvasShapes.field)
+            .padding(horizontal = 16.dp),
+    ) {
+        Box(
+            contentAlignment = Alignment.Center,
+            modifier = Modifier
+                .align(Alignment.CenterStart)
+                .size(24.dp)
+                .background(colors.brandFixed, CircleShape),
+        ) {
+            Image(
+                imageVector = rememberStrokeIcon(BittrIconPaths.CHECK, Ink, strokeWidth = 3f),
+                contentDescription = "Selected",
+                modifier = Modifier.size(16.dp),
+            )
+        }
+        // Ink and brand yellow, fixed: the row is white in both schemes.
+        BittrLogo(height = 24.dp, ink = Ink, arc = colors.brandFixed)
+    }
+}
+
 /** A white value row — the mock's field, and the container for a phrase word. */
 @Composable
 fun BittrValueRow(
@@ -720,10 +755,11 @@ fun BittrBody(
     modifier: Modifier = Modifier,
     textAlign: TextAlign = TextAlign.Center,
     muted: Boolean = false,
+    bold: Boolean = false,
 ) {
     Text(
         text = text,
-        style = MaterialTheme.typography.bodyLarge,
+        style = MaterialTheme.typography.bodyLarge.let { if (bold) it.copy(fontWeight = FontWeight.Bold) else it },
         color = if (muted) BittrTheme.colors.mutedOnCanvas else LocalContentColor.current,
         textAlign = textAlign,
         modifier = modifier,

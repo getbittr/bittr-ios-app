@@ -26,6 +26,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.window.DialogProperties
 import com.bittr.android.core.common.TestID
 
@@ -74,6 +76,7 @@ fun BittrAlert(
     message: String,
     buttons: List<BittrAlertButton>,
     modifier: Modifier = Modifier,
+    messageIsValue: Boolean = false,
 ) {
     require(buttons.isNotEmpty()) {
         "A BittrAlert with no buttons cannot be dismissed — it would trap the user on " +
@@ -102,7 +105,7 @@ fun BittrAlert(
         textContentColor = BittrTheme.colors.onDialogContainer,
         shape = BittrCanvasShapes.card,
         title = { BittrDialogTitle(title) },
-        text = { BittrDialogMessage(message) },
+        text = { if (messageIsValue) BittrDialogValue(message) else BittrDialogMessage(message) },
         // Both buttons go in one full-width stack rather than into AlertDialog's
         // confirm/dismiss slots. Those slots lay out side by side and truncate, and
         // the approved labels ("Continue", "Settings") sit next to a body of three
@@ -243,6 +246,24 @@ fun BittrDialogTitle(text: String) {
         text = text,
         style = MaterialTheme.typography.titleLarge,
         textAlign = TextAlign.Center,
+        modifier = Modifier.fillMaxWidth(),
+    )
+}
+
+/**
+ * A value an alert reports rather than a sentence — the invoice a "Copied" alert echoes.
+ * 14 sp monospace at 70 %, at most six lines: at body size a Lightning invoice filled the
+ * dialog (review, `receive_invoice/04`). TalkBack and the flows still read all of it.
+ */
+@Composable
+fun BittrDialogValue(text: String) {
+    Text(
+        text = text,
+        style = MaterialTheme.typography.bodyMedium.copy(fontFamily = FontFamily.Monospace),
+        color = LocalContentColor.current.copy(alpha = 0.70f),
+        textAlign = TextAlign.Center,
+        maxLines = 6,
+        overflow = TextOverflow.Ellipsis,
         modifier = Modifier.fillMaxWidth(),
     )
 }

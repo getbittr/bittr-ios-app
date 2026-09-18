@@ -167,12 +167,14 @@ private fun BuyCards(state: BuyUiState, controller: BuyController, onDown: () ->
         ) {
             if (state.cards.isEmpty()) {
                 BittrCard(modifier = Modifier.padding(horizontal = BittrTokens.Spacing.md)) {
-                    BittrBody(BuyStrings.BUY_EMPTY)
-                    CanvasSpacer(BittrTokens.Spacing.md)
+                    // What buying is first, then that nothing is set up yet, in bold — iOS's
+                    // order and the proposal's, which this had reversed.
                     BittrBody(BuyStrings.BUY_SUBTITLE)
+                    CanvasSpacer(BittrTokens.Spacing.md)
+                    BittrBody(BuyStrings.BUY_EMPTY, bold = true)
                     CanvasSpacer(BittrTokens.Spacing.xl)
                     BittrPrimaryButton(
-                        text = BuyStrings.CONTINUE,
+                        text = BuyStrings.CHECK_OPTIONS,
                         onClick = controller::onStartSignup,
                         modifier = Modifier.testTag(TestID.Buy.continueButton),
                     )

@@ -39,6 +39,10 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.graphics.Color
+import com.bittr.android.core.designsystem.BittrCanvasShapes
+import com.bittr.android.core.designsystem.BittrMark
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.draw.clip
@@ -119,6 +123,7 @@ internal fun ReceiveScreen(
         BittrAlert(
             title = alert.title,
             message = alert.message,
+            messageIsValue = alert.messageIsValue,
             buttons = alert.buttons.mapIndexed { position, button ->
                 BittrAlertButton(
                     label = button.label,
@@ -208,8 +213,8 @@ private fun QrBox(payload: String?, loading: Boolean, onCopy: () -> Unit, onShar
         modifier = Modifier
             .fillMaxWidth()
             .aspectRatio(1f)
-            .background(MaterialTheme.colorScheme.surfaceContainer, RoundedCornerShape(16.dp))
-            .padding(BittrTokens.Spacing.lg),
+            .background(MaterialTheme.colorScheme.surfaceContainer, RoundedCornerShape(24.dp))
+            .padding(16.dp),
     ) {
         val shown = bitmap
         if (!loading && shown != null) {
@@ -222,6 +227,23 @@ private fun QrBox(payload: String?, loading: Boolean, onCopy: () -> Unit, onShar
                         .combinedClickable(onClick = {}, onLongClick = { menuOpen = true })
                         .testTag(TestID.Receive.qrImageView),
                 )
+                // The bittr mark at the centre, on a white keyline (review, `receive_invoice/02`).
+                // 18 % of the width covers about 3 % of the modules, well inside what the
+                // code's level-H error correction (30 %) recovers.
+                Box(
+                    contentAlignment = Alignment.Center,
+                    modifier = Modifier
+                        .align(Alignment.Center)
+                        .fillMaxSize(0.18f)
+                        .background(Color.White, RoundedCornerShape(8.dp))
+                        .padding(4.dp),
+                ) {
+                    BittrMark(
+                        ink = Color.Black,
+                        arc = BittrTheme.colors.brandFixed,
+                        modifier = Modifier.fillMaxSize(),
+                    )
+                }
                 DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
                     DropdownMenuItem(
                         text = { Text(ReceiveStrings.MENU_COPY) },
@@ -275,10 +297,16 @@ private fun AddressBox(state: ReceiveUiState, onQuestion: () -> Unit) {
                     .testTag(TestID.Receive.addressTitle),
             )
             BittrHelpButton(onClick = onQuestion, modifier = Modifier.testTag(TestID.Receive.questionButton))
+            val address = if (state.loading) "" else display?.addressLabel.orEmpty()
+            // A Lightning address stays on one line and gives way in the middle, so it never
+            // breaks inside the domain (review, `receive_lnurl/03b`).
+            val lightningAddress = '@' in address
             Text(
-                text = if (state.loading) "" else display?.addressLabel.orEmpty(),
+                text = address,
                 style = MaterialTheme.typography.bodyLarge,
                 textAlign = TextAlign.End,
+                maxLines = if (lightningAddress) 1 else Int.MAX_VALUE,
+                overflow = if (lightningAddress) TextOverflow.MiddleEllipsis else TextOverflow.Clip,
                 modifier = Modifier
                     .weight(1f)
                     .testTag(TestID.Receive.addressLabel),
@@ -422,15 +450,21 @@ private fun AmountStack(
             }
         }
         if (state.showsDescription) {
-            EntryField(
-                value = state.descriptionText,
-                placeholder = ReceiveStrings.DESCRIPTION,
-                onValueChange = onDescriptionChange,
-                keyboardType = KeyboardType.Text,
-                onDone = onDone,
-                testTag = null,
-                modifier = Modifier.fillMaxWidth(),
-            )
+            // A labelled white field, as the proposal draws text fields, rather than a bare
+            // cream bar (review, `receive_invoice/02`).
+            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Text(ReceiveStrings.DESCRIPTION, style = MaterialTheme.typography.labelMedium)
+                EntryField(
+                    value = state.descriptionText,
+                    placeholder = ReceiveStrings.DESCRIPTION,
+                    onValueChange = onDescriptionChange,
+                    keyboardType = KeyboardType.Text,
+                    onDone = onDone,
+                    testTag = null,
+                    modifier = Modifier.fillMaxWidth(),
+                    white = true,
+                )
+            }
         }
     }
 }
@@ -444,23 +478,34 @@ private fun EntryField(
     onDone: () -> Unit,
     testTag: String?,
     modifier: Modifier = Modifier,
+    white: Boolean = false,
 ) {
     val colors = BittrTheme.colors
     Box(
-        contentAlignment = Alignment.Center,
+        contentAlignment = if (white) Alignment.CenterStart else Alignment.Center,
         modifier = modifier
-            .height(52.dp)
-            .background(colors.tonalFill, RoundedCornerShape(12.dp))
+            .height(if (white) 56.dp else 52.dp)
+            .background(
+                if (white) MaterialTheme.colorScheme.surfaceContainer else colors.tonalFill,
+                if (white) BittrCanvasShapes.field else RoundedCornerShape(12.dp),
+            )
             .padding(horizontal = BittrTokens.Spacing.md),
     ) {
         if (value.isEmpty()) {
-            Text(placeholder, style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(
+                placeholder,
+                style = MaterialTheme.typography.bodyLarge,
+                color = if (white) MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f) else MaterialTheme.colorScheme.onSurfaceVariant,
+            )
         }
         BasicTextField(
             value = value,
             onValueChange = onValueChange,
             singleLine = true,
-            textStyle = MaterialTheme.typography.bodyLarge.copy(color = colors.onTonalFill, textAlign = TextAlign.Center),
+            textStyle = MaterialTheme.typography.bodyLarge.copy(
+                color = if (white) MaterialTheme.colorScheme.onSurface else colors.onTonalFill,
+                textAlign = if (white) TextAlign.Start else TextAlign.Center,
+            ),
             cursorBrush = SolidColor(colors.onTonalFill),
             keyboardOptions = KeyboardOptions(keyboardType = keyboardType, imeAction = ImeAction.Done),
             keyboardActions = KeyboardActions(onDone = { onDone() }),

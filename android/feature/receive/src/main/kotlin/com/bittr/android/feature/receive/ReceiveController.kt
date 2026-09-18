@@ -22,7 +22,13 @@ sealed interface ReceiveAction {
 data class ReceiveAlertButton(val label: String, val action: ReceiveAction)
 
 /** An alert. The first button is always the way out, as on iOS. */
-data class ReceiveAlert(val title: String, val message: String, val buttons: List<ReceiveAlertButton>)
+data class ReceiveAlert(
+    val title: String,
+    val message: String,
+    val buttons: List<ReceiveAlertButton>,
+    /** The message is a value (the copied invoice), not a sentence — see `BittrDialogValue`. */
+    val messageIsValue: Boolean = false,
+)
 
 /**
  * Everything the Receive screen draws.
@@ -181,7 +187,7 @@ class ReceiveController(
      */
     fun onCopy(): String? {
         val text = _state.value.display?.copyText ?: return null
-        raise(okayAlert(ReceiveStrings.COPIED, text))
+        raise(okayAlert(ReceiveStrings.COPIED, text).copy(messageIsValue = true))
         return text
     }
 
