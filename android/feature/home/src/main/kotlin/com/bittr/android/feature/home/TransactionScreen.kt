@@ -32,6 +32,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.draw.clip
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
@@ -338,17 +340,25 @@ fun TransactionScreen(
                                 }
                             }
                         } else {
-                            Box(
-                                contentAlignment = Alignment.Center,
+                            // An action, so a tonal button rather than one more white row (review S16, pass 3).
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally),
                                 modifier = Modifier
-                                    .padding(top = BittrTokens.Spacing.md)
+                                    .padding(top = 16.dp)
                                     .fillMaxWidth()
-                                    .background(MaterialTheme.colorScheme.surfaceContainerLowest, BittrCanvasShapes.field)
-                                    .clickable { editingNote = true }
-                                    .padding(BittrTokens.Spacing.md)
+                                    .height(52.dp)
+                                    .clip(BittrCanvasShapes.pill)
+                                    .background(BittrTheme.colors.tonalFill)
+                                    .clickable(role = Role.Button) { editingNote = true }
                                     .testTag(TestID.Transaction.addNoteButton),
                             ) {
-                                Text(HomeStrings.ADD_A_NOTE, style = MaterialTheme.typography.labelLarge)
+                                Image(
+                                    rememberStrokeIcon(EDIT_NOTE_PATH, BittrTheme.colors.onTonalFill, strokeWidth = 2f),
+                                    contentDescription = null,
+                                    modifier = Modifier.size(20.dp),
+                                )
+                                Text(HomeStrings.ADD_A_NOTE, style = MaterialTheme.typography.labelLarge, color = BittrTheme.colors.onTonalFill)
                             }
                         }
                     }
@@ -678,3 +688,6 @@ private const val LINK_PATH = "M10 14a5 5 0 0 0 7 0l3-3a5 5 0 0 0-7-7l-1 1M14 10
 /** `SPConfetti.startAnimating(…, duration: 2)`. */
 private const val CONFETTI_MILLIS = 1_500
 private const val HEART_COUNT = 40
+
+/** A pencil — the "Add a note" glyph. */
+private const val EDIT_NOTE_PATH = "M4 20h4L19 9l-4-4L4 16v4z M13.5 6.5l4 4"

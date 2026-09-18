@@ -71,6 +71,7 @@ fun WalletRemovalHost(
                         // Cancelling a resumed removal is the way out too, drawn as the quiet
                         // text action rather than a second filled pill (review S20).
                         dismissesAlert = button.step == null || button.step == RemovalStep.CancelResume,
+                        destructive = button.destructive,
                         onClick = { coordinator.press(button) },
                     )
                 },

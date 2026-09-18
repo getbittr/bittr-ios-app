@@ -38,6 +38,8 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import com.bittr.android.core.designsystem.rememberFillIcon
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.graphics.Color
 import com.bittr.android.core.designsystem.BittrCanvasShapes
@@ -227,16 +229,16 @@ private fun QrBox(payload: String?, loading: Boolean, onCopy: () -> Unit, onShar
                         .combinedClickable(onClick = {}, onLongClick = { menuOpen = true })
                         .testTag(TestID.Receive.qrImageView),
                 )
-                // The bittr mark at the centre, on a white keyline (review, `receive_invoice/02`).
-                // 18 % of the width covers about 3 % of the modules, well inside what the
+                // The bittr mark at the centre, in a round white cut-out as iOS draws it (review,
+                // pass 3). A 20 % circle covers about 3 % of the modules, well inside what the
                 // code's level-H error correction (30 %) recovers.
                 Box(
                     contentAlignment = Alignment.Center,
                     modifier = Modifier
                         .align(Alignment.Center)
-                        .fillMaxSize(0.18f)
-                        .background(Color.White, RoundedCornerShape(8.dp))
-                        .padding(4.dp),
+                        .fillMaxSize(0.20f)
+                        .background(Color.White, CircleShape)
+                        .padding(6.dp),
                 ) {
                     BittrMark(
                         ink = Color.Black,
@@ -244,16 +246,32 @@ private fun QrBox(payload: String?, loading: Boolean, onCopy: () -> Unit, onShar
                         modifier = Modifier.fillMaxSize(),
                     )
                 }
-                DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
+                // The dialog's cream, 16 dp and a glyph per item, rather than Material's bare
+                // white list (review, `receive_onchain/03a`).
+                DropdownMenu(
+                    expanded = menuOpen,
+                    onDismissRequest = { menuOpen = false },
+                    shape = RoundedCornerShape(16.dp),
+                    containerColor = BittrTheme.colors.dialogContainer,
+                    tonalElevation = 0.dp,
+                    shadowElevation = 2.dp,
+                ) {
+                    val ink = BittrTheme.colors.onDialogContainer
                     DropdownMenuItem(
-                        text = { Text(ReceiveStrings.MENU_COPY) },
+                        text = { Text(ReceiveStrings.MENU_COPY, style = MaterialTheme.typography.labelLarge, color = ink) },
+                        leadingIcon = {
+                            Image(rememberFillIcon(BittrIconPaths.COPY, ink), contentDescription = null, modifier = Modifier.size(20.dp))
+                        },
                         onClick = {
                             menuOpen = false
                             onCopy()
                         },
                     )
                     DropdownMenuItem(
-                        text = { Text(ReceiveStrings.MENU_SHARE) },
+                        text = { Text(ReceiveStrings.MENU_SHARE, style = MaterialTheme.typography.labelLarge, color = ink) },
+                        leadingIcon = {
+                            Image(rememberFillIcon(SHARE_PATH, ink), contentDescription = null, modifier = Modifier.size(20.dp))
+                        },
                         onClick = {
                             menuOpen = false
                             onShare()
@@ -551,3 +569,7 @@ private const val COPY_PATH = "M9 9h11v11H9zM5 15V4h11"
 private const val RENEW_PATH = "M4 12a8 8 0 1 0 2.4-5.7M4 4v5h5"
 private const val EDIT_PATH = "M4 20h4L19 9l-4-4L4 16zM14 6l4 4"
 private const val MORE_PATH = "M6 9l6 6 6-6"
+
+/** Material's filled `share` (Apache 2.0). */
+private const val SHARE_PATH =
+    "M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81 1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9c-1.66 0-3 1.34-3 3s1.34 3 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.16c-.05.21-.08.43-.08.65 0 1.61 1.31 2.92 2.92 2.92s2.92-1.31 2.92-2.92-1.31-2.92-2.92-2.92z"

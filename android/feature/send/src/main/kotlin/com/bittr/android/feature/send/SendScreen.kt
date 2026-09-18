@@ -31,6 +31,12 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.text.font.FontWeight
+import com.bittr.android.core.designsystem.rememberFillIcon
+import com.bittr.android.core.designsystem.BittrRowLabel
 import com.bittr.android.core.designsystem.BittrCanvasShapes
 import com.bittr.android.core.designsystem.rememberTextClipboard
 import com.bittr.android.core.designsystem.BittrSpinner
@@ -301,10 +307,11 @@ private fun ColumnScope.SendPage(
         onIme = { if (controller.onToReturn()) amountFocus.requestFocus() else clearFocus() },
         testTag = TestID.Send.toTextField,
         modifier = Modifier.fillMaxWidth(),
+        ellipsizeWhenIdle = true,
     )
 
     Gap()
-    Row(horizontalArrangement = Arrangement.spacedBy(BittrTokens.Spacing.sm), verticalAlignment = Alignment.CenterVertically) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
         Entry(
             value = state.amountText,
             placeholder = SendStrings.ENTER_AMOUNT,
@@ -320,11 +327,18 @@ private fun ColumnScope.SendPage(
                 .weight(1f)
                 .focusRequester(amountFocus)
                 .onFocusChanged { amountFocused = it.hasFocus },
+            // Field and unit are one control: the field's right corners and the chip's left
+            // ones are square, and nothing sits between them (review, pass 3).
+            shape = RoundedCornerShape(topStart = 16.dp, bottomStart = 16.dp),
         )
-        OverlaidTile(TestID.Send.currencyButton, onClick = {
-            clearFocus()
-            controller.onCurrencyButton()
-        }) {
+        OverlaidTile(
+            TestID.Send.currencyButton,
+            onClick = {
+                clearFocus()
+                controller.onCurrencyButton()
+            },
+            shape = RoundedCornerShape(topEnd = 16.dp, bottomEnd = 16.dp),
+        ) {
             Text(state.currencyLabel, style = MaterialTheme.typography.labelLarge, modifier = Modifier.testTag(TestID.Send.currencyLabel))
         }
         // The keyboard's companion, so only there while the amount is being typed: with the
@@ -333,6 +347,7 @@ private fun ColumnScope.SendPage(
             Box(
                 contentAlignment = Alignment.Center,
                 modifier = Modifier
+                    .padding(start = BittrTokens.Spacing.sm)
                     .height(56.dp)
                     .clip(BittrCanvasShapes.pill)
                     .background(BittrTheme.colors.actionFill)
@@ -388,22 +403,43 @@ private fun ColumnScope.SendPage(
 private fun ColumnScope.ConfirmPage(confirm: ConfirmState, controller: SendController) {
     Text(SendStrings.CHECK_DETAILS, style = MaterialTheme.typography.titleMedium, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth())
     Gap()
+    // Gold label on the left, the value on the right — every detail row's shape (review S15,
+    // pass 3: these two had kept the stacked ink label).
     InfoBox {
-        Text(if (confirm.mode == SendMode.Onchain) SendStrings.ADDRESS else SendStrings.INVOICE, style = MaterialTheme.typography.labelLarge, color = BittrTheme.colors.emphasis)
-        Text(confirm.displayedAddress, style = MaterialTheme.typography.bodyMedium, maxLines = 4, modifier = Modifier.testTag(TestID.Send.Confirm.addressLabel))
+        Row(verticalAlignment = Alignment.Top) {
+            BittrRowLabel(if (confirm.mode == SendMode.Onchain) SendStrings.ADDRESS else SendStrings.INVOICE, modifier = Modifier.padding(end = 16.dp))
+            Text(
+                confirm.displayedAddress,
+                style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.SemiBold),
+                textAlign = TextAlign.End,
+                maxLines = 4,
+                modifier = Modifier
+                    .weight(1f)
+                    .testTag(TestID.Send.Confirm.addressLabel),
+            )
+        }
     }
     Gap(BittrTokens.Spacing.sm)
     InfoBox {
-        Text(SendStrings.AMOUNT, style = MaterialTheme.typography.labelLarge, color = BittrTheme.colors.emphasis)
-        Text(SendMath.formattedAmount(confirm.amountSats), style = MaterialTheme.typography.titleMedium, modifier = Modifier.testTag(TestID.Send.Confirm.amountLabel))
-        Text(confirm.amountFiat.orEmpty(), style = MaterialTheme.typography.bodyMedium, modifier = Modifier.testTag(TestID.Send.Confirm.amountFiatLabel))
+        Row(verticalAlignment = Alignment.Top) {
+            BittrRowLabel(SendStrings.AMOUNT, modifier = Modifier.weight(1f))
+            Column(horizontalAlignment = Alignment.End) {
+                Text(SendMath.formattedAmount(confirm.amountSats), style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.SemiBold), modifier = Modifier.testTag(TestID.Send.Confirm.amountLabel))
+                Text(
+                    confirm.amountFiat.orEmpty(),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.70f),
+                    modifier = Modifier.testTag(TestID.Send.Confirm.amountFiatLabel),
+                )
+            }
+        }
     }
     Gap(BittrTokens.Spacing.sm)
 
     if (confirm.mode == SendMode.Lightning) {
         InfoBox {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(SendStrings.ESTIMATED_FEES, style = MaterialTheme.typography.labelLarge, color = BittrTheme.colors.emphasis, modifier = Modifier.weight(1f))
+                BittrRowLabel(SendStrings.ESTIMATED_FEES, modifier = Modifier.weight(1f))
                 QuestionMark(testTag = null, onClick = controller::onLightningFeesQuestion)
             }
             Text("1 - ${SendMath.group(confirm.lightningFeesSats ?: 0)} ${SendStrings.SATS}", style = MaterialTheme.typography.bodyLarge)
@@ -419,14 +455,16 @@ private fun ColumnScope.ConfirmPage(confirm: ConfirmState, controller: SendContr
 
     Gap()
     Row(horizontalArrangement = Arrangement.spacedBy(BittrTokens.Spacing.sm), verticalAlignment = Alignment.CenterVertically) {
+        // An ink square with `arrow_back`, as the lesson pages' Back is (review, pass 3).
         Box(
             contentAlignment = Alignment.Center,
             modifier = Modifier
-                .size(52.dp)
-                .background(BittrTheme.colors.tonalFill, RoundedCornerShape(8.dp))
-                .clickable(onClick = controller::onBack),
+                .size(56.dp)
+                .clip(RoundedCornerShape(16.dp))
+                .background(BittrTheme.colors.actionFill)
+                .clickable(role = Role.Button, onClick = controller::onBack),
         ) {
-            Image(rememberStrokeIcon(BACK_PATH, BittrTheme.colors.onTonalFill, strokeWidth = 2f), contentDescription = "Back", modifier = Modifier.size(20.dp))
+            Image(rememberFillIcon(BittrIconPaths.BACK, BittrTheme.colors.onActionFill), contentDescription = "Back", modifier = Modifier.size(24.dp))
         }
         PrimaryButton(SendStrings.SEND, loading = confirm.sending, testTag = TestID.Send.Confirm.confirmButton, modifier = Modifier.weight(1f), onClick = controller::onConfirm)
     }
@@ -460,8 +498,8 @@ private fun InfoBox(content: @Composable ColumnScope.() -> Unit) {
         verticalArrangement = Arrangement.spacedBy(BittrTokens.Spacing.xxs),
         modifier = Modifier
             .fillMaxWidth()
-            .background(MaterialTheme.colorScheme.surfaceContainerLowest, RoundedCornerShape(8.dp))
-            .padding(BittrTokens.Spacing.md),
+            .background(MaterialTheme.colorScheme.surfaceContainerLowest, BittrCanvasShapes.field)
+            .padding(16.dp),
         content = content,
     )
 }
@@ -515,12 +553,17 @@ private fun ActionTile(label: String, path: String, testTag: String, modifier: M
 }
 
 @Composable
-private fun OverlaidTile(testTag: String, onClick: () -> Unit, content: @Composable () -> Unit) {
+private fun OverlaidTile(
+    testTag: String,
+    onClick: () -> Unit,
+    shape: androidx.compose.ui.graphics.Shape = RoundedCornerShape(8.dp),
+    content: @Composable () -> Unit,
+) {
     Box(
         contentAlignment = Alignment.Center,
         modifier = Modifier
-            .height(52.dp)
-            .background(BittrTheme.colors.tonalFill, RoundedCornerShape(8.dp))
+            .height(56.dp)
+            .background(BittrTheme.colors.tonalFill, shape)
             .padding(horizontal = BittrTokens.Spacing.md),
     ) {
         // Under the content, not over it: a node a later sibling covers entirely is dropped
@@ -571,15 +614,33 @@ private fun Entry(
     onIme: () -> Unit,
     testTag: String,
     modifier: Modifier = Modifier,
+    shape: androidx.compose.ui.graphics.Shape = BittrCanvasShapes.field,
+    ellipsizeWhenIdle: Boolean = false,
 ) {
     val colors = BittrTheme.colors
+    var focused by remember { mutableStateOf(false) }
+    // Not being edited, a long address or invoice shows its two ends on one line rather than
+    // clipping mid-string at the field's edge (review, pass 3). The field underneath keeps the
+    // whole value, and its test id, for editing and for the flows.
+    val idleText = ellipsizeWhenIdle && !focused && value.isNotEmpty()
     Box(
         contentAlignment = Alignment.CenterStart,
         modifier = modifier
             .height(56.dp)
-            .background(MaterialTheme.colorScheme.surfaceContainerLowest, BittrCanvasShapes.field)
+            .background(MaterialTheme.colorScheme.surfaceContainerLowest, shape)
+            .onFocusChanged { focused = it.hasFocus }
             .padding(horizontal = BittrTokens.Spacing.md),
     ) {
+        if (idleText) {
+            Text(
+                value,
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurface,
+                maxLines = 1,
+                overflow = TextOverflow.MiddleEllipsis,
+                modifier = Modifier.clearAndSetSemantics {},
+            )
+        }
         if (value.isEmpty()) {
             Text(placeholder, style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1)
         }
@@ -587,7 +648,9 @@ private fun Entry(
             value = value,
             onValueChange = onValueChange,
             singleLine = true,
-            textStyle = MaterialTheme.typography.bodyLarge.copy(color = MaterialTheme.colorScheme.onSurface),
+            textStyle = MaterialTheme.typography.bodyLarge.copy(
+                color = if (idleText) Color.Transparent else MaterialTheme.colorScheme.onSurface,
+            ),
             cursorBrush = SolidColor(colors.onTonalFill),
             keyboardOptions = KeyboardOptions(keyboardType = keyboardType, imeAction = imeAction, autoCorrectEnabled = false),
             keyboardActions = KeyboardActions(onNext = { onIme() }, onDone = { onIme() }),
@@ -604,4 +667,3 @@ private fun Gap(height: androidx.compose.ui.unit.Dp = BittrTokens.Spacing.md) =
 
 private const val SCAN_PATH = "M4 8V4h4M16 4h4v4M20 16v4h-4M8 20H4v-4M4 12h16"
 private const val PASTE_PATH = "M9 4h6v3H9zM7 5H5v15h14V5h-2"
-private const val BACK_PATH = "M15 5l-7 7 7 7"

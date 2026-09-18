@@ -397,6 +397,14 @@ data class BittrColors(
      * [tonalFill], so one app showed two dialog styles.
      */
     val dialogContainer: Color,
+    /**
+     * The one filled action of an alert that cannot be undone — removing the wallet, closing
+     * its connections. Material's error container, so "you are about to delete your wallet"
+     * does not look like "you have read this" (review S22). White on it is 6.5 : 1.
+     */
+    val destructiveFill: Color,
+    /** The label on [destructiveFill]. */
+    val onDestructiveFill: Color,
     /** Titles, messages and the cancelling button on [dialogContainer]. */
     val onDialogContainer: Color,
 
@@ -543,6 +551,8 @@ val BittrLightColorsExtended = BittrColors(
     onSwitchOn = Color.White,
     canvasArc = Color.White,
     dialogContainer = Color(0xFFFFFBEF),
+    destructiveFill = Color(0xFFB3261E),
+    onDestructiveFill = Color.White,
     onDialogContainer = Ink,
     // Fixed in both schemes — see [BittrColors.chartSurface] for the arithmetic that
     // leaves no other option, and `TokenContrastTest` for the assertions. BIT-156.
@@ -612,6 +622,8 @@ val BittrDarkColorsExtended = BittrColors(
     // brand-yellow sites already (see `brandFixed`). This is the eighth.
     canvasArc = Yellow,
     dialogContainer = Blue2,
+    destructiveFill = Color(0xFFB3261E),
+    onDestructiveFill = Color.White,
     onDialogContainer = Color.White,
     // Byte-identical to the light values on purpose, and the only group here that is.
     // The dark canvas admits no fill that both has an edge on `blue1` and carries white

@@ -40,7 +40,7 @@ import androidx.compose.ui.unit.dp
 
 private val HeaderHeight = 58.dp
 private val HeaderIcon = 18.dp
-private val RowHeight = 56.dp
+private val RowHeight = 64.dp
 private val NavBarHeight = 56.dp
 
 /**
@@ -139,6 +139,7 @@ fun BittrListRow(
     modifier: Modifier = Modifier,
     onClick: (() -> Unit)? = null,
     testTag: String? = null,
+    iconFilled: Boolean = false,
     trailing: (@Composable RowScope.() -> Unit)? = null,
 ) {
     // A `Surface` rather than a `background` modifier so the row also swaps
@@ -166,18 +167,21 @@ fun BittrListRow(
                 .heightIn(min = RowHeight)
                 .padding(horizontal = BittrTokens.Spacing.md, vertical = BittrTokens.Spacing.sm),
         ) {
+            // Gold glyph and a bold label, as the proposal draws a settings row (review,
+            // pass 3). Gold is `rowLabel`, the darkened one that holds 5 : 1 on the white row
+            // — the raw iOS `#F8C744` measured 1.6 : 1, which is why these were ink before.
             Image(
-                imageVector = rememberStrokeIcon(
-                    icon,
-                    BittrTheme.colors.emphasis,
-                    strokeWidth = 1.9f,
-                ),
+                imageVector = if (iconFilled) {
+                    rememberFillIcon(icon, BittrTheme.colors.rowLabel)
+                } else {
+                    rememberStrokeIcon(icon, BittrTheme.colors.rowLabel, strokeWidth = 1.9f)
+                },
                 contentDescription = null,
-                modifier = Modifier.size(22.dp),
+                modifier = Modifier.size(24.dp),
             )
             Text(
                 text = label,
-                style = MaterialTheme.typography.bodyLarge,
+                style = MaterialTheme.typography.labelLarge,
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
                 modifier = Modifier

@@ -10,6 +10,9 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.draw.clip
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.height
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.material3.LocalContentColor
@@ -42,6 +45,8 @@ import com.bittr.android.core.common.TestID
 data class BittrAlertButton(
     val label: String,
     val dismissesAlert: Boolean = false,
+    /** Cannot be undone — drawn on [BittrColors.destructiveFill] when it is the filled action. */
+    val destructive: Boolean = false,
     val onClick: () -> Unit,
 )
 
@@ -77,6 +82,7 @@ fun BittrAlert(
     buttons: List<BittrAlertButton>,
     modifier: Modifier = Modifier,
     messageIsValue: Boolean = false,
+    valueWraps: Boolean = false,
 ) {
     require(buttons.isNotEmpty()) {
         "A BittrAlert with no buttons cannot be dismissed — it would trap the user on " +
@@ -105,7 +111,7 @@ fun BittrAlert(
         textContentColor = BittrTheme.colors.onDialogContainer,
         shape = BittrCanvasShapes.card,
         title = { BittrDialogTitle(title) },
-        text = { if (messageIsValue) BittrDialogValue(message) else BittrDialogMessage(message) },
+        text = { if (messageIsValue) BittrDialogValue(message, wrap = valueWraps) else BittrDialogMessage(message) },
         // Both buttons go in one full-width stack rather than into AlertDialog's
         // confirm/dismiss slots. Those slots lay out side by side and truncate, and
         // the approved labels ("Continue", "Settings") sit next to a body of three
@@ -244,6 +250,17 @@ private fun AlertButton(button: BittrAlertButton, position: Int, style: AlertBut
         ) {
             Text(button.label, style = MaterialTheme.typography.labelLarge)
         }
+    } else if (button.destructive) {
+        Box(
+            contentAlignment = Alignment.Center,
+            modifier = buttonModifier
+                .height(BittrDialogButtonHeight)
+                .clip(BittrCanvasShapes.pill)
+                .background(BittrTheme.colors.destructiveFill)
+                .clickable(role = Role.Button, onClick = button.onClick),
+        ) {
+            Text(button.label, style = MaterialTheme.typography.labelLarge, color = BittrTheme.colors.onDestructiveFill)
+        }
     } else {
         // **Not a Material `Button`.** It would paint its container `primary`, and in
         // light mode `primary` is the brand yellow *on the `grey1` page* — 1.42 : 1,
@@ -286,14 +303,16 @@ fun BittrDialogTitle(text: String) {
  * invoice filled the dialog). TalkBack and the flows still read all of it.
  */
 @Composable
-fun BittrDialogValue(text: String) {
+fun BittrDialogValue(text: String, wrap: Boolean = false) {
+    // [wrap] is for a key checked character by character — a node's public key — which must
+    // be shown whole; a copied invoice only needs its two ends.
     Text(
         text = text,
         style = MaterialTheme.typography.bodyMedium.copy(fontFamily = FontFamily.Monospace),
         color = LocalContentColor.current.copy(alpha = 0.70f),
         textAlign = TextAlign.Center,
-        maxLines = 1,
-        overflow = TextOverflow.MiddleEllipsis,
+        maxLines = if (wrap) Int.MAX_VALUE else 1,
+        overflow = if (wrap) TextOverflow.Clip else TextOverflow.MiddleEllipsis,
         modifier = Modifier.fillMaxWidth(),
     )
 }

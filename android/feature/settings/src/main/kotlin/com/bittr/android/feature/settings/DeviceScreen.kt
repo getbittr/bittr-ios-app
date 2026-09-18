@@ -22,6 +22,11 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import com.bittr.android.core.designsystem.rememberFillIcon
+import androidx.compose.ui.graphics.Color
+import androidx.compose.foundation.background
+import androidx.compose.ui.draw.clip
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.contentDescription
@@ -135,6 +140,8 @@ internal fun DeviceScreen(
         BittrAlert(
             title = it.title,
             message = it.message,
+            messageIsValue = it.messageIsValue,
+            valueWraps = true,
             buttons = it.buttons.map { button ->
                 BittrAlertButton(
                     label = button.label,
@@ -197,7 +204,8 @@ internal fun DeviceScreen(
             //    (`showDarkMode()` / `hideDarkMode()`).
             BittrListRow(
                 label = SettingsStrings.DARK_MODE,
-                icon = BittrIconPaths.MOON,
+                icon = BittrIconPaths.DARK_MODE,
+                iconFilled = true,
                 testTag = TestID.Device.Row.darkmode,
             ) {
                 DarkModeControl(selected = state.darkMode, onSelect = onDarkMode)
@@ -312,31 +320,33 @@ private fun DarkModeControl(
     selected: DarkModeSetting,
     onSelect: (DarkModeSetting) -> Unit,
 ) {
-    Row(horizontalArrangement = Arrangement.spacedBy(BittrTokens.Spacing.xs)) {
+    // System, dark, light — iOS's order and the proposal's (review S23).
+    Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
         DarkModeButton(
-            path = BittrIconPaths.SUN,
-            label = "Light",
-            active = selected == DarkModeSetting.Light,
-            onClick = { onSelect(DarkModeSetting.Light) },
-            testTag = TestID.Device.Darkmode.sunButton,
+            path = BittrIconPaths.COMPUTER,
+            label = "Follow the device",
+            active = selected == DarkModeSetting.Device,
+            onClick = { onSelect(DarkModeSetting.Device) },
+            testTag = TestID.Device.Darkmode.deviceButton,
         )
         DarkModeButton(
-            path = BittrIconPaths.MOON,
+            path = BittrIconPaths.DARK_MODE,
             label = "Dark",
             active = selected == DarkModeSetting.Dark,
             onClick = { onSelect(DarkModeSetting.Dark) },
             testTag = TestID.Device.Darkmode.moonButton,
         )
         DarkModeButton(
-            path = BittrIconPaths.PHONE,
-            label = "Follow the device",
-            active = selected == DarkModeSetting.Device,
-            onClick = { onSelect(DarkModeSetting.Device) },
-            testTag = TestID.Device.Darkmode.deviceButton,
+            path = BittrIconPaths.LIGHT_MODE,
+            label = "Light",
+            active = selected == DarkModeSetting.Light,
+            onClick = { onSelect(DarkModeSetting.Light) },
+            testTag = TestID.Device.Darkmode.sunButton,
         )
     }
 }
 
+/** One mode: a 40 dp circle, cream behind the selected one, the glyph at 60 % when not. */
 @Composable
 private fun DarkModeButton(
     path: String,
@@ -346,19 +356,21 @@ private fun DarkModeButton(
     testTag: String,
 ) {
     val tint = androidx.compose.material3.MaterialTheme.colorScheme.onSurface
-        .copy(alpha = if (active) 1f else 0.45f)
+        .copy(alpha = if (active) 1f else 0.60f)
     Box(
         contentAlignment = Alignment.Center,
         modifier = Modifier
             .size(40.dp)
+            .clip(CircleShape)
+            .background(if (active) BittrTheme.colors.tonalFill else Color.Transparent)
             .clickable(onClick = onClick)
             .testTag(testTag)
             .semantics { contentDescription = if (active) "$label, selected" else label },
     ) {
         Image(
-            imageVector = rememberStrokeIcon(path, tint, strokeWidth = 1.9f),
+            imageVector = rememberFillIcon(path, if (active) BittrTheme.colors.onTonalFill else tint),
             contentDescription = null,
-            modifier = Modifier.size(22.dp),
+            modifier = Modifier.size(24.dp),
         )
     }
 }

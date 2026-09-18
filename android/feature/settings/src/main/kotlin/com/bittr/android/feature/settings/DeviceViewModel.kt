@@ -55,6 +55,8 @@ data class DeviceAlert(
     val title: String,
     val message: String,
     val buttons: List<DeviceAlertButton> = listOf(DeviceAlertButton(SettingsStrings.OKAY)),
+    /** The message is a key or token to check character by character, not a sentence. */
+    val messageIsValue: Boolean = false,
 )
 
 @HiltViewModel
@@ -131,6 +133,7 @@ class DeviceViewModel @Inject constructor(
             DeviceAlert(
                 title = SettingsStrings.PUBLIC_KEY,
                 message = key,
+                messageIsValue = true,
                 buttons = listOf(
                     DeviceAlertButton(SettingsStrings.COPY, DeviceAlertAction.Copy(key)),
                     DeviceAlertButton(SettingsStrings.CLOSE),

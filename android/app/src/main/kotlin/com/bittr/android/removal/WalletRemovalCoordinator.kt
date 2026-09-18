@@ -38,7 +38,8 @@ enum class RemovalStep {
     CancelResume,
 }
 
-data class RemovalButton(val label: String, val step: RemovalStep? = null)
+/** @property destructive the step erases the wallet or closes its connections — drawn red (review S22). */
+data class RemovalButton(val label: String, val step: RemovalStep? = null, val destructive: Boolean = false)
 
 data class RemovalAlert(val title: String, val message: String, val buttons: List<RemovalButton>)
 
@@ -169,7 +170,7 @@ class WalletRemovalCoordinator(
                     RemovalStrings.REMOVE_WALLET,
                     RemovalStrings.REMOVAL_IN_PROGRESS,
                     RemovalButton(RemovalStrings.CANCEL, RemovalStep.CancelResume),
-                    RemovalButton(RemovalStrings.REMOVE_WALLET, RemovalStep.ResumeRemoval),
+                    RemovalButton(RemovalStrings.REMOVE_WALLET, RemovalStep.ResumeRemoval, destructive = true),
                 )
             }
         }
@@ -194,7 +195,7 @@ class WalletRemovalCoordinator(
                     RemovalStrings.REMOVE_WALLET,
                     RemovalStrings.REMOVE_WALLET_1,
                     RemovalButton(RemovalStrings.CANCEL),
-                    RemovalButton(RemovalStrings.REMOVE_WALLET, RemovalStep.StartInBackground),
+                    RemovalButton(RemovalStrings.REMOVE_WALLET, RemovalStep.StartInBackground, destructive = true),
                 )
             }
 
@@ -219,7 +220,7 @@ class WalletRemovalCoordinator(
                 RemovalStrings.CLOSE_CHANNEL,
                 RemovalStrings.CLOSE_CHANNEL_2,
                 RemovalButton(RemovalStrings.CANCEL),
-                RemovalButton(RemovalStrings.CLOSE_CHANNEL, RemovalStep.CloseChannel),
+                RemovalButton(RemovalStrings.CLOSE_CHANNEL, RemovalStep.CloseChannel, destructive = true),
             )
             RemovalStep.CloseChannel -> scope.launch { closeChannelConfirmed() }
             RemovalStep.ForceClose -> scope.launch { forceCloseChannel() }
@@ -227,7 +228,7 @@ class WalletRemovalCoordinator(
                 RemovalStrings.REMOVE_WALLET,
                 RemovalStrings.RESTORE_WALLET_3,
                 RemovalButton(RemovalStrings.CANCEL),
-                RemovalButton(RemovalStrings.REMOVE, RemovalStep.Reset),
+                RemovalButton(RemovalStrings.REMOVE, RemovalStep.Reset, destructive = true),
             )
             RemovalStep.Reset -> scope.launch { performWalletReset() }
             RemovalStep.ResumeRemoval -> {
@@ -275,7 +276,7 @@ class WalletRemovalCoordinator(
                     RemovalStrings.REMOVE_WALLET,
                     RemovalStrings.RESTORE_WALLET_2,
                     RemovalButton(RemovalStrings.CANCEL),
-                    RemovalButton(RemovalStrings.REMOVE, RemovalStep.ConfirmRemove),
+                    RemovalButton(RemovalStrings.REMOVE, RemovalStep.ConfirmRemove, destructive = true),
                 )
             }
             return
@@ -292,7 +293,7 @@ class WalletRemovalCoordinator(
                     RemovalStrings.REMOVE_WALLET,
                     RemovalStrings.RESTORE_WALLET_4,
                     RemovalButton(RemovalStrings.CANCEL),
-                    RemovalButton(RemovalStrings.CLOSE_CHANNEL, RemovalStep.ConfirmCloseChannel),
+                    RemovalButton(RemovalStrings.CLOSE_CHANNEL, RemovalStep.ConfirmCloseChannel, destructive = true),
                 )
             }
         } else {
@@ -377,7 +378,7 @@ class WalletRemovalCoordinator(
                 RemovalStrings.CLOSE_CHANNEL_6,
                 RemovalStrings.CLOSE_CHANNEL_7,
                 RemovalButton(RemovalStrings.CANCEL),
-                RemovalButton(RemovalStrings.FORCE_CLOSE, RemovalStep.ForceClose),
+                RemovalButton(RemovalStrings.FORCE_CLOSE, RemovalStep.ForceClose, destructive = true),
             )
         }
     }
