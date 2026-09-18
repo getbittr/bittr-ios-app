@@ -139,7 +139,7 @@ class SwapController(
 
     fun onAvailableQuestion() = okay(SwapCopy.LIMIT_LIGHTNING, SwapCopy.LIMIT_LIGHTNING_ANSWER)
 
-    fun onBoltzTapped() = okay(SwapCopy.BOLTZ_EXPLANATION_TITLE, SwapCopy.plain(SwapCopy.BOLTZ_EXPLANATION))
+    fun onBoltzTapped() = okay(SwapCopy.BOLTZ_EXPLANATION_TITLE, SwapCopy.BOLTZ_EXPLANATION)
 
     /** `nextTapped`. */
     fun onNext() {

@@ -351,6 +351,7 @@ fun BittrNavHost(
                         popUpTo(Routes.PIN_UNLOCK) { inclusive = true }
                     }
                 },
+                onOpenArticle = { slug -> navController.navigate(Routes.article(slug)) },
             )
         }
 

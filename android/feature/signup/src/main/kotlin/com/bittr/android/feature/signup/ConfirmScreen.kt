@@ -6,7 +6,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
@@ -23,6 +22,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import com.bittr.android.core.common.TestID
 import com.bittr.android.core.designsystem.BittrCanvas
+import com.bittr.android.core.designsystem.BittrSpinner
 import com.bittr.android.core.designsystem.BittrCard
 import com.bittr.android.core.designsystem.BittrPrimaryButton
 import com.bittr.android.core.designsystem.BittrStepHeading
@@ -100,7 +100,7 @@ fun ConfirmScreen(
                         null
                     } else {
                         {
-                            CircularProgressIndicator(
+                            BittrSpinner(
                                 strokeWidth = 2.dp,
                                 // The pill is disabled while busy, so its label colour is.
                                 color = BittrTheme.colors.onActionFillDisabled,

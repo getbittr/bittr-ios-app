@@ -96,6 +96,13 @@ internal object HardenedWebView {
         settings.apply {
             javaScriptEnabled = JAVASCRIPT_ENABLED
 
+            // Web storage, scoped to each origin by the WebView. The block explorer (Esplora
+            // in development, mempool.space in production) is a single-page app that keeps
+            // its settings in localStorage and renders nothing at all without it — the blank
+            // `swap/20_explorer` the design review found (2026-09-18). Storage gives a page no
+            // reach beyond its own origin, and there is still no bridge on any origin.
+            domStorageEnabled = true
+
             // A page must not be able to read the filesystem or the app's private
             // directory. The last two are the ones that matter most: they are what
             // let a file:// document treat every other file as same-origin.

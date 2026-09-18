@@ -19,7 +19,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -35,6 +34,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.bittr.android.core.common.TestID
 import com.bittr.android.core.designsystem.BittrAlertButton
+import com.bittr.android.core.designsystem.BittrSpinner
 import com.bittr.android.core.designsystem.BittrBody
 import com.bittr.android.core.designsystem.BittrCanvas
 import com.bittr.android.core.designsystem.BittrCard
@@ -143,7 +143,7 @@ private fun PushLoadingCard(loading: PushLoading) {
                 .padding(25.dp)
                 .let { if (loading.testTag != null) it.testTag(loading.testTag) else it },
         ) {
-            CircularProgressIndicator(
+            BittrSpinner(
                 strokeWidth = 2.dp,
                 color = MaterialTheme.colorScheme.onSurface,
                 modifier = Modifier.size(20.dp),

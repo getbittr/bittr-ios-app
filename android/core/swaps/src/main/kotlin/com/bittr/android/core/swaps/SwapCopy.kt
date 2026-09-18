@@ -43,6 +43,9 @@ object SwapCopy {
         "Your Lightning payment didn't go through.<reason>\n\nLightning payments can fail when the receiver is offline or doesn't have the app open, when their wallet doesn't have enough receiving capacity, when there's no affordable route through the network, or when the invoice has expired. Try again later or ask the receiver to open their app."
     const val PAYMENT_FAILED_3 = "Unable to send bitcoin payment. Please sync your wallet and try again."
     const val DIRECTION = "Direction"
+
+    /** `swapstatus` — the status card's header. */
+    const val SWAP_STATUS_HEADER = "Swap status"
     const val AMOUNT = "Amount"
     const val FEES = "Fees"
     const val STATUS = "Status"

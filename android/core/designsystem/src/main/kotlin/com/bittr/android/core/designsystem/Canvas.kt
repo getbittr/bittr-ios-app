@@ -42,6 +42,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 
 /**
  * The onboarding canvas — the components the Android design
@@ -105,7 +106,7 @@ fun BittrCanvas(
     }
 }
 
-/** Back arrow, logo, overflow — the mock's 56 dp bar. */
+/** Back arrow and logo — the mock's 56 dp bar. */
 @Composable
 fun BittrAppBar(onBack: (() -> Unit)? = null, modifier: Modifier = Modifier) {
     Row(
@@ -129,22 +130,10 @@ fun BittrAppBar(onBack: (() -> Unit)? = null, modifier: Modifier = Modifier) {
         Box(Modifier.weight(1f), contentAlignment = Alignment.Center) {
             BittrLogo(height = 19.dp)
         }
-        // Inert by design — see the note on [BittrCanvas].
-        Box(Modifier.size(AppBarIconBox), contentAlignment = Alignment.Center) {
-            Column(
-                verticalArrangement = Arrangement.spacedBy(3.dp),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                modifier = Modifier.clearAndSetSemantics {},
-            ) {
-                repeat(3) {
-                    Box(
-                        Modifier
-                            .size(4.dp)
-                            .background(LocalContentColor.current, CircleShape),
-                    )
-                }
-            }
-        }
+        // Balances the back arrow so the logo stays centred. The mock drew an overflow
+        // `⋮` here; it opened nothing, and the design review asked for it to go from every
+        // screen without secondary actions — the PIN screens above all (2026-09-18, S21).
+        Box(Modifier.size(AppBarIconBox))
     }
 }
 
@@ -370,6 +359,41 @@ fun BittrPartnerRow(modifier: Modifier = Modifier) {
     }
 }
 
+/**
+ * The app's one indeterminate spinner (review S11): round caps and a faint track in its own
+ * colour, so a still frame reads as "working" rather than as a stray arc. Ink by default;
+ * pass [color] on a filled button.
+ */
+@Composable
+fun BittrSpinner(
+    modifier: Modifier = Modifier,
+    color: Color = BittrTheme.colors.onCanvas,
+    strokeWidth: Dp = 3.dp,
+) {
+    androidx.compose.material3.CircularProgressIndicator(
+        modifier = modifier,
+        color = color,
+        strokeWidth = strokeWidth,
+        trackColor = color.copy(alpha = 0.20f),
+        strokeCap = StrokeCap.Round,
+    )
+}
+
+/**
+ * The label on a white detail row — "Amount", "Fees", "Status" — in 13 sp semibold gold, so
+ * a row reads as a label and a value rather than two values (review S15). Gold is
+ * [BittrColors.rowLabel], the darkened one that holds 5 : 1 on white (DEV-40).
+ */
+@Composable
+fun BittrRowLabel(text: String, modifier: Modifier = Modifier) {
+    Text(
+        text = text,
+        style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.SemiBold, letterSpacing = 0.2.sp),
+        color = BittrTheme.colors.rowLabel,
+        modifier = modifier,
+    )
+}
+
 /** A white value row — the mock's field, and the container for a phrase word. */
 @Composable
 fun BittrValueRow(
@@ -491,6 +515,7 @@ fun BittrAlertDialog(
     dismissLabel: String? = null,
     onDismiss: () -> Unit = onConfirm,
     dismissTestTag: String? = null,
+    messageIsValue: Boolean = false,
 ) {
     val colors = BittrTheme.colors
     androidx.compose.material3.AlertDialog(
@@ -500,7 +525,7 @@ fun BittrAlertDialog(
         titleContentColor = colors.onDialogContainer,
         textContentColor = colors.onDialogContainer,
         title = { BittrDialogTitle(title) },
-        text = { BittrDialogMessage(message) },
+        text = { if (messageIsValue) BittrDialogValue(message) else BittrDialogMessage(message) },
         confirmButton = {
             AlertButton(
                 label = confirmLabel,

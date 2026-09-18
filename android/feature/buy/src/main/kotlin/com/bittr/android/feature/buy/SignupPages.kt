@@ -19,7 +19,6 @@ import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -55,6 +54,7 @@ import com.bittr.android.core.common.TestID
 import com.bittr.android.feature.academy.ArticleCard
 import com.bittr.android.feature.academy.BittrArticles
 import com.bittr.android.core.designsystem.BittrBody
+import com.bittr.android.core.designsystem.BittrSpinner
 import com.bittr.android.core.designsystem.BittrPartnerRow
 import androidx.compose.foundation.layout.height
 import com.bittr.android.core.designsystem.BittrTonalButton
@@ -476,7 +476,7 @@ private fun BusyButton(text: String, busy: Boolean, dimmed: Boolean, onClick: ()
                 .testTag(tag),
         )
         if (busy) {
-            CircularProgressIndicator(
+            BittrSpinner(
                 strokeWidth = 2.dp,
                 color = if (dimmed) BittrTheme.colors.onActionFillDisabled else BittrTheme.colors.onActionFill,
                 modifier = Modifier

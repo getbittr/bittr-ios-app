@@ -25,6 +25,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.material3.ripple
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.contentDescription
@@ -128,7 +129,9 @@ fun PinScreen(
                     if (clearOnSubmit) pin = ""
                 },
                 enabled = SeedWalletService.isValidPin(pin),
-                arrow = false,
+                // "Next" carries on to the confirm step; "Confirm" completes in place. iOS's
+                // Signup5 and Signup6, which the review found both reading "Confirm".
+                arrow = confirmLabel == SignupStrings.NEXT,
                 modifier = Modifier.testTag(TestID.Pin.confirmButton),
             )
             // Without a back button the confirm pill would otherwise sit on the
@@ -269,8 +272,14 @@ private fun RowScope.Key(
         modifier = Modifier
             .weight(1f)
             .heightIn(min = 62.dp)
-            .clip(BittrCanvasShapes.pill)
-            .clickable(enabled = enabled, onClick = onClick)
+            // A 56 dp circle of ink behind the numeral when pressed, not a pill as wide as the
+            // column and clipped by its neighbours (review S17).
+            .clickable(
+                enabled = enabled,
+                interactionSource = null,
+                indication = ripple(bounded = false, radius = 28.dp, color = BittrTheme.colors.onCanvas),
+                onClick = onClick,
+            )
             .then(
                 if (label != null) {
                     Modifier.semantics { this.contentDescription = label }

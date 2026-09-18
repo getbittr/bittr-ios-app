@@ -185,7 +185,8 @@ class PushCoordinatorTest {
         coordinator.receive(addressPush)
         val signIn = state.alert!!
         assertEquals(TestID.Alert.paymentRequest, signIn.testTag)
-        assertEquals("Someone wants to pay you 21 000 satoshis! Please sign in to accept the payment.", signIn.message)
+        // The amount keeps its `<b>`: the alert renders it bold, as iOS does.
+        assertEquals("Someone wants to pay you <b>21 000 satoshis</b>! Please sign in to accept the payment.", signIn.message)
         coordinator.onAlertButton(signIn.buttons.single())
         assertTrue(answered.isEmpty())
 

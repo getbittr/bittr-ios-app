@@ -101,6 +101,7 @@ fun CreateWalletScreen(
 
         CreateWalletStep.PinSet -> PinScreen(
             title = SignupStrings.SET_A_PIN,
+            confirmLabel = SignupStrings.NEXT,
             titleTestTag = TestID.Signup.Create.PinSet.topLabel,
             onSubmit = viewModel::submitFirstPin,
             modifier = modifier,

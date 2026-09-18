@@ -23,7 +23,6 @@ import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.MaterialTheme
@@ -42,7 +41,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.graphics.Color
 import com.bittr.android.core.designsystem.BittrCanvasShapes
+import com.bittr.android.core.designsystem.BittrSpinner
 import com.bittr.android.core.designsystem.BittrMark
+import com.bittr.android.core.designsystem.BittrRowLabel
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.draw.clip
@@ -263,7 +264,7 @@ private fun QrBox(payload: String?, loading: Boolean, onCopy: () -> Unit, onShar
             }
         }
         if (loading) {
-            CircularProgressIndicator(
+            BittrSpinner(
                 color = BittrTheme.colors.emphasis,
                 modifier = Modifier.testTag(TestID.Receive.qrSpinner),
             )
@@ -283,30 +284,27 @@ private fun AddressBox(state: ReceiveUiState, onQuestion: () -> Unit) {
         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
             if (display?.showBolt == true) {
                 Image(
-                    imageVector = rememberStrokeIcon(BittrIconPaths.BOLT, BittrTheme.colors.emphasis),
+                    imageVector = rememberStrokeIcon(BittrIconPaths.BOLT, BittrTheme.colors.rowLabel),
                     contentDescription = null,
-                    modifier = Modifier.size(18.dp),
+                    modifier = Modifier.size(16.dp),
                 )
             }
-            Text(
+            BittrRowLabel(
                 text = if (state.loading) "" else display?.title.orEmpty(),
-                style = MaterialTheme.typography.titleMedium,
-                color = BittrTheme.colors.emphasis,
                 modifier = Modifier
                     .padding(start = if (display?.showBolt == true) BittrTokens.Spacing.xs else 0.dp)
                     .testTag(TestID.Receive.addressTitle),
             )
             BittrHelpButton(onClick = onQuestion, modifier = Modifier.testTag(TestID.Receive.questionButton))
             val address = if (state.loading) "" else display?.addressLabel.orEmpty()
-            // A Lightning address stays on one line and gives way in the middle, so it never
-            // breaks inside the domain (review, `receive_lnurl/03b`).
+            // A Lightning address is read aloud and typed, so it is never elided (review, pass 2,
+            // `receive/02`): up to two lines, breaking before the `@` rather than inside the
+            // domain. The zero-width space is display only — the copy action reads the model.
             val lightningAddress = '@' in address
             Text(
-                text = address,
-                style = MaterialTheme.typography.bodyLarge,
+                text = if (lightningAddress) address.replace("@", "\u200B@") else address,
+                style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.SemiBold),
                 textAlign = TextAlign.End,
-                maxLines = if (lightningAddress) 1 else Int.MAX_VALUE,
-                overflow = if (lightningAddress) TextOverflow.MiddleEllipsis else TextOverflow.Clip,
                 modifier = Modifier
                     .weight(1f)
                     .testTag(TestID.Receive.addressLabel),
@@ -335,23 +333,27 @@ private fun CardsRow(
     onEdit: () -> Unit,
     onMore: () -> Unit,
 ) {
+    // Two actions sit icon-beside-label at 52 dp; three or four stack the icon above the label so
+    // none truncates (review S8). Every action is labelled either way (review S16).
+    val stacked = listOf(true, cards.refresh, cards.edit, cards.more).count { it } > 2
     Row(horizontalArrangement = Arrangement.spacedBy(BittrTokens.Spacing.sm), modifier = Modifier.fillMaxWidth()) {
         ReceiveCard(
-            label = if (cards.copyLabel) ReceiveStrings.COPY else null,
+            label = ReceiveStrings.COPY,
             path = COPY_PATH,
             contentDescription = ReceiveStrings.COPY,
             onClick = onCopy,
             testTag = TestID.Receive.copyButton,
-            modifier = if (cards.copyLabel) Modifier.weight(1f) else Modifier,
+            modifier = Modifier.weight(1f),
+            stacked = stacked,
         )
         if (cards.refresh) {
-            ReceiveCard(ReceiveStrings.RENEW, RENEW_PATH, ReceiveStrings.RENEW, onRefresh, TestID.Receive.refreshButton, Modifier.weight(1f))
+            ReceiveCard(ReceiveStrings.RENEW, RENEW_PATH, ReceiveStrings.RENEW, onRefresh, TestID.Receive.refreshButton, Modifier.weight(1f), stacked)
         }
         if (cards.edit) {
-            ReceiveCard(ReceiveStrings.ADD_AMOUNT, EDIT_PATH, ReceiveStrings.ADD_AMOUNT, onEdit, TestID.Receive.editButton, Modifier.weight(1.3f))
+            ReceiveCard(ReceiveStrings.ADD_AMOUNT, EDIT_PATH, ReceiveStrings.ADD_AMOUNT, onEdit, TestID.Receive.editButton, Modifier.weight(1.3f), stacked)
         }
         if (cards.more) {
-            ReceiveCard(ReceiveStrings.MORE, MORE_PATH, ReceiveStrings.MORE, onMore, TestID.Receive.moreButton, Modifier.weight(1f))
+            ReceiveCard(ReceiveStrings.MORE, MORE_PATH, ReceiveStrings.MORE, onMore, TestID.Receive.moreButton, Modifier.weight(1f), stacked)
         }
     }
 }
@@ -361,6 +363,12 @@ private fun CardsRow(
  * Side by side they truncated ("Rene", "Add") — review S8. A label that still does not fit, at a
  * large font scale, is dropped rather than cut, and the icon carries the name for TalkBack.
  */
+/**
+ * One tonal action. Stacked — icon above label — when the row holds three or four, so the label
+ * has the button's whole width (side by side they truncated, "Rene", "Add": review S8); side by
+ * side at 52 dp when it holds two. A label that still does not fit at a large font scale is
+ * dropped rather than cut, and the icon carries the name for TalkBack.
+ */
 @Composable
 private fun ReceiveCard(
     label: String?,
@@ -369,36 +377,55 @@ private fun ReceiveCard(
     onClick: () -> Unit,
     testTag: String,
     modifier: Modifier = Modifier,
+    stacked: Boolean = true,
 ) {
     val colors = BittrTheme.colors
-    var labelFits by remember(label) { mutableStateOf(true) }
+    var labelFits by remember(label, stacked) { mutableStateOf(true) }
     val showLabel = label != null && labelFits
-    Column(
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(4.dp, Alignment.CenterVertically),
-        modifier = modifier
-            .widthIn(min = 56.dp)
-            .height(64.dp)
-            .clip(RoundedCornerShape(16.dp))
-            .background(colors.tonalFill)
-            .clickable(role = Role.Button, onClick = onClick)
-            .padding(horizontal = 4.dp)
-            .testTag(testTag),
-    ) {
+    val icon = @Composable {
         Image(
             imageVector = rememberStrokeIcon(path, colors.onTonalFill, strokeWidth = 2f),
             contentDescription = if (showLabel) null else contentDescription,
             modifier = Modifier.size(20.dp),
         )
+    }
+    val text = @Composable {
         if (label != null && labelFits) {
             Text(
                 label,
-                style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
+                style = if (stacked) MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold) else MaterialTheme.typography.labelLarge,
                 color = colors.onTonalFill,
                 maxLines = 1,
                 softWrap = false,
                 onTextLayout = { if (it.hasVisualOverflow) labelFits = false },
             )
+        }
+    }
+    val base = modifier
+        .widthIn(min = 56.dp)
+        .height(if (stacked) 64.dp else 52.dp)
+        .clip(if (stacked) RoundedCornerShape(16.dp) else BittrCanvasShapes.pill)
+        .background(colors.tonalFill)
+        .clickable(role = Role.Button, onClick = onClick)
+        .padding(horizontal = if (stacked) 4.dp else BittrTokens.Spacing.md)
+        .testTag(testTag)
+    if (stacked) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(4.dp, Alignment.CenterVertically),
+            modifier = base,
+        ) {
+            icon()
+            text()
+        }
+    } else {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally),
+            modifier = base,
+        ) {
+            icon()
+            text()
         }
     }
 }

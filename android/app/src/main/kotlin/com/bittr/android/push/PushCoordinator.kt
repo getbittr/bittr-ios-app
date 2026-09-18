@@ -414,7 +414,7 @@ class PushCoordinator(
             return
         }
         pending = push
-        val amount = PushStrings.plain(PushStrings.PAYMENT_REQUEST_SIGN_IN).replace("<amount>", PushStrings.groupedSats(amountMsats))
+        val amount = PushStrings.PAYMENT_REQUEST_SIGN_IN.replace("<amount>", PushStrings.groupedSats(amountMsats))
         when {
             !signedIn -> {
                 wasNotified = true
@@ -425,7 +425,7 @@ class PushCoordinator(
             else -> alert(
                 TestID.Alert.paymentRequest,
                 PushStrings.PAYMENT_REQUEST,
-                PushStrings.plain(PushStrings.PAYMENT_REQUEST_HANDLE_NOW).replace("<amount>", PushStrings.groupedSats(amountMsats)),
+                PushStrings.PAYMENT_REQUEST_HANDLE_NOW.replace("<amount>", PushStrings.groupedSats(amountMsats)),
                 PushAlertButton(PushStrings.CANCEL, dismisses = true) { pending = null },
                 PushAlertButton(PushStrings.HANDLE_NOW, dismisses = false) { answerLightningAddress(push, handler) },
             )

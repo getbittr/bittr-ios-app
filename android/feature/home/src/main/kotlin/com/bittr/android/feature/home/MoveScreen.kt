@@ -24,6 +24,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.sp
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -32,6 +34,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.bittr.android.core.common.TestID
 import com.bittr.android.core.designsystem.BittrAlert
+import com.bittr.android.core.designsystem.BittrCanvasShapes
+import com.bittr.android.core.designsystem.BittrRowLabel
 import com.bittr.android.core.designsystem.BittrHelpButton
 import com.bittr.android.core.designsystem.BittrAlertButton
 import com.bittr.android.core.designsystem.BittrCanvas
@@ -159,39 +163,45 @@ fun MoveScreen(
             )
             BittrCard {
                 Column(verticalArrangement = Arrangement.spacedBy(BittrTokens.Spacing.sm)) {
-                    BalanceRow(HomeStrings.TOTAL, balances.total, balances.totalFiat, TestID.Move.satsTotal)
-                    BalanceRow(HomeStrings.REGULAR, balances.regular, balances.regularFiat, TestID.Move.satsRegular)
-                    BalanceRow(
-                        title = HomeStrings.INSTANT,
-                        sats = balances.instant,
-                        fiat = balances.instantFiat,
-                        satsTag = TestID.Move.satsInstant,
-                        bolt = true,
-                        onQuestion = {
-                            when {
-                                balances.pendingClosureSats > 0 -> {
-                                    val message = HomeStrings.PENDING_CLOSURE.replace("<pendingfunds>", groupThousands(balances.pendingClosureSats))
-                                    if (balances.lightningSats == 0L) {
-                                        okay(HomeStrings.CONNECTION_CLOSED, message)
-                                    } else {
-                                        alert = (HomeStrings.CONNECTION_CLOSED to message) to listOf(
-                                            BittrAlertButton(HomeStrings.CLOSE, dismissesAlert = true) { alert = null },
-                                            BittrAlertButton(HomeStrings.VIEW_ACTIVE_CONNECTION) {
-                                                alert = null
-                                                onLightningQuestion()
-                                            },
-                                        )
+                    // The total on its own card, with Regular and Instant as two halves under it, so
+                    // the total reads as the sum of the two (review, Move).
+                    TotalCard(balances.total, balances.totalFiat, TestID.Move.satsTotal)
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        HalfCard(HomeStrings.REGULAR, balances.regular, balances.regularFiat, TestID.Move.satsRegular, Modifier.weight(1f))
+                        HalfCard(
+                            title = HomeStrings.INSTANT,
+                            modifier = Modifier.weight(1f),
+                            sats = balances.instant,
+                            fiat = balances.instantFiat,
+                            satsTag = TestID.Move.satsInstant,
+                            bolt = true,
+                            onQuestion = {
+                                when {
+                                    balances.pendingClosureSats > 0 -> {
+                                        val message = HomeStrings.PENDING_CLOSURE.replace("<pendingfunds>", groupThousands(balances.pendingClosureSats))
+                                        if (balances.lightningSats == 0L) {
+                                            okay(HomeStrings.CONNECTION_CLOSED, message)
+                                        } else {
+                                            alert = (HomeStrings.CONNECTION_CLOSED to message) to listOf(
+                                                BittrAlertButton(HomeStrings.CLOSE, dismissesAlert = true) { alert = null },
+                                                BittrAlertButton(HomeStrings.VIEW_ACTIVE_CONNECTION) {
+                                                    alert = null
+                                                    onLightningQuestion()
+                                                },
+                                            )
+                                        }
                                     }
+                                    balances.channelCount == 0 -> okay(HomeStrings.LIGHTNING_CONNECTIONS, HomeStrings.LIGHTNING_EXPLANATION_1)
+                                    else -> onLightningQuestion()
                                 }
-                                balances.channelCount == 0 -> okay(HomeStrings.LIGHTNING_CONNECTIONS, HomeStrings.LIGHTNING_EXPLANATION_1)
-                                else -> onLightningQuestion()
-                            }
-                        },
-                    )
+                            },
+                        )
+                    }
                     Row(horizontalArrangement = Arrangement.spacedBy(BittrTokens.Spacing.sm)) {
                         MoveButton(HomeStrings.SEND, BittrIconPaths.SEND, null, Modifier.weight(1f), onSend)
                         MoveButton(HomeStrings.RECEIVE, BittrIconPaths.RECEIVE, null, Modifier.weight(1f), onReceive)
-                        MoveButton(null, SWAP_PATH, TestID.Move.swapButton, Modifier) {
+                        // Labelled like its neighbours (review S16).
+                        MoveButton(HomeStrings.MOVE, SWAP_PATH, TestID.Move.swapButton, Modifier.weight(1f)) {
                             if (balances.channelCount == 0) {
                                 okay(HomeStrings.INSTANT_PAYMENTS, HomeStrings.QUESTION_VC_13)
                             } else {
@@ -205,39 +215,71 @@ fun MoveScreen(
     }
 }
 
+/** The total: its own white card, the figure large and on the right. */
 @Composable
-private fun BalanceRow(
-    title: String,
-    sats: String,
-    fiat: String?,
-    satsTag: String,
-    bolt: Boolean = false,
-    onQuestion: (() -> Unit)? = null,
-) {
+private fun TotalCard(sats: String, fiat: String?, satsTag: String) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier
             .fillMaxWidth()
-            .background(MaterialTheme.colorScheme.surfaceContainerLowest, RoundedCornerShape(8.dp))
-            .padding(start = BittrTokens.Spacing.md, end = if (onQuestion == null) BittrTokens.Spacing.md else 0.dp)
-            .height(64.dp),
+            .heightIn(min = 76.dp)
+            .background(MaterialTheme.colorScheme.surfaceContainerLowest, RoundedCornerShape(20.dp))
+            .padding(horizontal = 16.dp),
     ) {
-        if (bolt) {
-            Image(
-                rememberStrokeIcon(BittrIconPaths.BOLT, BittrTheme.colors.emphasis, strokeWidth = 2f),
-                contentDescription = null,
-                modifier = Modifier
-                    .padding(end = BittrTokens.Spacing.xs)
-                    .size(16.dp),
-            )
-        }
-        Text(title, style = MaterialTheme.typography.labelLarge, color = BittrTheme.colors.emphasis, modifier = Modifier.weight(1f))
+        BittrRowLabel(HomeStrings.TOTAL, modifier = Modifier.weight(1f))
         Column(horizontalAlignment = Alignment.End) {
-            Text(sats, style = MaterialTheme.typography.titleMedium, modifier = Modifier.testTag(satsTag))
-            fiat?.let { Text(it, style = MaterialTheme.typography.bodyMedium) }
+            Text(
+                sats,
+                style = MaterialTheme.typography.titleLarge.copy(fontSize = 24.sp),
+                modifier = Modifier.testTag(satsTag),
+            )
+            fiat?.let {
+                Text(it, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.60f))
+            }
         }
-        if (onQuestion != null) {
-            BittrHelpButton(onClick = onQuestion, modifier = Modifier.testTag(TestID.Move.channelButton))
+    }
+}
+
+/** Regular or Instant: half the row, the label on top and the figure under it. */
+@Composable
+private fun HalfCard(
+    title: String,
+    sats: String,
+    fiat: String?,
+    satsTag: String,
+    modifier: Modifier = Modifier,
+    bolt: Boolean = false,
+    onQuestion: (() -> Unit)? = null,
+) {
+    Column(
+        modifier = modifier
+            .heightIn(min = 84.dp)
+            .background(MaterialTheme.colorScheme.surfaceContainerLowest, RoundedCornerShape(20.dp))
+            .padding(start = 16.dp, end = if (onQuestion == null) 16.dp else 0.dp, top = 8.dp, bottom = 12.dp),
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.heightIn(min = 40.dp)) {
+            if (bolt) {
+                Image(
+                    rememberStrokeIcon(BittrIconPaths.BOLT, BittrTheme.colors.rowLabel, strokeWidth = 2f),
+                    contentDescription = null,
+                    modifier = Modifier
+                        .padding(end = 4.dp)
+                        .size(14.dp),
+                )
+            }
+            BittrRowLabel(title, modifier = Modifier.weight(1f))
+            if (onQuestion != null) {
+                BittrHelpButton(onClick = onQuestion, modifier = Modifier.testTag(TestID.Move.channelButton))
+            }
+        }
+        Text(
+            sats,
+            style = MaterialTheme.typography.titleLarge.copy(fontSize = 20.sp),
+            maxLines = 1,
+            modifier = Modifier.testTag(satsTag),
+        )
+        fiat?.let {
+            Text(it, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.60f))
         }
     }
 }
@@ -253,7 +295,7 @@ private fun MoveButton(label: String?, path: String, testTag: String?, modifier:
             .background(colors.tonalFill, RoundedCornerShape(12.dp))
             .clickable(onClick = onClick)
             .then(if (testTag != null) Modifier.testTag(testTag) else Modifier)
-            .padding(horizontal = BittrTokens.Spacing.md),
+            .padding(horizontal = 8.dp),
     ) {
         Image(
             rememberStrokeIcon(path, colors.onTonalFill, strokeWidth = 2.2f),

@@ -36,6 +36,7 @@ import com.bittr.android.feature.signup.SignupStrings
 fun UnlockScreen(
     onUnlocked: () -> Unit,
     modifier: Modifier = Modifier,
+    onOpenArticle: ((String) -> Unit)? = null,
     viewModel: UnlockViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsState()
@@ -86,6 +87,9 @@ fun UnlockScreen(
             busy = state.busy,
             submitLabel = UnlockStrings.RESET_PIN,
             onRemoveWallet = viewModel::removeWalletTapped,
+            // "How to recover my wallet?", as on iOS — the one route to recovery help from the
+            // screen a user who forgot their PIN is stuck on (review, `forgot_pin/03`).
+            onOpenArticle = onOpenArticle,
             modifier = modifier,
         )
 
@@ -95,6 +99,7 @@ fun UnlockScreen(
         // the restore arc and this one.
         UnlockStep.ResetPinSet -> PinScreen(
             title = SignupStrings.SET_A_PIN,
+            confirmLabel = SignupStrings.NEXT,
             titleTestTag = TestID.Signup.Restore.PinSet.topLabel,
             onSubmit = viewModel::submitFirstPin,
             modifier = modifier,

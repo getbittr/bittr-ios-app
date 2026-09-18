@@ -20,7 +20,6 @@ import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -33,6 +32,7 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import com.bittr.android.core.designsystem.BittrCanvasShapes
+import com.bittr.android.core.designsystem.BittrSpinner
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.draw.clip
@@ -227,7 +227,7 @@ private fun BoxScope.LoadingCover(message: String, testTag: String) {
                 .padding(BittrTokens.Spacing.lg)
                 .testTag(testTag),
         ) {
-            CircularProgressIndicator(strokeWidth = 2.dp, modifier = Modifier.size(20.dp))
+            BittrSpinner(strokeWidth = 2.dp, modifier = Modifier.size(20.dp))
             Text(message, style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurface)
         }
     }
@@ -282,6 +282,16 @@ private fun ColumnScope.SendPage(
     Gap()
     Text(state.toLabel, style = MaterialTheme.typography.titleMedium, color = BittrTheme.colors.emphasis, modifier = Modifier.testTag(TestID.Send.toLabel))
     Gap(BittrTokens.Spacing.xs)
+    // The two ways in first, then the field they fill — the proposal's order (review, pass 2,
+    // `send_swap_suggestion_*/02`).
+    Row(horizontalArrangement = Arrangement.spacedBy(BittrTokens.Spacing.sm)) {
+        ActionTile(SendStrings.SCAN, SCAN_PATH, TestID.Send.scanButton, Modifier.weight(1f), onScan)
+        ActionTile(SendStrings.PASTE, PASTE_PATH, TestID.Send.pasteButton, Modifier.weight(1f)) {
+            clearFocus()
+            controller.onPaste(clipboard.getText()?.text)
+        }
+    }
+    Gap(BittrTokens.Spacing.sm)
     Entry(
         value = state.toText,
         placeholder = state.toPlaceholder,
@@ -292,14 +302,6 @@ private fun ColumnScope.SendPage(
         testTag = TestID.Send.toTextField,
         modifier = Modifier.fillMaxWidth(),
     )
-    Gap(BittrTokens.Spacing.sm)
-    Row(horizontalArrangement = Arrangement.spacedBy(BittrTokens.Spacing.sm)) {
-        ActionTile(SendStrings.SCAN, SCAN_PATH, TestID.Send.scanButton, Modifier.weight(1f), onScan)
-        ActionTile(SendStrings.PASTE, PASTE_PATH, TestID.Send.pasteButton, Modifier.weight(1f)) {
-            clearFocus()
-            controller.onPaste(clipboard.getText()?.text)
-        }
-    }
 
     Gap()
     Row(horizontalArrangement = Arrangement.spacedBy(BittrTokens.Spacing.sm), verticalAlignment = Alignment.CenterVertically) {
@@ -360,7 +362,7 @@ private fun ColumnScope.SendPage(
             Text(state.available, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.testTag(TestID.Send.availableLabel))
         }
         if (state.availableLoading) {
-            CircularProgressIndicator(
+            BittrSpinner(
                 strokeWidth = 2.dp,
                 color = MaterialTheme.colorScheme.onSurface,
                 modifier = Modifier
@@ -552,7 +554,7 @@ private fun PrimaryButton(label: String, loading: Boolean, testTag: String, modi
             .testTag(testTag),
     ) {
         if (loading) {
-            CircularProgressIndicator(strokeWidth = 2.dp, color = BittrTheme.colors.onActionFill, modifier = Modifier.size(20.dp))
+            BittrSpinner(strokeWidth = 2.dp, color = BittrTheme.colors.onActionFill, modifier = Modifier.size(20.dp))
         } else {
             Text(label, style = MaterialTheme.typography.labelLarge, color = BittrTheme.colors.onActionFill)
         }

@@ -186,7 +186,7 @@ class SwapCoordinator(
             .replace("<amount>", SwapAmounts.group(swap.satoshisAmount))
             .replace("<convertedamount>", "$currencyCode $convertedAmount")
         val caution = if (swap.direction == SwapDirection.OnchainToLightning) SwapCopy.ONCHAIN_TO_LIGHTNING_EXPLANATION else ""
-        return SwapCopy.plain(message + caution + " " + SwapCopy.WISH_TO_PROCEED)
+        return message + caution + " " + SwapCopy.WISH_TO_PROCEED
     }
 
     /**

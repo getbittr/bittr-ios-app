@@ -116,9 +116,7 @@ fun BittrAlert(
                 modifier = Modifier.fillMaxWidth(),
                 verticalArrangement = Arrangement.spacedBy(BittrTokens.Spacing.xs),
             ) {
-                buttons.forEachIndexed { position, button ->
-                    AlertButton(button = button, position = position, alone = buttons.size == 1)
-                }
+                AlertButtons(buttons)
             }
         },
         // The dialog is its own window and semantics root, so the app root's
@@ -177,9 +175,7 @@ fun BittrInlineAlert(
                 modifier = Modifier.fillMaxWidth(),
                 verticalArrangement = Arrangement.spacedBy(BittrTokens.Spacing.xs),
             ) {
-                buttons.forEachIndexed { position, button ->
-                    AlertButton(button = button, position = position, alone = buttons.size == 1)
-                }
+                AlertButtons(buttons)
             }
         }
     }
@@ -198,16 +194,47 @@ private const val SCRIM_ALPHA = 0.45f
  * `onSurfaceVariant` is what "quieter" is supposed to mean on a surface — 5.57 : 1
  * light, 5.28 : 1 dark. A11Y-22, BIT-94.
  */
+/**
+ * One filled action per alert (review S20). The actions come first and the way out last, as
+ * quiet text; a single action is the ink pill, and two or more are peers, so they are all tonal.
+ * An alert with nothing but a way out draws it as the pill. The ids keep the caller's order —
+ * `alert.button.0` is still the first button passed, wherever it lands — because the flows,
+ * shared with iOS, select by index.
+ */
 @Composable
-private fun AlertButton(button: BittrAlertButton, position: Int, alone: Boolean) {
+private fun AlertButtons(buttons: List<BittrAlertButton>) {
+    val indexed = buttons.withIndex().toList()
+    val actions = indexed.filterNot { it.value.dismissesAlert }
+    val exits = indexed.filter { it.value.dismissesAlert }
+    val style = when {
+        actions.isEmpty() -> null
+        actions.size == 1 -> AlertButtonStyle.Filled
+        else -> AlertButtonStyle.Tonal
+    }
+    actions.forEach { (position, button) -> AlertButton(button, position, style ?: AlertButtonStyle.Filled) }
+    exits.forEach { (position, button) ->
+        AlertButton(button, position, if (actions.isEmpty()) AlertButtonStyle.Filled else AlertButtonStyle.Text)
+    }
+}
+
+private enum class AlertButtonStyle { Filled, Tonal, Text }
+
+@Composable
+private fun AlertButton(button: BittrAlertButton, position: Int, style: AlertButtonStyle) {
     val buttonModifier = Modifier
         .fillMaxWidth()
         .padding(vertical = BittrTokens.Spacing.xs)
         .testTag(TestID.Alert.buttonAt(position))
 
-    // The way out is drawn quiet only beside another action; an alert's only button is the
-    // filled ink pill, whatever it does (review S2).
-    if (position == 0 && button.dismissesAlert && !alone) {
+    if (style == AlertButtonStyle.Tonal) {
+        BittrTonalButton(
+            text = button.label,
+            onClick = button.onClick,
+            modifier = buttonModifier.height(BittrDialogButtonHeight),
+        )
+        return
+    }
+    if (style == AlertButtonStyle.Text) {
         TextButton(
             onClick = button.onClick,
             modifier = buttonModifier,
@@ -253,9 +280,10 @@ fun BittrDialogTitle(text: String) {
 }
 
 /**
- * A value an alert reports rather than a sentence — the invoice a "Copied" alert echoes.
- * 14 sp monospace at 70 %, at most six lines: at body size a Lightning invoice filled the
- * dialog (review, `receive_invoice/04`). TalkBack and the flows still read all of it.
+ * A value an alert reports rather than a sentence — the invoice or id a "Copied" alert echoes.
+ * 14 sp monospace at 70 %, on one line that gives way in the middle, so the start and the end
+ * of the hash — the parts people compare — stay visible (review S19; at body size a Lightning
+ * invoice filled the dialog). TalkBack and the flows still read all of it.
  */
 @Composable
 fun BittrDialogValue(text: String) {
@@ -264,15 +292,21 @@ fun BittrDialogValue(text: String) {
         style = MaterialTheme.typography.bodyMedium.copy(fontFamily = FontFamily.Monospace),
         color = LocalContentColor.current.copy(alpha = 0.70f),
         textAlign = TextAlign.Center,
-        maxLines = 6,
-        overflow = TextOverflow.Ellipsis,
+        maxLines = 1,
+        overflow = TextOverflow.MiddleEllipsis,
         modifier = Modifier.fillMaxWidth(),
     )
 }
 
-/** An alert's message: 16 sp on 24, centred, at 80 % of the dialog's content colour. */
+/**
+ * An alert's message: 16 sp on 24, centred, at 80 % of the dialog's content colour.
+ *
+ * The shared copy's `<b>` spans render bold ([bittrMarkup]), as iOS renders them: the amount,
+ * the fee, the balance the user has to check before answering (review S12). Callers pass the
+ * copy with its markup rather than stripping it.
+ */
 @Composable
-fun BittrDialogMessage(text: String) = BittrDialogMessage(AnnotatedString(text))
+fun BittrDialogMessage(text: String) = BittrDialogMessage(bittrMarkup(text))
 
 /** [BittrDialogMessage] for a message with markup — bold spans, links. */
 @Composable

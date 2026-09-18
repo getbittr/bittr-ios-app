@@ -273,7 +273,7 @@ class SendController(
     )
 
     /** `switchQuestionTapped`. */
-    fun onSwitchQuestion() = raise(okay(SendStrings.TRANSACTION_TYPE, SendMath.plain(SendStrings.TRANSACTION_TYPE_3)))
+    fun onSwitchQuestion() = raise(okay(SendStrings.TRANSACTION_TYPE, SendStrings.TRANSACTION_TYPE_3))
 
     /** `availableQuestionTapped`. */
     fun onAvailableQuestion() {
@@ -503,8 +503,8 @@ class SendController(
                     return@launch stopNext(
                         SendAlert(
                             title = SendStrings.INSUFFICIENT_FUNDS,
-                            message = SendMath.plain(SendStrings.ONCHAIN_INSUFFICIENT_FUNDS).replace("<amount>", SendMath.group(spendable)) +
-                                "\n\n" + SendMath.plain(SendStrings.SWAP_INSUFFICIENT_FUNDS_LIGHTNING).replace("<amount>", SendMath.group(lightning)),
+                            message = SendStrings.ONCHAIN_INSUFFICIENT_FUNDS.replace("<amount>", SendMath.group(spendable)) +
+                                "\n\n" + SendStrings.SWAP_INSUFFICIENT_FUNDS_LIGHTNING.replace("<amount>", SendMath.group(lightning)),
                             buttons = listOf(
                                 // `cancelSwapOffer` clears the amount.
                                 SendAlertButton(SendStrings.CANCEL) { _state.update { it.copy(amountText = "") } },
@@ -614,14 +614,14 @@ class SendController(
         }
         val sendable = source.lightningSendableSats()
         if (sats > sendable) {
-            val lightningShort = SendMath.plain(SendStrings.LIGHTNING_INSUFFICIENT_FUNDS).replace("<amount>", SendMath.group(sendable))
+            val lightningShort = SendStrings.LIGHTNING_INSUFFICIENT_FUNDS.replace("<amount>", SendMath.group(sendable))
             // `checkAvailableOnchainBalance`: offer Swap & Pay when the on-chain balance could cover it.
             val onchain = source.onchainSpendableSats()
             if (onchain >= sats) {
                 raise(
                     SendAlert(
                         title = SendStrings.INSUFFICIENT_FUNDS,
-                        message = lightningShort + "\n\n" + SendMath.plain(SendStrings.SWAP_INSUFFICIENT_FUNDS).replace("<amount>", SendMath.group(onchain)),
+                        message = lightningShort + "\n\n" + SendStrings.SWAP_INSUFFICIENT_FUNDS.replace("<amount>", SendMath.group(onchain)),
                         buttons = listOf(
                             SendAlertButton(SendStrings.CANCEL),
                             SendAlertButton(SendStrings.SWAP_AND_PAY) { _effects.tryEmit(SendEffect.SwapAndPayInvoice(destination.invoice, sats)) },
@@ -710,7 +710,7 @@ class SendController(
         raise(
             SendAlert(
                 title = SendStrings.SEND_TRANSACTION,
-                message = SendMath.plain(SendStrings.SEND_CONFIRMATION)
+                message = SendStrings.SEND_CONFIRMATION
                     .replace("<amount>", SendMath.group(confirm.amountSats))
                     .replace("<fees>", SendMath.group(fee))
                     .replace("<address>", confirm.addressOrInvoice),

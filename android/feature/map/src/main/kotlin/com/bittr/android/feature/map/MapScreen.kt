@@ -16,7 +16,6 @@ import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -40,6 +39,7 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.bittr.android.core.common.TestID
 import com.bittr.android.core.designsystem.BittrAlertDialog
+import com.bittr.android.core.designsystem.BittrSpinner
 import com.bittr.android.core.designsystem.exposeTestTags
 import com.bittr.android.core.designsystem.BittrCanvas
 import com.bittr.android.core.designsystem.BittrCanvasShapes
@@ -188,7 +188,7 @@ internal fun MapScreen(
             )
 
             if (state.isSyncing) {
-                CircularProgressIndicator(
+                BittrSpinner(
                     color = BittrTheme.colors.onCanvas,
                     modifier = Modifier
                         .align(Alignment.Center)

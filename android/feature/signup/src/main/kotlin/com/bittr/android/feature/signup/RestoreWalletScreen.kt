@@ -62,6 +62,7 @@ fun RestoreWalletScreen(
 
         RestoreWalletStep.PinSet -> PinScreen(
             title = SignupStrings.SET_A_PIN,
+            confirmLabel = SignupStrings.NEXT,
             titleTestTag = TestID.Signup.Restore.PinSet.topLabel,
             onSubmit = viewModel::submitFirstPin,
             modifier = modifier,

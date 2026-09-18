@@ -22,7 +22,6 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Switch
@@ -38,6 +37,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import com.bittr.android.core.designsystem.rememberStrokeIcon
+import com.bittr.android.core.designsystem.BittrIconPaths
+import androidx.compose.foundation.Image
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalClipboardManager
@@ -48,12 +50,14 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.bittr.android.core.common.TestID
 import com.bittr.android.core.designsystem.BittrBody
+import com.bittr.android.core.designsystem.BittrSpinner
 import androidx.compose.foundation.layout.RowScope
 import com.bittr.android.core.designsystem.BittrHelpButton
 import com.bittr.android.core.designsystem.BittrCopyButton
 import androidx.compose.foundation.layout.height
 import androidx.compose.runtime.CompositionLocalProvider
 import com.bittr.android.core.designsystem.BittrDialogTitle
+import com.bittr.android.core.designsystem.BittrDialogValue
 import com.bittr.android.core.designsystem.BittrDialogMessage
 import com.bittr.android.core.designsystem.BittrDialogButtonHeight
 import com.bittr.android.core.designsystem.BittrCanvasShapes
@@ -149,7 +153,7 @@ private fun BuyCards(state: BuyUiState, controller: BuyController, onDown: () ->
             )
         }
         if (state.refreshing) {
-            CircularProgressIndicator(
+            BittrSpinner(
                 strokeWidth = 2.dp,
                 color = LocalContentColor.current,
                 modifier = Modifier
@@ -230,6 +234,13 @@ private fun IbanCard(
         DetailRow(BuyStrings.OUR_NAME, entity.ourName, onCopy = { onCopy(entity.ourName) })
         DetailRow(BuyStrings.YOUR_CODE, entity.yourUniqueCode, valueTag = TestID.Buy.yourCode, onCopy = { onCopy(entity.yourUniqueCode) })
         DetailRowSurface {
+            Image(
+                imageVector = rememberStrokeIcon(BittrIconPaths.BOLT, MaterialTheme.colorScheme.onSurface, strokeWidth = 2f),
+                contentDescription = null,
+                modifier = Modifier
+                    .padding(end = 8.dp)
+                    .size(18.dp),
+            )
             Text(BuyStrings.LIGHTNING, style = MaterialTheme.typography.labelLarge)
             BittrHelpButton(
                 onClick = onQuestion,
@@ -237,7 +248,7 @@ private fun IbanCard(
             )
             Box(Modifier.weight(1f))
             if (pending) {
-                CircularProgressIndicator(
+                BittrSpinner(
                     strokeWidth = 2.dp,
                     modifier = Modifier
                         .padding(end = BittrTokens.Spacing.sm)
@@ -340,7 +351,8 @@ internal fun BuyAlertCard(alert: BuyAlert, onAction: (BuyAction) -> Unit) {
         ) {
             CompositionLocalProvider(LocalContentColor provides BittrTheme.colors.onDialogContainer) {
                 if (alert.title.isNotEmpty()) BittrDialogTitle(alert.title)
-                BittrDialogMessage(bittrMarkup(alert.message))
+                // "Copied" echoes the value (review S19); everything else is a sentence.
+                if (alert.id == TestID.Alert.copied) BittrDialogValue(alert.message) else BittrDialogMessage(bittrMarkup(alert.message))
             }
             alert.buttons.forEachIndexed { position, button ->
                 val tag = Modifier

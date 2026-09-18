@@ -14,7 +14,6 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -27,6 +26,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import com.bittr.android.core.common.TestID
 import com.bittr.android.core.designsystem.BittrTheme
+import com.bittr.android.core.designsystem.BittrSpinner
 import com.bittr.android.core.designsystem.BittrTokens
 import com.bittr.android.core.designsystem.rememberStrokeIcon
 import kotlinx.coroutines.delay
@@ -116,7 +116,7 @@ private fun SyncRow(label: String, done: Boolean) {
                     modifier = Modifier.size(18.dp),
                 )
             } else {
-                CircularProgressIndicator(strokeWidth = 2.dp, modifier = Modifier.size(18.dp))
+                BittrSpinner(strokeWidth = 2.dp, modifier = Modifier.size(18.dp))
             }
         }
         Text(label, style = MaterialTheme.typography.bodyLarge)

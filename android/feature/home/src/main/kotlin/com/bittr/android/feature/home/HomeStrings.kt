@@ -14,6 +14,7 @@ internal object HomeStrings {
 
     // The action row.
     const val SEND = "Send"
+    const val MOVE = "Move"
     const val RECEIVE = "Receive"
     const val BUY = "Buy"
 

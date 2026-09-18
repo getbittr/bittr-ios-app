@@ -51,6 +51,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.bittr.android.core.common.TestID
 import com.bittr.android.core.designsystem.BittrAlertDialog
+import com.bittr.android.core.designsystem.BittrCanvasShapes
+import com.bittr.android.core.designsystem.BittrRowLabel
 import com.bittr.android.core.designsystem.dismissOnPullDown
 import com.bittr.android.core.designsystem.BittrCanvas
 import com.bittr.android.core.designsystem.BittrCard
@@ -187,6 +189,7 @@ fun TransactionScreen(
         BittrAlertDialog(
             title = HomeStrings.COPIED,
             message = it,
+            messageIsValue = true,
             confirmLabel = HomeStrings.OKAY,
             onConfirm = { copied = null },
             confirmTestTag = TestID.Alert.buttonAt(0),
@@ -341,7 +344,7 @@ fun TransactionScreen(
                                 modifier = Modifier
                                     .padding(top = BittrTokens.Spacing.md)
                                     .fillMaxWidth()
-                                    .background(MaterialTheme.colorScheme.surfaceContainerLowest, RoundedCornerShape(8.dp))
+                                    .background(MaterialTheme.colorScheme.surfaceContainerLowest, BittrCanvasShapes.field)
                                     .clickable { editingNote = true }
                                     .padding(BittrTokens.Spacing.md)
                                     .testTag(TestID.Transaction.addNoteButton),
@@ -390,7 +393,7 @@ private fun ReminderCard() {
         modifier = Modifier
             .padding(top = BittrTokens.Spacing.md)
             .fillMaxWidth()
-            .background(MaterialTheme.colorScheme.surfaceContainerLowest, RoundedCornerShape(8.dp))
+            .background(MaterialTheme.colorScheme.surfaceContainerLowest, BittrCanvasShapes.field)
             .padding(BittrTokens.Spacing.md),
     ) {
         Text(HomeStrings.REMINDER, style = MaterialTheme.typography.labelLarge, color = BittrTheme.colors.emphasis)
@@ -478,7 +481,7 @@ private fun TextCard(title: String, text: String, textTag: String, buttonTag: St
         Box(
             modifier = Modifier
                 .matchParentSize()
-                .background(MaterialTheme.colorScheme.surfaceContainerLowest, RoundedCornerShape(8.dp))
+                .background(MaterialTheme.colorScheme.surfaceContainerLowest, BittrCanvasShapes.field)
                 .clickable(onClick = onClick)
                 .then(if (buttonTag != null) Modifier.testTag(buttonTag) else Modifier),
         )
@@ -488,7 +491,7 @@ private fun TextCard(title: String, text: String, textTag: String, buttonTag: St
                 .fillMaxWidth()
                 .padding(BittrTokens.Spacing.md),
         ) {
-            Text(title, style = MaterialTheme.typography.labelLarge, color = BittrTheme.colors.emphasis)
+            BittrRowLabel(title)
             Text(text, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.testTag(textTag))
         }
     }
@@ -506,10 +509,10 @@ private fun DetailRow(
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier
             .fillMaxWidth()
-            .background(MaterialTheme.colorScheme.surfaceContainerLowest, RoundedCornerShape(8.dp))
+            .background(MaterialTheme.colorScheme.surfaceContainerLowest, BittrCanvasShapes.field)
             .padding(horizontal = BittrTokens.Spacing.md, vertical = BittrTokens.Spacing.md),
     ) {
-        Text(title, style = MaterialTheme.typography.labelLarge, color = BittrTheme.colors.emphasis, modifier = Modifier.weight(1f))
+        BittrRowLabel(title, modifier = Modifier.weight(1f))
         if (bolt) {
             Image(
                 imageVector = rememberStrokeIcon(BittrIconPaths.BOLT, BittrTheme.colors.emphasis, strokeWidth = 2f),
@@ -521,7 +524,7 @@ private fun DetailRow(
         }
         Text(
             text = value,
-            style = MaterialTheme.typography.bodyLarge,
+            style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.SemiBold),
             color = valueColor,
             modifier = if (valueTag != null) Modifier.testTag(valueTag) else Modifier,
         )
@@ -539,7 +542,7 @@ private fun DescriptionRow(description: String, singleLine: Boolean, onClick: ()
         Box(
             modifier = Modifier
                 .matchParentSize()
-                .background(MaterialTheme.colorScheme.surfaceContainerLowest, RoundedCornerShape(8.dp))
+                .background(MaterialTheme.colorScheme.surfaceContainerLowest, BittrCanvasShapes.field)
                 .clickable(onClick = onClick)
                 .testTag(TestID.Transaction.descriptionButton),
         )
@@ -549,7 +552,7 @@ private fun DescriptionRow(description: String, singleLine: Boolean, onClick: ()
                 .fillMaxWidth()
                 .padding(horizontal = BittrTokens.Spacing.md, vertical = BittrTokens.Spacing.md),
         ) {
-            Text(HomeStrings.DESCRIPTION, style = MaterialTheme.typography.labelLarge, color = BittrTheme.colors.emphasis)
+            BittrRowLabel(HomeStrings.DESCRIPTION)
             Text(
                 text = description,
                 style = MaterialTheme.typography.bodyLarge,
@@ -572,7 +575,7 @@ private fun TappableRow(title: String, value: String, testTag: String?, onClick:
         Box(
             modifier = Modifier
                 .matchParentSize()
-                .background(MaterialTheme.colorScheme.surfaceContainerLowest, RoundedCornerShape(8.dp))
+                .background(MaterialTheme.colorScheme.surfaceContainerLowest, BittrCanvasShapes.field)
                 .clickable(onClick = onClick)
                 .then(if (testTag != null) Modifier.testTag(testTag) else Modifier),
         )
@@ -582,7 +585,7 @@ private fun TappableRow(title: String, value: String, testTag: String?, onClick:
                 .fillMaxWidth()
                 .padding(horizontal = BittrTokens.Spacing.md, vertical = BittrTokens.Spacing.md),
         ) {
-            Text(title, style = MaterialTheme.typography.labelLarge, color = BittrTheme.colors.emphasis, modifier = Modifier.weight(1f))
+            BittrRowLabel(title, modifier = Modifier.weight(1f))
             Text(text = value, style = MaterialTheme.typography.bodyLarge)
             Text(" ⓘ", style = MaterialTheme.typography.bodyLarge, color = BittrTheme.colors.emphasis)
         }
@@ -599,7 +602,7 @@ private fun SwapStatusRow(status: String, onClick: (() -> Unit)?) {
         Box(
             modifier = Modifier
                 .matchParentSize()
-                .background(MaterialTheme.colorScheme.surfaceContainerLowest, RoundedCornerShape(8.dp))
+                .background(MaterialTheme.colorScheme.surfaceContainerLowest, BittrCanvasShapes.field)
                 .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier)
                 .testTag(TestID.Transaction.swapStatusButton),
         )
@@ -609,7 +612,7 @@ private fun SwapStatusRow(status: String, onClick: (() -> Unit)?) {
                 .fillMaxWidth()
                 .padding(horizontal = BittrTokens.Spacing.md, vertical = BittrTokens.Spacing.md),
         ) {
-            Text(HomeStrings.SWAP_STATUS, style = MaterialTheme.typography.labelLarge, color = BittrTheme.colors.emphasis, modifier = Modifier.weight(1f))
+            BittrRowLabel(HomeStrings.SWAP_STATUS, modifier = Modifier.weight(1f))
             Text(text = status, style = MaterialTheme.typography.bodyLarge)
             if (onClick != null) {
                 Text(" ›", style = MaterialTheme.typography.bodyLarge, color = BittrTheme.colors.emphasis)
@@ -631,10 +634,10 @@ private fun IdRow(
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier
             .fillMaxWidth()
-            .background(MaterialTheme.colorScheme.surfaceContainerLowest, RoundedCornerShape(8.dp))
+            .background(MaterialTheme.colorScheme.surfaceContainerLowest, BittrCanvasShapes.field)
             .padding(start = BittrTokens.Spacing.md),
     ) {
-        Text(title, style = MaterialTheme.typography.labelLarge, color = BittrTheme.colors.emphasis)
+        BittrRowLabel(title)
         Text(
             text = id,
             style = MaterialTheme.typography.bodyMedium,
