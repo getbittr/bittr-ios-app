@@ -77,6 +77,27 @@ class ScannerScreenTest {
     }
 
     /**
+     * The scanner is a sheet like Send and Receive, so it closes the way they do, from
+     * the header's down chevron, as well as from its own Close button, which iOS keeps.
+     */
+    @Test
+    fun `the sheet header titles the scanner and its down chevron closes it`() {
+        start(ScannerUiState.Scanning)
+
+        composeRule.onNodeWithTag(TestID.Header.titleLabel).assertTextEquals("scanner")
+        composeRule.onNodeWithTag(TestID.Header.downButton).performClick()
+        composeRule.onNodeWithTag(TestID.Scanner.closeButton).performClick()
+        assertEquals(2, closes)
+    }
+
+    @Test
+    fun `the helper line sits under the frame`() {
+        start(ScannerUiState.Scanning)
+
+        composeRule.onNodeWithText(ScannerCopy.HELPER).assertIsDisplayed()
+    }
+
+    /**
      * The frame stays put under the alert.
      *
      * `send_onchain.yaml:78-81` asserts `scanner.scannerView` and then
