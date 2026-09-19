@@ -237,34 +237,6 @@ jobs:
         # they run here. No network: the tests stub the transport.
         run: python3 android/scripts/test_ci_runs.py
 
-      - name: Test the K1 harness
-        # K1 (BIT-18) is the measurement BIT-8 rule 2 rests on: does a
-        # non-auth-bound Keystore key survive a lock-screen change. Its result
-        # table can only be produced by android/scripts/k1-lockscreen-matrix.sh
-        # against real devices, which this workflow cannot do — but the driver
-        # that decides whether a row reads PASS is plain bash, and it can be
-        # tested here.
-        #
-        # That is the part worth gating. K1's failure mode is not a red row, it
-        # is a green row from a run where the mutation silently did not happen,
-        # quoted afterwards in a security statement. test-k1-driver.sh runs the
-        # real driver against a stub adb and asserts it comes out ERROR for each
-        # shape of that: a mutation command that exits 0 and changes nothing, a
-        # mutation that lands on the wrong credential, an open phase with no
-        # verdict line. None of these suites needs a device or the SDK.
-        #
-        # test-k1-annotation.sh covers how the table gets OUT. On this repository
-        # job logs (403), artefact zips (401) and the job summary (not in the API)
-        # are all unreadable without admin, so the annotation k1-ci.sh emits is
-        # the only copy most readers can get — and an unescaped newline truncates
-        # it to one line without erroring. Same shape of silent defect as a row
-        # that measured nothing.
-        run: |
-          set -euo pipefail
-          bash android/scripts/test-k1-verdict.sh
-          bash android/scripts/test-k1-annotation.sh
-          python3 android/scripts/test_k1_result.py
-          bash android/scripts/test-k1-driver.sh
       - name: Test the instrumented-results reader
         # Same argument, one job over. check-instrumented-results.py is what decides
         # whether the `instrumented` job's green means anything, and its whole
@@ -329,31 +301,6 @@ jobs:
         # checker is indistinguishable from a green run of a working one. These
         # fixtures are deliberately-wrong AARs that require a red.
         run: python3 android/scripts/test_check_ldk_data_loss_protect.py
-
-      - name: Test the regtest environment deriver
-        # BIT-132. regtest-ldk-env.py decides what a configured APK is allowed to
-        # reach, and it has exactly one green path that will be taken every night —
-        # so its only runs will be successful ones, which is the same argument the
-        # step above makes about a checker whose markers are all present.
-        #
-        # The two ways it can be wrong are both silent. A wrong PORT produces a
-        # wallet that starts, syncs nothing and reports zero balance, which looks
-        # like a chain with no coins on it. A wrong HOST produces a build that
-        # reaches somewhere it should not, which is the one failure in this
-        # repository that could spend real money. Both refusals get negative
-        # controls here, and the port numbers get compared against
-        # android/regtest/docker-compose.yml rather than against a copy of
-        # themselves.
-        run: python3 android/scripts/test_regtest_ldk_env.py
-
-      - name: Test the regtest results gate
-        # BIT-132. The twin of the wallet-instrumented gate's self-test, and it
-        # needs one more than that gate does: its job runs NIGHTLY, so a bug in it
-        # survives until someone looks rather than until the next push. It also
-        # cross-checks that every REQUIRED entry names a class and a method that
-        # exist in the source — the rename trap, caught in seconds instead of after
-        # an AVD boot in a job nobody is watching.
-        run: python3 android/scripts/test_check_wallet_regtest_results.py
 
       - name: Test the unit-test failure reporter
         # report-test-failures.py is the only thing that says WHICH unit test
@@ -428,47 +375,6 @@ jobs:
         # distinction is what lets the gate tell "the device said nothing" from
         # "nobody read the device".
         run: bash android/scripts/test_collect_wallet_evidence.sh
-
-      - name: Check K7's host phase still reaches its device phases
-        # BIT-132. The same class of guard as the step above, for the other
-        # host-driven suite — and with more joins to come apart, because K7 is
-        # four instrumented runs with the host funding, mining, holding an HTLC
-        # and killing the process between them. Every join is a string: the
-        # method names are Gradle `-P` values, the package is an `am kill`
-        # argument, the hand-off is an `adb shell` path, and the invoice and the
-        # payment hash are instrumentation bundle keys.
-        #
-        # Most of those drift toward a stall. One of them drifts toward a WRONG
-        # CONCLUSION: a phase that loses its @HostDriven annotation also runs
-        # inside the nightly job's undirected suite, out of order and in one
-        # process, and its failure is read as a fund-safety result. That one is
-        # checked in both directions — the annotation on every phase, and the
-        # filter on the run that has to apply it.
-        #
-        # Here rather than in the nightly job, for the reason the step above
-        # gives: this is greps over five files, and learning it at 03:20 UTC
-        # costs a 90-minute emulator run to be told something a grep knew.
-        run: bash android/scripts/test_k7_host_phase.sh
-
-      - name: Check K8's soak harness still reaches its device halves
-        # BIT-132. The third guard of this class, and it pins two joins the other
-        # two do not have.
-        #
-        # A LOGCAT TAG. K8's freshness half signals device -> host over logcat,
-        # because UiAutomation.executeShellCommand hands its string to
-        # Runtime.exec — there is no shell on the device side, so a redirect
-        # there would pass `>` to echo as a literal argument and write no file.
-        # The tag and the marker the host greps for are therefore a contract with
-        # nothing but this step behind it, and a drift costs the host its whole
-        # ten-minute wait before it exits 2.
-        #
-        # AN ANNOTATION THAT MUST BE PRESENT ON ONE CLASS AND ABSENT ON THE
-        # OTHER, which is the one that fails toward a wrong conclusion. The
-        # freshness half without @HostDriven also runs inside the undirected
-        # suite — before K7, with no channel — and its red reads as "the node did
-        # not survive Doze". The machinery half WITH @HostDriven runs nowhere at
-        # all, because the suite filters it out and no host script names it.
-        run: bash android/scripts/test_k8_doze_soak.sh
 
       - name: Check every flow ID is registered
         # A flow selecting an ID that is in no registry entry fails at run time

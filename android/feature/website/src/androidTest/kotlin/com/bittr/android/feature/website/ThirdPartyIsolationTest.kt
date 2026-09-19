@@ -203,6 +203,8 @@ class ThirdPartyIsolationTest {
                 context = instrumentation.targetContext,
                 onProgress = { if (it == 100) loaded.countDown() },
                 onPageUrlChanged = { },
+                // These pages are third-party: a Lightning link from one is dropped, never delivered.
+                onLnurl = { code, _, _ -> throw AssertionError("a third-party page delivered a Lightning link: $code") },
                 lnurlSlot = LnurlRequestSlot(),
             )
             webView.loadUrl(server.origin + path)
@@ -437,6 +439,8 @@ class ThirdPartyIsolationTest {
                 context = instrumentation.targetContext,
                 onProgress = { },
                 onPageUrlChanged = { },
+                // These pages are third-party: a Lightning link from one is dropped, never delivered.
+                onLnurl = { code, _, _ -> throw AssertionError("a third-party page delivered a Lightning link: $code") },
                 lnurlSlot = LnurlRequestSlot(),
             )
         }

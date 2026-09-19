@@ -425,3 +425,34 @@ Bitcoin-value/Academy and Map branches merged after it, and `c3fce62f`. Not take
   helper line "Point your camera at a QR code." is new copy iOS does not have — not yet approved.
 - **Decisions for Ruben:** keep the in-app "Copied" alert, or rely on Android 13+'s own clipboard chip
   (the flows assert the alert today); "Academy (beta)"; numbering the removal dialogs.
+
+## 42. CI: two stale workflows removed, and why the main one was red
+
+**2026-09-19.** `android-maestro.yml` had been red on every push since 2026-09-15 13:14, always in the
+**build** job, so the Maestro, S-36 and wallet emulator jobs never ran. Two causes, one behind the other:
+
+1. **The copy-lock check** (`shared/strings/check_flow_copy.py`) found a flow matching on text nobody had
+   classified — `"Don.t allow"`, Android 13+'s notification-permission deny button, added to
+   `buy_signup_no_notifications.yaml` on 2026-09-17. Classified as `system` in `copy-lock.json`.
+2. **Behind it, the website module's instrumented tests no longer compiled**: `HardenedWebView.create`
+   gained a required `onLnurl` with the Lightning-links port (2026-09-17). The three third-party isolation
+   tests now pass a handler that fails the test if a third-party page ever delivers a Lightning link.
+
+Removed, as stale:
+
+- **`k1-keystore-lockscreen.yml`** — the one-off BIT-18 Keystore/lock-screen measurement. 0 of 9 runs green,
+  last 2026-09-12, triggered only from `k1-run/*` branches that no longer exist. `docs/k1-keystore-lockscreen.md`
+  keeps the findings.
+- **`wallet-regtest-nightly.yml`** — the K7/K8 regtest node suite. 0 of 4 runs green (the private
+  electrs/LND network never came up healthy on a hosted runner), and its nightly schedule could never
+  fire: GitHub runs scheduled workflows from the default branch only, and `master` has no workflows.
+  `android/regtest/`, `docs/wallet-node-device-tests.md` and the `androidTestRegtest` sources stay, and
+  `android-maestro.yml` still compiles those sources.
+- With them, the five build-job steps that only self-tested their harness scripts (K1, the regtest
+  environment deriver and results gate, K7's host phase, K8's soak harness). The scripts stay in
+  `android/scripts/` as the record; nothing in CI runs them now.
+
+Kept: `android-maestro.yml`, `fcm-delivery.yml` (9 of 9 green), `workflow-lint.yml` (21 of 21 green).
+Local checks before pushing: actionlint 1.7.12 with shellcheck, the duplicate-key check, the copy-lock
+check and its 13 self-tests, every other script step of the build job, `./gradlew test`, and the three
+instrumented-test compiles.

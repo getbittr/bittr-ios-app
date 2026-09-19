@@ -318,6 +318,16 @@
       ]
     },
     {
+      "matcher": "Don.t allow",
+      "class": "system",
+      "keys": [],
+      "texts": {},
+      "why": "Android 13+'s notification permission dialog, deny button. A regex because the apostrophe is straight or curly depending on the Android version. The iOS counterpart is 'Allow'.",
+      "flows": [
+        "shared/flows/features/buy_signup_no_notifications.yaml"
+      ]
+    },
+    {
       "matcher": "Done",
       "class": "copy",
       "keys": [

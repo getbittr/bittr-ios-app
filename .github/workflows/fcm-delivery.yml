@@ -14,8 +14,8 @@ name: K2 — FCM delivery (google_apis emulator)
 # prints `FCM_WAKE_IMAGE playServices=… localTransport=…` from inside that suite
 # so the claim is fed by a measurement rather than by this comment.
 #
-# It is a separate FILE rather than a fourth job in android-maestro.yml for the
-# reason wallet-regtest-nightly.yml gives: on a single self-hosted runner all the
+# It is a separate FILE rather than a fourth job in android-maestro.yml because
+# on a single self-hosted runner all the
 # emulator jobs serialise, and android-maestro.yml already boots three AVDs inside
 # one 45-minute-per-job budget. A fourth would push every push's feedback out for
 # a leg that only changes when the FCM surface does. The `paths:` filter below is
