@@ -49,6 +49,8 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
     var chfDataFetched:Date?
     var currentValue:Data?
     var currentValueFetched:Date?
+    var graphPoints:[PricePoint]?
+    var isLoadingGraph = false
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -74,6 +76,9 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
     }
     
     func changeCurrency() {
+        // Update value card.
+        self.graphPoints = nil
+        
         // Update table.
         self.reloadTransactionsTable()
     }
