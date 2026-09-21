@@ -27,6 +27,9 @@ extension HomeHeaderTableViewCell {
         // Profit.
         self.calculateProfit()
         
+        // Bitcoin value graph.
+        self.loadGraph()
+        
         // Stop sync status spinner.
         if homeVC.coreVC!.walletHasSynced {
             self.showLabels()
@@ -36,6 +39,30 @@ extension HomeHeaderTableViewCell {
         
         // Check noTransactionsLabel.
         self.noTransactionsLabel.alpha = (!homeVC.didStartReset && homeVC.visibleTransactions.count == 0) ? 1 : 0
+    }
+    
+    func loadGraph() {
+        guard let homeVC = self.homeVC else { return }
+        
+        self.conversionGraph.horizontalInset = 25
+        self.conversionGraph.topInset = 10
+        self.conversionGraph.bottomInset = 25
+        self.conversionGraph.lineWidth = 4
+        self.conversionGraph.pointRadius = 0
+        self.conversionGraph.isInteractive = false
+        
+        // Show whatever has already been fetched.
+        self.conversionGraph.points = homeVC.graphPoints ?? []
+        
+        guard homeVC.graphPoints == nil, !homeVC.isLoadingGraph else { return }
+        homeVC.isLoadingGraph = true
+        
+        Task { [weak self, weak homeVC] in
+            defer { homeVC?.isLoadingGraph = false }
+            guard let snapshot = try? await PriceHistory.load(cache: homeVC), let points = snapshot.series[.week] else { return }
+            homeVC?.graphPoints = points
+            self?.conversionGraph.points = points
+        }
     }
     
     func showLabels() {

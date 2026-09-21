@@ -70,6 +70,125 @@ enum GraphSpan:String, CaseIterable {
     }
 }
 
+@MainActor
+enum PriceHistory {
+    
+    struct Snapshot {
+        let series:[GraphSpan:[PricePoint]]
+        let currentValue:CGFloat
+        let currency:String
+        let formattedValue:String
+    }
+    
+    enum LoadError:Error { case badResponse }
+    
+    // `cache` is HomeViewController, which holds the fetched payloads and warms
+    // them at startup (see prefetchPriceData). Pass nil to always hit the network.
+    static func load(cache:HomeViewController?) async throws -> Snapshot {
+        
+        let bitcoinValue = BitcoinManager.shared.bittrWallet.getCorrectBitcoinValue()
+        let isChf = (bitcoinValue.chosenCurrency == "CHF")
+        let freshCutoff = Calendar.current.date(byAdding: .minute, value: -15, to: Date())!
+        
+        // Historical series.
+        var historyData = Data()
+        if isChf, let cached = cache?.chfData, let fetchedAt = cache?.chfDataFetched, fetchedAt > freshCutoff {
+            historyData = cached
+        } else if !isChf, let cached = cache?.eurData, let fetchedAt = cache?.eurDataFetched, fetchedAt > freshCutoff {
+            historyData = cached
+        } else {
+            (historyData, _) = try await URLSession.shared.data(from: URL(string: bitcoinValue.apiUrl)!)
+            if isChf {
+                cache?.chfData = historyData
+                cache?.chfDataFetched = Date()
+            } else {
+                cache?.eurData = historyData
+                cache?.eurDataFetched = Date()
+            }
+        }
+        
+        guard let json = try JSONSerialization.jsonObject(with: historyData) as? [NSDictionary] else { throw LoadError.badResponse }
+        
+        // Data consists of dictionaries:
+        // - [0] Minute intervals
+        // - [1] Hourly intervals
+        // - [2] Daily intervals
+        // - [3] Monthly intervals
+        // - [4] Semi-annually intervals
+        // - [5] YTD
+        // - [6] 1 year
+        // - [7] 5 years
+        // - [8] Max
+        // Each dictionary consists of 5 key-value pairs
+        // - [0] time_retrieved_unix_iso8601 (2025-01-13T05:55:58Z)
+        // - [1] interval (daily)
+        // - [2] time_retrieved_unix (1736747758)
+        // - [3] data (12 dictionaries)
+        // - [4] pair (eur)
+        // The 12 data dictionaries consist of 3 key-value pairs.
+        // - [0] time_iso8601
+        // - [1] price (92189.2)
+        // - [2] time_unix
+        
+        // Parse each data point once with a single shared formatter.
+        let isoFormatter = ISO8601DateFormatter()
+        let now = Date()
+        
+        var parsedSeries = [GraphSpan:[PricePoint]]()
+        for eachSpan in GraphSpan.allCases {
+            guard json.count > eachSpan.apiIndex, let rawPoints = json[eachSpan.apiIndex]["data"] as? [NSDictionary] else { throw LoadError.badResponse }
+            parsedSeries[eachSpan] = self.pricePoints(from: rawPoints, span: eachSpan, formatter: isoFormatter, now: now)
+        }
+        
+        // Current value.
+        var valueData = Data()
+        if let cached = cache?.currentValue, let fetchedAt = cache?.currentValueFetched, fetchedAt > freshCutoff {
+            valueData = cached
+        } else {
+            (valueData, _) = try await URLSession.shared.data(from: URL(string: "https://getbittr.com/api/price/btc")!)
+            cache?.currentValue = valueData
+            cache?.currentValueFetched = Date()
+        }
+        
+        guard let currentJson = try JSONSerialization.jsonObject(with: valueData) as? [String: Any], let actualEurValue = currentJson["btc_eur"] as? String, let actualChfValue = currentJson["btc_chf"] as? String else { throw LoadError.badResponse }
+        
+        let rawValue = isChf ? actualChfValue : actualEurValue
+        let currentValue = rawValue.toNumber()
+        let preferredCurrency = isChf ? "CHF" : "€"
+        
+        Log.debug("EUR value: \(ValueViewController.formatEuroValue(actualEurValue)), CHF value: \(ValueViewController.formatEuroValue(actualChfValue)), currency: \(preferredCurrency)")
+        
+        // Append the current value so each graph ends on the value shown above it.
+        let currentPoint = PricePoint(date: Date(), price: currentValue)
+        var series = [GraphSpan:[PricePoint]]()
+        for eachSpan in GraphSpan.allCases {
+            series[eachSpan] = (parsedSeries[eachSpan] ?? []) + [currentPoint]
+        }
+        
+        return Snapshot(series: series, currentValue: currentValue, currency: preferredCurrency, formattedValue: ValueViewController.formatEuroValue(rawValue))
+    }
+    
+    static func pricePoints(from rawPoints:[NSDictionary], span:GraphSpan, formatter:ISO8601DateFormatter, now:Date) -> [PricePoint] {
+        
+        let cutoff = span.startDate(from: now)
+        var points = [PricePoint]()
+        var kept = 0
+        
+        for eachDataPoint in rawPoints {
+            guard let iso = eachDataPoint["time_iso8601"] as? String, let date = formatter.date(from: iso), cutoff < date else { continue }
+            kept += 1
+            guard (kept - 1) % span.sampleEvery == 0 else { continue }
+            guard let priceString = eachDataPoint["price"] as? String else { continue }
+            points += [PricePoint(date: date, price: priceString.toNumber())]
+        }
+        
+        // Drop the API's copy of the latest price.
+        if !points.isEmpty { points.removeLast() }
+        
+        return points
+    }
+}
+
 class ValueViewController: UIViewController {
 
     // General
@@ -163,7 +282,6 @@ class ValueViewController: UIViewController {
         self.addHeader(iconLight: "iconexchange", iconDark: "iconexchangeyellow", title: Language.getWord(withID: "bitcoinvalue"))
         
         // Load graph
-        self.graphView.valueVC = self
         self.getCurrentValue()
     }
     
@@ -176,137 +294,30 @@ class ValueViewController: UIViewController {
         // Start from empty arrays.
         self.series = [:]
         
-        // Get latest value
         Task {
             do {
-                let bitcoinValue = BitcoinManager.shared.bittrWallet.getCorrectBitcoinValue()
-                let eurUrl = URL(string: bitcoinValue.apiUrl)!
-                var eurData = Data()
-                let freshCutoff = Calendar.current.date(byAdding: .minute, value: -15, to: Date())!
-                if bitcoinValue.chosenCurrency == "CHF", let cached = self.homeVC?.chfData, let fetchedAt = self.homeVC?.chfDataFetched, fetchedAt > freshCutoff {
-                    eurData = cached
-                } else if bitcoinValue.chosenCurrency != "CHF", let cached = self.homeVC?.eurData, let fetchedAt = self.homeVC?.eurDataFetched, fetchedAt > freshCutoff {
-                    eurData = cached
-                } else {
-                    (eurData, _) = try await URLSession.shared.data(from: eurUrl)
-                    if bitcoinValue.chosenCurrency == "CHF" {
-                        self.homeVC?.chfData = eurData
-                        self.homeVC?.chfDataFetched = Date()
-                    } else {
-                        self.homeVC?.eurData = eurData
-                        self.homeVC?.eurDataFetched = Date()
-                    }
-                }
+                let snapshot = try await PriceHistory.load(cache: self.homeVC)
                 
-                guard let json = try JSONSerialization.jsonObject(with: eurData) as? [NSDictionary] else { return }
+                self.series = snapshot.series
+                self.currentValue = snapshot.currentValue
+                self.currentValueLabel.text = "\(snapshot.currency) \(snapshot.formattedValue)"
                 
-                // Data consists of dictionaries:
-                // - [0] Minute intervals
-                // - [1] Hourly intervals
-                // - [2] Daily intervals
-                // - [3] Monthly intervals
-                // - [4] Semi-annually intervals
-                // - [5] YTD
-                // - [6] 1 year
-                // - [7] 5 years
-                // - [8] Max
-                // Each dictionary consists of 5 key-value pairs
-                // - [0] time_retrieved_unix_iso8601 (2025-01-13T05:55:58Z)
-                // - [1] interval (daily)
-                // - [2] time_retrieved_unix (1736747758)
-                // - [3] data (12 dictionaries)
-                // - [4] pair (eur)
-                // The 12 data dictionaries consist of 3 key-value pairs.
-                // - [0] time_iso8601
-                // - [1] price (92189.2)
-                // - [2] time_unix
-                
-                // Parse each data point once with a single shared formatter.
-                let isoFormatter = ISO8601DateFormatter()
-                let now = Date()
-                
-                var parsedSeries = [GraphSpan:[PricePoint]]()
-                for eachSpan in GraphSpan.allCases {
-                    guard json.count > eachSpan.apiIndex, let rawPoints = json[eachSpan.apiIndex]["data"] as? [NSDictionary] else { return }
-                    parsedSeries[eachSpan] = self.pricePoints(from: rawPoints, span: eachSpan, formatter: isoFormatter, now: now)
-                }
-                
-                var data = Data()
-                
-                if let cached = self.homeVC?.currentValue, let fetchedAt = self.homeVC?.currentValueFetched, fetchedAt > freshCutoff {
-                    data = cached
-                } else {
-                    let envUrl = URL(string: "https://getbittr.com/api/price/btc")!
-                    (data, _) = try await URLSession.shared.data(from: envUrl)
-
-                    self.homeVC?.currentValue = data
-                    self.homeVC?.currentValueFetched = Date()
-                }
-                
-                guard let currentJson = try JSONSerialization.jsonObject(with: data) as? [String: Any], let actualEurValue = currentJson["btc_eur"] as? String, let actualChfValue = currentJson["btc_chf"] as? String else { return }
-                    
-                DispatchQueue.main.async {
-                    let formattedEurValue = self.formatEuroValue(actualEurValue)
-                    let formattedChfValue = self.formatEuroValue(actualChfValue)
-                    
-                    self.currentValue = actualEurValue.toNumber()
-                    var preferredCurrency = "€"
-                    var valueToDisplay = formattedEurValue
-                    if bitcoinValue.chosenCurrency == "CHF" {
-                        preferredCurrency = "CHF"
-                        valueToDisplay = formattedChfValue
-                        self.currentValue = actualChfValue.toNumber()
-                    }
-                    
-                    Log.debug("EUR value: \(formattedEurValue), CHF value: \(formattedChfValue), currency: \(preferredCurrency)")
-                    
-                    // Append the current value so each graph ends on the value shown above it.
-                    let currentPoint = PricePoint(date: Date(), price: self.currentValue)
-                    for eachSpan in GraphSpan.allCases {
-                        self.series[eachSpan] = (parsedSeries[eachSpan] ?? []) + [currentPoint]
-                    }
-                    
-                    self.currentValueLabel.text = "\(preferredCurrency) \(valueToDisplay)"
-                    
-                    self.valueSpinner.stopAnimating()
-                    self.drawGraph()
-                    self.isFetchingData = false
-                }
+                self.valueSpinner.stopAnimating()
+                self.drawGraph()
+                self.isFetchingData = false
             } catch {
                 Log.info("Error fetching data: \(error.localizedDescription)")
-                DispatchQueue.main.async {
-                    self.valueSpinner.stopAnimating()
-                    self.isFetchingData = false
-                    self.noDataLabel.alpha = 1
-                    self.homeVC?.eurData = nil
-                    self.homeVC?.chfData = nil
-                    self.homeVC?.currentValue = nil
-                    
-                    self.showAlert(title: Language.getWord(withID: "oops"), message: "\(Language.getWord(withID: "historicaldata"))", buttons: [.action(Language.getWord(withID: "tryagain")) { self.getCurrentValue() }, .dismiss(Language.getWord(withID: "cancel"))])
-                    SentryManager.capture(error, context: "ValueViewController row 264")
-                }
+                self.valueSpinner.stopAnimating()
+                self.isFetchingData = false
+                self.noDataLabel.alpha = 1
+                self.homeVC?.eurData = nil
+                self.homeVC?.chfData = nil
+                self.homeVC?.currentValue = nil
+                
+                self.showAlert(title: Language.getWord(withID: "oops"), message: "\(Language.getWord(withID: "historicaldata"))", buttons: [.action(Language.getWord(withID: "tryagain")) { self.getCurrentValue() }, .dismiss(Language.getWord(withID: "cancel"))])
+                SentryManager.capture(error, context: "ValueViewController row 264")
             }
         }
-    }
-    
-    func pricePoints(from rawPoints:[NSDictionary], span:GraphSpan, formatter:ISO8601DateFormatter, now:Date) -> [PricePoint] {
-        
-        let cutoff = span.startDate(from: now)
-        var points = [PricePoint]()
-        var kept = 0
-        
-        for eachDataPoint in rawPoints {
-            guard let iso = eachDataPoint["time_iso8601"] as? String, let date = formatter.date(from: iso), cutoff < date else { continue }
-            kept += 1
-            guard (kept - 1) % span.sampleEvery == 0 else { continue }
-            guard let priceString = eachDataPoint["price"] as? String else { continue }
-            points += [PricePoint(date: date, price: priceString.toNumber())]
-        }
-        
-        // Drop the API's copy of the latest price.
-        if !points.isEmpty { points.removeLast() }
-        
-        return points
     }
     
     static let valueFormatter:NumberFormatter = {
@@ -317,7 +328,7 @@ class ValueViewController: UIViewController {
         return formatter
     }()
     
-    func formatEuroValue(_ actualEurValue: String) -> String {
+    static func formatEuroValue(_ actualEurValue: String) -> String {
         
         // Convert string to number and format it
         if let number = Double(actualEurValue) {
@@ -371,7 +382,7 @@ class ValueViewController: UIViewController {
             self.noDataLabel.alpha = 0
             self.graphView.alpha = 1
         }
-        self.graphView.data = currentArray
+        self.graphView.points = self.allDataPoints
         
         // Set Y axis.
         var allLines:[CGFloat] = []
@@ -445,7 +456,7 @@ class ValueViewController: UIViewController {
                 let thisLabel = UILabel()
                 thisLabel.translatesAutoresizingMaskIntoConstraints = false
                 thisLabel.font = UIFont(name: "Gilroy-Regular", size: 12)
-                thisLabel.text = self.formatEuroValue("\(eachLine)")
+                thisLabel.text = ValueViewController.formatEuroValue("\(eachLine)")
                 thisLabel.textColor = Colors.getColor("blackorwhite")
                 thisLabel.layer.zPosition = 0
                 thisLabel.alpha = 0.4
