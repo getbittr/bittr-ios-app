@@ -1292,6 +1292,16 @@
                                                             <color key="textColor" white="1" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
                                                             <nil key="highlightedColor"/>
                                                         </label>
+                                                        <imageView clipsSubviews="YES" userInteractionEnabled="NO" contentMode="scaleToFill" horizontalHuggingPriority="251" verticalHuggingPriority="251" image="zurichmap" translatesAutoresizingMaskIntoConstraints="NO" id="9rT-H7-54N">
+                                                            <rect key="frame" x="12" y="40" width="151.33333333333334" height="68"/>
+                                                        </imageView>
+                                                        <imageView userInteractionEnabled="NO" contentMode="scaleAspectFit" horizontalHuggingPriority="251" verticalHuggingPriority="251" image="mapicon" translatesAutoresizingMaskIntoConstraints="NO" id="Omt-Vj-meL">
+                                                            <rect key="frame" x="99.333333333333343" y="30" width="36" height="36"/>
+                                                            <constraints>
+                                                                <constraint firstAttribute="height" constant="36" id="Dh5-bG-enn"/>
+                                                                <constraint firstAttribute="width" constant="36" id="FzP-2P-qr4"/>
+                                                            </constraints>
+                                                        </imageView>
                                                         <button opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="system" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="usr-YN-2CV">
                                                             <rect key="frame" x="0.0" y="0.0" width="175.33333333333334" height="120"/>
                                                             <state key="normal" title="Button"/>
@@ -1304,13 +1314,19 @@
                                                     <color key="backgroundColor" red="0.96470588239999999" green="0.78039215689999997" blue="0.2666666667" alpha="1" colorSpace="custom" customColorSpace="displayP3"/>
                                                     <constraints>
                                                         <constraint firstItem="d5v-wJ-apr" firstAttribute="top" secondItem="Nq1-4Z-1nl" secondAttribute="top" constant="13" id="4Ia-tm-lR8"/>
+                                                        <constraint firstItem="9rT-H7-54N" firstAttribute="leading" secondItem="Nq1-4Z-1nl" secondAttribute="leading" constant="12" id="4vJ-b4-HxE"/>
                                                         <constraint firstAttribute="trailing" secondItem="usr-YN-2CV" secondAttribute="trailing" id="DxN-QH-4I3"/>
+                                                        <constraint firstItem="Omt-Vj-meL" firstAttribute="top" secondItem="Nq1-4Z-1nl" secondAttribute="top" constant="30" id="F1M-Se-uFX"/>
                                                         <constraint firstItem="KRh-QR-xEy" firstAttribute="centerY" secondItem="d5v-wJ-apr" secondAttribute="centerY" constant="0.5" id="J7W-RQ-JNO"/>
                                                         <constraint firstItem="d5v-wJ-apr" firstAttribute="leading" secondItem="Nq1-4Z-1nl" secondAttribute="leading" constant="15" id="QEX-hZ-hDg"/>
+                                                        <constraint firstItem="9rT-H7-54N" firstAttribute="bottom" secondItem="Nq1-4Z-1nl" secondAttribute="bottom" constant="-12" id="UVF-jl-dip"/>
+                                                        <constraint firstItem="9rT-H7-54N" firstAttribute="top" secondItem="d5v-wJ-apr" secondAttribute="bottom" constant="12" id="eS5-AQ-FJs"/>
+                                                        <constraint firstItem="9rT-H7-54N" firstAttribute="trailing" secondItem="Nq1-4Z-1nl" secondAttribute="trailing" constant="-12" id="ehw-jT-Fqm"/>
                                                         <constraint firstAttribute="bottom" secondItem="usr-YN-2CV" secondAttribute="bottom" id="o9y-Zb-Vp8"/>
                                                         <constraint firstItem="usr-YN-2CV" firstAttribute="top" secondItem="Nq1-4Z-1nl" secondAttribute="top" id="rap-AS-WcW"/>
                                                         <constraint firstItem="KRh-QR-xEy" firstAttribute="leading" secondItem="d5v-wJ-apr" secondAttribute="trailing" constant="10" id="tTe-ub-HzR"/>
                                                         <constraint firstItem="usr-YN-2CV" firstAttribute="leading" secondItem="Nq1-4Z-1nl" secondAttribute="leading" id="td0-zC-GV5"/>
+                                                        <constraint firstItem="Omt-Vj-meL" firstAttribute="trailing" secondItem="Nq1-4Z-1nl" secondAttribute="trailing" constant="-40" id="xqR-cx-XFv"/>
                                                     </constraints>
                                                 </view>
                                                 <view contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="r5g-ab-NSH" customClass="BottomCurveView" customModule="bittr" customModuleProvider="target">
@@ -1382,7 +1398,9 @@
                                             <outlet property="headerSpinner" destination="T7U-da-wzg" id="TjD-Ze-Gf7"/>
                                             <outlet property="mapButton" destination="usr-YN-2CV" id="KdV-s9-Dzz"/>
                                             <outlet property="mapCard" destination="Nq1-4Z-1nl" id="gOy-3G-svK"/>
+                                            <outlet property="mapImage" destination="9rT-H7-54N" id="1rB-sE-XXu"/>
                                             <outlet property="noTransactionsLabel" destination="BWZ-WV-sw4" id="kSb-Su-MQF"/>
+                                            <outlet property="pinImage" destination="Omt-Vj-meL" id="TYH-Gr-tXo"/>
                                             <outlet property="profitArrow" destination="b4V-sF-2lc" id="hpb-Ne-1nC"/>
                                             <outlet property="profitButton" destination="xpc-Ne-aXT" id="QAR-gG-Uvn"/>
                                             <outlet property="profitLabel" destination="EXA-SK-OLh" id="yKM-yk-28e"/>
@@ -1444,7 +1462,7 @@
                                                                 <view contentMode="scaleToFill" horizontalHuggingPriority="251" horizontalCompressionResistancePriority="751" translatesAutoresizingMaskIntoConstraints="NO" id="3wU-jT-WH0" userLabel="Labels View">
                                                                     <rect key="frame" x="82.333333333333329" y="12.333333333333332" width="255.66666666666669" height="35"/>
                                                                     <subviews>
-                                                                        <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" ambiguous="YES" text="+ 3 700 sats" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="n3u-mI-k3c">
+                                                                        <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="+ 3 700 sats" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="n3u-mI-k3c">
                                                                             <rect key="frame" x="0.0" y="0.0" width="87.666666666666671" height="16"/>
                                                                             <constraints>
                                                                                 <constraint firstAttribute="height" relation="greaterThanOrEqual" constant="5" id="awZ-gG-0yS"/>
@@ -1453,7 +1471,7 @@
                                                                             <color key="textColor" red="0.1647058824" green="0.16862745100000001" blue="0.18039215689999999" alpha="1" colorSpace="calibratedRGB"/>
                                                                             <nil key="highlightedColor"/>
                                                                         </label>
-                                                                        <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" ambiguous="YES" text="+ 30 €" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="Ppl-FN-mgK">
+                                                                        <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="+ 30 €" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="Ppl-FN-mgK">
                                                                             <rect key="frame" x="0.0" y="21" width="39.333333333333336" height="14"/>
                                                                             <constraints>
                                                                                 <constraint firstAttribute="height" relation="greaterThanOrEqual" constant="5" id="kjI-AR-fUC"/>
@@ -13895,6 +13913,7 @@
         <image name="logo80" width="80" height="80"/>
         <image name="logodarkmode80" width="80" height="80"/>
         <image name="logoorange32" width="32" height="32"/>
+        <image name="mapicon" width="64" height="70"/>
         <image name="mappin.circle.fill" catalog="system" width="128" height="123"/>
         <image name="menuacademyblack" width="24" height="19"/>
         <image name="menuacademywhite" width="24" height="19"/>
@@ -13911,6 +13930,7 @@
         <image name="rectangle.portrait.and.arrow.right.fill" catalog="system" width="128" height="109"/>
         <image name="safari" catalog="system" width="128" height="123"/>
         <image name="sun.max.fill" catalog="system" width="128" height="125"/>
+        <image name="zurichmap" width="1209" height="612"/>
         <systemColor name="systemBackgroundColor">
             <color white="1" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
         </systemColor>
