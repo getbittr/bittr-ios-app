@@ -9,13 +9,25 @@ import UIKit
 
 class GraphView: UIView, UIGestureRecognizerDelegate {
     
-    var valueVC:ValueViewController?
-
-    var data:[CGFloat] = [] {
+    var points:[PricePoint] = [] {
         didSet {
             self.currency = BitcoinManager.shared.bittrWallet.getCorrectBitcoinValue().chosenCurrency
+            self.data = self.points.map { $0.price }
             setNeedsDisplay()
         }
+    }
+    
+    private(set) var data:[CGFloat] = []
+    
+    var horizontalInset:CGFloat = 30
+    var topInset:CGFloat = 5
+    var bottomInset:CGFloat = 25
+    var lineWidth:CGFloat = 4
+    var pointRadius:CGFloat = 2
+    var isInteractive = true
+    var lineColor:UIColor?
+    private var strokeColor:UIColor {
+        return self.lineColor ?? Colors.getColor("whiteoryellow")
     }
     
     var currency = ""
@@ -54,6 +66,7 @@ class GraphView: UIView, UIGestureRecognizerDelegate {
     }
     
     @objc func handlePanGesture(_ recognizer: UIPanGestureRecognizer) {
+        guard self.isInteractive else { return }
         let location = recognizer.location(in: self)
         let horizontalTouchPosition = location.x
         self.showGraphValue(x: horizontalTouchPosition, recognizer: recognizer)
@@ -75,8 +88,8 @@ class GraphView: UIView, UIGestureRecognizerDelegate {
             }
         }
         
-        let totalWidth = self.bounds.width - 60
-        var actualX = x - 30
+        let totalWidth = self.bounds.width - (self.horizontalInset * 2)
+        var actualX = x - self.horizontalInset
         if actualX < 0 {
             actualX = 0
         } else if actualX > totalWidth {
@@ -98,14 +111,14 @@ class GraphView: UIView, UIGestureRecognizerDelegate {
             } else if selectedIndex > Int(totalWidth) {
                 selectedIndex = Int(totalWidth)
             }
-            let thisDataPoint = self.valueVC!.allDataPoints[selectedIndex]
+            let thisDataPoint = self.points[selectedIndex]
             
             let highestNumber = self.data.max() ?? 0
             let lowestNumber = self.data.min() ?? 0
             let dataSpan = highestNumber - lowestNumber
             let thisPrice = thisDataPoint.price
             let priceRelativeToSpan = dataSpan > 0 ? (thisPrice - lowestNumber)/dataSpan : 0.5
-            let yConstraint = 30 + (priceRelativeToSpan * (self.bounds.height - 30))
+            let yConstraint = (self.bottomInset + 5) + (priceRelativeToSpan * (self.bounds.height - self.topInset - self.bottomInset))
             
             let thisCard = UIView()
             thisCard.translatesAutoresizingMaskIntoConstraints = false
@@ -118,7 +131,7 @@ class GraphView: UIView, UIGestureRecognizerDelegate {
             
             let thisCardHeight = NSLayoutConstraint(item: thisCard, attribute: .height, relatedBy: .equal, toItem: nil, attribute: .notAnAttribute, multiplier: 1, constant: 40)
             let thisCardWidth = NSLayoutConstraint(item: thisCard, attribute: .width, relatedBy: .equal, toItem: nil, attribute: .notAnAttribute, multiplier: 1, constant: 80)
-            let thisCardCenterX = NSLayoutConstraint(item: thisCard, attribute: .centerX, relatedBy: .equal, toItem: self, attribute: .leading, multiplier: 1, constant: (actualX + 30))
+            let thisCardCenterX = NSLayoutConstraint(item: thisCard, attribute: .centerX, relatedBy: .equal, toItem: self, attribute: .leading, multiplier: 1, constant: (actualX + self.horizontalInset))
             let thisCardBottom = NSLayoutConstraint(item: thisCard, attribute: .bottom, relatedBy: .equal, toItem: self, attribute: .bottom, multiplier: 1, constant: -yConstraint)
             self.addConstraints([thisCardBottom, thisCardCenterX])
             thisCard.addConstraints([thisCardHeight, thisCardWidth])
@@ -142,7 +155,7 @@ class GraphView: UIView, UIGestureRecognizerDelegate {
             priceLabel.translatesAutoresizingMaskIntoConstraints = false
             priceLabel.accessibilityIdentifier = TestID.Value.graphValueLabel
             priceLabel.font = UIFont(name: "Gilroy-Bold", size: 12)
-            priceLabel.text = self.currency + " " + self.valueVC!.formatEuroValue("\(Int(thisDataPoint.price))")
+            priceLabel.text = self.currency + " " + ValueViewController.formatEuroValue("\(Int(thisDataPoint.price))")
             priceLabel.textColor = .black
             thisCard.addSubview(priceLabel)
             
@@ -159,8 +172,9 @@ class GraphView: UIView, UIGestureRecognizerDelegate {
     func coordYFor(index: Int) -> CGFloat {
         let differenceValueAndMin = data[index] - (data.min() ?? 0)
         let differenceMaxAndMin = (data.max() ?? 0) - (data.min() ?? 0)
-        guard differenceMaxAndMin > 0 else { return (bounds.height - 25) - ((bounds.height - 30) / 2) }
-        return (bounds.height - 25) - ((bounds.height - 30) * ((differenceValueAndMin) / (differenceMaxAndMin)))
+        let plotHeight = bounds.height - self.topInset - self.bottomInset
+        guard differenceMaxAndMin > 0 else { return (bounds.height - self.bottomInset) - (plotHeight / 2) }
+        return (bounds.height - self.bottomInset) - (plotHeight * ((differenceValueAndMin) / (differenceMaxAndMin)))
     }
 
     override func draw(_ rect: CGRect) {
@@ -172,14 +186,14 @@ class GraphView: UIView, UIGestureRecognizerDelegate {
         context!.saveGState()
         context!.setShadow(offset: CGSize(width: 0, height: 9), blur: 15, color: UIColor.black.cgColor)
         context!.setAlpha(0.4)
-        Colors.getColor("whiteoryellow").setStroke()
-        path.lineWidth = 4
+        self.strokeColor.setStroke()
+        path.lineWidth = self.lineWidth
         path.stroke()
         context!.restoreGState()
         
         let path2:UIBezierPath = quadCurvedPath()
-        Colors.getColor("whiteoryellow").setStroke()
-        path2.lineWidth = 4
+        self.strokeColor.setStroke()
+        path2.lineWidth = self.lineWidth
         path2.stroke()
     }
 
@@ -188,19 +202,19 @@ class GraphView: UIView, UIGestureRecognizerDelegate {
         let path = UIBezierPath()
         
         guard data.count > 1 else {
-            if data.count == 1 { drawPoint(point: CGPoint(x: 30, y: coordYFor(index: 0)), color: Colors.getColor("whiteoryellow"), radius: 2) }
+            if data.count == 1 { drawPoint(point: CGPoint(x: self.horizontalInset, y: coordYFor(index: 0)), color: self.strokeColor, radius: self.pointRadius) }
             return path
         }
         
-        let step = (bounds.width - 60) / CGFloat(data.count - 1)
+        let step = (bounds.width - (self.horizontalInset * 2)) / CGFloat(data.count - 1)
         
-        var p1 = CGPoint(x: 30, y: coordYFor(index: 0))
+        var p1 = CGPoint(x: self.horizontalInset, y: coordYFor(index: 0))
         path.move(to: p1)
         
-        drawPoint(point: p1, color: Colors.getColor("whiteoryellow"), radius: 2)
+        drawPoint(point: p1, color: self.strokeColor, radius: self.pointRadius)
         
         if (data.count == 2) {
-            path.addLine(to: CGPoint(x: step + 30, y: coordYFor(index: 1)))
+            path.addLine(to: CGPoint(x: step + self.horizontalInset, y: coordYFor(index: 1)))
             return path
         }
         
@@ -208,11 +222,11 @@ class GraphView: UIView, UIGestureRecognizerDelegate {
         
         for i in 1..<data.count {
             
-            let p2 = CGPoint(x: step * CGFloat(i) + 30, y: coordYFor(index: i))
-            drawPoint(point: p2, color: Colors.getColor("whiteoryellow"), radius: 2)
+            let p2 = CGPoint(x: step * CGFloat(i) + self.horizontalInset, y: coordYFor(index: i))
+            drawPoint(point: p2, color: self.strokeColor, radius: self.pointRadius)
             var p3: CGPoint?
             if i < data.count - 1 {
-                p3 = CGPoint(x: step * CGFloat(i + 1) + 30, y: coordYFor(index: i + 1))
+                p3 = CGPoint(x: step * CGFloat(i + 1) + self.horizontalInset, y: coordYFor(index: i + 1))
             }
             
             let newControlP = controlPointForPoints(p1: p1, p2: p2, next: p3)
@@ -274,6 +288,7 @@ class GraphView: UIView, UIGestureRecognizerDelegate {
     }
 
     func drawPoint(point: CGPoint, color: UIColor, radius: CGFloat) {
+        guard radius > 0 else { return }
         let ovalPath = UIBezierPath(ovalIn: CGRect(x: point.x - radius, y: point.y - radius, width: radius * 2, height: radius * 2))
         color.setFill()
         ovalPath.fill()

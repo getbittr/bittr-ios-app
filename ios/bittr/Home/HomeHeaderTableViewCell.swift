@@ -22,8 +22,6 @@ class HomeHeaderTableViewCell: UITableViewCell {
     @IBOutlet weak var headerLabel: UILabel!
     @IBOutlet weak var headerProblemImage: UIImageView!
     @IBOutlet weak var headerDetailsImage: UIImageView!
-    @IBOutlet weak var headerCurrencyImage: UIImageView!
-    @IBOutlet weak var headerMapImage: UIImageView!
     @IBOutlet weak var syncButton: UIButton!
     @IBOutlet weak var currencyButton: UIButton!
     @IBOutlet weak var mapButton: UIButton!
@@ -54,6 +52,20 @@ class HomeHeaderTableViewCell: UITableViewCell {
     @IBOutlet weak var receiveLabel: UILabel!
     @IBOutlet weak var buyLabel: UILabel!
     
+    // Conversion and Map
+    @IBOutlet weak var conversionCard: UIView!
+    @IBOutlet weak var conversionGraph: GraphView!
+    @IBOutlet weak var conversionProfitView: UIView!
+    @IBOutlet weak var conversionProfitArrow: UIImageView!
+    @IBOutlet weak var conversionProfitLabel: UILabel!
+    @IBOutlet weak var mapCard: UIView!
+    @IBOutlet weak var headerCurrencyImage: UIImageView!
+    @IBOutlet weak var headerMapImage: UIImageView!
+    @IBOutlet weak var headerCurrencyLabel: UILabel!
+    @IBOutlet weak var headerMapLabel: UILabel!
+    @IBOutlet weak var mapImage: UIImageView!
+    @IBOutlet weak var pinImage: UIImageView!
+    
     // Variables
     var homeVC:HomeViewController?
     var appliedNoTransactionsHTML:String?
@@ -75,6 +87,10 @@ class HomeHeaderTableViewCell: UITableViewCell {
         self.sendView.layer.cornerRadius = 8
         self.receiveView.layer.cornerRadius = 8
         self.buyView.layer.cornerRadius = 8
+        self.conversionCard.layer.cornerRadius = 13
+        self.conversionProfitView.layer.cornerRadius = 11
+        self.mapCard.layer.cornerRadius = 13
+        self.mapImage.layer.cornerRadius = 8
         
         // Button titles
         self.balanceCardButton.setTitle("", for: .normal)
@@ -91,6 +107,12 @@ class HomeHeaderTableViewCell: UITableViewCell {
         self.sendView.setShadow()
         self.receiveView.setShadow()
         self.buyView.setShadow()
+        self.conversionCard.setShadow()
+        self.mapCard.setShadow()
+        self.pinImage.layer.shadowColor = UIColor.black.cgColor
+        self.pinImage.layer.shadowOffset = CGSize(width: 0, height: 5)
+        self.pinImage.layer.shadowRadius = 3.0
+        self.pinImage.layer.shadowOpacity = 0.3
         
         // Accessibility identifiers
         self.headerSpinner.accessibilityIdentifier = TestID.Home.headerSpinner
@@ -120,6 +142,8 @@ class HomeHeaderTableViewCell: UITableViewCell {
         self.sendLabel.text = Language.getWord(withID: "send")
         self.receiveLabel.text = Language.getWord(withID: "receive")
         self.buyLabel.text = Language.getWord(withID: "buy")
+        self.headerCurrencyLabel.text = Language.getWord(withID: "homevcvalue")
+        self.headerMapLabel.text = Language.getWord(withID: "homevcmap")
     }
     
     @objc func changeColors() {
@@ -128,12 +152,18 @@ class HomeHeaderTableViewCell: UITableViewCell {
         self.contentView.backgroundColor = Colors.getColor("yelloworblue3")
         self.headerSpinner.color = Colors.getColor("whiteoryellow")
         self.balanceCard.backgroundColor = Colors.getColor("yelloworblue3")
+        self.conversionCard.backgroundColor = Colors.getColor("yelloworblue3")
+        self.mapCard.backgroundColor = Colors.getColor("yelloworblue3")
         self.headerPiggyImage.image = UIImage(named: CacheManager.darkModeIsOn() ? "iconpiggyyellow" : "iconpiggywhite")
         self.headerLabel.textColor = Colors.getColor("whiteoryellow")
+        self.headerCurrencyLabel.textColor = Colors.getColor("whiteoryellow")
+        self.headerMapLabel.textColor = Colors.getColor("whiteoryellow")
         self.headerDetailsImage.image = UIImage(named: CacheManager.darkModeIsOn() ? "icondetailsyellow" : "icondetailswhite")
         self.headerCurrencyImage.image = UIImage(named: CacheManager.darkModeIsOn() ? "iconexchangeyellow" : "iconexchange")
         self.headerMapImage.image = UIImage(named: CacheManager.darkModeIsOn() ? "iconmapyellow" : "iconmapwhite")
         self.bitcoinSign.image = UIImage(named: CacheManager.darkModeIsOn() ? "gilroybitcoinwhite" : "gilroybitcoin")
+        self.conversionGraph.setNeedsDisplay()
+        self.updateGraphProfit()
         self.conversionLabel.textColor = CacheManager.darkModeIsOn() ? UIColor(red: 170/255, green: 190/255, blue: 217/255, alpha: 1) : UIColor(red: 201/255, green: 154/255, blue: 0/255, alpha: 1)
         self.sendView.backgroundColor = Colors.getColor("white0.7orblue2")
         self.receiveView.backgroundColor = Colors.getColor("white0.7orblue2")
@@ -142,6 +172,8 @@ class HomeHeaderTableViewCell: UITableViewCell {
         self.receiveLabel.textColor = Colors.getColor("blackorwhite")
         self.buyLabel.textColor = Colors.getColor("blackorwhite")
         self.bottomCurve.fillColor = Colors.getColor("yelloworblue3")
+        self.mapImage.image = UIImage(named: CacheManager.darkModeIsOn() ? "zurichmapdark" : "zurichmap")
+        self.mapImage.alpha = CacheManager.darkModeIsOn() ? 0.6 : 1
         
         if self.profitArrow.image == UIImage(systemName: "arrow.down") {
             // Loss
