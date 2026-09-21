@@ -112,6 +112,7 @@
 		05A256532D1155B4009EDC7A /* SwiftUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 05A256522D1155B4009EDC7A /* SwiftUI.framework */; };
 		05A256642D1155B8009EDC7A /* BittrWidgetExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 05A2564E2D1155B4009EDC7A /* BittrWidgetExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		05A2566A2D116731009EDC7A /* Gilroy-Bold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 053190E129FD658F0072CE76 /* Gilroy-Bold.ttf */; };
+		05DA11AC0000000000001001 /* Gilroy-Regular.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 053190E329FD659A0072CE76 /* Gilroy-Regular.ttf */; };
 		05A8BD7A2B750567002F0282 /* Navigation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05A8BD792B750567002F0282 /* Navigation.swift */; };
 		05A8BD7C2B750838002F0282 /* ShowPin.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05A8BD7B2B750838002F0282 /* ShowPin.swift */; };
 		05A8BD7E2B7509BD002F0282 /* StartLightning.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05A8BD7D2B7509BD002F0282 /* StartLightning.swift */; };
@@ -125,8 +126,6 @@
 		05AF89742D436920009D629C /* SwapManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05AF89732D436920009D629C /* SwapManager.swift */; };
 		05AF89762D437073009D629C /* SwapViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05AF89752D437073009D629C /* SwapViewController.swift */; };
 		05B30E2E2E26281200CF10EC /* Swap.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05B30E2D2E26281200CF10EC /* Swap.swift */; };
-		05DA11AC0000000000000D01 /* SwapLiveActivityController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05DA11AC0000000000000C01 /* SwapLiveActivityController.swift */; };
-		05DA11AC0000000000000B01 /* SwapActivityAttributes.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05DA11AC0000000000000A01 /* SwapActivityAttributes.swift */; };
 		05BE46192BB9A83100555B9B /* SPConfetti in Frameworks */ = {isa = PBXBuildFile; productRef = 05BE46182BB9A83100555B9B /* SPConfetti */; };
 		05BFCEB72A3B113E00565E2A /* Transfer2ViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05BFCEB62A3B113E00565E2A /* Transfer2ViewController.swift */; };
 		05BFCEB92A3B1A1100565E2A /* RegisterIbanViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05BFCEB82A3B1A1100565E2A /* RegisterIbanViewController.swift */; };
@@ -152,6 +151,9 @@
 		05D80DFF2BA4170800E2F093 /* CodeScanner in Frameworks */ = {isa = PBXBuildFile; productRef = 05D80DFE2BA4170800E2F093 /* CodeScanner */; };
 		05D80E022BA4174E00E2F093 /* BitcoinDevKit in Frameworks */ = {isa = PBXBuildFile; productRef = 05D80E012BA4174E00E2F093 /* BitcoinDevKit */; };
 		05D80E082BA4203600E2F093 /* LightningDevKit in Frameworks */ = {isa = PBXBuildFile; productRef = 05D80E072BA4203600E2F093 /* LightningDevKit */; };
+		05DA11AC0000000000000B01 /* SwapActivityAttributes.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05DA11AC0000000000000A01 /* SwapActivityAttributes.swift */; };
+		05DA11AC0000000000000D01 /* SwapLiveActivityController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05DA11AC0000000000000C01 /* SwapLiveActivityController.swift */; };
+		05DA11AC0000000000000F01 /* GraphCurve.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05DA11AC0000000000000E01 /* GraphCurve.swift */; };
 		05DA8326303C3AAE00157CE9 /* SendToConfirm.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05DA8325303C3A9B00157CE9 /* SendToConfirm.swift */; };
 		05E2995A2A39CB3700FA0AEE /* IbanCollectionViewCell.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05E299592A39CB3700FA0AEE /* IbanCollectionViewCell.swift */; };
 		05E305372F517F56003DE7CF /* ReloadWallet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05E305362F517F4E003DE7CF /* ReloadWallet.swift */; };
@@ -344,8 +346,6 @@
 		05AF89732D436920009D629C /* SwapManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SwapManager.swift; sourceTree = "<group>"; };
 		05AF89752D437073009D629C /* SwapViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SwapViewController.swift; sourceTree = "<group>"; };
 		05B30E2D2E26281200CF10EC /* Swap.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Swap.swift; sourceTree = "<group>"; };
-		05DA11AC0000000000000C01 /* SwapLiveActivityController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SwapLiveActivityController.swift; sourceTree = "<group>"; };
-		05DA11AC0000000000000A01 /* SwapActivityAttributes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = SwapActivityAttributes.swift; path = BittrWidget/SwapActivityAttributes.swift; sourceTree = SOURCE_ROOT; };
 		05BFCEB62A3B113E00565E2A /* Transfer2ViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Transfer2ViewController.swift; sourceTree = "<group>"; };
 		05BFCEB82A3B1A1100565E2A /* RegisterIbanViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RegisterIbanViewController.swift; sourceTree = "<group>"; };
 		05C3C08129CCB55600C1E695 /* bittr.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = bittr.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -371,6 +371,9 @@
 		05D5D0E62A66825000A1E771 /* BitcoinManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BitcoinManager.swift; sourceTree = "<group>"; };
 		05D5D0E92A66836300A1E771 /* LightningStorage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LightningStorage.swift; sourceTree = "<group>"; };
 		05D5D0EB2A66843B00A1E771 /* FileManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FileManager.swift; sourceTree = "<group>"; };
+		05DA11AC0000000000000A01 /* SwapActivityAttributes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = SwapActivityAttributes.swift; path = BittrWidget/SwapActivityAttributes.swift; sourceTree = SOURCE_ROOT; };
+		05DA11AC0000000000000C01 /* SwapLiveActivityController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SwapLiveActivityController.swift; sourceTree = "<group>"; };
+		05DA11AC0000000000000E01 /* GraphCurve.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = GraphCurve.swift; path = BittrWidget/GraphCurve.swift; sourceTree = SOURCE_ROOT; };
 		05DA8325303C3A9B00157CE9 /* SendToConfirm.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SendToConfirm.swift; sourceTree = "<group>"; };
 		05E299592A39CB3700FA0AEE /* IbanCollectionViewCell.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IbanCollectionViewCell.swift; sourceTree = "<group>"; };
 		05E305362F517F4E003DE7CF /* ReloadWallet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReloadWallet.swift; sourceTree = "<group>"; };
@@ -931,6 +934,7 @@
 			children = (
 				05E4834F2D29049D007A5834 /* ValueViewController.swift */,
 				05CF0FE52D32557300DF2D9F /* GraphView.swift */,
+				05DA11AC0000000000000E01 /* GraphCurve.swift */,
 			);
 			path = Value;
 			sourceTree = "<group>";
@@ -1124,6 +1128,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				05A2566A2D116731009EDC7A /* Gilroy-Bold.ttf in Resources */,
+				05DA11AC0000000000001001 /* Gilroy-Regular.ttf in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1288,6 +1293,7 @@
 				053190EE29FEE7C90072CE76 /* ArticleViewController.swift in Sources */,
 				052EC7482D63254B00170FE4 /* WebSocketManager.swift in Sources */,
 				05CF0FE62D32557300DF2D9F /* GraphView.swift in Sources */,
+				05DA11AC0000000000000F01 /* GraphCurve.swift in Sources */,
 				05AF89742D436920009D629C /* SwapManager.swift in Sources */,
 				051AB88F2F5E8FB400DFC39F /* ConfirmLanguage.swift in Sources */,
 				37CC83002D8C1EAF005E791D /* BoltzRefund.swift in Sources */,
