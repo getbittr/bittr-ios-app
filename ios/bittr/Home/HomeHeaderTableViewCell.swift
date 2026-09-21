@@ -55,6 +55,9 @@ class HomeHeaderTableViewCell: UITableViewCell {
     // Conversion and Map
     @IBOutlet weak var conversionCard: UIView!
     @IBOutlet weak var conversionGraph: GraphView!
+    @IBOutlet weak var conversionProfitView: UIView!
+    @IBOutlet weak var conversionProfitArrow: UIImageView!
+    @IBOutlet weak var conversionProfitLabel: UILabel!
     @IBOutlet weak var mapCard: UIView!
     @IBOutlet weak var headerCurrencyImage: UIImageView!
     @IBOutlet weak var headerMapImage: UIImageView!
@@ -83,6 +86,7 @@ class HomeHeaderTableViewCell: UITableViewCell {
         self.receiveView.layer.cornerRadius = 8
         self.buyView.layer.cornerRadius = 8
         self.conversionCard.layer.cornerRadius = 13
+        self.conversionProfitView.layer.cornerRadius = 11
         self.mapCard.layer.cornerRadius = 13
         
         // Button titles
@@ -152,6 +156,7 @@ class HomeHeaderTableViewCell: UITableViewCell {
         self.headerMapImage.image = UIImage(named: CacheManager.darkModeIsOn() ? "iconmapyellow" : "iconmapwhite")
         self.bitcoinSign.image = UIImage(named: CacheManager.darkModeIsOn() ? "gilroybitcoinwhite" : "gilroybitcoin")
         self.conversionGraph.setNeedsDisplay()
+        self.updateGraphProfit()
         self.conversionLabel.textColor = CacheManager.darkModeIsOn() ? UIColor(red: 170/255, green: 190/255, blue: 217/255, alpha: 1) : UIColor(red: 201/255, green: 154/255, blue: 0/255, alpha: 1)
         self.sendView.backgroundColor = Colors.getColor("white0.7orblue2")
         self.receiveView.backgroundColor = Colors.getColor("white0.7orblue2")
