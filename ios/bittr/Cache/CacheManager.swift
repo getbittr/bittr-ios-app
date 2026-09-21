@@ -7,6 +7,7 @@
 
 import UIKit
 import CryptoKit
+import WidgetKit
 
 class CacheManager: NSObject {
     
@@ -82,7 +83,20 @@ class CacheManager: NSObject {
         // Create Bittr wallet.
         let bittrWallet = BittrWallet()
         bittrWallet.ibanEntities = storedIbans()
+        publishToWidget()
         return bittrWallet
+    }
+    
+    // Hand the widget the values it can't reach on its own. Its own
+    // UserDefaults.standard is the extension's container, so these go through
+    // the app group instead. Cheap, so it just runs whenever either could have
+    // changed rather than trying to detect that.
+    static func publishToWidget() {
+        
+        let lightningAddress = storedIbans().first(where: { !$0.lightningAddressUsername.isEmpty })?.lightningAddressUsername
+        
+        WidgetShare.write(currency: CacheStore.value(for: CacheKeys.currency), lightningAddress: lightningAddress)
+        WidgetCenter.shared.reloadAllTimelines()
     }
     
     static func addIban(iban:IbanEntity) {
@@ -107,6 +121,7 @@ class CacheManager: NSObject {
 
     private static func storeIbans(_ ibans:[IbanEntity]) {
         CacheStore.encode(ibans.sorted { $0.order < $1.order }, for: CacheKeys.device)
+        publishToWidget()
     }
     
     private static func updateIban(id:String, _ change:(IbanEntity) -> Void) {
