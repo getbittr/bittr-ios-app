@@ -45,8 +45,8 @@ extension HomeHeaderTableViewCell {
         guard let homeVC = self.homeVC else { return }
         
         self.conversionGraph.horizontalInset = 25
-        self.conversionGraph.topInset = 10
-        self.conversionGraph.bottomInset = 25
+        self.conversionGraph.topInset = 16
+        self.conversionGraph.bottomInset = 19
         self.conversionGraph.lineWidth = 4
         self.conversionGraph.pointRadius = 0
         self.conversionGraph.isInteractive = false
@@ -63,7 +63,35 @@ extension HomeHeaderTableViewCell {
             guard let snapshot = try? await PriceHistory.load(cache: homeVC), let points = snapshot.series[.week] else { return }
             homeVC?.graphPoints = points
             self?.conversionGraph.points = points
+            self?.updateGraphProfit()
         }
+    }
+    
+    func updateGraphProfit() {
+        guard let homeVC = self.homeVC, !homeVC.didStartReset, let points = homeVC.graphPoints, let firstPrice = points.first?.price, let lastPrice = points.last?.price, firstPrice > 0 else {
+            self.conversionProfitView.alpha = 0
+            return
+        }
+        
+        let profit = (lastPrice - firstPrice)/firstPrice * 100
+        let profitPercentage = "\(Int(profit)) %"
+        self.conversionProfitLabel.text = profitPercentage
+        
+        if profitPercentage.contains("-") {
+            // Loss
+            self.conversionProfitLabel.textColor = Colors.getColor("losstext")
+            self.conversionProfitView.backgroundColor = Colors.getColor("lossbackground0.8")
+            self.conversionProfitArrow.tintColor = Colors.getColor("losstext")
+            self.conversionProfitArrow.image = UIImage(systemName: "arrow.down")
+        } else {
+            // Profit
+            self.conversionProfitLabel.textColor = Colors.getColor("profittext")
+            self.conversionProfitView.backgroundColor = Colors.getColor("profitbackground0.8")
+            self.conversionProfitArrow.tintColor = Colors.getColor("profittext")
+            self.conversionProfitArrow.image = UIImage(systemName: "arrow.up")
+        }
+        
+        self.conversionProfitView.alpha = 1
     }
     
     func showLabels() {
@@ -82,6 +110,7 @@ extension HomeHeaderTableViewCell {
         self.profitView.alpha = 0
         self.balanceView.alpha = 0
         self.conversionLabel.alpha = 0
+        self.conversionProfitView.alpha = 0
         self.headerProblemImage.alpha = 0
         self.headerSpinner.startAnimating()
     }
