@@ -11,11 +11,11 @@ import SwiftUI
 struct Provider: AppIntentTimelineProvider {
     
     func placeholder(in context: Context) -> SimpleEntry {
-        SimpleEntry(date: Date(), configuration: ConfigurationAppIntent(), eurValue: "N/A", chfValue: "N/A", currency: "€", weekPrices: [])
+        SimpleEntry(date: Date(), configuration: ConfigurationAppIntent(), eurValue: "N/A", chfValue: "N/A", currency: "€", weekPrices: [], lightningAddress: nil)
     }
 
     func snapshot(for configuration: ConfigurationAppIntent, in context: Context) async -> SimpleEntry {
-        SimpleEntry(date: Date(), configuration: configuration, eurValue: "94.250", chfValue: "94.250", currency: "€", weekPrices: sampleWeekPrices)
+        SimpleEntry(date: Date(), configuration: configuration, eurValue: "94.250", chfValue: "94.250", currency: "€", weekPrices: sampleWeekPrices, lightningAddress: nil)
     }
     
     func timeline(for configuration: ConfigurationAppIntent, in context: Context) async -> Timeline<SimpleEntry> {
@@ -39,7 +39,8 @@ struct Provider: AppIntentTimelineProvider {
                     eurValue: formattedEurValue,
                     chfValue: formattedChfValue,
                     currency: preferredCurrency,
-                    weekPrices: (mostRecentDownload["weekPrices"] as? [Double])?.map { CGFloat($0) } ?? []
+                    weekPrices: (mostRecentDownload["weekPrices"] as? [Double])?.map { CGFloat($0) } ?? [],
+                    lightningAddress: WidgetShare.lightningAddress
                 )
             } else {
                 // No cache is available.
@@ -49,7 +50,8 @@ struct Provider: AppIntentTimelineProvider {
                     eurValue: "N/A",
                     chfValue: "N/A",
                     currency: "€",
-                    weekPrices: []
+                    weekPrices: [],
+                    lightningAddress: WidgetShare.lightningAddress
                 )
             }
         }()
@@ -66,8 +68,10 @@ struct Provider: AppIntentTimelineProvider {
                 let formattedEurValue = formatEuroValue(actualEurValue)
                 let formattedChfValue = formatEuroValue(actualChfValue)
                 
+                // Through the app group: an extension's own standard defaults
+                // are its container, so the app's copy of this key isn't visible.
                 var preferredCurrency = "€"
-                if UserDefaults.standard.value(forKey: "currency") as? String == "CHF" {
+                if WidgetShare.currency == "CHF" {
                     preferredCurrency = "CHF"
                 }
                 
@@ -105,7 +109,8 @@ struct Provider: AppIntentTimelineProvider {
                     eurValue: formattedEurValue,
                     chfValue: formattedChfValue,
                     currency: preferredCurrency,
-                    weekPrices: weekPrices
+                    weekPrices: weekPrices,
+                    lightningAddress: WidgetShare.lightningAddress
                 )
             }
         } catch {
@@ -188,6 +193,7 @@ struct SimpleEntry: TimelineEntry {
     let chfValue: String
     let currency: String
     let weekPrices: [CGFloat]
+    let lightningAddress: String?
 }
 
 struct BittrWidgetEntryView : View {
@@ -314,45 +320,113 @@ struct BittrWidgetEntryView : View {
         ZStack {
             HStack(spacing: 14) {
                 
-                VStack(alignment: .leading, spacing: 0) {
-                    // Lines the header up with the chart's leading edge below it.
-                    header
-                        .padding(.leading, 5)
-                    
-                    GraphLine(values: entry.weekPrices)
-                        .stroke(Color("WhiteOrYellow"), style: StrokeStyle(lineWidth: 4, lineCap: .round, lineJoin: .round))
-                        .shadow(color: .black.opacity(0.35), radius: 6, x: 0, y: 5)
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
-                        // Keeps the curve off the widget's leading and bottom edges.
-                        .padding(EdgeInsets(top: 10, leading: 5, bottom: 10, trailing: 0))
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
+                leftColumn
+                    .frame(maxWidth: .infinity, alignment: .leading)
                 
-                VStack(spacing: 8) {
-                    // 36 renders at the size the small widget's 42 shrinks to:
-                    // its column is wide enough that this never scales, where
-                    // the small layout's box always trims a few points off.
-                    Text("\(entry.currency) \(displayedValue)")
-                        .font(.custom("Gilroy-Bold", size: 36))
-                        .minimumScaleFactor(0.5)
-                        .lineLimit(1)
-                        .foregroundColor(Color("BlackOrWhite"))
-                    
-                    profitView
+                if let lightningAddress = entry.lightningAddress {
+                    qrCard(for: lightningAddress)
+                } else {
+                    valueStack
+                        .frame(maxWidth: .infinity)
                 }
-                .frame(maxWidth: .infinity)
             }
             .padding(20)
             
-            // Same corner placement as the small widget.
-            Text("\(entry.currency)")
-                .font(.custom("Gilroy-Bold", size: 18))
-                .fontWeight(.bold)
-                .foregroundColor(Color("WhiteOrYellow"))
-                .padding(.trailing, 23)
-                .padding(.bottom, 20)
-                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomTrailing)
+            // Same corner placement as the small widget, for the chart layout.
+            if entry.lightningAddress == nil {
+                currencyLabel
+                    .padding(.trailing, 23)
+                    .padding(.bottom, 20)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomTrailing)
+            }
         }
+    }
+    
+    @ViewBuilder private var leftColumn: some View {
+        if entry.lightningAddress == nil {
+            VStack(alignment: .leading, spacing: 0) {
+                // Lines the header up with the chart's leading edge below it.
+                header
+                    .padding(.leading, 5)
+                
+                GraphLine(values: entry.weekPrices)
+                    .stroke(Color("WhiteOrYellow"), style: StrokeStyle(lineWidth: 4, lineCap: .round, lineJoin: .round))
+                    .shadow(color: .black.opacity(0.35), radius: 6, x: 0, y: 5)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    // Keeps the curve off the widget's leading and bottom edges.
+                    .padding(EdgeInsets(top: 10, leading: 5, bottom: 10, trailing: 0))
+            }
+        } else {
+            // Layered rather than stacked, so the value centres on the column
+            // itself instead of on the gap left between the header and the
+            // currency.
+            ZStack {
+                // Offset by half the profit view so the value, rather than the
+                // pair of them, lines up with the middle of the widget.
+                valueStack
+                    // Centred on the box the icon and the currency symbol bound,
+                    // not on the column: the icon's leading edge (the header's
+                    // 5pt inset, less the 3pt the image hangs back by) through
+                    // the symbol's trailing edge.
+                    .padding(.trailing, 12)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .offset(y: weekChange == nil ? 0 : (26 + 8) / 2)
+                
+                header
+                    .padding(.leading, 5)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+                
+                currencyLabel
+                    // Keeps it off the QR card, which the column now runs up to.
+                    .padding(.trailing, 12)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomTrailing)
+            }
+        }
+    }
+    
+    private var valueStack: some View {
+        VStack(spacing: 8) {
+            // 32 renders at the size the small widget's 42 shrinks to: this
+            // column is wide enough that it never scales, where the small
+            // layout's narrower box always trims its 42 down.
+            Text("\(entry.currency) \(displayedValue)")
+                .font(.custom("Gilroy-Bold", size: 32))
+                .minimumScaleFactor(0.5)
+                .lineLimit(1)
+                .foregroundColor(Color("BlackOrWhite"))
+            
+            profitView
+        }
+    }
+    
+    private var currencyLabel: some View {
+        Text("\(entry.currency)")
+            .font(.custom("Gilroy-Bold", size: 18))
+            .fontWeight(.bold)
+            .foregroundColor(Color("WhiteOrYellow"))
+    }
+    
+    // The Receive screen's QR card: white, 8pt corners, the same shadow, and
+    // the code inset inside it.
+    private func qrCard(for address:String) -> some View {
+        ZStack {
+            RoundedRectangle(cornerRadius: 8)
+                .fill(.white)
+                .shadow(color: .black.opacity(0.1), radius: 10, x: 0, y: 7)
+            
+            if let code = qrCode(for: address) {
+                Image(decorative: code, scale: 1)
+                    .interpolation(.none)
+                    .resizable()
+                    .scaledToFit()
+                    .padding(8)
+            }
+        }
+        // Sized by its own square rather than claiming half the widget, so the
+        // left column runs all the way up to the card and its contents centre
+        // between the card and the widget's leading edge.
+        .aspectRatio(1, contentMode: .fit)
+        .frame(maxHeight: .infinity)
     }
 }
 
@@ -373,13 +447,22 @@ struct BittrWidget: Widget {
 #Preview(as: .systemSmall) {
     BittrWidget()
 } timeline: {
-    SimpleEntry(date: .now, configuration: ConfigurationAppIntent(), eurValue: "100.000", chfValue: "101.000", currency: "€", weekPrices: sampleWeekPrices)
-    SimpleEntry(date: .now, configuration: ConfigurationAppIntent(), eurValue: "90.000", chfValue: "91.000", currency: "CHF", weekPrices: sampleWeekPrices)
+    SimpleEntry(date: .now, configuration: ConfigurationAppIntent(), eurValue: "100.000", chfValue: "101.000", currency: "€", weekPrices: sampleWeekPrices, lightningAddress: nil)
+    SimpleEntry(date: .now, configuration: ConfigurationAppIntent(), eurValue: "90.000", chfValue: "91.000", currency: "CHF", weekPrices: sampleWeekPrices, lightningAddress: nil)
 }
 
-#Preview(as: .systemMedium) {
+// The chart layout, for a user without a lightning address.
+#Preview("Medium - chart", as: .systemMedium) {
     BittrWidget()
 } timeline: {
-    SimpleEntry(date: .now, configuration: ConfigurationAppIntent(), eurValue: "100.000", chfValue: "101.000", currency: "€", weekPrices: sampleWeekPrices)
-    SimpleEntry(date: .now, configuration: ConfigurationAppIntent(), eurValue: "90.000", chfValue: "91.000", currency: "CHF", weekPrices: sampleWeekPrices)
+    SimpleEntry(date: .now, configuration: ConfigurationAppIntent(), eurValue: "100.000", chfValue: "101.000", currency: "€", weekPrices: sampleWeekPrices, lightningAddress: nil)
+    SimpleEntry(date: .now, configuration: ConfigurationAppIntent(), eurValue: "90.000", chfValue: "91.000", currency: "CHF", weekPrices: sampleWeekPrices, lightningAddress: nil)
+}
+
+// The QR layout, for a user signed up with Bittr.
+#Preview("Medium - lightning address", as: .systemMedium) {
+    BittrWidget()
+} timeline: {
+    SimpleEntry(date: .now, configuration: ConfigurationAppIntent(), eurValue: "100.000", chfValue: "101.000", currency: "€", weekPrices: sampleWeekPrices, lightningAddress: "blueoscar71@staging.getbittr.com")
+    SimpleEntry(date: .now, configuration: ConfigurationAppIntent(), eurValue: "104.250", chfValue: "104.250", currency: "CHF", weekPrices: sampleWeekPrices, lightningAddress: "blueoscar71@staging.getbittr.com")
 }

@@ -1,9 +1,4 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- "bittr evil" — builds the Debug-EvilBoltz configuration: the regtest app
-     with the EvilBoltz fault-injection harness armed by default (mode = all),
-     bundle id com.bittr.bittr-evil, display name "bittr evil". Installs
-     alongside "bittr regtest" so Maestro flows can target it separately
-     (appId: com.bittr.bittr-evil). See ios/bittr/Helpers/EvilBoltz.swift. -->
 <Scheme
    LastUpgradeVersion = "1610"
    version = "1.7">

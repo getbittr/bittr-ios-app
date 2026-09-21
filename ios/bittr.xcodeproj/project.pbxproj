@@ -112,7 +112,6 @@
 		05A256532D1155B4009EDC7A /* SwiftUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 05A256522D1155B4009EDC7A /* SwiftUI.framework */; };
 		05A256642D1155B8009EDC7A /* BittrWidgetExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 05A2564E2D1155B4009EDC7A /* BittrWidgetExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		05A2566A2D116731009EDC7A /* Gilroy-Bold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 053190E129FD658F0072CE76 /* Gilroy-Bold.ttf */; };
-		05DA11AC0000000000001001 /* Gilroy-Regular.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 053190E329FD659A0072CE76 /* Gilroy-Regular.ttf */; };
 		05A8BD7A2B750567002F0282 /* Navigation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05A8BD792B750567002F0282 /* Navigation.swift */; };
 		05A8BD7C2B750838002F0282 /* ShowPin.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05A8BD7B2B750838002F0282 /* ShowPin.swift */; };
 		05A8BD7E2B7509BD002F0282 /* StartLightning.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05A8BD7D2B7509BD002F0282 /* StartLightning.swift */; };
@@ -154,6 +153,8 @@
 		05DA11AC0000000000000B01 /* SwapActivityAttributes.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05DA11AC0000000000000A01 /* SwapActivityAttributes.swift */; };
 		05DA11AC0000000000000D01 /* SwapLiveActivityController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05DA11AC0000000000000C01 /* SwapLiveActivityController.swift */; };
 		05DA11AC0000000000000F01 /* GraphCurve.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05DA11AC0000000000000E01 /* GraphCurve.swift */; };
+		05DA11AC0000000000001201 /* WidgetShare.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05DA11AC0000000000001101 /* WidgetShare.swift */; };
+		05DA11AC0000000000001001 /* Gilroy-Regular.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 053190E329FD659A0072CE76 /* Gilroy-Regular.ttf */; };
 		05DA8326303C3AAE00157CE9 /* SendToConfirm.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05DA8325303C3A9B00157CE9 /* SendToConfirm.swift */; };
 		05E2995A2A39CB3700FA0AEE /* IbanCollectionViewCell.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05E299592A39CB3700FA0AEE /* IbanCollectionViewCell.swift */; };
 		05E305372F517F56003DE7CF /* ReloadWallet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05E305362F517F4E003DE7CF /* ReloadWallet.swift */; };
@@ -374,6 +375,8 @@
 		05DA11AC0000000000000A01 /* SwapActivityAttributes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = SwapActivityAttributes.swift; path = BittrWidget/SwapActivityAttributes.swift; sourceTree = SOURCE_ROOT; };
 		05DA11AC0000000000000C01 /* SwapLiveActivityController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SwapLiveActivityController.swift; sourceTree = "<group>"; };
 		05DA11AC0000000000000E01 /* GraphCurve.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = GraphCurve.swift; path = BittrWidget/GraphCurve.swift; sourceTree = SOURCE_ROOT; };
+		05DA11AC0000000000001101 /* WidgetShare.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = WidgetShare.swift; path = BittrWidget/WidgetShare.swift; sourceTree = SOURCE_ROOT; };
+		05DA11AC0000000000001301 /* BittrWidgetExtension.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = BittrWidgetExtension.entitlements; sourceTree = "<group>"; };
 		05DA8325303C3A9B00157CE9 /* SendToConfirm.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SendToConfirm.swift; sourceTree = "<group>"; };
 		05E299592A39CB3700FA0AEE /* IbanCollectionViewCell.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IbanCollectionViewCell.swift; sourceTree = "<group>"; };
 		05E305362F517F4E003DE7CF /* ReloadWallet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReloadWallet.swift; sourceTree = "<group>"; };
@@ -817,6 +820,7 @@
 				05C3C0B729CCC75600C1E695 /* Montserrat-Regular.ttf */,
 				05C3C0B929CCC76100C1E695 /* Montserrat-Bold.ttf */,
 				053190DD29FD60EA0072CE76 /* Syne-Regular.ttf */,
+				05DA11AC0000000000001301 /* BittrWidgetExtension.entitlements */,
 				053190E129FD658F0072CE76 /* Gilroy-Bold.ttf */,
 				053190E329FD659A0072CE76 /* Gilroy-Regular.ttf */,
 				05C3C08329CCB55600C1E695 /* bittr */,
@@ -935,6 +939,7 @@
 				05E4834F2D29049D007A5834 /* ValueViewController.swift */,
 				05CF0FE52D32557300DF2D9F /* GraphView.swift */,
 				05DA11AC0000000000000E01 /* GraphCurve.swift */,
+				05DA11AC0000000000001101 /* WidgetShare.swift */,
 			);
 			path = Value;
 			sourceTree = "<group>";
@@ -1294,6 +1299,7 @@
 				052EC7482D63254B00170FE4 /* WebSocketManager.swift in Sources */,
 				05CF0FE62D32557300DF2D9F /* GraphView.swift in Sources */,
 				05DA11AC0000000000000F01 /* GraphCurve.swift in Sources */,
+				05DA11AC0000000000001201 /* WidgetShare.swift in Sources */,
 				05AF89742D436920009D629C /* SwapManager.swift in Sources */,
 				051AB88F2F5E8FB400DFC39F /* ConfirmLanguage.swift in Sources */,
 				37CC83002D8C1EAF005E791D /* BoltzRefund.swift in Sources */,
@@ -1438,6 +1444,7 @@
 				ENABLE_USER_SCRIPT_SANDBOXING = YES;
 				GCC_C_LANGUAGE_STANDARD = gnu17;
 				GENERATE_INFOPLIST_FILE = YES;
+				CODE_SIGN_ENTITLEMENTS = BittrWidgetExtension.entitlements;
 				INFOPLIST_FILE = BittrWidget/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = bittr;
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
@@ -1471,6 +1478,7 @@
 				ENABLE_USER_SCRIPT_SANDBOXING = YES;
 				GCC_C_LANGUAGE_STANDARD = gnu17;
 				GENERATE_INFOPLIST_FILE = YES;
+				CODE_SIGN_ENTITLEMENTS = BittrWidgetExtension.entitlements;
 				INFOPLIST_FILE = BittrWidget/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = bittr;
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
@@ -1891,6 +1899,7 @@
 				ENABLE_USER_SCRIPT_SANDBOXING = YES;
 				GCC_C_LANGUAGE_STANDARD = gnu17;
 				GENERATE_INFOPLIST_FILE = YES;
+				CODE_SIGN_ENTITLEMENTS = BittrWidgetExtension.entitlements;
 				INFOPLIST_FILE = BittrWidget/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = "bittr evil";
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
