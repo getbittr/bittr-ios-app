@@ -25,6 +25,10 @@ class GraphView: UIView, UIGestureRecognizerDelegate {
     var lineWidth:CGFloat = 4
     var pointRadius:CGFloat = 2
     var isInteractive = true
+    var lineColor:UIColor?
+    private var strokeColor:UIColor {
+        return self.lineColor ?? Colors.getColor("whiteoryellow")
+    }
     
     var currency = ""
     
@@ -182,13 +186,13 @@ class GraphView: UIView, UIGestureRecognizerDelegate {
         context!.saveGState()
         context!.setShadow(offset: CGSize(width: 0, height: 9), blur: 15, color: UIColor.black.cgColor)
         context!.setAlpha(0.4)
-        Colors.getColor("whiteoryellow").setStroke()
+        self.strokeColor.setStroke()
         path.lineWidth = self.lineWidth
         path.stroke()
         context!.restoreGState()
         
         let path2:UIBezierPath = quadCurvedPath()
-        Colors.getColor("whiteoryellow").setStroke()
+        self.strokeColor.setStroke()
         path2.lineWidth = self.lineWidth
         path2.stroke()
     }
@@ -198,7 +202,7 @@ class GraphView: UIView, UIGestureRecognizerDelegate {
         let path = UIBezierPath()
         
         guard data.count > 1 else {
-            if data.count == 1 { drawPoint(point: CGPoint(x: self.horizontalInset, y: coordYFor(index: 0)), color: Colors.getColor("whiteoryellow"), radius: self.pointRadius) }
+            if data.count == 1 { drawPoint(point: CGPoint(x: self.horizontalInset, y: coordYFor(index: 0)), color: self.strokeColor, radius: self.pointRadius) }
             return path
         }
         
@@ -207,7 +211,7 @@ class GraphView: UIView, UIGestureRecognizerDelegate {
         var p1 = CGPoint(x: self.horizontalInset, y: coordYFor(index: 0))
         path.move(to: p1)
         
-        drawPoint(point: p1, color: Colors.getColor("whiteoryellow"), radius: self.pointRadius)
+        drawPoint(point: p1, color: self.strokeColor, radius: self.pointRadius)
         
         if (data.count == 2) {
             path.addLine(to: CGPoint(x: step + self.horizontalInset, y: coordYFor(index: 1)))
@@ -219,7 +223,7 @@ class GraphView: UIView, UIGestureRecognizerDelegate {
         for i in 1..<data.count {
             
             let p2 = CGPoint(x: step * CGFloat(i) + self.horizontalInset, y: coordYFor(index: i))
-            drawPoint(point: p2, color: Colors.getColor("whiteoryellow"), radius: self.pointRadius)
+            drawPoint(point: p2, color: self.strokeColor, radius: self.pointRadius)
             var p3: CGPoint?
             if i < data.count - 1 {
                 p3 = CGPoint(x: step * CGFloat(i + 1) + self.horizontalInset, y: coordYFor(index: i + 1))

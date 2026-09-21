@@ -50,6 +50,7 @@ extension HomeHeaderTableViewCell {
         self.conversionGraph.lineWidth = 4
         self.conversionGraph.pointRadius = 0
         self.conversionGraph.isInteractive = false
+        self.conversionGraph.lineColor = Colors.returnColor(.white, 1)
         
         // Show whatever has already been fetched.
         self.conversionGraph.points = homeVC.graphPoints ?? []
