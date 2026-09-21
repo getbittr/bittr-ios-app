@@ -44,9 +44,9 @@ extension HomeHeaderTableViewCell {
     func loadGraph() {
         guard let homeVC = self.homeVC else { return }
         
-        self.conversionGraph.horizontalInset = 25
+        self.conversionGraph.horizontalInset = 27
         self.conversionGraph.topInset = 16
-        self.conversionGraph.bottomInset = 19
+        self.conversionGraph.bottomInset = 21
         self.conversionGraph.lineWidth = 4
         self.conversionGraph.pointRadius = 0
         self.conversionGraph.isInteractive = false

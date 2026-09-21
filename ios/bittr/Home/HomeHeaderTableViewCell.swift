@@ -63,6 +63,8 @@ class HomeHeaderTableViewCell: UITableViewCell {
     @IBOutlet weak var headerMapImage: UIImageView!
     @IBOutlet weak var headerCurrencyLabel: UILabel!
     @IBOutlet weak var headerMapLabel: UILabel!
+    @IBOutlet weak var mapImage: UIImageView!
+    @IBOutlet weak var pinImage: UIImageView!
     
     // Variables
     var homeVC:HomeViewController?
@@ -88,6 +90,7 @@ class HomeHeaderTableViewCell: UITableViewCell {
         self.conversionCard.layer.cornerRadius = 13
         self.conversionProfitView.layer.cornerRadius = 11
         self.mapCard.layer.cornerRadius = 13
+        self.mapImage.layer.cornerRadius = 8
         
         // Button titles
         self.balanceCardButton.setTitle("", for: .normal)
@@ -106,6 +109,10 @@ class HomeHeaderTableViewCell: UITableViewCell {
         self.buyView.setShadow()
         self.conversionCard.setShadow()
         self.mapCard.setShadow()
+        self.pinImage.layer.shadowColor = UIColor.black.cgColor
+        self.pinImage.layer.shadowOffset = CGSize(width: 0, height: 5)
+        self.pinImage.layer.shadowRadius = 3.0
+        self.pinImage.layer.shadowOpacity = 0.3
         
         // Accessibility identifiers
         self.headerSpinner.accessibilityIdentifier = TestID.Home.headerSpinner
@@ -165,6 +172,8 @@ class HomeHeaderTableViewCell: UITableViewCell {
         self.receiveLabel.textColor = Colors.getColor("blackorwhite")
         self.buyLabel.textColor = Colors.getColor("blackorwhite")
         self.bottomCurve.fillColor = Colors.getColor("yelloworblue3")
+        self.mapImage.image = UIImage(named: CacheManager.darkModeIsOn() ? "zurichmapdark" : "zurichmap")
+        self.mapImage.alpha = CacheManager.darkModeIsOn() ? 0.6 : 1
         
         if self.profitArrow.image == UIImage(systemName: "arrow.down") {
             // Loss
