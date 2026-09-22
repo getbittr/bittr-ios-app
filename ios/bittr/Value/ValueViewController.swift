@@ -90,7 +90,7 @@ enum PriceHistory {
         
         if let status = (response as? HTTPURLResponse)?.statusCode, !(200..<300).contains(status) {
             Log.info("GET \(urlString) failed with status \(status).")
-            throw LoadError.badResponse
+            throw APIError.requestFailed("HTTP \(status)")
         }
         
         return data
@@ -342,7 +342,7 @@ class ValueViewController: UIViewController {
                 self.homeVC?.currentValue = nil
                 
                 self.showAlert(title: Language.getWord(withID: "oops"), message: "\(Language.getWord(withID: "historicaldata"))", buttons: [.action(Language.getWord(withID: "tryagain")) { self.getCurrentValue() }, .dismiss(Language.getWord(withID: "cancel"))])
-                SentryManager.capture(error, context: "ValueViewController row 264")
+                SentryManager.capture(error, context: "ValueViewController row 264", filterHttpErrors: true)
             }
         }
     }
