@@ -55,12 +55,20 @@ extension HomeHeaderTableViewCell {
         // Show whatever has already been fetched.
         self.conversionGraph.points = homeVC.graphPoints ?? []
         
+        guard homeVC.didFetchConversion || homeVC.couldNotFetchConversion else { return }
         guard homeVC.graphPoints == nil, !homeVC.isLoadingGraph else { return }
+        // Back off after a failure rather than trying again on the next reload.
+        if let failedAt = homeVC.graphLoadFailedAt, Date().timeIntervalSince(failedAt) < 60 { return }
+        
         homeVC.isLoadingGraph = true
         
         Task { [weak self, weak homeVC] in
             defer { homeVC?.isLoadingGraph = false }
-            guard let snapshot = try? await PriceHistory.load(cache: homeVC), let points = snapshot.series[.week] else { return }
+            guard let snapshot = try? await PriceHistory.load(cache: homeVC), let points = snapshot.series[.week] else {
+                homeVC?.graphLoadFailedAt = Date()
+                return
+            }
+            homeVC?.graphLoadFailedAt = nil
             homeVC?.graphPoints = points
             self?.conversionGraph.points = points
             self?.updateGraphProfit()
