@@ -276,7 +276,7 @@ extension CoreViewController {
                             }
                         }
                         
-                        if sendToSentry {
+                        if sendToSentry, EnvironmentConfig.isProduction {
                             SentryManager.capture(error, context: "HandlePaymentNotification row 152")
                         }
                     }
