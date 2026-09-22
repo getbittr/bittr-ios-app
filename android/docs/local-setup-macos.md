@@ -249,6 +249,64 @@ the AVD is fine.
 entirely. `adb devices` should list it before you install. Any phone on Android 8.0
 or newer — `minSdk` is 26.
 
+#### Installing the regtest app on a phone
+
+The app the flows and the reviews talk about is the **regtest** build
+(`com.bittr.android.regtest`), and it is only a wallet with a Lightning node in it if
+the four `BITTR_LDK_*` values were set **at build time**. They live outside the repo,
+in `~/.bittr/android-regtest.env` (see `shared/flows/test_suite_android.sh`), and a
+build without them installs happily and then logs
+
+```
+WalletModule: No LdkEnvironment in this build; the wallet holds a seed and no funds.
+```
+
+which looks like a broken wallet rather than a misconfigured build. So:
+
+```sh
+# 1. Build with the node settings, from the repo root.
+set -a; source ~/.bittr/android-regtest.env; set +a
+cd android && ./gradlew :app:assembleDebug --no-configuration-cache
+
+# 2. Install on the phone (`-s` because an emulator is usually attached too;
+#    `adb devices` prints the serial). `-r` keeps the wallet already on it.
+adb -s <serial> install -r app/build/outputs/apk/debug/app-arm64-v8a-debug.apk
+```
+
+`--no-configuration-cache` is not decoration. Gradle's configuration cache can hand
+back a configuration captured without those environment variables, and the APK then
+comes out empty-valued — that is exactly how a phone got a node-less build on
+2026-09-18 while the emulator had a working one from the same source tree.
+
+**Check the APK rather than trusting the build**, because the failure is silent:
+
+```sh
+cd /tmp && rm -rf apkcheck && mkdir apkcheck && cd apkcheck
+unzip -q -o <path-to>/app-arm64-v8a-debug.apk 'classes*.dex' -d x
+grep -E '^BITTR_LDK_' ~/.bittr/android-regtest.env | while IFS='=' read k v; do
+  cat x/classes*.dex | LC_ALL=C grep -qF -- "$v" && echo "$k: present" || echo "$k: MISSING"
+done
+```
+
+**The shortcut, when the emulator already runs the build you want:** copy its APK
+straight across instead of building again. This is what the suite installs, so it is
+built with the node settings by definition.
+
+```sh
+p=$(adb -s emulator-5554 shell pm path com.bittr.android.regtest | head -1 | sed 's/package://' | tr -d '\r')
+adb -s emulator-5554 pull "$p" /tmp/bittr-regtest.apk
+adb -s <phone-serial> install -r /tmp/bittr-regtest.apk
+```
+
+Two things that are normal on a phone and not worth chasing:
+
+- `adb shell cmd package compile -m speed -f com.bittr.android.regtest` — the
+  ahead-of-time compile the emulator needs — is refused by some phones ("Failed to
+  cpmpile"). Harmless: the first launches are a little slower until Android optimises
+  the app itself.
+- The regtest app installs alongside the App Store bittr; they are different
+  application ids and different wallets.
+
 ### What you should see
 
 A centred column on a plain background: the word **bittr** in `headlineLarge`, a

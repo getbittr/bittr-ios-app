@@ -158,7 +158,10 @@ Verified from a pristine `git clone` of this branch with no `local.properties` �
 
 Step-by-step for a Mac: `docs/local-setup-macos.md`. If you only want to *look* at
 the scaffold screen, that doc's "Seeing the screen" section gets you there through
-Android Studio's Compose preview without booting an emulator at all.
+Android Studio's Compose preview without booting an emulator at all. To put the regtest
+build on your own phone — including why it needs `~/.bittr/android-regtest.env` at
+*build* time, and how to check the APK actually got it — see that doc's "Installing
+the regtest app on a phone".
 
 ## Maestro
 
