@@ -128,6 +128,13 @@ val BittrLightColors: ColorScheme = lightColorScheme(
     onSurface = Color.Black,
     surfaceContainer = Color.White,
     surfaceContainerHigh = Color.White,
+    // Spelled out, because Material fills a slot a theme leaves unset from its own baseline:
+    // `surfaceContainerLowest` is white in light and a near-black in dark, and the transaction,
+    // note and fee rows that reach for it came out black on the blue canvas (Ruben,
+    // 2026-09-22). Every container slot in this app is one of the two card fills.
+    surfaceContainerLowest = Color.White,
+    surfaceContainerLow = Color.White,
+    surfaceContainerHighest = Color.White,
     surfaceBright = Grey3,
     // A11Y-01: iOS `transparentblack` is black @50 % → 3.95 : 1, a fail. 60 % → 5.74 : 1.
     // Also lifts the three escape-hatch controls on yellow from 3.63 to 4.93 (A11Y-15).
@@ -178,6 +185,10 @@ val BittrDarkColors: ColorScheme = darkColorScheme(
     onSurface = Color.White,
     surfaceContainer = Blue2,
     surfaceContainerHigh = Blue3,
+    // See the light scheme: an unset container slot falls back to Material's near-black.
+    surfaceContainerLowest = Blue2,
+    surfaceContainerLow = Blue2,
+    surfaceContainerHighest = Blue3,
     surfaceBright = Blue3,
     // A11Y-01: iOS is white @50 % → 2.29 : 1. 70 % only reaches 3.87 on blue2, so 80 %
     // is the floor rather than a preference — 4.50 on blue2, 5.28 on blue1.

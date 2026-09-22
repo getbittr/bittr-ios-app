@@ -387,44 +387,51 @@ private fun InitiativeSheet(onConfirm: () -> Unit, onCancel: () -> Unit) {
         contentAlignment = Alignment.Center,
         modifier = Modifier
             .fillMaxSize()
-            .background(Color.Black.copy(alpha = 0.4f))
+            .background(Color.Black.copy(alpha = 0.45f))
             .pointerInput(Unit) { detectTapGestures { } },
     ) {
+        // An opaque dialog, like every other alert. It painted the card wash — white at 9 % —
+        // over the signup page, so the page read straight through the sentence the user is
+        // being asked to confirm (Ruben, 2026-09-22).
         Column(
             modifier = Modifier
                 .padding(horizontal = BittrTokens.Spacing.lg, vertical = BittrTokens.Spacing.xxl)
                 .fillMaxWidth()
-                .background(BittrTheme.colors.cardWash, RoundedCornerShape(28.dp))
+                .background(BittrTheme.colors.dialogContainer, BittrCanvasShapes.card)
                 .testTag(TestID.Alert.exclusiveInitiative)
-                .padding(BittrTokens.Spacing.xl),
+                .padding(24.dp),
         ) {
-            Text(
-                BuyStrings.INITIATIVE_TITLE,
-                style = MaterialTheme.typography.headlineSmall,
-                modifier = Modifier.fillMaxWidth(),
-            )
-            CanvasSpacer(BittrTokens.Spacing.md)
-            Column(
-                Modifier
-                    .weight(1f, fill = false)
-                    .verticalScroll(rememberScrollState()),
-            ) {
-                Text(BuyStrings.INITIATIVE_MESSAGE, style = MaterialTheme.typography.bodyMedium)
-            }
-            CanvasSpacer(BittrTokens.Spacing.lg)
-            BittrPrimaryButton(
-                text = BuyStrings.INITIATIVE_CONFIRM,
-                onClick = onConfirm,
-                arrow = false,
-                modifier = Modifier.testTag(TestID.Signup.Bittr.Initiative.confirmButton),
-            )
-            TextButton(
-                onClick = onCancel,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .testTag(TestID.Signup.Bittr.Initiative.cancelButton),
-            ) {
-                Text(BuyStrings.CANCEL)
+            CompositionLocalProvider(LocalContentColor provides BittrTheme.colors.onDialogContainer) {
+                BittrDialogTitle(BuyStrings.INITIATIVE_TITLE)
+                CanvasSpacer(BittrTokens.Spacing.md)
+                Column(
+                    Modifier
+                        .weight(1f, fill = false)
+                        .verticalScroll(rememberScrollState()),
+                ) {
+                    BittrDialogMessage(BuyStrings.INITIATIVE_MESSAGE)
+                }
+                CanvasSpacer(BittrTokens.Spacing.lg)
+                BittrPrimaryButton(
+                    text = BuyStrings.INITIATIVE_CONFIRM,
+                    onClick = onConfirm,
+                    arrow = false,
+                    modifier = Modifier
+                        .height(BittrDialogButtonHeight)
+                        .testTag(TestID.Signup.Bittr.Initiative.confirmButton),
+                )
+                TextButton(
+                    onClick = onCancel,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .testTag(TestID.Signup.Bittr.Initiative.cancelButton),
+                ) {
+                    Text(
+                        BuyStrings.CANCEL,
+                        style = MaterialTheme.typography.labelLarge,
+                        color = BittrTheme.colors.onDialogContainer,
+                    )
+                }
             }
         }
     }

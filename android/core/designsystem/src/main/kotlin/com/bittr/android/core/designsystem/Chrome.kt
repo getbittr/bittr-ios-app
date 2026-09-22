@@ -286,11 +286,11 @@ private fun NavTab(
         horizontalArrangement = Arrangement.spacedBy(BittrTokens.Spacing.sm, Alignment.CenterHorizontally),
         modifier = modifier
             .height(NavBarHeight)
-            .background(
-                if (active) colors.canvas else MaterialTheme.colorScheme.surfaceContainer,
-                BittrCanvasShapes.field,
-            )
-            .clickable(onClick = onClick)
+            // Clipped before `clickable`, or the press layer is a square behind the pill —
+            // the same rule BittrPrimaryButton states.
+            .clip(BittrCanvasShapes.field)
+            .background(if (active) colors.canvas else MaterialTheme.colorScheme.surfaceContainer)
+            .clickable(role = Role.Button, onClick = onClick)
             .then(testTag?.let { Modifier.testTag(it) } ?: Modifier),
     ) {
         Image(
