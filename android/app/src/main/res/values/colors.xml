@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  The one colour the platform needs outside Compose: the splash background. Everything
+  else lives in BittrColors (:core:designsystem) — see themes.xml.
+-->
+<resources>
+    <color name="brand_canvas">#FFC502</color>
+</resources>

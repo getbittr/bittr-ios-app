@@ -20,6 +20,7 @@ minSdk = "26"
 targetSdk = "36"
 
 # AndroidX / Compose
+androidxCoreSplashscreen = "1.0.1"
 androidxCore = "1.19.0"
 androidxLifecycle = "2.11.0"
 androidxActivity = "1.13.0"
@@ -138,6 +139,7 @@ maplibre = "11.11.0"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "androidxCore" }
+androidx-core-splashscreen = { group = "androidx.core", name = "core-splashscreen", version.ref = "androidxCoreSplashscreen" }
 androidx-lifecycle-runtime-ktx = { group = "androidx.lifecycle", name = "lifecycle-runtime-ktx", version.ref = "androidxLifecycle" }
 androidx-lifecycle-viewmodel-compose = { group = "androidx.lifecycle", name = "lifecycle-viewmodel-compose", version.ref = "androidxLifecycle" }
 # For androidx.lifecycle.compose.LocalLifecycleOwner, which is what CameraX's

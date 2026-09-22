@@ -1,18 +1,17 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- The bittr mark, from the same path data BittrLogo draws (core/designsystem/Logo.kt).
-     Sized to 60 of the 108 dp viewport so it stays inside the adaptive icon's safe zone —
-     a launcher may mask anything outside the central 72 dp. Ink and arc as the iOS app
-     icon draws them: a white arc with a near-black wedge. -->
+<!-- The splash screen's icon. A 288 dp viewport with the art inside the central 192 dp, which
+     is what the platform masks a splash icon to; the brand yellow behind it comes from
+     windowSplashScreenBackground in themes.xml. -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
-    android:width="108dp"
-    android:height="108dp"
-    android:viewportWidth="108"
-    android:viewportHeight="108">
+    android:width="288dp"
+    android:height="288dp"
+    android:viewportWidth="288"
+    android:viewportHeight="288">
     <group
-        android:translateX="24.000"
-        android:translateY="23.275"
-        android:scaleX="0.35294"
-        android:scaleY="0.35294">
+        android:translateX="69.000"
+        android:translateY="67.189"
+        android:scaleX="0.88235"
+        android:scaleY="0.88235">
         <group android:translateY="-308.156">
             <path
                 android:fillColor="#0D0D0D"

@@ -6,4 +6,21 @@
 -->
 <resources>
     <style name="Theme.Bittr" parent="android:Theme.Material.Light.NoActionBar" />
+
+    <!--
+      The launch screen: the bittr mark on the brand yellow, which is what iOS shows
+      (LaunchScreen.storyboard, background #F6C744 in Display P3 = #FFC502 here). Android
+      draws the app icon on a plain window background unless a splash theme says otherwise,
+      so the app opened on a black disc on white — the placeholder icon on the default
+      background (Ruben, 2026-09-22).
+
+      `postSplashScreenTheme` is the theme the activity takes once the splash goes; the
+      androidx library replays the same treatment below Android 12, where the platform API
+      does not exist.
+    -->
+    <style name="Theme.Bittr.Splash" parent="Theme.SplashScreen">
+        <item name="windowSplashScreenBackground">@color/brand_canvas</item>
+        <item name="windowSplashScreenAnimatedIcon">@drawable/ic_splash_mark</item>
+        <item name="postSplashScreenTheme">@style/Theme.Bittr</item>
+    </style>
 </resources>

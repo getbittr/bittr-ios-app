@@ -1,6 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Placeholder launcher icon. Real icon assets come from BIT-4. -->
+<!-- The bittr mark on the brand yellow, as the iOS app icon has it. `monochrome` is what
+     Android 13+ tints for a themed icon; without it the launcher falls back to the full-colour
+     one, which is not wrong but is not the user's theme either. -->
 <adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
     <background android:drawable="@drawable/ic_launcher_background" />
     <foreground android:drawable="@drawable/ic_launcher_foreground" />
+    <monochrome android:drawable="@drawable/ic_launcher_monochrome" />
 </adaptive-icon>

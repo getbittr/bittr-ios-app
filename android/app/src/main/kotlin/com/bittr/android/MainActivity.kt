@@ -1,6 +1,7 @@
 package com.bittr.android
 
 import android.os.Bundle
+import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import android.os.SystemClock
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -133,6 +134,9 @@ class MainActivity : ComponentActivity() {
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        // Before super: the splash theme is swapped for Theme.Bittr here, and the platform
+        // keeps the mark on screen until the first frame is ready.
+        installSplashScreen()
         // Edge-to-edge on every API level, not only where targetSdk 36 forces it (35+).
         // Every screen already pads for the system bars itself — BittrCanvas, Home,
         // the map — because on 35+ it has to. Below 35 the framework used to fit the

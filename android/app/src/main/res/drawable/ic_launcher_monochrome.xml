@@ -1,8 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- The bittr mark, from the same path data BittrLogo draws (core/designsystem/Logo.kt).
-     Sized to 60 of the 108 dp viewport so it stays inside the adaptive icon's safe zone —
-     a launcher may mask anything outside the central 72 dp. Ink and arc as the iOS app
-     icon draws them: a white arc with a near-black wedge. -->
+<!-- The mark as one shape, for Android 13's themed icons: the launcher tints this with the
+     user's wallpaper palette, so both halves are the same colour and only the silhouette
+     carries the brand. -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="108dp"
     android:height="108dp"
@@ -15,10 +14,10 @@
         android:scaleY="0.35294">
         <group android:translateY="-308.156">
             <path
-                android:fillColor="#0D0D0D"
+                android:fillColor="#000000"
                 android:pathData="M2.995,373.411c-8.792,32.451,1.945,68.461,30.086,90.485c22.26,17.421,50.392,22.179,75.729,15.33L2.995,373.411z" />
             <path
-                android:fillColor="#FFFFFF"
+                android:fillColor="#000000"
                 android:pathData="M139.379,328.104c-37.491-29.355-91.69-22.753-121.045,14.737c-2.52,3.214-4.757,6.565,-6.748,10.007l17.741,17.741l0,0c2.027-4.538,4.629-8.912,7.834-13.002c21.21-27.1,60.372-31.866,87.472-10.656c27.1,21.211,31.866,60.372,10.656,87.472c-6.492,8.291,-14.664,14.481-23.658,18.48l17.75,17.75c9.286-5.359,17.723-12.536,24.735-21.493c29.355,-37.5,22.753-91.69-14.737-121.045V328.104z" />
         </group>
     </group>
