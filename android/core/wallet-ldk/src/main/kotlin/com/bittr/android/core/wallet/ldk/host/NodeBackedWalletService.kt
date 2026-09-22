@@ -107,6 +107,9 @@ class NodeBackedWalletService(
 
     override suspend fun resetPin(mnemonic: Mnemonic, pin: String) = seed.resetPin(mnemonic, pin)
 
+    /** The screen lock: [seed]'s state, with the node left running. */
+    override fun lock() = seed.lock()
+
     /**
      * Bring the node up.
      *

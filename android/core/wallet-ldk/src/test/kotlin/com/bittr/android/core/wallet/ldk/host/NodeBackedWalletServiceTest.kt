@@ -42,6 +42,9 @@ class NodeBackedWalletServiceTest {
         var removals = 0
             private set
 
+        override fun lock() = Unit
+
+
         override suspend fun createWallet(): Mnemonic {
             log += "createWallet"
             return Mnemonic(List(12) { "abandon" })

@@ -283,6 +283,20 @@ fun BittrNavHost(
     // on every change and pop the back stack with it — creating a wallet unlocks it on the
     // Ready page, which would throw the user out of onboarding before the bittr signup. Every
     // later transition navigates explicitly: unlock, the end of onboarding or restore, removal.
+    // The screen lock, from anywhere. `MainActivity` puts the wallet back to Locked when the
+    // task is swiped away or after long enough in the background, and the user lands on the PIN
+    // screen with the back stack cleared rather than inside the wallet they just locked.
+    LaunchedEffect(walletState) {
+        if (walletState == WalletState.Locked &&
+            navController.currentDestination?.route != Routes.PIN_UNLOCK
+        ) {
+            navController.navigate(Routes.PIN_UNLOCK) {
+                popUpTo(navController.graph.id) { inclusive = true }
+                launchSingleTop = true
+            }
+        }
+    }
+
     val startDestination = remember {
         when (walletState) {
             WalletState.Uninitialized -> Routes.SIGNUP_START

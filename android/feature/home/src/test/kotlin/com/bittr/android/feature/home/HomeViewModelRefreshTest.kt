@@ -45,6 +45,8 @@ class HomeViewModelRefreshTest {
 
     private val wallet = object : WalletService {
         override val state: StateFlow<WalletState> = MutableStateFlow(WalletState.Ready)
+        override fun lock() = Unit
+
         override suspend fun createWallet(): Mnemonic = error("unused")
         override suspend fun restoreWallet(mnemonic: Mnemonic) = Unit
         override suspend fun setPin(pin: String) = Unit

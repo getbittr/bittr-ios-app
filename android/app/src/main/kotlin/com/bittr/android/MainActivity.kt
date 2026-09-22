@@ -1,6 +1,7 @@
 package com.bittr.android
 
 import android.os.Bundle
+import android.os.SystemClock
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -77,6 +78,9 @@ class MainActivity : ComponentActivity() {
     @Inject
     lateinit var wallet: WalletService
 
+    /** `elapsedRealtime` at the last [onStop], or 0 before the first one. */
+    private var backgroundedAt: Long = 0L
+
     /** Reconnected on every foreground while the node runs, as iOS's `SceneDelegate` does. */
     @Inject
     lateinit var bittrPeer: BittrPeerConnection
@@ -97,6 +101,12 @@ class MainActivity : ComponentActivity() {
      */
     override fun onStart() {
         super.onStart()
+        // Long enough that stepping out to a maps app, a browser or the share sheet — which
+        // every flow and half the screens do — comes back to where the user was, short enough
+        // that a phone left on a table does not stay open. iOS gets this from the system
+        // killing a backgrounded app; Android's foreground service means it never happens.
+        val away = SystemClock.elapsedRealtime() - backgroundedAt
+        if (backgroundedAt > 0L && away >= LOCK_AFTER_BACKGROUND_MS) wallet.lock()
         appForeground.setActive(true)
         deviceTokens.onAppForegrounded()
         lifecycleScope.launch { deviceTokens.syncOnAppStart() }
@@ -108,7 +118,18 @@ class MainActivity : ComponentActivity() {
 
     override fun onStop() {
         appForeground.setActive(false)
+        backgroundedAt = SystemClock.elapsedRealtime()
         super.onStop()
+    }
+
+    /**
+     * Swiped out of Recents. The activity goes, the process usually does not — the node holds a
+     * foreground service — so without this the next launch walks straight back into an unlocked
+     * wallet. `isFinishing` keeps a rotation from locking the screen under the user.
+     */
+    override fun onDestroy() {
+        if (isFinishing) wallet.lock()
+        super.onDestroy()
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -180,3 +201,6 @@ private fun BittrApp(pushCoordinator: PushCoordinator, transactionScreenOpen: ko
         }
     }
 }
+
+/** Two minutes away from the app and the PIN is asked for again. */
+private const val LOCK_AFTER_BACKGROUND_MS = 2 * 60 * 1000L

@@ -407,6 +407,42 @@ class SeedWalletServiceTest {
         setPin("1234")
         removeWallet()
     }
+
+    /**
+     * The screen lock (BIT-93 + Ruben, 2026-09-22): a Ready wallet goes back to Locked, key
+     * material untouched, and the same PIN opens it again. The wallet is only locked from
+     * Ready — locking a wallet that is still being set up would strand the user on a PIN
+     * screen for a PIN that does not exist yet.
+     */
+    @Test
+    fun `lock puts a ready wallet back behind its PIN`() = runTest {
+        val store = FakeStore()
+        val service = SeedWalletService(store)
+        service.createWallet()
+        service.setPin("1234")
+        assertTrue(service.unlock("1234"))
+        assertEquals(WalletState.Ready, service.state.value)
+
+        service.lock()
+
+        assertEquals(WalletState.Locked, service.state.value)
+        assertTrue("the PIN still opens it", service.unlock("1234"))
+    }
+
+    @Test
+    fun `lock does nothing to a wallet that is not ready`() = runTest {
+        val store = FakeStore()
+        val service = SeedWalletService(store)
+        assertEquals(WalletState.Uninitialized, service.state.value)
+        service.lock()
+        assertEquals(WalletState.Uninitialized, service.state.value)
+
+        service.createWallet()
+        service.setPin("1234")
+        assertEquals(WalletState.Locked, service.state.value)
+        service.lock()
+        assertEquals(WalletState.Locked, service.state.value)
+    }
 }
 
 /**

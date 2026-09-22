@@ -141,6 +141,10 @@ class SeedWalletService(
         _state.value = WalletState.Ready
     }
 
+    override fun lock() {
+        if (_state.value == WalletState.Ready) _state.value = WalletState.Locked
+    }
+
     override suspend fun removeWallet() {
         // Counter and verifier first, seed last: a failure part-way through has to
         // leave a wallet that can still be opened, never a seed with no way in.

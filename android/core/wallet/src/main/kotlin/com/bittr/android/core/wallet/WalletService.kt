@@ -167,6 +167,19 @@ interface WalletService {
     suspend fun removeWallet()
 
     /**
+     * Put a [WalletState.Ready] wallet back to [WalletState.Locked], so the PIN is asked for
+     * again. Key material is untouched and the node keeps running — this is the screen lock,
+     * not a teardown.
+     *
+     * On iOS the PIN screen comes back because the system eventually kills a backgrounded app
+     * and the next launch starts at the lock. Android does not: while the node runs, the app
+     * holds a foreground service, so the process survives being swiped away and the user who
+     * "closed" the app came back to an unlocked wallet (Ruben, 2026-09-22). The app locks
+     * itself instead — see `MainActivity`.
+     */
+    fun lock()
+
+    /**
      * Bring the wallet up: load key material, start the Lightning node, begin sync.
      *
      * On Android this will not be a plain suspend call for long — process death is

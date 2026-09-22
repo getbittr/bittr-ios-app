@@ -655,21 +655,6 @@ object BittrIconPaths {
     // The bottom bar, also artboard 18.
     const val WALLET = "M3 7.5A2.5 2.5 0 015.5 5H18a2 2 0 012 2v10a2 2 0 01-2 2H5.5A2.5 2.5 0 013 16.5z M16 12h2"
     const val ACADEMY = "M3 9l9-4.5L21 9l-9 4.5z M6.5 11v4.5c0 1 2.5 2.5 5.5 2.5s5.5-1.5 5.5-2.5V11"
-    const val SETTINGS =
-        "M12 8.5a3.5 3.5 0 100 7 3.5 3.5 0 000-7z M12 2l1.6 2.3 2.7-.6.5 2.8 2.5 1.2-1.4 2.4 1.4 " +
-            "2.4-2.5 1.2-.5 2.8-2.7-.6L12 22l-1.6-2.3-2.7.6-.5-2.8-2.5-1.2 1.4-2.4-1.4-2.4 2.5-1.2" +
-            ".5-2.8 2.7.6z"
-
-    /**
-     * The Settings and Device-details row glyphs.
-     *
-     * iOS names SF Symbols here (`envelope.fill`, `checkmark.shield.fill`,
-     * `ipad.and.iphone`, …). There is no equivalent set on Android that is not a
-     * separate artifact, so these are drawn to the same silhouette in the same
-     * 24 dp box. Where a symbol has a filled iOS variant it is drawn as a stroke
-     * here, because every other icon on these screens is a stroke and a lone filled
-     * glyph reads as a different weight rather than as emphasis.
-     */
     const val SUPPORT = "M3 7h18v10H3z M3 7l9 6 9-6"
     const val PRIVACY = "M12 3l7 3v5.5c0 4-3 7.2-7 8.5-4-1.3-7-4.5-7-8.5V6z M9 12l2 2 4-4"
     const val TERMS = "M5 4h10a2 2 0 012 2v14H7a2 2 0 01-2-2z M17 8h2v12h-2"

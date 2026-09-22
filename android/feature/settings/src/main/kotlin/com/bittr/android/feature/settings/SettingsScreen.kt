@@ -55,7 +55,9 @@ fun SettingsScreen(
         BittrModalHeader(
             title = SettingsStrings.SETTINGS,
             onDown = onDown,
-            icon = BittrIconPaths.SETTINGS,
+            // The Material glyph, drawn filled as the header draws its icons. The mock's own
+            // gear is a stroke path and came out as a blob at 30 dp (Ruben, 2026-09-22).
+            icon = BittrIconPaths.SETTINGS_OUTLINE,
             titleTestTag = TestID.Header.titleLabel,
             downTestTag = TestID.Header.downButton,
         )

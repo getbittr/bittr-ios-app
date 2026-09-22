@@ -98,6 +98,10 @@ class StubWalletService : WalletService {
         _state.value = WalletState.Ready
     }
 
+    override fun lock() {
+        if (_state.value == WalletState.Ready) _state.value = WalletState.Locked
+    }
+
     override suspend fun removeWallet() {
         pin = null
         restored = null
