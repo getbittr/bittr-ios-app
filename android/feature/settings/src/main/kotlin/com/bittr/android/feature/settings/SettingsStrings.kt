@@ -27,6 +27,17 @@ internal object SettingsStrings {
     const val LANGUAGE = "Language"
     const val CURRENCY = "Currency"
     const val DEVICE_TOKEN = "Device token"
+
+    /**
+     * Shown where iOS shows nothing: it only opens the token alert when a token arrives, so a
+     * device with notifications denied gets no answer at all. `receivenotifications3`, the
+     * approved wording for that state, is the same sentence the Buy flow uses.
+     */
+    const val DEVICE_TOKEN_UNAVAILABLE =
+        "To receive instant bitcoin payments, you must allow notifications.\n\n" +
+            "On your device, go to Settings > Notifications > bittr to authorize our " +
+            "notifications.\n\nYou're free to continue without notifications, but then all " +
+            "your purchases will be paid into the regular (on-chain) part of your wallet."
     const val PUBLIC_KEY = "Public key"
     const val BITTR_PEER = "Bittr peer"
     const val PENDING_PAYOUT = "Pending payout"

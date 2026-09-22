@@ -318,6 +318,7 @@ class SettingsFlowTest {
         val payout = PendingPayoutCheck.Available("n1", 10_000_000)
         val node = object : DeviceNode {
             override fun publicKey() = "02abc"
+            override suspend fun deviceToken() = "fcm-token-abc"
             override suspend fun isConnectedToBittr() = true
             override suspend fun reconnectToBittr() = Unit
             override suspend fun pendingPayout(): PendingPayoutCheck = payout

@@ -125,6 +125,31 @@ class DeviceViewModel @Inject constructor(
     }
 
     /** `getPublicKey()`: the key with [Copy, Close], or `syncingwallet2` while there is no node. */
+    /**
+     * `showToken`: the FCM token, with Copy and Close. The row used to ask for the
+     * notification permission and stop there, so on a device that had already answered it
+     * did nothing at all (Ruben, 2026-09-22). The permission request stays with the screen,
+     * which has the launcher; this runs after it.
+     */
+    fun deviceTokenTapped() {
+        viewModelScope.launch {
+            val token = node.deviceToken()
+            alert.value = if (token == null) {
+                DeviceAlert(SettingsStrings.DEVICE_TOKEN, SettingsStrings.DEVICE_TOKEN_UNAVAILABLE)
+            } else {
+                DeviceAlert(
+                    title = SettingsStrings.DEVICE_TOKEN,
+                    message = token,
+                    messageIsValue = true,
+                    buttons = listOf(
+                        DeviceAlertButton(SettingsStrings.COPY, DeviceAlertAction.Copy(token)),
+                        DeviceAlertButton(SettingsStrings.CLOSE),
+                    ),
+                )
+            }
+        }
+    }
+
     fun publicKeyTapped() {
         val key = node.publicKey()
         alert.value = if (key == null) {

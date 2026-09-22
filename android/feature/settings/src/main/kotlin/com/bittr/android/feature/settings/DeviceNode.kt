@@ -10,6 +10,13 @@ interface DeviceNode {
     /** `nodeId()`, or null while no node is running. */
     fun publicKey(): String?
 
+    /**
+     * The FCM registration token this install is known by, or null when there is none —
+     * notifications denied, or Play services missing. iOS's `showToken`, which reads the
+     * token APNs handed it.
+     */
+    suspend fun deviceToken(): String?
+
     /** `isConnectedToPeer()`: connected to the bittr node right now. */
     suspend fun isConnectedToBittr(): Boolean
 
@@ -25,6 +32,7 @@ interface DeviceNode {
     /** No node in this build, or in a test. */
     object None : DeviceNode {
         override fun publicKey(): String? = null
+        override suspend fun deviceToken(): String? = null
         override suspend fun isConnectedToBittr(): Boolean = false
         override suspend fun reconnectToBittr() = Unit
         override suspend fun pendingPayout(): PendingPayoutCheck = PendingPayoutCheck.NoNode

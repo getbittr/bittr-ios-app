@@ -82,7 +82,7 @@ fun DeviceScreen(
      */
     val notificationPermission = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission(),
-    ) { }
+    ) { viewModel.deviceTokenTapped() }
 
     DeviceScreen(
         state = state,
@@ -96,7 +96,11 @@ fun DeviceScreen(
         onSelectCurrency = viewModel::setCurrency,
         onDeviceToken = {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                // The launcher answers even when the permission is already granted, and the
+                // token alert follows from its result.
                 notificationPermission.launch(Manifest.permission.POST_NOTIFICATIONS)
+            } else {
+                viewModel.deviceTokenTapped()
             }
         },
         onPublicKey = viewModel::publicKeyTapped,

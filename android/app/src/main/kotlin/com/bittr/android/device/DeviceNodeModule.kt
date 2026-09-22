@@ -17,6 +17,8 @@ import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
 import javax.inject.Singleton
 import kotlinx.coroutines.Dispatchers
+import com.bittr.android.core.network.DeviceTokenSource
+import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.coroutines.withContext
 
 @Module
@@ -33,7 +35,8 @@ object DeviceNodeModule {
         environment: BittrEnvironment,
         payouts: PushCoordinator,
         customers: BittrCustomerStore,
-    ): DeviceNode = AppDeviceNode(lightning, bittrPeer, signer, http, environment, payouts, customers)
+        tokens: DeviceTokenSource,
+    ): DeviceNode = AppDeviceNode(lightning, bittrPeer, signer, http, environment, payouts, customers, tokens)
 }
 
 /**
@@ -49,10 +52,15 @@ internal class AppDeviceNode(
     private val environment: BittrEnvironment,
     private val payouts: PushCoordinator,
     private val customers: BittrCustomerStore,
+    private val tokens: DeviceTokenSource,
     private val clockSeconds: () -> Long = { System.currentTimeMillis() / 1000 },
 ) : DeviceNode {
 
     override fun publicKey(): String? = runCatching { lightning.nodeId() }.getOrNull()
+
+    /** The same read, and the same wait, the Buy signup makes before it posts a customer. */
+    override suspend fun deviceToken(): String? =
+        withTimeoutOrNull(TOKEN_WAIT_MS) { runCatching { tokens.current() }.getOrNull() }
 
     override suspend fun isConnectedToBittr(): Boolean = bittrPeer.isConnected()
 
@@ -84,3 +92,6 @@ internal class AppDeviceNode(
         const val TAG = "DeviceNode"
     }
 }
+
+/** `AppBuySource`'s wait, for the same reason: a cold FCM token can take seconds. */
+private const val TOKEN_WAIT_MS = 15_000L
