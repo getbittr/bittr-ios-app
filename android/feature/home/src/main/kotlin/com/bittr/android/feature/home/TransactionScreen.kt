@@ -52,6 +52,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.bittr.android.core.common.TestID
 import com.bittr.android.core.designsystem.BittrAlertDialog
+import com.bittr.android.core.designsystem.SYSTEM_CONFIRMS_COPY
 import com.bittr.android.core.designsystem.rememberTextClipboard
 import com.bittr.android.core.designsystem.BittrCanvasShapes
 import com.bittr.android.core.designsystem.BittrRowLabel
@@ -253,7 +254,9 @@ fun TransactionScreen(
                     val shown = detail ?: return@Column
                     fun copy(text: String) {
                         clipboard.copy(text)
-                        copied = text
+                        // Android 13 and up show their own clipboard confirmation; below it,
+                        // this alert is the only feedback there is. See SYSTEM_CONFIRMS_COPY.
+                        if (!SYSTEM_CONFIRMS_COPY) copied = text
                     }
                     if (shown.confetti) {
                         PayoutHeader()

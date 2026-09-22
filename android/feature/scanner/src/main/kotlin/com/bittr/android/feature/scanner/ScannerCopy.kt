@@ -53,11 +53,10 @@ internal object ScannerCopy {
     const val CLOSE = "Close"
 
     /**
-     * The line under the viewfinder. **Not part of the approved set above**: iOS's
-     * scanner has no helper line, so there was nothing to carry over, and this was
-     * added with the design review's sheet treatment. It makes no claim about the
-     * build, but it has not been through the BIT-15 sign-off the rest of this file
-     * has, and [Id.HELPER] does not exist in `shared/strings/` yet.
+     * The line under the viewfinder. Android-only: iOS's scanner has no helper line, so
+     * there was nothing to carry over, and this came with the design review's sheet
+     * treatment. **Approved by Ruben on 2026-09-22**; [Id.HELPER] is the id it takes when
+     * `shared/strings/` grows one, which is BIT-12's job rather than this file's.
      */
     const val HELPER = "Point your camera at a QR code."
 

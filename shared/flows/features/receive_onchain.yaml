@@ -237,10 +237,16 @@ env:
 # Copy (now "bitcoin:<address>?amount=0.00005"), close the alert.
 - tapOn:
     id: "receive.copyButton"
-- assertVisible:
-    id: "alert.button.0"
-- tapOn:
-    id: "alert.button.0"
+# The "Copied" alert is iOS-only: on Android 13+ the system shows its own
+# clipboard confirmation and the app adds none (SYSTEM_CONFIRMS_COPY).
+- runFlow:
+    when:
+      platform: iOS
+    commands:
+      - assertVisible:
+          id: "alert.button.0"
+      - tapOn:
+          id: "alert.button.0"
 
 # Close Receive.
 - tapOn:
@@ -350,10 +356,16 @@ env:
       # close the "Copied" alert.
       - tapOn:
           id: "receive.copyButton"
-      - assertVisible:
-          id: "alert.button.0"
-      - tapOn:
-          id: "alert.button.0"
+      # The "Copied" alert is iOS-only: on Android 13+ the system shows its own
+      # clipboard confirmation and the app adds none (SYSTEM_CONFIRMS_COPY).
+      - runFlow:
+          when:
+            platform: iOS
+          commands:
+            - assertVisible:
+                id: "alert.button.0"
+            - tapOn:
+                id: "alert.button.0"
 
       # Close Receive → Home.
       - tapOn:

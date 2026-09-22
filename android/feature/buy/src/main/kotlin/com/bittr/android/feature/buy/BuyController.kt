@@ -1,6 +1,7 @@
 package com.bittr.android.feature.buy
 
 import com.bittr.android.core.common.TestID
+import com.bittr.android.core.designsystem.SYSTEM_CONFIRMS_COPY
 import com.bittr.android.core.network.IbanEntity
 import com.bittr.android.core.network.PaymentMode
 import kotlinx.coroutines.CoroutineScope
@@ -89,6 +90,8 @@ sealed interface BuyEffect {
 class BuyController(
     private val source: BuySource,
     private val scope: CoroutineScope,
+    /** See [SYSTEM_CONFIRMS_COPY]: below Android 13 the app says "Copied" itself. */
+    private val confirmsCopyInApp: Boolean = !SYSTEM_CONFIRMS_COPY,
 ) {
 
     private val _state = MutableStateFlow(BuyUiState(cards = cardsOf(source.entities.value)))
@@ -134,7 +137,9 @@ class BuyController(
         BuyAlert(BuyStrings.LIGHTNING, BuyStrings.LIGHTNING_EXPLANATION, id = TestID.Alert.lightningExplanation),
     )
 
-    fun showCopied(value: String) = showAlert(BuyAlert(BuyStrings.COPIED, value, id = TestID.Alert.copied))
+    fun showCopied(value: String) {
+        if (confirmsCopyInApp) showAlert(BuyAlert(BuyStrings.COPIED, value, id = TestID.Alert.copied))
+    }
 
     /** `didChangePaymentModeSwitch` → `setPaymentMode`. */
     fun onPaymentModeToggled(entity: IbanEntity, lightningOn: Boolean) {

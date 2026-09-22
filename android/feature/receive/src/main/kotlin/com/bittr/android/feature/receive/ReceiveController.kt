@@ -1,5 +1,6 @@
 package com.bittr.android.feature.receive
 
+import com.bittr.android.core.designsystem.SYSTEM_CONFIRMS_COPY
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -73,6 +74,8 @@ data class ReceiveUiState(
 class ReceiveController(
     private val source: ReceiveSource,
     private val scope: CoroutineScope,
+    /** See [SYSTEM_CONFIRMS_COPY]: below Android 13 the app says "Copied" itself. */
+    private val confirmsCopyInApp: Boolean = !SYSTEM_CONFIRMS_COPY,
 ) {
 
     private val _state = MutableStateFlow(ReceiveUiState(fiatCode = source.fiatCurrency().code))
@@ -182,12 +185,13 @@ class ReceiveController(
     }
 
     /**
-     * `copyTapped`: raise the Copied alert and return what to put on the clipboard — the
-     * clipboard itself is the screen's, since it needs a platform object.
+     * `copyTapped`: return what to put on the clipboard — the clipboard itself is the
+     * screen's, since it needs a platform object — and say "Copied" where the system does
+     * not ([confirmsCopyInApp]).
      */
     fun onCopy(): String? {
         val text = _state.value.display?.copyText ?: return null
-        raise(okayAlert(ReceiveStrings.COPIED, text).copy(messageIsValue = true))
+        if (confirmsCopyInApp) raise(okayAlert(ReceiveStrings.COPIED, text).copy(messageIsValue = true))
         return text
     }
 

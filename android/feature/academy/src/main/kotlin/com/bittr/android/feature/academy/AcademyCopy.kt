@@ -26,10 +26,13 @@ internal object AcademyCopy {
      * The list's heading. Lowercase, where iOS's `academybeta` reads "Academy (beta)":
      * the third design review (S25) set screen headings in lowercase to match the top
      * bars and "bitcoin value". Lesson titles are authored content and keep their case.
-     * No flow asserts this text — `academy.yaml` finds the screen by
-     * `academy.headerLabel`.
+     *
+     * **Without "(beta)" — Ruben, 2026-09-22: the Academy is not in beta any more.** iOS
+     * still ships `academybeta`, so the two platforms read differently until that key is
+     * reworded; this is the only place Android says it. No flow asserts this text —
+     * `academy.yaml` finds the screen by `academy.headerLabel`.
      */
-    const val TITLE: String = "academy (beta)"
+    const val TITLE: String = "academy"
 
     /** `Button.swift:126` — the same button, relabelled on the last page. */
     const val NEXT: String = "Next"

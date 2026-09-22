@@ -118,13 +118,19 @@ appId: ${APP_ID}
 # a "Copied" alert; wait for it to finish sliding up, screenshot, then close it.
 - tapOn:
     id: "receive.copyButton"
-- assertVisible:
-    id: "alert.button.0"
-- waitForAnimationToEnd:
-    timeout: 5000
-- takeScreenshot: shared/docs/screenshots/send_swap_suggestion_onchain/01b_address_copied
-- tapOn:
-    id: "alert.button.0"
+# The "Copied" alert is iOS-only: on Android 13+ the system shows its own
+# clipboard confirmation and the app adds none (SYSTEM_CONFIRMS_COPY).
+- runFlow:
+    when:
+      platform: iOS
+    commands:
+      - assertVisible:
+          id: "alert.button.0"
+      - waitForAnimationToEnd:
+          timeout: 5000
+      - takeScreenshot: shared/docs/screenshots/send_swap_suggestion_onchain/01b_address_copied
+      - tapOn:
+          id: "alert.button.0"
 
 # Close Receive → back on Home.
 - tapOn:

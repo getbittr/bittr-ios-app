@@ -414,31 +414,49 @@ appId: ${APP_ID}
 # has finished animating in.
 - tapOn:
     id: "signup.bittr.success.ibanButton"
-- assertVisible:
-    id: "alert.copied"
-- waitForAnimationToEnd:
-    timeout: 3000
-- takeScreenshot: shared/docs/screenshots/buy_signup_no_notifications/10_iban_copied
-- tapOn:
-    id: "alert.button.0"
+# The "Copied" alert is iOS-only: on Android 13+ the system shows its own
+# clipboard confirmation and the app adds none (SYSTEM_CONFIRMS_COPY).
+- runFlow:
+    when:
+      platform: iOS
+    commands:
+      - assertVisible:
+          id: "alert.copied"
+      - waitForAnimationToEnd:
+          timeout: 3000
+      - takeScreenshot: shared/docs/screenshots/buy_signup_no_notifications/10_iban_copied
+      - tapOn:
+          id: "alert.button.0"
 - tapOn:
     id: "signup.bittr.success.nameButton"
-- assertVisible:
-    id: "alert.copied"
-- waitForAnimationToEnd:
-    timeout: 3000
-- takeScreenshot: shared/docs/screenshots/buy_signup_no_notifications/11_name_copied
-- tapOn:
-    id: "alert.button.0"
+# The "Copied" alert is iOS-only: on Android 13+ the system shows its own
+# clipboard confirmation and the app adds none (SYSTEM_CONFIRMS_COPY).
+- runFlow:
+    when:
+      platform: iOS
+    commands:
+      - assertVisible:
+          id: "alert.copied"
+      - waitForAnimationToEnd:
+          timeout: 3000
+      - takeScreenshot: shared/docs/screenshots/buy_signup_no_notifications/11_name_copied
+      - tapOn:
+          id: "alert.button.0"
 - tapOn:
     id: "signup.bittr.success.codeButton"
-- assertVisible:
-    id: "alert.copied"
-- waitForAnimationToEnd:
-    timeout: 3000
-- takeScreenshot: shared/docs/screenshots/buy_signup_no_notifications/12_code_copied
-- tapOn:
-    id: "alert.button.0"
+# The "Copied" alert is iOS-only: on Android 13+ the system shows its own
+# clipboard confirmation and the app adds none (SYSTEM_CONFIRMS_COPY).
+- runFlow:
+    when:
+      platform: iOS
+    commands:
+      - assertVisible:
+          id: "alert.copied"
+      - waitForAnimationToEnd:
+          timeout: 3000
+      - takeScreenshot: shared/docs/screenshots/buy_signup_no_notifications/12_code_copied
+      - tapOn:
+          id: "alert.button.0"
 
 # Tap the Screenshot button — it renders the card to an image and saves it to
 # Photos, then shows a "Saved" alert (single Okay). Saving to Photos can raise

@@ -120,7 +120,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Lint this workflow
         # A workflow is the one file in the repo that nothing else type-checks, and its
@@ -218,13 +218,13 @@ jobs:
           EOF
 
       - name: Set up JDK
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v6
         with:
           distribution: temurin
           java-version: ${{ env.JAVA_VERSION }}
 
       - name: Set up Gradle
-        uses: gradle/actions/setup-gradle@v4
+        uses: gradle/actions/setup-gradle@v5
         with:
           build-scan-publish: false
 
@@ -645,7 +645,7 @@ jobs:
         # pure-Kotlin modules write plain `test` results and the Android ones write
         # `testDebugUnitTest`, and the glob has to cover whichever module broke.
         if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: unit-test-report
           # XML first: it is the machine-readable half, and for a crash-before-
@@ -709,7 +709,7 @@ jobs:
         run: ./gradlew :app:assembleDebug --no-daemon
 
       - name: Upload APK
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: app-debug-apk
           # BIT-129: the x86_64 split ONLY, not `*.apk`.
@@ -787,7 +787,7 @@ jobs:
     needs: build
     timeout-minutes: 30
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Mark job start
         # BIT-5 asks for the wall-clock number, and until this step the workflow
@@ -804,13 +804,13 @@ jobs:
         run: echo "JOB_START_EPOCH=$(date +%s)" >> "$GITHUB_ENV"
 
       - name: Download APK
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: app-debug-apk
           path: apk
 
       - name: Set up JDK
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v6
         with:
           distribution: temurin
           java-version: ${{ env.JAVA_VERSION }}
@@ -891,7 +891,7 @@ jobs:
           "$HOME/.maestro/bin/maestro" --version
 
       - name: Cache AVD
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         id: avd-cache
         with:
           path: |
@@ -955,7 +955,7 @@ jobs:
 
       - name: Upload Maestro artefacts
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: maestro-debug-output
           # --debug-output carries the screenshot-on-failure, the view hierarchy
@@ -1009,13 +1009,13 @@ jobs:
     needs: build
     timeout-minutes: 45
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Mark job start
         run: echo "JOB_START_EPOCH=$(date +%s)" >> "$GITHUB_ENV"
 
       - name: Set up JDK
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v6
         with:
           distribution: temurin
           java-version: ${{ env.JAVA_VERSION }}
@@ -1027,7 +1027,7 @@ jobs:
         # "works on my machine" gets invented. The cache makes the second compile
         # cheap; `am instrument` on a downloaded APK would be faster still and
         # would give up the JUnit XML the vacuity check reads.
-        uses: gradle/actions/setup-gradle@v4
+        uses: gradle/actions/setup-gradle@v5
         with:
           build-scan-publish: false
 
@@ -1057,7 +1057,7 @@ jobs:
           echo "KVM OK on ${{ runner.environment }} runner '${{ runner.name }}' as $(id -un)."
 
       - name: Cache AVD
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         id: avd-cache
         with:
           path: |
@@ -1103,7 +1103,7 @@ jobs:
 
       - name: Upload instrumented test report
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: instrumented-test-report
           # The XML is what the vacuity check reads and is worth keeping for the
@@ -1179,13 +1179,13 @@ jobs:
     needs: build
     timeout-minutes: 45
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Mark job start
         run: echo "JOB_START_EPOCH=$(date +%s)" >> "$GITHUB_ENV"
 
       - name: Set up JDK
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v6
         with:
           distribution: temurin
           java-version: ${{ env.JAVA_VERSION }}
@@ -1196,7 +1196,7 @@ jobs:
         # the command an engineer runs locally to reproduce a failure, and CI
         # doing something else is how "works on my machine" gets invented. It is
         # also what writes the JUnit XML the vacuity check reads.
-        uses: gradle/actions/setup-gradle@v4
+        uses: gradle/actions/setup-gradle@v5
         with:
           build-scan-publish: false
 
@@ -1226,7 +1226,7 @@ jobs:
           echo "KVM OK on ${{ runner.environment }} runner '${{ runner.name }}' as $(id -un)."
 
       - name: Cache AVD
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         id: avd-cache
         with:
           path: |
@@ -1310,7 +1310,7 @@ jobs:
 
       - name: Upload wallet instrumented test report
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: wallet-instrumented-test-report
           # Both modules, because the suite deliberately spans two — see the

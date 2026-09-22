@@ -1,6 +1,7 @@
 package com.bittr.android.core.designsystem
 
 import android.content.ClipData
+import android.os.Build
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -36,6 +37,16 @@ class TextClipboard internal constructor(
         const val CLIP_LABEL = "bittr"
     }
 }
+
+/**
+ * Whether the system tells the user that something was copied.
+ *
+ * Android 13 shows its own clipboard confirmation — a chip with a preview, bottom-left —
+ * for every copy an app makes, and the platform's guidance is not to add a second one.
+ * Below 13 nothing appears, so the app's own "Copied" alert is still the only feedback
+ * there. iOS has no such chip and keeps its alert on every version.
+ */
+val SYSTEM_CONFIRMS_COPY: Boolean = Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU
 
 @Composable
 fun rememberTextClipboard(): TextClipboard {
