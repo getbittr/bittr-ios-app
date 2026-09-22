@@ -416,9 +416,9 @@ private fun InitiativeSheet(onConfirm: () -> Unit, onCancel: () -> Unit) {
                     text = BuyStrings.INITIATIVE_CONFIRM,
                     onClick = onConfirm,
                     arrow = false,
-                    modifier = Modifier
-                        .height(BittrDialogButtonHeight)
-                        .testTag(TestID.Signup.Bittr.Initiative.confirmButton),
+                    // A sentence, not a label: the pill grows to hold it.
+                    wrapLabel = true,
+                    modifier = Modifier.testTag(TestID.Signup.Bittr.Initiative.confirmButton),
                 )
                 TextButton(
                     onClick = onCancel,
