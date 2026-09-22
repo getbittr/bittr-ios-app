@@ -488,3 +488,21 @@ on the first frame.
 
 **Not ported**: iOS's second and third coins (`secondCoin`, `coin3`, `blackCoin`). One coin is what the
 recording shows at this size; the others are indistinguishable from it in 600 ms at 29.6 dp.
+
+## 44. The launcher icon needs rasters, not just the adaptive one
+
+**2026-09-22.** The adaptive icon shipped in decision 43's commit was correct — App info on the phone drew
+the mark properly — but the OnePlus launcher (ColorOS, `com.android.launcher`) showed a black disc on yellow
+in both the home screen and the app drawer, before and after a launcher restart (Ruben, 2026-09-22).
+
+The cause was not an icon cache. `mipmap-anydpi-v26/ic_launcher.xml` was the *only* launcher resource in the
+APK: no `mipmap-*dpi` raster and no `android:roundIcon`. A launcher that resolves the icon through
+`getDrawableForDensity`, or that asks for the round icon first, then has nothing to resolve and falls back to
+a system default. Every Android Studio template ships both halves for exactly this reason, and the raster is
+also what a device below API 26 would use.
+
+Added: `ic_launcher.png` and `ic_launcher_round.png` at all five densities (48/72/96/144/192 px), rendered
+from the same two paths `BittrLogo` draws — the mark at 72 % of the icon on the brand yellow, square for
+`ic_launcher` and circular for the round one — plus `mipmap-anydpi-v26/ic_launcher_round.xml` so API 26+
+still gets the adaptive icon whichever attribute a launcher reads, and `android:roundIcon` in the manifest.
+The launcher drew the mark immediately after the reinstall, with no reboot and no cache clearing.
