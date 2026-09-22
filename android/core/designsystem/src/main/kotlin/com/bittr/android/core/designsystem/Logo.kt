@@ -1,6 +1,14 @@
 package com.bittr.android.core.designsystem
 
 import androidx.compose.foundation.Image
+import androidx.compose.ui.graphics.drawscope.scale
+import androidx.compose.ui.graphics.drawscope.translate
+import androidx.compose.ui.graphics.drawscope.withTransform
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.drawscope.clipPath
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
@@ -64,6 +72,24 @@ private const val VIEWBOX_HEIGHT = 174.106f
 private const val MARK_WIDTH = 170.0f
 private const val LOGO_WIDTH = 623.568f
 
+/** Where the word starts in the artwork, and how wide it is — measured off the path data. */
+private const val WORDMARK_LEFT = 219.1f
+private const val WORDMARK_WIDTH = LOGO_WIDTH - WORDMARK_LEFT
+
+/**
+ * Everything of the lockup that is not the mark — the gap and then the word — as a multiple of
+ * the mark's height. The word does not begin where the mark ends: [WORDMARK_LEFT] is 219.1 and
+ * the mark stops at [MARK_WIDTH], so 49.1 units of air sit between them. A launch animation that
+ * reveals only [BittrWordmark] loses that air and settles on a lockup narrower than the one the
+ * app bar draws, which then snaps wider as the two swap over.
+ */
+const val LOGO_TAIL_RATIO = (LOGO_WIDTH - MARK_WIDTH) / VIEWBOX_HEIGHT
+
+/** The circle the arc traces, in artwork units: what [BittrCoin] fills in. */
+private const val DISC_CENTRE_X = 97.5f
+private const val DISC_CENTRE_Y = 384.6f
+private const val DISC_RADIUS = 85.9f
+
 private fun logoVector(ink: Color, arc: Color, wordmark: Boolean): ImageVector {
     val width = if (wordmark) LOGO_WIDTH else MARK_WIDTH
     val height = VIEWBOX_HEIGHT
@@ -103,6 +129,89 @@ fun BittrLogo(
         modifier = modifier.size(width = height * (LOGO_WIDTH / VIEWBOX_HEIGHT), height = height),
     )
 }
+
+/**
+ * The wordmark alone, for the launch animation: it reveals the word from its right edge while
+ * the mark stays put, so the two have to be separate layers. Its own viewport starts where the
+ * word does (x = [WORDMARK_LEFT] in the artwork), so a caller can size and clip it directly.
+ */
+@Composable
+fun BittrWordmark(
+    modifier: Modifier = Modifier,
+    height: Dp = 26.dp,
+    ink: Color = BittrTheme.colors.onCanvas,
+) {
+    val vector = remember(ink) {
+        ImageVector.Builder(
+            name = "BittrWordmark",
+            defaultWidth = WORDMARK_WIDTH.dp,
+            defaultHeight = VIEWBOX_HEIGHT.dp,
+            viewportWidth = WORDMARK_WIDTH,
+            viewportHeight = VIEWBOX_HEIGHT,
+        ).apply {
+            addGroup(translationX = -WORDMARK_LEFT, translationY = -VIEWBOX_TOP)
+            addPath(PathParser().parsePathString(normalizeSvgPath(WORDMARK)).toNodes(), fill = SolidColor(ink))
+            clearGroup()
+        }.build()
+    }
+    Image(
+        imageVector = vector,
+        contentDescription = null,
+        modifier = modifier.size(width = height * (WORDMARK_WIDTH / VIEWBOX_HEIGHT), height = height),
+    )
+}
+
+/**
+ * The coin the launch animation slides into the mark: the mark's disc filled in, with the same
+ * ink wedge across it. iOS ships this as `coin1.png`; here it is the mark's own geometry, so
+ * the coin and the ring it lands in cannot drift apart.
+ *
+ * **It is clipped to the disc the arc traces, not to its own box.** The coin is the same size
+ * as that disc, so any travel takes it over the box's corners: clipped square, it came out as
+ * a white block sitting beside the word rather than a coin going into a slot (Ruben, phone,
+ * 2026-09-22). Clipped to the circle it can only ever be seen *through the ring*, which is
+ * what makes it read as passing behind the mark.
+ *
+ * @param travel where the coin sits, in multiples of the mark's height, from the disc it
+ *   fills: [Offset.Zero] covers the ring completely, and anything past [COIN_HIDDEN] in the
+ *   diagonal is entirely outside the clip and so invisible.
+ */
+@Composable
+fun BittrCoin(
+    modifier: Modifier = Modifier,
+    size: Dp = 30.dp,
+    ink: Color = BittrTheme.colors.onCanvas,
+    face: Color = BittrTheme.colors.canvasArc,
+    travel: Offset = Offset.Zero,
+) {
+    val wedge = remember { PathParser().parsePathString(normalizeSvgPath(MARK_INK)).toPath() }
+    Canvas(modifier = modifier.size(width = size * (MARK_WIDTH / VIEWBOX_HEIGHT), height = size)) {
+        val scale = this.size.height / VIEWBOX_HEIGHT
+        val centre = Offset(DISC_CENTRE_X * scale, (DISC_CENTRE_Y - VIEWBOX_TOP) * scale)
+        val radius = DISC_RADIUS * scale
+        val slot = Path().apply {
+            addOval(Rect(center = centre, radius = radius))
+        }
+        clipPath(slot) {
+            translate(travel.x * this@Canvas.size.height, travel.y * this@Canvas.size.height) {
+                drawCircle(color = face, radius = radius, center = centre)
+                withTransform({
+                    scale(scale, scale, pivot = Offset.Zero)
+                    translate(0f, -VIEWBOX_TOP)
+                }) {
+                    drawPath(wedge, ink)
+                }
+            }
+        }
+    }
+}
+
+/**
+ * The [BittrCoin.travel] per axis at which the coin has left the disc altogether: the disc's
+ * diameter resolved onto one axis of the diagonal it runs along, as a multiple of the mark's
+ * height. Below it some sliver of coin still shows through the ring.
+ */
+const val COIN_HIDDEN = (2f * DISC_RADIUS) / (VIEWBOX_HEIGHT * 1.41421356f)
 
 /** The mark on its own — the piggy-bank arc, without the word. */
 @Composable

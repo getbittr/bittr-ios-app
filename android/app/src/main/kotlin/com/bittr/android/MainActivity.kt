@@ -15,6 +15,9 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.testTagsAsResourceId
@@ -184,24 +187,27 @@ private fun DarkModeSetting.isDark(): Boolean = when (this) {
  *
  * 2. **The `core.launchComplete` tag.** iOS sets this once its launch animation
  *    finishes, and every flow gates on it via `helpers/wait_for_launch.yaml`. The
- *    scaffold has no launch animation, so the marker is simply the root — accurate
- *    today. When the animation is ported, this tag must move to whatever composes
- *    *after* the cover is gone, or the flows will resume tapping into a cover that
- *    swallows the taps. That failure looks like a flaky test, not a bug.
+ *    animation is ported now ([LaunchAnimation]), so the tag arrives with it: the root
+ *    carries it only once the cover is gone, which is what stops a flow tapping into a
+ *    cover that swallows the taps.
  */
 @OptIn(ExperimentalComposeUiApi::class)
 @Composable
 private fun BittrApp(pushCoordinator: PushCoordinator, transactionScreenOpen: kotlinx.coroutines.flow.StateFlow<Boolean>) {
     Surface(modifier = Modifier.fillMaxSize()) {
+        var launched by rememberSaveable { mutableStateOf(false) }
         Box(
             modifier = Modifier
                 .fillMaxSize()
                 .semantics { testTagsAsResourceId = true }
-                .testTag(TestID.Core.launchComplete),
+                .then(if (launched) Modifier.testTag(TestID.Core.launchComplete) else Modifier),
         ) {
             BittrNavHost()
             // What a push shows, over every screen — see PushOverlayHost.
             PushOverlayHost(pushCoordinator, transactionScreenOpen)
+            // Over everything until it is done, and only on a real launch: a rotation or any
+            // other recreation keeps `launched`, so the animation does not replay mid-session.
+            if (!launched) LaunchAnimation(onFinished = { launched = true })
         }
     }
 }

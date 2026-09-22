@@ -2,6 +2,7 @@ package com.bittr.android
 
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
+import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.bittr.android.core.common.TestID
@@ -59,6 +60,17 @@ class AppLaunchTest {
         // visible id core.launchComplete.
         // Reaching this assertion at all is the launch claim — the rule has already
         // constructed the Hilt graph, inflated the activity and run the composition.
+        //
+        // It waits rather than asserting on the first frame because [LaunchAnimation] holds
+        // the cover for about two and a half seconds and the tag arrives with its last frame,
+        // exactly as iOS sets the identifier at the end of `logoSlidesToTop`. `extendedWaitUntil`
+        // is what the flow does; this is the same claim on the virtual clock.
+        composeRule.waitUntil(LAUNCH_TIMEOUT_MS) {
+            composeRule
+                .onAllNodesWithTag(TestID.Core.launchComplete)
+                .fetchSemanticsNodes()
+                .isNotEmpty()
+        }
         composeRule.onNodeWithTag(TestID.Core.launchComplete).assertIsDisplayed()
 
         // onboarding/smoke.yaml: the three assertVisible steps.
@@ -92,3 +104,9 @@ class AppLaunchTest {
         )
     }
 }
+
+/**
+ * Comfortably past the animation's own two and a half seconds, on a clock the test advances
+ * itself. It is a ceiling for a hang, not a wait anyone sits through.
+ */
+private const val LAUNCH_TIMEOUT_MS = 10_000L

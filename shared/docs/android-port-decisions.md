@@ -456,3 +456,35 @@ Kept: `android-maestro.yml`, `fcm-delivery.yml` (9 of 9 green), `workflow-lint.y
 Local checks before pushing: actionlint 1.7.12 with shellcheck, the duplicate-key check, the copy-lock
 check and its 13 self-tests, every other script step of the build job, `./gradlew test`, and the three
 instrumented-test compiles.
+
+## 43. The launch animation, and why the splash mark is tiny
+
+**2026-09-22.** `LogoAnimation.swift` is three stages — the coin slides into the slot, the logo widens to
+unveil the word, the logo rises into the app bar — and `LaunchAnimation.kt` keeps iOS's 0.3 / 0.6 / 0.3 / 0.7 s
+timings and its 0.65 spring damping. Three things were measured off a recording of the iOS app rather than
+read out of the storyboard, because the storyboard's constants are relative to views this port does not have:
+
+- **The lockup is 29.6 dp of mark height**, not the 49 dp of the first attempt. iOS's lockup is 26 % of the
+  screen's width; 49 dp put it at 38 %, which is what "it looks terrible" was mostly about (Ruben, 2026-09-22).
+- **The coin is clipped to the disc the ring traces, not to its own box.** The coin is the same size as that
+  disc, so any travel takes it across the box's corners: clipped square it ended as a white block beside the
+  word. Clipped to the circle it is only ever seen *through* the ring, it crosses from upper right to lower
+  left, and it is gone by the end of stage 1 — `COIN_HIDDEN` in `Logo.kt` is the travel at which it has left
+  the disc entirely. iOS gets the same result by hiding five coin views and fading in `finalLogo`.
+- **What widens in stage 2 is the whole tail of the lockup, gap included.** The word does not begin
+  where the mark ends — `WORDMARK_LEFT` is 219.1 against the mark's 170 — so revealing `BittrWordmark`
+  alone settled on `◯bittr`, jammed together, and then snapped wider when the app bar's `BittrLogo` took
+  over. `LOGO_TAIL_RATIO` is that whole tail, so the animation's last frame is the app bar's logo to the unit.
+- **The splash drawable is scaled to that same 29.6 dp.** At the drawable's own size the platform drew the mark
+  five times larger than the animation's first frame, so the mark snapped down the instant Compose drew. The
+  splash is the animation's first frame; both ends of the coin's slide are the plain mark, so the hand-off is
+  now invisible. `values-night/colors.xml` and `drawable-night/ic_splash_mark.xml` do the same for dark mode,
+  which until now flashed brand yellow before dropping to the blue canvas.
+
+**`core.launchComplete` moves with this**: the root is tagged when stage 3 ends, as iOS sets the identifier at
+the end of `logoSlidesToTop`, so no flow taps into a cover that still swallows taps. That adds about 2.5 s to
+every Maestro launch, and `AppLaunchTest` now waits for the tag on the virtual clock rather than asserting it
+on the first frame.
+
+**Not ported**: iOS's second and third coins (`secondCoin`, `coin3`, `blackCoin`). One coin is what the
+recording shows at this size; the others are indistinguishable from it in 600 ms at 29.6 dp.

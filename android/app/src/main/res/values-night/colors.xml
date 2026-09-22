@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Dark mode's splash background: BittrColors' dark canvas (Blue1), the colour
+  LaunchAnimation's cover carries on with. The light file's brand yellow would flash
+  yellow and then drop to blue the instant Compose drew.
+-->
+<resources>
+    <color name="brand_canvas">#3A5983</color>
+</resources>
