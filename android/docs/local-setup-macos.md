@@ -278,15 +278,33 @@ back a configuration captured without those environment variables, and the APK t
 comes out empty-valued — that is exactly how a phone got a node-less build on
 2026-09-18 while the emulator had a working one from the same source tree.
 
-**Check the APK rather than trusting the build**, because the failure is silent:
+**Check the APK rather than trusting the build**, because the failure is silent. Read
+the dex bytes with Python, not `grep`: the dex files are binary with no newlines, and
+BSD `grep` reports no match on strings that are demonstrably there.
 
 ```sh
-cd /tmp && rm -rf apkcheck && mkdir apkcheck && cd apkcheck
-unzip -q -o <path-to>/app-arm64-v8a-debug.apk 'classes*.dex' -d x
-grep -E '^BITTR_LDK_' ~/.bittr/android-regtest.env | while IFS='=' read k v; do
-  cat x/classes*.dex | LC_ALL=C grep -qF -- "$v" && echo "$k: present" || echo "$k: MISSING"
-done
+python3 - <<'EOF'
+import glob, os, subprocess, tempfile, zipfile
+apk = "android/app/build/outputs/apk/debug/app-arm64-v8a-debug.apk"  # or a pulled one
+tmp = tempfile.mkdtemp()
+with zipfile.ZipFile(apk) as z:
+    for n in z.namelist():
+        if n.endswith(".dex"):
+            z.extract(n, tmp)
+blob = b"".join(open(f, "rb").read() for f in glob.glob(tmp + "/*.dex"))
+env = dict(
+    l.rstrip("\n").split("=", 1)
+    for l in open(os.path.expanduser("~/.bittr/android-regtest.env"))
+    if l.startswith("BITTR_LDK_")
+)
+for k, v in env.items():
+    print(k, "present" if v.encode() in blob else "MISSING")
+EOF
 ```
+
+If one reads `MISSING`, the APK is a seed-only wallet however well it installs. The
+same check on the phone's own copy is `adb -s <serial> shell pm path
+com.bittr.android.regtest`, `adb pull` that path, and point the script at it.
 
 **The shortcut, when the emulator already runs the build you want:** copy its APK
 straight across instead of building again. This is what the suite installs, so it is
