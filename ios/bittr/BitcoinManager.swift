@@ -837,6 +837,13 @@ extension Connection {
         return URL.documentsDirectory.appendingPathComponent("wallet_data")
     }
     
+    // When the stored database was created.
+    static var walletDatabaseCreationDate: Date? {
+        let path = Connection.walletDataDirectoryURL.appendingPathComponent("wallet.sqlite").path
+        let attributes = try? FileManager.default.attributesOfItem(atPath: path)
+        return attributes?[.creationDate] as? Date
+    }
+    
     // Open the stored wallet database.
     static func open() throws -> Connection {
         let documentsDirectoryURL = URL.documentsDirectory

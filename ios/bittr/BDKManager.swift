@@ -249,9 +249,16 @@ extension BitcoinManager {
     // How long a completed full scan stands for.
     static let fullScanValidityDays = 7
     var storedFullScanIsFresh: Bool {
+        // Check when the BDK wallet was last scanned.
         guard let scannedAt = CacheStore.value(for: CacheKeys.lastBdkFullScan) else { return false }
         let age = Date().timeIntervalSince1970 - Double(scannedAt)
-        return age >= 0 && age < Double(BitcoinManager.fullScanValidityDays * 24 * 60 * 60)
+        
+        // Rescan if the last scan happened more than 7 days ago.
+        guard age >= 0, age < Double(BitcoinManager.fullScanValidityDays * 24 * 60 * 60) else { return false }
+        
+        // Make sure the cached most recent scan date is after this database's creation date.
+        guard let databaseCreated = Connection.walletDatabaseCreationDate else { return false }
+        return databaseCreated.timeIntervalSince1970 <= Double(scannedAt)
     }
     
     // Keep track of latest full BDK scan.
