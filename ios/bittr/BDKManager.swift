@@ -144,9 +144,9 @@ extension BitcoinManager {
         // Create a BIP84 internal descriptor using the same BIP32 extended root key, specifying the keychain as internal and the network as testnet
         let bip84InternalDescriptor = Descriptor.newBip84(secretKey: bip32ExtendedRootKey, keychain: .internal, network: EnvironmentConfig.bitcoinDevKitNetwork)
         
-        // Initialize a wallet instance using the BIP84 external and internal descriptors, testnet network, and SQLite database configuration
+        // Open the stored wallet database, keeping whatever it already holds.
         do {
-            self.connection = try Connection.createConnection()
+            self.connection = try Connection.open()
         } catch {
             self.handleError(error: error, row: 211)
             self.clearBdkWalletReferences()
@@ -154,11 +154,32 @@ extension BitcoinManager {
         }
         
         do {
-            self.bdkWallet = try Wallet(descriptor: bip84ExternalDescriptor, changeDescriptor: bip84InternalDescriptor, network: EnvironmentConfig.bitcoinDevKitNetwork, connection: self.connection!)
+            // Check whether a stored BDK wallet is available.
+            let loaded = try Wallet.load(descriptor: bip84ExternalDescriptor, changeDescriptor: bip84InternalDescriptor, connection: self.connection!)
+            
+            // Confirm the stored wallet's network matches this build's network.
+            guard loaded.network() == EnvironmentConfig.bitcoinDevKitNetwork else {
+                throw WalletError.storedWalletOnAnotherNetwork
+            }
+            
+            Log.info("Did load the stored BDK wallet.")
+            SentryManager.countMetric("sync.bdk.loaded")
+            self.bdkWallet = loaded
         } catch {
-            self.handleError(error: error, row: 218)
-            self.clearBdkWalletReferences()
-            return false
+            Log.info("No stored BDK wallet to load (\(error)). Creating one.")
+            SentryManager.countMetric("sync.bdk.recreated")
+            
+            // Release the database before deleting the file underneath it.
+            self.connection = nil
+            
+            do {
+                self.connection = try Connection.recreate()
+                self.bdkWallet = try Wallet(descriptor: bip84ExternalDescriptor, changeDescriptor: bip84InternalDescriptor, network: EnvironmentConfig.bitcoinDevKitNetwork, connection: self.connection!)
+            } catch {
+                self.handleError(error: error, row: 218)
+                self.clearBdkWalletReferences()
+                return false
+            }
         }
         
         // Configure and create an Electrum blockchain connection to interact with the Bitcoin network

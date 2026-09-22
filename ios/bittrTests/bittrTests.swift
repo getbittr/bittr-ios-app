@@ -529,6 +529,39 @@ final class BDKWalletLoadTests: XCTestCase {
         }
     }
 
+    // The whole sequence didStartBDK now performs when the stored database
+    // belongs to someone else: open, fail to load, release, delete, reopen,
+    // create. The wallet that comes out must be seed B's and carry none of
+    // seed A's state.
+    func testRecoverySequenceReplacesAnotherSeedsDatabase() throws {
+
+        let path = databasePath()
+        let addressA = try createAndPersist(seed: seedA, at: path, revealingTo: 5)
+
+        // The launch that finds someone else's database.
+        let keysB = try descriptors(for: seedB)
+        var connection: Connection? = try Connection(path: path)
+        XCTAssertThrowsError(try Wallet.load(descriptor: keysB.external,
+                                             changeDescriptor: keysB.change,
+                                             connection: connection!))
+
+        // Release before deleting the file underneath it, as didStartBDK does.
+        connection = nil
+        try FileManager.default.removeItem(atPath: path)
+
+        connection = try Connection(path: path)
+        let recreated = try Wallet(descriptor: keysB.external,
+                                   changeDescriptor: keysB.change,
+                                   network: network,
+                                   connection: connection!)
+
+        let addressB = recreated.peekAddress(keychain: .external, index: 0).address.description
+        XCTAssertNotEqual(addressB, addressA, "the recreated wallet still derives the old seed's addresses")
+        XCTAssertEqual(recreated.balance().total.toSat(), 0)
+        // Nothing of seed A's revealed state survived.
+        XCTAssertGreaterThan(recreated.revealAddressesTo(keychain: .external, index: 5).count, 0)
+    }
+
     // A freshly created wallet reveals addresses that a reloaded one already
     // has. Guards the assertion above against passing for the wrong reason.
     func testFreshWalletRevealsAddressesThatAReloadedOneDoesNot() throws {
