@@ -189,6 +189,16 @@ extension CoreViewController {
                 self.walletSync = BackgroundSync()
                 self.walletSync!.start()
             }
+            
+            // Light sync BDK wallet.
+            DispatchQueue.global(qos: .background).async {
+                let didLightSync = BitcoinManager.shared.lightSyncBdkWallet()
+                Log.info(didLightSync ? "Did light sync the loaded BDK wallet." : "Could not light sync the loaded BDK wallet.")
+                DispatchQueue.main.async {
+                    self.homeVC?.sendVC?.setSendAllLabel()
+                    self.homeVC?.moveVC?.swapVC?.calculateSendableAmount()
+                }
+            }
             return
         }
         

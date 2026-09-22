@@ -70,6 +70,18 @@ final class BdkScanState {
         DispatchQueue.main.async { waiting.forEach { $0(scanned) } }
     }
 
+    func markPreviouslyScanned() {
+        lock.lock()
+        defer { lock.unlock() }
+        _hasBeenScanned = true
+    }
+    
+    func markNeedsFullScan() {
+        lock.lock()
+        defer { lock.unlock() }
+        _hasBeenScanned = false
+    }
+    
     func markTimedOut() {
         // The watchdog fired.
         lock.lock()
@@ -165,12 +177,21 @@ extension BitcoinManager {
             Log.info("Did load the stored BDK wallet.")
             SentryManager.countMetric("sync.bdk.loaded")
             self.bdkWallet = loaded
+            
+            if self.storedFullScanIsFresh {
+                Log.info("Stored full scan is fresh. Will light sync rather than scan.")
+                self.bdkScan.markPreviouslyScanned()
+                SentryManager.countMetric("sync.bdk.scan.skipped")
+            } else {
+                Log.info("No recent full scan is available. Will scan.")
+            }
         } catch {
             Log.info("No stored BDK wallet to load (\(error)). Creating one.")
             SentryManager.countMetric("sync.bdk.recreated")
             
             // Release the database before deleting the file underneath it.
             self.connection = nil
+            self.clearFullScanCompletion()
             
             do {
                 self.connection = try Connection.recreate()
@@ -220,6 +241,25 @@ extension BitcoinManager {
     }
     func clearBdkScanState() {
         self.bdkScan.clear()
+    }
+    func markBdkNeedsFullScan() {
+        self.bdkScan.markNeedsFullScan()
+    }
+    
+    // How long a completed full scan stands for.
+    static let fullScanValidityDays = 7
+    var storedFullScanIsFresh: Bool {
+        guard let scannedAt = CacheStore.value(for: CacheKeys.lastBdkFullScan) else { return false }
+        let age = Date().timeIntervalSince1970 - Double(scannedAt)
+        return age >= 0 && age < Double(BitcoinManager.fullScanValidityDays * 24 * 60 * 60)
+    }
+    
+    // Keep track of latest full BDK scan.
+    func storeFullScanCompletion() {
+        CacheStore.set(Int(Date().timeIntervalSince1970), for: CacheKeys.lastBdkFullScan)
+    }
+    func clearFullScanCompletion() {
+        CacheStore.set(nil, for: CacheKeys.lastBdkFullScan)
     }
     
     func didSyncBdkWallet(completion originalCompletion: @escaping (Bool) -> Void) {
@@ -324,6 +364,7 @@ extension BitcoinManager {
             
             // Update syncing status.
             Log.info("Did sync BDK wallet.")
+            self.storeFullScanCompletion()
             self.endBdkScan(scanned: true)
             self.storeChannelClosureTxIDIfFound()
             completion(true)
