@@ -78,12 +78,26 @@ enum PriceHistory {
         let currentValue:CGFloat
         let currency:String
         let formattedValue:String
+        let eurRate:String
+        let chfRate:String
     }
     
     enum LoadError:Error { case badResponse }
     
     // How long fetched price data counts as current.
     static let freshFor:TimeInterval = 15 * 60
+    
+    static func fetch(_ urlString:String) async throws -> Data {
+        guard let url = URL(string: urlString) else { throw LoadError.badResponse }
+        let (data, response) = try await URLSession.shared.data(from: url)
+        
+        if let status = (response as? HTTPURLResponse)?.statusCode, !(200..<300).contains(status) {
+            Log.info("GET \(urlString) failed with status \(status).")
+            throw LoadError.badResponse
+        }
+        
+        return data
+    }
     
     // `cache` is HomeViewController, which holds the fetched payloads and warms
     // them at startup (see prefetchPriceData). Pass nil to always hit the network.
@@ -100,14 +114,7 @@ enum PriceHistory {
         } else if !isChf, let cached = cache?.eurData, let fetchedAt = cache?.eurDataFetched, fetchedAt > freshCutoff {
             historyData = cached
         } else {
-            (historyData, _) = try await URLSession.shared.data(from: URL(string: bitcoinValue.apiUrl)!)
-            if isChf {
-                cache?.chfData = historyData
-                cache?.chfDataFetched = Date()
-            } else {
-                cache?.eurData = historyData
-                cache?.eurDataFetched = Date()
-            }
+            historyData = try await PriceHistory.fetch(bitcoinValue.apiUrl)
         }
         
         // Parse off the main thread, because the longer series hold thousands of points.
@@ -116,17 +123,27 @@ enum PriceHistory {
             try PriceHistory.parseSeries(historyData, spans: spans, now: now)
         }.value
         
+        // Cache the payload only now that it has parsed.
+        if isChf {
+            cache?.chfData = historyData
+            cache?.chfDataFetched = Date()
+        } else {
+            cache?.eurData = historyData
+            cache?.eurDataFetched = Date()
+        }
+        
         // Current value.
         var valueData = Data()
         if let cached = cache?.currentValue, let fetchedAt = cache?.currentValueFetched, fetchedAt > freshCutoff {
             valueData = cached
         } else {
-            (valueData, _) = try await URLSession.shared.data(from: URL(string: "https://getbittr.com/api/price/btc")!)
-            cache?.currentValue = valueData
-            cache?.currentValueFetched = Date()
+            valueData = try await PriceHistory.fetch("https://getbittr.com/api/price/btc")
         }
         
         guard let currentJson = try JSONSerialization.jsonObject(with: valueData) as? [String: Any], let actualEurValue = currentJson["btc_eur"] as? String, let actualChfValue = currentJson["btc_chf"] as? String else { throw LoadError.badResponse }
+        
+        cache?.currentValue = valueData
+        cache?.currentValueFetched = Date()
         
         let rawValue = isChf ? actualChfValue : actualEurValue
         let currentValue = rawValue.toNumber()
@@ -141,7 +158,7 @@ enum PriceHistory {
             series[eachSpan] = (parsedSeries[eachSpan] ?? []) + [currentPoint]
         }
         
-        return Snapshot(series: series, currentValue: currentValue, currency: preferredCurrency, formattedValue: ValueViewController.formatEuroValue(rawValue))
+        return Snapshot(series: series, currentValue: currentValue, currency: preferredCurrency, formattedValue: ValueViewController.formatEuroValue(rawValue), eurRate: actualEurValue, chfRate: actualChfValue)
     }
     
     nonisolated static func parseSeries(_ historyData:Data, spans:[GraphSpan], now:Date) throws -> [GraphSpan:[PricePoint]] {
@@ -318,6 +335,18 @@ class ValueViewController: UIViewController {
                 self.valueSpinner.stopAnimating()
                 self.drawGraph()
                 self.isFetchingData = false
+                
+                if let homeVC = self.homeVC {
+                    BitcoinManager.shared.bittrWallet.valueInEUR = snapshot.eurRate.fixDecimals().toNumber()
+                    BitcoinManager.shared.bittrWallet.valueInCHF = snapshot.chfRate.fixDecimals().toNumber()
+                    CacheManager.cachedEurValue = BitcoinManager.shared.bittrWallet.valueInEUR ?? 0.0
+                    CacheManager.cachedChfValue = BitcoinManager.shared.bittrWallet.valueInCHF ?? 0.0
+                    homeVC.didFetchConversion = true
+                    homeVC.couldNotFetchConversion = false
+                    homeVC.graphPoints = snapshot.series[.week]
+                    homeVC.graphPointsFetched = Date()
+                    homeVC.reloadTransactionsTable()
+                }
             } catch {
                 Log.info("Error fetching data: \(error.localizedDescription)")
                 self.valueSpinner.stopAnimating()

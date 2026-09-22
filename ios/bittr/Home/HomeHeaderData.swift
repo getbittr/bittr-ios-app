@@ -55,9 +55,14 @@ extension HomeHeaderTableViewCell {
         // Show whatever has already been fetched.
         self.conversionGraph.points = homeVC.graphPoints ?? []
         
+        guard homeVC.didFetchConversion || homeVC.couldNotFetchConversion else { return }
+        
         // Load when there's nothing yet, or when the points are over an hour old.
         let isFresh = homeVC.graphPointsFetched.map { Date().timeIntervalSince($0) < 60 * 60 } ?? false
         guard !isFresh, !homeVC.isLoadingGraph else { return }
+        // Back off after a failure rather than trying again on the next reload.
+        if let failedAt = homeVC.graphLoadFailedAt, Date().timeIntervalSince(failedAt) < 60 { return }
+        
         homeVC.isLoadingGraph = true
         let loadID = homeVC.graphLoadID
         
@@ -74,7 +79,11 @@ extension HomeHeaderTableViewCell {
             guard let homeVC, homeVC.graphLoadID == loadID else { return }
             homeVC.isLoadingGraph = false
             
-            guard let points = snapshot?.series[.week] else { return }
+            guard let points = snapshot?.series[.week] else {
+                homeVC.graphLoadFailedAt = Date()
+                return
+            }
+            homeVC.graphLoadFailedAt = nil
             homeVC.graphPoints = points
             homeVC.graphPointsFetched = Date()
             self?.conversionGraph.points = points

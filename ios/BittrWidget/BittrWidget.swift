@@ -56,6 +56,18 @@ struct Provider: AppIntentTimelineProvider {
             }
         }()
         
+        // A reload doesn't always mean the prices moved — the app asks for one
+        // whenever its shared values change, and the system asks for its own
+        // reasons. Serve a recent cache rather than spending two requests on it;
+        // the app is hitting the same endpoints at launch and the server rate
+        // limits.
+        if entry.eurValue != "N/A", currentDate.timeIntervalSince(entry.date) < 900 {
+            #if DEBUG
+            print("Cached widget data is still fresh. Not fetching.")
+            #endif
+            return Timeline(entries: [entry], policy: .after(entry.date.addingTimeInterval(7200)))
+        }
+        
         var newDataWasFetched = false
         
         do {

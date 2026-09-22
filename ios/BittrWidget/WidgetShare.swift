@@ -49,10 +49,18 @@ enum WidgetShare {
         return address
     }
 
-    // Called by the app whenever either value changes.
-    static func write(currency:String?, lightningAddress:String?) {
+    // Called by the app whenever either value changes. Returns whether anything
+    // actually did, so the caller can avoid reloading the widget's timeline for
+    // nothing — a reload costs two network requests, and the app publishes on
+    // every launch whether or not these have moved.
+    @discardableResult
+    static func write(currency:String?, lightningAddress:String?) -> Bool {
 
-        guard let defaults = self.defaults else { return }
+        guard let defaults = self.defaults else { return false }
+        
+        let wasCurrency = defaults.string(forKey: Key.currency)
+        let wasAddress = defaults.string(forKey: Key.lightningAddress)
+        let didChange = wasCurrency != currency || wasAddress != (lightningAddress?.isEmpty == true ? nil : lightningAddress)
 
         if let currency = currency {
             defaults.set(currency, forKey: Key.currency)
@@ -65,5 +73,7 @@ enum WidgetShare {
         } else {
             defaults.removeObject(forKey: Key.lightningAddress)
         }
+        
+        return didChange
     }
 }

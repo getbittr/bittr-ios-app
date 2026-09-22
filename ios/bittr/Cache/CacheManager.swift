@@ -95,7 +95,9 @@ class CacheManager: NSObject {
         
         let lightningAddress = storedIbans().first(where: { !$0.lightningAddressUsername.isEmpty })?.lightningAddressUsername
         
-        WidgetShare.write(currency: CacheStore.value(for: CacheKeys.currency), lightningAddress: lightningAddress)
+        // Only when something moved: a reload makes the widget fetch both price
+        // endpoints, and parseDevice publishes on every launch.
+        guard WidgetShare.write(currency: CacheStore.value(for: CacheKeys.currency), lightningAddress: lightningAddress) else { return }
         WidgetCenter.shared.reloadAllTimelines()
     }
     
