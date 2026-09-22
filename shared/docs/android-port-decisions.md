@@ -506,3 +506,25 @@ from the same two paths `BittrLogo` draws — the mark at 72 % of the icon on th
 `ic_launcher` and circular for the round one — plus `mipmap-anydpi-v26/ic_launcher_round.xml` so API 26+
 still gets the adaptive icon whichever attribute a launcher reads, and `android:roundIcon` in the manifest.
 The launcher drew the mark immediately after the reinstall, with no reboot and no cache clearing.
+
+## 45. What the launch animation's last second had wrong, measured on a recording
+
+**2026-09-22.** The phone has no `screenrecord` (ColorOS does not ship the binary) and the emulator was
+wedged, so stage 3 had only ever been checked on ~1 fps stills. With `scrcpy` recording the phone properly,
+three faults showed up in the hand-off into the app bar, each hidden by the one before it:
+
+1. **The springs were far too quick.** Compose springs take their duration from stiffness, and the stock
+   constants settle in 0.31 s (`StiffnessMediumLow`) and 0.2 s (`StiffnessLow`) against iOS's 0.6 s and 0.7 s.
+   The widen now uses stiffness 105, which lands on iOS's 0.6 s with the bounce still in it.
+2. **The landing was 22 dp below the app bar's own logo.** Reading `WindowInsets.statusBars` and subtracting
+   it by hand did not reproduce what `BittrCanvas` does. The cover now puts its logo inside the *same*
+   `statusBarsPadding().navigationBarsPadding()` box the canvas lays the bar out in, so the landing is
+   measured in the bar's own coordinates and there is no inset arithmetic left to get wrong.
+3. **The rise is a 0.7 s tween, not a spring** — see `RISE_MS`. Sprung at iOS's 0.65 damping it overshot the
+   bar by ~25 dp and hung above the real logo for half a second; critically damped it was still 34 dp short
+   when `core.launchComplete` fired at 700 ms and vanished in mid-air. A fixed 0.7 s ease lands on the frame
+   the cover is removed.
+
+The logo also no longer fades out as it rises. It is a *second* copy of the app bar's logo, so fading it
+crossed two lockups over each other; landing it exactly on the real one and taking it away with the cover
+has no seam to show.
