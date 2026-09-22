@@ -7,6 +7,7 @@
 
 import XCTest
 import CryptoKit
+import BitcoinDevKit
 @testable import bittr
 
 final class bittrTests: XCTestCase {
@@ -388,5 +389,191 @@ private enum Bech32mEncoder {
         let mod = polymod(hrpExpand(hrp) + data + [0, 0, 0, 0, 0, 0]) ^ 0x2bc830a3
         let checksum = (0..<6).map { UInt8((mod >> (5 * (5 - $0))) & 31) }
         return hrp + "1" + String((data + checksum).map { charset[Int($0)] })
+    }
+}
+
+// MARK: - BDK wallet persistence: does Wallet.load validate its descriptors?
+
+// Settles the one unknown blocking a change to didStartBDK. Today the wallet
+// database is wiped on every launch (Connection.createConnection) and rebuilt
+// with the create initializer, so every launch pays for a full scan. Loading
+// the existing database instead is only safe if Wallet.load refuses a database
+// that belongs to a different seed — otherwise a load could succeed against the
+// previous wallet's history and report someone else's balance.
+//
+// The Swift bindings can't answer that: load(descriptor:changeDescriptor:
+// connection:) takes the descriptors but no network, and whether it applies
+// them as checks isn't visible from the generated interface. So ask the library.
+//
+// testLoadRejectsADatabaseFromAnotherSeed is the load-bearing one. If it fails,
+// loading persisted wallets is off the table and the unconditional wipe stays.
+//
+// Every database here is a throwaway file in the test bundle's temporary
+// directory. Nothing touches the app's Documents directory or a real wallet.
+
+final class BDKWalletLoadTests: XCTestCase {
+
+    // Public BIP39 test vectors, chosen so neither is anyone's wallet. Only
+    // their descriptors are derived here; nothing is broadcast or spent.
+    private let seedA = "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about"
+    private let seedB = "legal winner thank year wave sausage worth useful legal winner thank yellow"
+
+    // Pinned rather than taken from EnvironmentConfig, so the result doesn't
+    // depend on which configuration the tests were built with.
+    private let network = Network.testnet
+
+    private var directory = URL(fileURLWithPath: NSTemporaryDirectory())
+
+    override func setUpWithError() throws {
+        directory = URL(fileURLWithPath: NSTemporaryDirectory())
+            .appendingPathComponent("bdk-load-tests-\(UUID().uuidString)")
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+    }
+
+    override func tearDownWithError() throws {
+        try? FileManager.default.removeItem(at: directory)
+    }
+
+    private func databasePath() -> String {
+        return directory.appendingPathComponent("wallet.sqlite").path
+    }
+
+    // The same derivation didStartBDK performs.
+    private func descriptors(for words: String) throws -> (external: Descriptor, change: Descriptor) {
+        let mnemonic = try Mnemonic.fromString(mnemonic: words)
+        let rootKey = DescriptorSecretKey(network: network, mnemonic: mnemonic, password: nil)
+        return (Descriptor.newBip84(secretKey: rootKey, keychain: .external, network: network),
+                Descriptor.newBip84(secretKey: rootKey, keychain: .internal, network: network))
+    }
+
+    // Creates a wallet at `path`, reveals a few addresses so the changeset has
+    // something in it, and persists.
+    @discardableResult
+    private func createAndPersist(seed words: String, at path: String, revealingTo index: UInt32 = 5) throws -> String {
+        let keys = try descriptors(for: words)
+        let connection = try Connection(path: path)
+        let wallet = try Wallet(descriptor: keys.external,
+                                changeDescriptor: keys.change,
+                                network: network,
+                                connection: connection)
+        _ = wallet.revealAddressesTo(keychain: .external, index: index)
+        _ = try wallet.persist(connection: connection)
+        return wallet.peekAddress(keychain: .external, index: 0).address.description
+    }
+
+    // MARK: The question this file exists to answer
+
+    // A database written by seed A must not load under seed B's descriptors.
+    func testLoadRejectsADatabaseFromAnotherSeed() throws {
+
+        let path = databasePath()
+        try createAndPersist(seed: seedA, at: path)
+
+        let otherKeys = try descriptors(for: seedB)
+        let connection = try Connection(path: path)
+
+        XCTAssertThrowsError(
+            try Wallet.load(descriptor: otherKeys.external,
+                            changeDescriptor: otherKeys.change,
+                            connection: connection),
+            "Wallet.load accepted a database belonging to a different seed. Loading a "
+            + "persisted wallet would then be able to report the wrong balance, so "
+            + "didStartBDK must keep wiping and recreating."
+        ) { error in
+            XCTAssertTrue(error is LoadWithPersistError,
+                          "expected a LoadWithPersistError, got \(error)")
+        }
+    }
+
+    // MARK: The paths the production change would rely on
+
+    // The matching seed loads, and brings its persisted state back with it.
+    func testLoadReturnsThePersistedWalletForTheSameSeed() throws {
+
+        let path = databasePath()
+        let addressBefore = try createAndPersist(seed: seedA, at: path, revealingTo: 5)
+
+        let keys = try descriptors(for: seedA)
+        let connection = try Connection(path: path)
+        let loaded = try Wallet.load(descriptor: keys.external,
+                                     changeDescriptor: keys.change,
+                                     connection: connection)
+
+        XCTAssertEqual(loaded.peekAddress(keychain: .external, index: 0).address.description,
+                       addressBefore)
+
+        // Revealing again to the index already persisted must produce nothing
+        // new — which it only can if the revealed index survived. That index is
+        // what makes a light sync sufficient for a loaded wallet.
+        XCTAssertEqual(loaded.revealAddressesTo(keychain: .external, index: 5).count, 0,
+                       "the persisted revealed-address index did not come back")
+    }
+
+    // An empty database must fail rather than hand back a blank wallet, so the
+    // create fallback is reachable and distinguishable.
+    func testLoadFailsOnAnEmptyDatabase() throws {
+
+        let keys = try descriptors(for: seedA)
+        let connection = try Connection(path: databasePath())
+
+        XCTAssertThrowsError(
+            try Wallet.load(descriptor: keys.external,
+                            changeDescriptor: keys.change,
+                            connection: connection)
+        ) { error in
+            guard case LoadWithPersistError.CouldNotLoad = error else {
+                // Not a failure of the production design, but worth knowing:
+                // the fallback would need to catch this case too.
+                return XCTFail("expected .CouldNotLoad for an empty database, got \(error)")
+            }
+        }
+    }
+
+    // The whole sequence didStartBDK now performs when the stored database
+    // belongs to someone else: open, fail to load, release, delete, reopen,
+    // create. The wallet that comes out must be seed B's and carry none of
+    // seed A's state.
+    func testRecoverySequenceReplacesAnotherSeedsDatabase() throws {
+
+        let path = databasePath()
+        let addressA = try createAndPersist(seed: seedA, at: path, revealingTo: 5)
+
+        // The launch that finds someone else's database.
+        let keysB = try descriptors(for: seedB)
+        var connection: Connection? = try Connection(path: path)
+        XCTAssertThrowsError(try Wallet.load(descriptor: keysB.external,
+                                             changeDescriptor: keysB.change,
+                                             connection: connection!))
+
+        // Release before deleting the file underneath it, as didStartBDK does.
+        connection = nil
+        try FileManager.default.removeItem(atPath: path)
+
+        connection = try Connection(path: path)
+        let recreated = try Wallet(descriptor: keysB.external,
+                                   changeDescriptor: keysB.change,
+                                   network: network,
+                                   connection: connection!)
+
+        let addressB = recreated.peekAddress(keychain: .external, index: 0).address.description
+        XCTAssertNotEqual(addressB, addressA, "the recreated wallet still derives the old seed's addresses")
+        XCTAssertEqual(recreated.balance().total.toSat(), 0)
+        // Nothing of seed A's revealed state survived.
+        XCTAssertGreaterThan(recreated.revealAddressesTo(keychain: .external, index: 5).count, 0)
+    }
+
+    // A freshly created wallet reveals addresses that a reloaded one already
+    // has. Guards the assertion above against passing for the wrong reason.
+    func testFreshWalletRevealsAddressesThatAReloadedOneDoesNot() throws {
+
+        let path = databasePath()
+        let keys = try descriptors(for: seedA)
+        let connection = try Connection(path: path)
+        let wallet = try Wallet(descriptor: keys.external,
+                                changeDescriptor: keys.change,
+                                network: network,
+                                connection: connection)
+
+        XCTAssertGreaterThan(wallet.revealAddressesTo(keychain: .external, index: 5).count, 0)
     }
 }

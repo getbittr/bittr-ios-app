@@ -810,6 +810,8 @@ enum WalletError: Error {
     case clientNotInitiated
     /// A drain PSBT finished but carried no output, so there is no maximum to read.
     case drainProducedNoOutput
+    /// The stored wallet database was written on a different network to this build's.
+    case storedWalletOnAnotherNetwork
 }
 
 extension FileManager {
@@ -831,20 +833,39 @@ extension FileManager {
 
 extension Connection {
     
-    static func createConnection() throws -> Connection {
+    static var walletDataDirectoryURL: URL {
+        return URL.documentsDirectory.appendingPathComponent("wallet_data")
+    }
+    
+    // When the stored database was created.
+    static var walletDatabaseCreationDate: Date? {
+        let path = Connection.walletDataDirectoryURL.appendingPathComponent("wallet.sqlite").path
+        let attributes = try? FileManager.default.attributesOfItem(atPath: path)
+        return attributes?[.creationDate] as? Date
+    }
+    
+    // Open the stored wallet database.
+    static func open() throws -> Connection {
         let documentsDirectoryURL = URL.documentsDirectory
-        let walletDataDirectoryURL = documentsDirectoryURL.appendingPathComponent("wallet_data")
-
-        if FileManager.default.fileExists(atPath: walletDataDirectoryURL.path) {
-            try FileManager.default.removeItem(at: walletDataDirectoryURL)
-        }
-
+        let walletDataDirectoryURL = Connection.walletDataDirectoryURL
+        
         try FileManager.default.ensureDirectoryExists(at: walletDataDirectoryURL)
         try FileManager.default.removeOldFlatFileIfNeeded(at: documentsDirectoryURL)
         let persistenceBackendPath = walletDataDirectoryURL.appendingPathComponent("wallet.sqlite")
             .path
         let connection = try Connection(path: persistenceBackendPath)
         return connection
+    }
+    
+    // Throw the stored wallet away and open an empty database in its place.
+    static func recreate() throws -> Connection {
+        let walletDataDirectoryURL = Connection.walletDataDirectoryURL
+        
+        if FileManager.default.fileExists(atPath: walletDataDirectoryURL.path) {
+            try FileManager.default.removeItem(at: walletDataDirectoryURL)
+        }
+        
+        return try Connection.open()
     }
 }
 

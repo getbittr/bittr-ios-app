@@ -70,6 +70,18 @@ final class BdkScanState {
         DispatchQueue.main.async { waiting.forEach { $0(scanned) } }
     }
 
+    func markPreviouslyScanned() {
+        lock.lock()
+        defer { lock.unlock() }
+        _hasBeenScanned = true
+    }
+    
+    func markNeedsFullScan() {
+        lock.lock()
+        defer { lock.unlock() }
+        _hasBeenScanned = false
+    }
+    
     func markTimedOut() {
         // The watchdog fired.
         lock.lock()
@@ -144,9 +156,9 @@ extension BitcoinManager {
         // Create a BIP84 internal descriptor using the same BIP32 extended root key, specifying the keychain as internal and the network as testnet
         let bip84InternalDescriptor = Descriptor.newBip84(secretKey: bip32ExtendedRootKey, keychain: .internal, network: EnvironmentConfig.bitcoinDevKitNetwork)
         
-        // Initialize a wallet instance using the BIP84 external and internal descriptors, testnet network, and SQLite database configuration
+        // Open the stored wallet database, keeping whatever it already holds.
         do {
-            self.connection = try Connection.createConnection()
+            self.connection = try Connection.open()
         } catch {
             self.handleError(error: error, row: 211)
             self.clearBdkWalletReferences()
@@ -154,11 +166,50 @@ extension BitcoinManager {
         }
         
         do {
-            self.bdkWallet = try Wallet(descriptor: bip84ExternalDescriptor, changeDescriptor: bip84InternalDescriptor, network: EnvironmentConfig.bitcoinDevKitNetwork, connection: self.connection!)
+            // Check whether a stored BDK wallet is available.
+            let loaded = try Wallet.load(descriptor: bip84ExternalDescriptor, changeDescriptor: bip84InternalDescriptor, connection: self.connection!)
+            
+            // Confirm the stored wallet's network matches this build's network.
+            guard loaded.network() == EnvironmentConfig.bitcoinDevKitNetwork else {
+                throw WalletError.storedWalletOnAnotherNetwork
+            }
+            
+            Log.info("Did load the stored BDK wallet.")
+            SentryManager.countMetric("sync.bdk.loaded")
+            self.bdkWallet = loaded
+            
+            if self.storedFullScanIsFresh {
+                Log.info("Stored full scan is fresh. Will light sync rather than scan.")
+                self.bdkScan.markPreviouslyScanned()
+                SentryManager.countMetric("sync.bdk.scan.skipped")
+            } else {
+                Log.info("No recent full scan is available. Will scan.")
+            }
         } catch {
-            self.handleError(error: error, row: 218)
-            self.clearBdkWalletReferences()
-            return false
+            let reason:String = {
+                switch error {
+                case LoadWithPersistError.CouldNotLoad: return "nothing stored"
+                case LoadWithPersistError.InvalidChangeSet: return "stored data did not match"
+                case LoadWithPersistError.Persist: return "could not read the database"
+                case WalletError.storedWalletOnAnotherNetwork: return "stored on another network"
+                default: return "unrecognised failure"
+                }
+            }()
+            Log.info("No stored BDK wallet to load (\(reason)). Creating one.")
+            SentryManager.countMetric("sync.bdk.recreated")
+            
+            // Release the database before deleting the file underneath it.
+            self.connection = nil
+            self.clearFullScanCompletion()
+            
+            do {
+                self.connection = try Connection.recreate()
+                self.bdkWallet = try Wallet(descriptor: bip84ExternalDescriptor, changeDescriptor: bip84InternalDescriptor, network: EnvironmentConfig.bitcoinDevKitNetwork, connection: self.connection!)
+            } catch {
+                self.handleError(error: error, row: 218)
+                self.clearBdkWalletReferences()
+                return false
+            }
         }
         
         // Configure and create an Electrum blockchain connection to interact with the Bitcoin network
@@ -199,6 +250,32 @@ extension BitcoinManager {
     }
     func clearBdkScanState() {
         self.bdkScan.clear()
+    }
+    func markBdkNeedsFullScan() {
+        self.bdkScan.markNeedsFullScan()
+    }
+    
+    // How long a completed full scan stands for.
+    static let fullScanValidityDays = 7
+    var storedFullScanIsFresh: Bool {
+        // Check when the BDK wallet was last scanned.
+        guard let scannedAt = CacheStore.value(for: CacheKeys.lastBdkFullScan) else { return false }
+        let age = Date().timeIntervalSince1970 - Double(scannedAt)
+        
+        // Rescan if the last scan happened more than 7 days ago.
+        guard age >= 0, age < Double(BitcoinManager.fullScanValidityDays * 24 * 60 * 60) else { return false }
+        
+        // Make sure the cached most recent scan date is after this database's creation date.
+        guard let databaseCreated = Connection.walletDatabaseCreationDate else { return false }
+        return databaseCreated.timeIntervalSince1970 <= Double(scannedAt)
+    }
+    
+    // Keep track of latest full BDK scan.
+    func storeFullScanCompletion() {
+        CacheStore.set(Int(Date().timeIntervalSince1970), for: CacheKeys.lastBdkFullScan)
+    }
+    func clearFullScanCompletion() {
+        CacheStore.set(nil, for: CacheKeys.lastBdkFullScan)
     }
     
     func didSyncBdkWallet(completion originalCompletion: @escaping (Bool) -> Void) {
@@ -303,6 +380,7 @@ extension BitcoinManager {
             
             // Update syncing status.
             Log.info("Did sync BDK wallet.")
+            self.storeFullScanCompletion()
             self.endBdkScan(scanned: true)
             self.storeChannelClosureTxIDIfFound()
             completion(true)
