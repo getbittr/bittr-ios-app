@@ -121,6 +121,7 @@ class DeviceViewController: UIViewController, UNUserNotificationCenterDelegate, 
     
     func selectCurrency(_ currency:String) {
         CacheStore.set(currency, for: CacheKeys.currency)
+        CacheManager.publishToWidget()
         self.coreVC?.homeVC?.changeCurrency()
         self.deviceTableView.reloadData()
     }
