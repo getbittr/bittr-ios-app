@@ -160,8 +160,14 @@ enum SentryManager {
         return breadcrumb
     }
     
-    static func capture(_ error: any Error, context:String? = nil) {
+    static func capture(_ error: any Error, context:String? = nil, filterHttpErrors:Bool = false) {
         guard !error.isConnectivityError, !error.isExpectedPaymentFailure else { return }
+        
+        if let status = error.transientServerStatus {
+            countMetric("api.http.\(status)")
+            if filterHttpErrors { return }
+        }
+        
         DispatchQueue.main.async {
             SentrySDK.capture(error: error) { scope in
                 if let context { scope.setExtra(value: context, key: "context") }
@@ -183,6 +189,11 @@ enum SentryManager {
             SentrySDK.metrics.count(key: key)
         }
     }
+}
+
+private enum TransientHTTP {
+    // Statuses there is nothing to fix in the app.
+    static let statuses:Set<Int> = [429, 502, 503, 504]
 }
 
 private enum Connectivity {
@@ -247,6 +258,26 @@ extension Error {
         }
         
         return (self as NSError).domain == "Timeout"
+    }
+    
+    var transientServerStatus:Int? {
+        // The HTTP status behind this error.
+        if let serviceError = self as? BittrServiceError {
+            switch serviceError {
+            case .networkError(let underlying), .other(let underlying):
+                return underlying.transientServerStatus
+            default: return nil
+            }
+        }
+        guard let apiError = self as? APIError, case .requestFailed(let message) = apiError else { return nil }
+        
+        // "HTTP 429" from CallsManager, "HTTP 429: <body>" from BoltzAPI.
+        let prefix = "HTTP "
+        guard message.hasPrefix(prefix) else { return nil }
+        let digits = message.dropFirst(prefix.count).prefix { $0.isNumber }
+        
+        guard let status = Int(digits), TransientHTTP.statuses.contains(status) else { return nil }
+        return status
     }
     
     var isExpectedPaymentFailure:Bool {
