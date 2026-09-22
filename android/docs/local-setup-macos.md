@@ -243,6 +243,42 @@ system images relative to the binary and dies with `PANIC: Broken AVD system pat
 or `Cannot find AVD system path` — an error that reads like the AVD is corrupt when
 the AVD is fine.
 
+#### Starting the emulator with the current build
+
+Three AVDs exist on the dev Mac: **`bittr-gapi`** (Google APIs, API 34, arm64 — the one
+the suite and the reviews use, and the only one with Play services, so the only one where
+a real FCM token is minted), `bittr-preview` (plain AOSP) and `bittr-test` (the ATD image
+CI runs).
+
+The short way — the suite script boots the AVD, builds with the node settings from
+`~/.bittr/android-regtest.env`, installs, and compiles ahead of time, then runs nothing:
+
+```sh
+shared/flows/test_suite_android.sh --boot --install-only
+```
+
+By hand, when you want a window to look at:
+
+```sh
+"$ANDROID_HOME/emulator/emulator" -avd bittr-gapi -no-snapshot-save -noaudio \
+  -no-boot-anim -gpu host -camera-back none -memory 4096 -cores 6 &
+
+set -a; source ~/.bittr/android-regtest.env; set +a
+cd android && ./gradlew :app:installDebug --no-configuration-cache
+adb -s emulator-5554 shell cmd package compile -m speed -f com.bittr.android.regtest
+adb -s emulator-5554 shell monkey -p com.bittr.android.regtest -c android.intent.category.LAUNCHER 1
+```
+
+- **`-camera-back none`** matches CI and the iOS simulator. With a camera the scanner
+  starts scanning instead of showing the alert `send_onchain.yaml` expects.
+- **`cmd package compile -m speed`** is not optional on the emulator: a freshly installed
+  debug APK runs interpreted, first frame can take 30 s, and the flows' 15 s launch wait
+  fails on a launch that is only slow.
+- **`-no-window`** instead of `-gpu host` when the Mac is loaded: the windowed emulator
+  ANRs under memory pressure. Screenshots still work through `adb exec-out screencap`.
+- The wallet on the emulator comes from `shared/flows/onboarding/restore_wallet.yaml`
+  (PIN 1234), which restores the e2e wallet with regtest funds.
+
 ### 3. A physical phone
 
 `./gradlew :app:installDebug` with USB debugging on works and skips the emulator
