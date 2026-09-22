@@ -186,7 +186,16 @@ extension BitcoinManager {
                 Log.info("No recent full scan is available. Will scan.")
             }
         } catch {
-            Log.info("No stored BDK wallet to load (\(error)). Creating one.")
+            let reason:String = {
+                switch error {
+                case LoadWithPersistError.CouldNotLoad: return "nothing stored"
+                case LoadWithPersistError.InvalidChangeSet: return "stored data did not match"
+                case LoadWithPersistError.Persist: return "could not read the database"
+                case WalletError.storedWalletOnAnotherNetwork: return "stored on another network"
+                default: return "unrecognised failure"
+                }
+            }()
+            Log.info("No stored BDK wallet to load (\(reason)). Creating one.")
             SentryManager.countMetric("sync.bdk.recreated")
             
             // Release the database before deleting the file underneath it.
