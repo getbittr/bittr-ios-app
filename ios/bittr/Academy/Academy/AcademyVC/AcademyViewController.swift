@@ -17,6 +17,7 @@ class AcademyViewController: UIViewController, UITableViewDelegate, UITableViewD
     // Variables
     var coreVC:CoreViewController?
     var tappedLesson:Lesson?
+    private var appliedHeaderHeight:CGFloat?
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -53,16 +54,22 @@ class AcademyViewController: UIViewController, UITableViewDelegate, UITableViewD
     }
     
     override func viewDidLayoutSubviews() {
+        super.viewDidLayoutSubviews()
         
         // Set header view.
-        if let newHeaderView = self.academyTableView.tableHeaderView {
-            let height = newHeaderView.systemLayoutSizeFitting(UIView.layoutFittingCompressedSize).height
-            var headerFrame = newHeaderView.frame
-            if height != headerFrame.size.height {
-                headerFrame.size.height = height
-                newHeaderView.frame = headerFrame
-                self.academyTableView.tableHeaderView = newHeaderView
-            }
+        guard let newHeaderView = self.academyTableView.tableHeaderView else { return }
+        
+        // Width first.
+        newHeaderView.frame.size.width = self.academyTableView.bounds.width
+        let height = newHeaderView.systemLayoutSizeFitting(UIView.layoutFittingCompressedSize).height
+        
+        guard height > 0, height != self.appliedHeaderHeight else { return }
+        self.appliedHeaderHeight = height
+        
+        DispatchQueue.main.async { [weak self] in
+            guard let self else { return }
+            newHeaderView.frame.size.height = height
+            self.academyTableView.tableHeaderView = newHeaderView
         }
     }
     

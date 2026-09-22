@@ -18,6 +18,7 @@ class ArticleViewController: UIViewController, UITableViewDelegate, UITableViewD
     
     // Article and image
     var article:Article?
+    private var appliedHeaderHeight:CGFloat?
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -49,17 +50,22 @@ class ArticleViewController: UIViewController, UITableViewDelegate, UITableViewD
     }
     
     override func viewDidLayoutSubviews() {
+        super.viewDidLayoutSubviews()
         
-        if let headerView = self.oneArticleTableView.tableHeaderView {
-            let height = headerView.systemLayoutSizeFitting(UIView.layoutFittingCompressedSize).height
-            var headerFrame = headerView.frame
-            if height != headerFrame.size.height {
-                headerFrame.size.height = height
-                headerView.frame = headerFrame
-                self.oneArticleTableView.tableHeaderView = headerView
-            }
+        guard let headerView = self.oneArticleTableView.tableHeaderView else { return }
+        
+        // Width first.
+        headerView.frame.size.width = self.oneArticleTableView.bounds.width
+        let height = headerView.systemLayoutSizeFitting(UIView.layoutFittingCompressedSize).height
+        
+        guard height > 0, height != self.appliedHeaderHeight else { return }
+        self.appliedHeaderHeight = height
+        
+        DispatchQueue.main.async { [weak self] in
+            guard let self else { return }
+            headerView.frame.size.height = height
+            self.oneArticleTableView.tableHeaderView = headerView
         }
-        
     }
     
     func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
