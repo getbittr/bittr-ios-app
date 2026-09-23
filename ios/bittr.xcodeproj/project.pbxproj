@@ -2055,8 +2055,8 @@
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/RubenWaterman/swift-secp256k1";
 			requirement = {
-				branch = "import-signatures-and-nonces";
-				kind = branch;
+				kind = revision;
+				revision = b78b9761840d2e52ab7f660ceb803981b50f2955;
 			};
 		};
 /* End XCRemoteSwiftPackageReference section */
