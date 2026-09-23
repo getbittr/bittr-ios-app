@@ -139,11 +139,13 @@ class SignupViewController: UIViewController {
         }
         
         // Animate slide to next page
-        var duration = 0.3
+        var duration = 0.7
         if !self.animateTransition {
             duration = 0
         }
-        UIView.animate(withDuration: duration, delay: 0, options: .curveEaseInOut) {
+        
+        self.view.layoutIfNeeded()
+        UIView.animate(withDuration: duration, delay: 0, usingSpringWithDamping: 0.65, initialSpringVelocity: 0, options: .curveEaseInOut) {
             self.containerViewsLeading.constant = UIScreen.main.bounds.width * CGFloat(-thisPage)
             self.view.layoutIfNeeded()
         } completion: { _ in

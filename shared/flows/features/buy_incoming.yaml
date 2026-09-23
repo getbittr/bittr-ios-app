@@ -68,7 +68,8 @@ appId: com.bittr.bittr-regtest
 - tapOn:
     id: "home.buyButton"
 - assertVisible:
-    id: "buy.headerLabel"
+    id: "header.titleLabel"
+    text: "buy bitcoin"
 - assertVisible:
     id: "buy.yourCode"
 - takeScreenshot: shared/docs/screenshots/buy_incoming/03_buy_screen
