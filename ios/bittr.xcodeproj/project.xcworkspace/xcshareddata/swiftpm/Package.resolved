@@ -69,8 +69,7 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/RubenWaterman/swift-secp256k1",
       "state" : {
-        "branch" : "import-signatures-and-nonces",
-        "revision" : "c21c2128270863b57b99ec02004d50c0dd9afa52"
+        "revision" : "b78b9761840d2e52ab7f660ceb803981b50f2955"
       }
     }
   ],
