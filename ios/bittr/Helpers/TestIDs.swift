@@ -17,8 +17,6 @@ enum TestID {
     }
     enum Buy {
         static let continueButton = "buy.continueButton"
-        static let downButton = "buy.downButton"
-        static let headerLabel = "buy.headerLabel"
         static let paymentModeButton = "buy.paymentModeButton"
         static let paymentModeSwitch = "buy.paymentModeSwitch"
         static let yourCode = "buy.yourCode"
