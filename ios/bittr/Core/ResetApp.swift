@@ -369,16 +369,28 @@ extension CoreViewController {
                 self.userHasSignedIn = false
                 
                 // Hide signup view and launch create wallet flow.
-                self.showPin {
-                    Log.info("ResetApp - Launching signup after cleanup")
+                Log.info("ResetApp - Launching signup after cleanup")
+                if self.currentPage == .signup, let signupVC = self.signupViewController() {
+                    // We're already on Signup (the Restore screen).
+                    signupVC.animateTransition = true
+                    signupVC.moveToPage(3) // Page 3 is create wallet
+                    
+                    if signupVC.currentPage != 3 {
+                        Log.info("Could not page signup across. Rebuilding it.")
+                        self.hideSignup()
+                        self.launchSignup(onPage: 3)
+                        self.showSignup()
+                    }
+                } else {
+                    // We're on Home or Pin.
                     self.launchSignup(onPage: 3) // Page 3 is create wallet
                     self.showSignup()
-                    
-                    // Show HomeVC.
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
-                        self.genericSpinner.stopAnimating()
-                        self.fullViewCover.alpha = 0
-                    }
+                }
+                
+                // Hide spinner.
+                DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
+                    self.genericSpinner.stopAnimating()
+                    self.fullViewCover.alpha = 0
                 }
             }
         }
@@ -417,6 +429,11 @@ extension CoreViewController {
                 Log.info("Channel cache updated successfully")
             }
         }
+    }
+    
+    // The signup controller currently in the container, if there is one.
+    func signupViewController() -> SignupViewController? {
+        return self.children.compactMap { $0 as? SignupViewController }.first
     }
 
 }
