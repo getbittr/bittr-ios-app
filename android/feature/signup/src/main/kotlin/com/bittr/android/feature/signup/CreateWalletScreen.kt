@@ -5,6 +5,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
@@ -99,9 +100,14 @@ fun CreateWalletScreen(
             }
 
             CreateWalletStep.Verify -> {
-                val challenge = state.challenge
-                if (challenge == null) {
-                    if (arriving) LaunchedEffect(Unit) { viewModel.backToPhrase() } else BittrCanvas(modifier) {}
+                // Back drops the challenge in the same update that starts the slide to the phrase,
+                // so the page keeps the one it was showing and slides out as it was, words typed
+                // and all, instead of as the bare canvas.
+                val challenge = rememberLastNonNull(state.challenge)
+                if (arriving && state.challenge == null) {
+                    LaunchedEffect(Unit) { viewModel.backToPhrase() }
+                } else if (challenge == null) {
+                    BittrCanvas(modifier) {}
                 } else {
                     VerifyScreen(
                         challenge = challenge,
@@ -142,4 +148,20 @@ fun CreateWalletScreen(
             )
         }
     }
+}
+
+/**
+ * [value], or the last non-null value it had while this call stayed composed — for a page that goes
+ * on being drawn while it slides out after its data has been cleared. A plain holder, not state:
+ * nothing needs to recompose when it changes, as [value] changing already has.
+ */
+@Composable
+private fun <T : Any> rememberLastNonNull(value: T?): T? {
+    val last = remember { LastValue<T>() }
+    if (value != null) last.value = value
+    return last.value
+}
+
+private class LastValue<T : Any> {
+    var value: T? = null
 }
