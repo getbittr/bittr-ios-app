@@ -9,12 +9,14 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.BasicTextField
@@ -56,6 +58,8 @@ import com.bittr.android.core.designsystem.BittrTextButton
 import com.bittr.android.core.designsystem.BittrTheme
 import com.bittr.android.core.designsystem.BittrTokens
 import com.bittr.android.core.designsystem.CanvasSpacer
+import com.bittr.android.core.designsystem.appBarContentPadding
+import com.bittr.android.core.designsystem.AppBarContentInset
 import com.bittr.android.core.designsystem.IosCardShape
 import com.bittr.android.core.designsystem.iosShadow
 import com.bittr.android.core.wallet.seed.Bip39
@@ -133,14 +137,17 @@ fun RestoreScreen(
     var viewportHeight by remember { mutableIntStateOf(0) }
     // The heading's top on screen, in px, as of its last placement.
     var headingTop by remember { mutableIntStateOf(0) }
+    // The top bar the content scrolls under: the status bar and the bar's 50, in px.
+    val appBarBottom = WindowInsets.statusBars.getTop(density) + with(density) { AppBarContentInset.roundToPx() }
 
-    // With a field focused, the heading goes to the top of the visible area. The white card is
+    // With a field focused, the heading goes to the top of the visible area, just below the top
+    // bar the content scrolls under. The white card is
     // compact enough that all twelve fields then sit between it and the keyboard, and the heading
     // stays on screen — `forgot_pin.yaml` taps it after the last word to put the keyboard away,
     // which on iOS falls through to `backgroundButtonTapped`.
     LaunchedEffect(focusedIndex) {
         if (focusedIndex == NO_FOCUS) return@LaunchedEffect
-        scrollState.scrollTo((headingTop - viewportTop + scrollState.value).coerceAtLeast(0))
+        scrollState.scrollTo((headingTop - viewportTop - appBarBottom + scrollState.value).coerceAtLeast(0))
     }
 
     fun submit() {
@@ -150,8 +157,8 @@ fun RestoreScreen(
 
     BackHandler(onBack = onCancel)
     // No arrow in the app bar: Cancel goes back, as on iOS, and the system back
-    // gesture does what that button does.
-    BittrCanvas(modifier = modifier) {
+    // gesture does what that button does. The fields scroll up under the translucent top bar.
+    BittrCanvas(modifier = modifier, scrollsUnderAppBar = true) {
         // RestoreViewController's scene: no yellow card. The heading, the white card of twelve
         // words 30 below it, the button 30 below that, Cancel, and the article card — one group,
         // centred 40 above the middle of the screen.
@@ -169,6 +176,7 @@ fun RestoreScreen(
                 }
                 .onSizeChanged { viewportHeight = it.height }
                 .verticalScroll(scrollState)
+                .appBarContentPadding()
                 .padding(top = BittrTokens.Spacing.lg, bottom = BittrTokens.Spacing.lg + 80.dp),
         ) {
             Text(

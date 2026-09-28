@@ -30,6 +30,7 @@ import com.bittr.android.core.designsystem.BittrCard
 import com.bittr.android.core.designsystem.BittrPrimaryButton
 import com.bittr.android.core.designsystem.BittrTheme
 import com.bittr.android.core.designsystem.CanvasSpacer
+import com.bittr.android.core.designsystem.appBarContentPadding
 import com.bittr.android.core.wallet.Mnemonic
 import com.bittr.android.feature.academy.ArticleCard
 import com.bittr.android.feature.academy.BittrArticles
@@ -65,7 +66,8 @@ fun MnemonicScreen(
 ) {
     BackHandler(enabled = onBack != null) { onBack?.invoke() }
     // No arrow in the app bar, as on iOS; the system back gesture goes back when there is a back.
-    BittrCanvas(modifier = modifier) {
+    // The words scroll up under the translucent top bar, as they do on iOS.
+    BittrCanvas(modifier = modifier, scrollsUnderAppBar = true) {
         // The storyboard's centre view: 30 above the first label, 40 below the article card.
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
@@ -73,6 +75,7 @@ fun MnemonicScreen(
                 .weight(1f)
                 .fillMaxWidth()
                 .verticalScroll(rememberScrollState())
+                .appBarContentPadding()
                 .padding(top = 30.dp, bottom = 40.dp),
         ) {
             Text(

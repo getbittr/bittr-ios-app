@@ -5,6 +5,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.ColumnScope
@@ -29,14 +30,17 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.dropShadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
+import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.StrokeCap
@@ -96,52 +100,129 @@ private val AppBarIconBox = 48.dp
  * the *content* is inset. A screen that pads its own background paints a white strip
  * behind the clock.
  *
+ * The app bar is iOS's `topBar`, laid over the content rather than above it: translucent
+ * (`transparentyellow`), from the top of the screen, with `upperYellowCurve` hanging under it
+ * ([BittrAppBarBackground]). What scrolls up under it shows through, as on iOS.
+ *
  * @param onBack draws the back arrow when non-null. The arrow is the only affordance
  *   in the bar that does anything; the overflow dots are drawn because the mock has
  *   them and are deliberately inert until there is a menu behind them.
+ * @param scrollsUnderAppBar lays [content] out from the top of the screen instead of below the
+ *   bar, so a scrolling screen can pass under it. That screen then pads its scrolled content with
+ *   [appBarContentPadding], inside the scroll, so it rests below the bar all the same.
  */
 @Composable
 fun BittrCanvas(
     modifier: Modifier = Modifier,
     onBack: (() -> Unit)? = null,
     appBar: Boolean = true,
+    scrollsUnderAppBar: Boolean = false,
     content: @Composable ColumnScope.() -> Unit,
 ) {
     val colors = BittrTheme.colors
     CompositionLocalProvider(LocalContentColor provides colors.onCanvas) {
-        Column(
+        Box(
             modifier = modifier
                 .fillMaxSize()
-                .background(colors.canvas)
-                .statusBarsPadding()
-                .navigationBarsPadding(),
+                .background(colors.canvas),
         ) {
-            if (appBar) BittrAppBar(onBack = onBack)
-            content()
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .then(
+                        when {
+                            !appBar -> Modifier.statusBarsPadding()
+                            scrollsUnderAppBar -> Modifier
+                            else -> Modifier.appBarContentPadding()
+                        },
+                    )
+                    .navigationBarsPadding(),
+                content = content,
+            )
+            if (appBar) {
+                if (LocalAppBarBackgroundVisible.current) BittrAppBarBackground()
+                BittrAppBar(onBack = onBack, modifier = Modifier.statusBarsPadding())
+            }
         }
     }
 }
 
 /**
- * The app bar's logo on its own, where [BittrAppBar] draws it, for screens whose pages slide under
- * a logo that stays put. On iOS the logo belongs to the top bar above the signup page strip, so
- * it never moves while the pages do; here each page has its own app bar, so the pages hide theirs
- * (`LocalAppBarLogoVisible`) and this one is laid over them. It follows `LocalAppBarLogoVisible`
- * as it is where it is composed, so it stays hidden under the launch animation's cover too.
+ * The room the app bar takes at the top of the screen: the status bar and the bar's 50. For the
+ * content of a [BittrCanvas] with `scrollsUnderAppBar`, applied inside its scroll.
+ */
+fun Modifier.appBarContentPadding(): Modifier = statusBarsPadding().padding(top = AppBarContentInset)
+
+/** [appBarContentPadding] below the status bar: the bar's own height. */
+val AppBarContentInset: Dp = AppBarHeight
+
+/**
+ * Whether [BittrCanvas] draws its app bar's translucent fill and curve. False where one fixed
+ * [BittrAppBarLogoOverlay] draws them over pages that slide beneath it, as iOS's `topBar` stays
+ * put over the signup page strip — otherwise each page's fill would slide with it, and two
+ * translucent fills would stack.
+ */
+val LocalAppBarBackgroundVisible = compositionLocalOf { true }
+
+/**
+ * iOS's `topBar` fill and its `upperYellowCurve`: `transparentyellow` (yellow at 85 %, blue3 at
+ * 85 % in dark mode) from the top of the screen to the bottom of the 50 pt bar, then
+ * `BottomCurveView` under it — as tall as 0.0375 of the width, its sides 0.15 of that down and its
+ * middle sagging towards a control point 1.2 of it down.
+ */
+@Composable
+fun BittrAppBarBackground(modifier: Modifier = Modifier) {
+    val fill = BittrTheme.colors.scrimBrand
+    BoxWithConstraints(modifier.fillMaxWidth()) {
+        val curveHeight = maxWidth * AppBarCurveRatio
+        Spacer(
+            Modifier
+                .fillMaxWidth()
+                .drawBehind {
+                    val curve = curveHeight.toPx()
+                    val barBottom = size.height - curve
+                    val path = Path().apply {
+                        moveTo(0f, 0f)
+                        lineTo(size.width, 0f)
+                        lineTo(size.width, barBottom + curve * 0.15f)
+                        quadraticTo(size.width / 2, barBottom + curve * 1.2f, 0f, barBottom + curve * 0.15f)
+                        close()
+                    }
+                    drawPath(path, fill)
+                }
+                .statusBarsPadding()
+                .height(AppBarHeight + curveHeight),
+        )
+    }
+}
+
+/** `upperYellowCurve`'s height, as a share of the screen's width. */
+private const val AppBarCurveRatio = 0.0375f
+
+/**
+ * The app bar's fill, curve and logo, where [BittrCanvas] draws them, for screens whose pages slide
+ * under a bar that stays put. On iOS the top bar sits above the signup page strip, so it never
+ * moves while the pages do; here each page has its own app bar, so the pages hide theirs
+ * (`LocalAppBarLogoVisible`, [LocalAppBarBackgroundVisible]) and this one is laid over them. The
+ * logo follows `LocalAppBarLogoVisible` as it is where it is composed, so it stays hidden under the
+ * launch animation's cover too.
  */
 @Composable
 fun BittrAppBarLogoOverlay(modifier: Modifier = Modifier) {
-    Box(
-        contentAlignment = Alignment.Center,
-        modifier = modifier
-            .fillMaxWidth()
-            .statusBarsPadding()
-            .height(AppBarHeight),
-    ) {
-        BittrLogo(
-            height = BittrAppBarLogoHeight,
-            modifier = Modifier.alpha(if (LocalAppBarLogoVisible.current) 1f else 0f),
-        )
+    Box(modifier.fillMaxWidth()) {
+        BittrAppBarBackground()
+        Box(
+            contentAlignment = Alignment.Center,
+            modifier = Modifier
+                .fillMaxWidth()
+                .statusBarsPadding()
+                .height(AppBarHeight),
+        ) {
+            BittrLogo(
+                height = BittrAppBarLogoHeight,
+                modifier = Modifier.alpha(if (LocalAppBarLogoVisible.current) 1f else 0f),
+            )
+        }
     }
 }
 

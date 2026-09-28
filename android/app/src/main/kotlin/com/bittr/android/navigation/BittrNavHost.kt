@@ -13,6 +13,7 @@ import androidx.compose.ui.Modifier
 import androidx.navigation.NavBackStackEntry
 import androidx.navigation.NavGraph
 import com.bittr.android.core.designsystem.BittrAppBarLogoOverlay
+import com.bittr.android.core.designsystem.LocalAppBarBackgroundVisible
 import com.bittr.android.core.designsystem.LocalAppBarLogoVisible
 import com.bittr.android.core.designsystem.pageSlideIn
 import com.bittr.android.core.designsystem.pageSlideOut
@@ -321,15 +322,19 @@ fun BittrNavHost(
             WalletState.Ready -> Routes.HOME
         }
     }
-    // One logo over the signup pages while they slide — see BittrAppBarLogoOverlay. It is pinned
+    // One top bar over the signup pages while they slide — see BittrAppBarLogoOverlay. It is pinned
     // while everything on screen is a page with the logo in the same place and at least one of them
-    // is a signup page; the pages' own logos hide meanwhile, so there is one, and it stays put.
+    // is a signup page; the pages' own logos and bar fills hide meanwhile, so there is one, and it
+    // stays put.
     val launchLogoVisible = LocalAppBarLogoVisible.current
     val visibleEntries by navController.visibleEntries.collectAsState()
     val visibleRoutes = visibleEntries.map { it.destination }.filter { it !is NavGraph }.map { it.route }
     val logoPinned = visibleRoutes.any { signupPage(it) != null } && visibleRoutes.all { it in LogoBarRoutes }
     Box(Modifier.fillMaxSize()) {
-        CompositionLocalProvider(LocalAppBarLogoVisible provides (launchLogoVisible && !logoPinned)) {
+        CompositionLocalProvider(
+            LocalAppBarLogoVisible provides (launchLogoVisible && !logoPinned),
+            LocalAppBarBackgroundVisible provides !logoPinned,
+        ) {
             NavHost(
                 navController = navController,
                 startDestination = startDestination,
