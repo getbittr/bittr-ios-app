@@ -528,3 +528,20 @@ three faults showed up in the hand-off into the app bar, each hidden by the one 
 The logo also no longer fades out as it rises. It is a *second* copy of the app bar's logo, so fading it
 crossed two lockups over each other; landing it exactly on the real one and taking it away with the cover
 has no seam to show.
+
+## 46. The launcher icon is the iOS app icon's own pixels
+
+**2026-09-28.** Decision 44's icon was redrawn from `BittrLogo`'s paths rather than taken from the iOS icon,
+and it did not match: the mark filled 83 % of the 72 dp a launcher shows (iOS: 57 %), sat off centre, and in
+the legacy rasters ran off the right edge. The yellow was also `canvas` (#FFC502), not the icon's #FFC400.
+
+`android/scripts/render-launcher-icon.swift` now renders every launcher resource from
+`ios/bittr/Assets.xcassets/AppIcon.appiconset`. The legacy square and round rasters are that PNG scaled
+down. For the adaptive icon, the mark is unmixed from the yellow into a transparent foreground: every pixel
+of the source is a blend of the yellow with at most one of the arc or the wedge, so its coverage solves
+exactly, and the script refuses a source where recompositing misses by more than 2/255 (it is within 1).
+The 1024 px square maps onto the central 72 dp of the 108 dp layers, so the mark keeps its iOS size and
+position under any launcher mask. The monochrome layer is the same coverage as one white silhouette.
+The drawable foreground and monochrome vectors are gone; `ic_splash_mark` is unaffected.
+
+When the iOS icon changes, rerun the script from the repo root and update `source` if the file name moved.
