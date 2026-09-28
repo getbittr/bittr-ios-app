@@ -35,7 +35,8 @@ appId: com.bittr.bittr-regtest
 - tapOn:
     id: "home.buyButton"
 - assertVisible:
-    id: "buy.headerLabel"
+    id: "header.titleLabel"
+    text: "buy bitcoin"
 - waitForAnimationToEnd:
     timeout: 30000
 
