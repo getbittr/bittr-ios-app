@@ -304,8 +304,15 @@ fun BittrNavHost(
     // The screen lock, from anywhere. `MainActivity` puts the wallet back to Locked when the
     // task is swiped away or after long enough in the background, and the user lands on the PIN
     // screen with the back stack cleared rather than inside the wallet they just locked.
+    //
+    // Only from Ready. Finishing signup or restore goes Uninitialized → Locked → Ready — `setPin`
+    // stores the PIN, then `unlock` with it takes a key derivation's time — and following that
+    // passing Locked threw the user out of onboarding onto the PIN pad before the Ready page.
+    var previousWalletState by remember { mutableStateOf(walletState) }
     LaunchedEffect(walletState) {
-        if (walletState == WalletState.Locked &&
+        val wasReady = previousWalletState == WalletState.Ready
+        previousWalletState = walletState
+        if (wasReady && walletState == WalletState.Locked &&
             navController.currentDestination?.route != Routes.PIN_UNLOCK
         ) {
             navController.navigate(Routes.PIN_UNLOCK) {
