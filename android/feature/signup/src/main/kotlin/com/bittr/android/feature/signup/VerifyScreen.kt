@@ -1,20 +1,26 @@
 package com.bittr.android.feature.signup
 
 import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -33,18 +39,16 @@ import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.bittr.android.core.common.TestID
 import com.bittr.android.core.designsystem.BittrCanvas
 import com.bittr.android.core.designsystem.BittrCard
-import com.bittr.android.core.designsystem.BittrNumeral
 import com.bittr.android.core.designsystem.BittrPrimaryButton
-import com.bittr.android.core.designsystem.BittrStepHeading
 import com.bittr.android.core.designsystem.BittrTextButton
 import com.bittr.android.core.designsystem.BittrTheme
-import com.bittr.android.core.designsystem.BittrTokens
-import com.bittr.android.core.designsystem.BittrValueRow
 import com.bittr.android.core.designsystem.CanvasSpacer
 import com.bittr.android.core.wallet.Mnemonic
 import com.bittr.android.core.wallet.seed.SeedChallenge
@@ -126,6 +130,7 @@ fun VerifyScreen(
     // No arrow in the app bar: the card's own button goes back, as on iOS, and the system back
     // gesture does what that button does.
     BittrCanvas(modifier = modifier) {
+        // Signup4's scene: `centerCard` 15 from the screen edges, centred 40 above the middle.
         Column(
             verticalArrangement = Arrangement.Center,
             modifier = Modifier
@@ -134,12 +139,18 @@ fun VerifyScreen(
                 // can be scrolled into view above it.
                 .imePadding()
                 .verticalScroll(rememberScrollState())
-                .padding(horizontal = CanvasGutter),
+                .padding(start = 15.dp, end = 15.dp, bottom = 80.dp),
         ) {
-            BittrCard {
-                BittrStepHeading(
+            // The label 30 below the card's top; Back's 25 pt row 20 above its bottom, less the
+            // half of its 48 dp touch target that iOS's row does not have.
+            BittrCard(contentPadding = PaddingValues(top = 30.dp, bottom = 8.dp)) {
+                Text(
                     text = SignupStrings.CONFIRM_RECOVERY_PHRASE,
+                    // Gilroy Bold 16, centred, 40 from the card's sides.
+                    style = MaterialTheme.typography.titleMedium.copy(fontSize = 16.sp, lineHeight = 20.sp),
+                    textAlign = TextAlign.Center,
                     modifier = Modifier
+                        .padding(horizontal = 40.dp)
                         .clickable(
                             interactionSource = remember { MutableInteractionSource() },
                             indication = null,
@@ -147,10 +158,10 @@ fun VerifyScreen(
                         )
                         .testTag(TestID.Signup.Create.Verify.topLabel),
                 )
-                CanvasSpacer(BittrTokens.Spacing.xl)
+                CanvasSpacer(30.dp)
 
                 challenge.labels.forEachIndexed { index, wordNumber ->
-                    if (index > 0) CanvasSpacer(12.dp)
+                    if (index > 0) CanvasSpacer(10.dp)
                     WordField(
                         wordNumber = wordNumber,
                         value = answers[index],
@@ -172,12 +183,13 @@ fun VerifyScreen(
                     )
                 }
 
-                CanvasSpacer(BittrTokens.Spacing.xl)
+                CanvasSpacer(30.dp)
                 BittrPrimaryButton(
                     text = SignupStrings.CONFIRM,
                     onClick = ::submit,
                     modifier = Modifier.testTag(TestID.Signup.Create.Verify.nextButton),
                 )
+                // iOS leaves 10 pt and a 25 pt row for Back; its 48 dp touch target spends the 10.
                 BittrTextButton(
                     text = SignupStrings.BACK,
                     onClick = onBack,
@@ -189,7 +201,13 @@ fun VerifyScreen(
 }
 
 /**
- * One white field with its word number in it.
+ * One white field with its word number in it — iOS's `mnemonicView`: white in both schemes, 200 by
+ * 45 with 8 pt corners. The number 25 in and 20 wide, in Gilroy Bold 16 and the brand yellow; the
+ * field 15 after it and 15 from the right, in Gilroy Regular 18, black, with a gray placeholder.
+ * Both sit 1 pt below the row's centre, as the storyboard has them.
+ *
+ * The yellow numbers on white are 1.7 : 1, the pairing DEV-40 darkened for `DetailRow` labels;
+ * matched to iOS here at Tom's request, as on Signup3 and Restore.
  *
  * The number is a label *inside* the field's container but outside its text, as on
  * iOS and in the mock — not Material's floating label. As a floating label it reads as
@@ -213,37 +231,44 @@ private fun WordField(
     onFocusLost: () -> Unit,
 ) {
     var focused by remember { mutableStateOf(false) }
-    BittrValueRow {
-        BittrNumeral(
+    val colors = BittrTheme.colors
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier
+            .size(width = 200.dp, height = 45.dp)
+            .background(colors.phraseCard, WordFieldShape)
+            .offset(y = 1.dp)
+            .padding(start = 25.dp, end = 15.dp),
+    ) {
+        Text(
             text = "$wordNumber",
-            width = 22.dp,
-            modifier = Modifier.testTag(labelTag),
+            style = MaterialTheme.typography.titleMedium.copy(fontSize = 16.sp, lineHeight = 16.sp),
+            color = colors.brandFixed,
+            modifier = Modifier
+                .width(20.dp)
+                .testTag(labelTag),
         )
         Box(
             contentAlignment = Alignment.CenterStart,
             modifier = Modifier
                 .weight(1f)
-                .padding(start = BittrTokens.Spacing.lg),
+                .padding(start = 15.dp),
         ) {
+            val wordStyle = MaterialTheme.typography.bodyLarge.copy(fontSize = 18.sp, lineHeight = 22.sp)
             if (value.isEmpty()) {
                 Text(
                     text = SignupStrings.ENTER_WORD,
-                    style = MaterialTheme.typography.bodyLarge,
-                    // A11Y-21: placeholders on a field fill use `onSurfaceVariant`,
-                    // never `outline`. The mock's #B7B7B7 is 2.3 : 1 on white.
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    style = wordStyle,
+                    color = colors.phrasePlaceholder,
+                    maxLines = 1,
                 )
             }
             BasicTextField(
                 value = value,
                 onValueChange = onValueChange,
                 singleLine = true,
-                textStyle = LocalTextStyle.current.merge(
-                    MaterialTheme.typography.labelLarge.copy(
-                        color = MaterialTheme.colorScheme.onSurface,
-                    ),
-                ),
-                cursorBrush = SolidColor(MaterialTheme.colorScheme.onSurface),
+                textStyle = wordStyle.copy(color = colors.onPhraseCard),
+                cursorBrush = SolidColor(colors.onPhraseCard),
                 // No autocorrect and no capitalisation: the keyboard "helpfully"
                 // turning `abandon` into `Abandon` or into a different word is the
                 // single most common way this screen fails for a user who did write
@@ -268,6 +293,8 @@ private fun WordField(
         }
     }
 }
+
+private val WordFieldShape = RoundedCornerShape(8.dp)
 
 @Preview(showBackground = true, widthDp = 412, heightDp = 892)
 @Composable
