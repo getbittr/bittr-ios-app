@@ -25,6 +25,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.lerp
+import com.bittr.android.core.designsystem.BittrAppBarLogoHeight
 import com.bittr.android.core.designsystem.BittrCoin
 import com.bittr.android.core.designsystem.BittrMark
 import com.bittr.android.core.designsystem.BittrTheme
@@ -157,10 +158,12 @@ private val LOGO_HEIGHT = 29.6.dp
 
 /**
  * `BittrAppBar`'s logo, and how far below the status bar it sits — where stage 3 lands. The bar
- * is 56 dp with the logo centred in it, so the logo's top is (56 − 19) / 2 below the status bar.
+ * is 50 dp with the logo centred in it, so the logo's top is (50 − 29.6) / 2 below the status
+ * bar: iOS's `logoTopInset`, the safe area plus 10. The height is [LOGO_HEIGHT] again, so the
+ * logo rises without shrinking, as on iOS.
  */
-private val APP_BAR_LOGO_HEIGHT = 19.dp
-private val APP_BAR_LOGO_TOP = 18.5.dp
+private val APP_BAR_LOGO_HEIGHT = BittrAppBarLogoHeight
+private val APP_BAR_LOGO_TOP = 10.2.dp
 
 private const val COIN_DELAY_MS = 300L
 private const val COIN_MS = 600

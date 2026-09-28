@@ -6,6 +6,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -14,11 +15,13 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -29,18 +32,25 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.dropShadow
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ColorFilter
+import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.StrokeJoin
+import androidx.compose.ui.graphics.compositeOver
+import androidx.compose.ui.graphics.shadow.Shadow
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.graphics.vector.PathParser
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
@@ -69,7 +79,11 @@ private val CardPaddingVertical = 28.dp
 private val ButtonHeight = 56.dp
 private val ButtonHeightCompact = 48.dp
 
-private val AppBarHeight = 56.dp
+/**
+ * iOS's top bar: `topBarHeight` is the safe area plus 50, with the 30 pt lockup 10 below the
+ * safe area — so centred in 50. It was the mock's 56 dp with a 19 dp logo.
+ */
+private val AppBarHeight = 50.dp
 private val AppBarIconBox = 48.dp
 
 /**
@@ -128,7 +142,7 @@ fun BittrAppBar(onBack: (() -> Unit)? = null, modifier: Modifier = Modifier) {
             }
         }
         Box(Modifier.weight(1f), contentAlignment = Alignment.Center) {
-            BittrLogo(height = 19.dp)
+            BittrLogo(height = BittrAppBarLogoHeight)
         }
         // Balances the back arrow so the logo stays centred. The mock drew an overflow
         // `⋮` here; it opened nothing, and the design review asked for it to go from every
@@ -138,26 +152,106 @@ fun BittrAppBar(onBack: (() -> Unit)? = null, modifier: Modifier = Modifier) {
 }
 
 /**
- * The card a step's content sits in — white at 9 % over the canvas, 28 dp radius.
+ * The card a step's content sits in — white at 9 % over the canvas, 28 dp radius by default.
  *
  * Translucent rather than opaque, which is why it is a [Box] with a background and not
  * a `Surface`: `Surface` with a translucent colour still applies tonal elevation
  * underneath and the result is a muddier yellow than the mock's.
+ *
+ * @param shadow iOS's `setShadow()` under the card — see [iosShadow]. The wash is then
+ *   filled pre-composited over the canvas, the same pixels made opaque, because a shadow
+ *   drawn behind a translucent card would show through it.
+ * @param shape the card's corners; a screen matching an iOS card passes that card's radius.
+ * @param contentPadding the gutter inside the card; the mock's 22/28 dp by default.
+ * @param fill the card's colour; the wash by default. iOS's cards are `yelloworblue1`, which is
+ *   [BittrColors.canvas] exactly, so a screen matching iOS passes that.
  */
 @Composable
 fun BittrCard(
     modifier: Modifier = Modifier,
     horizontalAlignment: Alignment.Horizontal = Alignment.CenterHorizontally,
+    shadow: Boolean = false,
+    shape: Shape = BittrCanvasShapes.card,
+    contentPadding: PaddingValues = PaddingValues(horizontal = CardPaddingHorizontal, vertical = CardPaddingVertical),
+    fill: Color = BittrTheme.colors.cardWash,
     content: @Composable ColumnScope.() -> Unit,
 ) {
+    val colors = BittrTheme.colors
     Column(
         horizontalAlignment = horizontalAlignment,
         modifier = modifier
             .fillMaxWidth()
-            .background(BittrTheme.colors.cardWash, BittrCanvasShapes.card)
-            .padding(horizontal = CardPaddingHorizontal, vertical = CardPaddingVertical),
+            .then(
+                if (shadow) {
+                    Modifier
+                        .iosShadow(shape)
+                        .background(fill.compositeOver(colors.canvas), shape)
+                } else {
+                    Modifier.background(fill, shape)
+                },
+            )
+            .padding(contentPadding),
         content = content,
     )
+}
+
+/**
+ * iOS's `UIView.setShadow()` (`Extensions/UIView.swift`): black at 10 %, offset 7 pt down,
+ * `shadowRadius` 10 — the shadow under most of the app's cards.
+ *
+ * **The radius is not 10 dp.** Core Animation's `shadowRadius` is the Gaussian's sigma;
+ * fitting the edge of Signup1's card shadow in an iOS screenshot gives sigma = 10 pt
+ * (rms 0.45 against 2.03 for sigma = 5). Compose hands its radius to `BlurMaskFilter`,
+ * where Skia turns a radius r into sigma = 0.57735 r + 0.5 px, so sigma 10 is r ≈ 17.3.
+ */
+fun Modifier.iosShadow(shape: Shape): Modifier = dropShadow(
+    shape,
+    Shadow(
+        radius = 17.3.dp,
+        color = Color.Black,
+        offset = DpOffset(0.dp, 7.dp),
+        alpha = 0.10f,
+    ),
+)
+
+/**
+ * iOS's primary action as the signup screens draw it (`createWalletView` on Signup1): an ink
+ * plate 40 pt high with 8 pt corners, sized to its content — 17 pt, the label in Gilroy Bold
+ * 14, 10 pt, the 11 pt `arrowrightwhite`, 17 pt — and centred by its parent, where
+ * [BittrPrimaryButton] is a full-width pill.
+ */
+@Composable
+fun BittrCompactButton(
+    text: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val colors = BittrTheme.colors
+    val shape = RoundedCornerShape(8.dp)
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
+        modifier = modifier
+            .height(40.dp)
+            .clip(shape)
+            .background(colors.actionFill, shape)
+            .clickable(role = Role.Button, onClick = onClick)
+            .padding(horizontal = 17.dp),
+    ) {
+        Text(
+            text = text,
+            style = MaterialTheme.typography.labelLarge.copy(fontSize = 14.sp, lineHeight = 14.sp),
+            color = colors.onActionFill,
+            // iOS centres the label 1 pt below the plate's centre (`centerY` constant 1).
+            modifier = Modifier.offset(y = 1.dp),
+        )
+        Image(
+            painter = painterResource(R.drawable.bittr_arrow_right),
+            contentDescription = null,
+            colorFilter = ColorFilter.tint(colors.onActionFill),
+            modifier = Modifier.size(11.dp),
+        )
+    }
 }
 
 /**
@@ -691,12 +785,21 @@ object BittrIconPaths {
             "-1.8-1.1zM9 10.6a1 1 0 110-2 1 1 0 010 2z"
 }
 
-/** The piggy bank, in the current content colour. */
+/**
+ * The piggy bank: iOS's own `iconpiggywhite` asset (`res/drawable-*dpi/bittr_piggy_icon.png`,
+ * its 1x/2x/3x at mdpi/xhdpi/xxhdpi), tinted with [tint]. iOS ships the same shape a second
+ * time as `iconpiggyyellow` for dark mode; a tint covers both.
+ */
 @Composable
-fun BittrPiggy(modifier: Modifier = Modifier, size: Dp = 30.dp) {
+fun BittrPiggy(
+    modifier: Modifier = Modifier,
+    size: Dp = 30.dp,
+    tint: Color = LocalContentColor.current,
+) {
     Image(
-        imageVector = rememberFillIcon(BittrIconPaths.PIGGY, LocalContentColor.current),
+        painter = painterResource(R.drawable.bittr_piggy_icon),
         contentDescription = null,
+        colorFilter = ColorFilter.tint(tint),
         modifier = modifier.size(size),
     )
 }

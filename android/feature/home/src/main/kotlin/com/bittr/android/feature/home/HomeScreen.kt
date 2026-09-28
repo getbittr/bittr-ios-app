@@ -47,6 +47,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.bittr.android.core.common.TestID
+import com.bittr.android.core.designsystem.BittrAppBarLogoHeight
 import com.bittr.android.core.designsystem.BittrAlertDialog
 import com.bittr.android.core.designsystem.BittrSpinner
 import com.bittr.android.core.designsystem.BittrBottomNavBar
@@ -323,7 +324,7 @@ private fun HomeHeader(
                 horizontalArrangement = Arrangement.Center,
                 modifier = Modifier.fillMaxWidth(),
             ) {
-                BittrLogo(height = 19.dp)
+                BittrLogo(height = BittrAppBarLogoHeight)
             }
             CanvasSpacer(BittrTokens.Spacing.md)
 

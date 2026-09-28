@@ -653,7 +653,8 @@ class TokenContrastTest {
             contrast(Color.Black.copy(alpha = 0.42f), mockCard) < aa,
         )
         // "welcome" and "your wallet", drawn white in the mock. This is DEV-47's
-        // `whiteoryellow` under another name — 16 call sites, founder sign-off, gone.
+        // `whiteoryellow` under another name — 16 call sites, founder sign-off, gone,
+        // except on Signup1, where decision 47 puts it back knowingly as `welcomeHeader`.
         assertTrue(
             "white on the brand card is still below the large-text floor",
             contrast(Color.White, mockCard) < aaLarge,

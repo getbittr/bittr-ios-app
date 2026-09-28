@@ -111,6 +111,13 @@ private fun logoVector(ink: Color, arc: Color, wordmark: Boolean): ImageVector {
 }
 
 /**
+ * The lockup's height in the app bar, and on Home. iOS's `logoView` is 30 pt tall and widens to
+ * 106 pt; at the artwork's 3.58 : 1 that is 106 / 3.58 = 29.6. It was 19 dp, so the launch
+ * animation, which starts at iOS's size, shrank the logo as it rose; iOS only moves it.
+ */
+val BittrAppBarLogoHeight = 29.6.dp
+
+/**
  * The full lockup — mark plus wordmark — as it sits in the app bar.
  *
  * @param height the wordmark's cap height. The width follows the artwork's 3.58 : 1.

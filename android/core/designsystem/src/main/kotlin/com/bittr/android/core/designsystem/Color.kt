@@ -401,6 +401,17 @@ data class BittrColors(
      */
     val canvasArc: Color,
     /**
+     * iOS's `whiteoryellow`, back on exactly one call site: Signup1's piggy and "welcome"
+     * (`SignupStartScreen`). Light is white, as iOS draws it — **1.43 : 1 on the card**, under
+     * the large-text floor, which is the pairing DEV-47 took off every other title and still
+     * keeps off them. Restored on this screen at Tom's request (2026-09-28) so the first screen
+     * of the app matches iOS; decision 47 in `shared/docs/android-port-decisions.md`. Dark is
+     * the brand yellow, as on iOS and as [emphasis] already is.
+     *
+     * Do not reach for this on another screen without the same explicit call.
+     */
+    val welcomeHeader: Color,
+    /**
      * Every alert's container — [BittrAlert], [BittrInlineAlert], [BittrAlertDialog],
      * [BittrTextFieldAlert] and [BittrChoiceDialog] share it. Light is the proposal's
      * `#FFFBEF`; before the design review (2026-09-18, S1/S2) half of them sat on the
@@ -570,6 +581,7 @@ val BittrLightColorsExtended = BittrColors(
     switchOn = SwitchAccent,
     onSwitchOn = Color.White,
     canvasArc = Color.White,
+    welcomeHeader = Color.White,
     dialogContainer = Color(0xFFFFFBEF),
     barTrackWarm = Color(0xFFF1E6C2),
     toggleSelected = Cream,
@@ -644,6 +656,7 @@ val BittrDarkColorsExtended = BittrColors(
     // yellow is the one colour that reads on both, and dark mode keeps exactly seven
     // brand-yellow sites already (see `brandFixed`). This is the eighth.
     canvasArc = Yellow,
+    welcomeHeader = Yellow,
     dialogContainer = Blue2,
     barTrackWarm = Blue3,
     toggleSelected = Yellow.copy(alpha = 0.20f),

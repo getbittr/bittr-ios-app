@@ -21,8 +21,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.draw.shadow
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.width
@@ -44,6 +42,7 @@ import androidx.compose.ui.unit.sp
 import com.bittr.android.core.common.TestID
 import com.bittr.android.core.designsystem.BittrCanvas
 import com.bittr.android.core.designsystem.dismissOnPullDown
+import com.bittr.android.core.designsystem.iosShadow
 import com.bittr.android.core.designsystem.BittrCanvasShapes
 import com.bittr.android.core.designsystem.BittrModalHeader
 import com.bittr.android.core.designsystem.BittrTheme
@@ -106,55 +105,46 @@ fun ArticleCard(slug: String, onOpen: (String) -> Unit, modifier: Modifier = Mod
     val context = LocalContext.current
     val article = remember(slug) { BittrArticles.article(context, slug) } ?: return
     val colors = BittrTheme.colors
-    // The proposal's article chip (review S6): a cream 54 dp plate with the artwork as a
-    // flush 84 dp strip on its left, clipped by the plate, and the title beside it. It was a
-    // bare rounded thumbnail with the title floating on the canvas beside it. The title is
-    // start-aligned 16 dp after the strip (review pass 2); centred, a short title floated
-    // mid-plate, detached from its artwork.
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        modifier = modifier
-            .fillMaxWidth()
-            .height(54.dp)
-            .shadow(
-                elevation = 4.dp,
-                shape = ArticleChipShape,
-                ambientColor = ArticleChipShadow,
-                spotColor = ArticleChipShadow,
-            )
-            .clip(ArticleChipShape)
-            .background(colors.tonalFill)
-            .clickable { onOpen(slug) }
-            .then(if (testTag != null) Modifier.testTag(testTag) else Modifier),
-    ) {
-        BittrArticles.imageRes(slug)?.let { image ->
-            Image(
-                painter = painterResource(image),
-                contentDescription = null,
-                contentScale = ContentScale.Crop,
-                modifier = Modifier
-                    .width(84.dp)
-                    .fillMaxHeight(),
+    // iOS's article card (`cardView` on Signup1, and the same on every signup screen that shows
+    // one): a cream plate 45 pt high with 8 pt corners and `setShadow()`, the artwork 45 pt wide
+    // flush on its left, the title in Gilroy Bold 15 60 pt from the plate's edge and 20 pt from
+    // its right, 7 above and 3 below. The plate is as wide as that content, capped by the slot
+    // it is given, and centred in it.
+    Box(contentAlignment = Alignment.Center, modifier = modifier.fillMaxWidth()) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier
+                .height(45.dp)
+                .iosShadow(ArticleChipShape)
+                .clip(ArticleChipShape)
+                .background(colors.tonalFill)
+                .clickable { onOpen(slug) }
+                .then(if (testTag != null) Modifier.testTag(testTag) else Modifier),
+        ) {
+            BittrArticles.imageRes(slug)?.let { image ->
+                Image(
+                    painter = painterResource(image),
+                    contentDescription = null,
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier
+                        .width(45.dp)
+                        .fillMaxHeight(),
+                )
+            }
+            Text(
+                text = article.title,
+                style = MaterialTheme.typography.titleMedium.copy(fontSize = 15.sp, lineHeight = 17.sp),
+                color = colors.onTonalFill,
+                textAlign = TextAlign.Start,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.padding(start = 15.dp, end = 20.dp, top = 7.dp, bottom = 3.dp),
             )
         }
-        Text(
-            text = article.title,
-            style = MaterialTheme.typography.titleMedium.copy(fontSize = 15.5.sp, lineHeight = 20.sp),
-            color = colors.onTonalFill,
-            textAlign = TextAlign.Start,
-            maxLines = 2,
-            overflow = TextOverflow.Ellipsis,
-            modifier = Modifier
-                .weight(1f)
-                .padding(start = 16.dp, end = BittrTokens.Spacing.sm),
-        )
     }
 }
 
-private val ArticleChipShape = RoundedCornerShape(14.dp)
-
-/** The proposal's `rgba(120, 80, 0, 0.12)` — a warm shadow, not Material's grey one. */
-private val ArticleChipShadow = Color(red = 120, green = 80, blue = 0, alpha = 31)
+private val ArticleChipShape = RoundedCornerShape(8.dp)
 
 /** The `<title>` … `<normal>` spans of `OneArticleTableViewCell.setText`, at iOS's sizes, in the body face. */
 private fun styled(runs: List<ArticleRun>): AnnotatedString = buildAnnotatedString {

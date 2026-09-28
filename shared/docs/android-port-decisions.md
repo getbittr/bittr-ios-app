@@ -545,3 +545,63 @@ position under any launcher mask. The monochrome layer is the same coverage as o
 The drawable foreground and monochrome vectors are gone; `ic_splash_mark` is unaffected.
 
 When the iOS icon changes, rerun the script from the repo root and update `source` if the file name moved.
+
+## 47. Signup1's piggy and "welcome" are white again, and the piggy is iOS's asset
+
+**2026-09-28.** Tom asked for Signup1 to match iOS: the piggy and "welcome" white in light mode and yellow in
+dark (`Signup1ViewController.changeColors`: `whiteoryellow`, `iconpiggywhite`/`iconpiggyyellow`), where the
+port drew both in ink. That ink was deliberate. White on the card is **1.43 : 1**, below the large-text
+floor, and DEV-47 (founder sign-off, BIT-15) took `whiteoryellow` off all 16 of its call sites for exactly
+that. This decision reverses it on **this screen only**, knowingly: the token is `welcomeHeader`, documented
+as having one call site, and `emphasis` — every other screen title and alert title — stays ink.
+`TokenContrastTest` still asserts that white on the card fails the floor.
+
+The piggy was a hand-drawn path of a different pig. `BittrPiggy` now draws iOS's `iconpiggywhite`
+(1x/2x/3x copied to mdpi/xhdpi/xxhdpi as `bittr_piggy_icon.png`) tinted with a colour it is given, so one
+asset covers iOS's white and yellow variants; the yellow is the brand yellow, 1/255 from iOS's `#FEC401`.
+On Signup1 it is 18 dp with a 10 dp gap to the word, as the storyboard has it. Home's "Your wallet" piggy
+gets the same shape and keeps its colour and 30 dp size; the `addHeader`-style screen headers in
+`Chrome.kt` still draw the old path.
+
+## 48. iOS's card shadow, and why its radius is 17.3 dp
+
+**2026-09-28.** Signup1's card now has the shadow iOS gives it (`centerCard.setShadow()`: black at 10 %,
+7 pt down, `shadowRadius` 10), via `BittrCard(shadow = true)` and `Modifier.iosShadow`.
+
+The radius is 17.3 dp, not 10. Core Animation's `shadowRadius` is the Gaussian's sigma: fitting the edge of
+this card's shadow in an iOS screenshot with the offset and opacity held at iOS's values gives rms 0.45 for
+sigma = 10 pt, against 0.74 for 12 and 2.03 for 5. Compose's `dropShadow` passes its radius to
+`BlurMaskFilter`, where Skia uses sigma = 0.57735 r + 0.5 px, so sigma 10 is r ≈ 17.3.
+
+A shadowed card is filled with the wash pre-composited over the canvas, so the same colour but opaque;
+behind the translucent wash the shadow would show through. Other cards are unchanged. iOS also still
+differs in the card itself: 13 pt corners on a fill equal to the page yellow, where Android's is 28 dp and
+the lighter wash.
+
+## 49. Signup1 laid out from the storyboard, and the logo at iOS's size
+
+**2026-09-28.** Tom compared Signup1 side by side with iOS and asked for iOS's layout. Values are from
+`Signup1ViewController`'s scene and `viewDidLoad`:
+
+- **Card:** 13 pt corners (was 28 dp), 15 pt from the screen edges (was 18), header 20 in from the top
+  and leading edge, body 25 from both sides, 35 / 30 between header, body and button. The bottom
+  padding is 25 less the part of Restore's 48 dp touch target that iOS's 25 pt row does not have, so the
+  label lands where iOS's does while the target stays 48 dp.
+- **"welcome":** Gilroy Bold 18, the piggy's own height (was 22).
+- **Create wallet:** `BittrCompactButton`, iOS's `createWalletView`: 40 pt high, 8 pt corners, sized to
+  17 + label (Gilroy Bold 14) + 10 + the 11 pt `arrowrightwhite` asset + 17, centred. `BittrPrimaryButton`
+  (full-width pill) is unchanged for the other screens. 40 dp is under Android's 48 dp touch-target
+  guideline; it is iOS's size, as asked.
+- **Article card:** `ArticleCard` is iOS's `cardView`, which all five iOS screens that show one lay out the
+  same way: 45 pt high, 8 pt corners, `setShadow()`, a 45 pt image, the title in Gilroy Bold 15 at 60 pt
+  from the edge and 20 from the right. It is as wide as its content, capped by its slot, and centres itself,
+  so every caller gets the change without a layout edit.
+- **Logo:** `BittrAppBarLogoHeight` = 29.6 dp (iOS's 106 pt lockup at the artwork's 3.58 : 1), in the
+  app bar and on Home; it was 19. The app bar is 50 dp, iOS's safe area + 50, so the logo is 10 below
+  the status bar as iOS's `logoTopInset` puts it. The launch animation no longer shrinks the logo as it
+  rises; iOS never did.
+
+Follow-up, same day: Signup1's card is filled with `canvas`, not the wash. iOS fills `centerCard` with
+`yelloworblue1` — yellow in light, `blue1` in dark — which is exactly `canvas` in both schemes, so on iOS
+the card is the page's own colour and only its shadow separates it. `BittrCard(fill = …)`; other cards keep
+the wash.
