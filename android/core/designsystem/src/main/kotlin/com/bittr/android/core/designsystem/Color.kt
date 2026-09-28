@@ -420,6 +420,12 @@ data class BittrColors(
     val onPhraseCard: Color,
     val phrasePlaceholder: Color,
     /**
+     * The article sheet (`ArticleViewController`): the storyboard's white in light mode and
+     * `grey3orblue1`'s blue1 in dark, with `blackorwhite` text on it. Decision 56.
+     */
+    val articleSurface: Color,
+    val onArticleSurface: Color,
+    /**
      * Every alert's container — [BittrAlert], [BittrInlineAlert], [BittrAlertDialog],
      * [BittrTextFieldAlert] and [BittrChoiceDialog] share it. Light is the proposal's
      * `#FFFBEF`; before the design review (2026-09-18, S1/S2) half of them sat on the
@@ -593,6 +599,8 @@ val BittrLightColorsExtended = BittrColors(
     phraseCard = Color.White,
     onPhraseCard = Color.Black,
     phrasePlaceholder = Color(0xFF808080),
+    articleSurface = Color.White,
+    onArticleSurface = Color.Black,
     dialogContainer = Color(0xFFFFFBEF),
     barTrackWarm = Color(0xFFF1E6C2),
     toggleSelected = Cream,
@@ -671,6 +679,8 @@ val BittrDarkColorsExtended = BittrColors(
     phraseCard = Color.White,
     onPhraseCard = Color.Black,
     phrasePlaceholder = Color(0xFF808080),
+    articleSurface = Blue1,
+    onArticleSurface = Color.White,
     dialogContainer = Blue2,
     barTrackWarm = Blue3,
     toggleSelected = Yellow.copy(alpha = 0.20f),

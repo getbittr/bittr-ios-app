@@ -42,6 +42,8 @@ dependencies {
     implementation(project(":core:common"))
 
     implementation(platform(libs.androidx.compose.bom))
+    // BittrSheet animates its own dismissal on Back.
+    implementation(libs.androidx.activity.compose)
     api(libs.androidx.compose.ui)
     api(libs.androidx.compose.ui.graphics)
     api(libs.androidx.compose.material3)

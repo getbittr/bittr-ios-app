@@ -719,3 +719,24 @@ darkened for the `DetailRow` labels. Matched to iOS here at Tom's request, on th
 The heading now scrolls with the card, as on iOS, so the keyboard parking changed with it: a focused field
 puts the heading at the top of the visible area rather than the field one row from it. The compact card fits
 heading and all twelve fields above the keyboard, and `forgot_pin.yaml` still finds the heading to tap.
+
+## 56. The article is iOS's page sheet
+
+**2026-09-28.** The article faded in over a yellow page under the modal header's piggy and down arrow (Tom).
+On iOS, `CoreToArticle` is a plain show segue from a view controller outside any navigation stack, so UIKit
+presents it as a page sheet: a card rising from the bottom over the dimmed screen it came from.
+
+- **Presentation.** `Routes.ARTICLE` is a navigation `dialog` destination, full-screen and edge to edge, so
+  the screen underneath stays drawn; `BittrSheet` turns off the window's dim and animation and does its own —
+  the sheet slides up, critically damped (~0.4 s), over a 20 % black scrim, top at the bottom of the status bar,
+  10 dp corners — and slides back down before popping, on the chevron, on Back and on the existing pull-down.
+  The dim and corner radius are estimates off a screenshot; iOS also scales the screen behind, which is not
+  reproduced.
+- **Page.** No app bar, no piggy (that was `BittrModalHeader`, which iOS's `addHeader` screens have and the
+  article does not). One list, as iOS's table: the image full width and 280 tall with iOS's white
+  `downarrow32` 20 in and 15 down in a 40 pt button, then the blocks. White in light mode, blue1 in dark
+  (`articleSurface`), `blackorwhite` text (`onArticleSurface`).
+- **Text.** `OneArticleTableViewCell` renders each block's HTML with `line-height: 1.2`; measured, that is lines
+  at 1.2 × their size, 12 between paragraphs, an empty `<p>&nbsp;</p>` as a ~13.8 line (UIKit's default 12 pt
+  HTML font) — the gap under the byline, which `ArticleMarkup` used to drop — and 12 plus a trailing empty line
+  after each block, whose text sits 20 in from the sides and 20 below the one above.

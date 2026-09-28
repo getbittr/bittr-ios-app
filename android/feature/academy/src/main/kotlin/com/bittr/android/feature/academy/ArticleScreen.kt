@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -31,6 +32,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
@@ -40,60 +42,91 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.em
 import androidx.compose.ui.unit.sp
 import com.bittr.android.core.common.TestID
-import com.bittr.android.core.designsystem.BittrCanvas
 import com.bittr.android.core.designsystem.dismissOnPullDown
 import com.bittr.android.core.designsystem.iosShadow
 import com.bittr.android.core.designsystem.BittrCanvasShapes
-import com.bittr.android.core.designsystem.BittrModalHeader
 import com.bittr.android.core.designsystem.BittrTheme
+import com.bittr.android.core.designsystem.R as DesignR
 import com.bittr.android.core.designsystem.BittrTokens
 
 /**
- * `ArticleViewController`: the article's image, then its text blocks, with `article.downButton` and
- * `article.tableView`.
+ * `ArticleViewController`, which iOS presents as a page sheet — see `BittrSheet`, which the nav host
+ * wraps this in. One scrolling list, as iOS's table is: the article's image full width and 280 pt
+ * tall, with `downarrow32` over its top left (`article.downButton`), then the text blocks. No app
+ * bar and no piggy; white in light mode, blue1 in dark. Decision 56.
+ *
+ * The spacing is iOS's HTML rendering of the blocks, measured on a screenshot: each block is a cell
+ * with its text 20 in from the sides and 20 below the cell above; lines are 1.2 × their size;
+ * paragraphs are 12 apart; an empty `<p>&nbsp;</p>` is a line about 13.8 tall (UIKit's default
+ * 12 pt HTML font); and each block ends with another 12 and a trailing empty line.
  */
 @Composable
 fun ArticleScreen(slug: String, onDown: () -> Unit, modifier: Modifier = Modifier) {
     val context = LocalContext.current
     val article = remember(slug) { BittrArticles.article(context, slug) }
-    BittrCanvas(modifier = modifier.dismissOnPullDown(onDown), appBar = false) {
-        BittrModalHeader(
-            title = "",
-            onDown = onDown,
-            downTestTag = TestID.Article.downButton,
-        )
-        LazyColumn(
-            verticalArrangement = Arrangement.spacedBy(BittrTokens.Spacing.md),
-            modifier = Modifier
-                .weight(1f)
-                .fillMaxWidth()
-                .testTag(TestID.Article.tableView),
-        ) {
-            BittrArticles.imageRes(slug)?.let { image ->
-                item {
+    val colors = BittrTheme.colors
+    LazyColumn(
+        modifier = modifier
+            .fillMaxSize()
+            .background(colors.articleSurface)
+            .dismissOnPullDown(onDown)
+            .testTag(TestID.Article.tableView),
+    ) {
+        item {
+            Box(Modifier.fillMaxWidth().height(280.dp)) {
+                BittrArticles.imageRes(slug)?.let { image ->
                     Image(
                         painter = painterResource(image),
                         contentDescription = null,
                         contentScale = ContentScale.Crop,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .aspectRatio(16f / 9f),
+                        modifier = Modifier.fillMaxSize(),
+                    )
+                }
+                // The 20 pt chevron 20 in and 15 down, inside a 40 pt button around it.
+                Box(
+                    contentAlignment = Alignment.Center,
+                    modifier = Modifier
+                        .padding(start = 10.dp, top = 5.dp)
+                        .size(40.dp)
+                        .clickable(role = Role.Button, onClick = onDown)
+                        .testTag(TestID.Article.downButton),
+                ) {
+                    Image(
+                        painter = painterResource(DesignR.drawable.bittr_down_chevron),
+                        contentDescription = "Close",
+                        contentScale = ContentScale.Fit,
+                        modifier = Modifier.size(20.dp),
                     )
                 }
             }
-            items(article?.displayBlocks.orEmpty()) { block ->
-                Column(
-                    verticalArrangement = Arrangement.spacedBy(BittrTokens.Spacing.sm),
-                    modifier = Modifier.padding(horizontal = 20.dp),
-                ) {
-                    ArticleMarkup.paragraphs(block.html).forEach { runs ->
-                        Text(text = styled(runs), style = MaterialTheme.typography.bodyLarge, modifier = Modifier.fillMaxWidth())
+        }
+        items(article?.displayBlocks.orEmpty()) { block ->
+            Column(modifier = Modifier.padding(start = 20.dp, end = 20.dp, top = 20.dp)) {
+                ArticleMarkup.paragraphs(block.html, keepBlank = true).forEachIndexed { index, runs ->
+                    if (index > 0) Spacer(Modifier.height(ParagraphGap))
+                    if (runs.isEmpty()) {
+                        Spacer(Modifier.height(EmptyLine))
+                    } else {
+                        val size = runs.maxOf { it.style.fontSize.value }
+                        Text(
+                            text = styled(runs),
+                            style = MaterialTheme.typography.bodyLarge.copy(lineHeight = (size * 1.2f).sp),
+                            color = colors.onArticleSurface,
+                            modifier = Modifier.fillMaxWidth(),
+                        )
                     }
                 }
+                Spacer(Modifier.height(ParagraphGap + EmptyLine))
             }
         }
     }
 }
+
+/** iOS's gap between two `<p>`s in one block. */
+private val ParagraphGap = 12.dp
+
+/** An empty `<p>` on iOS: one line of UIKit's default 12 pt HTML font. */
+private val EmptyLine = 13.8.dp
 
 /**
  * A signup page's article card — the image and title iOS's `setSignupArticle` fills in, tapping
@@ -149,13 +182,17 @@ private val ArticleChipShape = RoundedCornerShape(8.dp)
 /** The `<title>` … `<normal>` spans of `OneArticleTableViewCell.setText`, at iOS's sizes, in the body face. */
 private fun styled(runs: List<ArticleRun>): AnnotatedString = buildAnnotatedString {
     runs.forEach { run ->
-        val span = when (run.style) {
-            ArticleStyle.Title -> SpanStyle(fontSize = 26.sp, fontWeight = FontWeight.Bold)
-            ArticleStyle.Subtitle -> SpanStyle(fontSize = 12.sp, fontWeight = FontWeight.Bold)
-            ArticleStyle.Intro -> SpanStyle(fontSize = 18.sp, fontWeight = FontWeight.Bold)
-            ArticleStyle.Header -> SpanStyle(fontSize = 20.sp, fontWeight = FontWeight.Bold)
-            ArticleStyle.Normal -> SpanStyle(fontSize = 18.sp, fontWeight = FontWeight.Normal)
-        }
-        withStyle(span.copy(letterSpacing = 0.em)) { append(run.text) }
+        val weight = if (run.style == ArticleStyle.Normal) FontWeight.Normal else FontWeight.Bold
+        withStyle(SpanStyle(fontSize = run.style.fontSize, fontWeight = weight, letterSpacing = 0.em)) { append(run.text) }
     }
 }
+
+/** `OneArticleTableViewCell.setText`'s sizes. */
+private val ArticleStyle.fontSize
+    get() = when (this) {
+        ArticleStyle.Title -> 26.sp
+        ArticleStyle.Subtitle -> 12.sp
+        ArticleStyle.Intro -> 18.sp
+        ArticleStyle.Header -> 20.sp
+        ArticleStyle.Normal -> 18.sp
+    }

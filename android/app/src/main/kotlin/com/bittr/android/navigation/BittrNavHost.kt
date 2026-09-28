@@ -1,5 +1,8 @@
 package com.bittr.android.navigation
 
+import com.bittr.android.core.designsystem.BittrSheet
+import androidx.compose.ui.window.DialogProperties
+import androidx.navigation.compose.dialog
 import androidx.compose.animation.AnimatedContentTransitionScope
 import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.ExitTransition
@@ -465,14 +468,24 @@ fun BittrNavHost(
                     AcademyScreen(onBack = { navController.popBackStack() })
                 }
 
-                composable(
+                // iOS presents the article as a page sheet (`CoreToArticle`): a dialog destination,
+                // so the screen it came from stays underneath, dimmed. BittrSheet does the rest.
+                dialog(
                     route = Routes.ARTICLE,
                     arguments = listOf(navArgument(Routes.ARTICLE_ARG) { type = NavType.StringType }),
+                    dialogProperties = DialogProperties(
+                        usePlatformDefaultWidth = false,
+                        decorFitsSystemWindows = false,
+                        dismissOnBackPress = false,
+                        dismissOnClickOutside = false,
+                    ),
                 ) { entry ->
-                    ArticleScreen(
-                        slug = entry.arguments?.getString(Routes.ARTICLE_ARG).orEmpty(),
-                        onDown = { navController.popBackStack() },
-                    )
+                    BittrSheet(onDismissed = { navController.popBackStack() }) { dismiss ->
+                        ArticleScreen(
+                            slug = entry.arguments?.getString(Routes.ARTICLE_ARG).orEmpty(),
+                            onDown = dismiss,
+                        )
+                    }
                 }
 
                 composable(Routes.RECEIVE) {
