@@ -1,5 +1,6 @@
 package com.bittr.android.feature.signup
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -94,7 +95,10 @@ fun PinScreen(
 ) {
     var pin by remember { mutableStateOf("") }
 
-    BittrCanvas(modifier = modifier, onBack = onBack) {
+    BackHandler(enabled = onBack != null) { onBack?.invoke() }
+    // No arrow in the app bar: Back under the pad goes back, as on iOS, and the system back
+    // gesture does what that button does.
+    BittrCanvas(modifier = modifier) {
         Column(
             modifier = Modifier
                 .weight(1f)

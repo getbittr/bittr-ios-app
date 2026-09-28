@@ -688,3 +688,14 @@ so one logo stays still while the pages move under it. The overlay follows the l
 `LocalAppBarLogoVisible` like the rest.
 
 Not yet: Signup7 → the bittr signup (Transfer1, page 10) and the Transfer pages among themselves.
+
+## 54. No back arrow in the signup pages' app bar
+
+**2026-09-28.** Signup2, Signup4, Signup6/Restore3 and Restore drew a back arrow top left as well as their own
+Cancel or Back under the main button; Tom found the arrow redundant, and iOS has none. `ConfirmScreen`,
+`VerifyScreen`, `PinScreen`, `RestoreScreen` and `MnemonicScreen` no longer pass `onBack` to `BittrCanvas`.
+
+The arrow was the only back these pages had: nothing handled the system back gesture, so on Signup2 it
+popped the whole signup destination and left the app. Each of them now has a `BackHandler` bound to its own
+Cancel or Back, so the gesture does what the card's button does. Value, Map, Academy and a lesson still draw
+the arrow; they are outside the signup flow and have not been compared with iOS yet.

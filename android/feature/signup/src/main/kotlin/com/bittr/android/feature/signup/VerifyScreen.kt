@@ -1,5 +1,6 @@
 package com.bittr.android.feature.signup
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
@@ -121,7 +122,10 @@ fun VerifyScreen(
         onSubmit(answers.toList())
     }
 
-    BittrCanvas(modifier = modifier, onBack = onBack) {
+    BackHandler(onBack = onBack)
+    // No arrow in the app bar: the card's own button goes back, as on iOS, and the system back
+    // gesture does what that button does.
+    BittrCanvas(modifier = modifier) {
         Column(
             verticalArrangement = Arrangement.Center,
             modifier = Modifier

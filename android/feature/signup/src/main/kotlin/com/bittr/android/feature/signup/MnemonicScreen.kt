@@ -1,5 +1,6 @@
 package com.bittr.android.feature.signup
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -60,7 +61,9 @@ fun MnemonicScreen(
     modifier: Modifier = Modifier,
     onOpenArticle: ((String) -> Unit)? = null,
 ) {
-    BittrCanvas(modifier = modifier, onBack = onBack) {
+    BackHandler(enabled = onBack != null) { onBack?.invoke() }
+    // No arrow in the app bar, as on iOS; the system back gesture goes back when there is a back.
+    BittrCanvas(modifier = modifier) {
         Column(
             modifier = Modifier
                 .weight(1f)
