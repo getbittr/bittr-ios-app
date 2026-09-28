@@ -1,5 +1,6 @@
 package com.bittr.android.feature.signup
 
+import androidx.compose.animation.AnimatedContent
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -8,6 +9,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.bittr.android.core.common.TestID
 import com.bittr.android.core.designsystem.BittrAlertDialog
+import com.bittr.android.core.designsystem.pageSlide
 
 /**
  * The whole restore arc, as one destination — the twin of [CreateWalletScreen].
@@ -48,32 +50,40 @@ fun RestoreWalletScreen(
         )
     }
 
-    when (state.step) {
-        RestoreWalletStep.Phrase -> RestoreScreen(
-            onSubmit = viewModel::submitPhrase,
-            onCancel = {
-                viewModel.finish()
-                onCancelled()
-            },
-            busy = state.busy,
-            modifier = modifier,
-            onOpenArticle = onOpenArticle,
-        )
+    // iOS slides between these pages (`moveToPage`), leftwards: Restore, Restore2, Restore3 are
+    // pages 2, 1, 0. See pageSlide.
+    AnimatedContent(
+        targetState = state.step,
+        transitionSpec = { pageSlide(initialState.page, targetState.page) },
+        label = "restoreWalletPages",
+    ) { step ->
+        when (step) {
+            RestoreWalletStep.Phrase -> RestoreScreen(
+                onSubmit = viewModel::submitPhrase,
+                onCancel = {
+                    viewModel.finish()
+                    onCancelled()
+                },
+                busy = state.busy,
+                modifier = modifier,
+                onOpenArticle = onOpenArticle,
+            )
 
-        RestoreWalletStep.PinSet -> PinScreen(
-            title = SignupStrings.SET_A_PIN,
-            confirmLabel = SignupStrings.NEXT,
-            titleTestTag = TestID.Signup.Restore.PinSet.topLabel,
-            onSubmit = viewModel::submitFirstPin,
-            modifier = modifier,
-        )
+            RestoreWalletStep.PinSet -> PinScreen(
+                title = SignupStrings.SET_A_PIN,
+                confirmLabel = SignupStrings.NEXT,
+                titleTestTag = TestID.Signup.Restore.PinSet.topLabel,
+                onSubmit = viewModel::submitFirstPin,
+                modifier = modifier,
+            )
 
-        RestoreWalletStep.PinConfirm -> PinScreen(
-            title = SignupStrings.CONFIRM_YOUR_PIN,
-            titleTestTag = TestID.Signup.Restore.PinConfirm.topLabel,
-            onSubmit = { pin -> viewModel.submitConfirmationPin(pin, onFinished) },
-            onBack = viewModel::backToPinSet,
-            modifier = modifier,
-        )
+            RestoreWalletStep.PinConfirm -> PinScreen(
+                title = SignupStrings.CONFIRM_YOUR_PIN,
+                titleTestTag = TestID.Signup.Restore.PinConfirm.topLabel,
+                onSubmit = { pin -> viewModel.submitConfirmationPin(pin, onFinished) },
+                onBack = viewModel::backToPinSet,
+                modifier = modifier,
+            )
+        }
     }
 }

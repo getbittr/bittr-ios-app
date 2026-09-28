@@ -122,7 +122,30 @@ fun BittrCanvas(
     }
 }
 
-/** Back arrow and logo — the mock's 56 dp bar. */
+/**
+ * The app bar's logo on its own, where [BittrAppBar] draws it, for screens whose pages slide under
+ * a logo that stays put. On iOS the logo belongs to the top bar above the signup page strip, so
+ * it never moves while the pages do; here each page has its own app bar, so the pages hide theirs
+ * (`LocalAppBarLogoVisible`) and this one is laid over them. It follows `LocalAppBarLogoVisible`
+ * as it is where it is composed, so it stays hidden under the launch animation's cover too.
+ */
+@Composable
+fun BittrAppBarLogoOverlay(modifier: Modifier = Modifier) {
+    Box(
+        contentAlignment = Alignment.Center,
+        modifier = modifier
+            .fillMaxWidth()
+            .statusBarsPadding()
+            .height(AppBarHeight),
+    ) {
+        BittrLogo(
+            height = BittrAppBarLogoHeight,
+            modifier = Modifier.alpha(if (LocalAppBarLogoVisible.current) 1f else 0f),
+        )
+    }
+}
+
+/** Back arrow and logo — iOS's 50 dp top bar. */
 @Composable
 fun BittrAppBar(onBack: (() -> Unit)? = null, modifier: Modifier = Modifier) {
     Row(

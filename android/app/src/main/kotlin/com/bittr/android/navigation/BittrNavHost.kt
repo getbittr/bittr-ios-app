@@ -1,5 +1,19 @@
 package com.bittr.android.navigation
 
+import androidx.compose.animation.AnimatedContentTransitionScope
+import androidx.compose.animation.EnterTransition
+import androidx.compose.animation.ExitTransition
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.ui.Modifier
+import androidx.navigation.NavBackStackEntry
+import androidx.navigation.NavGraph
+import com.bittr.android.core.designsystem.BittrAppBarLogoOverlay
+import com.bittr.android.core.designsystem.LocalAppBarLogoVisible
+import com.bittr.android.core.designsystem.pageSlideIn
+import com.bittr.android.core.designsystem.pageSlideOut
+import com.bittr.android.feature.signup.SignupPage
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -304,251 +318,301 @@ fun BittrNavHost(
             WalletState.Ready -> Routes.HOME
         }
     }
-    NavHost(
-        navController = navController,
-        startDestination = startDestination,
-    ) {
-        composable(Routes.SIGNUP_START) {
-            CreateWalletScreen(
-                onFinished = {
-                    navController.navigate(Routes.HOME) {
-                        // The arc is finished; Back must not walk into a signup flow
-                        // for a wallet that now exists.
-                        popUpTo(Routes.SIGNUP_START) { inclusive = true }
-                    }
-                },
-                onRestoreWallet = { navController.navigate(Routes.SIGNUP_RESTORE) },
-                onOpenArticle = { slug -> navController.navigate(Routes.article(slug)) },
-                onContinueToSignup = {
-                    navController.navigate(Routes.SIGNUP_BITTR) {
-                        popUpTo(Routes.SIGNUP_START) { inclusive = true }
-                    }
-                },
-            )
+    // One logo over the signup pages while they slide — see BittrAppBarLogoOverlay. It is pinned
+    // while everything on screen is a page with the logo in the same place and at least one of them
+    // is a signup page; the pages' own logos hide meanwhile, so there is one, and it stays put.
+    val launchLogoVisible = LocalAppBarLogoVisible.current
+    val visibleEntries by navController.visibleEntries.collectAsState()
+    val visibleRoutes = visibleEntries.map { it.destination }.filter { it !is NavGraph }.map { it.route }
+    val logoPinned = visibleRoutes.any { signupPage(it) != null } && visibleRoutes.all { it in LogoBarRoutes }
+    Box(Modifier.fillMaxSize()) {
+        CompositionLocalProvider(LocalAppBarLogoVisible provides (launchLogoVisible && !logoPinned)) {
+            NavHost(
+                navController = navController,
+                startDestination = startDestination,
+            ) {
+                composable(
+                    Routes.SIGNUP_START,
+                    enterTransition = { signupSlideIn() },
+                    exitTransition = { signupSlideOut() },
+                    popEnterTransition = { signupSlideIn() },
+                    popExitTransition = { signupSlideOut() },
+                ) {
+                    CreateWalletScreen(
+                        onFinished = {
+                            navController.navigate(Routes.HOME) {
+                                // The arc is finished; Back must not walk into a signup flow
+                                // for a wallet that now exists.
+                                popUpTo(Routes.SIGNUP_START) { inclusive = true }
+                            }
+                        },
+                        onRestoreWallet = { navController.navigate(Routes.SIGNUP_RESTORE) },
+                        onOpenArticle = { slug -> navController.navigate(Routes.article(slug)) },
+                        onContinueToSignup = {
+                            navController.navigate(Routes.SIGNUP_BITTR) {
+                                popUpTo(Routes.SIGNUP_START) { inclusive = true }
+                            }
+                        },
+                    )
+                }
+
+                composable(Routes.SIGNUP_BITTR) {
+                    val buy: BuyViewModel = hiltViewModel()
+                    BuyRoute(
+                        source = buy.source,
+                        onboarding = true,
+                        onOpenArticle = { slug -> navController.navigate(Routes.article(slug)) },
+                        onDown = {
+                            navController.navigate(Routes.HOME) {
+                                popUpTo(Routes.SIGNUP_BITTR) { inclusive = true }
+                            }
+                        },
+                    )
+                }
+
+                // Restore *is* a separate destination, where the create arc's seven steps are
+                // one — the two are not inconsistent. What must not cross a destination
+                // boundary is the phrase, and here it never leaves RestoreWalletViewModel.
+                // Signup1 → Restore is a real back-stack edge on iOS too (`moveToPage(3)`
+                // returns), so making it one here is what gives the user a working Back.
+                composable(
+                    Routes.SIGNUP_RESTORE,
+                    enterTransition = { signupSlideIn() },
+                    exitTransition = { signupSlideOut() },
+                    popEnterTransition = { signupSlideIn() },
+                    popExitTransition = { signupSlideOut() },
+                ) {
+                    RestoreWalletScreen(
+                        onFinished = {
+                            navController.navigate(Routes.HOME) {
+                                popUpTo(Routes.SIGNUP_START) { inclusive = true }
+                            }
+                        },
+                        onCancelled = { navController.popBackStack() },
+                        onOpenArticle = { slug -> navController.navigate(Routes.article(slug)) },
+                    )
+                }
+
+                composable(Routes.PIN_UNLOCK) {
+                    UnlockScreen(
+                        onUnlocked = {
+                            navController.navigate(Routes.HOME) {
+                                popUpTo(Routes.PIN_UNLOCK) { inclusive = true }
+                            }
+                        },
+                        onOpenArticle = { slug -> navController.navigate(Routes.article(slug)) },
+                    )
+                }
+
+                composable(Routes.HOME) {
+                    val profits: ProfitsViewModel = hiltViewModel()
+                    val profit by profits.summary.collectAsState()
+                    HomeScreen(
+                        onSettings = { navController.navigate(Routes.SETTINGS) },
+                        // Wave 1, landed by BIT-99. These three are the entry points
+                        // `bitcoin_map.yaml`, `bitcoin_value.yaml` and `academy.yaml` tap
+                        // from Home, and every screen behind them needs an unlocked wallet
+                        // and nothing else — no funds, no node — so they are live today.
+                        onMap = { navController.navigate(Routes.MAP) },
+                        onCurrency = { navController.navigate(Routes.VALUE) },
+                        onAcademy = { navController.navigate(Routes.ACADEMY) },
+                        onTransaction = { id -> navController.navigate(Routes.transaction(id)) },
+                        // Wave 2, behind BIT-6. Reached only once `walletHasSynced` is true,
+                        // so today Home's own guard answers first and these are unreachable —
+                        // they are wired anyway so that flipping that flag does not leave a
+                        // dead button behind it.
+                        onSend = { navController.navigate(Routes.SEND) },
+                        onReceive = { navController.navigate(Routes.RECEIVE) },
+                        onBalanceDetails = { navController.navigate(Routes.MOVE) },
+                        // Wave 3. Not guarded by the sync on iOS either — see HomeScreen.
+                        onBuy = { navController.navigate(Routes.BUY) },
+                        profitPill = profit?.let { ProfitPill(it.percentText, it.isLoss) },
+                        onProfit = { navController.navigate(Routes.PROFITS) },
+                    )
+                }
+
+                composable(Routes.BUY) {
+                    val buy: BuyViewModel = hiltViewModel()
+                    BuyRoute(
+                        source = buy.source,
+                        onDown = { navController.popBackStack() },
+                        onOpenArticle = { slug -> navController.navigate(Routes.article(slug)) },
+                    )
+                }
+
+                composable(Routes.PROFITS) {
+                    val profits: ProfitsViewModel = hiltViewModel()
+                    val summary by profits.summary.collectAsState()
+                    ProfitsScreen(
+                        summary = summary ?: ProfitSummary(0, 0, 0, "€"),
+                        onDown = { navController.popBackStack() },
+                    )
+                }
+
+                composable(Routes.VALUE) {
+                    ValueScreen(
+                        environment = environment,
+                        http = http,
+                        onBack = { navController.popBackStack() },
+                    )
+                }
+
+                composable(Routes.MAP) {
+                    MapScreen(onBack = { navController.popBackStack() })
+                }
+
+                composable(Routes.ACADEMY) {
+                    AcademyScreen(onBack = { navController.popBackStack() })
+                }
+
+                composable(
+                    route = Routes.ARTICLE,
+                    arguments = listOf(navArgument(Routes.ARTICLE_ARG) { type = NavType.StringType }),
+                ) { entry ->
+                    ArticleScreen(
+                        slug = entry.arguments?.getString(Routes.ARTICLE_ARG).orEmpty(),
+                        onDown = { navController.popBackStack() },
+                    )
+                }
+
+                composable(Routes.RECEIVE) {
+                    val receive: ReceiveViewModel = hiltViewModel()
+                    ReceiveRoute(source = receive.source, onDown = { navController.popBackStack() })
+                }
+
+                composable(Routes.SEND) { entry ->
+                    val send: SendViewModel = hiltViewModel()
+                    // Taken once, when Send opens: reopening Send must not replay a page's LNURL.
+                    val lnurlRequest = remember { webLnurl.take() }
+                    // What the scanner put on this entry's saved state on its way out.
+                    val scanned by entry.savedStateHandle.getStateFlow<Destination?>(ScannerResult.KEY, null).collectAsState()
+                    SendRoute(
+                        source = send.source,
+                        onDown = { navController.popBackStack() },
+                        onOpenScanner = { navController.navigate(Routes.SCANNER) },
+                        onOpenTransaction = { id -> navController.openTransaction(id) },
+                        onOpenLightningQuestion = { navController.navigate(Routes.SEND_QUESTION) },
+                        // iOS closes Send before opening the swap for an invoice (`swapAndPayLightning`), and
+                        // pushes the swap over Send for an on-chain payment (`SendToSwap`).
+                        onSwapAndPayInvoice = { invoice, amount ->
+                            navController.navigate(SwapRoutes.payInvoice(invoice, amount)) { popUpTo(Routes.SEND) { inclusive = true } }
+                        },
+                        onSwapAndPayAddress = { address, amount -> navController.navigate(SwapRoutes.payAddress(address, amount)) },
+                        scanned = scanned,
+                        onScannedConsumed = { ScannerResult.consume(entry.savedStateHandle) },
+                        lnurlRequest = lnurlRequest,
+                    )
+                }
+
+                composable(Routes.MOVE) {
+                    MoveScreen(
+                        onDown = { navController.popBackStack() },
+                        onSend = { navController.navigate(Routes.SEND) },
+                        onReceive = { navController.navigate(Routes.RECEIVE) },
+                        // The same lightning-connections card Device details opens.
+                        onLightningQuestion = { navController.navigate(Routes.LIGHTNING_QUESTION) },
+                        onSwap = { navController.navigate(SwapRoutes.swap()) },
+                    )
+                }
+
+                swapArea(navController)
+
+                composable(Routes.SEND_QUESTION) {
+                    // `lightningsendable`: the channel chart when there is an active channel.
+                    LightningSendableQuestionScreen(
+                        onDown = { navController.popBackStack() },
+                        channel = hiltViewModel<LightningQuestionViewModel>().channel.collectAsState().value,
+                    )
+                }
+
+                composable(Routes.CHANNEL_CLOSED) {
+                    QuestionScreen(
+                        title = ChannelClosedCard.TITLE,
+                        answer = channelClosedAnswer,
+                        onDown = { navController.popBackStack() },
+                    )
+                }
+
+                composable(
+                    route = Routes.TRANSACTION,
+                    arguments = listOf(
+                        navArgument(TransactionViewModel.ID_ARG) { type = NavType.StringType },
+                        navArgument(TransactionViewModel.CONFETTI_ARG) {
+                            type = NavType.BoolType
+                            defaultValue = false
+                        },
+                    ),
+                ) {
+                    TransactionScreen(
+                        onDown = { navController.popBackStack() },
+                        onOpenExplorer = { txId -> navController.navigate(Routes.explorer(txId)) },
+                        onOpenSwapStatus = { boltzId -> navController.navigate(SwapRoutes.status(boltzId)) },
+                    )
+                }
+
+                composable(
+                    route = Routes.EXPLORER,
+                    arguments = listOf(navArgument(Routes.EXPLORER_ARG) { type = NavType.StringType }),
+                ) { entry ->
+                    val txId = entry.arguments?.getString(Routes.EXPLORER_ARG).orEmpty()
+                    WebsiteScreen(url = explorerUrl(txId), onClose = { navController.popBackStack() })
+                }
+
+                composable(Routes.SCANNER) {
+                    // What the camera read is parsed here, by the same entry point the paste
+                    // control will feed — one parser for both, as on iOS
+                    // (`AddressParsing.swift:15`) — and handed back to whoever opened the
+                    // scanner via `ScannerResult`.
+                    //
+                    // Nothing opens the scanner yet: Send arrives with the engine (BIT-6).
+                    // But the result no longer evaporates on the way out, which is the half
+                    // of the seam BIT-72 deliberately left for BIT-100.
+                    ScannerScreen(
+                        onScanned = { scanned -> ScannerResult.handleScan(navController, scanned, network) },
+                        onClose = { navController.popBackStack() },
+                    )
+                }
+
+                settingsArea(
+                    navController = navController,
+                    onRemoveWallet = { removal.removeWalletTapped(RemovalOrigin.Settings) },
+                    // iOS handles a first-party page's Lightning link over the browser; here Send handles it.
+                    onWebsiteLnurl = { raw, source ->
+                        webLnurl.post(SendLnurlRequest(raw, source))
+                        navController.navigate(Routes.SEND)
+                    },
+                )
+            }
         }
-
-        composable(Routes.SIGNUP_BITTR) {
-            val buy: BuyViewModel = hiltViewModel()
-            BuyRoute(
-                source = buy.source,
-                onboarding = true,
-                onOpenArticle = { slug -> navController.navigate(Routes.article(slug)) },
-                onDown = {
-                    navController.navigate(Routes.HOME) {
-                        popUpTo(Routes.SIGNUP_BITTR) { inclusive = true }
-                    }
-                },
-            )
-        }
-
-        // Restore *is* a separate destination, where the create arc's seven steps are
-        // one — the two are not inconsistent. What must not cross a destination
-        // boundary is the phrase, and here it never leaves RestoreWalletViewModel.
-        // Signup1 → Restore is a real back-stack edge on iOS too (`moveToPage(3)`
-        // returns), so making it one here is what gives the user a working Back.
-        composable(Routes.SIGNUP_RESTORE) {
-            RestoreWalletScreen(
-                onFinished = {
-                    navController.navigate(Routes.HOME) {
-                        popUpTo(Routes.SIGNUP_START) { inclusive = true }
-                    }
-                },
-                onCancelled = { navController.popBackStack() },
-                onOpenArticle = { slug -> navController.navigate(Routes.article(slug)) },
-            )
-        }
-
-        composable(Routes.PIN_UNLOCK) {
-            UnlockScreen(
-                onUnlocked = {
-                    navController.navigate(Routes.HOME) {
-                        popUpTo(Routes.PIN_UNLOCK) { inclusive = true }
-                    }
-                },
-                onOpenArticle = { slug -> navController.navigate(Routes.article(slug)) },
-            )
-        }
-
-        composable(Routes.HOME) {
-            val profits: ProfitsViewModel = hiltViewModel()
-            val profit by profits.summary.collectAsState()
-            HomeScreen(
-                onSettings = { navController.navigate(Routes.SETTINGS) },
-                // Wave 1, landed by BIT-99. These three are the entry points
-                // `bitcoin_map.yaml`, `bitcoin_value.yaml` and `academy.yaml` tap
-                // from Home, and every screen behind them needs an unlocked wallet
-                // and nothing else — no funds, no node — so they are live today.
-                onMap = { navController.navigate(Routes.MAP) },
-                onCurrency = { navController.navigate(Routes.VALUE) },
-                onAcademy = { navController.navigate(Routes.ACADEMY) },
-                onTransaction = { id -> navController.navigate(Routes.transaction(id)) },
-                // Wave 2, behind BIT-6. Reached only once `walletHasSynced` is true,
-                // so today Home's own guard answers first and these are unreachable —
-                // they are wired anyway so that flipping that flag does not leave a
-                // dead button behind it.
-                onSend = { navController.navigate(Routes.SEND) },
-                onReceive = { navController.navigate(Routes.RECEIVE) },
-                onBalanceDetails = { navController.navigate(Routes.MOVE) },
-                // Wave 3. Not guarded by the sync on iOS either — see HomeScreen.
-                onBuy = { navController.navigate(Routes.BUY) },
-                profitPill = profit?.let { ProfitPill(it.percentText, it.isLoss) },
-                onProfit = { navController.navigate(Routes.PROFITS) },
-            )
-        }
-
-        composable(Routes.BUY) {
-            val buy: BuyViewModel = hiltViewModel()
-            BuyRoute(
-                source = buy.source,
-                onDown = { navController.popBackStack() },
-                onOpenArticle = { slug -> navController.navigate(Routes.article(slug)) },
-            )
-        }
-
-        composable(Routes.PROFITS) {
-            val profits: ProfitsViewModel = hiltViewModel()
-            val summary by profits.summary.collectAsState()
-            ProfitsScreen(
-                summary = summary ?: ProfitSummary(0, 0, 0, "€"),
-                onDown = { navController.popBackStack() },
-            )
-        }
-
-        composable(Routes.VALUE) {
-            ValueScreen(
-                environment = environment,
-                http = http,
-                onBack = { navController.popBackStack() },
-            )
-        }
-
-        composable(Routes.MAP) {
-            MapScreen(onBack = { navController.popBackStack() })
-        }
-
-        composable(Routes.ACADEMY) {
-            AcademyScreen(onBack = { navController.popBackStack() })
-        }
-
-        composable(
-            route = Routes.ARTICLE,
-            arguments = listOf(navArgument(Routes.ARTICLE_ARG) { type = NavType.StringType }),
-        ) { entry ->
-            ArticleScreen(
-                slug = entry.arguments?.getString(Routes.ARTICLE_ARG).orEmpty(),
-                onDown = { navController.popBackStack() },
-            )
-        }
-
-        composable(Routes.RECEIVE) {
-            val receive: ReceiveViewModel = hiltViewModel()
-            ReceiveRoute(source = receive.source, onDown = { navController.popBackStack() })
-        }
-
-        composable(Routes.SEND) { entry ->
-            val send: SendViewModel = hiltViewModel()
-            // Taken once, when Send opens: reopening Send must not replay a page's LNURL.
-            val lnurlRequest = remember { webLnurl.take() }
-            // What the scanner put on this entry's saved state on its way out.
-            val scanned by entry.savedStateHandle.getStateFlow<Destination?>(ScannerResult.KEY, null).collectAsState()
-            SendRoute(
-                source = send.source,
-                onDown = { navController.popBackStack() },
-                onOpenScanner = { navController.navigate(Routes.SCANNER) },
-                onOpenTransaction = { id -> navController.openTransaction(id) },
-                onOpenLightningQuestion = { navController.navigate(Routes.SEND_QUESTION) },
-                // iOS closes Send before opening the swap for an invoice (`swapAndPayLightning`), and
-                // pushes the swap over Send for an on-chain payment (`SendToSwap`).
-                onSwapAndPayInvoice = { invoice, amount ->
-                    navController.navigate(SwapRoutes.payInvoice(invoice, amount)) { popUpTo(Routes.SEND) { inclusive = true } }
-                },
-                onSwapAndPayAddress = { address, amount -> navController.navigate(SwapRoutes.payAddress(address, amount)) },
-                scanned = scanned,
-                onScannedConsumed = { ScannerResult.consume(entry.savedStateHandle) },
-                lnurlRequest = lnurlRequest,
-            )
-        }
-
-        composable(Routes.MOVE) {
-            MoveScreen(
-                onDown = { navController.popBackStack() },
-                onSend = { navController.navigate(Routes.SEND) },
-                onReceive = { navController.navigate(Routes.RECEIVE) },
-                // The same lightning-connections card Device details opens.
-                onLightningQuestion = { navController.navigate(Routes.LIGHTNING_QUESTION) },
-                onSwap = { navController.navigate(SwapRoutes.swap()) },
-            )
-        }
-
-        swapArea(navController)
-
-        composable(Routes.SEND_QUESTION) {
-            // `lightningsendable`: the channel chart when there is an active channel.
-            LightningSendableQuestionScreen(
-                onDown = { navController.popBackStack() },
-                channel = hiltViewModel<LightningQuestionViewModel>().channel.collectAsState().value,
-            )
-        }
-
-        composable(Routes.CHANNEL_CLOSED) {
-            QuestionScreen(
-                title = ChannelClosedCard.TITLE,
-                answer = channelClosedAnswer,
-                onDown = { navController.popBackStack() },
-            )
-        }
-
-        composable(
-            route = Routes.TRANSACTION,
-            arguments = listOf(
-                navArgument(TransactionViewModel.ID_ARG) { type = NavType.StringType },
-                navArgument(TransactionViewModel.CONFETTI_ARG) {
-                    type = NavType.BoolType
-                    defaultValue = false
-                },
-            ),
-        ) {
-            TransactionScreen(
-                onDown = { navController.popBackStack() },
-                onOpenExplorer = { txId -> navController.navigate(Routes.explorer(txId)) },
-                onOpenSwapStatus = { boltzId -> navController.navigate(SwapRoutes.status(boltzId)) },
-            )
-        }
-
-        composable(
-            route = Routes.EXPLORER,
-            arguments = listOf(navArgument(Routes.EXPLORER_ARG) { type = NavType.StringType }),
-        ) { entry ->
-            val txId = entry.arguments?.getString(Routes.EXPLORER_ARG).orEmpty()
-            WebsiteScreen(url = explorerUrl(txId), onClose = { navController.popBackStack() })
-        }
-
-        composable(Routes.SCANNER) {
-            // What the camera read is parsed here, by the same entry point the paste
-            // control will feed — one parser for both, as on iOS
-            // (`AddressParsing.swift:15`) — and handed back to whoever opened the
-            // scanner via `ScannerResult`.
-            //
-            // Nothing opens the scanner yet: Send arrives with the engine (BIT-6).
-            // But the result no longer evaporates on the way out, which is the half
-            // of the seam BIT-72 deliberately left for BIT-100.
-            ScannerScreen(
-                onScanned = { scanned -> ScannerResult.handleScan(navController, scanned, network) },
-                onClose = { navController.popBackStack() },
-            )
-        }
-
-        settingsArea(
-            navController = navController,
-            onRemoveWallet = { removal.removeWalletTapped(RemovalOrigin.Settings) },
-            // iOS handles a first-party page's Lightning link over the browser; here Send handles it.
-            onWebsiteLnurl = { raw, source ->
-                webLnurl.post(SendLnurlRequest(raw, source))
-                navController.navigate(Routes.SEND)
-            },
-        )
+        if (logoPinned) BittrAppBarLogoOverlay()
     }
     }
+}
+
+/** iOS's page number for a destination that is one of its signup pages, else null. */
+private fun signupPage(route: String?): Int? = when (route) {
+    Routes.SIGNUP_START -> SignupPage.START
+    Routes.SIGNUP_RESTORE -> SignupPage.RESTORE
+    else -> null
+}
+
+/** The destinations whose logo sits where the app bar's does: the signup pages, Home and PIN. */
+private val LogoBarRoutes = setOf(Routes.SIGNUP_START, Routes.SIGNUP_RESTORE, Routes.HOME, Routes.PIN_UNLOCK)
+
+/**
+ * iOS's page slide between two signup destinations (Signup1 and Restore, pages 3 and 2), and
+ * nothing — so the NavHost's own transition — for any other pair.
+ */
+private fun AnimatedContentTransitionScope<NavBackStackEntry>.signupSlideIn(): EnterTransition? {
+    val from = signupPage(initialState.destination.route) ?: return null
+    val to = signupPage(targetState.destination.route) ?: return null
+    return pageSlideIn(from, to)
+}
+
+private fun AnimatedContentTransitionScope<NavBackStackEntry>.signupSlideOut(): ExitTransition? {
+    val from = signupPage(initialState.destination.route) ?: return null
+    val to = signupPage(targetState.destination.route) ?: return null
+    return pageSlideOut(from, to)
 }
 
 /**

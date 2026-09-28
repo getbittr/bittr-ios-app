@@ -665,3 +665,26 @@ top and 25 from the sides, the statements in Gilroy Regular 15 20 from the sides
 text and between the two, 40 to the button, and **Cancel**, which the port had dropped although
 `fresh_install_unhappy.yaml` taps `signup.create.confirm.cancelButton`. It goes back, as the app bar's arrow
 does.
+
+## 53. The signup pages slide as iOS's do
+
+**2026-09-28.** The signup steps swapped instantly; on iOS they slide (Tom). `SignupViewController` lays every
+signup page side by side in one strip (`embedViewIdentifiers`: Restore3, Restore2, Restore, Signup1 … Signup7,
+Transfer1 …) and `moveToPage` moves the strip to `-width × page` with a 0.7 s spring at damping 0.65. So a
+move from page `from` to page `to` slides both pages `to − from` widths — create goes rightwards from Signup1
+(page 3), restore leftwards (Restore is 2, its PIN pages 1 and 0).
+
+`pageSlide` / `pageSlideIn` / `pageSlideOut` in `PageSlide.kt` are that move (stiffness 77 = 0.7 s at damping
+0.65, as the launch animation's rise). `SignupPage` holds iOS's page numbers. `CreateWalletScreen` and
+`RestoreWalletScreen` put their steps in an `AnimatedContent` with it, and the Signup1 ↔ Restore edge — a
+separate destination here — uses the same slide as its enter and exit transitions. The page leaving recomposes
+with the new state while it slides, so the "data has gone, go back" fallbacks on the phrase and verify steps
+act only on the page arriving.
+
+**The logo stays put.** On iOS it belongs to the top bar above the strip; here each page draws its own app bar.
+While everything on screen is a page with the logo in that place (the signup destinations, Home, PIN) and one
+of them is a signup page, `BittrNavHost` lays `BittrAppBarLogoOverlay` over them and the pages' own logos hide,
+so one logo stays still while the pages move under it. The overlay follows the launch animation's
+`LocalAppBarLogoVisible` like the rest.
+
+Not yet: Signup7 → the bittr signup (Transfer1, page 10) and the Transfer pages among themselves.
