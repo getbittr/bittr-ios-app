@@ -699,3 +699,23 @@ The arrow was the only back these pages had: nothing handled the system back ges
 popped the whole signup destination and left the app. Each of them now has a `BackHandler` bound to its own
 Cancel or Back, so the gesture does what the card's button does. Value, Map, Academy and a lesson still draw
 the arrow; they are outside the signup flow and have not been compared with iOS yet.
+
+## 55. Restore laid out as RestoreViewController is
+
+**2026-09-28.** Restore put its twelve words, each in its own white 56 dp field, inside the yellow card, with
+the heading pinned top left; iOS has no yellow card (Tom). From the scene and `viewDidLoad`:
+
+- The heading, Gilroy Bold 16, centred 40 from the screen edges; 30 below it `mnemonicView`, white, 13 pt
+  corners, `setShadow()`, 40 from the edges and 15 inside, two columns of six 35 pt rows (the storyboard's
+  240 pt card). Each row: the number 15 in, 20 wide, Gilroy Bold 16 in the brand yellow; 3 pt; the word in
+  Gilroy Regular 18, black, placeholder `UIColor.gray`; both 2 pt below the row's centre. The white, black and
+  gray are fixed in both schemes, as iOS has them: `phraseCard`, `onPhraseCard`, `phrasePlaceholder`.
+- The button 30 below the card, without an arrow; Cancel; the article card 50 below Cancel's row. The group is
+  centred 40 above the middle, as the scene's centre view is.
+
+**The numbers are the brand yellow on white, 1.59 : 1** — the pairing DEV-40 (founder sign-off, BIT-15)
+darkened for the `DetailRow` labels. Matched to iOS here at Tom's request, on this screen only.
+
+The heading now scrolls with the card, as on iOS, so the keyboard parking changed with it: a focused field
+puts the heading at the top of the visible area rather than the field one row from it. The compact card fits
+heading and all twelve fields above the keyboard, and `forgot_pin.yaml` still finds the heading to tap.

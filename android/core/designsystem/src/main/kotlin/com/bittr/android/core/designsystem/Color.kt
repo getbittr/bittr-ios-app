@@ -412,6 +412,14 @@ data class BittrColors(
      */
     val welcomeHeader: Color,
     /**
+     * Restore's white card of twelve words (`RestoreViewController.mnemonicView`), its typed words
+     * and its "Enter word" placeholder: white, black and `UIColor.gray`, fixed in both schemes as the
+     * storyboard has them. The numbers beside the words are [brandFixed]. Decision 55.
+     */
+    val phraseCard: Color,
+    val onPhraseCard: Color,
+    val phrasePlaceholder: Color,
+    /**
      * Every alert's container — [BittrAlert], [BittrInlineAlert], [BittrAlertDialog],
      * [BittrTextFieldAlert] and [BittrChoiceDialog] share it. Light is the proposal's
      * `#FFFBEF`; before the design review (2026-09-18, S1/S2) half of them sat on the
@@ -582,6 +590,9 @@ val BittrLightColorsExtended = BittrColors(
     onSwitchOn = Color.White,
     canvasArc = Color.White,
     welcomeHeader = Color.White,
+    phraseCard = Color.White,
+    onPhraseCard = Color.Black,
+    phrasePlaceholder = Color(0xFF808080),
     dialogContainer = Color(0xFFFFFBEF),
     barTrackWarm = Color(0xFFF1E6C2),
     toggleSelected = Cream,
@@ -657,6 +668,9 @@ val BittrDarkColorsExtended = BittrColors(
     // brand-yellow sites already (see `brandFixed`). This is the eighth.
     canvasArc = Yellow,
     welcomeHeader = Yellow,
+    phraseCard = Color.White,
+    onPhraseCard = Color.Black,
+    phrasePlaceholder = Color(0xFF808080),
     dialogContainer = Blue2,
     barTrackWarm = Blue3,
     toggleSelected = Yellow.copy(alpha = 0.20f),
