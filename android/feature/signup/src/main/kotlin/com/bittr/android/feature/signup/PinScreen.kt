@@ -3,8 +3,10 @@ package com.bittr.android.feature.signup
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
@@ -15,10 +17,12 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.ripple
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -26,7 +30,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.material3.ripple
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.contentDescription
@@ -37,12 +40,12 @@ import androidx.compose.ui.unit.dp
 import com.bittr.android.core.common.TestID
 import com.bittr.android.core.designsystem.BittrBackspaceIcon
 import com.bittr.android.core.designsystem.BittrCanvas
-import com.bittr.android.core.designsystem.BittrCanvasShapes
 import com.bittr.android.core.designsystem.BittrPrimaryButton
 import com.bittr.android.core.designsystem.BittrStepHeading
 import com.bittr.android.core.designsystem.BittrTextButton
 import com.bittr.android.core.designsystem.BittrTheme
 import com.bittr.android.core.designsystem.CanvasSpacer
+import com.bittr.android.core.designsystem.iosShadow
 import com.bittr.android.core.wallet.seed.SeedWalletService
 
 /**
@@ -53,12 +56,10 @@ import com.bittr.android.core.wallet.seed.SeedWalletService
  * It carries the `pin.*` test ids, which are the ones the iOS flows already drive, so
  * a Maestro flow written against iOS reads the same here.
  *
- * **The cells grow with the PIN.** The mock draws four, because four is the minimum
- * and what its artboards show. The app accepts four to eight
- * ([SeedWalletService.MIN_PIN_LENGTH]–[SeedWalletService.MAX_PIN_LENGTH]), so the row
- * shows `max(4, entered)` cells inside a fixed 260 dp: at four they are the mock's
- * 56 dp, and past that they narrow rather than running off the screen or silently
- * dropping the digits the user can see they typed.
+ * **One card per digit typed, and none before**, as iOS's `pinCollectionView` has it: a
+ * 40 × 60 card for each of the four to eight digits
+ * ([SeedWalletService.MIN_PIN_LENGTH]–[SeedWalletService.MAX_PIN_LENGTH]), 10 apart and
+ * centred. Eight are wider than a narrow screen, so the row scrolls then, as iOS's does.
  *
  * **It lives in `:feature:signup` and still should not stay there.** BIT-97 ported the
  * rest of the PIN behaviour — attempt counting, the wipe-after-ten warning
@@ -104,18 +105,27 @@ fun PinScreen(
                 .weight(1f)
                 .padding(horizontal = PinGutter),
         ) {
-            CanvasSpacer(36.dp)
-            BittrStepHeading(
-                text = title,
+            // The label and the PIN cards, centred as one group in the room between the top bar and
+            // the keypad — iOS centres them in the view from under its top bar to the pad's top.
+            // The cards' row keeps its height with no digits, so the label does not move as they
+            // appear.
+            Column(
+                verticalArrangement = Arrangement.Center,
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .then(titleTestTag?.let { Modifier.testTag(it) } ?: Modifier),
-            )
+                    .weight(1f)
+                    .fillMaxWidth(),
+            ) {
+                BittrStepHeading(
+                    text = title,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .then(titleTestTag?.let { Modifier.testTag(it) } ?: Modifier),
+                )
 
-            CanvasSpacer(18.dp)
-            PinCells(length = pin.length)
+                CanvasSpacer(15.dp)
+                PinCells(length = pin.length)
+            }
 
-            Spacer(Modifier.weight(1f))
             Keypad(
                 onDigit = { digit ->
                     if (pin.length < SeedWalletService.MAX_PIN_LENGTH) pin += digit
@@ -125,21 +135,26 @@ fun PinScreen(
                 digitsEnabled = pin.length < SeedWalletService.MAX_PIN_LENGTH,
             )
 
-            CanvasSpacer(22.dp)
-            BittrPrimaryButton(
-                text = confirmLabel,
-                onClick = {
-                    onSubmit(pin)
-                    if (clearOnSubmit) pin = ""
-                },
-                enabled = SeedWalletService.isValidPin(pin),
-                // "Next" carries on to the confirm step; "Confirm" completes in place. iOS's
-                // Signup5 and Signup6, which the review found both reading "Confirm".
-                arrow = confirmLabel == SignupStrings.NEXT,
-                // The PIN pad's button is not iOS's 40 pt plate; it keeps the full-width pill.
-                fullWidth = true,
-                modifier = Modifier.testTag(TestID.Pin.confirmButton),
-            )
+            CanvasSpacer(30.dp)
+            // iOS's `confirmPinView`: 45 tall with 8 pt corners and `setShadow()`, the label alone and
+            // centred, running from 5 left of the 1 to 5 right of the 3 — two key columns plus about
+            // 22, centred under the pad.
+            BoxWithConstraints(Modifier.fillMaxWidth()) {
+                val column = (maxWidth - KeySpacing * 2) / 3 + KeySpacing
+                BittrPrimaryButton(
+                    text = confirmLabel,
+                    onClick = {
+                        onSubmit(pin)
+                        if (clearOnSubmit) pin = ""
+                    },
+                    enabled = SeedWalletService.isValidPin(pin),
+                    arrow = false,
+                    modifier = Modifier
+                        .size(width = column * 2 + 22.dp, height = 45.dp)
+                        .iosShadow(ConfirmShape)
+                        .testTag(TestID.Pin.confirmButton),
+                )
+            }
             // Without a back button the confirm pill would otherwise sit on the
             // screen's bottom edge — `navigationBarsPadding` is zero on a
             // three-button device and on the render harness, so the gap has to be
@@ -164,12 +179,22 @@ fun PinScreen(
 /** The mock's PIN screens use a wider gutter than the card screens. */
 private val PinGutter = 24.dp
 
-/** 56 × 74 at four cells, with the mock's 12 dp between them. */
-private val CellRowMaxWidth = 260.dp
-private val CellHeight = 74.dp
+/** Between the keypad's keys, across and down. */
+private val KeySpacing = 6.dp
+
+/** The confirm plate's corners — BittrPrimaryButton's own 8 pt. */
+private val ConfirmShape = RoundedCornerShape(8.dp)
+
+/** `PinCollectionViewCell`: 40 × 60, 10 apart. */
+private val CellWidth = 40.dp
+private val CellHeight = 60.dp
+private val CellSpacing = 10.dp
+private val CellShape = RoundedCornerShape(13.dp)
 
 /**
- * The masked PIN, as cream cells with an ink dot.
+ * The masked PIN, as iOS's `PinCollectionViewCell`s: a `pinCell` card per digit with
+ * 13 pt corners and `setShadow()`, and a 10 pt black dot in its centre. The row keeps its
+ * 60 pt height with no digits, so the pad does not move as the first one appears.
  *
  * `pin.pinTextField` is on the row: it is the node the iOS flows assert against, and
  * on Android it is the only node that represents the field at all — there is no
@@ -178,30 +203,35 @@ private val CellHeight = 74.dp
  */
 @Composable
 private fun ColumnScope.PinCells(length: Int) {
-    val cells = maxOf(SeedWalletService.MIN_PIN_LENGTH, length)
-    Row(
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
+    val colors = BittrTheme.colors
+    val scroll = rememberScrollState()
+    BoxWithConstraints(
+        contentAlignment = Alignment.Center,
         modifier = Modifier
-            .align(Alignment.CenterHorizontally)
-            .widthIn(max = CellRowMaxWidth)
             .fillMaxWidth()
             .height(CellHeight)
             .semantics { contentDescription = "$length digits entered" }
             .testTag(TestID.Pin.pinTextField),
     ) {
-        repeat(cells) { index ->
-            Box(
-                contentAlignment = Alignment.Center,
-                modifier = Modifier
-                    .weight(1f)
-                    .height(CellHeight)
-                    .background(BittrTheme.colors.tonalFill, BittrCanvasShapes.cell),
-            ) {
-                if (index < length) {
+        // Scrolls only when the cards are wider than the screen: a scrolling row clips what is
+        // drawn outside it, and that would cut the cards' shadows off at every length.
+        val rowWidth = CellWidth * length + CellSpacing * (length - 1).coerceAtLeast(0)
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(CellSpacing),
+            modifier = if (rowWidth > maxWidth) Modifier.horizontalScroll(scroll) else Modifier,
+        ) {
+            repeat(length) {
+                Box(
+                    contentAlignment = Alignment.Center,
+                    modifier = Modifier
+                        .size(width = CellWidth, height = CellHeight)
+                        .iosShadow(CellShape)
+                        .background(colors.pinCell, CellShape),
+                ) {
                     Box(
                         Modifier
-                            .size(13.dp)
-                            .background(BittrTheme.colors.onTonalFill, CircleShape),
+                            .size(10.dp)
+                            .background(colors.onPinCell, CircleShape),
                     )
                 }
             }
@@ -224,10 +254,10 @@ private fun Keypad(
     digitsEnabled: Boolean,
 ) {
     val rows = listOf(listOf(1, 2, 3), listOf(4, 5, 6), listOf(7, 8, 9))
-    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+    Column(verticalArrangement = Arrangement.spacedBy(KeySpacing)) {
         rows.forEach { row ->
             Row(
-                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                horizontalArrangement = Arrangement.spacedBy(KeySpacing),
                 modifier = Modifier.fillMaxWidth(),
             ) {
                 row.forEach { digit ->
@@ -236,7 +266,7 @@ private fun Keypad(
             }
         }
         Row(
-            horizontalArrangement = Arrangement.spacedBy(6.dp),
+            horizontalArrangement = Arrangement.spacedBy(KeySpacing),
             modifier = Modifier.fillMaxWidth(),
         ) {
             Spacer(Modifier.weight(1f))

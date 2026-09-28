@@ -420,6 +420,12 @@ data class BittrColors(
     val onPhraseCard: Color,
     val phrasePlaceholder: Color,
     /**
+     * A PIN digit's card (`PinCollectionViewCell.cellCard`): white at 70 % in both schemes, as the
+     * storyboard has it, with a black dot ([onPinCell]) in it.
+     */
+    val pinCell: Color,
+    val onPinCell: Color,
+    /**
      * The article sheet (`ArticleViewController`): the storyboard's white in light mode and
      * `grey3orblue1`'s blue1 in dark, with `blackorwhite` text on it. Decision 56.
      */
@@ -599,6 +605,8 @@ val BittrLightColorsExtended = BittrColors(
     phraseCard = Color.White,
     onPhraseCard = Color.Black,
     phrasePlaceholder = Color(0xFF808080),
+    pinCell = Color.White.copy(alpha = 0.70f),
+    onPinCell = Color.Black,
     articleSurface = Color.White,
     onArticleSurface = Color.Black,
     dialogContainer = Color(0xFFFFFBEF),
@@ -679,6 +687,8 @@ val BittrDarkColorsExtended = BittrColors(
     phraseCard = Color.White,
     onPhraseCard = Color.Black,
     phrasePlaceholder = Color(0xFF808080),
+    pinCell = Color.White.copy(alpha = 0.70f),
+    onPinCell = Color.Black,
     articleSurface = Blue1,
     onArticleSurface = Color.White,
     dialogContainer = Blue2,

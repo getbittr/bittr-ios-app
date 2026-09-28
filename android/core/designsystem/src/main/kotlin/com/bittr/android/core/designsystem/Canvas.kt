@@ -336,7 +336,7 @@ val IosCardShape = RoundedCornerShape(13.dp)
  * in the width it is given. At least 80 pt wide, as the storyboards pin it. Decision 52.
  *
  * @param fullWidth the mock's full-width pill instead, for the buttons iOS does not draw this way:
- *   the PIN pad's, and the ones in alerts and dialogs, which fill the dialog's width.
+ *   the ones in alerts and dialogs, which fill the dialog's width.
  * @param enabled false draws the disabled pill, [BittrColors.actionFillDisabled] under
  *   [BittrColors.onActionFillDisabled], and stops clicks.
  * @param dimmed the disabled look without the disabled behaviour, for an action whose tap
