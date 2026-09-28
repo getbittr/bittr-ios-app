@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
@@ -55,6 +56,7 @@ import com.bittr.android.core.designsystem.BittrBody
 import com.bittr.android.core.designsystem.rememberTextClipboard
 import com.bittr.android.core.designsystem.BittrSpinner
 import com.bittr.android.core.designsystem.BittrPartnerRow
+import com.bittr.android.core.designsystem.BittrPartnerRowWidth
 import androidx.compose.foundation.layout.height
 import com.bittr.android.core.designsystem.BittrTonalButton
 import androidx.compose.ui.unit.sp
@@ -117,11 +119,14 @@ private fun ReadyPage(onNext: () -> Unit, onOpenArticle: (String) -> Unit) {
         )
         CanvasSpacer(BittrTokens.Spacing.xl)
         BittrPartnerRow()
-        CanvasSpacer(16.dp)
+        CanvasSpacer(10.dp)
+        // `continueView`: as wide as the partner row, as on Signup7.
         BittrPrimaryButton(
             text = BuyStrings.NEXT,
             onClick = onNext,
-            modifier = Modifier.testTag(TestID.Signup.Create.Ready.continueButton),
+            modifier = Modifier
+                .width(BittrPartnerRowWidth)
+                .testTag(TestID.Signup.Create.Ready.continueButton),
         )
     }
     CanvasSpacer(BittrTokens.Spacing.lg)

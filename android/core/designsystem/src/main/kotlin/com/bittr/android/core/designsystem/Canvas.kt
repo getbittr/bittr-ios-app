@@ -555,6 +555,9 @@ fun BittrHelpButton(onClick: () -> Unit, modifier: Modifier = Modifier, contentD
  * which the port had dropped, so the user confirmed a partner they could not see (review,
  * `signup7`). bittr is the only partner, so the row is a statement rather than a picker: it
  * is drawn selected and takes no taps.
+ *
+ * iOS's `partnerView`: [BittrPartnerRowWidth] by 40 with 8 pt corners, the yellow
+ * `checkmark.circle.fill` 20 pt and 20 in, the 18 pt lockup centred. Next under it is as wide.
  */
 @Composable
 fun BittrPartnerRow(modifier: Modifier = Modifier) {
@@ -562,28 +565,31 @@ fun BittrPartnerRow(modifier: Modifier = Modifier) {
     Box(
         contentAlignment = Alignment.Center,
         modifier = modifier
-            .fillMaxWidth()
-            .height(56.dp)
-            .background(Color.White, BittrCanvasShapes.field)
-            .padding(horizontal = 16.dp),
+            .size(width = BittrPartnerRowWidth, height = 40.dp)
+            .background(Color.White, RoundedCornerShape(8.dp))
+            .padding(horizontal = 20.dp),
     ) {
+        // `checkmark.circle.fill`: the tick is cut out of the disc, so it shows the white row.
         Box(
             contentAlignment = Alignment.Center,
             modifier = Modifier
                 .align(Alignment.CenterStart)
-                .size(24.dp)
+                .size(20.dp)
                 .background(colors.brandFixed, CircleShape),
         ) {
             Image(
-                imageVector = rememberStrokeIcon(BittrIconPaths.CHECK, Ink, strokeWidth = 3f),
+                imageVector = rememberStrokeIcon(BittrIconPaths.CHECK, Color.White, strokeWidth = 3f),
                 contentDescription = "Selected",
-                modifier = Modifier.size(16.dp),
+                modifier = Modifier.size(13.dp),
             )
         }
         // Ink and brand yellow, fixed: the row is white in both schemes.
-        BittrLogo(height = 24.dp, ink = Ink, arc = colors.brandFixed)
+        BittrLogo(height = 18.dp, ink = Ink, arc = colors.brandFixed)
     }
 }
+
+/** `partnerView`'s width, which `continueView` under it matches. */
+val BittrPartnerRowWidth = 200.dp
 
 /**
  * The app's one indeterminate spinner (review S11): round caps and a faint track in its own
@@ -648,9 +654,17 @@ fun BittrValueRow(
  *
  * Drawn rather than shipped as an asset: it is a circle and two strokes, and the
  * alternative is a PNG that has to exist at four densities.
+ *
+ * @param checkSize the tick's icon box; the tick itself spans 14/24 of it.
+ * @param strokeWidth the tick's stroke, in the icon's 24-unit viewport.
  */
 @Composable
-fun BittrCheckBadge(modifier: Modifier = Modifier, size: Dp = 76.dp) {
+fun BittrCheckBadge(
+    modifier: Modifier = Modifier,
+    size: Dp = 76.dp,
+    checkSize: Dp = size * 0.45f,
+    strokeWidth: Float = 2.6f,
+) {
     val colors = BittrTheme.colors
     Box(
         contentAlignment = Alignment.Center,
@@ -662,10 +676,10 @@ fun BittrCheckBadge(modifier: Modifier = Modifier, size: Dp = 76.dp) {
             imageVector = rememberStrokeIcon(
                 BittrIconPaths.CHECK,
                 colors.onActionFill,
-                strokeWidth = 2.6f,
+                strokeWidth = strokeWidth,
             ),
             contentDescription = null,
-            modifier = Modifier.size(size * 0.45f),
+            modifier = Modifier.size(checkSize),
         )
     }
 }
