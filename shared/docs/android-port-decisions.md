@@ -605,3 +605,39 @@ Follow-up, same day: Signup1's card is filled with `canvas`, not the wash. iOS f
 `yelloworblue1` — yellow in light, `blue1` in dark — which is exactly `canvas` in both schemes, so on iOS
 the card is the page's own colour and only its shadow separates it. `BittrCard(fill = …)`; other cards keep
 the wash.
+
+## 50. One logo during the launch animation's rise
+
+**2026-09-28.** During stage 3 the cover fades (`alpha = 1 − rise`) while its logo travels up, and the
+screen behind it already had its own logo in the app bar. That one showed through the fading cover sitting
+at the top while the cover's was still on its way, so there were two logos (Tom). On iOS the logo that rises
+is the top bar's own, so there is only ever one.
+
+`LocalAppBarLogoVisible`, provided by `MainActivity` as `launched`, keeps the app bar's and Home's logo at
+alpha 0 until `onFinished`. The cover's logo lands exactly on it (same height, 10.2 dp below the status bar
+against Home's 10), and the app's takes over as the cover goes. The hidden logo keeps its space, so nothing
+moves when it appears.
+
+Follow-up, same day: with only one logo on screen, the rise springs again at iOS's damping 0.65 (stiffness
+77, settling in iOS's 0.7 s), overshooting ~25 dp and settling back, as `logoSlidesToTop` does. Decision
+45's two reasons for the tween no longer apply: the logo that hung above the bar was the app's own showing
+through, now hidden; and `onFinished` runs when `animateTo` returns, after the spring has settled, so the
+hand-off and `core.launchComplete` still come with the logo at rest. The cover's fade is clamped to 0…1
+because the spring's value passes 1.
+
+## 51. The lockup's proportions are iOS's, not the SVG's
+
+**2026-09-28.** The mark and the word sat closer together on Android than on iOS (Tom). Measured on a
+side-by-side screenshot, per mark height: the gap is 0.365 on iOS and 0.28 on Android, and iOS's word is
+0.94 of the size the SVG gives it — the storyboard's own 0.94 multiplier on `bittrtext`, and the ratio of
+the two word widths measured against their marks (0.940). The SVG sets the word as tall as the mark; iOS
+does not.
+
+`Logo.kt` now scales the word by 0.94 about its left edge and centre, starts it 0.365 × the mark's height
+after the mark, and centres it 0.5/30 of the height below the mark's (`centerY` constant 0.5). Everything
+downstream — `BittrLogo`, `BittrWordmark`, `LOGO_TAIL_RATIO` — derives from those constants, so the launch
+animation's last frame is still the app bar's logo to the unit. The lockup comes out 3.525 : 1, against
+iOS's 106 × 30 at 3.533, so its height is 30 dp, iOS's 30 pt mark, rather than decision 49's 29.6; the
+app bar logo lands 10 dp below the status bar, exactly `logoTopInset`, and the splash marks are rescaled
+from 0.1984 to 0.2011 so the splash is still the animation's first frame. Earlier decisions quoting 29.6
+describe the lockup before this.

@@ -31,6 +31,7 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.dropShadow
 import androidx.compose.ui.graphics.Color
@@ -142,7 +143,10 @@ fun BittrAppBar(onBack: (() -> Unit)? = null, modifier: Modifier = Modifier) {
             }
         }
         Box(Modifier.weight(1f), contentAlignment = Alignment.Center) {
-            BittrLogo(height = BittrAppBarLogoHeight)
+            BittrLogo(
+                height = BittrAppBarLogoHeight,
+                modifier = Modifier.alpha(if (LocalAppBarLogoVisible.current) 1f else 0f),
+            )
         }
         // Balances the back arrow so the logo stays centred. The mock drew an overflow
         // `⋮` here; it opened nothing, and the design review asked for it to go from every

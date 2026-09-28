@@ -32,6 +32,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
@@ -48,6 +49,7 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.bittr.android.core.common.TestID
 import com.bittr.android.core.designsystem.BittrAppBarLogoHeight
+import com.bittr.android.core.designsystem.LocalAppBarLogoVisible
 import com.bittr.android.core.designsystem.BittrAlertDialog
 import com.bittr.android.core.designsystem.BittrSpinner
 import com.bittr.android.core.designsystem.BittrBottomNavBar
@@ -324,7 +326,10 @@ private fun HomeHeader(
                 horizontalArrangement = Arrangement.Center,
                 modifier = Modifier.fillMaxWidth(),
             ) {
-                BittrLogo(height = BittrAppBarLogoHeight)
+                BittrLogo(
+                    height = BittrAppBarLogoHeight,
+                    modifier = Modifier.alpha(if (LocalAppBarLogoVisible.current) 1f else 0f),
+                )
             }
             CanvasSpacer(BittrTokens.Spacing.md)
 

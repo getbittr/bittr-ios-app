@@ -11,6 +11,7 @@ import androidx.compose.ui.graphics.drawscope.clipPath
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -70,16 +71,32 @@ private const val WORDMARK =
 private const val VIEWBOX_TOP = 308.156f
 private const val VIEWBOX_HEIGHT = 174.106f
 private const val MARK_WIDTH = 170.0f
-private const val LOGO_WIDTH = 623.568f
 
-/** Where the word starts in the artwork, and how wide it is — measured off the path data. */
-private const val WORDMARK_LEFT = 219.1f
-private const val WORDMARK_WIDTH = LOGO_WIDTH - WORDMARK_LEFT
+/** Where the word starts and ends in the SVG, and its vertical centre — off the path data. */
+private const val ART_WORDMARK_LEFT = 219.1f
+private const val ART_WORDMARK_RIGHT = 623.568f
+private const val ART_WORDMARK_CENTRE_Y = (313.819f + 478.96f) / 2
+
+/**
+ * **The lockup is iOS's, not the SVG's.** The SVG sets the word as tall as the mark with 0.28 of
+ * the mark's height between them; iOS's `logoView` draws `bittrtext` at 0.94 of the mark
+ * (`kfQ-ja-1gG`'s height multiplier) with a wider gap. Measured on a side-by-side screenshot, iOS
+ * leaves 0.365 of the mark's height between mark and word and the word is 0.94 as wide relative to
+ * the mark as the SVG's. Together they give a lockup 3.525 times its height — iOS's 106 by 30 is
+ * 3.533 — so the word is scaled and moved here rather than read off the SVG as it stands. Its
+ * centre sits 0.5/30 of the height below the mark's, the storyboard's `centerY` constant 0.5.
+ */
+private const val WORDMARK_SCALE = 0.94f
+private const val WORDMARK_LEFT = MARK_WIDTH + 0.365f * VIEWBOX_HEIGHT
+private const val WORDMARK_WIDTH = (ART_WORDMARK_RIGHT - ART_WORDMARK_LEFT) * WORDMARK_SCALE
+private const val WORDMARK_SHIFT_Y = VIEWBOX_TOP + VIEWBOX_HEIGHT / 2 + VIEWBOX_HEIGHT * 0.5f / 30f -
+    ART_WORDMARK_CENTRE_Y
+private const val LOGO_WIDTH = WORDMARK_LEFT + WORDMARK_WIDTH
 
 /**
  * Everything of the lockup that is not the mark — the gap and then the word — as a multiple of
- * the mark's height. The word does not begin where the mark ends: [WORDMARK_LEFT] is 219.1 and
- * the mark stops at [MARK_WIDTH], so 49.1 units of air sit between them. A launch animation that
+ * the mark's height. The word does not begin where the mark ends: there is [WORDMARK_LEFT] minus
+ * [MARK_WIDTH] of air between them. A launch animation that
  * reveals only [BittrWordmark] loses that air and settles on a lockup narrower than the one the
  * app bar draws, which then snaps wider as the two swap over.
  */
@@ -103,19 +120,41 @@ private fun logoVector(ink: Color, arc: Color, wordmark: Boolean): ImageVector {
         addGroup(translationY = -VIEWBOX_TOP)
         addPath(PathParser().parsePathString(normalizeSvgPath(MARK_INK)).toNodes(), fill = SolidColor(ink))
         addPath(PathParser().parsePathString(normalizeSvgPath(MARK_ARC)).toNodes(), fill = SolidColor(arc))
-        if (wordmark) {
-            addPath(PathParser().parsePathString(normalizeSvgPath(WORDMARK)).toNodes(), fill = SolidColor(ink))
-        }
+        if (wordmark) addWordmark(ink)
         clearGroup()
     }.build()
 }
 
+/** The word, scaled and placed as iOS's lockup has it — see [WORDMARK_SCALE]. SVG coordinates in. */
+private fun ImageVector.Builder.addWordmark(ink: Color) {
+    addGroup(
+        pivotX = ART_WORDMARK_LEFT,
+        pivotY = ART_WORDMARK_CENTRE_Y,
+        scaleX = WORDMARK_SCALE,
+        scaleY = WORDMARK_SCALE,
+        translationX = WORDMARK_LEFT - ART_WORDMARK_LEFT,
+        translationY = WORDMARK_SHIFT_Y,
+    )
+    addPath(PathParser().parsePathString(normalizeSvgPath(WORDMARK)).toNodes(), fill = SolidColor(ink))
+    clearGroup()
+}
+
 /**
- * The lockup's height in the app bar, and on Home. iOS's `logoView` is 30 pt tall and widens to
- * 106 pt; at the artwork's 3.58 : 1 that is 106 / 3.58 = 29.6. It was 19 dp, so the launch
+ * The lockup's height in the app bar, and on Home: iOS's `logoView`, 30 pt tall and 106 pt wide,
+ * which the lockup's 3.525 : 1 reproduces (see [WORDMARK_SCALE]). It was 19 dp, so the launch
  * animation, which starts at iOS's size, shrank the logo as it rose; iOS only moves it.
  */
-val BittrAppBarLogoHeight = 29.6.dp
+val BittrAppBarLogoHeight = 30.dp
+
+/**
+ * Whether the app's own top logo — the app bar's, and Home's — is drawn. False while the launch
+ * animation's cover is up: the cover fades as its logo rises, and the app's logo showed through it
+ * already sitting at the top while the other was still travelling up to it. On iOS there is one
+ * logo, the top bar's, and it is the one that rises. Here the cover's logo lands exactly on the
+ * app's and the app's takes over as the cover goes, so there is only ever one on screen.
+ * The logo keeps its space while hidden, so nothing moves when it appears.
+ */
+val LocalAppBarLogoVisible = compositionLocalOf { true }
 
 /**
  * The full lockup — mark plus wordmark — as it sits in the app bar.
@@ -140,7 +179,7 @@ fun BittrLogo(
 /**
  * The wordmark alone, for the launch animation: it reveals the word from its right edge while
  * the mark stays put, so the two have to be separate layers. Its own viewport starts where the
- * word does (x = [WORDMARK_LEFT] in the artwork), so a caller can size and clip it directly.
+ * word does (x = [WORDMARK_LEFT] in the lockup), so a caller can size and clip it directly.
  */
 @Composable
 fun BittrWordmark(
@@ -157,7 +196,7 @@ fun BittrWordmark(
             viewportHeight = VIEWBOX_HEIGHT,
         ).apply {
             addGroup(translationX = -WORDMARK_LEFT, translationY = -VIEWBOX_TOP)
-            addPath(PathParser().parsePathString(normalizeSvgPath(WORDMARK)).toNodes(), fill = SolidColor(ink))
+            addWordmark(ink)
             clearGroup()
         }.build()
     }

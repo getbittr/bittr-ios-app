@@ -3,7 +3,7 @@
      is what the platform masks a splash icon to; the brand yellow behind it comes from
      windowSplashScreenBackground in themes.xml.
 
-     The art is then scaled to 29.6 dp — LaunchAnimation's LOGO_HEIGHT, the size the mark
+     The art is then scaled to 30 dp — LaunchAnimation's LOGO_HEIGHT, the size the mark
      holds through the whole of stage 1. The splash is the animation's first frame, so the
      two have to be the same mark at the same size in the same place: at the drawable's own
      size the mark came up five times too big and snapped down the instant Compose drew,
@@ -16,8 +16,8 @@
     <group
         android:pivotX="144"
         android:pivotY="144"
-        android:scaleX="0.1984"
-        android:scaleY="0.1984">
+        android:scaleX="0.2011"
+        android:scaleY="0.2011">
     <group
         android:translateX="69.000"
         android:translateY="67.189"

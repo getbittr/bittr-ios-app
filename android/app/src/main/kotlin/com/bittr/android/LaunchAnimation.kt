@@ -49,8 +49,9 @@ import kotlinx.coroutines.delay
  *    A right-aligned clip that grows reveals the word from its right end — "tr", "ittr",
  *    "bittr" — and the mark slides left as the pair re-centres, which is what iOS's widening
  *    logo view does and what the recording shows.
- * 3. **The logo rises into the app bar** — `logoSlidesToTop`: 0.7 s after 0.3 s, while the
- *    cover fades and the screen appears behind it. This one does not bounce: see [RISE_MS].
+ * 3. **The logo rises into the app bar** — `logoSlidesToTop`: 0.7 s after 0.3 s, spring
+ *    damping 0.65, while the cover fades and the screen appears behind it. It overshoots the
+ *    bar and settles back onto it, as iOS's does.
  *
  * **`core.launchComplete` moves with this.** iOS sets that id when stage 3 finishes and every
  * flow gates on it through `helpers/wait_for_launch.yaml`; [MainActivity] tags the root once
@@ -69,7 +70,7 @@ fun LaunchAnimation(onFinished: () -> Unit, modifier: Modifier = Modifier) {
         slide.animateTo(1f, tween(durationMillis = COIN_MS, easing = FastOutSlowInEasing))
         reveal.animateTo(1f, spring(dampingRatio = DAMPING, stiffness = REVEAL_STIFFNESS))
         delay(RISE_DELAY_MS)
-        rise.animateTo(1f, tween(durationMillis = RISE_MS, easing = FastOutSlowInEasing))
+        rise.animateTo(1f, spring(dampingRatio = DAMPING, stiffness = RISE_STIFFNESS))
         onFinished()
     }
 
@@ -78,7 +79,8 @@ fun LaunchAnimation(onFinished: () -> Unit, modifier: Modifier = Modifier) {
             .fillMaxSize()
             // The splash's yellow, carried on without a seam and fading as the app arrives.
             // Full-bleed, behind the status bar as the splash was.
-            .background(BittrTheme.colors.canvas.copy(alpha = 1f - rise.value)),
+            // The rise overshoots past 1, so the fade is clamped rather than going negative.
+            .background(BittrTheme.colors.canvas.copy(alpha = (1f - rise.value).coerceIn(0f, 1f))),
     ) {
         // **The same box the app bar is laid out in.** `BittrCanvas` puts its column inside
         // these two insets and hangs the 56 dp bar off the top of it, so measuring the landing
@@ -150,20 +152,20 @@ private fun Logo(logoHeight: Dp, slide: Float, reveal: Float, modifier: Modifier
 }
 
 /**
- * iOS's `logoViewWidth = 106` lockup, as the mark's height: 106 / 3.58 (the artwork's ratio).
- * Measured against the recording — the lockup is 26 % of the screen's width on iOS, and this
- * is what puts it there. At 49 dp, the first attempt, it was 38 %.
+ * iOS's `logoView`: 30 pt tall, widening to 106. The lockup's own ratio is iOS's (see
+ * `WORDMARK_SCALE` in `Logo.kt`), so that is the app bar's logo height. At 49 dp, the first
+ * attempt, the lockup was 38 % of the screen's width; iOS's is 26 %.
  */
-private val LOGO_HEIGHT = 29.6.dp
+private val LOGO_HEIGHT = BittrAppBarLogoHeight
 
 /**
  * `BittrAppBar`'s logo, and how far below the status bar it sits — where stage 3 lands. The bar
- * is 50 dp with the logo centred in it, so the logo's top is (50 − 29.6) / 2 below the status
+ * is 50 dp with the logo centred in it, so the logo's top is (50 − 30) / 2 below the status
  * bar: iOS's `logoTopInset`, the safe area plus 10. The height is [LOGO_HEIGHT] again, so the
  * logo rises without shrinking, as on iOS.
  */
 private val APP_BAR_LOGO_HEIGHT = BittrAppBarLogoHeight
-private val APP_BAR_LOGO_TOP = 10.2.dp
+private val APP_BAR_LOGO_TOP = 10.dp
 
 private const val COIN_DELAY_MS = 300L
 private const val COIN_MS = 600
@@ -180,14 +182,14 @@ private const val DAMPING = 0.65f
 private const val REVEAL_STIFFNESS = 105f
 
 /**
- * **The rise is a 0.7 s ease, not a spring, and this is a deliberate departure from iOS.**
+ * The rise's spring, at iOS's 0.7 s: 4 / (0.65 × 0.7) squared, the same rule as
+ * [REVEAL_STIFFNESS]. It overshoots by about 7 % of the travel, some 25 dp, as iOS's does.
  *
- * iOS springs it at [DAMPING], and a spring has no duration: it overshoots and then takes as
- * long as it takes. Both halves of that hurt here, because ours is a *second* logo that has to
- * land on the app bar's own and then be taken away at a known moment — `core.launchComplete`
- * gates every flow on it. Sprung, it overshot the bar by some 25 dp and hung above the real
- * logo for half a second; damped so it would not overshoot, it was still 34 dp short when the
- * hand-off came and vanished in mid-air (both measured on Ruben's phone, 2026-09-22). A tween
- * of exactly iOS's 0.7 s lands on the bar on the frame the cover goes, and the swap is invisible.
+ * This was a 0.7 s tween for a while (decision 45), because sprung, the cover's logo hung above
+ * the app bar's own logo, which was visible under the fading cover, and the hand-off could come
+ * before the spring had settled. Both are gone: the app's logo is hidden until [onFinished]
+ * (`LocalAppBarLogoVisible`, decision 50), and [onFinished] runs only once `animateTo` returns,
+ * which is after the spring has settled — so the logo that bounces is the only one on screen,
+ * and the swap still happens with it at rest.
  */
-private const val RISE_MS = 700
+private const val RISE_STIFFNESS = 77f
