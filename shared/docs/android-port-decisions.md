@@ -641,3 +641,27 @@ iOS's 106 × 30 at 3.533, so its height is 30 dp, iOS's 30 pt mark, rather than 
 app bar logo lands 10 dp below the status bar, exactly `logoTopInset`, and the splash marks are rescaled
 from 0.1984 to 0.2011 so the splash is still the animation's first frame. Earlier decisions quoting 29.6
 describe the lockup before this.
+
+## 52. iOS's card and button are the defaults, not Signup1's options
+
+**2026-09-28.** Decisions 47–49 gave Signup1 iOS's card and button as opt-in arguments, so Signup2 — and
+every other screen — kept the mock's translucent 28 dp card and full-width pill (Tom). They are one design on
+iOS, so they are the components' defaults now:
+
+- **`BittrCard`**: `canvas` fill (iOS's `yelloworblue1`), 13 pt corners (`IosCardShape` — every iOS card
+  has them) and `setShadow()`. Its inner padding is still the mock's 22/28 by default; a screen matched to its
+  storyboard passes its own.
+- **`BittrPrimaryButton`**: iOS's 40 pt plate — 8 pt corners, sized to 17 + label (Gilroy Bold 14, 1 pt below
+  centre) + 10 + `arrowrightwhite` + 17, at least 80 wide, centred. `fullWidth = true` keeps the pill for the
+  buttons iOS does not draw this way: the PIN pad's (Tom), and those in `BittrAlert`, `BittrTextFieldAlert`
+  and Buy's choice dialog, which fill the dialog. `BittrCompactButton` is folded into it.
+
+Every screen with a `BittrCard` or a non-dialog `BittrPrimaryButton` changes with this — the signup and Buy
+signup pages, Swap, Send, Receive, Move, Transaction, Profits, the Question screen and the push overlay — and
+only Signup1 and Signup2 have been checked against their storyboards so far.
+
+Signup2 (`ConfirmScreen`) is laid out from its storyboard: 15 pt gutters, title in Gilroy Bold 16 30 from the
+top and 25 from the sides, the statements in Gilroy Regular 15 20 from the sides with 20 between switch and
+text and between the two, 40 to the button, and **Cancel**, which the port had dropped although
+`fresh_install_unhappy.yaml` taps `signup.create.confirm.cancelButton`. It goes back, as the app bar's arrow
+does.

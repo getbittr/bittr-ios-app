@@ -282,6 +282,7 @@ private fun AlertButton(button: BittrAlertButton, position: Int, style: AlertBut
             onClick = button.onClick,
             modifier = buttonModifier.height(BittrDialogButtonHeight),
             arrow = false,
+            fullWidth = true,
         )
     }
 }

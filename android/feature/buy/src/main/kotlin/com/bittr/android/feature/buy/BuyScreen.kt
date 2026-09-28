@@ -373,6 +373,7 @@ internal fun BuyAlertCard(alert: BuyAlert, onAction: (BuyAction) -> Unit) {
                         onClick = { onAction(button.action) },
                         modifier = tag.height(BittrDialogButtonHeight),
                         arrow = false,
+                        fullWidth = true,
                     )
                 }
             }

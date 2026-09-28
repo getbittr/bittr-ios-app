@@ -113,6 +113,7 @@ fun BittrTextFieldAlert(
                         .height(BittrDialogButtonHeight)
                         .testTag(TestID.Alert.buttonAt(1)),
                     arrow = false,
+                    fullWidth = true,
                 )
             }
         },

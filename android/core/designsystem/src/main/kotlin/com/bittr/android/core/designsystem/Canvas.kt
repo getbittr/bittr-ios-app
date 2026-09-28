@@ -20,6 +20,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.LocalContentColor
@@ -156,28 +157,31 @@ fun BittrAppBar(onBack: (() -> Unit)? = null, modifier: Modifier = Modifier) {
 }
 
 /**
- * The card a step's content sits in — white at 9 % over the canvas, 28 dp radius by default.
+ * The card a step's content sits in — iOS's `centerCard`: `yelloworblue1` (which is
+ * [BittrColors.canvas] exactly, so the card is the page's own colour), 13 pt corners and
+ * `setShadow()`. Every iOS card in the app has those corners, and the signup screens, Swap and
+ * Value all give it that fill and shadow. It was the mock's translucent white wash at 28 dp, no
+ * shadow; decision 52.
  *
- * Translucent rather than opaque, which is why it is a [Box] with a background and not
- * a `Surface`: `Surface` with a translucent colour still applies tonal elevation
- * underneath and the result is a muddier yellow than the mock's.
+ * A [Box] with a background rather than a `Surface`, because `Surface` applies tonal elevation
+ * and the result is not the canvas colour.
  *
- * @param shadow iOS's `setShadow()` under the card — see [iosShadow]. The wash is then
- *   filled pre-composited over the canvas, the same pixels made opaque, because a shadow
- *   drawn behind a translucent card would show through it.
- * @param shape the card's corners; a screen matching an iOS card passes that card's radius.
- * @param contentPadding the gutter inside the card; the mock's 22/28 dp by default.
- * @param fill the card's colour; the wash by default. iOS's cards are `yelloworblue1`, which is
- *   [BittrColors.canvas] exactly, so a screen matching iOS passes that.
+ * @param shadow iOS's `setShadow()` under the card — see [iosShadow]. A translucent [fill] is
+ *   filled pre-composited over the canvas, the same pixels made opaque, because a shadow drawn
+ *   behind a translucent card would show through it.
+ * @param shape the card's corners.
+ * @param contentPadding the gutter inside the card; the mock's 22/28 dp by default. A screen
+ *   matched to its storyboard passes that screen's own.
+ * @param fill the card's colour.
  */
 @Composable
 fun BittrCard(
     modifier: Modifier = Modifier,
     horizontalAlignment: Alignment.Horizontal = Alignment.CenterHorizontally,
-    shadow: Boolean = false,
-    shape: Shape = BittrCanvasShapes.card,
+    shadow: Boolean = true,
+    shape: Shape = IosCardShape,
     contentPadding: PaddingValues = PaddingValues(horizontal = CardPaddingHorizontal, vertical = CardPaddingVertical),
-    fill: Color = BittrTheme.colors.cardWash,
+    fill: Color = BittrTheme.colors.canvas,
     content: @Composable ColumnScope.() -> Unit,
 ) {
     val colors = BittrTheme.colors
@@ -218,49 +222,17 @@ fun Modifier.iosShadow(shape: Shape): Modifier = dropShadow(
     ),
 )
 
-/**
- * iOS's primary action as the signup screens draw it (`createWalletView` on Signup1): an ink
- * plate 40 pt high with 8 pt corners, sized to its content — 17 pt, the label in Gilroy Bold
- * 14, 10 pt, the 11 pt `arrowrightwhite`, 17 pt — and centred by its parent, where
- * [BittrPrimaryButton] is a full-width pill.
- */
-@Composable
-fun BittrCompactButton(
-    text: String,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    val colors = BittrTheme.colors
-    val shape = RoundedCornerShape(8.dp)
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(10.dp),
-        modifier = modifier
-            .height(40.dp)
-            .clip(shape)
-            .background(colors.actionFill, shape)
-            .clickable(role = Role.Button, onClick = onClick)
-            .padding(horizontal = 17.dp),
-    ) {
-        Text(
-            text = text,
-            style = MaterialTheme.typography.labelLarge.copy(fontSize = 14.sp, lineHeight = 14.sp),
-            color = colors.onActionFill,
-            // iOS centres the label 1 pt below the plate's centre (`centerY` constant 1).
-            modifier = Modifier.offset(y = 1.dp),
-        )
-        Image(
-            painter = painterResource(R.drawable.bittr_arrow_right),
-            contentDescription = null,
-            colorFilter = ColorFilter.tint(colors.onActionFill),
-            modifier = Modifier.size(11.dp),
-        )
-    }
-}
+/** iOS's card corners: 13 pt on every card in the app. */
+val IosCardShape = RoundedCornerShape(13.dp)
 
 /**
- * The primary action: an ink pill with a white label and a trailing arrow.
+ * The primary action — iOS's `createWalletView` / `buttonView`: an ink plate 40 pt high with 8 pt
+ * corners, sized to its content (17 pt, the label in Gilroy Bold 14 set 1 pt below centre as the
+ * storyboards' `centerY` constant has it, 10 pt, the 11 pt `arrowrightwhite`, 17 pt) and centred
+ * in the width it is given. At least 80 pt wide, as the storyboards pin it. Decision 52.
  *
+ * @param fullWidth the mock's full-width pill instead, for the buttons iOS does not draw this way:
+ *   the PIN pad's, and the ones in alerts and dialogs, which fill the dialog's width.
  * @param enabled false draws the disabled pill, [BittrColors.actionFillDisabled] under
  *   [BittrColors.onActionFillDisabled], and stops clicks.
  * @param dimmed the disabled look without the disabled behaviour, for an action whose tap
@@ -278,9 +250,49 @@ fun BittrPrimaryButton(
     compact: Boolean = false,
     dimmed: Boolean = !enabled,
     wrapLabel: Boolean = false,
+    fullWidth: Boolean = false,
     content: (@Composable () -> Unit)? = null,
 ) {
     val colors = BittrTheme.colors
+    if (!fullWidth) {
+        val shape = RoundedCornerShape(8.dp)
+        val labelColor = if (dimmed) colors.onActionFillDisabled else colors.onActionFill
+        Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxWidth()) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(10.dp, Alignment.CenterHorizontally),
+                modifier = modifier
+                    .then(if (wrapLabel) Modifier.heightIn(min = 40.dp) else Modifier.height(40.dp))
+                    .widthIn(min = 80.dp)
+                    .clip(shape)
+                    .background(if (dimmed) colors.actionFillDisabled else colors.actionFill, shape)
+                    .clickable(enabled = enabled, role = Role.Button, onClick = onClick)
+                    .padding(horizontal = 17.dp, vertical = if (wrapLabel) 10.dp else 0.dp),
+            ) {
+                if (content != null) {
+                    content()
+                } else {
+                    Text(
+                        text = text,
+                        style = MaterialTheme.typography.labelLarge.copy(fontSize = 14.sp, lineHeight = 14.sp),
+                        color = labelColor,
+                        textAlign = TextAlign.Center,
+                        // iOS centres the label 1 pt below the plate's centre (`centerY` constant 1).
+                        modifier = Modifier.offset(y = 1.dp),
+                    )
+                    if (arrow) {
+                        Image(
+                            painter = painterResource(R.drawable.bittr_arrow_right),
+                            contentDescription = null,
+                            colorFilter = ColorFilter.tint(labelColor),
+                            modifier = Modifier.size(11.dp),
+                        )
+                    }
+                }
+            }
+        }
+        return
+    }
     Row(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(10.dp, Alignment.CenterHorizontally),

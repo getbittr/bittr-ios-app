@@ -7,7 +7,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -22,7 +21,7 @@ import com.bittr.android.core.designsystem.BittrBody
 import com.bittr.android.core.designsystem.BittrCanvas
 import com.bittr.android.core.designsystem.BittrCard
 import com.bittr.android.core.designsystem.BittrPiggy
-import com.bittr.android.core.designsystem.BittrCompactButton
+import com.bittr.android.core.designsystem.BittrPrimaryButton
 import com.bittr.android.core.designsystem.BittrTextButton
 import com.bittr.android.core.designsystem.BittrTheme
 import com.bittr.android.core.designsystem.CanvasSpacer
@@ -61,11 +60,8 @@ fun SignupStartScreen(
                 // iOS's `centerCard` sits 15 pt from the screen edges; the mock's gutter is 18.
                 .padding(horizontal = 15.dp),
         ) {
-            // iOS: `centerCard` — `yelloworblue1`, 13 pt corners and `setShadow()`.
+            // iOS: `centerCard` — BittrCard's own look; only the gutter is this screen's.
             BittrCard(
-                shadow = true,
-                shape = RoundedCornerShape(13.dp),
-                fill = BittrTheme.colors.canvas,
                 // Header 20 in from the top and leading edge; the last row 25 above the bottom,
                 // less the half of Restore's 48 dp touch target that iOS's 25 pt row does not have.
                 contentPadding = PaddingValues(start = 20.dp, end = 20.dp, top = 20.dp, bottom = 12.dp),
@@ -94,7 +90,7 @@ fun SignupStartScreen(
                 BittrBody(SignupStrings.CREATE_YOUR_OWN_WALLET, modifier = Modifier.padding(horizontal = 5.dp))
                 CanvasSpacer(30.dp)
 
-                BittrCompactButton(
+                BittrPrimaryButton(
                     text = SignupStrings.CREATE_WALLET,
                     onClick = onCreateWallet,
                     modifier = Modifier.testTag(TestID.Signup.Create.Start.createWalletButton),

@@ -462,7 +462,7 @@ private fun BuyField(
 /** The Next button with its activity indicator — iOS hides the label while busy. */
 @Composable
 private fun BusyButton(text: String, busy: Boolean, dimmed: Boolean, onClick: () -> Unit, tag: String) {
-    Box(Modifier.fillMaxWidth()) {
+    Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxWidth()) {
         BittrPrimaryButton(
             text = if (busy) "" else text,
             onClick = { if (!busy) onClick() },
@@ -470,9 +470,7 @@ private fun BusyButton(text: String, busy: Boolean, dimmed: Boolean, onClick: ()
             // Dimmed until the fields are filled, as iOS's `nextView` is, but still
             // tappable, so the "please fill in" alert is reachable.
             dimmed = dimmed,
-            modifier = Modifier
-                .fillMaxWidth()
-                .testTag(tag),
+            modifier = Modifier.testTag(tag),
         )
         if (busy) {
             BittrSpinner(

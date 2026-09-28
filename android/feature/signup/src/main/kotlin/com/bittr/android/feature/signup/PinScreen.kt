@@ -132,6 +132,8 @@ fun PinScreen(
                 // "Next" carries on to the confirm step; "Confirm" completes in place. iOS's
                 // Signup5 and Signup6, which the review found both reading "Confirm".
                 arrow = confirmLabel == SignupStrings.NEXT,
+                // The PIN pad's button is not iOS's 40 pt plate; it keeps the full-width pill.
+                fullWidth = true,
                 modifier = Modifier.testTag(TestID.Pin.confirmButton),
             )
             // Without a back button the confirm pill would otherwise sit on the

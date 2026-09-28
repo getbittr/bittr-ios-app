@@ -2,6 +2,7 @@ package com.bittr.android.feature.signup
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -10,6 +11,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -25,9 +27,8 @@ import com.bittr.android.core.designsystem.BittrCanvas
 import com.bittr.android.core.designsystem.BittrSpinner
 import com.bittr.android.core.designsystem.BittrCard
 import com.bittr.android.core.designsystem.BittrPrimaryButton
-import com.bittr.android.core.designsystem.BittrStepHeading
+import com.bittr.android.core.designsystem.BittrTextButton
 import com.bittr.android.core.designsystem.BittrTheme
-import com.bittr.android.core.designsystem.BittrTokens
 import com.bittr.android.core.designsystem.CanvasSpacer
 import com.bittr.android.core.designsystem.bittrSwitchColors
 import com.bittr.android.feature.academy.ArticleCard
@@ -67,29 +68,39 @@ fun ConfirmScreen(
             verticalArrangement = Arrangement.Center,
             modifier = Modifier
                 .weight(1f)
-                .padding(horizontal = CanvasGutter),
+                // iOS's `centerCard` sits 15 pt from the screen edges.
+                .padding(horizontal = 15.dp),
         ) {
-            BittrCard {
-                BittrStepHeading(
+            // Signup2's storyboard: the title 30 from the top and 25 from the sides, the
+            // statements 30 below it and 20 from the sides, the button 40 below them, then
+            // Cancel — 10 and a 25 pt row on iOS, then 20 to the card's bottom: 55 below the
+            // button. Cancel's 48 dp touch target takes 48 of those, so the bottom is 8.
+            BittrCard(contentPadding = PaddingValues(start = 20.dp, end = 20.dp, top = 30.dp, bottom = 8.dp)) {
+                Text(
                     text = SignupStrings.CHECK_AND_CONFIRM,
-                    modifier = Modifier.testTag(TestID.Signup.Create.Confirm.topLabel),
+                    // Gilroy Bold 16; Gilroy's line gap puts iOS's lines at 1.24 of the size.
+                    style = MaterialTheme.typography.titleMedium.copy(fontSize = 16.sp, lineHeight = 20.sp),
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier
+                        .padding(horizontal = 5.dp)
+                        .testTag(TestID.Signup.Create.Confirm.topLabel),
                 )
 
-                CanvasSpacer(BittrTokens.Spacing.xl)
+                CanvasSpacer(30.dp)
                 ToggleRow(
                     text = SignupStrings.CHECK_AND_CONFIRM_1,
                     checked = ownBank,
                     onCheckedChange = { ownBank = it },
                     testTag = TestID.Signup.Create.Confirm.switchOne,
                 )
-                CanvasSpacer(BittrTokens.Spacing.lg)
+                CanvasSpacer(20.dp)
                 ToggleRow(
                     text = SignupStrings.CHECK_AND_CONFIRM_2,
                     checked = noRecovery,
                     onCheckedChange = { noRecovery = it },
                     testTag = TestID.Signup.Create.Confirm.switchTwo,
                 )
-                CanvasSpacer(BittrTokens.Spacing.xxl)
+                CanvasSpacer(40.dp)
 
                 BittrPrimaryButton(
                     text = SignupStrings.I_UNDERSTAND,
@@ -102,16 +113,22 @@ fun ConfirmScreen(
                         {
                             BittrSpinner(
                                 strokeWidth = 2.dp,
-                                // The pill is disabled while busy, so its label colour is.
+                                // The plate is disabled while busy, so its label colour is.
                                 color = BittrTheme.colors.onActionFillDisabled,
                                 modifier = Modifier.size(20.dp),
                             )
                         }
                     },
                 )
+                // iOS's `cancelButton`, back to Signup1 — `fresh_install_unhappy.yaml` taps it.
+                BittrTextButton(
+                    text = SignupStrings.CANCEL,
+                    onClick = onBack,
+                    modifier = Modifier.testTag(TestID.Signup.Create.Confirm.cancelButton),
+                )
             }
             if (onOpenArticle != null) {
-                CanvasSpacer(BittrTokens.Spacing.lg)
+                CanvasSpacer(30.dp)
                 // Signup2's `pageArticle1Slug = "what-is-a-bitcoin-wallet"`.
                 ArticleCard(slug = BittrArticles.WHAT_IS_A_BITCOIN_WALLET, onOpen = onOpenArticle)
             }
@@ -126,9 +143,10 @@ private fun ToggleRow(
     onCheckedChange: (Boolean) -> Unit,
     testTag: String,
 ) {
+    // iOS: the switch, 20 pt, then the statement in Gilroy Regular 15, top-aligned with it.
     Row(
         verticalAlignment = Alignment.Top,
-        horizontalArrangement = Arrangement.spacedBy(BittrTokens.Spacing.md),
+        horizontalArrangement = Arrangement.spacedBy(20.dp),
         modifier = Modifier.fillMaxWidth(),
     ) {
         Switch(
@@ -139,7 +157,7 @@ private fun ToggleRow(
         )
         Text(
             text = text,
-            style = MaterialTheme.typography.bodyMedium,
+            style = MaterialTheme.typography.bodyMedium.copy(fontSize = 15.sp, lineHeight = 18.5.sp),
             textAlign = TextAlign.Start,
             modifier = Modifier.weight(1f),
         )
