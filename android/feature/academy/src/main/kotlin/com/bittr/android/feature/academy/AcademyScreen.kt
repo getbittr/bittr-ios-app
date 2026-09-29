@@ -51,6 +51,7 @@ import com.bittr.android.core.common.TestID
 import com.bittr.android.core.designsystem.AppBarContentInset
 import com.bittr.android.core.designsystem.BittrCanvas
 import com.bittr.android.core.designsystem.BittrSheet
+import com.bittr.android.core.designsystem.exposeTestTags
 import com.bittr.android.core.designsystem.BittrTheme
 import com.bittr.android.core.designsystem.BittrTokens
 import com.bittr.android.core.designsystem.CanvasSpacer
@@ -103,18 +104,22 @@ fun AcademyScreen(
     // same way the signup pages' articles open: the Academy stays underneath, dimmed.
     if (lesson != null) {
         Dialog(onDismissRequest = {}, properties = SheetDialog) {
-            BittrSheet(onDismissed = { openLesson = null }) { dismiss ->
-                OneLessonScreen(
-                    lesson = lesson,
-                    // `nextPage` on the last page: the lesson is recorded as completed, and the
-                    // sheet goes down with the next lesson already unlocked under it.
-                    onCompleted = {
-                        store.markCompleted(lesson.id)
-                        state = state.completing(lesson.id)
-                        dismiss()
-                    },
-                    onClose = dismiss,
-                )
+            // Its own window, so its own `testTagsAsResourceId` — `academy.nextPageButton` and the
+            // rest are inside it. BittrSheet sets it as well; this keeps the rule visible here.
+            Box(Modifier.exposeTestTags()) {
+                BittrSheet(onDismissed = { openLesson = null }) { dismiss ->
+                    OneLessonScreen(
+                        lesson = lesson,
+                        // `nextPage` on the last page: the lesson is recorded as completed, and the
+                        // sheet goes down with the next lesson already unlocked under it.
+                        onCompleted = {
+                            store.markCompleted(lesson.id)
+                            state = state.completing(lesson.id)
+                            dismiss()
+                        },
+                        onClose = dismiss,
+                    )
+                }
             }
         }
     }

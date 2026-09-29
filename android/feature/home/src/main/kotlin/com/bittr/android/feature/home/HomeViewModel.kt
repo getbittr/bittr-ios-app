@@ -193,5 +193,8 @@ class HomeViewModel @Inject constructor(
     }
 }
 
-/** The display currency when the source cannot say which one the user chose — iOS defaults to euros. */
-private const val DEFAULT_SYMBOL = "€"
+/**
+ * The display currency when the source cannot say which one the user chose. CHF: this app serves
+ * Switzerland only, and `CurrencyDefaultGuardTest` holds every path to it.
+ */
+private const val DEFAULT_SYMBOL = "CHF"

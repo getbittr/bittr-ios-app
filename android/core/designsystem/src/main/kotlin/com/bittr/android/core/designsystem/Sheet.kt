@@ -85,7 +85,9 @@ fun BittrSheet(
     }
     BackHandler(onBack = dismiss)
 
-    Box(Modifier.fillMaxSize()) {
+    // A dialog window is its own semantics root and does not inherit the app's
+    // `testTagsAsResourceId`: without this, Maestro sees none of the ids inside.
+    Box(Modifier.fillMaxSize().exposeTestTags()) {
         AnimatedVisibility(
             visibleState = visible,
             enter = fadeIn(spring(stiffness = SheetStiffness)),
@@ -175,7 +177,9 @@ fun BittrPopup(
     BackHandler(onBack = dismiss)
 
     val shown = if (panelHeight > 0f) (1f - offset.value / panelHeight).coerceIn(0f, 1f) else 0f
-    Box(Modifier.fillMaxSize()) {
+    // A dialog window is its own semantics root and does not inherit the app's
+    // `testTagsAsResourceId`: without this, Maestro sees none of the ids inside.
+    Box(Modifier.fillMaxSize().exposeTestTags()) {
         Box(
             modifier = Modifier
                 .fillMaxSize()
