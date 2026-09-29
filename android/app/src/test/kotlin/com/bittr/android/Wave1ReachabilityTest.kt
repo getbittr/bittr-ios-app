@@ -108,7 +108,7 @@ class Wave1ReachabilityTest {
             "Routes.VALUE" to "ValueScreen(",
             "Routes.MAP" to "MapScreen(",
         ).forEach { (route, screen) ->
-            val body = routeBody(source, "composable($route)")
+            val body = routeBody(source, "sheet(navController, $route)")
             assertTrue(
                 "The $route destination no longer composes $screen. A destination that " +
                     "registers and draws nothing is the shape a merge conflict resolves " +

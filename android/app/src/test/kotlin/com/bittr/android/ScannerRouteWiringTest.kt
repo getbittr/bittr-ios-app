@@ -64,12 +64,12 @@ class ScannerRouteWiringTest {
         )
     }
 
-    /** The `composable(Routes.SCANNER) { … }` block, by brace matching. */
+    /** The `sheet(navController, Routes.SCANNER) { … }` block, by brace matching. */
     private fun scannerRouteBody(source: String): String {
-        val marker = "composable(Routes.SCANNER)"
+        val marker = "sheet(navController, Routes.SCANNER)"
         val start = source.indexOf(marker)
         assertTrue(
-            "No `composable(Routes.SCANNER)` in the navigation graph. If the scanner " +
+            "No `sheet(navController, Routes.SCANNER)` in the navigation graph. If the scanner " +
                 "moved to a nested graph, point this test at it rather than deleting it.",
             start >= 0,
         )

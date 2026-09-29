@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Modifier
+import androidx.navigation.NamedNavArgument
 import androidx.navigation.NavBackStackEntry
 import androidx.navigation.NavGraph
 import com.bittr.android.core.designsystem.BittrAppBarLogoOverlay
@@ -540,34 +541,37 @@ fun BittrNavHost(
                     )
                 }
 
-                composable(Routes.BUY) {
+                // Home's destinations are page sheets over it, as iOS presents them from HomeViewController —
+                // and so is everything they open in turn, so a sheet is never popped from under the one
+                // it opened (navigating to an ordinary destination closes every dialog above it).
+                sheet(navController, Routes.BUY) { _, dismiss ->
                     val buy: BuyViewModel = hiltViewModel()
                     BuyRoute(
                         source = buy.source,
-                        onDown = { navController.popBackStack() },
+                        onDown = dismiss,
                         onOpenArticle = { slug -> navController.navigate(Routes.article(slug)) },
                     )
                 }
 
-                composable(Routes.PROFITS) {
+                sheet(navController, Routes.PROFITS) { _, dismiss ->
                     val profits: ProfitsViewModel = hiltViewModel()
                     val summary by profits.summary.collectAsState()
                     ProfitsScreen(
                         summary = summary ?: ProfitSummary(0, 0, 0, "€"),
-                        onDown = { navController.popBackStack() },
+                        onDown = dismiss,
                     )
                 }
 
-                composable(Routes.VALUE) {
+                sheet(navController, Routes.VALUE) { _, dismiss ->
                     ValueScreen(
                         environment = environment,
                         http = http,
-                        onBack = { navController.popBackStack() },
+                        onBack = dismiss,
                     )
                 }
 
-                composable(Routes.MAP) {
-                    MapScreen(onBack = { navController.popBackStack() })
+                sheet(navController, Routes.MAP) { _, dismiss ->
+                    MapScreen(onBack = dismiss)
                 }
 
                 // iOS presents the article as a page sheet (`CoreToArticle`): a dialog destination,
@@ -585,12 +589,12 @@ fun BittrNavHost(
                     }
                 }
 
-                composable(Routes.RECEIVE) {
+                sheet(navController, Routes.RECEIVE) { _, dismiss ->
                     val receive: ReceiveViewModel = hiltViewModel()
-                    ReceiveRoute(source = receive.source, onDown = { navController.popBackStack() })
+                    ReceiveRoute(source = receive.source, onDown = dismiss)
                 }
 
-                composable(Routes.SEND) { entry ->
+                sheet(navController, Routes.SEND) { entry, dismiss ->
                     val send: SendViewModel = hiltViewModel()
                     // Taken once, when Send opens: reopening Send must not replay a page's LNURL.
                     val lnurlRequest = remember { webLnurl.take() }
@@ -598,7 +602,7 @@ fun BittrNavHost(
                     val scanned by entry.savedStateHandle.getStateFlow<Destination?>(ScannerResult.KEY, null).collectAsState()
                     SendRoute(
                         source = send.source,
-                        onDown = { navController.popBackStack() },
+                        onDown = dismiss,
                         onOpenScanner = { navController.navigate(Routes.SCANNER) },
                         onOpenTransaction = { id -> navController.openTransaction(id) },
                         onOpenLightningQuestion = { navController.navigate(Routes.SEND_QUESTION) },
@@ -614,9 +618,9 @@ fun BittrNavHost(
                     )
                 }
 
-                composable(Routes.MOVE) {
+                sheet(navController, Routes.MOVE) { _, dismiss ->
                     MoveScreen(
-                        onDown = { navController.popBackStack() },
+                        onDown = dismiss,
                         onSend = { navController.navigate(Routes.SEND) },
                         onReceive = { navController.navigate(Routes.RECEIVE) },
                         // The same lightning-connections card Device details opens.
@@ -627,24 +631,25 @@ fun BittrNavHost(
 
                 swapArea(navController)
 
-                composable(Routes.SEND_QUESTION) {
+                sheet(navController, Routes.SEND_QUESTION) { _, dismiss ->
                     // `lightningsendable`: the channel chart when there is an active channel.
                     LightningSendableQuestionScreen(
-                        onDown = { navController.popBackStack() },
+                        onDown = dismiss,
                         channel = hiltViewModel<LightningQuestionViewModel>().channel.collectAsState().value,
                     )
                 }
 
-                composable(Routes.CHANNEL_CLOSED) {
+                sheet(navController, Routes.CHANNEL_CLOSED) { _, dismiss ->
                     QuestionScreen(
                         title = ChannelClosedCard.TITLE,
                         answer = channelClosedAnswer,
-                        onDown = { navController.popBackStack() },
+                        onDown = dismiss,
                     )
                 }
 
-                composable(
-                    route = Routes.TRANSACTION,
+                sheet(
+                    navController,
+                    Routes.TRANSACTION,
                     arguments = listOf(
                         navArgument(TransactionViewModel.ID_ARG) { type = NavType.StringType },
                         navArgument(TransactionViewModel.CONFETTI_ARG) {
@@ -652,23 +657,24 @@ fun BittrNavHost(
                             defaultValue = false
                         },
                     ),
-                ) {
+                ) { _, dismiss ->
                     TransactionScreen(
-                        onDown = { navController.popBackStack() },
+                        onDown = dismiss,
                         onOpenExplorer = { txId -> navController.navigate(Routes.explorer(txId)) },
                         onOpenSwapStatus = { boltzId -> navController.navigate(SwapRoutes.status(boltzId)) },
                     )
                 }
 
-                composable(
-                    route = Routes.EXPLORER,
+                sheet(
+                    navController,
+                    Routes.EXPLORER,
                     arguments = listOf(navArgument(Routes.EXPLORER_ARG) { type = NavType.StringType }),
-                ) { entry ->
+                ) { entry, dismiss ->
                     val txId = entry.arguments?.getString(Routes.EXPLORER_ARG).orEmpty()
-                    WebsiteScreen(url = explorerUrl(txId), onClose = { navController.popBackStack() })
+                    WebsiteScreen(url = explorerUrl(txId), onClose = dismiss)
                 }
 
-                composable(Routes.SCANNER) {
+                sheet(navController, Routes.SCANNER) { _, dismiss ->
                     // What the camera read is parsed here, by the same entry point the paste
                     // control will feed — one parser for both, as on iOS
                     // (`AddressParsing.swift:15`) — and handed back to whoever opened the
@@ -679,7 +685,7 @@ fun BittrNavHost(
                     // of the seam BIT-72 deliberately left for BIT-100.
                     ScannerScreen(
                         onScanned = { scanned -> ScannerResult.handleScan(navController, scanned, network) },
-                        onClose = { navController.popBackStack() },
+                        onClose = dismiss,
                     )
                 }
 
@@ -869,6 +875,25 @@ private fun CoveredByLaterSheets(
     val top by navController.currentBackStackEntryAsState()
     val covered = top != null && top?.id != entry.id
     Box(if (covered) Modifier.clearAndSetSemantics {} else Modifier) { content() }
+}
+
+/**
+ * A destination presented as iOS's page sheet: a dialog destination, so the screen it opened over
+ * stays drawn underneath, with [BittrSheet] sliding it up and, on [content]'s `dismiss`, back down
+ * before the entry is popped. Covered by a later sheet, it leaves the semantics tree until it is
+ * on top again.
+ */
+internal fun NavGraphBuilder.sheet(
+    navController: NavHostController,
+    route: String,
+    arguments: List<NamedNavArgument> = emptyList(),
+    content: @Composable (entry: NavBackStackEntry, dismiss: () -> Unit) -> Unit,
+) {
+    dialog(route = route, arguments = arguments, dialogProperties = OverlayDialog) { entry ->
+        CoveredByLaterSheets(navController, entry) {
+            BittrSheet(onDismissed = { navController.popBackStack() }) { dismiss -> content(entry, dismiss) }
+        }
+    }
 }
 
 /**
