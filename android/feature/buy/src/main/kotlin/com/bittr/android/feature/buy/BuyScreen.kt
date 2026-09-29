@@ -92,14 +92,17 @@ fun BuyRoute(
     onOpenArticle: (String) -> Unit = {},
 ) {
     val scope = rememberCoroutineScope()
-    val controller = remember(source) { BuyController(source, scope) }
+    // Onboarding opens on the IBAN page before the first frame, so the page that slides in from
+    // Signup7 is Transfer1 rather than an empty canvas that fills in once the effect below runs.
+    val controller = remember(source) {
+        BuyController(source, scope).also { if (onboarding) it.onStartSignupAtIban() }
+    }
     val permission = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
         controller.onNotificationPermissionResult(granted)
     }
 
     LaunchedEffect(controller) {
         controller.start()
-        if (onboarding) controller.onStartSignupAtIban()
         controller.effects.collect { effect ->
             when (effect) {
                 BuyEffect.RequestNotificationPermission ->
@@ -129,7 +132,12 @@ fun BuyRoute(
         if (signup == null) {
             if (!onboarding) BuyCards(state = state, controller = controller, onDown = onDown)
         } else {
-            SignupContainer(signup = signup, controller = controller, onOpenArticle = onOpenArticle)
+            SignupContainer(
+                signup = signup,
+                controller = controller,
+                onOpenArticle = onOpenArticle,
+                onboarding = onboarding,
+            )
             if (signup.showInitiative) {
                 InitiativeSheet(onConfirm = controller::onInitiativeConfirm, onCancel = controller::onInitiativeCancel)
             }

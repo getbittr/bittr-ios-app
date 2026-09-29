@@ -338,7 +338,11 @@ fun BittrNavHost(
     val launchLogoVisible = LocalAppBarLogoVisible.current
     val visibleEntries by navController.visibleEntries.collectAsState()
     val visibleRoutes = visibleEntries.map { it.destination }.filter { it !is NavGraph }.map { it.route }
-    val logoPinned = visibleRoutes.any { signupPage(it) != null } && visibleRoutes.all { it in LogoBarRoutes }
+    // The bittr signup on its own is left to draw its own bar: its pages slide inside it, under that
+    // bar, and its alerts are drawn in the page, where the overlay would sit on top of their scrim.
+    val logoPinned = visibleRoutes.any { signupPage(it) != null } &&
+        visibleRoutes.all { it in LogoBarRoutes } &&
+        visibleRoutes != listOf(Routes.SIGNUP_BITTR)
     // The canvas behind every destination. The signup pages' slide overshoots — iOS's spring at
     // damping 0.65 — and for that moment the edge the page has pulled away from shows whatever is
     // behind it; on iOS that is SignupViewController's own yellow, here it was the white window.
@@ -380,7 +384,15 @@ fun BittrNavHost(
                     )
                 }
 
-                composable(Routes.SIGNUP_BITTR) {
+                // Signup7's Next: the bittr signup slides in as the next page of the strip, under
+                // the same top bar, rather than opening as the Buy section's sheet.
+                composable(
+                    Routes.SIGNUP_BITTR,
+                    enterTransition = { signupSlideIn() },
+                    exitTransition = { signupSlideOut() },
+                    popEnterTransition = { signupSlideIn() },
+                    popExitTransition = { signupSlideOut() },
+                ) {
                     val buy: BuyViewModel = hiltViewModel()
                     BuyRoute(
                         source = buy.source,
@@ -627,27 +639,47 @@ fun BittrNavHost(
 private fun signupPage(route: String?): Int? = when (route) {
     Routes.SIGNUP_START -> SignupPage.START
     Routes.SIGNUP_RESTORE -> SignupPage.RESTORE
+    Routes.SIGNUP_BITTR -> SignupPage.TRANSFER
     else -> null
 }
 
-/** The destinations whose logo sits where the app bar's does: the signup pages, Home and PIN. */
-private val LogoBarRoutes = setOf(Routes.SIGNUP_START, Routes.SIGNUP_RESTORE, Routes.HOME, Routes.PIN_UNLOCK)
+/**
+ * The destinations whose logo sits where the app bar's does: the signup pages, the bittr signup
+ * that follows them in onboarding, Home and PIN.
+ */
+private val LogoBarRoutes = setOf(
+    Routes.SIGNUP_START,
+    Routes.SIGNUP_RESTORE,
+    Routes.SIGNUP_BITTR,
+    Routes.HOME,
+    Routes.PIN_UNLOCK,
+)
 
 /**
- * iOS's page slide between two signup destinations (Signup1 and Restore, pages 3 and 2), and
- * nothing — so the NavHost's own transition — for any other pair.
+ * The pages a slide between two signup destinations runs from and to, or null for any other pair.
+ * The create arc is one destination on Signup1's page number; the only way from it to the bittr
+ * signup is Signup7's Next, so that edge leaves from Signup7's page.
  */
-private fun AnimatedContentTransitionScope<NavBackStackEntry>.signupSlideIn(): EnterTransition? {
-    val from = signupPage(initialState.destination.route) ?: return null
-    val to = signupPage(targetState.destination.route) ?: return null
-    return pageSlideIn(from, to)
+private fun AnimatedContentTransitionScope<NavBackStackEntry>.signupPages(): Pair<Int, Int>? {
+    val fromRoute = initialState.destination.route
+    val toRoute = targetState.destination.route
+    val to = signupPage(toRoute) ?: return null
+    val from = when {
+        fromRoute == Routes.SIGNUP_START && toRoute == Routes.SIGNUP_BITTR -> SignupPage.READY
+        else -> signupPage(fromRoute) ?: return null
+    }
+    return from to to
 }
 
-private fun AnimatedContentTransitionScope<NavBackStackEntry>.signupSlideOut(): ExitTransition? {
-    val from = signupPage(initialState.destination.route) ?: return null
-    val to = signupPage(targetState.destination.route) ?: return null
-    return pageSlideOut(from, to)
-}
+/**
+ * iOS's page slide between two signup destinations — Signup1 and Restore (pages 3 and 2), Signup7
+ * and Transfer1 (9 and 10) — and nothing, so the NavHost's own transition, for any other pair.
+ */
+private fun AnimatedContentTransitionScope<NavBackStackEntry>.signupSlideIn(): EnterTransition? =
+    signupPages()?.let { (from, to) -> pageSlideIn(from, to) }
+
+private fun AnimatedContentTransitionScope<NavBackStackEntry>.signupSlideOut(): ExitTransition? =
+    signupPages()?.let { (from, to) -> pageSlideOut(from, to) }
 
 /**
  * The Settings area — Settings, the three website pages, Device details and the

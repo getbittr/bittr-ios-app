@@ -36,6 +36,12 @@ object SignupPage {
 
     /** `Signup7` — the wallet is ready. */
     const val READY = 9
+
+    /**
+     * `Transfer1` — the bittr signup's IBAN page, a destination of its own here. The bittr
+     * signup's later pages slide inside it, as `RegisterIbanViewController`'s do.
+     */
+    const val TRANSFER = 10
 }
 
 internal val CreateWalletStep.page: Int

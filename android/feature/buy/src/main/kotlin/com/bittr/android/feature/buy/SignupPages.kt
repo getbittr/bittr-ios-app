@@ -4,12 +4,17 @@ import android.content.ContentValues
 import android.graphics.Bitmap
 import android.os.Build
 import android.provider.MediaStore
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.ui.text.TextStyle
+import com.bittr.android.core.designsystem.appBarContentPadding
+import com.bittr.android.core.designsystem.pageSlide
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -60,7 +65,6 @@ import com.bittr.android.core.designsystem.BittrPartnerRowWidth
 import androidx.compose.foundation.layout.height
 import com.bittr.android.core.designsystem.BittrTonalButton
 import androidx.compose.ui.unit.sp
-import com.bittr.android.core.designsystem.BittrCanvasShapes
 import com.bittr.android.core.designsystem.dismissOnPullDown
 import com.bittr.android.core.designsystem.BittrCanvas
 import com.bittr.android.core.designsystem.BittrCard
@@ -75,33 +79,65 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
-/** `RegisterIbanViewController` — the header, and whichever of the five pages is current. */
+/**
+ * The five bittr signup pages and what they sit in. They slide between one another as the
+ * wallet's signup pages do (`moveToPage`), [SignupPage]'s order being their place in the strip.
+ *
+ * Two hosts, as on iOS. In the Buy section they are `RegisterIbanViewController`'s pages 0–4,
+ * under its "buy bitcoin" header, and pull down to close. In onboarding ([onboarding]) they are
+ * `SignupViewController`'s pages 10–13 after Signup7: under the logo top bar, which stays put as
+ * the pages slide beneath it, and with no header or pull-down.
+ *
+ * Every page is laid out as the storyboards have them: `centerCard` 15 from the screen edges and
+ * the article card 30 under it, centred together 40 above the middle.
+ */
 @Composable
-internal fun SignupContainer(signup: SignupUiState, controller: BuyController, onOpenArticle: (String) -> Unit = {}) {
+internal fun SignupContainer(
+    signup: SignupUiState,
+    controller: BuyController,
+    onOpenArticle: (String) -> Unit = {},
+    onboarding: Boolean = false,
+) {
     val focus = LocalFocusManager.current
-    BittrCanvas(modifier = Modifier.dismissOnPullDown(controller::onCloseSignup), appBar = false) {
-        BittrModalHeader(
-            title = BuyStrings.BUY_BITCOIN,
-            onDown = controller::onCloseSignup,
-            titleTestTag = TestID.Header.titleLabel,
-            downTestTag = TestID.Header.downButton,
-        )
-        Column(
-            verticalArrangement = Arrangement.Center,
+    BittrCanvas(
+        modifier = if (onboarding) Modifier else Modifier.dismissOnPullDown(controller::onCloseSignup),
+        appBar = onboarding,
+        scrollsUnderAppBar = onboarding,
+    ) {
+        if (!onboarding) {
+            BittrModalHeader(
+                title = BuyStrings.BUY_BITCOIN,
+                onDown = controller::onCloseSignup,
+                titleTestTag = TestID.Header.titleLabel,
+                downTestTag = TestID.Header.downButton,
+            )
+        }
+        AnimatedContent(
+            targetState = signup.page,
+            transitionSpec = { pageSlide(initialState.ordinal, targetState.ordinal) },
+            label = "bittrSignupPages",
             modifier = Modifier
                 .weight(1f)
-                .fillMaxWidth()
-                .imePadding()
-                .verticalScroll(rememberScrollState())
-                .tapToClearFocus { focus.clearFocus() }
-                .padding(BittrTokens.Spacing.md),
-        ) {
-            when (signup.page) {
-                SignupPage.Ready -> ReadyPage(onNext = controller::onReadyNext, onOpenArticle = onOpenArticle)
-                SignupPage.Start -> StartPage(signup, controller, onOpenArticle)
-                SignupPage.Otp -> OtpPage(signup, controller)
-                SignupPage.Success -> SuccessPage(controller)
-                SignupPage.TransferInfo -> TransferInfoPage(controller)
+                .fillMaxWidth(),
+        ) { page ->
+            Column(
+                verticalArrangement = Arrangement.Center,
+                horizontalAlignment = Alignment.CenterHorizontally,
+                modifier = Modifier
+                    .fillMaxSize()
+                    .imePadding()
+                    .verticalScroll(rememberScrollState())
+                    .tapToClearFocus { focus.clearFocus() }
+                    .then(if (onboarding) Modifier.appBarContentPadding() else Modifier)
+                    .padding(start = 15.dp, end = 15.dp, bottom = 80.dp),
+            ) {
+                when (page) {
+                    SignupPage.Ready -> ReadyPage(onNext = controller::onReadyNext, onOpenArticle = onOpenArticle)
+                    SignupPage.Start -> StartPage(signup, controller, onOpenArticle)
+                    SignupPage.Otp -> OtpPage(signup, controller)
+                    SignupPage.Success -> SuccessPage(controller)
+                    SignupPage.TransferInfo -> TransferInfoPage(controller)
+                }
             }
         }
     }
@@ -134,7 +170,12 @@ private fun ReadyPage(onNext: () -> Unit, onOpenArticle: (String) -> Unit) {
     ArticleCard(slug = BittrArticles.WHAT_IS_BITTR, onOpen = onOpenArticle)
 }
 
-/** `Transfer1ViewController`. */
+/**
+ * `Transfer1ViewController`, as its scene is: in the card, 30 from its top and 25 from its sides,
+ * the line in Gilroy Regular 16; 30 below, the IBAN question in Gilroy Bold 16 and its field 10
+ * under it; 30 below, the email question and its field; Verify 30 below, "I don't have an IBAN"
+ * under it, and 25 of card under that row. Every label centred.
+ */
 @Composable
 private fun StartPage(signup: SignupUiState, controller: BuyController, onOpenArticle: (String) -> Unit) {
     val focus = LocalFocusManager.current
@@ -144,22 +185,28 @@ private fun StartPage(signup: SignupUiState, controller: BuyController, onOpenAr
     LaunchedEffect(Unit) { runCatching { ibanFocus.requestFocus() } }
     val enabled = controller.canVerify(signup)
 
-    BittrCard(horizontalAlignment = Alignment.Start) {
+    // The skip row's 25 pt sits 25 above the card's bottom on iOS; its 48 dp touch target spends
+    // 11.5 of that.
+    BittrCard(contentPadding = PaddingValues(start = 25.dp, end = 25.dp, top = 30.dp, bottom = 13.dp)) {
         Text(
             BuyStrings.BITTR_INSTRUCTIONS_4,
-            style = MaterialTheme.typography.titleMedium,
+            style = CardBody,
+            textAlign = TextAlign.Center,
             modifier = Modifier
                 .fillMaxWidth()
                 .tapToClearFocus { focus.clearFocus() }
                 .testTag(TestID.Signup.Bittr.Start.topLabelOne),
         )
-        CanvasSpacer(BittrTokens.Spacing.lg)
+        CanvasSpacer(30.dp)
         Text(
             BuyStrings.WHATS_YOUR_IBAN,
-            style = MaterialTheme.typography.bodyMedium,
-            modifier = Modifier.testTag(TestID.Signup.Bittr.Start.topLabelTwo),
+            style = CardQuestion,
+            textAlign = TextAlign.Center,
+            modifier = Modifier
+                .fillMaxWidth()
+                .testTag(TestID.Signup.Bittr.Start.topLabelTwo),
         )
-        CanvasSpacer(BittrTokens.Spacing.sm)
+        CanvasSpacer(10.dp)
         BuyField(
             value = signup.iban,
             onValueChange = controller::onIbanChange,
@@ -174,13 +221,16 @@ private fun StartPage(signup: SignupUiState, controller: BuyController, onOpenAr
             ),
             onImeAction = { emailFocus.requestFocus() },
         )
-        CanvasSpacer(BittrTokens.Spacing.lg)
+        CanvasSpacer(30.dp)
         Text(
             BuyStrings.WHATS_YOUR_EMAIL,
-            style = MaterialTheme.typography.bodyMedium,
-            modifier = Modifier.testTag(TestID.Signup.Bittr.Start.topLabelThree),
+            style = CardQuestion,
+            textAlign = TextAlign.Center,
+            modifier = Modifier
+                .fillMaxWidth()
+                .testTag(TestID.Signup.Bittr.Start.topLabelThree),
         )
-        CanvasSpacer(BittrTokens.Spacing.sm)
+        CanvasSpacer(10.dp)
         BuyField(
             value = signup.email,
             onValueChange = controller::onEmailChange,
@@ -201,7 +251,7 @@ private fun StartPage(signup: SignupUiState, controller: BuyController, onOpenAr
                 }
             },
         )
-        CanvasSpacer(BittrTokens.Spacing.xl)
+        CanvasSpacer(30.dp)
         BusyButton(
             text = BuyStrings.VERIFY,
             busy = signup.busy,
@@ -212,6 +262,7 @@ private fun StartPage(signup: SignupUiState, controller: BuyController, onOpenAr
             },
             tag = TestID.Signup.Bittr.Start.nextButton,
         )
+        // iOS leaves 10 pt and a 25 pt row; the 48 dp touch target spends the 10.
         BittrTextButton(
             text = BuyStrings.NO_IBAN,
             onClick = {
@@ -221,10 +272,18 @@ private fun StartPage(signup: SignupUiState, controller: BuyController, onOpenAr
             modifier = Modifier.testTag(TestID.Signup.Bittr.Start.skipButton),
         )
     }
-    CanvasSpacer(BittrTokens.Spacing.lg)
+    CanvasSpacer(30.dp)
     // Transfer1's `pageArticle1Slug = "supported-countries"`.
     ArticleCard(slug = BittrArticles.SUPPORTED_COUNTRIES, onOpen = onOpenArticle)
 }
+
+/** The Transfer pages' explanatory lines: Gilroy Regular 16. */
+private val CardBody: TextStyle
+    @Composable get() = MaterialTheme.typography.bodyLarge.copy(fontSize = 16.sp, lineHeight = 20.sp)
+
+/** The Transfer pages' questions over their fields: Gilroy Bold 16. */
+private val CardQuestion: TextStyle
+    @Composable get() = MaterialTheme.typography.titleMedium.copy(fontSize = 16.sp, lineHeight = 20.sp)
 
 /** `Transfer2ViewController`. */
 @Composable
@@ -414,6 +473,9 @@ private fun InfoCard(title: String, label: String, titleTag: String, labelTag: S
  *
  * The box and the field are parent and child, not siblings, so both keep their ids: a sibling
  * layer covering the field would drop one of them from the accessibility tree.
+ *
+ * iOS's `ibanView` / `emailView` / `codeView`: white in both schemes, 260 by 45 with 8 pt
+ * corners, the text field 15 in from each side, in Gilroy Regular 16, black and centred.
  */
 @Composable
 private fun BuyField(
@@ -426,25 +488,32 @@ private fun BuyField(
     keyboard: KeyboardOptions,
     onImeAction: () -> Unit,
 ) {
+    val colors = BittrTheme.colors
+    val textStyle = CardBody.copy(textAlign = TextAlign.Center)
     Box(
-        contentAlignment = Alignment.CenterStart,
+        contentAlignment = Alignment.Center,
         modifier = Modifier
-            .fillMaxWidth()
-            .heightIn(min = 56.dp)
-            .background(MaterialTheme.colorScheme.surfaceContainer, BittrCanvasShapes.field)
+            .size(width = 260.dp, height = 45.dp)
+            .background(colors.phraseCard, BuyFieldShape)
             .pointerInput(Unit) { detectTapGestures { runCatching { focusRequester.requestFocus() } } }
             .testTag(buttonTag)
-            .padding(horizontal = BittrTokens.Spacing.md),
+            .padding(horizontal = 15.dp),
     ) {
         if (value.isEmpty()) {
-            Text(placeholder, style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f))
+            Text(
+                placeholder,
+                style = textStyle,
+                color = colors.phrasePlaceholder,
+                maxLines = 1,
+                modifier = Modifier.fillMaxWidth(),
+            )
         }
         BasicTextField(
             value = value,
             onValueChange = onValueChange,
             singleLine = true,
-            textStyle = MaterialTheme.typography.bodyLarge.copy(color = MaterialTheme.colorScheme.onSurface),
-            cursorBrush = SolidColor(MaterialTheme.colorScheme.onSurface),
+            textStyle = textStyle.copy(color = colors.onPhraseCard),
+            cursorBrush = SolidColor(colors.onPhraseCard),
             keyboardOptions = keyboard,
             keyboardActions = KeyboardActions(onAny = { onImeAction() }),
             modifier = Modifier
@@ -463,6 +532,8 @@ private fun BuyField(
         )
     }
 }
+
+private val BuyFieldShape = RoundedCornerShape(8.dp)
 
 /** The Next button with its activity indicator — iOS hides the label while busy. */
 @Composable
