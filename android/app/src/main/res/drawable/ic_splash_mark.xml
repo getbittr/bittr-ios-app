@@ -1,36 +1,17 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- The splash screen's icon. A 288 dp viewport with the art inside the central 192 dp, which
-     is what the platform masks a splash icon to; the brand yellow behind it comes from
-     windowSplashScreenBackground in themes.xml.
+<!-- The splash screen's icon: iOS's LaunchScreen.storyboard, which is the launch animation's
+     first frame — `coin1` (the white disc and the slot's black wedge) at 30 dp, the yellow coin at
+     0.7 of it in its centre, and the slot's shading (`coin3`) at 0.63 of it at the lower left.
+     LaunchAnimation starts from exactly these pieces at this size and place, so the hand-off from
+     the splash has no seam. Yellow in dark mode too, as on iOS.
 
-     The art is then scaled to 30 dp — LaunchAnimation's LOGO_HEIGHT, the size the mark
-     holds through the whole of stage 1. The splash is the animation's first frame, so the
-     two have to be the same mark at the same size in the same place: at the drawable's own
-     size the mark came up five times too big and snapped down the instant Compose drew,
-     which is the "jump" iOS does not have (its launch screen is the lockup at rest). -->
-<vector xmlns:android="http://schemas.android.com/apk/res/android"
-    android:width="288dp"
-    android:height="288dp"
-    android:viewportWidth="288"
-    android:viewportHeight="288">
-    <group
-        android:pivotX="144"
-        android:pivotY="144"
-        android:scaleX="0.2011"
-        android:scaleY="0.2011">
-    <group
-        android:translateX="69.000"
-        android:translateY="67.189"
-        android:scaleX="0.88235"
-        android:scaleY="0.88235">
-        <group android:translateY="-308.156">
-            <path
-                android:fillColor="#0D0D0D"
-                android:pathData="M2.995,373.411c-8.792,32.451,1.945,68.461,30.086,90.485c22.26,17.421,50.392,22.179,75.729,15.33L2.995,373.411z" />
-            <path
-                android:fillColor="#FFFFFF"
-                android:pathData="M139.379,328.104c-37.491-29.355-91.69-22.753-121.045,14.737c-2.52,3.214-4.757,6.565,-6.748,10.007l17.741,17.741l0,0c2.027-4.538,4.629-8.912,7.834-13.002c21.21-27.1,60.372-31.866,87.472-10.656c27.1,21.211,31.866,60.372,10.656,87.472c-6.492,8.291,-14.664,14.481-23.658,18.48l17.75,17.75c9.286-5.359,17.723-12.536,24.735-21.493c29.355,-37.5,22.753-91.69-14.737-121.045V328.104z" />
-        </group>
-    </group>
-    </group>
-</vector>
+     **One image of the whole 288 dp canvas** (drawable-xxxhdpi/launch_splash_frame.png, rendered
+     from iOS's pieces), with the art in the central 192 dp the platform masks a splash icon to.
+     The system draws the icon at a base size of its own and scales the result, so the icon has to
+     scale as one piece: as a layer list of fixed-size pieces it came up several times too big and
+     snapped down to 30 dp when the app drew, and percentage insets misreport the drawable's size.
+     The coin is in the splash's own yellow rather than iOS's `coin4`, a shade off it. -->
+<bitmap xmlns:android="http://schemas.android.com/apk/res/android"
+    android:src="@drawable/launch_splash_frame"
+    android:filter="true"
+    android:gravity="fill" />

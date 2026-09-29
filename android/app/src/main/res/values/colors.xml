@@ -1,7 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
   The one colour the platform needs outside Compose: the splash background. Everything
-  else lives in BittrColors (:core:designsystem) — see themes.xml.
+  else lives in BittrColors (:core:designsystem) — see themes.xml. The same yellow in dark
+  mode, as on iOS: the launch animation is yellow in both, and the mode shows only once its
+  cover fades.
 -->
 <resources>
     <color name="brand_canvas">#FFC502</color>
