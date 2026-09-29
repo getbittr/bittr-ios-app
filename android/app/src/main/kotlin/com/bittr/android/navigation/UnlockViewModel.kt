@@ -93,6 +93,8 @@ data class UnlockUiState(
     val step: UnlockStep = UnlockStep.Pin,
     val alert: UnlockAlert? = null,
     val busy: Boolean = false,
+    /** Confirms that did not unlock — the pad empties each time this goes up. */
+    val rejections: Int = 0,
 )
 
 /**
@@ -191,7 +193,11 @@ class UnlockViewModel @Inject constructor(
                 PinLockout.isWarning(failures) -> UnlockAlert.Warning(failures)
                 else -> UnlockAlert.IncorrectPin(failures)
             }
-            _uiState.value = _uiState.value.copy(busy = false, alert = alert)
+            _uiState.value = _uiState.value.copy(
+                busy = false,
+                alert = alert,
+                rejections = _uiState.value.rejections + 1,
+            )
         }
     }
 
@@ -351,7 +357,7 @@ class UnlockViewModel @Inject constructor(
      * leaves for signup when it does.
      */
     private fun lockedOut() {
-        _uiState.value = _uiState.value.copy(busy = false)
+        _uiState.value = _uiState.value.copy(busy = false, rejections = _uiState.value.rejections + 1)
         removal.lockedOut()
     }
 

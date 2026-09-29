@@ -24,6 +24,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.ripple
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -76,12 +77,13 @@ import com.bittr.android.core.wallet.seed.SeedWalletService
  * @param onBack the secondary button under Confirm. iOS's `restoreWalletButton`: Back
  *   on the signup steps, "Forgot PIN" on unlock — one button and one id
  *   ([TestID.Pin.restoreButton]) in both, with [backLabel] saying which it is.
- * @param clearOnSubmit empty the cells after Confirm. True on unlock, which is where
- *   the screen stays put after a rejection and iOS calls `clearPinField()` — without
- *   it the next four taps append to the digits that were just refused, and at the
- *   eight-digit cap the pad stops accepting input entirely. False on the signup steps,
- *   matching `Signup6ViewController`, where a mismatch leaves what was typed so the
- *   user can correct a single digit rather than retype all of it.
+ * @param clearKey empty the cells whenever this changes — `clearPinField()`, which iOS calls
+ *   on unlock when a PIN is refused, and only then: a PIN that unlocks stays in the cells,
+ *   the button stays live, while the pad slides away to Home. Without the clearing the next
+ *   four taps would append to the digits just refused, and at the eight-digit cap the pad
+ *   would stop accepting input entirely. Left alone on the signup steps, matching
+ *   `Signup6ViewController`, where a mismatch leaves what was typed so the user can correct
+ *   a single digit rather than retype all of it.
  */
 @Composable
 fun PinScreen(
@@ -92,9 +94,11 @@ fun PinScreen(
     onBack: (() -> Unit)? = null,
     backLabel: String = SignupStrings.BACK,
     confirmLabel: String = SignupStrings.CONFIRM,
-    clearOnSubmit: Boolean = false,
+    clearKey: Int = 0,
 ) {
     var pin by remember { mutableStateOf("") }
+    val initialClearKey = remember { clearKey }
+    LaunchedEffect(clearKey) { if (clearKey != initialClearKey) pin = "" }
 
     BackHandler(enabled = onBack != null) { onBack?.invoke() }
     // No arrow in the app bar: Back under the pad goes back, as on iOS, and the system back
@@ -145,7 +149,6 @@ fun PinScreen(
                     text = confirmLabel,
                     onClick = {
                         onSubmit(pin)
-                        if (clearOnSubmit) pin = ""
                     },
                     enabled = SeedWalletService.isValidPin(pin),
                     arrow = false,

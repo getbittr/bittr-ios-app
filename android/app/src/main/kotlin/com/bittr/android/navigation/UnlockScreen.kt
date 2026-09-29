@@ -75,9 +75,10 @@ fun UnlockScreen(
             onBack = viewModel::forgotPin,
             backLabel = UnlockStrings.FORGOT_PIN,
             // `clearPinField()`, which iOS calls on every confirm that does not
-            // unlock. This is the one embedding where the screen stays put after a
+            // unlock — and only then, so a PIN that unlocks stays on the pad as it slides
+            // away. This is the one embedding where the screen stays put after a
             // rejection, so it is the one that has to empty the cells.
-            clearOnSubmit = true,
+            clearKey = state.rejections,
             modifier = modifier,
         )
 
