@@ -69,7 +69,8 @@ import com.bittr.android.core.designsystem.dismissOnPullDown
 import com.bittr.android.core.designsystem.BittrCanvas
 import com.bittr.android.core.designsystem.BittrCard
 import com.bittr.android.core.designsystem.BittrCheckBadge
-import com.bittr.android.core.designsystem.BittrModalHeader
+import com.bittr.android.core.designsystem.BittrSheetHeader
+import androidx.compose.ui.res.painterResource
 import com.bittr.android.core.designsystem.BittrPrimaryButton
 import com.bittr.android.core.designsystem.BittrTextButton
 import com.bittr.android.core.designsystem.BittrTheme
@@ -99,26 +100,12 @@ internal fun SignupContainer(
     onboarding: Boolean = false,
 ) {
     val focus = LocalFocusManager.current
-    BittrCanvas(
-        modifier = if (onboarding) Modifier else Modifier.dismissOnPullDown(controller::onCloseSignup),
-        appBar = onboarding,
-        scrollsUnderAppBar = onboarding,
-    ) {
-        if (!onboarding) {
-            BittrModalHeader(
-                title = BuyStrings.BUY_BITCOIN,
-                onDown = controller::onCloseSignup,
-                titleTestTag = TestID.Header.titleLabel,
-                downTestTag = TestID.Header.downButton,
-            )
-        }
+    val pages: @Composable (Modifier) -> Unit = { modifier ->
         AnimatedContent(
             targetState = signup.page,
             transitionSpec = { pageSlide(initialState.ordinal, targetState.ordinal) },
             label = "bittrSignupPages",
-            modifier = Modifier
-                .weight(1f)
-                .fillMaxWidth(),
+            modifier = modifier,
         ) { page ->
             Column(
                 verticalArrangement = Arrangement.Center,
@@ -128,8 +115,17 @@ internal fun SignupContainer(
                     .imePadding()
                     .verticalScroll(rememberScrollState())
                     .tapToClearFocus { focus.clearFocus() }
-                    .then(if (onboarding) Modifier.appBarContentPadding() else Modifier)
-                    .padding(start = 15.dp, end = 15.dp, bottom = 80.dp),
+                    .then(
+                        if (onboarding) {
+                            Modifier
+                                .appBarContentPadding()
+                                .padding(start = 15.dp, end = 15.dp, bottom = 80.dp)
+                        } else {
+                            // Over Buy the pages fill the whole sheet under the header, and iOS
+                            // centres them in it: clear of the header by as much at the bottom.
+                            Modifier.padding(horizontal = 15.dp, vertical = SheetHeaderHeight)
+                        },
+                    ),
             ) {
                 when (page) {
                     SignupPage.Ready -> ReadyPage(onNext = controller::onReadyNext, onOpenArticle = onOpenArticle)
@@ -141,19 +137,51 @@ internal fun SignupContainer(
             }
         }
     }
+
+    if (onboarding) {
+        BittrCanvas(appBar = true, scrollsUnderAppBar = true) {
+            pages(Modifier.weight(1f).fillMaxWidth())
+        }
+    } else {
+        // `RegisterIbanViewController`: `addHeader` with the piggy, over the pages.
+        Box(
+            Modifier
+                .fillMaxSize()
+                .background(BittrTheme.colors.canvas)
+                .dismissOnPullDown(controller::onCloseSignup),
+        ) {
+            pages(Modifier.fillMaxSize())
+            BittrSheetHeader(
+                icon = painterResource(R.drawable.buy_header_piggy),
+                title = BuyStrings.BUY_BITCOIN,
+                onDown = controller::onCloseSignup,
+                titleTestTag = TestID.Header.titleLabel,
+                downTestTag = TestID.Header.downButton,
+            )
+        }
+    }
 }
 
-/** `Signup7ViewController` as Buy shows it: no badge, no "wallet is ready", no Skip. */
+/** `addHeader`'s 58 pt band. */
+private val SheetHeaderHeight = 58.dp
+
+/**
+ * `Signup7ViewController` as Buy shows it (`viewWillAppear` with an `ibanVC`): the badge, "wallet
+ * is ready" and Skip go transparent but keep their room, and the line, now Gilroy-Bold 16, moves
+ * up 76 into the badge's. That leaves it about 39 under the card's top, the partner row 40 under
+ * it, Next 10 under that, and Skip's 10 + 25 + 20 of empty card below Next. The line's 16.4 pitch
+ * is off the iOS screenshot.
+ */
 @Composable
 private fun ReadyPage(onNext: () -> Unit, onOpenArticle: (String) -> Unit) {
-    BittrCard {
+    BittrCard(contentPadding = PaddingValues(start = 25.dp, end = 25.dp, top = 39.dp, bottom = 55.dp)) {
         Text(
             BuyStrings.FIRST_BITCOIN,
-            style = MaterialTheme.typography.titleMedium,
+            style = MaterialTheme.typography.titleMedium.copy(fontSize = 16.sp, lineHeight = 16.4.sp),
             textAlign = TextAlign.Center,
             modifier = Modifier.fillMaxWidth(),
         )
-        CanvasSpacer(BittrTokens.Spacing.xl)
+        CanvasSpacer(40.dp)
         BittrPartnerRow()
         CanvasSpacer(10.dp)
         // `continueView`: as wide as the partner row, as on Signup7.
@@ -165,7 +193,7 @@ private fun ReadyPage(onNext: () -> Unit, onOpenArticle: (String) -> Unit) {
                 .testTag(TestID.Signup.Create.Ready.continueButton),
         )
     }
-    CanvasSpacer(BittrTokens.Spacing.lg)
+    CanvasSpacer(30.dp)
     // `pageArticle1Slug = "what-is-bittr"`.
     ArticleCard(slug = BittrArticles.WHAT_IS_BITTR, onOpen = onOpenArticle)
 }
