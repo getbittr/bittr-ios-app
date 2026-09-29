@@ -2,31 +2,54 @@ package com.bittr.android.core.designsystem
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.LinearOutSlowInEasing
 import androidx.compose.animation.core.MutableTransitionState
 import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.Orientation
+import androidx.compose.foundation.gestures.draggable
+import androidx.compose.foundation.gestures.rememberDraggableState
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.SideEffect
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.DialogWindowProvider
+import kotlin.math.roundToInt
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 /**
  * iOS's page sheet — what a plain modal segue presents on an iPhone, and how `ArticleViewController`
@@ -99,3 +122,112 @@ private val SheetScrim = Color.Black.copy(alpha = 0.2f)
  * 0.4 s.
  */
 private const val SheetStiffness = 300f
+
+/**
+ * iOS's Settings pop-up — `CoreViewController.showSettings`: a panel as tall as its content that
+ * springs up from the bottom over the screen it was opened from, which dims to 50 % black and stays
+ * visible above it. The panel's top corners are 20 pt; it reaches down behind the navigation bar.
+ *
+ * Meant to fill a navigation `dialog` destination with a full-screen, edge-to-edge window, as
+ * [BittrSheet] is, and it switches the window's own dim and animation off the same way.
+ *
+ * - **Opening:** a 0.6 s spring at damping 0.7, 0.2 s after the tap, the dim coming up with it.
+ * - **Closing** — the dim, Back, or anything [content] calls its `dismiss` with: 0.3 s ease-in-out
+ *   down and out, then [onDismissed], which pops the destination.
+ * - **Dragging** it down tracks the finger and fades the dim; let go past a third of its height or
+ *   faster than 800 pt/s and it closes, otherwise it eases back up in 0.3 s (`handleSettingsPan`).
+ */
+@Composable
+fun BittrPopup(
+    onDismissed: () -> Unit,
+    content: @Composable ColumnScope.(dismiss: () -> Unit) -> Unit,
+) {
+    val window = (LocalView.current.parent as? DialogWindowProvider)?.window
+    SideEffect {
+        window?.setDimAmount(0f)
+        window?.setWindowAnimations(0)
+    }
+
+    val scope = rememberCoroutineScope()
+    val density = LocalDensity.current
+    val onDismissedLatest by rememberUpdatedState(onDismissed)
+    // How far the panel is below its open position, in px; its height when closed.
+    val offset = remember { Animatable(Float.MAX_VALUE) }
+    var panelHeight by remember { mutableFloatStateOf(0f) }
+    var closing by remember { mutableStateOf(false) }
+
+    LaunchedEffect(panelHeight > 0f) {
+        if (panelHeight <= 0f) return@LaunchedEffect
+        offset.snapTo(panelHeight)
+        delay(PopupOpenDelayMs)
+        offset.animateTo(0f, spring(dampingRatio = 0.7f, stiffness = PopupStiffness))
+    }
+
+    val dismiss: () -> Unit = {
+        if (!closing) {
+            closing = true
+            scope.launch {
+                offset.animateTo(panelHeight, tween(PopupCloseMs, easing = FastOutSlowInEasing))
+                onDismissedLatest()
+            }
+        }
+    }
+    BackHandler(onBack = dismiss)
+
+    val shown = if (panelHeight > 0f) (1f - offset.value / panelHeight).coerceIn(0f, 1f) else 0f
+    Box(Modifier.fillMaxSize()) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Color.Black.copy(alpha = 0.5f * shown))
+                .clickable(
+                    interactionSource = remember { MutableInteractionSource() },
+                    indication = null,
+                    onClick = dismiss,
+                ),
+        )
+        Column(
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .fillMaxWidth()
+                // Off screen until measured, so the first frame is not the panel at the top of its travel.
+                .offset { IntOffset(0, if (panelHeight <= 0f) OffScreen else offset.value.roundToInt()) }
+                .onSizeChanged { panelHeight = it.height.toFloat() }
+                .clip(PopupShape)
+                .background(BittrTheme.colors.canvas)
+                .draggable(
+                    orientation = Orientation.Vertical,
+                    state = rememberDraggableState { delta ->
+                        if (!closing) scope.launch { offset.snapTo((offset.value + delta).coerceAtLeast(0f)) }
+                    },
+                    onDragStopped = { velocity ->
+                        val fast = velocity > with(density) { PopupFlingVelocity.dp.toPx() }
+                        if (offset.value > panelHeight / 3 || fast) {
+                            dismiss()
+                        } else {
+                            offset.animateTo(0f, tween(PopupCloseMs, easing = LinearOutSlowInEasing))
+                        }
+                    },
+                )
+                .navigationBarsPadding(),
+        ) {
+            content(dismiss)
+        }
+    }
+}
+
+private val PopupShape = RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp)
+
+private const val OffScreen = 1_000_000
+
+/** `showSettings`' `delay: 0.2`. */
+private const val PopupOpenDelayMs = 200L
+
+/** `hideSettings`' and the snap-back's 0.3 s. */
+private const val PopupCloseMs = 300
+
+/** A 0.6 s spring at damping 0.7: 4 / (0.7 × 0.6) squared, by [PageSlideSpec]'s settle rule. */
+private const val PopupStiffness = 91f
+
+/** `handleSettingsPan`'s 800 pt/s. */
+private const val PopupFlingVelocity = 800

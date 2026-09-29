@@ -38,6 +38,7 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.bittr.android.core.common.TestID
 import com.bittr.android.core.designsystem.BittrCanvas
@@ -64,9 +65,12 @@ import com.bittr.android.core.designsystem.rememberStrokeIcon
  */
 @Composable
 fun AcademyScreen(
-    onBack: () -> Unit,
+    // Null where Academy is a page beside Wallet under the menu bar, as on iOS, with no back arrow.
+    onBack: (() -> Unit)?,
     modifier: Modifier = Modifier,
     progressStore: LessonProgressStore? = null,
+    /** Room left at the end of the list for a menu bar drawn over it by the host. */
+    contentBottomPadding: Dp = 0.dp,
 ) {
     val context = LocalContext.current
     val store = remember(progressStore) {
@@ -96,6 +100,7 @@ fun AcademyScreen(
         onOpenLesson = { openLesson = it },
         onBack = onBack,
         modifier = modifier,
+        contentBottomPadding = contentBottomPadding,
     )
 }
 
@@ -103,8 +108,9 @@ fun AcademyScreen(
 internal fun AcademyList(
     state: AcademyUiState,
     onOpenLesson: (Lesson) -> Unit,
-    onBack: () -> Unit,
+    onBack: (() -> Unit)?,
     modifier: Modifier = Modifier,
+    contentBottomPadding: Dp = 0.dp,
 ) {
     BittrCanvas(modifier = modifier, onBack = onBack) {
         LazyColumn(
@@ -113,7 +119,7 @@ internal fun AcademyList(
                 start = AcademyLayout.contentPadding,
                 end = AcademyLayout.contentPadding,
                 top = AcademyLayout.contentPadding,
-                bottom = BittrTokens.Spacing.section,
+                bottom = BittrTokens.Spacing.section + contentBottomPadding,
             ),
             modifier = Modifier.fillMaxWidth(),
         ) {

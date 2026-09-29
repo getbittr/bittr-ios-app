@@ -1,6 +1,17 @@
 package com.bittr.android.core.designsystem
 
 import androidx.compose.foundation.Image
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.AnimationSpec
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.runtime.getValue
+import androidx.compose.foundation.layout.wrapContentWidth
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.res.painterResource
@@ -216,15 +227,14 @@ fun BittrRowValue(text: String, modifier: Modifier = Modifier) {
  * sharing the width, and Settings as a square plate with its icon alone.
  *
  * As the storyboard has it: 15 from the screen's sides, the plates 45 tall, 10 apart and ending at
- * the bottom of the safe area; each `grey3orblue1` with 8 pt corners and `setShadow()`. The
- * selected one is the brand yellow (`selectedView`) with its icon and label in white; the others
- * carry iOS's black-or-white icons (`menuwalletblack` …) and a dark grey label, white in dark.
- * Labels in Gilroy Bold 14, 8 after the icon — wallet 13 pt, academy 16, settings 15.
+ * the bottom of the safe area; each `grey3orblue1` with 8 pt corners and `setShadow()`, with iOS's
+ * black-or-white icons (`menuwalletblack` …) and a dark grey label, white in dark. Labels in Gilroy
+ * Bold 14, 8 after the icon — wallet 13 pt, academy 16, settings 15.
  *
- * It is drawn by each screen that has one rather than hoisted into a `Scaffold` at the nav host.
- * On iOS the bar belongs to `CoreViewController` and Home is a child of it, which is the
- * `Scaffold` arrangement — but the bar is on exactly one Android destination today (Home), and a
- * scaffold that exists to host one bar for one screen is a layer to reason about for no benefit.
+ * The selection is `selectedView`: one brand-yellow plate that slides between Wallet and Academy
+ * in 0.3 s ease-in-out as [selected] changes, in step with the pages sliding above it. It reveals
+ * the plates' white icons and labels as it passes over them, which is how iOS masks its white
+ * copies with it. Settings opens a pop-up rather than a page, so it is never the one selected.
  */
 @Composable
 fun BittrBottomNavBar(
@@ -237,96 +247,141 @@ fun BittrBottomNavBar(
     academyTestTag: String? = null,
     settingsTestTag: String? = null,
 ) {
+    val colors = BittrTheme.colors
     val dark = BittrTheme.isDark
+    val walletIcon = if (dark) R.drawable.menu_wallet_white else R.drawable.menu_wallet_black
+    val academyIcon = if (dark) R.drawable.menu_academy_white else R.drawable.menu_academy_black
+    val progress by animateFloatAsState(
+        targetValue = if (selected == BittrNavTab.Academy) 1f else 0f,
+        animationSpec = MenuSlideSpec,
+        label = "menuSelection",
+    )
     Row(
-        horizontalArrangement = Arrangement.spacedBy(10.dp),
+        horizontalArrangement = Arrangement.spacedBy(MenuGap),
         modifier = modifier
             .fillMaxWidth()
             .padding(start = 15.dp, end = 15.dp, top = 10.dp),
     ) {
-        NavTab(
-            label = "Wallet",
-            icon = if (dark) R.drawable.menu_wallet_white else R.drawable.menu_wallet_black,
-            iconSize = 13.dp,
-            active = selected == BittrNavTab.Wallet,
-            onClick = onWallet,
-            testTag = walletTestTag,
-            modifier = Modifier.weight(1f),
-        )
-        NavTab(
-            label = "Academy",
-            icon = if (dark) R.drawable.menu_academy_white else R.drawable.menu_academy_black,
-            iconSize = 16.dp,
-            active = selected == BittrNavTab.Academy,
-            onClick = onAcademy,
-            testTag = academyTestTag,
-            modifier = Modifier.weight(1f),
-        )
-        NavTab(
-            label = null,
-            contentDescription = "Settings",
-            icon = if (dark) R.drawable.menu_settings_white else R.drawable.menu_settings_black,
-            iconSize = 15.dp,
-            active = selected == BittrNavTab.Settings,
+        BoxWithConstraints(
+            modifier = Modifier
+                .weight(1f)
+                .height(NavBarHeight),
+        ) {
+            val rowWidth = maxWidth
+            val plateWidth = (rowWidth - MenuGap) / 2
+            val selectionX = (plateWidth + MenuGap) * progress
+            Row(horizontalArrangement = Arrangement.spacedBy(MenuGap), modifier = Modifier.fillMaxSize()) {
+                NavPlate(onClick = onWallet, testTag = walletTestTag, modifier = Modifier.weight(1f)) {
+                    NavTabContent("Wallet", walletIcon, 13.dp, iconTint = null, labelColor = colors.menuLabel)
+                }
+                NavPlate(onClick = onAcademy, testTag = academyTestTag, modifier = Modifier.weight(1f)) {
+                    NavTabContent("Academy", academyIcon, 16.dp, iconTint = null, labelColor = colors.menuLabel)
+                }
+            }
+            // `selectedView`, over the plates: the white copies are laid out exactly as the plates
+            // are and shifted against the selection, so only what lies under it shows.
+            Box(
+                modifier = Modifier
+                    .offset(x = selectionX)
+                    .width(plateWidth)
+                    .fillMaxHeight()
+                    .clip(NavTabShape)
+                    .background(colors.brandFixed)
+                    .clearAndSetSemantics {},
+            ) {
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(MenuGap),
+                    modifier = Modifier
+                        .wrapContentWidth(Alignment.Start, unbounded = true)
+                        .width(rowWidth)
+                        .fillMaxHeight()
+                        .offset(x = -selectionX),
+                ) {
+                    NavTabContent("Wallet", walletIcon, 13.dp, iconTint = Color.White, labelColor = Color.White, Modifier.weight(1f))
+                    NavTabContent("Academy", academyIcon, 16.dp, iconTint = Color.White, labelColor = Color.White, Modifier.weight(1f))
+                }
+            }
+        }
+        NavPlate(
             onClick = onSettings,
             testTag = settingsTestTag,
-            modifier = Modifier.width(NavBarHeight),
-        )
+            modifier = Modifier
+                .width(NavBarHeight)
+                .height(NavBarHeight),
+        ) {
+            Image(
+                painter = painterResource(if (dark) R.drawable.menu_settings_white else R.drawable.menu_settings_black),
+                contentDescription = "Settings",
+                modifier = Modifier.size(15.dp),
+            )
+        }
     }
 }
 
 /** Which bottom-bar tab is lit. */
 enum class BittrNavTab { Wallet, Academy, Settings }
 
+/**
+ * The selection's slide between Wallet and Academy, and the pages' above it — shared so the two
+ * move as one. iOS's `menuButtonTapped` is a plain 0.3 s ease-in-out; this is a spring with a
+ * little bounce, as the other page slides in the app have (Tom, 2026-09-29): damping 0.75,
+ * settling in about 0.5 s by [PageSlideSpec]'s rule.
+ */
+val MenuSlideSpec: AnimationSpec<Float> = spring(dampingRatio = 0.75f, stiffness = 110f)
+
+private val MenuGap = 10.dp
+
+/** One menu plate: `grey3orblue1`, 8 pt corners, `setShadow()`, its content centred. */
 @Composable
-private fun NavTab(
-    label: String?,
-    icon: Int,
-    iconSize: Dp,
-    active: Boolean,
+private fun NavPlate(
     onClick: () -> Unit,
     testTag: String?,
     modifier: Modifier = Modifier,
-    contentDescription: String? = null,
+    content: @Composable () -> Unit,
 ) {
-    val colors = BittrTheme.colors
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally),
+    Box(
+        contentAlignment = Alignment.Center,
         modifier = modifier
-            .height(NavBarHeight)
+            .fillMaxHeight()
             .iosShadow(NavTabShape)
             // Clipped before `clickable`, or the press layer is a square behind the plate —
             // the same rule BittrPrimaryButton states.
             .clip(NavTabShape)
-            .background(if (active) colors.brandFixed else colors.homeBackground)
+            .background(BittrTheme.colors.homeBackground)
             .clickable(role = Role.Button, onClick = onClick)
             .then(testTag?.let { Modifier.testTag(it) } ?: Modifier),
     ) {
-        if (active) {
-            // `selectedView`'s white icons are the black ones' shapes: tinted rather than shipped twice.
-            Image(
-                painter = painterResource(icon),
-                contentDescription = contentDescription,
-                colorFilter = ColorFilter.tint(Color.White),
-                modifier = Modifier.size(iconSize),
-            )
-        } else {
-            Image(
-                painter = painterResource(icon),
-                contentDescription = contentDescription,
-                modifier = Modifier.size(iconSize),
-            )
-        }
-        if (label != null) {
-            Text(
-                text = label,
-                style = MaterialTheme.typography.labelLarge.copy(fontSize = 14.sp, lineHeight = 14.sp),
-                color = if (active) Color.White else colors.menuLabel,
-                // iOS centres the label 1 pt below the icon's centre.
-                modifier = Modifier.offset(y = 1.dp),
-            )
-        }
+        content()
+    }
+}
+
+/** A plate's icon and label, centred: the icon, 8, the label 1 pt below the icon's centre. */
+@Composable
+private fun NavTabContent(
+    label: String,
+    icon: Int,
+    iconSize: Dp,
+    iconTint: Color?,
+    labelColor: Color,
+    modifier: Modifier = Modifier,
+) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally),
+        modifier = modifier.fillMaxHeight(),
+    ) {
+        Image(
+            painter = painterResource(icon),
+            contentDescription = null,
+            colorFilter = iconTint?.let { ColorFilter.tint(it) },
+            modifier = Modifier.size(iconSize),
+        )
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelLarge.copy(fontSize = 14.sp, lineHeight = 14.sp),
+            color = labelColor,
+            modifier = Modifier.offset(y = 1.dp),
+        )
     }
 }
 

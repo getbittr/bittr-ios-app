@@ -2,6 +2,7 @@ package com.bittr.android.feature.home
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -147,6 +148,10 @@ fun HomeScreen(
     onProfit: () -> Unit = {},
     /** The week's prices for the value card, oldest first — `graphPoints`. Null until loaded. */
     valueWeek: List<Double>? = null,
+    /** Draw the menu bar. False where a host draws one bar over Home and Academy both. */
+    navBar: Boolean = true,
+    /** Room left at the end of the list for a menu bar drawn over it by the host. */
+    contentBottomPadding: Dp = 0.dp,
     viewModel: HomeViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsState()
@@ -169,6 +174,8 @@ fun HomeScreen(
         profitPill = profitPill,
         onProfit = onProfit,
         valueWeek = valueWeek,
+        navBar = navBar,
+        contentBottomPadding = contentBottomPadding,
         onRefresh = viewModel::refresh,
         modifier = modifier,
     )
@@ -202,6 +209,8 @@ internal fun HomeScreen(
     profitPill: ProfitPill? = null,
     onProfit: () -> Unit = {},
     valueWeek: List<Double>? = null,
+    navBar: Boolean = true,
+    contentBottomPadding: Dp = 0.dp,
     onRefresh: () -> Unit = {},
 ) {
     alert?.let {
@@ -249,7 +258,10 @@ internal fun HomeScreen(
                     onRefresh = onRefresh,
                 ),
         ) {
-            LazyColumn(modifier = Modifier.fillMaxSize()) {
+            LazyColumn(
+                contentPadding = PaddingValues(bottom = contentBottomPadding),
+                modifier = Modifier.fillMaxSize(),
+            ) {
                 item {
                     HomeHeader(
                         showSyncSpinner = state.showSyncSpinner,
@@ -307,7 +319,7 @@ internal fun HomeScreen(
             )
         }
 
-        BittrBottomNavBar(
+        if (navBar) BittrBottomNavBar(
             // Already here. iOS's wallet button re-selects Home rather than pushing
             // another copy of it, so this is a no-op rather than a navigation.
             onWallet = {},

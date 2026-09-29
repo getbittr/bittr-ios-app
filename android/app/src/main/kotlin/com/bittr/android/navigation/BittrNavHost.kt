@@ -1,9 +1,12 @@
 package com.bittr.android.navigation
 
+import com.bittr.android.core.designsystem.BittrPopup
 import com.bittr.android.core.designsystem.BittrSheet
 import com.bittr.android.home.HomeValueViewModel
 import com.bittr.android.core.designsystem.BittrTheme
 import androidx.compose.ui.window.DialogProperties
+import androidx.navigation.compose.currentBackStackEntryAsState
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.navigation.compose.dialog
 import androidx.compose.animation.AnimatedContentTransitionScope
 import androidx.compose.animation.EnterTransition
@@ -131,7 +134,6 @@ object Routes {
      */
     const val VALUE = "value"
     const val MAP = "map"
-    const val ACADEMY = "academy"
 
     /** An article (`CoreToArticle`), by slug — from the signup pages' article cards. */
     const val ARTICLE_ARG = "slug"
@@ -501,28 +503,40 @@ fun BittrNavHost(
                     // The value card's week of prices, held for as long as Home is on the stack.
                     val homeValue: HomeValueViewModel = hiltViewModel()
                     val valueWeek by homeValue.week.collectAsState()
-                    HomeScreen(
+                    // Wallet and Academy side by side under one menu bar, as iOS's CoreViewController
+                    // holds them: the bar's Academy slides across to it rather than opening a page.
+                    WalletTabs(
                         onSettings = { navController.navigate(Routes.SETTINGS) },
-                        // Wave 1, landed by BIT-99. These three are the entry points
-                        // `bitcoin_map.yaml`, `bitcoin_value.yaml` and `academy.yaml` tap
-                        // from Home, and every screen behind them needs an unlocked wallet
-                        // and nothing else — no funds, no node — so they are live today.
-                        onMap = { navController.navigate(Routes.MAP) },
-                        onCurrency = { navController.navigate(Routes.VALUE) },
-                        onAcademy = { navController.navigate(Routes.ACADEMY) },
-                        onTransaction = { id -> navController.navigate(Routes.transaction(id)) },
-                        // Wave 2, behind BIT-6. Reached only once `walletHasSynced` is true,
-                        // so today Home's own guard answers first and these are unreachable —
-                        // they are wired anyway so that flipping that flag does not leave a
-                        // dead button behind it.
-                        onSend = { navController.navigate(Routes.SEND) },
-                        onReceive = { navController.navigate(Routes.RECEIVE) },
-                        onBalanceDetails = { navController.navigate(Routes.MOVE) },
-                        // Wave 3. Not guarded by the sync on iOS either — see HomeScreen.
-                        onBuy = { navController.navigate(Routes.BUY) },
-                        profitPill = profit?.let { ProfitPill(it.percentText, it.isLoss) },
-                        onProfit = { navController.navigate(Routes.PROFITS) },
-                        valueWeek = valueWeek,
+                        wallet = { pageModifier, bottomSpace ->
+                            HomeScreen(
+                                onSettings = { navController.navigate(Routes.SETTINGS) },
+                                // Wave 1, landed by BIT-99. These are the entry points
+                                // `bitcoin_map.yaml` and `bitcoin_value.yaml` tap from Home, and every
+                                // screen behind them needs an unlocked wallet and nothing else — no
+                                // funds, no node — so they are live today.
+                                onMap = { navController.navigate(Routes.MAP) },
+                                onCurrency = { navController.navigate(Routes.VALUE) },
+                                onTransaction = { id -> navController.navigate(Routes.transaction(id)) },
+                                // Wave 2, behind BIT-6. Reached only once `walletHasSynced` is true,
+                                // so today Home's own guard answers first and these are unreachable —
+                                // they are wired anyway so that flipping that flag does not leave a
+                                // dead button behind it.
+                                onSend = { navController.navigate(Routes.SEND) },
+                                onReceive = { navController.navigate(Routes.RECEIVE) },
+                                onBalanceDetails = { navController.navigate(Routes.MOVE) },
+                                // Wave 3. Not guarded by the sync on iOS either — see HomeScreen.
+                                onBuy = { navController.navigate(Routes.BUY) },
+                                profitPill = profit?.let { ProfitPill(it.percentText, it.isLoss) },
+                                onProfit = { navController.navigate(Routes.PROFITS) },
+                                valueWeek = valueWeek,
+                                navBar = false,
+                                contentBottomPadding = bottomSpace,
+                                modifier = pageModifier,
+                            )
+                        },
+                        academy = { pageModifier, bottomSpace ->
+                            AcademyScreen(onBack = null, modifier = pageModifier, contentBottomPadding = bottomSpace)
+                        },
                     )
                 }
 
@@ -556,21 +570,12 @@ fun BittrNavHost(
                     MapScreen(onBack = { navController.popBackStack() })
                 }
 
-                composable(Routes.ACADEMY) {
-                    AcademyScreen(onBack = { navController.popBackStack() })
-                }
-
                 // iOS presents the article as a page sheet (`CoreToArticle`): a dialog destination,
                 // so the screen it came from stays underneath, dimmed. BittrSheet does the rest.
                 dialog(
                     route = Routes.ARTICLE,
                     arguments = listOf(navArgument(Routes.ARTICLE_ARG) { type = NavType.StringType }),
-                    dialogProperties = DialogProperties(
-                        usePlatformDefaultWidth = false,
-                        decorFitsSystemWindows = false,
-                        dismissOnBackPress = false,
-                        dismissOnClickOutside = false,
-                    ),
+                    dialogProperties = OverlayDialog,
                 ) { entry ->
                     BittrSheet(onDismissed = { navController.popBackStack() }) { dismiss ->
                         ArticleScreen(
@@ -787,17 +792,26 @@ internal fun NavGraphBuilder.settingsArea(
     },
     deviceViewModel: @Composable () -> DeviceViewModel = { hiltViewModel() },
 ) {
-    composable(Routes.SETTINGS) {
-        SettingsScreen(
-            onDown = { navController.popBackStack() },
-            onOpenWebsite = { navController.navigate(Routes.website(it)) },
-            onOpenDevice = { navController.navigate(Routes.DEVICE) },
-        )
+    // iOS's Settings pop-up (`showSettings`): a dialog destination, so Wallet or Academy stays drawn
+    // underneath, dimmed, and BittrPopup springs the panel up over it. The pages it opens are page
+    // sheets on top of it — `SettingsToWebsite` and `SettingsToDevice` are show segues from a view
+    // controller outside any navigation stack — so closing one comes back to the pop-up, as on iOS.
+    dialog(Routes.SETTINGS, dialogProperties = OverlayDialog) { entry ->
+        CoveredByLaterSheets(navController, entry) {
+            BittrPopup(onDismissed = { navController.popBackStack() }) { dismiss ->
+                SettingsScreen(
+                    onDown = dismiss,
+                    onOpenWebsite = { navController.navigate(Routes.website(it)) },
+                    onOpenDevice = { navController.navigate(Routes.DEVICE) },
+                )
+            }
+        }
     }
 
-    composable(
+    dialog(
         route = Routes.WEBSITE,
         arguments = listOf(navArgument(Routes.WEBSITE_ARG) { type = NavType.StringType }),
+        dialogProperties = OverlayDialog,
     ) { entry ->
         // The argument is produced by `Routes.website` from an enum constant, so
         // an unrecognised value means the route was hand-built. Falling back to
@@ -812,25 +826,62 @@ internal fun NavGraphBuilder.settingsArea(
         // here are three URLs; everything else about showing a URL — the R-11
         // hardening baseline, the navigation policy, the trust derivation — is
         // the in-app browser's job and belongs in one module (BIT-112).
-        WebsiteScreen(url = page.url, onClose = { navController.popBackStack() }, onLnurl = onWebsiteLnurl)
+        BittrSheet(onDismissed = { navController.popBackStack() }) { dismiss ->
+            WebsiteScreen(url = page.url, onClose = dismiss, onLnurl = onWebsiteLnurl)
+        }
     }
 
-    composable(Routes.DEVICE) {
+    dialog(Routes.DEVICE, dialogProperties = OverlayDialog) { entry ->
         val device = deviceViewModel()
-        DeviceScreen(
-            onDown = { navController.popBackStack() },
-            onOpenLightningQuestion = {
-                navController.navigate(Routes.LIGHTNING_QUESTION)
-            },
-            viewModel = device,
-            onRemoveWallet = onRemoveWallet ?: device::nodeBackedRowTapped,
-        )
+        CoveredByLaterSheets(navController, entry) {
+            BittrSheet(onDismissed = { navController.popBackStack() }) { dismiss ->
+                DeviceScreen(
+                    onDown = dismiss,
+                    onOpenLightningQuestion = {
+                        navController.navigate(Routes.LIGHTNING_QUESTION)
+                    },
+                    viewModel = device,
+                    onRemoveWallet = onRemoveWallet ?: device::nodeBackedRowTapped,
+                )
+            }
+        }
     }
 
-    composable(Routes.LIGHTNING_QUESTION) {
-        LightningQuestionScreen(onDown = { navController.popBackStack() }, channel = lightningChannel())
+    dialog(Routes.LIGHTNING_QUESTION, dialogProperties = OverlayDialog) {
+        BittrSheet(onDismissed = { navController.popBackStack() }) { dismiss ->
+            LightningQuestionScreen(onDown = dismiss, channel = lightningChannel())
+        }
     }
 }
+
+/**
+ * A pop-up or sheet that another has opened over: still drawn, as the screens under a sheet are, but
+ * out of the accessibility tree until it is on top again. On iOS the presented sheet is the only
+ * thing VoiceOver or a flow can reach; without this, the Settings pop-up's `header.downButton` sits
+ * under Device details' own, and a flow tapping it finds two.
+ */
+@Composable
+private fun CoveredByLaterSheets(
+    navController: NavHostController,
+    entry: NavBackStackEntry,
+    content: @Composable () -> Unit,
+) {
+    val top by navController.currentBackStackEntryAsState()
+    val covered = top != null && top?.id != entry.id
+    Box(if (covered) Modifier.clearAndSetSemantics {} else Modifier) { content() }
+}
+
+/**
+ * A dialog destination's window for the app's own sheets and pop-ups: full screen and edge to edge,
+ * so [BittrSheet] and [BittrPopup] draw their own dim and motion over the screen underneath, and
+ * with Back and outside taps left to them, so they can animate away before the entry is popped.
+ */
+private val OverlayDialog = DialogProperties(
+    usePlatformDefaultWidth = false,
+    decorFitsSystemWindows = false,
+    dismissOnBackPress = false,
+    dismissOnClickOutside = false,
+)
 
 /**
  * "That screen is not built yet."
