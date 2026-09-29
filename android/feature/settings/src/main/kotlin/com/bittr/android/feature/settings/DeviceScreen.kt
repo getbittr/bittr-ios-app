@@ -1,55 +1,62 @@
 package com.bittr.android.feature.settings
 
-import android.Manifest
-import android.content.ClipData
-import android.content.ClipboardManager
-import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import com.bittr.android.core.designsystem.rememberFillIcon
-import androidx.compose.ui.graphics.Color
-import androidx.compose.foundation.background
 import androidx.compose.ui.draw.clip
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import android.Manifest
+import android.content.ClipData
+import android.content.ClipboardManager
+import android.os.Build
 import com.bittr.android.core.common.TestID
 import com.bittr.android.core.designsystem.BittrAlert
-import com.bittr.android.core.designsystem.BittrSpinner
-import com.bittr.android.core.designsystem.dismissOnPullDown
 import com.bittr.android.core.designsystem.BittrAlertButton
-import com.bittr.android.core.designsystem.BittrBody
-import com.bittr.android.core.designsystem.BittrCanvas
 import com.bittr.android.core.designsystem.BittrChoiceDialog
 import com.bittr.android.core.designsystem.BittrIconPaths
-import com.bittr.android.core.designsystem.BittrListRow
-import com.bittr.android.core.designsystem.BittrModalHeader
-import com.bittr.android.core.designsystem.BittrRowValue
+import com.bittr.android.core.designsystem.BittrSheetHeader
+import com.bittr.android.core.designsystem.BittrSpinner
 import com.bittr.android.core.designsystem.BittrTheme
-import com.bittr.android.core.designsystem.BittrTokens
 import com.bittr.android.core.designsystem.CanvasSpacer
+import com.bittr.android.core.designsystem.R as DesignR
+import com.bittr.android.core.designsystem.dismissOnPullDown
+import com.bittr.android.core.designsystem.rememberFillIcon
 import com.bittr.android.core.designsystem.rememberStrokeIcon
 import com.bittr.android.core.preferences.Currency
 import com.bittr.android.core.preferences.DarkModeSetting
@@ -178,124 +185,208 @@ internal fun DeviceScreen(
         null -> Unit
     }
 
-    BittrCanvas(modifier = modifier.dismissOnPullDown(onDown), appBar = false) {
-        BittrModalHeader(
+    // `DeviceViewController`, as its scene is: `addHeader`'s piggy and "device details", then one
+    // group centred in what is left — the line in Gilroy Regular 16, centred and 40 from the sides,
+    // and 35 under it the rows, 30 from the sides.
+    Column(
+        modifier = modifier
+            .fillMaxSize()
+            .background(BittrTheme.colors.canvas)
+            .dismissOnPullDown(onDown)
+            .navigationBarsPadding(),
+    ) {
+        BittrSheetHeader(
+            icon = painterResource(DesignR.drawable.bittr_piggy_icon),
             title = SettingsStrings.DEVICE_DETAILS,
             onDown = onDown,
             titleTestTag = TestID.Header.titleLabel,
             downTestTag = TestID.Header.downButton,
         )
 
-        Column(
-            verticalArrangement = Arrangement.spacedBy(BittrTokens.Spacing.sm),
-            modifier = Modifier
-                .fillMaxWidth()
-                .verticalScroll(rememberScrollState())
-                .padding(
-                    horizontal = BittrTokens.Spacing.md,
-                    vertical = BittrTokens.Spacing.sm,
-                ),
-        ) {
-            BittrBody(
-                text = SettingsStrings.ACCESS_DETAILS,
-                textAlign = TextAlign.Start,
-                modifier = Modifier.fillMaxWidth(),
-            )
-            CanvasSpacer(BittrTokens.Spacing.xs)
-
-            // 1. Dark mode. The only row whose trailing content is a control rather
-            //    than a value — iOS swaps the row's button for the segmented one
-            //    (`showDarkMode()` / `hideDarkMode()`).
-            BittrListRow(
-                label = SettingsStrings.DARK_MODE,
-                icon = BittrIconPaths.DARK_MODE,
-                iconFilled = true,
-                testTag = TestID.Device.Row.darkmode,
+        BoxWithConstraints(modifier = Modifier.weight(1f).fillMaxWidth()) {
+            Column(
+                verticalArrangement = Arrangement.Center,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .verticalScroll(rememberScrollState())
+                    .heightIn(min = maxHeight)
+                    .padding(vertical = 30.dp),
             ) {
-                DarkModeControl(selected = state.darkMode, onSelect = onDarkMode)
-            }
+                Text(
+                    text = SettingsStrings.ACCESS_DETAILS,
+                    style = MaterialTheme.typography.bodyLarge.copy(fontSize = 16.sp, lineHeight = 19.sp),
+                    color = BittrTheme.colors.onCanvas,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 40.dp),
+                )
+                CanvasSpacer(35.dp)
 
-            // 2. Language.
-            BittrListRow(
-                label = SettingsStrings.LANGUAGE,
-                icon = BittrIconPaths.LANGUAGE,
-                onClick = { onOpenPicker(DevicePicker.Language) },
-                testTag = TestID.Device.Row.language,
-            ) {
-                BittrRowValue(SettingsStrings.ENGLISH)
-            }
+                Column(modifier = Modifier.padding(horizontal = 30.dp)) {
+                    // 1. Dark mode. The only row whose trailing content is a control rather
+                    //    than a value — iOS swaps the row's button for the segmented one
+                    //    (`showDarkMode()` / `hideDarkMode()`).
+                    DeviceRow(
+                        label = SettingsStrings.DARK_MODE,
+                        icon = BittrIconPaths.DARK_MODE,
+                        iconFilled = true,
+                        testTag = TestID.Device.Row.darkmode,
+                    ) {
+                        DarkModeControl(selected = state.darkMode, onSelect = onDarkMode)
+                    }
 
-            // 3. Currency.
-            BittrListRow(
-                label = SettingsStrings.CURRENCY,
-                icon = BittrIconPaths.CURRENCY,
-                onClick = { onOpenPicker(DevicePicker.Currency) },
-                testTag = TestID.Device.Row.currency,
-            ) {
-                BittrRowValue(state.currency.code)
-            }
+                    // 2. Language.
+                    DeviceRow(
+                        label = SettingsStrings.LANGUAGE,
+                        icon = BittrIconPaths.LANGUAGE,
+                        onClick = { onOpenPicker(DevicePicker.Language) },
+                        testTag = TestID.Device.Row.language,
+                    ) {
+                        DeviceValue(SettingsStrings.ENGLISH)
+                    }
 
-            // 4. Device token.
-            BittrListRow(
-                label = SettingsStrings.DEVICE_TOKEN,
-                icon = BittrIconPaths.PHONE,
-                onClick = onDeviceToken,
-                testTag = TestID.Device.Row.devicetoken,
-            ) {
-                BittrRowValue(SettingsStrings.FETCH)
-            }
+                    // 3. Currency.
+                    DeviceRow(
+                        label = SettingsStrings.CURRENCY,
+                        icon = BittrIconPaths.CURRENCY,
+                        onClick = { onOpenPicker(DevicePicker.Currency) },
+                        testTag = TestID.Device.Row.currency,
+                    ) {
+                        DeviceValue(state.currency.code)
+                    }
 
-            // 5. Public key.
-            BittrListRow(
-                label = SettingsStrings.PUBLIC_KEY,
-                icon = BittrIconPaths.KEY,
-                onClick = onPublicKey,
-                testTag = TestID.Device.Row.publickey,
-            ) {
-                BittrRowValue(SettingsStrings.FETCH)
-            }
+                    // 4. Device token.
+                    DeviceRow(
+                        label = SettingsStrings.DEVICE_TOKEN,
+                        icon = BittrIconPaths.PHONE,
+                        onClick = onDeviceToken,
+                        testTag = TestID.Device.Row.devicetoken,
+                    ) {
+                        DeviceValue(SettingsStrings.FETCH)
+                    }
 
-            // 6. Bittr peer.
-            BittrListRow(
-                label = SettingsStrings.BITTR_PEER,
-                icon = BittrIconPaths.PEER,
-                onClick = onBittrPeer,
-                testTag = TestID.Device.Row.bittrpeer,
-            ) {
-                CheckValue(checking = state.checkingRow == DeviceRow.BittrPeer)
-            }
+                    // 5. Public key.
+                    DeviceRow(
+                        label = SettingsStrings.PUBLIC_KEY,
+                        icon = BittrIconPaths.KEY,
+                        onClick = onPublicKey,
+                        testTag = TestID.Device.Row.publickey,
+                    ) {
+                        DeviceValue(SettingsStrings.FETCH)
+                    }
 
-            // 7. Pending payout — the support path BIT-28's playbook sends customers down.
-            BittrListRow(
-                label = SettingsStrings.PENDING_PAYOUT,
-                icon = BittrIconPaths.HOURGLASS,
-                onClick = onPendingPayout,
-                testTag = TestID.Device.Row.pendingpayouts,
-            ) {
-                CheckValue(checking = state.checkingRow == DeviceRow.PendingPayout)
-            }
+                    // 6. Bittr peer.
+                    DeviceRow(
+                        label = SettingsStrings.BITTR_PEER,
+                        icon = BittrIconPaths.PEER,
+                        onClick = onBittrPeer,
+                        testTag = TestID.Device.Row.bittrpeer,
+                    ) {
+                        CheckValue(checking = state.checkingRow == DeviceRow.BittrPeer)
+                    }
 
-            // 8. Lightning connections: the count once the wallet has a reading.
-            BittrListRow(
-                label = SettingsStrings.LIGHTNING_CONNECTIONS,
-                icon = BittrIconPaths.BOLT,
-                onClick = onOpenLightningQuestion,
-                testTag = TestID.Device.Row.lightningchannels,
-            ) {
-                BittrRowValue(state.channelCount)
-            }
+                    // 7. Pending payout — the support path BIT-28's playbook sends customers down.
+                    DeviceRow(
+                        label = SettingsStrings.PENDING_PAYOUT,
+                        icon = BittrIconPaths.HOURGLASS,
+                        onClick = onPendingPayout,
+                        testTag = TestID.Device.Row.pendingpayouts,
+                    ) {
+                        CheckValue(checking = state.checkingRow == DeviceRow.PendingPayout)
+                    }
 
-            // 9. Remove wallet. The app's `WalletRemovalCoordinator`: it refuses to
-            //    wipe until it can see whether a channel is open, because the wipe
-            //    destroys the channel state a seed alone cannot rebuild.
-            BittrListRow(
-                label = SettingsStrings.REMOVE_WALLET,
-                icon = BittrIconPaths.TRASH,
-                onClick = onRemoveWallet,
-                testTag = TestID.Device.Row.restore,
-            )
+                    // 8. Lightning connections: the count once the wallet has a reading.
+                    DeviceRow(
+                        label = SettingsStrings.LIGHTNING_CONNECTIONS,
+                        icon = BittrIconPaths.BOLT,
+                        onClick = onOpenLightningQuestion,
+                        testTag = TestID.Device.Row.lightningchannels,
+                    ) {
+                        DeviceValue(state.channelCount)
+                    }
+
+                    // 9. Remove wallet. The app's `WalletRemovalCoordinator`: it refuses to
+                    //    wipe until it can see whether a channel is open, because the wipe
+                    //    destroys the channel state a seed alone cannot rebuild.
+                    DeviceRow(
+                        label = SettingsStrings.REMOVE_WALLET,
+                        icon = BittrIconPaths.TRASH,
+                        onClick = onRemoveWallet,
+                        testTag = TestID.Device.Row.restore,
+                    )
+                }
+            }
         }
     }
+}
+
+/**
+ * `DeviceTableViewCell` in its 55 pt row: `cellCard`, 45 tall, `white0.7orblue2` with 13 pt corners
+ * and no shadow; the icon 20 pt and 20 in, in the brand yellow; the title 12 after it in Gilroy
+ * Bold 14; the value or control 15 from the end. `cellButton` covers the whole row.
+ */
+@Composable
+private fun DeviceRow(
+    label: String,
+    icon: String,
+    testTag: String,
+    onClick: (() -> Unit)? = null,
+    iconFilled: Boolean = false,
+    trailing: (@Composable () -> Unit)? = null,
+) {
+    val colors = BittrTheme.colors
+    Box(
+        contentAlignment = Alignment.TopCenter,
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(55.dp)
+            .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier)
+            .testTag(testTag),
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(45.dp)
+                .background(colors.homeAction, DeviceCardShape)
+                .padding(start = 20.dp, end = 15.dp),
+        ) {
+            Image(
+                imageVector = if (iconFilled) {
+                    rememberFillIcon(icon, colors.brandFixed)
+                } else {
+                    rememberStrokeIcon(icon, colors.brandFixed, strokeWidth = 2f)
+                },
+                contentDescription = null,
+                modifier = Modifier.size(20.dp),
+            )
+            Text(
+                text = label,
+                style = MaterialTheme.typography.labelLarge.copy(fontSize = 14.sp, lineHeight = 14.sp),
+                color = colors.onCanvas,
+                maxLines = 1,
+                modifier = Modifier
+                    .weight(1f)
+                    .padding(start = 12.dp)
+                    .offset(y = 1.dp),
+            )
+            if (trailing != null) trailing()
+        }
+    }
+}
+
+private val DeviceCardShape = RoundedCornerShape(13.dp)
+
+/** `buttonLabel`: Gilroy Regular 16, 2 pt below the card's centre. */
+@Composable
+private fun DeviceValue(text: String) {
+    Text(
+        text = text,
+        style = MaterialTheme.typography.bodyLarge.copy(fontSize = 16.sp, lineHeight = 16.sp),
+        color = BittrTheme.colors.onCanvas,
+        modifier = Modifier.offset(y = 2.dp),
+    )
 }
 
 /** "Check", or a spinner while the check runs — iOS's `animateCell()`. */
@@ -304,30 +395,27 @@ private fun CheckValue(checking: Boolean) {
     if (checking) {
         BittrSpinner(modifier = Modifier.size(18.dp), strokeWidth = 2.dp)
     } else {
-        BittrRowValue(SettingsStrings.CHECK)
+        DeviceValue(SettingsStrings.CHECK)
     }
 }
 
 /**
- * The sun / moon / device segmented control.
- *
- * iOS tints the selected glyph yellow and the other two `blackorwhite`. On the
- * brand canvas that yellow measures about 1.6 : 1 — the same A11Y-15 pair the numeral
- * substitution already fixed — and "which of three glyphs is selected" is not
- * decoration, it is the entire state of the control. So selection is carried by the
- * ink/white content colour at full strength against the other two at 45 %, which is a
- * 2.2× luminance-contrast step rather than a hue change, and the selected button also
- * announces itself to a screen reader.
+ * `darkModeView`: the device, moon and sun glyphs — 22, 19 and 22 pt, 20 and 18 apart, the sun 15
+ * from the card's end — the selected one in the brand yellow and the others `blackorwhite`, each in
+ * a 40 pt tap target as iOS's buttons are. The selected button also announces itself to a screen
+ * reader.
  */
 @Composable
 private fun DarkModeControl(
     selected: DarkModeSetting,
     onSelect: (DarkModeSetting) -> Unit,
 ) {
-    // System, dark, light — iOS's order and the proposal's (review S23).
-    Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+    // System, dark, light — iOS's order. The 40 pt targets overlap the glyphs' gaps, so they sit
+    // edge to edge and the last one reaches 9 past the sun, into the card's 15.
+    Row(modifier = Modifier.offset(x = 9.dp)) {
         DarkModeButton(
             path = BittrIconPaths.COMPUTER,
+            iconSize = 22.dp,
             label = "Follow the device",
             active = selected == DarkModeSetting.Device,
             onClick = { onSelect(DarkModeSetting.Device) },
@@ -335,6 +423,7 @@ private fun DarkModeControl(
         )
         DarkModeButton(
             path = BittrIconPaths.DARK_MODE,
+            iconSize = 19.dp,
             label = "Dark",
             active = selected == DarkModeSetting.Dark,
             onClick = { onSelect(DarkModeSetting.Dark) },
@@ -342,6 +431,7 @@ private fun DarkModeControl(
         )
         DarkModeButton(
             path = BittrIconPaths.LIGHT_MODE,
+            iconSize = 22.dp,
             label = "Light",
             active = selected == DarkModeSetting.Light,
             onClick = { onSelect(DarkModeSetting.Light) },
@@ -350,31 +440,30 @@ private fun DarkModeControl(
     }
 }
 
-/** One mode: a 40 dp circle, cream behind the selected one, the glyph at 60 % when not. */
+/** One mode's glyph in its 40 pt target: brand yellow when selected, `blackorwhite` when not. */
 @Composable
 private fun DarkModeButton(
     path: String,
+    iconSize: Dp,
     label: String,
     active: Boolean,
     onClick: () -> Unit,
     testTag: String,
 ) {
-    val tint = androidx.compose.material3.MaterialTheme.colorScheme.onSurface
-        .copy(alpha = if (active) 1f else 0.70f)
+    val colors = BittrTheme.colors
     Box(
         contentAlignment = Alignment.Center,
         modifier = Modifier
             .size(40.dp)
             .clip(CircleShape)
-            .background(if (active) BittrTheme.colors.toggleSelected else Color.Transparent)
             .clickable(onClick = onClick)
             .testTag(testTag)
             .semantics { contentDescription = if (active) "$label, selected" else label },
     ) {
         Image(
-            imageVector = rememberFillIcon(path, if (active) BittrTheme.colors.onToggleSelected else tint),
+            imageVector = rememberFillIcon(path, if (active) colors.brandFixed else colors.onCanvas),
             contentDescription = null,
-            modifier = Modifier.size(24.dp),
+            modifier = Modifier.size(iconSize),
         )
     }
 }
