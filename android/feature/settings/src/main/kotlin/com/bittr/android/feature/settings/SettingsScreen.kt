@@ -17,17 +17,16 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.bittr.android.core.common.TestID
 import com.bittr.android.core.designsystem.BittrIconPaths
+import com.bittr.android.core.designsystem.BittrSheetHeader
 import com.bittr.android.core.designsystem.BittrTheme
 import com.bittr.android.core.designsystem.CanvasSpacer
 import com.bittr.android.core.designsystem.IosCardShape
@@ -60,47 +59,13 @@ fun SettingsScreen(
     val colors = BittrTheme.colors
 
     Column(modifier = modifier.fillMaxWidth()) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(58.dp)
-                .padding(start = 20.dp),
-        ) {
-            Image(
-                painter = painterResource(DesignR.drawable.menu_settings_white),
-                contentDescription = null,
-                colorFilter = ColorFilter.tint(colors.homeCardTitle),
-                modifier = Modifier.size(18.dp),
-            )
-            Text(
-                text = SettingsStrings.SETTINGS.lowercase(),
-                style = MaterialTheme.typography.titleMedium.copy(fontSize = 18.sp, lineHeight = 18.sp),
-                color = colors.homeCardTitle,
-                maxLines = 1,
-                modifier = Modifier
-                    .weight(1f)
-                    .padding(start = 10.dp)
-                    .offset(y = 1.dp)
-                    .testTag(TestID.Header.titleLabel),
-            )
-            // `downarrow32`, 20 pt and 20 from the end, in a 48 dp target.
-            Box(
-                contentAlignment = Alignment.Center,
-                modifier = Modifier
-                    .padding(end = 6.dp)
-                    .size(48.dp)
-                    .clickable(role = Role.Button, onClick = onDown)
-                    .testTag(TestID.Header.downButton),
-            ) {
-                Image(
-                    painter = painterResource(DesignR.drawable.bittr_down_chevron),
-                    contentDescription = "Close",
-                    colorFilter = ColorFilter.tint(colors.homeCardTitle),
-                    modifier = Modifier.size(20.dp),
-                )
-            }
-        }
+        BittrSheetHeader(
+            icon = painterResource(DesignR.drawable.menu_settings_white),
+            title = SettingsStrings.SETTINGS,
+            onDown = onDown,
+            titleTestTag = TestID.Header.titleLabel,
+            downTestTag = TestID.Header.downButton,
+        )
         CanvasSpacer(2.dp)
 
         SettingsRow(

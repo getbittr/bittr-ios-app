@@ -1,6 +1,7 @@
 package com.bittr.android.core.designsystem
 
 import androidx.compose.foundation.Image
+import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.AnimationSpec
 import androidx.compose.ui.semantics.clearAndSetSemantics
@@ -220,6 +221,68 @@ fun BittrRowValue(text: String, modifier: Modifier = Modifier) {
         color = MaterialTheme.colorScheme.onSurfaceVariant,
         modifier = modifier,
     )
+}
+
+/**
+ * iOS's `addHeader(iconLight:iconDark:title:)` — the header of the pop-ups and sheets over the
+ * canvas (Settings, a lesson): 58 tall, the 18 pt icon 20 in, the title lower-cased in Gilroy
+ * Bold 18 10 after it, and `downarrow32`, 20 pt, 20 from the end — all white, yellow in dark
+ * (`whiteoryellow`).
+ *
+ * @param icon the header's icon as drawn; it is tinted to the header's colour.
+ */
+@Composable
+fun BittrSheetHeader(
+    icon: Painter,
+    title: String,
+    onDown: () -> Unit,
+    modifier: Modifier = Modifier,
+    titleTestTag: String? = null,
+    downTestTag: String? = null,
+) {
+    val tint = BittrTheme.colors.homeCardTitle
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = modifier
+            .fillMaxWidth()
+            .height(58.dp)
+            .padding(start = 20.dp),
+    ) {
+        Image(
+            painter = icon,
+            contentDescription = null,
+            colorFilter = ColorFilter.tint(tint),
+            modifier = Modifier.size(18.dp),
+        )
+        Text(
+            text = title.lowercase(),
+            style = MaterialTheme.typography.titleMedium.copy(fontSize = 18.sp, lineHeight = 18.sp),
+            color = tint,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier
+                .weight(1f)
+                .padding(start = 10.dp)
+                .offset(y = 1.dp)
+                .then(titleTestTag?.let { Modifier.testTag(it) } ?: Modifier),
+        )
+        // The 20 pt chevron 20 from the end, in a 48 dp target.
+        Box(
+            contentAlignment = Alignment.Center,
+            modifier = Modifier
+                .padding(end = 6.dp)
+                .size(48.dp)
+                .clickable(role = Role.Button, onClick = onDown)
+                .then(downTestTag?.let { Modifier.testTag(it) } ?: Modifier),
+        ) {
+            Image(
+                painter = painterResource(R.drawable.bittr_down_chevron),
+                contentDescription = "Close",
+                colorFilter = ColorFilter.tint(tint),
+                modifier = Modifier.size(20.dp),
+            )
+        }
+    }
 }
 
 /**

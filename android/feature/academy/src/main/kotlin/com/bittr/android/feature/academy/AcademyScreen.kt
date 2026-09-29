@@ -38,15 +38,19 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import com.bittr.android.core.common.TestID
 import com.bittr.android.core.designsystem.AppBarContentInset
 import com.bittr.android.core.designsystem.BittrCanvas
+import com.bittr.android.core.designsystem.BittrSheet
 import com.bittr.android.core.designsystem.BittrTheme
 import com.bittr.android.core.designsystem.BittrTokens
 import com.bittr.android.core.designsystem.CanvasSpacer
@@ -85,27 +89,35 @@ fun AcademyScreen(
     var openLesson by remember { mutableStateOf<Lesson?>(null) }
 
     val lesson = openLesson
-    if (lesson != null) {
-        OneLessonScreen(
-            lesson = lesson,
-            onCompleted = {
-                store.markCompleted(lesson.id)
-                state = state.completing(lesson.id)
-                openLesson = null
-            },
-            onClose = { openLesson = null },
-            modifier = modifier,
-        )
-        return
-    }
-
+    // Covered by the lesson's sheet, the list is still drawn but out of the semantics tree, as the
+    // screens under the app's other sheets are.
     AcademyList(
         state = state,
         onOpenLesson = { openLesson = it },
         onBack = onBack,
-        modifier = modifier,
+        modifier = modifier.then(if (lesson != null) Modifier.clearAndSetSemantics {} else Modifier),
         contentBottomPadding = contentBottomPadding,
     )
+
+    // The lesson is a page sheet over the Academy, as iOS presents `OneLessonViewController`, the
+    // same way the signup pages' articles open: the Academy stays underneath, dimmed.
+    if (lesson != null) {
+        Dialog(onDismissRequest = {}, properties = SheetDialog) {
+            BittrSheet(onDismissed = { openLesson = null }) { dismiss ->
+                OneLessonScreen(
+                    lesson = lesson,
+                    // `nextPage` on the last page: the lesson is recorded as completed, and the
+                    // sheet goes down with the next lesson already unlocked under it.
+                    onCompleted = {
+                        store.markCompleted(lesson.id)
+                        state = state.completing(lesson.id)
+                        dismiss()
+                    },
+                    onClose = dismiss,
+                )
+            }
+        }
+    }
 }
 
 @Composable
@@ -319,3 +331,11 @@ private fun AcademyListPreview() {
         )
     }
 }
+
+/** A full-screen, edge-to-edge window for [BittrSheet], which draws its own dim and motion. */
+private val SheetDialog = DialogProperties(
+    usePlatformDefaultWidth = false,
+    decorFitsSystemWindows = false,
+    dismissOnBackPress = false,
+    dismissOnClickOutside = false,
+)
