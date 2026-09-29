@@ -3,6 +3,7 @@ package com.bittr.android.feature.signup
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.ui.semantics.Role
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
@@ -255,18 +256,33 @@ fun RestoreScreen(
             )
             // iOS leaves 10 pt and a 25 pt row for Cancel; its 48 dp touch target spends the 10.
             BittrTextButton(text = SignupStrings.CANCEL, onClick = onCancel)
-            if (onRemoveWallet != null) {
-                BittrTextButton(
-                    text = SignupStrings.REMOVE_WALLET_FROM_DEVICE,
-                    onClick = onRemoveWallet,
-                    modifier = Modifier.testTag(TestID.Signup.Restore.removeWalletButton),
-                )
-            }
             if (onOpenArticle != null) {
                 // 50 below Cancel's 25 pt row on iOS, less the rest of the 48 dp target.
                 CanvasSpacer(38.dp)
                 // RestoreViewController's `pageArticle1Slug = "wallet-recovery"`.
                 ArticleCard(slug = BittrArticles.WALLET_RECOVERY, onOpen = onOpenArticle)
+            }
+            if (onRemoveWallet != null) {
+                // `removeWalletStack`, straight under the article card: a 45 pt row with the label
+                // centred in it, Gilroy-Bold 14 in iOS's red at half alpha, and its button 10
+                // around the label.
+                Box(
+                    contentAlignment = Alignment.Center,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(45.dp),
+                ) {
+                    Text(
+                        text = SignupStrings.REMOVE_WALLET,
+                        style = MaterialTheme.typography.labelLarge.copy(fontSize = 14.sp, lineHeight = 14.sp),
+                        color = BittrTheme.colors.removeWalletLabel,
+                        modifier = Modifier
+                            .clickable(role = Role.Button, onClick = onRemoveWallet)
+                            .padding(10.dp)
+                            .offset(y = 1.dp)
+                            .testTag(TestID.Signup.Restore.removeWalletButton),
+                    )
+                }
             }
 
             // Room to park the heading at the top. Only while a field has focus, so the

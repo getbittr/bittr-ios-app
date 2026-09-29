@@ -474,6 +474,11 @@ data class BittrColors(
     val destructiveFill: Color,
     /** The label on [destructiveFill]. */
     val onDestructiveFill: Color,
+    /**
+     * The forgot-PIN screen's "Remove wallet" label — the storyboard's `removeWalletLabel` red
+     * (sRGB 1, 0.231, 0.188) at the half alpha `RestoreViewController` sets, in both modes.
+     */
+    val removeWalletLabel: Color,
     /** Titles, messages and the cancelling button on [dialogContainer]. */
     val onDialogContainer: Color,
 
@@ -645,6 +650,7 @@ val BittrLightColorsExtended = BittrColors(
     onToggleSelected = Ink,
     destructiveFill = Color(0xFFB3261E),
     onDestructiveFill = Color.White,
+    removeWalletLabel = Color(0xFFFF3B30).copy(alpha = 0.5f),
     onDialogContainer = Ink,
     // Fixed in both schemes — see [BittrColors.chartSurface] for the arithmetic that
     // leaves no other option, and `TokenContrastTest` for the assertions. BIT-156.
@@ -736,6 +742,7 @@ val BittrDarkColorsExtended = BittrColors(
     onToggleSelected = Yellow,
     destructiveFill = Color(0xFFB3261E),
     onDestructiveFill = Color.White,
+    removeWalletLabel = Color(0xFFFF3B30).copy(alpha = 0.5f),
     onDialogContainer = Color.White,
     // Byte-identical to the light values on purpose, and the only group here that is.
     // The dark canvas admits no fill that both has an edge on `blue1` and carries white
