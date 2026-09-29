@@ -19,6 +19,8 @@ import com.bittr.android.core.designsystem.LocalAppBarBackgroundVisible
 import com.bittr.android.core.designsystem.LocalAppBarLogoVisible
 import com.bittr.android.core.designsystem.pageSlideIn
 import com.bittr.android.core.designsystem.pageSlideOut
+import com.bittr.android.core.designsystem.stackSlideIn
+import com.bittr.android.core.designsystem.stackSlideOut
 import com.bittr.android.feature.signup.SignupPage
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -310,13 +312,20 @@ fun BittrNavHost(
     // Only from Ready. Finishing signup or restore goes Uninitialized → Locked → Ready — `setPin`
     // stores the PIN, then `unlock` with it takes a key derivation's time — and following that
     // passing Locked threw the user out of onboarding onto the PIN pad before the Ready page.
+    //
+    // The jump itself is instant, as iOS's `lockForReauthentication` shows the PIN inside
+    // `performWithoutAnimation`: the lock mostly lands while the app is in the background, and a
+    // slide would play out in front of the user as they come back to it. [lockJump] holds until
+    // the PIN pad is alone on screen.
     var previousWalletState by remember { mutableStateOf(walletState) }
+    var lockJump by remember { mutableStateOf(false) }
     LaunchedEffect(walletState) {
         val wasReady = previousWalletState == WalletState.Ready
         previousWalletState = walletState
         if (wasReady && walletState == WalletState.Locked &&
             navController.currentDestination?.route != Routes.PIN_UNLOCK
         ) {
+            lockJump = true
             navController.navigate(Routes.PIN_UNLOCK) {
                 popUpTo(navController.graph.id) { inclusive = true }
                 launchSingleTop = true
@@ -340,9 +349,19 @@ fun BittrNavHost(
     val visibleRoutes = visibleEntries.map { it.destination }.filter { it !is NavGraph }.map { it.route }
     // The bittr signup on its own is left to draw its own bar: its pages slide inside it, under that
     // bar, and its alerts are drawn in the page, where the overlay would sit on top of their scrim.
-    val logoPinned = visibleRoutes.any { signupPage(it) != null } &&
-        visibleRoutes.all { it in LogoBarRoutes } &&
-        visibleRoutes != listOf(Routes.SIGNUP_BITTR)
+    // Two of these pages on screen at once are sliding between each other — across the signup
+    // strip, or up and down the PIN / Signup / Home stack — and the logo stays put over them, as
+    // it does on iOS, where it belongs to CoreViewController's top bar. Home's header is its own
+    // and has no translucent bar, so with Home in the slide the overlay is the logo alone and each
+    // page keeps its own fill.
+    val logoPinned = visibleRoutes.all { it in LogoBarRoutes } && (
+        visibleRoutes.size > 1 ||
+            (visibleRoutes.any { signupPage(it) != null } && visibleRoutes != listOf(Routes.SIGNUP_BITTR))
+        )
+    val barPinned = logoPinned && Routes.HOME !in visibleRoutes
+    LaunchedEffect(visibleRoutes) {
+        if (lockJump && visibleRoutes == listOf(Routes.PIN_UNLOCK)) lockJump = false
+    }
     // The canvas behind every destination. The signup pages' slide overshoots — iOS's spring at
     // damping 0.65 — and for that moment the edge the page has pulled away from shows whatever is
     // behind it; on iOS that is SignupViewController's own yellow, here it was the white window.
@@ -353,7 +372,7 @@ fun BittrNavHost(
     ) {
         CompositionLocalProvider(
             LocalAppBarLogoVisible provides (launchLogoVisible && !logoPinned),
-            LocalAppBarBackgroundVisible provides !logoPinned,
+            LocalAppBarBackgroundVisible provides !barPinned,
         ) {
             NavHost(
                 navController = navController,
@@ -361,10 +380,10 @@ fun BittrNavHost(
             ) {
                 composable(
                     Routes.SIGNUP_START,
-                    enterTransition = { signupSlideIn() },
-                    exitTransition = { signupSlideOut() },
-                    popEnterTransition = { signupSlideIn() },
-                    popExitTransition = { signupSlideOut() },
+                    enterTransition = { if (lockJump) EnterTransition.None else coreSlideIn() },
+                    exitTransition = { if (lockJump) ExitTransition.None else coreSlideOut() },
+                    popEnterTransition = { if (lockJump) EnterTransition.None else coreSlideIn() },
+                    popExitTransition = { if (lockJump) ExitTransition.None else coreSlideOut() },
                 ) {
                     CreateWalletScreen(
                         onFinished = {
@@ -388,10 +407,10 @@ fun BittrNavHost(
                 // the same top bar, rather than opening as the Buy section's sheet.
                 composable(
                     Routes.SIGNUP_BITTR,
-                    enterTransition = { signupSlideIn() },
-                    exitTransition = { signupSlideOut() },
-                    popEnterTransition = { signupSlideIn() },
-                    popExitTransition = { signupSlideOut() },
+                    enterTransition = { if (lockJump) EnterTransition.None else coreSlideIn() },
+                    exitTransition = { if (lockJump) ExitTransition.None else coreSlideOut() },
+                    popEnterTransition = { if (lockJump) EnterTransition.None else coreSlideIn() },
+                    popExitTransition = { if (lockJump) ExitTransition.None else coreSlideOut() },
                 ) {
                     val buy: BuyViewModel = hiltViewModel()
                     BuyRoute(
@@ -413,10 +432,10 @@ fun BittrNavHost(
                 // returns), so making it one here is what gives the user a working Back.
                 composable(
                     Routes.SIGNUP_RESTORE,
-                    enterTransition = { signupSlideIn() },
-                    exitTransition = { signupSlideOut() },
-                    popEnterTransition = { signupSlideIn() },
-                    popExitTransition = { signupSlideOut() },
+                    enterTransition = { if (lockJump) EnterTransition.None else coreSlideIn() },
+                    exitTransition = { if (lockJump) ExitTransition.None else coreSlideOut() },
+                    popEnterTransition = { if (lockJump) EnterTransition.None else coreSlideIn() },
+                    popExitTransition = { if (lockJump) ExitTransition.None else coreSlideOut() },
                 ) {
                     RestoreWalletScreen(
                         onFinished = {
@@ -429,7 +448,13 @@ fun BittrNavHost(
                     )
                 }
 
-                composable(Routes.PIN_UNLOCK) {
+                composable(
+                    Routes.PIN_UNLOCK,
+                    enterTransition = { if (lockJump) EnterTransition.None else coreSlideIn() },
+                    exitTransition = { if (lockJump) ExitTransition.None else coreSlideOut() },
+                    popEnterTransition = { if (lockJump) EnterTransition.None else coreSlideIn() },
+                    popExitTransition = { if (lockJump) ExitTransition.None else coreSlideOut() },
+                ) {
                     UnlockScreen(
                         onUnlocked = {
                             navController.navigate(Routes.HOME) {
@@ -440,7 +465,13 @@ fun BittrNavHost(
                     )
                 }
 
-                composable(Routes.HOME) {
+                composable(
+                    Routes.HOME,
+                    enterTransition = { if (lockJump) EnterTransition.None else coreSlideIn() },
+                    exitTransition = { if (lockJump) ExitTransition.None else coreSlideOut() },
+                    popEnterTransition = { if (lockJump) EnterTransition.None else coreSlideIn() },
+                    popExitTransition = { if (lockJump) ExitTransition.None else coreSlideOut() },
+                ) {
                     val profits: ProfitsViewModel = hiltViewModel()
                     val profit by profits.summary.collectAsState()
                     HomeScreen(
@@ -630,7 +661,7 @@ fun BittrNavHost(
                 )
             }
         }
-        if (logoPinned) BittrAppBarLogoOverlay()
+        if (logoPinned) BittrAppBarLogoOverlay(background = barPinned)
     }
     }
 }
@@ -672,14 +703,37 @@ private fun AnimatedContentTransitionScope<NavBackStackEntry>.signupPages(): Pai
 }
 
 /**
- * iOS's page slide between two signup destinations — Signup1 and Restore (pages 3 and 2), Signup7
- * and Transfer1 (9 and 10) — and nothing, so the NavHost's own transition, for any other pair.
+ * Where a destination sits in iOS's `CoreViewController` stack — PIN on top, Signup below it, Home
+ * at the bottom — or null for one that is not in it. See [stackSlideIn].
  */
-private fun AnimatedContentTransitionScope<NavBackStackEntry>.signupSlideIn(): EnterTransition? =
-    signupPages()?.let { (from, to) -> pageSlideIn(from, to) }
+private fun stackLevel(route: String?): Int? = when (route) {
+    Routes.PIN_UNLOCK -> 0
+    Routes.SIGNUP_START, Routes.SIGNUP_RESTORE, Routes.SIGNUP_BITTR -> 1
+    Routes.HOME -> 2
+    else -> null
+}
 
-private fun AnimatedContentTransitionScope<NavBackStackEntry>.signupSlideOut(): ExitTransition? =
+/** The stack levels a slide between two destinations runs from and to, when they differ. */
+private fun AnimatedContentTransitionScope<NavBackStackEntry>.stackLevels(): Pair<Int, Int>? {
+    val from = stackLevel(initialState.destination.route) ?: return null
+    val to = stackLevel(targetState.destination.route) ?: return null
+    return if (from == to) null else from to to
+}
+
+/**
+ * iOS's page slides between the destinations it has as pages. Across the signup strip —
+ * Signup1 and Restore (pages 3 and 2), Signup7 and Transfer1 (9 and 10) — sideways; up and down
+ * the PIN / Signup / Home stack — unlocking, finishing onboarding, the screen lock, a wallet
+ * removal — vertically, the page arriving below or above the one it replaces. Nothing, so the
+ * NavHost's own transition, for any other pair.
+ */
+private fun AnimatedContentTransitionScope<NavBackStackEntry>.coreSlideIn(): EnterTransition? =
+    signupPages()?.let { (from, to) -> pageSlideIn(from, to) }
+        ?: stackLevels()?.let { (from, to) -> stackSlideIn(from, to) }
+
+private fun AnimatedContentTransitionScope<NavBackStackEntry>.coreSlideOut(): ExitTransition? =
     signupPages()?.let { (from, to) -> pageSlideOut(from, to) }
+        ?: stackLevels()?.let { (from, to) -> stackSlideOut(from, to) }
 
 /**
  * The Settings area — Settings, the three website pages, Device details and the

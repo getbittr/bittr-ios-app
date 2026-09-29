@@ -206,11 +206,14 @@ private const val AppBarCurveRatio = 0.0375f
  * (`LocalAppBarLogoVisible`, [LocalAppBarBackgroundVisible]) and this one is laid over them. The
  * logo follows `LocalAppBarLogoVisible` as it is where it is composed, so it stays hidden under the
  * launch animation's cover too.
+ *
+ * @param background false draws the logo alone, for pages that keep their own bar fill — Home,
+ *   whose header is its own and has no translucent bar to hand over to this one.
  */
 @Composable
-fun BittrAppBarLogoOverlay(modifier: Modifier = Modifier) {
+fun BittrAppBarLogoOverlay(modifier: Modifier = Modifier, background: Boolean = true) {
     Box(modifier.fillMaxWidth()) {
-        BittrAppBarBackground()
+        if (background) BittrAppBarBackground()
         Box(
             contentAlignment = Alignment.Center,
             modifier = Modifier
