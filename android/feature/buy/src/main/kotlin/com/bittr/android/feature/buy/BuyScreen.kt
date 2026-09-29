@@ -48,7 +48,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.bittr.android.core.common.TestID
-import com.bittr.android.core.designsystem.BittrBody
 import com.bittr.android.core.designsystem.BittrSpinner
 import androidx.compose.foundation.layout.RowScope
 import com.bittr.android.core.designsystem.BittrHelpButton
@@ -61,15 +60,25 @@ import com.bittr.android.core.designsystem.BittrDialogMessage
 import com.bittr.android.core.designsystem.BittrDialogButtonHeight
 import com.bittr.android.core.designsystem.BittrCanvasShapes
 import com.bittr.android.core.designsystem.dismissOnPullDown
-import com.bittr.android.core.designsystem.BittrCanvas
 import com.bittr.android.core.designsystem.BittrCard
-import com.bittr.android.core.designsystem.BittrModalHeader
 import com.bittr.android.core.designsystem.BittrPrimaryButton
 import com.bittr.android.core.designsystem.BittrTheme
 import com.bittr.android.core.designsystem.BittrTokens
 import com.bittr.android.core.designsystem.CanvasSpacer
 import com.bittr.android.core.designsystem.bittrMarkup
 import com.bittr.android.core.designsystem.bittrSwitchColors
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.offset
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
+import com.bittr.android.core.designsystem.BittrSheet
+import com.bittr.android.core.designsystem.BittrSheetHeader
+import com.bittr.android.core.designsystem.Gilroy
 import com.bittr.android.core.network.IbanEntity
 import com.bittr.android.core.permissions.BittrPermissions
 
@@ -129,75 +138,141 @@ fun BuyRoute(
 
     Box(modifier = modifier.fillMaxSize()) {
         val signup = state.signup
-        if (signup == null) {
-            if (!onboarding) BuyCards(state = state, controller = controller, onDown = onDown)
+        if (onboarding) {
+            signup?.let { SignupLayers(it, controller, onOpenArticle, onboarding = true) }
+            state.alert?.let { alert -> BuyAlertCard(alert = alert, onAction = controller::onAlertAction) }
         } else {
-            SignupContainer(
-                signup = signup,
-                controller = controller,
-                onOpenArticle = onOpenArticle,
-                onboarding = onboarding,
-            )
-            if (signup.showInitiative) {
-                InitiativeSheet(onConfirm = controller::onInitiativeConfirm, onCancel = controller::onInitiativeCancel)
+            BuyCards(state = state, controller = controller, onDown = onDown)
+            if (signup == null) {
+                state.alert?.let { alert -> BuyAlertCard(alert = alert, onAction = controller::onAlertAction) }
+            }
+            SignupSheet(state = state, controller = controller, onOpenArticle = onOpenArticle)
+        }
+    }
+}
+
+/**
+ * The signup container over Buy — `BuyToRegister`, a modal segue from a page sheet, so a second
+ * page sheet rising over the first. It holds the last signup while it slides down, and a close
+ * from the sheet itself (Back) closes the signup in the controller once it is down.
+ *
+ * Its alerts are drawn inside it: in Buy's window they would sit under the sheet.
+ */
+@Composable
+private fun SignupSheet(
+    state: BuyUiState,
+    controller: BuyController,
+    onOpenArticle: (String) -> Unit,
+) {
+    val signup = state.signup
+    var presented by remember { mutableStateOf<SignupUiState?>(null) }
+    if (signup != null && presented != signup) presented = signup
+    val shown = presented ?: return
+
+    Dialog(onDismissRequest = {}, properties = SheetDialog) {
+        BittrSheet(
+            onDismissed = {
+                presented = null
+                if (controller.state.value.signup != null) controller.onCloseSignup()
+            },
+        ) { dismiss ->
+            // Done, "Go to wallet" or the header's down button closed it in the controller.
+            LaunchedEffect(signup == null) { if (signup == null) dismiss() }
+            Box(Modifier.fillMaxSize()) {
+                SignupLayers(shown, controller, onOpenArticle, onboarding = false)
+                if (signup != null) {
+                    state.alert?.let { alert -> BuyAlertCard(alert = alert, onAction = controller::onAlertAction) }
+                }
             }
         }
-        state.alert?.let { alert -> BuyAlertCard(alert = alert, onAction = controller::onAlertAction) }
     }
 }
 
 @Composable
+private fun SignupLayers(
+    signup: SignupUiState,
+    controller: BuyController,
+    onOpenArticle: (String) -> Unit,
+    onboarding: Boolean,
+) {
+    SignupContainer(
+        signup = signup,
+        controller = controller,
+        onOpenArticle = onOpenArticle,
+        onboarding = onboarding,
+    )
+    if (signup.showInitiative) {
+        InitiativeSheet(onConfirm = controller::onInitiativeConfirm, onCancel = controller::onInitiativeCancel)
+    }
+}
+
+/** Edge to edge, with the window's own dim, animation and Back handling left to [BittrSheet]. */
+private val SheetDialog = DialogProperties(
+    usePlatformDefaultWidth = false,
+    decorFitsSystemWindows = false,
+    dismissOnBackPress = false,
+    dismissOnClickOutside = false,
+)
+
+/**
+ * `BuyViewController`: the sheet header over a block centred in the whole sheet — the subtitle
+ * 40 in, then 30 below it either the IBAN cards or, with none yet, the bold empty label and 25
+ * under that the 200 × 45 black "Check options" button with 13 corners. The labels sit straight
+ * on the canvas at Gilroy's own line height, as a UILabel sets them.
+ */
+@Composable
 private fun BuyCards(state: BuyUiState, controller: BuyController, onDown: () -> Unit) {
     val clipboard = rememberTextClipboard()
-    BittrCanvas(modifier = Modifier.dismissOnPullDown(onDown), appBar = false) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            BittrModalHeader(
-                title = BuyStrings.BUY_BITCOIN,
-                onDown = onDown,
-                titleTestTag = TestID.Buy.headerLabel,
-                downTestTag = TestID.Buy.downButton,
-                modifier = Modifier.weight(1f),
-            )
-        }
-        if (state.refreshing) {
-            BittrSpinner(
-                strokeWidth = 2.dp,
-                color = LocalContentColor.current,
+    BoxWithConstraints(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(BittrTheme.colors.canvas)
+            .dismissOnPullDown(onDown),
+    ) {
+        val sheetHeight = maxHeight
+        val cardWidth = maxWidth - 30.dp
+        CompositionLocalProvider(LocalContentColor provides MaterialTheme.colorScheme.onSurface) {
+            Column(
+                verticalArrangement = Arrangement.Center,
+                horizontalAlignment = Alignment.CenterHorizontally,
                 modifier = Modifier
-                    .align(Alignment.CenterHorizontally)
-                    .size(20.dp),
-            )
-        }
-
-        Column(
-            verticalArrangement = Arrangement.Center,
-            modifier = Modifier
-                .weight(1f)
-                .fillMaxWidth()
-                .verticalScroll(rememberScrollState()),
-        ) {
-            if (state.cards.isEmpty()) {
-                BittrCard(modifier = Modifier.padding(horizontal = BittrTokens.Spacing.md)) {
-                    // What buying is first, then that nothing is set up yet, in bold — iOS's
-                    // order and the proposal's, which this had reversed.
-                    BittrBody(BuyStrings.BUY_SUBTITLE)
-                    CanvasSpacer(BittrTokens.Spacing.md)
-                    BittrBody(BuyStrings.BUY_EMPTY, bold = true)
-                    CanvasSpacer(BittrTokens.Spacing.xl)
-                    BittrPrimaryButton(
-                        text = BuyStrings.CHECK_OPTIONS,
-                        onClick = controller::onStartSignup,
-                        modifier = Modifier.testTag(TestID.Buy.continueButton),
-                    )
-                }
-            } else {
-                BittrBody(
-                    BuyStrings.BUY_SUBTITLE,
-                    modifier = Modifier.padding(horizontal = BittrTokens.Spacing.lg),
+                    .fillMaxWidth()
+                    .verticalScroll(rememberScrollState())
+                    .heightIn(min = sheetHeight)
+                    .padding(vertical = 58.dp),
+            ) {
+                Text(
+                    text = BuyStrings.BUY_SUBTITLE,
+                    style = BuyLabel,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.padding(horizontal = 40.dp),
                 )
-                CanvasSpacer(BittrTokens.Spacing.lg)
-                BoxWithConstraints(Modifier.fillMaxWidth()) {
-                    val cardWidth = maxWidth - 30.dp
+                CanvasSpacer(30.dp)
+                if (state.cards.isEmpty()) {
+                    Text(
+                        text = BuyStrings.BUY_EMPTY,
+                        style = BuyLabel.copy(fontWeight = FontWeight.Bold, lineHeight = 16.4.sp),
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.padding(horizontal = 40.dp),
+                    )
+                    CanvasSpacer(25.dp)
+                    Box(
+                        contentAlignment = Alignment.Center,
+                        modifier = Modifier
+                            .size(width = 200.dp, height = 45.dp)
+                            .clip(RoundedCornerShape(13.dp))
+                            .background(Color.Black)
+                            .clickable(role = Role.Button, onClick = controller::onStartSignup)
+                            .testTag(TestID.Buy.continueButton),
+                    ) {
+                        Text(
+                            text = BuyStrings.CHECK_OPTIONS,
+                            style = MaterialTheme.typography.labelLarge.copy(fontSize = 14.sp),
+                            color = Color.White,
+                            modifier = Modifier.offset(y = 1.dp),
+                        )
+                    }
+                } else {
                     LazyRow(
                         horizontalArrangement = Arrangement.spacedBy(BittrTokens.Spacing.sm),
                         contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 15.dp),
@@ -220,8 +295,39 @@ private fun BuyCards(state: BuyUiState, controller: BuyController, onDown: () ->
                 }
             }
         }
+
+        Column(Modifier.fillMaxWidth()) {
+            BittrSheetHeader(
+                icon = painterResource(R.drawable.buy_header_piggy),
+                title = BuyStrings.BUY_BITCOIN,
+                onDown = onDown,
+                titleTestTag = TestID.Buy.headerLabel,
+                downTestTag = TestID.Buy.downButton,
+            )
+            if (state.refreshing) {
+                BittrSpinner(
+                    strokeWidth = 2.dp,
+                    color = BittrTheme.colors.homeCardTitle,
+                    modifier = Modifier
+                        .align(Alignment.CenterHorizontally)
+                        .size(20.dp),
+                )
+            }
+        }
     }
 }
+
+/**
+ * The subtitle's Gilroy-Regular 16 at the 20.8 pt line pitch it has on iOS — the scale's
+ * `bodyLarge` spaces it at 24. The empty label's Bold is tighter still, 16.4, off the same
+ * screenshot.
+ */
+private val BuyLabel = TextStyle(
+    fontFamily = Gilroy,
+    fontWeight = FontWeight.Normal,
+    fontSize = 16.sp,
+    lineHeight = 20.8.sp,
+)
 
 /** `IbanCollectionViewCell`. */
 @Composable
