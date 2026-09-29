@@ -289,15 +289,27 @@ fun BittrNavHost(
 
     // `checkWalletRemoval`: a lockout to resume, or a removal left half-done.
     LaunchedEffect(Unit) { removal.checkOnLaunch() }
+    // A removal from Device details, waiting for Settings to finish closing onto Home.
+    var removedToSignup by remember { mutableStateOf(false) }
 
     WalletRemovalHost(
         coordinator = removal,
         // The erase already swaps the start destination to signup; this clears whatever
         // back stack was above it so Back cannot return to a screen of the old wallet.
         onWalletRemoved = {
-            navController.navigate(Routes.SIGNUP_START) {
-                popUpTo(navController.graph.id) { inclusive = true }
-                launchSingleTop = true
+            // iOS's `performWalletReset` closes Settings first (`hideSettings`) and then slides from
+            // Home to Signup (`showSignup`). Removal from Device details does the same here: back
+            // to Home the way Settings closes, and the slide once Home is alone on screen — see
+            // [removedToSignup] below. From the PIN or a signup page there is nothing to close.
+            val closing = stackLevel(navController.currentDestination?.route) == null &&
+                navController.popBackStack(Routes.HOME, inclusive = false)
+            if (closing) {
+                removedToSignup = true
+            } else {
+                navController.navigate(Routes.SIGNUP_START) {
+                    popUpTo(navController.graph.id) { inclusive = true }
+                    launchSingleTop = true
+                }
             }
         },
     ) {
@@ -361,6 +373,17 @@ fun BittrNavHost(
     val barPinned = logoPinned && Routes.HOME !in visibleRoutes
     LaunchedEffect(visibleRoutes) {
         if (lockJump && visibleRoutes == listOf(Routes.PIN_UNLOCK)) lockJump = false
+    }
+    // The second half of a removal from Device details: Settings has closed onto Home, and the
+    // wallet leaves for signup the way iOS's `showSignup` takes it, Home dropping away below.
+    LaunchedEffect(removedToSignup, visibleRoutes) {
+        if (removedToSignup && visibleRoutes == listOf(Routes.HOME)) {
+            removedToSignup = false
+            navController.navigate(Routes.SIGNUP_START) {
+                popUpTo(navController.graph.id) { inclusive = true }
+                launchSingleTop = true
+            }
+        }
     }
     // The canvas behind every destination. The signup pages' slide overshoots — iOS's spring at
     // damping 0.65 — and for that moment the edge the page has pulled away from shows whatever is
