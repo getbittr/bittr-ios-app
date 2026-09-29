@@ -691,7 +691,13 @@ fun BittrNavHost(
 
                 settingsArea(
                     navController = navController,
-                    onRemoveWallet = { removal.removeWalletTapped(RemovalOrigin.Settings) },
+                    onRemoveWallet = {
+                        // The removal's alerts, cover and hand-off are drawn in the app's own
+                        // window, as iOS draws them on CoreViewController — under Settings' and
+                        // Device's windows. Close both first, so the alert is seen over Home.
+                        navController.popBackStack(Routes.HOME, inclusive = false)
+                        removal.removeWalletTapped(RemovalOrigin.Settings)
+                    },
                     // iOS handles a first-party page's Lightning link over the browser; here Send handles it.
                     onWebsiteLnurl = { raw, source ->
                         webLnurl.post(SendLnurlRequest(raw, source))
