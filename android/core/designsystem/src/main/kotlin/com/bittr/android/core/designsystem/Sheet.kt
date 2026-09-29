@@ -25,6 +25,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
@@ -37,6 +38,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.withFrameMillis
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -44,11 +46,11 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.DialogWindowProvider
 import kotlin.math.roundToInt
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 /**
@@ -138,10 +140,16 @@ private const val SheetStiffness = 300f
  *   down and out, then [onDismissed], which pops the destination.
  * - **Dragging** it down tracks the finger and fades the dim; let go past a third of its height or
  *   faster than 800 pt/s and it closes, otherwise it eases back up in 0.3 s (`handleSettingsPan`).
+ *
+ * The panel runs 20 dp past the bottom of the screen, as iOS's container is `+ 20` taller than its
+ * content, so the spring's overshoot lifts more canvas into view rather than the panel's bottom edge.
+ *
+ * [cornerRadius] is the top corners': 20 for Settings, 12 for the map's place panel.
  */
 @Composable
 fun BittrPopup(
     onDismissed: () -> Unit,
+    cornerRadius: Dp = 20.dp,
     content: @Composable ColumnScope.(dismiss: () -> Unit) -> Unit,
 ) {
     val window = (LocalView.current.parent as? DialogWindowProvider)?.window
@@ -155,13 +163,17 @@ fun BittrPopup(
     val onDismissedLatest by rememberUpdatedState(onDismissed)
     // How far the panel is below its open position, in px; its height when closed.
     val offset = remember { Animatable(Float.MAX_VALUE) }
+    // The content's height, without the overshoot filler below it.
     var panelHeight by remember { mutableFloatStateOf(0f) }
+    val overshootPx = with(density) { PopupOvershoot.toPx() }
     var closing by remember { mutableStateOf(false) }
 
     LaunchedEffect(panelHeight > 0f) {
         if (panelHeight <= 0f) return@LaunchedEffect
         offset.snapTo(panelHeight)
-        delay(PopupOpenDelayMs)
+        // Counted in frames rather than `delay`, so a test's frame clock carries it as it does the spring.
+        val start = withFrameMillis { it }
+        while (withFrameMillis { it } - start < PopupOpenDelayMs) Unit
         offset.animateTo(0f, spring(dampingRatio = 0.7f, stiffness = PopupStiffness))
     }
 
@@ -195,9 +207,11 @@ fun BittrPopup(
                 .align(Alignment.BottomCenter)
                 .fillMaxWidth()
                 // Off screen until measured, so the first frame is not the panel at the top of its travel.
-                .offset { IntOffset(0, if (panelHeight <= 0f) OffScreen else offset.value.roundToInt()) }
-                .onSizeChanged { panelHeight = it.height.toFloat() }
-                .clip(PopupShape)
+                .offset {
+                    IntOffset(0, if (panelHeight <= 0f) OffScreen else (offset.value + overshootPx).roundToInt())
+                }
+                .onSizeChanged { panelHeight = it.height - overshootPx }
+                .clip(RoundedCornerShape(topStart = cornerRadius, topEnd = cornerRadius))
                 .background(BittrTheme.colors.canvas)
                 .draggable(
                     orientation = Orientation.Vertical,
@@ -213,14 +227,16 @@ fun BittrPopup(
                         }
                     },
                 )
-                .navigationBarsPadding(),
+                .navigationBarsPadding()
+                .padding(bottom = PopupOvershoot),
         ) {
             content(dismiss)
         }
     }
 }
 
-private val PopupShape = RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp)
+/** iOS's `+ 20` on the container's height, kept below the screen's edge. */
+private val PopupOvershoot = 20.dp
 
 private const val OffScreen = 1_000_000
 
