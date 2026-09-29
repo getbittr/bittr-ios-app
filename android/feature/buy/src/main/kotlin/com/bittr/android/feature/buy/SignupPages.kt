@@ -285,23 +285,30 @@ private val CardBody: TextStyle
 private val CardQuestion: TextStyle
     @Composable get() = MaterialTheme.typography.titleMedium.copy(fontSize = 16.sp, lineHeight = 20.sp)
 
-/** `Transfer2ViewController`. */
+/**
+ * `Transfer2ViewController`, as its scene is: in the card, 30 from its top and 40 from its sides,
+ * the line in Gilroy Bold 16, centred; the code field 30 below; Confirm 30 below that, "Resend
+ * code" under it, and 25 of card under that row.
+ */
 @Composable
 private fun OtpPage(signup: SignupUiState, controller: BuyController) {
     val focus = LocalFocusManager.current
     val codeFocus = remember { FocusRequester() }
     LaunchedEffect(Unit) { runCatching { codeFocus.requestFocus() } }
 
-    BittrCard(horizontalAlignment = Alignment.Start) {
+    // The resend row's 25 pt sits 25 above the card's bottom on iOS; its 48 dp touch target spends
+    // 11.5 of that.
+    BittrCard(contentPadding = PaddingValues(start = 40.dp, end = 40.dp, top = 30.dp, bottom = 13.dp)) {
         Text(
             BuyStrings.YOUVE_GOT_MAIL,
-            style = MaterialTheme.typography.titleMedium,
+            style = CardQuestion,
+            textAlign = TextAlign.Center,
             modifier = Modifier
                 .fillMaxWidth()
                 .tapToClearFocus { focus.clearFocus() }
                 .testTag(TestID.Signup.Bittr.Otp.topLabel),
         )
-        CanvasSpacer(BittrTokens.Spacing.lg)
+        CanvasSpacer(30.dp)
         BuyField(
             value = signup.code,
             onValueChange = controller::onCodeChange,
@@ -315,7 +322,7 @@ private fun OtpPage(signup: SignupUiState, controller: BuyController) {
                 controller.onConfirmCode()
             },
         )
-        CanvasSpacer(BittrTokens.Spacing.xl)
+        CanvasSpacer(30.dp)
         BusyButton(
             text = BuyStrings.CONFIRM,
             busy = signup.busy,
@@ -326,6 +333,7 @@ private fun OtpPage(signup: SignupUiState, controller: BuyController) {
             },
             tag = TestID.Signup.Bittr.Otp.nextButton,
         )
+        // iOS leaves 10 pt and a 25 pt row; the 48 dp touch target spends the 10.
         BittrTextButton(
             text = BuyStrings.RESEND_CODE,
             onClick = {
