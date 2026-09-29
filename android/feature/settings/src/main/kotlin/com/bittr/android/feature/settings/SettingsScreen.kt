@@ -17,6 +17,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
@@ -32,7 +33,7 @@ import com.bittr.android.core.designsystem.CanvasSpacer
 import com.bittr.android.core.designsystem.IosCardShape
 import com.bittr.android.core.designsystem.R as DesignR
 import com.bittr.android.core.designsystem.iosShadow
-import com.bittr.android.core.designsystem.rememberStrokeIcon
+import com.bittr.android.core.designsystem.rememberFillIcon
 
 /**
  * Settings — `ios/bittr/Settings/SettingsViewController` — the content of the pop-up that springs up
@@ -70,25 +71,25 @@ fun SettingsScreen(
 
         SettingsRow(
             label = SettingsStrings.GET_SUPPORT,
-            icon = BittrIconPaths.SUPPORT,
+            icon = BittrIconPaths.SUPPORT_FILLED,
             onClick = { onOpenWebsite(WebsitePage.Support) },
             testTag = TestID.Settings.Row.support,
         )
         SettingsRow(
             label = SettingsStrings.PRIVACY_POLICY,
-            icon = BittrIconPaths.PRIVACY,
+            icon = BittrIconPaths.PRIVACY_FILLED,
             onClick = { onOpenWebsite(WebsitePage.Privacy) },
             testTag = TestID.Settings.Row.privacy,
         )
         SettingsRow(
             label = SettingsStrings.TERMS_AND_CONDITIONS,
-            icon = BittrIconPaths.TERMS,
+            icon = BittrIconPaths.TERMS_FILLED,
             onClick = { onOpenWebsite(WebsitePage.Terms) },
             testTag = TestID.Settings.Row.terms,
         )
         SettingsRow(
             label = SettingsStrings.DEVICE_DETAILS,
-            icon = BittrIconPaths.DEVICE,
+            icon = BittrIconPaths.DEVICE_FILLED,
             onClick = onOpenDevice,
             testTag = TestID.Settings.Row.device,
         )
@@ -97,7 +98,8 @@ fun SettingsScreen(
         Text(
             text = "${SettingsStrings.APP_VERSION} $version",
             style = MaterialTheme.typography.bodyLarge.copy(fontSize = 16.sp, lineHeight = 16.sp),
-            color = colors.onCanvas,
+            // White in both schemes, as the storyboard has `appVersion`.
+            color = Color.White,
             textAlign = TextAlign.Center,
             modifier = Modifier.fillMaxWidth(),
         )
@@ -131,7 +133,7 @@ private fun SettingsRow(label: String, icon: String, onClick: () -> Unit, testTa
                 .padding(start = 25.dp, end = 30.dp),
         ) {
             Image(
-                imageVector = rememberStrokeIcon(icon, BittrTheme.colors.brandFixed, strokeWidth = 1.9f),
+                imageVector = rememberFillIcon(icon, BittrTheme.colors.brandFixed, evenOdd = true),
                 contentDescription = null,
                 modifier = Modifier.size(20.dp),
             )

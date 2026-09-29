@@ -41,6 +41,7 @@ import androidx.compose.ui.draw.dropShadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.PathFillType
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.StrokeCap
@@ -887,6 +888,23 @@ object BittrIconPaths {
     const val WALLET = "M3 7.5A2.5 2.5 0 015.5 5H18a2 2 0 012 2v10a2 2 0 01-2 2H5.5A2.5 2.5 0 013 16.5z M16 12h2"
     const val ACADEMY = "M3 9l9-4.5L21 9l-9 4.5z M6.5 11v4.5c0 1 2.5 2.5 5.5 2.5s5.5-1.5 5.5-2.5V11"
     const val SUPPORT = "M3 7h18v10H3z M3 7l9 6 9-6"
+
+    // Settings' rows, filled as iOS's SF Symbols are, for [rememberFillIcon] with `evenOdd`: each
+    // inner subpath is a hole. `envelope.fill` with its fold, `checkmark.shield.fill` with its
+    // tick, `book.pages.fill` with its lines, `ipad.and.iphone` as a framed tablet and a phone.
+    const val SUPPORT_FILLED =
+        "M4.5 5.5h15a1.5 1.5 0 011.5 1.5v10a1.5 1.5 0 01-1.5 1.5h-15A1.5 1.5 0 013 17V7a1.5 1.5 0 011.5-1.5z " +
+            "M4 7.2L12 13l8-5.8v1.8L12 14.8 4 9z"
+    const val PRIVACY_FILLED =
+        "M12 2.5l8 3.2v5.8c0 4.6-3.3 8.4-8 10-4.7-1.6-8-5.4-8-10V5.7z " +
+            "M8.1 12l1.4-1.4 1.9 1.9 3.9-3.9 1.4 1.4-5.3 5.3z"
+    const val TERMS_FILLED =
+        "M6 2.5h11a2 2 0 012 2v15a2 2 0 01-2 2H6a2 2 0 01-2-2v-15a2 2 0 012-2z " +
+            "M7.5 6.5h8V8h-8z M7.5 10h8v1.5h-8z M7.5 13.5h5.5V15H7.5z"
+    const val DEVICE_FILLED =
+        "M3.5 4h9a1.5 1.5 0 011.5 1.5v13a1.5 1.5 0 01-1.5 1.5h-9A1.5 1.5 0 012 18.5v-13A1.5 1.5 0 013.5 4z " +
+            "M3.6 5.6v12.8h8.8V5.6z " +
+            "M16.5 9h4a1.5 1.5 0 011.5 1.5v8a1.5 1.5 0 01-1.5 1.5h-4a1.5 1.5 0 01-1.5-1.5v-8A1.5 1.5 0 0116.5 9z"
     const val PRIVACY = "M12 3l7 3v5.5c0 4-3 7.2-7 8.5-4-1.3-7-4.5-7-8.5V6z M9 12l2 2 4-4"
     const val TERMS = "M5 4h10a2 2 0 012 2v14H7a2 2 0 01-2-2z M17 8h2v12h-2"
     const val DEVICE =
@@ -965,8 +983,8 @@ fun rememberStrokeIcon(
 }
 
 @Composable
-fun rememberFillIcon(pathData: String, tint: Color): ImageVector =
-    remember(pathData, tint) {
+fun rememberFillIcon(pathData: String, tint: Color, evenOdd: Boolean = false): ImageVector =
+    remember(pathData, tint, evenOdd) {
         ImageVector.Builder(
             name = "fill",
             defaultWidth = 24.dp,
@@ -977,6 +995,8 @@ fun rememberFillIcon(pathData: String, tint: Color): ImageVector =
             addPath(
                 pathData = PathParser().parsePathString(normalizeSvgPath(pathData)).toNodes(),
                 fill = SolidColor(tint),
+                // Even-odd for a shape with holes cut in it: an inner subpath clears what it covers.
+                pathFillType = if (evenOdd) PathFillType.EvenOdd else PathFillType.NonZero,
             )
         }.build()
     }
