@@ -3,6 +3,10 @@ package com.bittr.android.feature.settings
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -24,14 +28,17 @@ import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.layout.layout
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.bittr.android.core.common.TestID
-import com.bittr.android.core.designsystem.BittrCanvas
 import com.bittr.android.core.designsystem.dismissOnPullDown
 import com.bittr.android.core.designsystem.BittrCard
-import com.bittr.android.core.designsystem.BittrModalHeader
+import com.bittr.android.core.designsystem.BittrSheetHeader
 import com.bittr.android.core.designsystem.BittrTheme
 import com.bittr.android.core.designsystem.BittrTokens
 import com.bittr.android.core.designsystem.CanvasSpacer
@@ -104,8 +111,13 @@ private fun questionVc7(channel: ChannelSummary): String =
         .replace("<sendlimit>", group(channel.outboundSats))
 
 /**
- * `QuestionViewController`: a lower-case header, the yellow card with the answer, and the channel
- * chart above it when [channel] is given. `<b>` in [answer] is drawn bold, as iOS's `attributed()`.
+ * `QuestionViewController`: `addHeader` with the piggy and the lower-case title, over the card
+ * centred in the whole sheet — `yelloworblue2`, 13 corners and the iOS shadow, 15 from the
+ * sheet's sides. The answer is Gilroy-Regular 16, centred, 25 in and 30 from the card's top, at
+ * the 16.1 line pitch the iOS screenshot shows; 30 of card under it, or the channel chart 20
+ * under it and 15 in, when [channel] is given. iOS leaves only 10 under the text, which sits it
+ * visibly high in the card; the 30 here centres it, a deliberate departure. `<b>` in [answer] is drawn bold, as iOS's
+ * `attributed()`.
  */
 @Composable
 fun QuestionScreen(
@@ -115,25 +127,36 @@ fun QuestionScreen(
     modifier: Modifier = Modifier,
     channel: ChannelSummary? = null,
 ) {
-    BittrCanvas(modifier = modifier.dismissOnPullDown(onDown), appBar = false) {
-        BittrModalHeader(
-            title = title.lowercase(),
-            onDown = onDown,
-            titleTestTag = TestID.Header.titleLabel,
-            downTestTag = TestID.Header.downButton,
-        )
-
+    BoxWithConstraints(
+        modifier = modifier
+            .fillMaxSize()
+            .background(BittrTheme.colors.canvas)
+            .dismissOnPullDown(onDown),
+    ) {
+        val sheetHeight = maxHeight
         Column(
-            verticalArrangement = Arrangement.spacedBy(BittrTokens.Spacing.md),
+            verticalArrangement = Arrangement.Center,
             modifier = Modifier
+                .fillMaxWidth()
                 .verticalScroll(rememberScrollState())
-                .padding(BittrTokens.Spacing.md),
+                .heightIn(min = sheetHeight)
+                .padding(horizontal = 15.dp, vertical = 58.dp),
         ) {
-            BittrCard(modifier = Modifier.testTag(TestID.Question.yellowCard)) {
+            BittrCard(
+                fill = BittrTheme.colors.levelCard,
+                contentPadding = PaddingValues(
+                    start = 25.dp,
+                    end = 25.dp,
+                    top = 30.dp,
+                    bottom = if (channel == null) 30.dp else 0.dp,
+                ),
+                modifier = Modifier.testTag(TestID.Question.yellowCard),
+            ) {
                 Text(
                     text = boldTagged(answer),
-                    style = MaterialTheme.typography.bodyLarge,
+                    style = MaterialTheme.typography.bodyLarge.copy(lineHeight = 16.1.sp),
                     color = MaterialTheme.colorScheme.onSurface,
+                    textAlign = TextAlign.Center,
                     modifier = Modifier
                         .fillMaxWidth()
                         .testTag(TestID.Question.answerLabel),
@@ -141,11 +164,34 @@ fun QuestionScreen(
                 // The explanation first and the channel's figures under it, inside the same
                 // card — the proposal's order (review, `send_lightning/01b`).
                 if (channel != null) {
-                    CanvasSpacer(BittrTokens.Spacing.lg)
-                    ChannelChart(channel)
+                    // 15 from the card's sides where the text is 25: 10 past the content on each.
+                    Box(
+                        Modifier
+                            .padding(top = 30.dp, bottom = 15.dp)
+                            .layout { measurable, constraints ->
+                                val bleed = 10.dp.roundToPx()
+                                val placeable = measurable.measure(
+                                    constraints.copy(
+                                        minWidth = constraints.minWidth + 2 * bleed,
+                                        maxWidth = constraints.maxWidth + 2 * bleed,
+                                    ),
+                                )
+                                layout(constraints.maxWidth, placeable.height) { placeable.place(-bleed, 0) }
+                            },
+                    ) {
+                        ChannelChart(channel)
+                    }
                 }
             }
         }
+
+        BittrSheetHeader(
+            icon = painterResource(R.drawable.question_header_piggy),
+            title = title.lowercase(),
+            onDown = onDown,
+            titleTestTag = TestID.Header.titleLabel,
+            downTestTag = TestID.Header.downButton,
+        )
     }
 }
 
