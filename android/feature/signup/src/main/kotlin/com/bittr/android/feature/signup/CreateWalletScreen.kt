@@ -134,15 +134,13 @@ fun CreateWalletScreen(
                 modifier = modifier,
             )
 
+            // Leaving from here does not reset the arc with `finish()`: that puts the step back to
+            // Start, and the page, still drawn while it slides away to Home or Transfer1, would
+            // race six pages sideways as it went. Both ways out pop this destination, which clears
+            // the view model; the PIN and the phrase were dropped when the PIN was confirmed.
             CreateWalletStep.Ready -> ReadyScreen(
-                onContinue = {
-                    viewModel.finish()
-                    onContinueToSignup()
-                },
-                onSkip = {
-                    viewModel.finish()
-                    onFinished()
-                },
+                onContinue = onContinueToSignup,
+                onSkip = onFinished,
                 modifier = modifier,
                 onOpenArticle = onOpenArticle,
             )
