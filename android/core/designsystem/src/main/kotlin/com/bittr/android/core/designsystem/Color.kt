@@ -441,6 +441,8 @@ data class BittrColors(
     val noTransactions: Color,
     /** `yelloworblue2` — the Academy's level cards (`LevelTableViewCell.cardView`). */
     val levelCard: Color,
+    /** `grey1orblue3` — the square behind a map place's icon (`PlaceTableViewCell.imageContainer`). */
+    val placeIconBox: Color,
     /**
      * The article sheet (`ArticleViewController`): the storyboard's white in light mode and
      * `grey3orblue1`'s blue1 in dark, with `blackorwhite` text on it. Decision 56.
@@ -634,6 +636,7 @@ val BittrLightColorsExtended = BittrColors(
     menuLabel = Color(0xFF535353),
     noTransactions = Color(0xFFB1B1B1),
     levelCard = Yellow,
+    placeIconBox = Grey1,
     articleSurface = Color.White,
     onArticleSurface = Color.Black,
     dialogContainer = Color(0xFFFFFBEF),
@@ -724,6 +727,7 @@ val BittrDarkColorsExtended = BittrColors(
     menuLabel = Color.White,
     noTransactions = Color.White,
     levelCard = Blue2,
+    placeIconBox = Blue3,
     articleSurface = Blue1,
     onArticleSurface = Color.White,
     dialogContainer = Blue2,

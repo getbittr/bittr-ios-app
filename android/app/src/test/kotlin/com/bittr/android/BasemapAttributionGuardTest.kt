@@ -60,7 +60,9 @@ import org.junit.Test
  *
  * That the credit is *legible*. A scan can see that the constant exists and that the
  * map screen references it; it cannot see contrast, or ordering, or a credit pushed
- * under a fold. Those belong in a rendered assertion next to the map screen's other
+ * under a fold. Since 2026-09-29 the screen shows it in an alert behind an ⓘ on the
+ * map (where MapLibre's own sits) rather than as a line under it, at Tom's request;
+ * the reference this reads is that alert's. Those belong in a rendered assertion next to the map screen's other
  * Robolectric tests, and the failure messages below say so rather than implying this
  * file covers it.
  */
