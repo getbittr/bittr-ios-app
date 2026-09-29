@@ -16,6 +16,10 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
+import com.bittr.android.core.designsystem.LocalAppBarLogoVisible
+import com.bittr.android.core.designsystem.LocalAppBarBackgroundVisible
+import com.bittr.android.core.designsystem.BittrAppBarLogoOverlay
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -39,6 +43,10 @@ import kotlin.math.roundToInt
  *
  * The pages fill the screen and the bar floats over their lower edge, as on iOS; each page is given
  * the space the bar takes, to leave at the end of what it scrolls so its last row can clear it.
+ *
+ * One top bar over both, too — `CoreViewController`'s `topBar`, which the containers slide under:
+ * its translucent fill, curve and logo stay put while the pages move, and the pages leave their
+ * own out.
  *
  * Academy is built the first time it is chosen and let go once Wallet has slid back over it, as
  * `loadInfoVC` and `hideInfoVC` do. Back from Academy goes to Wallet.
@@ -69,29 +77,41 @@ internal fun WalletTabs(
             .fillMaxSize()
             .background(BittrTheme.colors.canvas),
     ) {
-        BoxWithConstraints(
-            modifier = Modifier
-                .fillMaxSize()
-                .clipToBounds()
-                // The pages run down behind the bar and the system bar; [bottomSpace] clears both.
-                .consumeWindowInsets(WindowInsets.navigationBars),
+        val outerLogoVisible = LocalAppBarLogoVisible.current
+        val outerBarVisible = LocalAppBarBackgroundVisible.current
+        CompositionLocalProvider(
+            LocalAppBarLogoVisible provides false,
+            LocalAppBarBackgroundVisible provides false,
         ) {
-            val width = constraints.maxWidth
-            wallet(
-                Modifier
+            BoxWithConstraints(
+                modifier = Modifier
                     .fillMaxSize()
-                    .offset { IntOffset((-progress * width).roundToInt(), 0) },
-                bottomSpace,
-            )
-            // The spring overshoots either way, so Academy is kept while it is anywhere on its way.
-            if (tab == BittrNavTab.Academy || progress != 0f) {
-                academy(
+                    .clipToBounds()
+                    // The pages run down behind the bar and the system bar; [bottomSpace] clears both.
+                    .consumeWindowInsets(WindowInsets.navigationBars),
+            ) {
+                val width = constraints.maxWidth
+                wallet(
                     Modifier
                         .fillMaxSize()
-                        .offset { IntOffset(((1f - progress) * width).roundToInt(), 0) },
+                        .offset { IntOffset((-progress * width).roundToInt(), 0) },
                     bottomSpace,
                 )
+                // The spring overshoots either way, so Academy is kept while it is anywhere on its way.
+                if (tab == BittrNavTab.Academy || progress != 0f) {
+                    academy(
+                        Modifier
+                            .fillMaxSize()
+                            .offset { IntOffset(((1f - progress) * width).roundToInt(), 0) },
+                        bottomSpace,
+                    )
+                }
             }
+        }
+        // The one top bar. Hidden with the rest of the app's logos until the launch animation has
+        // landed, and while a stack slide pins the nav host's own over this one.
+        CompositionLocalProvider(LocalAppBarLogoVisible provides outerLogoVisible) {
+            BittrAppBarLogoOverlay(background = outerBarVisible)
         }
         BittrBottomNavBar(
             // Choosing the page already showing does nothing, as on iOS.

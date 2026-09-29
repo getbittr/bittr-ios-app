@@ -9,11 +9,14 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -42,6 +45,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.bittr.android.core.common.TestID
+import com.bittr.android.core.designsystem.AppBarContentInset
 import com.bittr.android.core.designsystem.BittrCanvas
 import com.bittr.android.core.designsystem.BittrTheme
 import com.bittr.android.core.designsystem.BittrTokens
@@ -116,11 +120,15 @@ internal fun AcademyList(
     // Regular 16, 30 from the sides with 30 under it, then the level cards 13.5 apart — iOS's cell
     // is the card's height plus 13.5 (`cellHeight = collection + 100` against a card of
     // collection + 86.5).
-    BittrCanvas(modifier = modifier, onBack = onBack) {
+    //
+    // The list runs up under the translucent top bar, as iOS's table does (`contentInset.top`
+    // under CoreViewController's top bar), and starts below it.
+    val underBar = WindowInsets.statusBars.asPaddingValues().calculateTopPadding() + AppBarContentInset
+    BittrCanvas(modifier = modifier, onBack = onBack, scrollsUnderAppBar = true) {
         LazyColumn(
             verticalArrangement = Arrangement.spacedBy(13.5.dp),
             contentPadding = PaddingValues(
-                top = 30.dp,
+                top = underBar + 30.dp,
                 bottom = BittrTokens.Spacing.section + contentBottomPadding,
             ),
             modifier = Modifier.fillMaxWidth(),
