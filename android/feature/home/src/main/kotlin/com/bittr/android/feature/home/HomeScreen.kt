@@ -1,19 +1,26 @@
 package com.bittr.android.feature.home
 
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxScope
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.itemsIndexed
@@ -32,35 +39,60 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.BlurredEdgeTreatment
+import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.blur
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.BlendMode
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ColorFilter
+import androidx.compose.ui.graphics.CompositingStrategy
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.StrokeJoin
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.nativeCanvas
+import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
+import androidx.compose.ui.graphics.asAndroidPath
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.bittr.android.core.common.TestID
-import com.bittr.android.core.designsystem.BittrAppBarLogoHeight
-import com.bittr.android.core.designsystem.LocalAppBarLogoVisible
 import com.bittr.android.core.designsystem.BittrAlertDialog
-import com.bittr.android.core.designsystem.BittrSpinner
+import com.bittr.android.core.designsystem.BittrAppBarLogoHeight
 import com.bittr.android.core.designsystem.BittrBottomNavBar
 import com.bittr.android.core.designsystem.BittrIconPaths
 import com.bittr.android.core.designsystem.BittrLogo
 import com.bittr.android.core.designsystem.BittrNavTab
-import com.bittr.android.core.designsystem.BittrPiggy
+import com.bittr.android.core.designsystem.BittrSpinner
 import com.bittr.android.core.designsystem.BittrTheme
 import com.bittr.android.core.designsystem.BittrTokens
 import com.bittr.android.core.designsystem.CanvasSpacer
-import com.bittr.android.core.designsystem.rememberFillIcon
+import com.bittr.android.core.designsystem.IosCardShape
+import com.bittr.android.core.designsystem.LocalAppBarLogoVisible
+import com.bittr.android.core.designsystem.iosShadow
 import com.bittr.android.core.designsystem.rememberStrokeIcon
 
 /**
@@ -113,6 +145,8 @@ fun HomeScreen(
     onTransaction: (String) -> Unit = {},
     profitPill: ProfitPill? = null,
     onProfit: () -> Unit = {},
+    /** The week's prices for the value card, oldest first — `graphPoints`. Null until loaded. */
+    valueWeek: List<Double>? = null,
     viewModel: HomeViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsState()
@@ -134,6 +168,7 @@ fun HomeScreen(
         onTransaction = onTransaction,
         profitPill = profitPill,
         onProfit = onProfit,
+        valueWeek = valueWeek,
         onRefresh = viewModel::refresh,
         modifier = modifier,
     )
@@ -166,6 +201,7 @@ internal fun HomeScreen(
     onTransaction: (String) -> Unit = {},
     profitPill: ProfitPill? = null,
     onProfit: () -> Unit = {},
+    valueWeek: List<Double>? = null,
     onRefresh: () -> Unit = {},
 ) {
     alert?.let {
@@ -197,7 +233,7 @@ internal fun HomeScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(MaterialTheme.colorScheme.surfaceBright),
+            .background(BittrTheme.colors.homeBackground),
     ) {
         Box(
             modifier = Modifier
@@ -228,6 +264,7 @@ internal fun HomeScreen(
                         onBalanceCard = guarded(onBalanceDetails),
                         profitPill = profitPill,
                         onProfit = onProfit,
+                        valueWeek = valueWeek,
                     )
                 }
 
@@ -236,11 +273,12 @@ internal fun HomeScreen(
                 } else {
                     item {
                         Box(
-                            // `noTransactionsLabel`, which iOS shows when the history is empty.
+                            // `noTransactionsLabel`, which iOS shows when the history is empty: 30
+                            // under the curve and 30 from the sides, Gilroy Regular 16 at 1.2.
                             contentAlignment = Alignment.TopCenter,
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(horizontal = BittrTokens.Spacing.xxl, vertical = 46.dp),
+                                .padding(start = 30.dp, end = 30.dp, top = 30.dp, bottom = 30.dp),
                         ) {
                             Text(
                                 text = buildAnnotatedString {
@@ -250,8 +288,8 @@ internal fun HomeScreen(
                                     }
                                     append(HomeStrings.NO_TRANSACTIONS_2)
                                 },
-                                style = MaterialTheme.typography.bodyLarge,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                style = MaterialTheme.typography.bodyLarge.copy(fontSize = 16.sp, lineHeight = 19.2.sp),
+                                color = BittrTheme.colors.noTransactions,
                                 textAlign = TextAlign.Center,
                             )
                         }
@@ -279,7 +317,11 @@ internal fun HomeScreen(
             walletTestTag = TestID.Nav.walletButton,
             academyTestTag = TestID.Nav.academyButton,
             settingsTestTag = TestID.Nav.settingsButton,
-            modifier = Modifier.navigationBarsPadding(),
+            // Clear of the system's navigation bar by more than the plates' shadow, which the bar's
+            // scrim would otherwise cover.
+            modifier = Modifier
+                .navigationBarsPadding()
+                .padding(bottom = 20.dp),
         )
     }
     if (syncStatusVisible) SyncStatusSheet(syncProgress(state), onClose = { syncStatusVisible = false })
@@ -287,11 +329,15 @@ internal fun HomeScreen(
 }
 
 /**
- * The yellow block: logo, wallet card, actions.
+ * The yellow block — `HomeHeaderTableViewCell` — as its storyboard lays it out.
  *
- * The canvas colour is drawn under the status bar and the content inset below it —
- * the same rule [com.bittr.android.core.designsystem.BittrCanvas] follows, and the
- * reason the background modifier comes before `statusBarsPadding()`.
+ * Under the logo's 50 and 25 more (`balanceCardTop`, the safe area plus 75), `balanceCard`: 15 from
+ * the screen's sides, 320 tall whatever the balance, 13 pt corners and `setShadow()`. Then, 12
+ * below, the value and map cards side by side, 120 tall and 12 apart; 25 below those the block
+ * ends, and `bottomCurve` hangs 10 under it.
+ *
+ * The canvas colour is drawn under the status bar and the content inset below it — the same rule
+ * [com.bittr.android.core.designsystem.BittrCanvas] follows.
  */
 @Composable
 private fun HomeHeader(
@@ -307,232 +353,571 @@ private fun HomeHeader(
     onBalanceCard: () -> Unit = onSyncStatus,
     profitPill: ProfitPill? = null,
     onProfit: () -> Unit = {},
+    valueWeek: List<Double>? = null,
 ) {
     val colors = BittrTheme.colors
     CompositionLocalProvider(LocalContentColor provides colors.onCanvas) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .background(colors.canvas, HeaderShape)
-                .statusBarsPadding()
-                .padding(
-                    start = BittrTokens.Spacing.md,
-                    end = BittrTokens.Spacing.md,
-                    top = BittrTokens.Spacing.sm,
-                    bottom = BittrTokens.Spacing.xl,
-                ),
-        ) {
-            Row(
-                horizontalArrangement = Arrangement.Center,
-                modifier = Modifier.fillMaxWidth(),
-            ) {
-                BittrLogo(
-                    height = BittrAppBarLogoHeight,
-                    modifier = Modifier.alpha(if (LocalAppBarLogoVisible.current) 1f else 0f),
-                )
-            }
-            CanvasSpacer(BittrTokens.Spacing.md)
-
+        Column(modifier = Modifier.fillMaxWidth()) {
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .background(colors.cardWash, RoundedCornerShape(26.dp))
-                    .padding(BittrTokens.Spacing.md),
+                    .background(colors.homeHeader)
+                    .statusBarsPadding()
+                    .padding(start = 15.dp, end = 15.dp, bottom = 25.dp),
             ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.fillMaxWidth(),
+                Box(
+                    contentAlignment = Alignment.Center,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(50.dp),
                 ) {
-                    BittrPiggy()
-                    Text(
-                        text = HomeStrings.YOUR_WALLET,
-                        style = MaterialTheme.typography.titleMedium,
+                    BittrLogo(
+                        height = BittrAppBarLogoHeight,
+                        modifier = Modifier.alpha(if (LocalAppBarLogoVisible.current) 1f else 0f),
+                    )
+                }
+                CanvasSpacer(25.dp)
+                BalanceCard(
+                    showSyncSpinner = showSyncSpinner,
+                    // iOS shows the cached balance, or 0, until the first reading replaces it; the
+                    // card is never without one.
+                    balanceSats = balanceSats ?: 0L,
+                    balanceFiat = balanceFiat,
+                    onSend = onSend,
+                    onReceive = onReceive,
+                    onBuy = onBuy,
+                    onSyncStatus = onSyncStatus,
+                    onBalanceCard = onBalanceCard,
+                    profitPill = profitPill ?: ProfitPill(text = "0 %", isLoss = false),
+                    onProfit = onProfit,
+                )
+                CanvasSpacer(12.dp)
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(SmallCardHeight),
+                ) {
+                    ValueCard(week = valueWeek, onClick = onCurrency, modifier = Modifier.weight(1f))
+                    MapCard(onClick = onMap, modifier = Modifier.weight(1f))
+                }
+            }
+            HeaderCurve(color = colors.homeHeader)
+        }
+    }
+}
+
+/**
+ * `balanceCard`: the header row, the balance centred 31 above the card's middle with its fiat
+ * conversion and profit pill 18 under it, and the Send / Receive / Buy row 10 from its bottom.
+ *
+ * `balanceCardButton` covers the whole card and `syncButton` the header row, as on iOS. Both are
+ * transparent layers drawn under the labels rather than over them: a sibling that covers a node
+ * entirely takes it out of the accessibility tree, which is how `home.balanceCardButton` once
+ * went missing. The labels take no touches, so taps reach the layers through them.
+ */
+@Composable
+private fun BalanceCard(
+    showSyncSpinner: Boolean,
+    balanceSats: Long,
+    balanceFiat: String?,
+    onSend: () -> Unit,
+    onReceive: () -> Unit,
+    onBuy: () -> Unit,
+    onSyncStatus: () -> Unit,
+    onBalanceCard: () -> Unit,
+    profitPill: ProfitPill,
+    onProfit: () -> Unit,
+) {
+    val colors = BittrTheme.colors
+    val dark = BittrTheme.isDark
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(320.dp)
+            .iosShadow(IosCardShape)
+            .clip(IosCardShape)
+            .background(colors.homeHeader),
+    ) {
+        Box(
+            modifier = Modifier
+                .matchParentSize()
+                .clickable(onClick = onBalanceCard)
+                .testTag(TestID.Home.balanceCardButton),
+        )
+
+        // `Header View`, 20 from the card's top and leading edge, and `syncButton` 10 around it.
+        Box(modifier = Modifier.padding(start = 10.dp, top = 10.dp)) {
+            Box(
+                modifier = Modifier
+                    .matchParentSize()
+                    .clickable(onClick = onSyncStatus)
+                    .testTag(TestID.Home.syncStatusButton),
+            )
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.padding(10.dp),
+            ) {
+                Image(
+                    painter = painterResource(if (dark) R.drawable.home_piggy_yellow else R.drawable.home_piggy_white),
+                    contentDescription = null,
+                    modifier = Modifier
+                        .offset(y = (-0.5).dp)
+                        .size(18.dp),
+                )
+                Text(
+                    text = HomeStrings.YOUR_WALLET,
+                    style = CardTitle,
+                    color = colors.homeCardTitle,
+                    modifier = Modifier
+                        .padding(start = 10.dp)
+                        .testTag(TestID.Home.headerLabel),
+                )
+                // `headerSpinner` — spinning until `finalizeSync()`, 12 after the label. Composed only
+                // while it spins, so a flow waiting for it to be not visible is waiting for the sync,
+                // not for an animation to be hidden.
+                if (showSyncSpinner) {
+                    BittrSpinner(
+                        color = colors.homeCardTitle,
+                        strokeWidth = 2.dp,
                         modifier = Modifier
-                            .padding(start = BittrTokens.Spacing.sm)
-                            .weight(1f)
-                            .testTag(TestID.Home.headerLabel),
-                    )
-                    // `headerSpinner` — spinning until `finalizeSync()`. Composed only while
-                    // it spins, so a flow waiting for it to be not visible is waiting for
-                    // the sync, not for an animation to be hidden.
-                    if (showSyncSpinner) {
-                        BittrSpinner(
-                            color = LocalContentColor.current,
-                            strokeWidth = 2.dp,
-                            modifier = Modifier
-                                .size(18.dp)
-                                .testTag(TestID.Home.headerSpinner),
-                        )
-                    }
-                    HeaderIcon(
-                        path = BittrIconPaths.MAP,
-                        label = "Bitcoin map",
-                        onClick = onMap,
-                        testTag = TestID.Home.mapButton,
-                    )
-                    HeaderIcon(
-                        path = BittrIconPaths.CURRENCY,
-                        label = "Bitcoin value",
-                        onClick = onCurrency,
-                        testTag = TestID.Home.currencyButton,
-                    )
-                    // `headerViewButton` — iOS's whole-header tap target. Synced, it
-                    // opens the balance detail; not synced, it opens the sync overlay,
-                    // which is BIT-6's. Until then the guard answers the question the
-                    // overlay would have answered, in iOS's own words.
-                    HeaderIcon(
-                        path = BittrIconPaths.DETAILS,
-                        label = "Sync status",
-                        onClick = onSyncStatus,
-                        testTag = TestID.Home.syncStatusButton,
-                        filled = true,
+                            .padding(start = 12.dp)
+                            .size(18.dp)
+                            .testTag(TestID.Home.headerSpinner),
                     )
                 }
+            }
+        }
+        // `headerDetailsImage`, 20 from the card's trailing edge, level with the piggy.
+        Image(
+            painter = painterResource(if (dark) R.drawable.home_details_yellow else R.drawable.home_details_white),
+            contentDescription = null,
+            modifier = Modifier
+                .align(Alignment.TopEnd)
+                .padding(top = 19.5.dp, end = 20.dp)
+                .size(18.dp),
+        )
 
-                // The balance, once the wallet has read one, with its fiat conversion and
-                // the profit pill under it.
-                if (balanceSats != null) {
-                    CanvasSpacer(BittrTokens.Spacing.xl)
-                    // `balanceCardButton` — a transparent layer under the balance, its fiat line and
-                    // the profit pill, as iOS's covers the card with `profitButton` over its lower half.
-                    // Under rather than over so the labels keep their own ids (see HistoryCard), and
-                    // larger than the balance label: a sibling that covers a node entirely takes it out
-                    // of the accessibility tree, which is how `home.balanceCardButton` went missing.
-                    Box {
-                        Box(
-                            modifier = Modifier
-                                .matchParentSize()
-                                .clickable(onClick = onBalanceCard)
-                                .testTag(TestID.Home.balanceCardButton),
-                        )
-                        Column {
-                            BalanceLabel(balance = balanceText(balanceSats), dimmedColor = colors.balanceDimmed)
-                            // `conversionLabel`, under the balance: "CHF 190".
-                            balanceFiat?.let {
-                                Text(
-                                    text = it,
-                                    style = MaterialTheme.typography.bodyLarge,
-                                    color = colors.mutedOnCanvas,
-                                    textAlign = TextAlign.Center,
-                                    modifier = Modifier.fillMaxWidth(),
-                                )
-                            }
-                            // `balanceCardProfitView` — shown with the balance, once profits are known.
-                            if (profitPill != null) {
-                                CanvasSpacer(BittrTokens.Spacing.sm)
-                                ProfitPillView(pill = profitPill, onClick = onProfit)
-                            }
-                        }
-                    }
-                }
+        // `balanceView`, 40 tall and centred 31 above the card's middle (2 left of it), and the
+        // conversion row 18 under it.
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            modifier = Modifier
+                .align(Alignment.TopCenter)
+                .padding(top = 320.dp / 2 - 31.dp - 20.dp),
+        ) {
+            Box(
+                contentAlignment = Alignment.Center,
+                modifier = Modifier
+                    .height(40.dp)
+                    .offset(x = (-2).dp),
+            ) {
+                BalanceLabel(balance = balanceText(balanceSats), dimmedColor = colors.balanceDimmed)
+            }
+            // 18 on iOS to the 20 pt conversion row; here the row is the 26 dp pill's height, which
+            // overhangs that by 3 each way, and `profitButton`'s 10 around it.
+            CanvasSpacer(18.dp - 3.dp - 10.dp)
+            ConversionRow(fiat = balanceFiat, pill = profitPill, onProfit = onProfit)
+        }
 
-                CanvasSpacer(BittrTokens.Spacing.xxl)
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(BittrTokens.Spacing.sm),
-                    modifier = Modifier.fillMaxWidth(),
-                ) {
-                    // `sendButtonTapped` / `receiveButtonTapped`: the syncing guard,
-                    // then the segue. Both arrive here already wrapped in the guard;
-                    // the screens behind them are Wave 2, behind the same node.
-                    ActionButton(
-                        label = HomeStrings.SEND,
-                        path = BittrIconPaths.SEND,
-                        onClick = onSend,
-                        testTag = TestID.Home.sendButton,
-                        modifier = Modifier.weight(1f),
-                    )
-                    ActionButton(
-                        label = HomeStrings.RECEIVE,
-                        path = BittrIconPaths.RECEIVE,
-                        onClick = onReceive,
-                        testTag = TestID.Home.receiveButton,
-                        modifier = Modifier.weight(1f),
-                    )
-                    ActionButton(
-                        label = HomeStrings.BUY,
-                        path = BittrIconPaths.BUY,
-                        // Buy is the one action iOS does *not* gate on the sync — it
-                        // segues straight to BuyViewController. The screen is Wave 3,
-                        // so this reports "not ported" rather than borrowing a guard
-                        // iOS does not apply here.
-                        onClick = onBuy,
-                        testTag = TestID.Home.buyButton,
-                        modifier = Modifier.weight(1f),
-                    )
-                }
+        // `Buttons View`: 10 from the card's sides and bottom, 48 tall, the plates 10 apart — Send
+        // 0.32 and Buy 0.3 of the row less 7, Receive the rest.
+        BoxWithConstraints(
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .padding(10.dp)
+                .fillMaxWidth()
+                .height(48.dp),
+        ) {
+            val sendWidth = maxWidth * 0.32f - 7.dp
+            val buyWidth = maxWidth * 0.3f - 7.dp
+            Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxSize()) {
+                ActionButton(
+                    label = HomeStrings.SEND,
+                    icon = ActionIcon.Send,
+                    onClick = onSend,
+                    testTag = TestID.Home.sendButton,
+                    modifier = Modifier.width(sendWidth),
+                )
+                ActionButton(
+                    label = HomeStrings.RECEIVE,
+                    icon = ActionIcon.Receive,
+                    onClick = onReceive,
+                    testTag = TestID.Home.receiveButton,
+                    modifier = Modifier.weight(1f),
+                )
+                // Buy is the one action iOS does *not* gate on the sync — it segues straight to
+                // BuyViewController.
+                ActionButton(
+                    label = HomeStrings.BUY,
+                    icon = ActionIcon.Buy,
+                    onClick = onBuy,
+                    testTag = TestID.Home.buyButton,
+                    modifier = Modifier.width(buyWidth),
+                )
             }
         }
     }
 }
 
 /**
- * The balance, in `displayMedium` — the slot the scale keeps for it — shrinking a step at a
- * time until it fits one line, with a 20sp floor (`loadBalanceLabel`'s
- * `adjustsFontSizeToFitWidth`, DEV-23).
+ * `Conversion Box`: the balance in the display currency in Gilroy Bold 22, the balance's dimmed
+ * colour, and 12 after it the profit pill — `profitView`, 26 tall with 13 pt corners, the arrow 13
+ * in and the percentage in Gilroy Regular 14 5 after it, 13 from the end. `profitButton` reaches
+ * 10 past the row on every side.
  */
 @Composable
-private fun BalanceLabel(balance: BalanceText, dimmedColor: androidx.compose.ui.graphics.Color) {
-    val base = MaterialTheme.typography.displayMedium
-    var fontSize by remember(balance) { mutableStateOf(base.fontSize) }
-    Text(
-        text = buildAnnotatedString {
-            withStyle(SpanStyle(color = dimmedColor)) { append(balance.dimmed) }
-            append(balance.filled)
-        },
-        style = base.copy(fontSize = fontSize, lineHeight = fontSize * LINE_HEIGHT_RATIO),
-        textAlign = TextAlign.Center,
-        maxLines = 1,
-        softWrap = false,
-        onTextLayout = { layout ->
-            if (layout.didOverflowWidth && fontSize > BALANCE_MIN_FONT_SIZE) {
-                fontSize = maxOf(BALANCE_MIN_FONT_SIZE.value, fontSize.value - 2f).sp
+private fun ConversionRow(fiat: String?, pill: ProfitPill, onProfit: () -> Unit) {
+    val colors = BittrTheme.colors
+    Box {
+        Box(
+            modifier = Modifier
+                .matchParentSize()
+                .clickable(onClick = onProfit)
+                .testTag(TestID.Home.profitButton),
+        )
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.padding(10.dp),
+        ) {
+            if (fiat != null) {
+                Text(
+                    text = fiat,
+                    style = MaterialTheme.typography.titleMedium.copy(fontSize = 22.sp, lineHeight = 22.sp),
+                    color = colors.balanceDimmed,
+                    modifier = Modifier.padding(end = 12.dp),
+                )
             }
-        },
-        modifier = Modifier
-            .fillMaxWidth()
-            .testTag(TestID.Home.balanceLabel),
+            ChangePill(
+                text = pill.text,
+                isLoss = pill.isLoss,
+                height = 26.dp,
+                inset = 13.dp,
+                gap = 5.dp,
+                fontSize = 14.sp,
+                textTag = TestID.Home.profitLabel,
+                modifier = Modifier.offset(y = (-1.5).dp),
+            )
+        }
+    }
+}
+
+/**
+ * The green (or red) pill with its arrow — `profitView` on the balance card and
+ * `conversionProfitView` on the value card, which differ only in size. `profitbackground0.8` and
+ * `profittext`, or the loss pair.
+ */
+@Composable
+private fun ChangePill(
+    text: String,
+    isLoss: Boolean,
+    height: Dp,
+    inset: Dp,
+    gap: Dp,
+    fontSize: TextUnit,
+    modifier: Modifier = Modifier,
+    textTag: String? = null,
+) {
+    val colors = BittrTheme.colors
+    val foreground = if (isLoss) colors.loss else colors.profit
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = modifier
+            .height(height)
+            .background(if (isLoss) colors.lossBgMuted else colors.profitBgMuted, RoundedCornerShape(height / 2))
+            .padding(horizontal = inset),
+    ) {
+        Text(
+            text = if (isLoss) "↓" else "↑",
+            color = foreground,
+            style = MaterialTheme.typography.bodyLarge.copy(fontSize = fontSize, lineHeight = fontSize),
+        )
+        Text(
+            text = text,
+            color = foreground,
+            style = MaterialTheme.typography.bodyLarge.copy(fontSize = fontSize, lineHeight = fontSize),
+            modifier = Modifier
+                .padding(start = gap)
+                .offset(y = 1.dp)
+                .then(textTag?.let { Modifier.testTag(it) } ?: Modifier),
+        )
+    }
+}
+
+/** The title on the balance, value and map cards: Gilroy Bold 18. */
+private val CardTitle: TextStyle
+    @Composable get() = MaterialTheme.typography.titleMedium.copy(fontSize = 18.sp, lineHeight = 18.sp)
+
+/** `conversionCard` and `mapCard`'s height. */
+private val SmallCardHeight = 120.dp
+
+/**
+ * `conversionCard` — "value": the exchange icon and title, the week's change in a pill 13 from the
+ * trailing edge, and under the title the week's price as a white line, 27 in from the sides, 16
+ * below the title and 21 above the card's bottom, 4 pt wide. Tapping it opens the value screen.
+ */
+@Composable
+private fun ValueCard(week: List<Double>?, onClick: () -> Unit, modifier: Modifier = Modifier) {
+    val colors = BittrTheme.colors
+    val dark = BittrTheme.isDark
+    SmallCard(onClick = onClick, testTag = TestID.Home.currencyButton, modifier = modifier) {
+        SmallCardTitle(
+            icon = if (dark) R.drawable.home_value_yellow else R.drawable.home_value_white,
+            title = HomeStrings.VALUE,
+        )
+        weekChange(week)?.let { (text, isLoss) ->
+            ChangePill(
+                text = text,
+                isLoss = isLoss,
+                height = 22.dp,
+                inset = 10.dp,
+                gap = 4.dp,
+                fontSize = 12.sp,
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .padding(top = 10.dp, end = 13.dp),
+            )
+        }
+        if (week != null && week.size >= 2) {
+            Canvas(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(start = 27.dp, end = 27.dp, top = 30.dp + 16.dp, bottom = 21.dp),
+            ) {
+                val low = week.min()
+                val high = week.max()
+                val span = (high - low).takeIf { it > 0 } ?: 1.0
+                val stepX = size.width / (week.size - 1)
+                val points = week.mapIndexed { index, price ->
+                    Offset(index * stepX, (size.height * (1 - (price - low) / span)).toFloat())
+                }
+                // Smooth through the midpoints, as the value screen's graph is drawn.
+                val path = Path().apply {
+                    moveTo(points.first().x, points.first().y)
+                    for (index in 1 until points.size) {
+                        val previous = points[index - 1]
+                        val current = points[index]
+                        val mid = Offset((previous.x + current.x) / 2, (previous.y + current.y) / 2)
+                        quadraticTo(previous.x, previous.y, mid.x, mid.y)
+                    }
+                    lineTo(points.last().x, points.last().y)
+                }
+                // GraphView's shadow: black under the line, 9 down and blurred. Lighter than a straight
+                // port of iOS's 40 % reads here (Tom, 2026-09-29), so a quarter.
+                drawIntoCanvas { canvas ->
+                    val shadow = android.graphics.Paint().apply {
+                        isAntiAlias = true
+                        style = android.graphics.Paint.Style.STROKE
+                        strokeWidth = 4.dp.toPx()
+                        strokeCap = android.graphics.Paint.Cap.ROUND
+                        strokeJoin = android.graphics.Paint.Join.ROUND
+                        color = android.graphics.Color.BLACK
+                        alpha = (GraphShadowAlpha * 255).toInt()
+                        maskFilter = android.graphics.BlurMaskFilter(12.dp.toPx(), android.graphics.BlurMaskFilter.Blur.NORMAL)
+                    }
+                    canvas.save()
+                    canvas.translate(0f, 9.dp.toPx())
+                    canvas.nativeCanvas.drawPath(path.asAndroidPath(), shadow)
+                    canvas.restore()
+                }
+                drawPath(
+                    path = path,
+                    color = Color.White,
+                    style = Stroke(width = 4.dp.toPx(), cap = StrokeCap.Round, join = StrokeJoin.Round),
+                )
+            }
+        }
+    }
+}
+
+/** How dark the value line's shadow is. */
+private const val GraphShadowAlpha = 0.25f
+
+/**
+ * The week's change as `updateGraphProfit` writes it — `Int(profit)`, so truncated — and whether it
+ * is a loss.
+ */
+private fun weekChange(week: List<Double>?): Pair<String, Boolean>? {
+    val first = week?.firstOrNull()?.takeIf { it > 0 } ?: return null
+    val profit = ((week.last() - first) / first * 100).toInt()
+    return "${kotlin.math.abs(profit)} %" to (week.last() < first && profit != 0)
+}
+
+/**
+ * `mapCard` — "map": the map icon and title, iOS's static map of Zürich 41 from the top and 12 in
+ * from the other sides with 8 pt corners (at 60 % in dark, on its dark variant), and the bitcoin
+ * pin over it, 36 pt, 30 from the top and 40 from the trailing edge, with its own shadow. Tapping
+ * it opens the map.
+ */
+@Composable
+private fun MapCard(onClick: () -> Unit, modifier: Modifier = Modifier) {
+    val dark = BittrTheme.isDark
+    SmallCard(onClick = onClick, testTag = TestID.Home.mapButton, modifier = modifier) {
+        SmallCardTitle(
+            icon = if (dark) R.drawable.home_map_yellow else R.drawable.home_map_white,
+            title = HomeStrings.MAP,
+        )
+        Image(
+            painter = painterResource(if (dark) R.drawable.home_map_zurich_dark else R.drawable.home_map_zurich),
+            contentDescription = null,
+            contentScale = ContentScale.Crop,
+            alpha = if (dark) 0.6f else 1f,
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(start = 12.dp, end = 12.dp, top = 41.dp, bottom = 12.dp)
+                .clip(RoundedCornerShape(8.dp)),
+        )
+        // The pin's shadow: black at 30 %, 5 down, radius 3 — its own silhouette, blurred.
+        Image(
+            painter = painterResource(R.drawable.home_map_pin),
+            contentDescription = null,
+            colorFilter = ColorFilter.tint(Color.Black),
+            alpha = 0.3f,
+            modifier = Modifier
+                .align(Alignment.TopEnd)
+                .padding(top = 30.dp + 5.dp, end = 40.dp)
+                .size(36.dp)
+                .blur(3.dp, BlurredEdgeTreatment.Unbounded),
+        )
+        Image(
+            painter = painterResource(R.drawable.home_map_pin),
+            contentDescription = null,
+            modifier = Modifier
+                .align(Alignment.TopEnd)
+                .padding(top = 30.dp, end = 40.dp)
+                .size(36.dp),
+        )
+    }
+}
+
+/** A value or map card: 120 tall, `yelloworblue3` with 13 pt corners and `setShadow()`. */
+@Composable
+private fun SmallCard(
+    onClick: () -> Unit,
+    testTag: String,
+    modifier: Modifier = Modifier,
+    content: @Composable BoxScope.() -> Unit,
+) {
+    Box(
+        modifier = modifier
+            .fillMaxHeight()
+            .iosShadow(IosCardShape)
+            .clip(IosCardShape)
+            .background(BittrTheme.colors.homeHeader)
+            .clickable(onClick = onClick)
+            .testTag(testTag),
+        content = content,
     )
 }
 
-private val BALANCE_MIN_FONT_SIZE = 20.sp
+/** The 15 pt icon 15 in and 13 down, and the title in Gilroy Bold 18 10 after it. */
+@Composable
+private fun SmallCardTitle(icon: Int, title: String) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier.padding(start = 15.dp, top = 13.dp),
+    ) {
+        Image(painter = painterResource(icon), contentDescription = null, modifier = Modifier.size(15.dp))
+        Text(
+            text = title,
+            style = CardTitle,
+            color = BittrTheme.colors.homeCardTitle,
+            modifier = Modifier
+                .padding(start = 10.dp)
+                .offset(y = 0.5.dp),
+        )
+    }
+}
+
+/**
+ * `bottomCurve`: the yellow block's edge, 10 tall — iOS's `BottomCurveView`, its sides 0.15 of the
+ * height down and its middle sagging towards a control point 1.2 of it down.
+ */
+@Composable
+private fun HeaderCurve(color: Color) {
+    Canvas(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(10.dp),
+    ) {
+        val edge = size.height * 0.15f
+        val path = Path().apply {
+            moveTo(0f, 0f)
+            lineTo(size.width, 0f)
+            lineTo(size.width, edge)
+            quadraticTo(size.width / 2, size.height * 1.2f, 0f, edge)
+            close()
+        }
+        drawPath(path, color)
+    }
+}
+
+/**
+ * The balance — `updateBalanceLabel`: iOS's bitcoin sign as an image, 0.8 of the label's height —
+ * the attributed text's ascender to descender, which for Gilroy is the font size — and 6 before it (at 18 % below one bitcoin, 47 % in dark), then the figure in Gilroy Bold up to 40,
+ * shrunk to fit a width of the screen less 150, never under 16.
+ */
+@Composable
+private fun BalanceLabel(balance: BalanceText, dimmedColor: Color) {
+    val dark = BittrTheme.isDark
+    val maxWidth = LocalConfiguration.current.screenWidthDp.dp - 150.dp
+    var fontSize by remember(balance) { mutableStateOf(BALANCE_FONT_SIZE) }
+    val wholeBitcoin = balance.dimmed.isEmpty()
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Image(
+            painter = painterResource(if (dark) R.drawable.home_bitcoin_sign_white else R.drawable.home_bitcoin_sign),
+            contentDescription = null,
+            contentScale = ContentScale.Fit,
+            alpha = if (wholeBitcoin) 1f else if (dark) 0.47f else 0.18f,
+            modifier = Modifier
+                .offset(y = (-2.5).dp)
+                .size(with(LocalDensity.current) { fontSize.toDp() } * 0.8f),
+        )
+        Text(
+            text = buildAnnotatedString {
+                withStyle(SpanStyle(color = dimmedColor)) { append(balance.dimmed.removePrefix(BITCOIN_SIGN)) }
+                append(balance.filled.removePrefix(BITCOIN_SIGN))
+            },
+            style = MaterialTheme.typography.titleMedium.copy(
+                fontSize = fontSize,
+                lineHeight = fontSize * LINE_HEIGHT_RATIO,
+            ),
+            color = BittrTheme.colors.onCanvas,
+            maxLines = 1,
+            softWrap = false,
+            onTextLayout = { layout ->
+                if (layout.didOverflowWidth && fontSize > BALANCE_MIN_FONT_SIZE) {
+                    fontSize = maxOf(BALANCE_MIN_FONT_SIZE.value, fontSize.value - 2f).sp
+                }
+            },
+            modifier = Modifier
+                .padding(start = 6.dp)
+                .widthIn(max = maxWidth)
+                .testTag(TestID.Home.balanceLabel),
+        )
+    }
+}
+
+private const val BITCOIN_SIGN = "₿ "
+private val BALANCE_FONT_SIZE = 40.sp
+private val BALANCE_MIN_FONT_SIZE = 16.sp
 
 /** How far Home is pulled before it refreshes — iOS reacts past 200 pt of overscroll. */
 private val PULL_THRESHOLD = 120.dp
 private const val LINE_HEIGHT_RATIO = 1.2f
 
-@Composable
-private fun HeaderIcon(
-    path: String,
-    label: String,
-    onClick: () -> Unit,
-    testTag: String,
-    filled: Boolean = false,
-) {
-    Box(
-        contentAlignment = Alignment.Center,
-        modifier = Modifier
-            .size(BittrTokens.Size.minTouchTarget)
-            .clickable(onClick = onClick)
-            .testTag(testTag)
-            .semantics { contentDescription = label },
-    ) {
-        Image(
-            imageVector = if (filled) {
-                rememberFillIcon(path, LocalContentColor.current)
-            } else {
-                rememberStrokeIcon(path, LocalContentColor.current, strokeWidth = 2f)
-            },
-            contentDescription = null,
-            modifier = Modifier.size(22.dp),
-        )
-    }
-}
+/** The three SF Symbols on the action plates. */
+private enum class ActionIcon { Send, Receive, Buy }
 
-/** One of the three cream actions in the card — the mock's 56 dp pill with a glyph. */
+/**
+ * One of the three plates in the card — `sendView` / `receiveView` / `buyView`: `white0.7orblue2`
+ * with 8 pt corners and `setShadow()`; the brand-yellow symbol, 20 pt, and 9 after it the label in
+ * Gilroy Bold 15, together centred 1 left of the plate's middle.
+ */
 @Composable
 private fun ActionButton(
     label: String,
-    path: String,
+    icon: ActionIcon,
     onClick: () -> Unit,
     testTag: String,
     modifier: Modifier = Modifier,
@@ -540,26 +925,81 @@ private fun ActionButton(
     val colors = BittrTheme.colors
     Row(
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(
-            BittrTokens.Spacing.xs,
-            Alignment.CenterHorizontally,
-        ),
+        horizontalArrangement = Arrangement.spacedBy(9.dp, Alignment.CenterHorizontally),
         modifier = modifier
-            .height(56.dp)
-            .background(colors.tonalFill, RoundedCornerShape(16.dp))
+            .fillMaxHeight()
+            .iosShadow(ActionShape)
+            .clip(ActionShape)
+            .background(colors.homeAction)
             .clickable(onClick = onClick)
-            .testTag(testTag),
+            .testTag(testTag)
+            .offset(x = (-1).dp),
     ) {
-        Image(
-            imageVector = rememberStrokeIcon(path, colors.onTonalFill, strokeWidth = 2.2f),
-            contentDescription = null,
-            modifier = Modifier.size(18.dp),
-        )
+        ActionSymbol(icon = icon, color = colors.brandFixed)
         Text(
             text = label,
-            style = MaterialTheme.typography.labelLarge,
-            color = colors.onTonalFill,
+            style = MaterialTheme.typography.titleMedium.copy(fontSize = 15.sp, lineHeight = 15.sp),
+            color = colors.onCanvas,
+            modifier = Modifier.offset(y = 1.dp),
         )
+    }
+}
+
+private val ActionShape = RoundedCornerShape(8.dp)
+
+/**
+ * `arrow.up.square.fill`, `arrow.down.square.fill` and `creditcard.fill`, drawn: a filled shape
+ * in [color] with its arrow or stripe cut out of it, showing the plate beneath.
+ */
+@Composable
+private fun ActionSymbol(icon: ActionIcon, color: Color) {
+    Canvas(
+        modifier = Modifier
+            .size(20.dp)
+            .graphicsLayer { compositingStrategy = CompositingStrategy.Offscreen },
+    ) {
+        val u = size.width / 20f
+        when (icon) {
+            ActionIcon.Send, ActionIcon.Receive -> {
+                // A 17 pt rounded square, as the symbol renders at this size.
+                val side = 17f * u
+                val topLeft = Offset((size.width - side) / 2, (size.height - side) / 2)
+                drawRoundRect(color, topLeft, Size(side, side), CornerRadius(3.5f * u))
+                val cx = size.width / 2
+                val top = topLeft.y + 4f * u
+                val bottom = topLeft.y + side - 4f * u
+                val stroke = Stroke(width = 1.8f * u, cap = StrokeCap.Round, join = StrokeJoin.Round)
+                val arrow = Path().apply {
+                    if (icon == ActionIcon.Send) {
+                        moveTo(cx, bottom); lineTo(cx, top)
+                        moveTo(cx - 4f * u, top + 4f * u); lineTo(cx, top); lineTo(cx + 4f * u, top + 4f * u)
+                    } else {
+                        moveTo(cx, top); lineTo(cx, bottom)
+                        moveTo(cx - 4f * u, bottom - 4f * u); lineTo(cx, bottom); lineTo(cx + 4f * u, bottom - 4f * u)
+                    }
+                }
+                drawPath(arrow, Color.Black, style = stroke, blendMode = BlendMode.Clear)
+            }
+            ActionIcon.Buy -> {
+                // A 20 × 16 card with its magnetic stripe and a short line cut out.
+                val cardHeight = 15f * u
+                val topLeft = Offset(0f, (size.height - cardHeight) / 2)
+                drawRoundRect(color, topLeft, Size(size.width, cardHeight), CornerRadius(2.5f * u))
+                drawRect(
+                    Color.Black,
+                    topLeft = Offset(0f, topLeft.y + 3.5f * u),
+                    size = Size(size.width, 2.5f * u),
+                    blendMode = BlendMode.Clear,
+                )
+                drawRoundRect(
+                    Color.Black,
+                    topLeft = Offset(3f * u, topLeft.y + 10f * u),
+                    size = Size(5f * u, 1.8f * u),
+                    cornerRadius = CornerRadius(0.9f * u),
+                    blendMode = BlendMode.Clear,
+                )
+            }
+        }
     }
 }
 
@@ -671,9 +1111,6 @@ private fun HistoryCard(row: HistoryRow, position: Int, onClick: () -> Unit) {
 
 /** Two opposed arrows — the history row's swap icon. */
 private const val SWAP_ICON_PATH = "M7 20V5M7 5L4 8M7 5l3 3M17 4v15M17 19l-3-3M17 19l3-3"
-
-/** The mock's 34 dp sweep under the yellow block. */
-private val HeaderShape = RoundedCornerShape(bottomStart = 34.dp, bottomEnd = 34.dp)
 
 private val SYNCING_ALERT = HomeAlert(
     title = HomeStrings.SYNCING_WALLET,

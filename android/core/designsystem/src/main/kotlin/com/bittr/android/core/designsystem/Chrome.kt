@@ -1,6 +1,12 @@
 package com.bittr.android.core.designsystem
 
 import androidx.compose.foundation.Image
+import androidx.compose.ui.unit.sp
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.graphics.ColorFilter
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -41,7 +47,8 @@ import androidx.compose.ui.unit.dp
 private val HeaderHeight = 58.dp
 private val HeaderIcon = 18.dp
 private val RowHeight = 64.dp
-private val NavBarHeight = 56.dp
+/** The menu plates: 45 pt, and the Settings plate as wide as it is tall. */
+private val NavBarHeight = 45.dp
 
 /**
  * The header on a screen presented over another one — iOS's
@@ -205,14 +212,19 @@ fun BittrRowValue(text: String, modifier: Modifier = Modifier) {
 }
 
 /**
- * The bottom bar — Wallet / Academy / Settings, three equal labelled pills.
+ * The bottom bar — `CoreViewController`'s menu bar: Wallet and Academy as two labelled plates
+ * sharing the width, and Settings as a square plate with its icon alone.
  *
- * It is drawn by each screen that has one rather than hoisted into a `Scaffold` at
- * the nav host. On iOS the bar belongs to `CoreViewController` and Home is a child of
- * it, which is the `Scaffold` arrangement — but the bar is on exactly one Android
- * destination today (Home), and a scaffold that exists to host one bar for one screen
- * is a layer to reason about for no benefit. When Academy lands and there are two,
- * hoisting it is a small change and this comment is the note that it is the right one.
+ * As the storyboard has it: 15 from the screen's sides, the plates 45 tall, 10 apart and ending at
+ * the bottom of the safe area; each `grey3orblue1` with 8 pt corners and `setShadow()`. The
+ * selected one is the brand yellow (`selectedView`) with its icon and label in white; the others
+ * carry iOS's black-or-white icons (`menuwalletblack` …) and a dark grey label, white in dark.
+ * Labels in Gilroy Bold 14, 8 after the icon — wallet 13 pt, academy 16, settings 15.
+ *
+ * It is drawn by each screen that has one rather than hoisted into a `Scaffold` at the nav host.
+ * On iOS the bar belongs to `CoreViewController` and Home is a child of it, which is the
+ * `Scaffold` arrangement — but the bar is on exactly one Android destination today (Home), and a
+ * scaffold that exists to host one bar for one screen is a layer to reason about for no benefit.
  */
 @Composable
 fun BittrBottomNavBar(
@@ -225,18 +237,17 @@ fun BittrBottomNavBar(
     academyTestTag: String? = null,
     settingsTestTag: String? = null,
 ) {
+    val dark = BittrTheme.isDark
     Row(
-        horizontalArrangement = Arrangement.spacedBy(BittrTokens.Spacing.sm),
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
         modifier = modifier
             .fillMaxWidth()
-            .padding(
-                horizontal = BittrTokens.Spacing.md,
-                vertical = BittrTokens.Spacing.sm,
-            ),
+            .padding(start = 15.dp, end = 15.dp, top = 10.dp),
     ) {
         NavTab(
             label = "Wallet",
-            icon = BittrIconPaths.WALLET,
+            icon = if (dark) R.drawable.menu_wallet_white else R.drawable.menu_wallet_black,
+            iconSize = 13.dp,
             active = selected == BittrNavTab.Wallet,
             onClick = onWallet,
             testTag = walletTestTag,
@@ -244,23 +255,22 @@ fun BittrBottomNavBar(
         )
         NavTab(
             label = "Academy",
-            icon = BittrIconPaths.ACADEMY,
+            icon = if (dark) R.drawable.menu_academy_white else R.drawable.menu_academy_black,
+            iconSize = 16.dp,
             active = selected == BittrNavTab.Academy,
             onClick = onAcademy,
             testTag = academyTestTag,
             modifier = Modifier.weight(1f),
         )
-        // Labelled like the other two, with Material's outlined `settings` glyph. It was an
-        // unlabelled square with the mock's own gear, which the design review read as an
-        // unrecognisable third destination (2026-09-18, S9).
         NavTab(
-            label = "Settings",
-            icon = BittrIconPaths.SETTINGS_OUTLINE,
-            iconFilled = true,
+            label = null,
+            contentDescription = "Settings",
+            icon = if (dark) R.drawable.menu_settings_white else R.drawable.menu_settings_black,
+            iconSize = 15.dp,
             active = selected == BittrNavTab.Settings,
             onClick = onSettings,
             testTag = settingsTestTag,
-            modifier = Modifier.weight(1f),
+            modifier = Modifier.width(NavBarHeight),
         )
     }
 }
@@ -271,42 +281,56 @@ enum class BittrNavTab { Wallet, Academy, Settings }
 @Composable
 private fun NavTab(
     label: String?,
-    icon: String,
+    icon: Int,
+    iconSize: Dp,
     active: Boolean,
     onClick: () -> Unit,
     testTag: String?,
     modifier: Modifier = Modifier,
     contentDescription: String? = null,
-    iconFilled: Boolean = false,
 ) {
     val colors = BittrTheme.colors
-    val content = if (active) colors.onCanvas else MaterialTheme.colorScheme.onSurface
     Row(
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(BittrTokens.Spacing.sm, Alignment.CenterHorizontally),
+        horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally),
         modifier = modifier
             .height(NavBarHeight)
-            // Clipped before `clickable`, or the press layer is a square behind the pill —
+            .iosShadow(NavTabShape)
+            // Clipped before `clickable`, or the press layer is a square behind the plate —
             // the same rule BittrPrimaryButton states.
-            .clip(BittrCanvasShapes.field)
-            .background(if (active) colors.canvas else MaterialTheme.colorScheme.surfaceContainer)
+            .clip(NavTabShape)
+            .background(if (active) colors.brandFixed else colors.homeBackground)
             .clickable(role = Role.Button, onClick = onClick)
             .then(testTag?.let { Modifier.testTag(it) } ?: Modifier),
     ) {
-        Image(
-            imageVector = if (iconFilled) rememberFillIcon(icon, content) else rememberStrokeIcon(icon, content, strokeWidth = 2f),
-            contentDescription = contentDescription,
-            modifier = Modifier.size(21.dp),
-        )
+        if (active) {
+            // `selectedView`'s white icons are the black ones' shapes: tinted rather than shipped twice.
+            Image(
+                painter = painterResource(icon),
+                contentDescription = contentDescription,
+                colorFilter = ColorFilter.tint(Color.White),
+                modifier = Modifier.size(iconSize),
+            )
+        } else {
+            Image(
+                painter = painterResource(icon),
+                contentDescription = contentDescription,
+                modifier = Modifier.size(iconSize),
+            )
+        }
         if (label != null) {
             Text(
                 text = label,
-                style = MaterialTheme.typography.labelLarge,
-                color = content,
+                style = MaterialTheme.typography.labelLarge.copy(fontSize = 14.sp, lineHeight = 14.sp),
+                color = if (active) Color.White else colors.menuLabel,
+                // iOS centres the label 1 pt below the icon's centre.
+                modifier = Modifier.offset(y = 1.dp),
             )
         }
     }
 }
+
+private val NavTabShape = RoundedCornerShape(8.dp)
 
 /**
  * The picker behind the language and currency rows — iOS's `UIAlertController`

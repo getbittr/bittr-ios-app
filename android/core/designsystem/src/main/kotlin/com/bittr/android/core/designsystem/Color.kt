@@ -6,6 +6,7 @@ import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.compositeOver
 
 /**
  * Colour, from BIT-4 `design-system` §1.1–§1.3, revision 7.
@@ -426,6 +427,19 @@ data class BittrColors(
     val pinCell: Color,
     val onPinCell: Color,
     /**
+     * Home, as `HomeHeaderTableViewCell` colours it. [homeHeader] is `yelloworblue3` — the yellow
+     * block and its cards; [homeCardTitle] `whiteoryellow`, their titles and the piggy; [homeAction]
+     * `white0.7orblue2`, the Send / Receive / Buy plates; [homeBackground] `grey3orblue1`, the page
+     * under the history and the menu's plates; [menuLabel] the menu's unselected labels;
+     * [noTransactions] `noTransactionsLabel`'s grey, white in dark.
+     */
+    val homeHeader: Color,
+    val homeCardTitle: Color,
+    val homeAction: Color,
+    val homeBackground: Color,
+    val menuLabel: Color,
+    val noTransactions: Color,
+    /**
      * The article sheet (`ArticleViewController`): the storyboard's white in light mode and
      * `grey3orblue1`'s blue1 in dark, with `blackorwhite` text on it. Decision 56.
      */
@@ -577,7 +591,11 @@ val BittrLightColorsExtended = BittrColors(
     brandFixed = Yellow,
     unconfirmed = Color(0xFFB1B1B1),
     footnote = Color.Black.copy(alpha = 0.25f),
-    balanceDimmed = Color(0xFFB08600), // darkened from iOS #C99A00 (2.59 → 3.36). DEV-24, A11Y-06.
+    // The bitcoin sign beside the balance is iOS's black `gilroybitcoin` at 18 % on the canvas
+    // yellow; the dimmed digits are that same colour, so the two read as one (Tom, 2026-09-29).
+    // It was darkened to #B08600 for 3 : 1 on white under DEV-24 / A11Y-06, which no longer
+    // applies: the balance sits on the yellow card, and dimmed is what it is meant to be.
+    balanceDimmed = Color.Black.copy(alpha = 0.18f).compositeOver(Yellow),
     scrim1 = Color.White.copy(alpha = 0.70f),
     scrim2 = Color.White.copy(alpha = 0.70f),
     scrim3 = Color.White.copy(alpha = 0.70f),
@@ -607,6 +625,12 @@ val BittrLightColorsExtended = BittrColors(
     phrasePlaceholder = Color(0xFF808080),
     pinCell = Color.White.copy(alpha = 0.70f),
     onPinCell = Color.Black,
+    homeHeader = Yellow,
+    homeCardTitle = Color.White,
+    homeAction = Color.White.copy(alpha = 0.70f),
+    homeBackground = Grey3,
+    menuLabel = Color(0xFF535353),
+    noTransactions = Color(0xFFB1B1B1),
     articleSurface = Color.White,
     onArticleSurface = Color.Black,
     dialogContainer = Color(0xFFFFFBEF),
@@ -650,7 +674,8 @@ val BittrDarkColorsExtended = BittrColors(
     brandFixed = Yellow,
     unconfirmed = Color.White.copy(alpha = 0.50f),
     footnote = Color.White.copy(alpha = 0.50f),
-    balanceDimmed = Color(0xFFAABED9), // sRGB on iOS; unchanged. 3.15 : 1 once A11Y-02 lands.
+    // `gilroybitcoinwhite` at 47 % on blue3, the dark card — as in light, the sign's own colour.
+    balanceDimmed = Color.White.copy(alpha = 0.47f).compositeOver(Blue3),
     scrim1 = Blue1,
     scrim2 = Blue2,
     scrim3 = Blue3,
@@ -689,6 +714,12 @@ val BittrDarkColorsExtended = BittrColors(
     phrasePlaceholder = Color(0xFF808080),
     pinCell = Color.White.copy(alpha = 0.70f),
     onPinCell = Color.Black,
+    homeHeader = Blue3,
+    homeCardTitle = Yellow,
+    homeAction = Blue2,
+    homeBackground = Blue1,
+    menuLabel = Color.White,
+    noTransactions = Color.White,
     articleSurface = Blue1,
     onArticleSurface = Color.White,
     dialogContainer = Blue2,

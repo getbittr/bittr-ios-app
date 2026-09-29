@@ -1,6 +1,7 @@
 package com.bittr.android.navigation
 
 import com.bittr.android.core.designsystem.BittrSheet
+import com.bittr.android.home.HomeValueViewModel
 import com.bittr.android.core.designsystem.BittrTheme
 import androidx.compose.ui.window.DialogProperties
 import androidx.navigation.compose.dialog
@@ -497,6 +498,9 @@ fun BittrNavHost(
                 ) {
                     val profits: ProfitsViewModel = hiltViewModel()
                     val profit by profits.summary.collectAsState()
+                    // The value card's week of prices, held for as long as Home is on the stack.
+                    val homeValue: HomeValueViewModel = hiltViewModel()
+                    val valueWeek by homeValue.week.collectAsState()
                     HomeScreen(
                         onSettings = { navController.navigate(Routes.SETTINGS) },
                         // Wave 1, landed by BIT-99. These three are the entry points
@@ -518,6 +522,7 @@ fun BittrNavHost(
                         onBuy = { navController.navigate(Routes.BUY) },
                         profitPill = profit?.let { ProfitPill(it.percentText, it.isLoss) },
                         onProfit = { navController.navigate(Routes.PROFITS) },
+                        valueWeek = valueWeek,
                     )
                 }
 

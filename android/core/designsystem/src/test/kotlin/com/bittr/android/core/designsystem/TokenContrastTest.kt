@@ -2,6 +2,7 @@ package com.bittr.android.core.designsystem
 
 import androidx.compose.material3.ColorScheme
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.compositeOver
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertTrue
@@ -221,18 +222,17 @@ class TokenContrastTest {
     }
 
     @Test
-    fun `A11Y-06 the dimmed balance digits clear the large-text floor`() {
-        // The balance is 40sp, so 3 : 1 applies — but only while it stays above the 20sp
-        // shrink floor. Below that it leaves the large-text band and needs 4.5, which no
-        // longer reads as dimmed at all. That is what BittrTokens.Size.balanceMinTextSize
-        // is protecting.
-        assertAtLeast(
-            aaLarge, BittrLightColorsExtended.balanceDimmed, BittrLightColors.surfaceContainer,
-            "dimmed balance digits, light",
+    fun `the dimmed balance digits are the colour of the bitcoin sign beside them`() {
+        // A11Y-06 held these to 3 : 1 on white. The balance sits on the yellow card, not on
+        // white, and the leading zeros are meant to recede: at Tom's request (2026-09-29) they
+        // match iOS's sign image as drawn — black at 18 % on the yellow, white at 47 % on blue3.
+        assertEquals(
+            Color.Black.copy(alpha = 0.18f).compositeOver(BittrLightColorsExtended.brandFixed),
+            BittrLightColorsExtended.balanceDimmed,
         )
-        assertAtLeast(
-            aaLarge, BittrDarkColorsExtended.balanceDimmed, BittrDarkColors.surfaceContainer,
-            "dimmed balance digits, dark",
+        assertEquals(
+            Color.White.copy(alpha = 0.47f).compositeOver(BittrDarkColorsExtended.homeHeader),
+            BittrDarkColorsExtended.balanceDimmed,
         )
     }
 

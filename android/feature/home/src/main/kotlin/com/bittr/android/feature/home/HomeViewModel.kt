@@ -139,7 +139,9 @@ class HomeViewModel @Inject constructor(
             walletHasSynced = wallet.hasSynced,
             showSyncSpinner = wallet.hasNode && !wallet.hasSynced,
             balanceSats = balance,
-            balanceFiat = balance?.let { balanceFiat(it, price) },
+            // `updateConversionLabel`: the chosen currency and the balance in it, "€ 0" before a
+            // reading or a rate — iOS never leaves the line out.
+            balanceFiat = balanceFiat(balance ?: 0L, price) ?: "${prices.currentSymbol() ?: DEFAULT_SYMBOL} 0",
             history = when {
                 wallet.hasSynced -> historyRows(wallet.transactions, price, wallet.currentHeight)
                 beforeRefresh != null -> historyRows(beforeRefresh.transactions, price, beforeRefresh.currentHeight)
@@ -190,3 +192,6 @@ class HomeViewModel @Inject constructor(
         const val STOP_TIMEOUT_MS = 5_000L
     }
 }
+
+/** The display currency when the source cannot say which one the user chose — iOS defaults to euros. */
+private const val DEFAULT_SYMBOL = "€"
