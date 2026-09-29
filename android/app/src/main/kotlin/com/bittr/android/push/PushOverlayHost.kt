@@ -33,6 +33,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.bittr.android.core.common.TestID
+import com.bittr.android.core.designsystem.BittrLoadingCard
 import com.bittr.android.core.designsystem.BittrAlertButton
 import com.bittr.android.core.designsystem.BittrSpinner
 import com.bittr.android.core.designsystem.BittrBody
@@ -76,9 +77,7 @@ internal fun PushAlertOverlay(alert: PushAlert, transactionOpen: Boolean, onButt
     var shown by remember(alert) { mutableStateOf(!transactionOpen) }
     if (!transactionOpen) shown = true
     if (!shown) return
-    BackHandler {
-        alert.buttons.firstOrNull { it.dismisses }?.let(onButton)
-    }
+    // Back does what the closing button does — BittrInlineAlert handles it.
     BittrInlineAlert(
         title = alert.title,
         message = alert.message,
@@ -122,39 +121,8 @@ private fun PushQuestionCard(question: PushQuestion, onDown: () -> Unit) {
     }
 }
 
-/** iOS `LoadingOverlayView`: a card with a spinner and bold text, and nothing to tap. */
+/** iOS `LoadingOverlayView`: the shared loading card, with nothing to tap. */
 @Composable
 private fun PushLoadingCard(loading: PushLoading) {
-    BackHandler { /* Not dismissable, as on iOS. */ }
-    Box(
-        contentAlignment = Alignment.Center,
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Color.Black.copy(alpha = 0.4f))
-            .pointerInput(Unit) { detectTapGestures { } },
-    ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(11.dp, Alignment.CenterHorizontally),
-            modifier = Modifier
-                .padding(horizontal = BittrTokens.Spacing.xl)
-                .fillMaxWidth()
-                .background(BittrTheme.colors.dialogContainer, RoundedCornerShape(28.dp))
-                .padding(25.dp)
-                .let { if (loading.testTag != null) it.testTag(loading.testTag) else it },
-        ) {
-            BittrSpinner(
-                strokeWidth = 2.dp,
-                color = MaterialTheme.colorScheme.onSurface,
-                modifier = Modifier.size(20.dp),
-            )
-            Text(
-                text = loading.message,
-                style = MaterialTheme.typography.bodyLarge,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onSurface,
-                textAlign = TextAlign.Center,
-            )
-        }
-    }
+    BittrLoadingCard(message = loading.message, testTag = loading.testTag)
 }

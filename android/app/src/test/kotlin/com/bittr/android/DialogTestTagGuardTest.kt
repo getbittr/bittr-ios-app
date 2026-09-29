@@ -15,8 +15,8 @@ import org.junit.Test
  * found on the first device run of `send_onchain.yaml`. Robolectric reads the semantics
  * tree directly and passes either way, which is why this is a source guard.
  *
- * `BittrSheet` and `BittrPopup` apply `exposeTestTags()` themselves, so a dialog filled by
- * either is covered.
+ * `BittrSheet`, `BittrPopup` and the alerts' `AlertOverlay` apply `exposeTestTags()` themselves,
+ * so a dialog filled by any of them is covered.
  */
 class DialogTestTagGuardTest {
 
@@ -32,7 +32,7 @@ class DialogTestTagGuardTest {
             .filterNot { file ->
                 val text = file.readText()
                 "exposeTestTags()" in text ||
-                    Regex("""\bBittr(Sheet|Popup)\s*\(""").containsMatchIn(text) ||
+                    Regex("""\b(BittrSheet|BittrPopup|AlertOverlay)\s*\(""").containsMatchIn(text) ||
                     Regex("""testTagsAsResourceId\s*=\s*true""").containsMatchIn(text)
             }
             .map { it.relativeTo(SourceTree.root).path }

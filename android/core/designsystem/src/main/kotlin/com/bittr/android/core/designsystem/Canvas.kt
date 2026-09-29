@@ -719,33 +719,13 @@ fun bittrSwitchColors(): androidx.compose.material3.SwitchColors {
 }
 
 /**
- * The arc's alert — the mock's dialog, which is a warm near-white card with a 28 dp
- * radius and a filled confirm button, not Material's default surface.
+ * The one- or two-button alert: [BittrAlert] with the cancelling button, when there is one, as
+ * `alert.button.0` on the left and the action as `alert.button.1` — iOS's `buttons:` order, which
+ * every flow driving a two-button alert selects by. Back and the X resolve to the cancelling
+ * action, or to the lone button: an alert asking "reset your PIN?" must not be answerable with
+ * "yes" by accident.
  *
- * It takes [tonalFill] rather than a dialog-specific colour: the mock's `#FFFBEF` and
- * the cream differ by about a shade of warmth, and one tonal surface that both the PIN
- * cells and the alerts use is a smaller thing to keep consistent than two.
- *
- * ### Two buttons, and which one is which
- *
- * iOS builds an alert from an ordered `buttons:` array and tags them by position —
- * `alert.button.0`, `alert.button.1` (`AlertManager.swift:178`) — and every flow that
- * drives a two-button alert selects by that index. The dismissing button is always
- * written first, so `alert.button.0` is Cancel/Okay and `alert.button.1` is the action
- * (Reset, Forgot PIN).
- *
- * Material places [dismissButton] to the *left* of [confirmButton], so passing
- * [dismissLabel] puts the same button in the same index and the same position as iOS,
- * and one flow drives both platforms. Callers pass the two ids rather than having them
- * derived here, because a one-button alert's single button is index 0 and a
- * two-button alert's confirm is index 1 — making that implicit is how they get
- * swapped.
- *
- * Back-press and outside-taps resolve to the dismissing action when there is one:
- * an alert asking "reset your PIN?" must not be answerable with "yes" by accident.
- *
- * @param confirmTestTag the alert-button id. `:core:designsystem` does not depend on
- *   `:core:common`, so the id arrives as a string rather than as a `TestID` constant.
+ * @param confirmTestTag, dismissTestTag kept for callers; the ids come from the index rule.
  * @param dismissLabel the left-hand, cancelling button. Null for a one-button alert.
  */
 @Composable
@@ -761,66 +741,19 @@ fun BittrAlertDialog(
     dismissTestTag: String? = null,
     messageIsValue: Boolean = false,
 ) {
-    val colors = BittrTheme.colors
-    androidx.compose.material3.AlertDialog(
-        onDismissRequest = if (dismissLabel != null) onDismiss else onConfirm,
-        shape = BittrCanvasShapes.card,
-        containerColor = colors.dialogContainer,
-        titleContentColor = colors.onDialogContainer,
-        textContentColor = colors.onDialogContainer,
-        title = { BittrDialogTitle(title) },
-        text = { if (messageIsValue) BittrDialogValue(message) else BittrDialogMessage(message) },
-        confirmButton = {
-            AlertButton(
-                label = confirmLabel,
-                onClick = onConfirm,
-                testTag = confirmTestTag,
-                background = colors.actionFill,
-                contentColor = colors.onActionFill,
-            )
-        },
-        dismissButton = dismissLabel?.let {
-            {
-                // The cancelling button is drawn unfilled so the two do not read as
-                // equally weighted — the mock's alerts have one plate, not two.
-                AlertButton(
-                    label = it,
-                    onClick = onDismiss,
-                    testTag = dismissTestTag,
-                    background = Color.Transparent,
-                    contentColor = colors.onDialogContainer,
-                )
-            }
-        },
-        // Its own window, so the app root's testTagsAsResourceId does not reach the
-        // button ids — see exposeTestTags.
-        modifier = modifier.exposeTestTags(),
+    // The ids are the index rule [BittrAlert] applies — `alert.button.0` the way out, the action
+    // after it — which is what every caller passes; the parameters stay for them.
+    BittrAlert(
+        title = title,
+        message = message,
+        buttons = listOfNotNull(
+            dismissLabel?.let { BittrAlertButton(label = it, dismissesAlert = true, onClick = onDismiss) },
+            // A lone button is the way out as well: Back and the X do what it does.
+            BittrAlertButton(label = confirmLabel, dismissesAlert = dismissLabel == null, onClick = onConfirm),
+        ),
+        modifier = modifier,
+        messageIsValue = messageIsValue,
     )
-}
-
-@Composable
-private fun AlertButton(
-    label: String,
-    onClick: () -> Unit,
-    testTag: String?,
-    background: Color,
-    contentColor: Color,
-) {
-    Box(
-        contentAlignment = Alignment.Center,
-        modifier = Modifier
-            .height(BittrDialogButtonHeight)
-            .background(background, BittrCanvasShapes.pill)
-            .clickable(role = Role.Button, onClick = onClick)
-            .padding(horizontal = 22.dp)
-            .then(testTag?.let { Modifier.testTag(it) } ?: Modifier),
-    ) {
-        Text(
-            text = label,
-            style = MaterialTheme.typography.labelLarge,
-            color = contentColor,
-        )
-    }
 }
 
 // ---------------------------------------------------------------------------

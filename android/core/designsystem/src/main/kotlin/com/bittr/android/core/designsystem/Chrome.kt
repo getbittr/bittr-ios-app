@@ -451,20 +451,11 @@ private fun NavTabContent(
 private val NavTabShape = RoundedCornerShape(8.dp)
 
 /**
- * The picker behind the language and currency rows — iOS's `UIAlertController`
- * action sheet, which [BittrAlertDialog] cannot be because it has three choices
- * rather than two.
- *
- * **Ordering is the opposite of the iOS sheet's and that is deliberate.** iOS puts
- * Cancel first in the `buttons:` array and UIKit floats it to the bottom of the
- * sheet; Compose has no such convention, so Cancel is drawn last, where the user
- * looking for it will be. `features/settings.yaml` selects these by *text*
- * (`tapOn: text: "CHF"`, `text: "Cancel"`) rather than by index, so the order is
- * free — unlike the two-button alerts, where `alert.button.0` pins it.
- *
- * The options carry no test ids for the same reason: on iOS they are a native alert
- * with none, and giving the Android ones ids the flow cannot use on iOS would put
- * the two platforms on different selectors for the same tap.
+ * The picker behind the language and currency rows — `DeviceViewController`'s `showAlert` with
+ * Cancel first and a button per choice, so [BittrAlert]'s card: Cancel and one choice side by
+ * side, or stacked with Cancel at the bottom once there are more. Cancel is `alert.button.0` and
+ * the choices follow it; `features/settings.yaml` selects them by text, which is the same on both
+ * platforms.
  */
 @Composable
 fun BittrChoiceDialog(
@@ -476,65 +467,13 @@ fun BittrChoiceDialog(
     cancelLabel: String,
     modifier: Modifier = Modifier,
 ) {
-    val colors = BittrTheme.colors
-    androidx.compose.material3.AlertDialog(
-        onDismissRequest = onCancel,
-        shape = BittrCanvasShapes.card,
-        containerColor = colors.dialogContainer,
-        titleContentColor = colors.onDialogContainer,
-        textContentColor = colors.onDialogContainer,
-        title = { BittrDialogTitle(title) },
-        text = {
-            Column {
-                BittrDialogMessage(message)
-                CanvasSpacer(BittrTokens.Spacing.md)
-                options.forEachIndexed { index, option ->
-                    ChoiceRow(
-                        label = option,
-                        onClick = { onSelect(index) },
-                        background = colors.actionFill,
-                        contentColor = colors.onActionFill,
-                    )
-                    CanvasSpacer(BittrTokens.Spacing.xs)
-                }
-                ChoiceRow(
-                    label = cancelLabel,
-                    onClick = onCancel,
-                    background = Color.Transparent,
-                    contentColor = colors.onDialogContainer,
-                )
-            }
-        },
-        // Material insists on a confirm slot; the choices are the buttons here, so
-        // there is nothing to put in it.
-        confirmButton = {},
-        // Its own window, so the app root's testTagsAsResourceId does not reach the
-        // choices' ids — see exposeTestTags.
-        modifier = modifier.exposeTestTags(),
+    BittrAlert(
+        title = title,
+        message = message,
+        buttons = listOf(BittrAlertButton(label = cancelLabel, dismissesAlert = true, onClick = onCancel)) +
+            options.mapIndexed { index, option -> BittrAlertButton(label = option, onClick = { onSelect(index) }) },
+        modifier = modifier,
     )
-}
-
-@Composable
-private fun ChoiceRow(
-    label: String,
-    onClick: () -> Unit,
-    background: Color,
-    contentColor: Color,
-) {
-    Box(
-        contentAlignment = Alignment.Center,
-        modifier = Modifier
-            .fillMaxWidth()
-            .heightIn(min = BittrTokens.Size.minTouchTarget)
-            .background(background, BittrCanvasShapes.pill)
-            .clickable(onClick = onClick),
-    ) {
-        Text(
-            text = label,
-            style = MaterialTheme.typography.labelLarge,
-            color = contentColor,
-        )
-    }
 }
 
 /**

@@ -55,9 +55,9 @@ import com.bittr.android.core.designsystem.BittrCopyButton
 import androidx.compose.foundation.layout.height
 import androidx.compose.runtime.CompositionLocalProvider
 import com.bittr.android.core.designsystem.BittrDialogTitle
-import com.bittr.android.core.designsystem.BittrDialogValue
+import com.bittr.android.core.designsystem.BittrAlertButton
+import com.bittr.android.core.designsystem.BittrInlineAlert
 import com.bittr.android.core.designsystem.BittrDialogMessage
-import com.bittr.android.core.designsystem.BittrDialogButtonHeight
 import com.bittr.android.core.designsystem.BittrCanvasShapes
 import com.bittr.android.core.designsystem.dismissOnPullDown
 import com.bittr.android.core.designsystem.BittrCard
@@ -439,60 +439,25 @@ private fun DetailRowSurface(content: @Composable RowScope.() -> Unit) {
 }
 
 /**
- * `AlertManager.showAlert`, drawn in the screen's own window. A dialog window would put the
- * alert where Maestro does not look — see `BittrInlineAlert`. Its own card rather than that
- * one because the message carries markup and the buttons carry [BuyAction]s; the look is the
- * design system's dialog, piece by piece.
+ * `AlertManager.showAlert`, drawn in the screen's own window — the shared [BittrInlineAlert], with
+ * the alert's id on the card and its [BuyAction]s on the buttons. "Copied" echoes the value
+ * (review S19); everything else is a sentence with markup.
  */
 @Composable
 internal fun BuyAlertCard(alert: BuyAlert, onAction: (BuyAction) -> Unit) {
-    Box(
-        contentAlignment = Alignment.Center,
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Color.Black.copy(alpha = 0.45f))
-            .pointerInput(Unit) { detectTapGestures { } },
-    ) {
-        Column(
-            verticalArrangement = Arrangement.spacedBy(BittrTokens.Spacing.md),
-            modifier = Modifier
-                .padding(horizontal = BittrTokens.Spacing.xl)
-                .fillMaxWidth()
-                .background(BittrTheme.colors.dialogContainer, BittrCanvasShapes.card)
-                .then(alert.id?.let { Modifier.testTag(it) } ?: Modifier)
-                .padding(24.dp),
-        ) {
-            CompositionLocalProvider(LocalContentColor provides BittrTheme.colors.onDialogContainer) {
-                if (alert.title.isNotEmpty()) BittrDialogTitle(alert.title)
-                // "Copied" echoes the value (review S19); everything else is a sentence.
-                if (alert.id == TestID.Alert.copied) BittrDialogValue(alert.message) else BittrDialogMessage(bittrMarkup(alert.message))
-            }
-            alert.buttons.forEachIndexed { position, button ->
-                val tag = Modifier
-                    .fillMaxWidth()
-                    .testTag(TestID.Alert.buttonAt(position))
-                val quiet = alert.buttons.size > 1 && position == 0 &&
-                    (button.action == BuyAction.Dismiss || button.action == BuyAction.CancelLoading)
-                if (quiet) {
-                    TextButton(onClick = { onAction(button.action) }, modifier = tag) {
-                        Text(
-                            button.label,
-                            style = MaterialTheme.typography.labelLarge,
-                            color = BittrTheme.colors.onDialogContainer,
-                        )
-                    }
-                } else {
-                    BittrPrimaryButton(
-                        text = button.label,
-                        onClick = { onAction(button.action) },
-                        modifier = tag.height(BittrDialogButtonHeight),
-                        arrow = false,
-                        fullWidth = true,
-                    )
-                }
-            }
-        }
-    }
+    BittrInlineAlert(
+        title = alert.title,
+        message = alert.message,
+        buttons = alert.buttons.map { button ->
+            BittrAlertButton(
+                label = button.label,
+                dismissesAlert = button.action == BuyAction.Dismiss || button.action == BuyAction.CancelLoading,
+                onClick = { onAction(button.action) },
+            )
+        },
+        cardTestTag = alert.id,
+        messageIsValue = alert.id == TestID.Alert.copied,
+    )
 }
 
 /** `showConfirmationSheet` for the exclusive-initiative confirmation (`Transfer1ViewController:175`). */

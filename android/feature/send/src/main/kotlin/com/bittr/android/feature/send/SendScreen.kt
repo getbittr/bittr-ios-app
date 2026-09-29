@@ -59,6 +59,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.bittr.android.core.common.TestID
+import com.bittr.android.core.designsystem.BittrLoadingCard
 import com.bittr.android.core.common.destination.Destination
 import com.bittr.android.core.designsystem.BittrAlert
 import com.bittr.android.core.designsystem.BittrHelpButton
@@ -212,30 +213,11 @@ internal fun SendScreen(
     }
 }
 
-/**
- * `showLoading(id:message:)`: a dim cover that swallows taps, and a card with a spinner and the
- * message. In the window rather than a dialog, so the screen underneath stays in Maestro's view.
- */
+/** `showLoading(id:message:)`: the shared loading card, over the screen. */
 @Composable
 private fun BoxScope.LoadingCover(message: String, testTag: String) {
-    Box(
-        contentAlignment = Alignment.Center,
-        modifier = Modifier
-            .matchParentSize()
-            .background(androidx.compose.ui.graphics.Color.Black.copy(alpha = 0.4f))
-            .pointerInput(Unit) { detectTapGestures { } },
-    ) {
-        Row(
-            horizontalArrangement = Arrangement.spacedBy(BittrTokens.Spacing.md),
-            verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier
-                .background(BittrTheme.colors.dialogContainer, RoundedCornerShape(20.dp))
-                .padding(BittrTokens.Spacing.lg)
-                .testTag(testTag),
-        ) {
-            BittrSpinner(strokeWidth = 2.dp, modifier = Modifier.size(20.dp))
-            Text(message, style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurface)
-        }
+    Box(Modifier.matchParentSize()) {
+        BittrLoadingCard(message = message, testTag = testTag)
     }
 }
 
