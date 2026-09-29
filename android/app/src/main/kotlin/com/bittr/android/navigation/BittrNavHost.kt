@@ -1,11 +1,13 @@
 package com.bittr.android.navigation
 
 import com.bittr.android.core.designsystem.BittrSheet
+import com.bittr.android.core.designsystem.BittrTheme
 import androidx.compose.ui.window.DialogProperties
 import androidx.navigation.compose.dialog
 import androidx.compose.animation.AnimatedContentTransitionScope
 import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.ExitTransition
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.CompositionLocalProvider
@@ -337,7 +339,14 @@ fun BittrNavHost(
     val visibleEntries by navController.visibleEntries.collectAsState()
     val visibleRoutes = visibleEntries.map { it.destination }.filter { it !is NavGraph }.map { it.route }
     val logoPinned = visibleRoutes.any { signupPage(it) != null } && visibleRoutes.all { it in LogoBarRoutes }
-    Box(Modifier.fillMaxSize()) {
+    // The canvas behind every destination. The signup pages' slide overshoots — iOS's spring at
+    // damping 0.65 — and for that moment the edge the page has pulled away from shows whatever is
+    // behind it; on iOS that is SignupViewController's own yellow, here it was the white window.
+    Box(
+        Modifier
+            .fillMaxSize()
+            .background(BittrTheme.colors.canvas),
+    ) {
         CompositionLocalProvider(
             LocalAppBarLogoVisible provides (launchLogoVisible && !logoPinned),
             LocalAppBarBackgroundVisible provides !logoPinned,
