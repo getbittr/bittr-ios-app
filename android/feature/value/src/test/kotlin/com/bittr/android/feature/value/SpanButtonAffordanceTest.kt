@@ -12,6 +12,9 @@ import com.bittr.android.core.designsystem.BittrLightColorsExtended
 import com.bittr.android.core.designsystem.BittrTheme
 import java.time.Instant
 import java.time.LocalDate
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.compositeOver
+import com.bittr.android.core.designsystem.BittrDarkColorsExtended
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotEquals
 import org.junit.Rule
@@ -55,7 +58,7 @@ class SpanButtonAffordanceTest {
     val composeRule = createComposeRule()
 
     @Test
-    fun `the selected range segment is white on the cream track`() {
+    fun `the selected span button is white and the others white at 70 percent`() {
         showValueScreen()
 
         val selected = fillOf(TestID.Value.weekButton)
@@ -64,37 +67,32 @@ class SpanButtonAffordanceTest {
         println("SPAN FILLS: selected=#%08X unselected=#%08X".format(selected, unselected))
 
         assertNotEquals(
-            "The selected and unselected segments render the same fill, so the fill " +
+            "The selected and unselected buttons render the same fill, so the fill " +
                 "says nothing about which range is active.",
             unselected,
             selected,
         )
         assertEquals(
-            "The selected segment is not the chart card's white.",
-            BittrLightColorsExtended.chartSurface.toArgb(),
+            "The selected button is not white, as `showSelectedSpan` paints it.",
+            Color.White.toArgb(),
             selected,
         )
         assertEquals(
-            "The unselected segments are not the pinned cream track. It is fixed in " +
-                "both schemes; a track that followed the scheme would be blue3 here, " +
-                "and the white selected segment would lose the background it reads against.",
-            BittrLightColorsExtended.tonalFill.toArgb(),
+            "The unselected buttons are not white at 70 % over the card. The card follows " +
+                "the scheme — blue2 here — and the buttons sit on it.",
+            Color.White.copy(alpha = 0.7f).compositeOver(BittrDarkColorsExtended.levelCard).toArgb(),
             unselected,
         )
     }
 
     /**
-     * A pixel of a segment's fill: horizontally centred, 15 dp above the middle.
-     *
-     * The segment is a 48 dp touch target around a 40 dp drawn band (the selected one
-     * inset 3 dp inside that, with a 1 dp outline), and the label is centred in it at
-     * 20 dp tall — so 15 dp up is inside either fill and clear of the text, and at the horizontal centre it is clear of the rounded ends and the
-     * dividers.
+     * A pixel of a button's fill: horizontally centred, 4 dp below its top edge — clear of the
+     * label, which is centred in the 30 dp plate, and of the rounded corners at the ends.
      */
     private fun fillOf(testTag: String): Int {
         val image = composeRule.onNodeWithTag(testTag).captureToImage().asAndroidBitmap()
-        val up = (15 * composeRule.density.density).toInt()
-        return image.getPixel(image.width / 2, image.height / 2 - up)
+        val down = (4 * composeRule.density.density).toInt()
+        return image.getPixel(image.width / 2, down)
     }
 
     private fun showValueScreen() {
