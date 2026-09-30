@@ -94,6 +94,38 @@ private val uploadSigning: Map<String, String> = listOf(
         .trim()
 }
 
+/**
+ * Markers of a node configuration that is not mainnet.
+ *
+ * A tripwire for one specific mistake, not a network validator: the release
+ * variant takes its `BITTR_LDK_*` values from whatever is in the environment —
+ * they are set in `defaultConfig`, so every variant gets the same ones — while
+ * `BITTR_ENVIRONMENT` is hard-coded to PRODUCTION for release. A shell holding
+ * the regtest configuration therefore produces a bundle that talks to the real
+ * bittr backend over a private regtest network, and nothing about the build says
+ * so. That bundle was built on 2026-09-30 and not uploaded.
+ *
+ * It became easy to do the day the repo grew a `.envrc`: sourcing the regtest
+ * environment used to be a deliberate act per shell, and is now automatic on
+ * `cd`. The convenience is worth keeping and the tripwire is what pays for it.
+ *
+ * Matching is on the values, not on a network name the build does not have.
+ * Something genuinely mainnet that happens to contain one of these strings would
+ * be a false positive — `.internal` most plausibly — and the fix then is to
+ * narrow this list, not to remove the check.
+ */
+private val NON_MAINNET_MARKERS = listOf(
+    "regtest", "testnet", "signet",
+    "localhost", "127.0.0.1", "10.0.2.2", "192.168.",
+    ".local", ".internal",
+)
+
+/** The [ldkEnvironment] entries that trip [NON_MAINNET_MARKERS], named for the error. */
+private val nonMainnetLdkEntries: List<String> = ldkEnvironment
+    .filterValues { value -> NON_MAINNET_MARKERS.any { value.contains(it, ignoreCase = true) } }
+    .map { (name, value) -> "$name = $value" }
+    .sorted()
+
 /** Whether all four of [uploadSigning] were supplied. */
 private val uploadSigningConfigured: Boolean = uploadSigning.values.none { it.isEmpty() }
 
@@ -742,7 +774,19 @@ dependencies {
  */
 tasks.matching { it.name == "bundleRelease" }.configureEach {
     val configured = uploadSigningConfigured
+    val nonMainnet = nonMainnetLdkEntries
     doFirst {
+        check(nonMainnet.isEmpty()) {
+            "bundleRelease is carrying a node configuration that is not mainnet:\n\n" +
+                nonMainnet.joinToString("\n") { "    $it" } +
+                "\n\nThe release variant is BITTR_ENVIRONMENT=PRODUCTION, so this bundle " +
+                "would talk to the real bittr backend while running its node on that " +
+                "network.\n\n.envrc sources ~/.bittr/android-regtest.env on cd, so a shell " +
+                "in this repo carries it by default. Source the production values over it — " +
+                "they use the same variable names — before building:\n\n" +
+                "    set -a; source ~/.bittr/android-production.env; set +a\n\n" +
+                "See android/docs/play-release.md."
+        }
         check(configured) {
             "bundleRelease needs the upload key, and it is not configured. Supply all " +
                 "four of BITTR_UPLOAD_STORE_FILE, BITTR_UPLOAD_STORE_PASSWORD, " +

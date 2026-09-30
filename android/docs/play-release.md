@@ -70,6 +70,60 @@ Keep the keystore out of the repository. `.gitignore` refuses `*.jks` and
 `*.keystore` anywhere in the tree, which is a backstop and not a filing system —
 `~/.bittr/` is where the node environment already lives, and where this belongs.
 
+## What the bundle points at
+
+`BITTR_ENVIRONMENT` is hard-coded to `PRODUCTION` for the release variant, but the
+six `BITTR_LDK_*` values are read from the environment in `defaultConfig`, so
+**every variant gets whatever the shell was carrying**. A release built in a shell
+holding the regtest configuration is a bundle that talks to the real bittr backend
+over a private regtest network. One was built on 2026-09-30 and not uploaded;
+`bundleRelease` now refuses rather than producing it again.
+
+That matters more since `.envrc` arrived: sourcing the regtest environment used to
+be a deliberate act per shell and is now automatic on `cd`.
+
+Keep the production values in `~/.bittr/android-production.env` and **do not add
+it to `.envrc`** — the whole point is that a production node configuration is
+something you opt into for one command, not something every debug build inherits.
+The variable names are the same, so sourcing it over the regtest values replaces
+them:
+
+```bash
+set -a; source ~/.bittr/android-production.env; set +a
+./gradlew :app:bundleRelease
+```
+
+The values themselves are not secret — they are already in the repository, in
+`ios/bittr/Helpers/EnvironmentConfig.swift`, which is the source of truth for
+both platforms:
+
+| Variable | Production value | iOS source |
+|---|---|---|
+| `BITTR_LDK_CHAIN_SOURCE_URL` | `https://esplora.getbittr.com/api` | `esploraURL` |
+| `BITTR_LDK_ELECTRUM_URL` | `ssl://esplora.getbittr.com:50002` | `electrumURL` |
+| `BITTR_LDK_RAPID_GOSSIP_SYNC_URL` | `https://rapidsync.lightningdevkit.org/snapshot/v2` | `RGSServerURLs.bitcoin` |
+| `BITTR_LDK_LIGHTNING_NODE_ID` | `03e8d988a67ee7de983cd39d9d3d4d19771019305da4d2332be76c8b9fb1687776` | `lightningNodeId` |
+| `BITTR_LDK_LIGHTNING_NODE_ADDRESS` | `86.104.228.24:9735` | `lightningNodeAddress` |
+| `BITTR_LDK_LSPS2_TOKEN` | *(empty)* | `BitcoinManager.swift:171`, `token: ""` |
+
+An empty `BITTR_LDK_LSPS2_TOKEN` is correct, not missing: iOS passes `token: ""`
+to `setLiquiditySourceLsps2` on both environments.
+
+### Verifying what a built bundle points at
+
+The guard is a tripwire on known markers, not a network validator, so it is worth
+checking the artefact itself before an upload that matters:
+
+```bash
+python3 - <<'EOF'
+import zipfile
+z = zipfile.ZipFile("app/build/outputs/bundle/release/app-release.aab")
+blob = b"".join(z.read(n) for n in z.namelist() if n.endswith(".dex"))
+for marker in (b"esplora.getbittr.com", b"esplora-regtest", b"rapidsync"):
+    print(marker.decode(), "->", marker in blob)
+EOF
+```
+
 ## Building a bundle
 
 Four values, supplied as environment variables or `bittr.upload.*` Gradle
