@@ -61,14 +61,25 @@
       drop any. If a future run ever finds a decoy IN a set, the answer is still
       to fix these entries and never to relax the rule.
 -->
+<!--
+    The device-encrypted entries are `device_file`, not `device_encrypted_file`. The
+    domain set is fixed — file, database, sharedpref, external, root and a `device_`
+    prefixed form of each — and anything outside it is not a stricter rule, it is no
+    rule: lint calls it an error (FullBackupContent) and the framework has nothing to
+    apply. They were spelled `device_encrypted_file` until 2026-09-30, which failed
+    `:app:lintRelease` and so blocked every release build; the credential-encrypted
+    entries beside them were correct throughout, as is the categorical
+    getNoBackupFilesDir() exclusion the note above describes, so this restores the
+    third layer rather than adding a first one.
+-->
 <data-extraction-rules>
     <cloud-backup>
         <!-- Everything the wallet layer writes lives under no_backup/wallet. -->
         <exclude domain="file" path="wallet" />
-        <exclude domain="device_encrypted_file" path="wallet" />
+        <exclude domain="device_file" path="wallet" />
         <!-- Belt and braces: the whole no_backup tree, whatever else lands there. -->
         <exclude domain="file" path="no_backup" />
-        <exclude domain="device_encrypted_file" path="no_backup" />
+        <exclude domain="device_file" path="no_backup" />
         <!-- BDK/ldk-node open SQLite databases; -wal and -shm siblings are
              covered by the directory entries above, but a database opened
              through the platform helper would land here instead. -->
@@ -77,9 +88,9 @@
     </cloud-backup>
     <device-transfer>
         <exclude domain="file" path="wallet" />
-        <exclude domain="device_encrypted_file" path="wallet" />
+        <exclude domain="device_file" path="wallet" />
         <exclude domain="file" path="no_backup" />
-        <exclude domain="device_encrypted_file" path="no_backup" />
+        <exclude domain="device_file" path="no_backup" />
         <exclude domain="database" path="." />
         <exclude domain="sharedpref" path="." />
     </device-transfer>
