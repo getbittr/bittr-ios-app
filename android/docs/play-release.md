@@ -207,7 +207,7 @@ toolchain for stripping and symbol extraction, and pinning a version the CI
 runners do not have would trade a green build for a download. Absent an NDK the
 build still succeeds, with the warning.
 
-What it changes, measured on `versionCode 2`:
+What it changes, measured between `versionCode` 2 and 3:
 
 | | Without | With |
 |---|---|---|
@@ -286,11 +286,12 @@ that is the follow-up once step 3 has happened.
 
 ## versionCode
 
-`versionCode = 2` in `app/build.gradle.kts`. Play rejects any upload whose
+`versionCode = 3` in `app/build.gradle.kts`. Play rejects any upload whose
 `versionCode` is not higher than the last one it accepted, and there is no way to
 reuse a number — **including for a bundle that was uploaded and never released**.
-That is how 1 went: it was spent on 2026-09-30 by a bundle that reached the
-Console and shipped to nobody. Bump this in the same commit that cuts a release.
+That is how 1 and 2 went, both on 2026-09-30 and neither shipped to anyone: 1 on
+a bundle carrying the regtest node configuration, 2 on one built before the NDK
+was installed and so without native debug symbols. Bump this in the same commit that cuts a release.
 
 The number is burned at upload. If you upload a bundle you then think better of,
 the next one needs a higher number regardless of what happened to the first.
