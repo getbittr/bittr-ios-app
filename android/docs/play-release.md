@@ -94,6 +94,17 @@ set -a; source ~/.bittr/upload-key.env; set +a
 ./gradlew :app:bundleRelease
 ```
 
+Or let direnv do it: the repo's `.envrc` loads that file (and the node's) on
+`cd`, so a shell in this directory already has them. It is committed and holds
+no secrets — it only reads `~/.bittr/`. `direnv allow` once per checkout.
+
+**Android Studio does not see direnv.** A GUI Gradle run inherits the launcher's
+environment, not a shell's, so `bundleRelease` from the IDE will report the key
+as missing however well the terminal works. The build reads
+`bittr.upload.storeFile` and friends as Gradle properties for exactly this case:
+put them in `~/.gradle/gradle.properties`, which is outside the repo and read by
+every Gradle invocation regardless of how it was started.
+
 The bundle lands at `app/build/outputs/bundle/release/app-release.aab`, ~61 MB.
 
 **Without all four, `bundleRelease` refuses to run.** That is deliberate: the

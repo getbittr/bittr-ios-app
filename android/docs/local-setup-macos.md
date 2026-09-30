@@ -299,6 +299,13 @@ WalletModule: No LdkEnvironment in this build; the wallet holds a seed and no fu
 
 which looks like a broken wallet rather than a misconfigured build. So:
 
+> **With direnv, this is already done.** The repo's `.envrc` sources
+> `~/.bittr/android-regtest.env` (and the Play upload key) on `cd`, so a shell in
+> this directory has the settings without the two lines below. `direnv allow`
+> once per checkout. The explicit form is kept here because it is what CI does,
+> what the scripts do, and what to fall back on when a build comes out
+> unconfigured and the question is whether the variables were ever there.
+
 ```sh
 # 1. Build with the node settings, from the repo root.
 set -a; source ~/.bittr/android-regtest.env; set +a

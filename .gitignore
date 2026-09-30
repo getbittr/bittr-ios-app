@@ -145,6 +145,12 @@ shared/flows/logs/
 __pycache__/
 *.pyc
 
+# direnv. `.envrc` IS committed — it is secretless by design and loads its
+# values from ~/.bittr/; see the header in it. These two are the parts that
+# cannot be: a per-machine override and direnv's own cache.
+.envrc.local
+.direnv/
+
 # Signing keys. The upload key lives in ~/.bittr/, not here — see
 # android/docs/play-release.md. This is the backstop for the moment someone
 # generates one into the working directory out of habit, because a committed
