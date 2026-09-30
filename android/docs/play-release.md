@@ -27,29 +27,70 @@ Once, ever:
 keytool -genkeypair -v \
   -keystore ~/.bittr/bittr-upload.jks \
   -alias bittr-upload \
-  -keyalg RSA -keysize 4096 -validity 10000 \
-  -storetype JKS
+  -keyalg RSA -keysize 4096 -validity 10000
+chmod 600 ~/.bittr/bittr-upload.jks
 ```
+
+No `-storetype`: the JDK default is PKCS12, which is what the signing path here
+was verified against, and asking for JKS only earns a warning telling you to
+migrate to PKCS12. `keytool` writes the file 644, hence the `chmod`.
 
 `-validity 10000` is ~27 years. A key that expires is a key that stops being
 able to sign updates, and Play has no renewal flow for an upload key that has
 already lapsed.
 
+### The two passwords are invented at the prompts
+
+`keytool` asks twice:
+
+```
+Enter keystore password:        ← BITTR_UPLOAD_STORE_PASSWORD
+Re-enter new password:
+Enter key password for <bittr-upload>
+        (RETURN if same as keystore password):  ← BITTR_UPLOAD_KEY_PASSWORD
+```
+
+They are not looked up anywhere and they are not derived from anything. Pressing
+RETURN at the second prompt makes the key password equal to the store password,
+which is the common choice and means both variables carry the same value.
+
+**Nothing can recover them from the keystore.** Lost passwords are a lost upload
+key, and a replacement takes a support request to Google. Password manager, not
+only the env file below.
+
+To check a password you think is right, without changing anything:
+
+```bash
+keytool -list -keystore ~/.bittr/bittr-upload.jks
+```
+
+It prompts, then either prints the entry or says the password was incorrect.
+
 Keep the keystore out of the repository. `.gitignore` refuses `*.jks` and
 `*.keystore` anywhere in the tree, which is a backstop and not a filing system —
-`~/.bittr/` is where the node environment already lives.
+`~/.bittr/` is where the node environment already lives, and where this belongs.
 
 ## Building a bundle
 
 Four values, supplied as environment variables or `bittr.upload.*` Gradle
 properties (`app/build.gradle.kts` reads either, in that order):
 
-```bash
-export BITTR_UPLOAD_STORE_FILE=~/.bittr/bittr-upload.jks
-export BITTR_UPLOAD_STORE_PASSWORD=...
-export BITTR_UPLOAD_KEY_ALIAS=bittr-upload
-export BITTR_UPLOAD_KEY_PASSWORD=...
+They live in `~/.bittr/upload-key.env`, mode 600, exactly as the node's
+configuration lives in `android-regtest.env` beside it:
 
+```
+BITTR_UPLOAD_STORE_FILE=/Users/you/.bittr/bittr-upload.jks
+BITTR_UPLOAD_STORE_PASSWORD=
+BITTR_UPLOAD_KEY_ALIAS=bittr-upload
+BITTR_UPLOAD_KEY_PASSWORD=
+```
+
+Fill the two passwords in with an editor rather than on the command line: an
+`export` with a password on it is written to `~/.zsh_history` in the clear, and
+the shell has no notion that this one was worth forgetting.
+
+```bash
+set -a; source ~/.bittr/upload-key.env; set +a
 ./gradlew :app:bundleRelease
 ```
 
