@@ -379,6 +379,31 @@ android {
         release {
             isMinifyEnabled = true
             isShrinkResources = true
+
+            /*
+             * Native symbols for Play's crash reports.
+             *
+             * Every `.so` in this app comes from a dependency — ldk-node, BDK,
+             * MapLibre, JNA — and none of them are built here, so the NDK is not
+             * needed to compile anything. It is needed for these two steps, and
+             * without one installed AGP says "Unable to strip the following
+             * libraries, packaging them as they are" and moves on: 135 MB of
+             * unstripped native code shipped to devices, and Play warning that a
+             * bundle with native code arrived without symbols.
+             *
+             * That warning costs more here than in most apps. Android has no
+             * Sentry SDK (see the port notes), so Play's crash reports are the
+             * only crash visibility this app has, and the crashes worth reading
+             * are the ones inside the Rust wallet libraries — unreadable as bare
+             * addresses.
+             *
+             * SYMBOL_TABLE, not FULL: function names are what makes a stack trace
+             * legible, and FULL adds line-number tables that Rust static libraries
+             * make very large, against Play's 300 MB limit on the symbol file.
+             */
+            ndk {
+                debugSymbolLevel = "SYMBOL_TABLE"
+            }
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro",

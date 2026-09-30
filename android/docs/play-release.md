@@ -112,15 +112,26 @@ to `setLiquiditySourceLsps2` on both environments.
 ### Verifying what a built bundle points at
 
 The guard is a tripwire on known markers, not a network validator, so it is worth
-checking the artefact itself before an upload that matters:
+checking the artefact itself before an upload that matters.
+
+**Check the node identity, not the URLs.** `BoltzApi.kt:36` hardcodes
+`https://esplora-regtest.bittr.io` as a `DEVELOPMENT` enum constant, so that
+string is in the dex of *every* build and finding it proves nothing. The node id
+and address only ever arrive from the environment:
 
 ```bash
 python3 - <<'EOF'
 import zipfile
 z = zipfile.ZipFile("app/build/outputs/bundle/release/app-release.aab")
 blob = b"".join(z.read(n) for n in z.namelist() if n.endswith(".dex"))
-for marker in (b"esplora.getbittr.com", b"esplora-regtest", b"rapidsync"):
-    print(marker.decode(), "->", marker in blob)
+checks = [
+    ("regtest node id  MUST be absent ", b"02bbc42b52f2bf041f37e6e556c7138cdc9cc2a77175ef6c1c3d5a3fbc6fa88148"),
+    ("regtest address  MUST be absent ", b"66.163.116.210:39735"),
+    ("mainnet node id  must be present", b"03e8d988a67ee7de983cd39d9d3d4d19771019305da4d2332be76c8b9fb1687776"),
+    ("mainnet address  must be present", b"86.104.228.24:9735"),
+]
+for label, needle in checks:
+    print(f"  {label}: {needle in blob}")
 EOF
 ```
 
@@ -169,6 +180,47 @@ at the bottom of `app/build.gradle.kts`.
 
 The bundle carries `arm64-v8a`, `armeabi-v7a` and `x86_64` and nothing else —
 see `abi-packaging.md` for why `x86` in particular must not come back.
+
+## Native debug symbols, and the NDK
+
+Play warns that a bundle "contains native code, and you've not uploaded debug
+symbols". It is advisory, and it matters more here than in most apps: Android has
+no Sentry SDK, so Play's crash reports are this app's only crash visibility, and
+the crashes worth reading are inside `libldk_node.so` and `libbdkffi.so` — bare
+addresses without a symbol table.
+
+`release.ndk.debugSymbolLevel = "SYMBOL_TABLE"` in `app/build.gradle.kts` puts
+them in the bundle, where Play picks them up automatically. No separate upload.
+
+**It needs the NDK version AGP asks for, which is not necessarily the newest.**
+AGP 9.4.0 wants `28.2.13676358`; with anything else installed — or nothing — the
+build prints *"Unable to strip the following libraries, packaging them as they
+are"*, emits no symbols, and carries on:
+
+```bash
+sdkmanager --install "ndk;28.2.13676358"
+```
+
+`ndkVersion` is deliberately **not** pinned in the build file. Nothing here
+compiles native code — every `.so` comes from a dependency — so the NDK is only a
+toolchain for stripping and symbol extraction, and pinning a version the CI
+runners do not have would trade a green build for a download. Absent an NDK the
+build still succeeds, with the warning.
+
+What it changes, measured on `versionCode 2`:
+
+| | Without | With |
+|---|---|---|
+| Native libraries in the bundle | 135 MB unstripped | 96 MB stripped |
+| Symbol files | none | 9, ~100 MB |
+| Bundle on disk | 61 MB | 93 MB |
+
+The bundle gets *bigger* and the download gets *smaller*: symbols travel to Play
+and are stripped out of what devices receive. Play's limit on the symbol payload
+is 300 MB, and ~100 MB leaves room.
+
+`libjnidispatch.so` still refuses to strip. Its symbols are extracted anyway, and
+JNA's dispatcher is not where a wallet bug will be.
 
 ## Checking what you built
 
