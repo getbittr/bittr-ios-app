@@ -145,6 +145,13 @@ shared/flows/logs/
 __pycache__/
 *.pyc
 
+# Signing keys. The upload key lives in ~/.bittr/, not here — see
+# android/docs/play-release.md. This is the backstop for the moment someone
+# generates one into the working directory out of habit, because a committed
+# keystore is not undone by deleting it in a later commit.
+*.jks
+*.keystore
+
 # The regtest network's identity, written by android/regtest/up.sh.
 #
 # Committing it would be worse than useless: LND's node id is generated per
