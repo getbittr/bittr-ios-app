@@ -161,7 +161,9 @@ guard, and asserts that exactly one of them is populated so it cannot end up wit
 neither.
 
 **Per-ABI APKs are not a Play upload path as they stand.** Play multi-APK requires
-a distinct `versionCode` per APK; all three currently carry `versionCode = 1`.
+a distinct `versionCode` per APK. That stopped being a live concern when the ABI
+list moved to `defaultConfig.ndk.abiFilters`: there is one APK again, and the
+bundle carries every ABI under a single `versionCode`.
 BIT-134 either adopts the bundle (which makes the question disappear) or adds an
 ABI-indexed versionCode scheme. It is written down here rather than implemented
 because the wrong one of those is expensive to undo.

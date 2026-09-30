@@ -234,7 +234,11 @@ that is the follow-up once step 3 has happened.
 
 ## versionCode
 
-`versionCode = 1` in `app/build.gradle.kts`. Play rejects any upload whose
-`versionCode` is not higher than the last one it accepted, per track, and there
-is no way to reuse a number — including for a build that was uploaded and then
-discarded. Bump it in the same commit that cuts a release.
+`versionCode = 2` in `app/build.gradle.kts`. Play rejects any upload whose
+`versionCode` is not higher than the last one it accepted, and there is no way to
+reuse a number — **including for a bundle that was uploaded and never released**.
+That is how 1 went: it was spent on 2026-09-30 by a bundle that reached the
+Console and shipped to nobody. Bump this in the same commit that cuts a release.
+
+The number is burned at upload. If you upload a bundle you then think better of,
+the next one needs a higher number regardless of what happened to the first.

@@ -260,7 +260,10 @@ android {
         applicationId = "com.bittr.android"
         minSdk = libs.versions.minSdk.get().toInt()
         targetSdk = libs.versions.targetSdk.get().toInt()
-        versionCode = 1
+        // Play burns a versionCode on upload, not on release: 1 was spent by the
+        // first bundle to reach the Console and cannot be reused even though
+        // nothing shipped on it. Bump this in the commit that cuts a release.
+        versionCode = 2
         versionName = "0.1.0"
 
         // The ABI list, applied to every variant. See the long note above for why
