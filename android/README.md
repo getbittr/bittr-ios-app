@@ -111,10 +111,11 @@ Use `test`, **not** `testDebugUnitTest`. `:core:common`, `:core:wallet` and
 `testDebugUnitTest` reports `NO-SOURCE` for them and goes green having run a
 fraction of the suite.
 
-`assembleDebug` produces **one APK per ABI and no universal APK** —
-`app-arm64-v8a-debug.apk`, `app-armeabi-v7a-debug.apk`, `app-x86_64-debug.apk`,
-~56–71 MB each. Install the one matching your device; `:app:installDebug` picks
-for you. Why there are three, and why they are that size, is
+`assembleDebug` produces **one `app-debug.apk`, ~157 MB**, carrying the three
+supported ABIs. It was one APK per ABI until the App Bundle arrived: AGP will not
+build a bundle and per-ABI APKs in one invocation, so the ABI list moved to
+`defaultConfig.ndk.abiFilters` and Play now does the splitting for what ships.
+`:app:installDebug` installs it for you. Why there are three, and why they are that size, is
 `docs/abi-packaging.md` (BIT-129) — `libldk_node.so` and `libbdkffi.so` are most
 of it, and this is a Lightning wallet.
 

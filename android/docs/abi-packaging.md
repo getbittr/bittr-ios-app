@@ -68,9 +68,17 @@ anyone takes of this APK from now on.
 
 ## What CI installs
 
-The `maestro` job installs **`app-x86_64-debug.apk` — 69.3 MB**, down from the
-174.5 MB universal APK. The build job uploads only that file, so the saving is
-paid once on upload and once on download as well as at `adb install`.
+The `maestro` job installs **`app-debug.apk` — 157 MB**, down from the 174.5 MB
+seven-ABI universal APK but up from the 69.3 MB x86_64 split it installed between
+BIT-129 and 2026-09-30.
+
+The split went when the App Bundle arrived: `splits.abi` cannot coexist with a
+`bundle*` task (AGP: *"Please disable building multiple APKs when building an
+Android app bundle"*, issuetracker 402800800), and a bundle built with the block
+merely disabled carried `lib/x86/` — the ABI with no `libldk_node.so`, which is
+the install-then-crash case this whole document is about. So the list moved to
+`defaultConfig.ndk.abiFilters`, which applies to both outputs, and CI pays ~88 MB
+more per run for a bundle that is correct.
 
 ### Why this is not the divergence the issue was right to worry about
 

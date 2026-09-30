@@ -98,18 +98,18 @@ cd android
 ./gradlew :app:assembleDebug    # debug == the regtest variant
 ```
 
-APKs land in `app/build/outputs/apk/debug/` — **one per ABI**, and no universal
-one:
+The APK lands in `app/build/outputs/apk/debug/` — **one file, every supported
+ABI**:
 
 ```
-app-arm64-v8a-debug.apk      71 MB   ← a physical phone
-app-armeabi-v7a-debug.apk    56 MB
-app-x86_64-debug.apk         69 MB   ← an emulator, and what CI installs
+app-debug.apk               157 MB   ← phone and emulator alike
 ```
 
-Install the one matching what you are installing onto — the wrong one is refused
-with `INSTALL_FAILED_NO_MATCHING_ABIS`, which is at least a legible error.
-`./gradlew :app:installDebug` picks for you off the attached device.
+It was three per-ABI APKs until the App Bundle arrived on 2026-09-30; AGP will
+not build a bundle and per-ABI APKs in one invocation, so the ABI list moved to
+`defaultConfig.ndk.abiFilters`. One file means no `INSTALL_FAILED_NO_MATCHING_ABIS`
+from picking the wrong one, at the cost of installing three ABIs to use one.
+`./gradlew :app:installDebug` installs it off the attached device.
 
 Three APKs rather than one is [BIT-129](abi-packaging.md). The size is
 `libldk_node.so` and `libbdkffi.so`, which are ~40 MB of every one of them and

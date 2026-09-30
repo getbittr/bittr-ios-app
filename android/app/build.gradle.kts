@@ -62,6 +62,41 @@ val ldkEnvironment: Map<String, String> = listOf(
     field to raw
 }
 
+/**
+ * The upload key, from outside the repository.
+ *
+ * Play App Signing holds the *app* signing key; this is the **upload** key, the one
+ * Google checks a bundle against before re-signing it. Supplied the same way as
+ * [ldkEnvironment] above — Gradle property first, then environment variable, both
+ * configuration-cache-safe — because a keystore and its passwords have no business
+ * in the repository, and a `signingConfig` that reads a committed file is how they
+ * get there.
+ *
+ * All four must be present or none of them count: a half-supplied config would
+ * otherwise produce a bundle signed with whatever was left over, which is exactly
+ * the failure this is meant to prevent. When they are absent the release build
+ * stays debug-signed so `assembleRelease` keeps working in CI, and `bundleRelease`
+ * — the only task whose output is distributable — refuses to run. See the check at
+ * the bottom of this file.
+ *
+ * Losing this keystore is not a small event: the upload key can only be reset by
+ * Google, through a support request. Back it up somewhere that is not this machine.
+ */
+private val uploadSigning: Map<String, String> = listOf(
+    Triple("storeFile", "bittr.upload.storeFile", "BITTR_UPLOAD_STORE_FILE"),
+    Triple("storePassword", "bittr.upload.storePassword", "BITTR_UPLOAD_STORE_PASSWORD"),
+    Triple("keyAlias", "bittr.upload.keyAlias", "BITTR_UPLOAD_KEY_ALIAS"),
+    Triple("keyPassword", "bittr.upload.keyPassword", "BITTR_UPLOAD_KEY_PASSWORD"),
+).associate { (field, property, variable) ->
+    field to providers.gradleProperty(property)
+        .orElse(providers.environmentVariable(variable))
+        .getOrElse("")
+        .trim()
+}
+
+/** Whether all four of [uploadSigning] were supplied. */
+private val uploadSigningConfigured: Boolean = uploadSigning.values.none { it.isEmpty() }
+
 android {
     namespace = "com.bittr.android"
     compileSdk = libs.versions.compileSdk.get().toInt()
@@ -100,11 +135,11 @@ android {
      * The cheap way to shrink what CI installs is `ndk.abiFilters` on the debug
      * build only. This repo does not do that — see the `androidComponents` block
      * at the bottom of this file, which exists because a release-only gap in what
-     * gets tested had already cost us a silently dead assertion once. `splits`
-     * below is what makes the CI saving available without buying a second
-     * divergence: it changes how a variant is *packaged*, not what it contains.
+     * gets tested had already cost us a silently dead assertion once. The filter
+     * below is on `defaultConfig`, so debug and release carry the identical list
+     * and CI tests the packaging that ships.
      *
-     * WHY THE LIST IS APPLIED THROUGH `splits` AND NOT `defaultConfig.ndk`
+     * WHY THE LIST IS APPLIED THROUGH `defaultConfig.ndk` AND NOT `splits`
      *
      * Because AGP will not take both, and that is a hard error rather than a
      * preference. Setting the two to the *same* three ABIs fails configuration
@@ -112,17 +147,30 @@ android {
      * abiFilters cannot be present when splits abi filters are set" — verified
      * against AGP 9.4.0, which is the version in gradle/libs.versions.toml.
      *
-     * So one of them carries the list, and for an APK it has to be `splits`:
-     * `ndk.abiFilters` alone would shrink every APK to the same three ABIs but
-     * still emit ONE universal APK, leaving CI pushing all three. The reverse
-     * trade arrives with the App Bundle — `splits.abi` does not apply to
-     * `bundle*` tasks, so a bundle built today would contain all seven `lib/`
-     * directories. That is not a live problem (this repo has no signing config
-     * and produces no bundle; see the `release` build type below) and it is the
-     * one thing that must change when it becomes one: swap this block for
-     * `defaultConfig.ndk.abiFilters`, and let Play do the splitting.
-     * AbiPackagingGuardTest is written to accept either mechanism for exactly
-     * that reason — it asserts the ABI SET, not the block that spells it.
+     * So one of them carries the list, and until 2026-09-30 it was `splits`:
+     * `ndk.abiFilters` alone shrinks every APK to the same three ABIs but still
+     * emits ONE universal APK, leaving CI pushing all three.
+     *
+     * **The bundle is what changed that, exactly as this note predicted it would.**
+     * `splits.abi` does not apply to `bundle*` tasks — worse than not applying, AGP
+     * refuses to run them together at all ("Please disable building multiple APKs
+     * when building an Android app bundle", issuetracker 402800800). A bundle built
+     * with the splits block merely disabled carried `lib/x86/`: measured, not
+     * feared, on the first `bundleRelease` this repo ever produced. That is the
+     * install-then-crash case two paragraphs up, shipped to Play.
+     *
+     * So the list now lives in `defaultConfig.ndk.abiFilters` below and Play does
+     * the splitting, which is the swap this note prescribed. AbiPackagingGuardTest
+     * was written to accept either mechanism for exactly this reason — it asserts
+     * the ABI SET, not the block that spells it — and it needed no change.
+     *
+     * WHAT THE SWAP COST
+     *
+     * `assembleDebug` emits one `app-debug.apk` carrying all three ABIs again,
+     * instead of three single-ABI APKs, so CI installs more than the 69 MB it used
+     * to. That is the price of the bundle being correct, and it is paid on the
+     * debug path only. android/scripts/ci-smoke.sh and android/docs/abi-packaging.md
+     * were updated with it.
      */
     val supportedAbis = listOf("arm64-v8a", "armeabi-v7a", "x86_64")
 
@@ -160,15 +208,6 @@ android {
      * /data/app on the device, which is slower to install and roughly doubles the
      * on-device footprint. Smaller file, worse app.
      */
-    splits {
-        abi {
-            isEnable = true
-            reset()
-            include(*supportedAbis.toTypedArray())
-            isUniversalApk = false
-        }
-    }
-
     defaultConfig {
         // Note: iOS uses com.bittr.bittr-regtest for the regtest variant. Android
         // applicationIds cannot contain hyphens, so the regtest build is
@@ -191,6 +230,13 @@ android {
         targetSdk = libs.versions.targetSdk.get().toInt()
         versionCode = 1
         versionName = "0.1.0"
+
+        // The ABI list, applied to every variant. See the long note above for why
+        // these three and not the seven the dependencies carry, and why this is
+        // `ndk.abiFilters` rather than `splits.abi`.
+        ndk {
+            abiFilters += supportedAbis
+        }
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
@@ -252,6 +298,21 @@ android {
         }
     }
 
+    signingConfigs {
+        // Registered only when the key is actually there. Creating it unconditionally
+        // and leaving the fields empty would hand AGP a config it cannot sign with,
+        // and the failure surfaces at packaging time as a jarsigner error rather than
+        // as the one sentence the developer needs.
+        if (uploadSigningConfigured) {
+            create("upload") {
+                storeFile = file(uploadSigning.getValue("storeFile"))
+                storePassword = uploadSigning.getValue("storePassword")
+                keyAlias = uploadSigning.getValue("keyAlias")
+                keyPassword = uploadSigning.getValue("keyPassword")
+            }
+        }
+    }
+
     buildTypes {
         debug {
             // Debug == regtest, mirroring the iOS Debug build that produces
@@ -287,9 +348,15 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro",
             )
-            // Debug-signed so `assembleRelease` stays runnable in CI. Real signing
-            // config lands with the first distributable build, not with the scaffold.
-            signingConfig = signingConfigs.getByName("debug")
+            // The upload key when it was supplied, and the debug key otherwise so
+            // `assembleRelease` stays runnable in CI. Nothing distributable can come
+            // out of the debug branch: `bundleRelease` refuses to run without the
+            // upload key — see the check at the bottom of this file.
+            signingConfig = if (uploadSigningConfigured) {
+                signingConfigs.getByName("upload")
+            } else {
+                signingConfigs.getByName("debug")
+            }
         }
     }
 
@@ -657,4 +724,32 @@ dependencies {
     // for the reason `project(":core:wallet-ldk")` is — androidTest does not inherit the
     // `implementation` line above.
     androidTestImplementation(project(":core:push-fcm"))
+}
+
+/**
+ * `bundleRelease` is the only task in this build whose output is meant to leave the
+ * machine, so it is the one place a debug-signed artefact must not be producible.
+ *
+ * Play rejects a debug-signed upload anyway — but it rejects it *after* a build, an
+ * upload and a wait, with "You uploaded an APK or Android App Bundle that was signed
+ * in debug mode", and the developer then has to work out which of the four values was
+ * missing. This says it at the start instead, and names them.
+ *
+ * `assembleRelease` is deliberately not covered. CI runs it to prove the release
+ * variant compiles and that its unit tests pass, and that has nothing to do with
+ * signing; requiring the key there would mean putting a keystore on the runner for a
+ * build nobody installs.
+ */
+tasks.matching { it.name == "bundleRelease" }.configureEach {
+    val configured = uploadSigningConfigured
+    doFirst {
+        check(configured) {
+            "bundleRelease needs the upload key, and it is not configured. Supply all " +
+                "four of BITTR_UPLOAD_STORE_FILE, BITTR_UPLOAD_STORE_PASSWORD, " +
+                "BITTR_UPLOAD_KEY_ALIAS and BITTR_UPLOAD_KEY_PASSWORD (or the matching " +
+                "bittr.upload.* Gradle properties). See android/docs/play-release.md. " +
+                "Without them the release build is signed with the debug key, which Play " +
+                "refuses."
+        }
+    }
 }

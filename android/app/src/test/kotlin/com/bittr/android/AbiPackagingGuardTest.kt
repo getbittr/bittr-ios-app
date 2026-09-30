@@ -66,8 +66,19 @@ class AbiPackagingGuardTest {
      */
     private val ciAbi = "x86_64"
 
-    /** What `:app:assembleDebug` names the [ciAbi] output. */
-    private val ciApk = "app-$ciAbi-debug.apk"
+    /**
+     * What `:app:assembleDebug` emits.
+     *
+     * One APK carrying every ABI in the filter, *not* one per ABI: the list moved
+     * from `splits.abi` to `defaultConfig.ndk.abiFilters` when this repo started
+     * producing an App Bundle, because AGP will not build a bundle and per-ABI APKs
+     * in the same invocation. See the long note in app/build.gradle.kts.
+     *
+     * So the name no longer carries [ciAbi]. The emulator's ABI still matters — it
+     * has to be one the filter admits, which is asserted below — but there is no
+     * longer a choice of file to install.
+     */
+    private val ciApk = "app-debug.apk"
 
     private val workflow = File(SourceTree.repoRoot, ".github/workflows/android-maestro.yml")
     private val smokeScript = File(SourceTree.repoRoot, "android/scripts/ci-smoke.sh")
@@ -140,14 +151,13 @@ class AbiPackagingGuardTest {
     /**
      * **No universal APK.**
      *
-     * `isUniversalApk = true` would restore the 174 MB artefact alongside the
-     * three per-ABI ones, and — because the upload path and the install below are
-     * both named — restore it *silently*: CI would keep installing the x86_64
-     * split and the only symptom would be a build that got slower.
+     * `isUniversalApk = true` would restore the 174 MB every-ABI artefact — the
+     * seven-directory one, not the three-ABI APK CI installs today.
      *
-     * Vacuously true when `splits` is not the mechanism in use, which is the
-     * App Bundle case; asserted anyway, because AGP reports `false` there and a
-     * `true` would mean something has been configured that nothing reads.
+     * Vacuously true now that `splits` is not the mechanism in use, which is the
+     * App Bundle case this repo reached on 2026-09-30; asserted anyway, because AGP
+     * reports `false` there and a `true` would mean something has been configured
+     * that nothing reads.
      */
     @Test
     fun `no universal APK is emitted`() {
@@ -212,9 +222,8 @@ class AbiPackagingGuardTest {
             .toSet()
         assertEquals(
             "The `Upload APK` step in ${workflow.name} publishes $uploaded. It must " +
-                "publish exactly the APK ci-smoke.sh installs — a widened glob puts the " +
-                "other two splits (127 MB) through upload and download on every run for " +
-                "an emulator that cannot use them.",
+                "publish exactly the APK ci-smoke.sh installs, and there is exactly one " +
+                "to publish since the ABI list moved to defaultConfig.ndk.abiFilters.",
             setOf(ciApk),
             uploaded,
         )
@@ -253,10 +262,11 @@ class AbiPackagingGuardTest {
             .filter { it.contains("adb install") && it.contains("*") }
             .toList()
         assertTrue(
-            "ci-smoke.sh globs its install: $globbed. `:app:assembleDebug` emits one APK " +
-                "per ABI and no universal one, so a glob resolves to three files (adb " +
-                "reads the extras as flags) or, if the artifact is empty, to the literal " +
-                "string. Install $ciApk by name.",
+            "ci-smoke.sh globs its install: $globbed. A glob that matches nothing is " +
+                "passed through unexpanded and adb tries to install a file called " +
+                "`*.apk`, twenty minutes into a run; and it silently stops being a " +
+                "one-file glob the moment anything else lands in that directory. " +
+                "Install $ciApk by name.",
             globbed.isEmpty(),
         )
     }

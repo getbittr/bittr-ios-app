@@ -712,7 +712,7 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: app-debug-apk
-          # BIT-129: the x86_64 split ONLY, not `*.apk`.
+          # BIT-129: the one APK assembleDebug emits, named, not `*.apk`.
           #
           # `:app:assembleDebug` emits one APK per supported ABI and no universal
           # one — see the `splits` block in android/app/build.gradle.kts, which
@@ -731,7 +731,7 @@ jobs:
           # second consumer of this artifact ever appears, widen the glob here and
           # change the install in android/scripts/ci-smoke.sh in the same commit.
           # AbiPackagingGuardTest fails if only one of the two moves.
-          path: android/app/build/outputs/apk/debug/app-x86_64-debug.apk
+          path: android/app/build/outputs/apk/debug/app-debug.apk
           retention-days: 7
           if-no-files-found: error
 

@@ -54,16 +54,15 @@ set -euo pipefail
 # the first moment the job can observe how long booting took.
 emulator_ready=$(date +%s)
 
-# BIT-129. Named, not globbed. `:app:assembleDebug` emits one APK per ABI —
-# app-arm64-v8a-debug.apk, app-armeabi-v7a-debug.apk, app-x86_64-debug.apk — and
-# there is no universal APK to fall back on; see the `splits` block in
-# android/app/build.gradle.kts for why that is not a divergence from what ships.
+# BIT-129. Named, not globbed. `:app:assembleDebug` emits a single
+# app-debug.apk carrying every ABI in defaultConfig.ndk.abiFilters — the list
+# moved there from `splits.abi` when this repo started producing an App Bundle,
+# because AGP will not build a bundle and per-ABI APKs in one invocation. See the
+# long note in android/app/build.gradle.kts.
 #
 # The emulator this runs on is x86_64 (`arch: x86_64` in the workflow, both the
-# AVD snapshot and the run step), so that is the one to install. Installing one
-# of the other two here fails with INSTALL_FAILED_NO_MATCHING_ABIS, which is a
-# legible message — the expensive failures are the ones below, where the file is
-# missing or the glob is wrong and the error names neither an APK nor an ABI.
+# AVD snapshot and the run step) and that ABI is in the filter, so this APK
+# installs on it. AbiPackagingGuardTest holds the workflow's arch to the filter.
 #
 # The workflow only uploads this one file, so the glob would have resolved to it
 # anyway. It is spelled out because the failure mode of a wrong glob is the
@@ -72,7 +71,7 @@ emulator_ready=$(date +%s)
 # literal string `apk/*.apk`. Both happen after a full emulator boot.
 # AbiPackagingGuardTest holds this line and the workflow's upload path to the
 # same ABI.
-apk=apk/app-x86_64-debug.apk
+apk=apk/app-debug.apk
 if [ ! -f "$apk" ]; then
   # `find`, not `ls`, because check-action-scripts.sh shellchecks this file and
   # SC2012 is right: the whole point of this line is to be readable when
