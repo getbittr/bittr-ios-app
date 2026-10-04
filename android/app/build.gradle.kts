@@ -263,8 +263,15 @@ android {
         // Play burns a versionCode on upload, not on release: 1 and 2 are both
         // spent by bundles that reached the Console and shipped to nobody — 1 on
         // the regtest-configured build, 2 on the one without native debug
-        // symbols. Bump this in the commit that cuts a release.
-        versionCode = 3
+        // symbols. 3 is the first that testers can install.
+        //
+        // CI overrides it with the workflow's run number plus an offset, so every
+        // automated upload gets a fresh, increasing number without anyone editing
+        // this file. Locally it stays at the committed value, which is what a hand
+        // upload wants. See VERSION_CODE_FLOOR for the offset and its one hazard.
+        versionCode = providers.environmentVariable("BITTR_VERSION_CODE")
+            .map { it.trim().toInt() }
+            .getOrElse(3)
         versionName = "0.1.0"
 
         // The ABI list, applied to every variant. See the long note above for why

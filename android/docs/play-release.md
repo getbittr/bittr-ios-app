@@ -82,16 +82,22 @@ over a private regtest network. One was built on 2026-09-30 and not uploaded;
 That matters more since `.envrc` arrived: sourcing the regtest environment used to
 be a deliberate act per shell and is now automatic on `cd`.
 
-Keep the production values in `~/.bittr/android-production.env` and **do not add
-it to `.envrc`** — the whole point is that a production node configuration is
+The production values live in **`android/production.env`, committed**, and are
+deliberately **not** loaded by `.envrc` — a production node configuration is
 something you opt into for one command, not something every debug build inherits.
-The variable names are the same, so sourcing it over the regtest values replaces
-them:
+The variable names are the same as the regtest ones, so sourcing it replaces them:
 
 ```bash
-set -a; source ~/.bittr/android-production.env; set +a
+set -a; . android/production.env; set +a
 ./gradlew :app:bundleRelease
 ```
+
+It is committed rather than kept in `~/.bittr/` because CI needs the same values:
+a copy in a home directory meant the workflow and the laptop could drift without
+either noticing. Nothing in it is secret — every value is already in
+`EnvironmentConfig.swift`. The one that would change that is
+`BITTR_LDK_LSPS2_TOKEN`: empty today, and if it ever becomes a real token it has
+to leave this file for a CI secret.
 
 The values themselves are not secret — they are already in the repository, in
 `ios/bittr/Helpers/EnvironmentConfig.swift`, which is the source of truth for
@@ -295,3 +301,69 @@ was installed and so without native debug symbols. Bump this in the same commit 
 
 The number is burned at upload. If you upload a bundle you then think better of,
 the next one needs a higher number regardless of what happened to the first.
+
+---
+
+## Automated releases from `develop`
+
+`.github/workflows/android-internal-release.yml` builds every push to `develop`
+that touches the app and publishes it to the internal testing track — the Android
+half of what Xcode Cloud does for TestFlight. It also runs on `workflow_dispatch`.
+
+It is `develop` only. A release workflow that fires from any branch is one typo
+from shipping a feature branch to testers, and an uploaded versionCode is spent
+whether or not anyone wanted it.
+
+### What it does
+
+1. `./gradlew test testDebugUnitTest` — the gate. The only thing between a push
+   and a tester's phone.
+2. Restores the upload keystore from a secret, builds `:app:bundleRelease` with
+   `android/production.env` sourced and `BITTR_VERSION_CODE` set.
+3. `scripts/check-bundle-network.py` on the artefact. The build guards its
+   inputs; this checks what actually reached the bundle.
+4. Uploads to the `internal` track, status `completed` — live for testers within
+   minutes, no review queue.
+5. Keeps the `.aab` as a build artefact for 30 days, so a tester's report can be
+   matched to the exact bundle they are running.
+
+Native debug symbols and the R8 mapping travel *inside* the bundle, so there is
+no separate symbol upload step.
+
+### versionCode in CI
+
+`github.run_number + VERSION_CODE_OFFSET` (100), overriding the committed value
+through `BITTR_VERSION_CODE`. Monotonic, visible in the build log, and needs no
+API call.
+
+**The hazard, because it is silent:** `run_number` restarts at 1 if the workflow
+file is renamed, or deleted and recreated. If that happens, raise the offset past
+the highest versionCode Play has accepted — *Test and release → App bundle
+explorer* shows it — before the next push to `develop`.
+
+### The four secrets
+
+Repository settings → Secrets and variables → Actions:
+
+| Secret | What |
+|---|---|
+| `UPLOAD_KEYSTORE_BASE64` | `base64 -i ~/.bittr/bittr-upload.jks` — the keystore, since secrets are text |
+| `UPLOAD_STORE_PASSWORD` | The keystore password from `keytool`'s first prompt |
+| `UPLOAD_KEY_ALIAS` | `bittr-upload` |
+| `UPLOAD_KEY_PASSWORD` | The key password — the same value if RETURN was pressed at the second prompt |
+| `PLAY_SERVICE_ACCOUNT_JSON` | The service account key, whole file, pasted as text |
+
+On macOS, `base64 -i file | pbcopy` puts the keystore on the clipboard in the
+form the secret wants.
+
+### The service account
+
+The one part no workflow can do for itself:
+
+1. Google Cloud console → a project → enable the **Google Play Android Developer
+   API**.
+2. Create a service account in it, then a **JSON key**. That file is the secret.
+3. Play Console → **Users and permissions** → invite the service account's email
+   address → give it access to this app with **Release to testing tracks**.
+4. Wait. Permission propagation is not instant, and a workflow run started
+   immediately after can still fail with a 401.

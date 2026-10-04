@@ -1,0 +1,128 @@
+name: Android — internal testing release
+
+# Every push to develop that touches the app becomes a build on the Play internal
+# testing track, which is the Android half of what Xcode Cloud does for TestFlight.
+#
+# `develop` only. A release workflow that fires from any branch is one typo away
+# from shipping a feature branch to testers, and the Play track has no undo — an
+# uploaded versionCode is spent whether or not anyone wanted it.
+on:
+  push:
+    branches:
+      - develop
+    paths:
+      - 'android/**'
+      - 'shared/strings/**'
+      - 'ios/bittr/Language.swift'
+      - '.github/workflows/android-internal-release.yml'
+  workflow_dispatch:
+
+concurrency:
+  # One release at a time, and never cancel one in flight. Cancelling mid-upload
+  # can leave Play holding a half-processed bundle on a versionCode that is now
+  # spent, which costs a number and explains nothing.
+  group: android-internal-release
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+env:
+  JAVA_VERSION: |
+    17
+    21
+  # Play rejects any versionCode it has already seen, so each upload needs a fresh,
+  # increasing one. `github.run_number` is monotonic per workflow, and the offset
+  # clears the three numbers already spent by hand (see android/docs/play-release.md).
+  #
+  # The hazard, written down because it is silent: run_number restarts at 1 if this
+  # workflow file is renamed or deleted and recreated. If that ever happens, raise
+  # the offset past the highest versionCode Play has accepted — the Console shows it
+  # under Test and release → App bundle explorer.
+  VERSION_CODE_OFFSET: 100
+
+jobs:
+  release:
+    name: Build and publish to internal testing
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Set up JDK
+        uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: ${{ env.JAVA_VERSION }}
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v5
+        with:
+          build-scan-publish: false
+
+      # The unit tests gate the upload. They are the only thing standing between a
+      # push and a build on a tester's phone, and they are cheap next to a bundle.
+      - name: Unit tests
+        run: ./gradlew test testDebugUnitTest
+        working-directory: android
+
+      # The upload key, from a secret rather than a file in the repo. base64 because
+      # a keystore is binary and GitHub secrets are text.
+      - name: Restore the upload keystore
+        env:
+          KEYSTORE_BASE64: ${{ secrets.UPLOAD_KEYSTORE_BASE64 }}
+        run: |
+          if [ -z "${KEYSTORE_BASE64}" ]; then
+            echo "UPLOAD_KEYSTORE_BASE64 is not set. See android/docs/play-release.md." >&2
+            exit 1
+          fi
+          printf '%s' "${KEYSTORE_BASE64}" | base64 -d > "${RUNNER_TEMP}/upload.jks"
+          echo "Restored $(stat -c%s "${RUNNER_TEMP}/upload.jks") bytes."
+
+      - name: Build the bundle
+        env:
+          BITTR_UPLOAD_STORE_FILE: ${{ runner.temp }}/upload.jks
+          BITTR_UPLOAD_STORE_PASSWORD: ${{ secrets.UPLOAD_STORE_PASSWORD }}
+          BITTR_UPLOAD_KEY_ALIAS: ${{ secrets.UPLOAD_KEY_ALIAS }}
+          BITTR_UPLOAD_KEY_PASSWORD: ${{ secrets.UPLOAD_KEY_PASSWORD }}
+        run: |
+          set -a
+          . ./production.env
+          set +a
+          BITTR_VERSION_CODE=$(( ${{ github.run_number }} + ${{ env.VERSION_CODE_OFFSET }} ))
+          export BITTR_VERSION_CODE
+          echo "Building versionCode ${BITTR_VERSION_CODE}."
+          ./gradlew :app:bundleRelease
+        working-directory: android
+
+      # The build's own guard refuses a non-mainnet node configuration, and the
+      # bundle is checked again here against the thing a guard on inputs cannot see:
+      # what actually ended up in the artefact.
+      - name: Check the bundle is on mainnet
+        run: python3 scripts/check-bundle-network.py app/build/outputs/bundle/release/app-release.aab
+        working-directory: android
+
+      - name: Publish to internal testing
+        uses: r0adkll/upload-google-play@v1.1.3
+        with:
+          serviceAccountJsonPlainText: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
+          packageName: com.bittr.android
+          releaseFiles: android/app/build/outputs/bundle/release/app-release.aab
+          track: internal
+          status: completed
+          # Native debug symbols and the R8 mapping travel inside the bundle
+          # already — BUNDLE-METADATA/com.android.tools.build.debugsymbols and
+          # .../obfuscation/proguard.map — so Play symbolicates without a separate
+          # upload here. See android/docs/play-release.md.
+
+      # Kept because the Play Console is not a build log: when a tester reports
+      # something, this is how you get the exact bundle they are running.
+      - name: Keep the bundle
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: app-release-aab
+          path: android/app/build/outputs/bundle/release/app-release.aab
+          retention-days: 30
+          if-no-files-found: warn
