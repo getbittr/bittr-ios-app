@@ -1,5 +1,7 @@
 package com.bittr.android.core.designsystem
 
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.FastOutSlowInEasing
@@ -128,6 +130,9 @@ fun BittrAlert(
     }
     val motion = rememberAlertMotion(title, message, buttons.map { it.label })
     if (motion.gone) return
+    // Out here, in the screen's composition: inside the dialog the focus and keyboard are the
+    // dialog window's, not the field's that has the keyboard up.
+    CloseKeyboardOnShow(motion)
     Dialog(onDismissRequest = {}, properties = AlertDialogProperties) {
         AlertWindowSetup()
         AlertOverlay(
@@ -171,6 +176,7 @@ fun BittrInlineAlert(
     }
     val motion = rememberAlertMotion(title, message, buttons.map { it.label })
     if (motion.gone) return
+    CloseKeyboardOnShow(motion)
     AlertOverlay(
         motion = motion,
         onBack = buttons.firstOrNull { it.dismissesAlert }?.onClick,
@@ -198,6 +204,7 @@ fun BittrLoadingCard(
     testTag: String? = null,
 ) {
     val motion = rememberAlertMotion()
+    CloseKeyboardOnShow(motion)
     AlertOverlay(
         motion = motion,
         onBack = {},
@@ -258,6 +265,22 @@ internal class AlertMotion(private val scope: CoroutineScope) {
 internal fun rememberAlertMotion(vararg keys: Any?): AlertMotion {
     val scope = rememberCoroutineScope()
     return remember(*keys) { AlertMotion(scope) }
+}
+
+/**
+ * iOS's `view.endEditing(true)` before an alert: the field gives up focus and the keyboard goes
+ * down, once per alert. The card sits on the navigation bar, so with the keyboard up it would slide
+ * in behind the keyboard and never be seen. [BittrTextFieldAlert] does not call this — its own
+ * field wants the keyboard, and its card rides on top of it.
+ */
+@Composable
+internal fun CloseKeyboardOnShow(motion: AlertMotion) {
+    val focus = LocalFocusManager.current
+    val keyboard = LocalSoftwareKeyboardController.current
+    LaunchedEffect(motion) {
+        focus.clearFocus(force = true)
+        keyboard?.hide()
+    }
 }
 
 /** Full screen and edge to edge, with Back and outside taps left to the card. */
