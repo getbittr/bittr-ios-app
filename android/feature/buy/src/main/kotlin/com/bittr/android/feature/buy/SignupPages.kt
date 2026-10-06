@@ -57,13 +57,11 @@ import androidx.core.view.drawToBitmap
 import com.bittr.android.core.common.TestID
 import com.bittr.android.feature.academy.ArticleCard
 import com.bittr.android.feature.academy.BittrArticles
-import com.bittr.android.core.designsystem.BittrBody
 import com.bittr.android.core.designsystem.rememberTextClipboard
 import com.bittr.android.core.designsystem.BittrSpinner
 import com.bittr.android.core.designsystem.BittrPartnerRow
 import com.bittr.android.core.designsystem.BittrPartnerRowWidth
 import androidx.compose.foundation.layout.height
-import com.bittr.android.core.designsystem.BittrTonalButton
 import androidx.compose.ui.unit.sp
 import com.bittr.android.core.designsystem.dismissOnPullDown
 import com.bittr.android.core.designsystem.BittrCanvas
@@ -79,6 +77,14 @@ import com.bittr.android.core.designsystem.CanvasSpacer
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import androidx.compose.foundation.layout.Row
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.foundation.clickable
+import androidx.compose.ui.semantics.Role
+import androidx.compose.foundation.layout.IntrinsicSize
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.offset
 
 /**
  * The five bittr signup pages and what they sit in. They slide between one another as the
@@ -373,7 +379,13 @@ private fun OtpPage(signup: SignupUiState, controller: BuyController) {
     }
 }
 
-/** `Transfer3ViewController`. */
+/**
+ * `Transfer3ViewController`, as its scene is: in the card, the 50 pt black check 30 from the top,
+ * the Gilroy-Bold 16 title 25 under it and the Regular 16 details 20 under that, both 40 in. Then,
+ * 30 under those and 15 in, the three 45 pt rows 10 apart — white with 8 corners in both schemes,
+ * the yellow title in a 100 pt column and the value in black 10 after it, the whole row copying
+ * the value. Screenshot and Finish side by side 30 under the rows, centred, and 30 from the bottom.
+ */
 @Composable
 private fun SuccessPage(controller: BuyController) {
     val entity = controller.signupEntity()
@@ -386,119 +398,224 @@ private fun SuccessPage(controller: BuyController) {
         controller.showCopied(value)
     }
 
-    BittrCard {
-        BittrCheckBadge()
-        CanvasSpacer(BittrTokens.Spacing.lg)
+    BittrCard(contentPadding = PaddingValues(horizontal = 15.dp, vertical = 30.dp)) {
+        BittrCheckBadge(size = 50.dp, checkSize = 22.dp, strokeWidth = 2f)
+        CanvasSpacer(25.dp)
         Text(
             BuyStrings.READY_FOR_TRANSFER,
-            style = MaterialTheme.typography.headlineSmall,
+            style = CardQuestion,
+            color = MaterialTheme.colorScheme.onSurface,
             textAlign = TextAlign.Center,
             modifier = Modifier
                 .fillMaxWidth()
+                .padding(horizontal = 25.dp)
                 .testTag(TestID.Signup.Bittr.Success.topLabelOne),
         )
-        CanvasSpacer(BittrTokens.Spacing.sm)
-        BittrBody(BuyStrings.PERSONAL_DETAILS, modifier = Modifier.testTag(TestID.Signup.Bittr.Success.topLabelTwo))
-        CanvasSpacer(BittrTokens.Spacing.lg)
+        CanvasSpacer(20.dp)
+        Text(
+            BuyStrings.PERSONAL_DETAILS,
+            style = MaterialTheme.typography.bodyLarge.copy(lineHeight = 16.1.sp),
+            color = MaterialTheme.colorScheme.onSurface,
+            textAlign = TextAlign.Center,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 25.dp)
+                .testTag(TestID.Signup.Bittr.Success.topLabelTwo),
+        )
+        CanvasSpacer(30.dp)
         val ourIban = entity?.ourIbanNumber.orEmpty()
         val ourName = entity?.ourName.orEmpty()
         val code = entity?.yourUniqueCode.orEmpty()
-        DetailRow(
-            BuyStrings.OUR_IBAN, ourIban,
-            valueTag = TestID.Signup.Bittr.Success.ourIbanLabel,
-            onCopy = { copy(ourIban) }, copyTag = TestID.Signup.Bittr.Success.ibanButton,
-        )
-        DetailRow(
-            BuyStrings.OUR_NAME, ourName,
-            onCopy = { copy(ourName) }, copyTag = TestID.Signup.Bittr.Success.nameButton,
-        )
-        DetailRow(
-            BuyStrings.YOUR_CODE, code,
-            valueTag = TestID.Signup.Bittr.Success.yourCodeLabel,
-            onCopy = { copy(code) }, copyTag = TestID.Signup.Bittr.Success.codeButton,
-        )
-        CanvasSpacer(BittrTokens.Spacing.lg)
-        // A tonal button directly above Finish, not a text link (review, `bittr_success`).
-        BittrTonalButton(
-            text = BuyStrings.SCREENSHOT,
-            onClick = {
-                scope.launch {
-                    val saved = runCatching {
-                        val bitmap = view.rootView.drawToBitmap()
-                        withContext(Dispatchers.IO) { saveToPictures(context, bitmap) }
-                    }.getOrDefault(false)
-                    controller.onScreenshotResult(saved)
-                }
-            },
-            modifier = Modifier
-                .height(52.dp)
-                .testTag(TestID.Signup.Bittr.Success.screenshotButton),
-        )
-        CanvasSpacer(12.dp)
-        BittrPrimaryButton(
-            text = BuyStrings.FINAL_DETAILS,
-            onClick = controller::onSuccessNext,
-            modifier = Modifier.testTag(TestID.Signup.Bittr.Success.nextButton),
-        )
+        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            TransferDetailRow(
+                BuyStrings.OUR_IBAN, ourIban,
+                valueTag = TestID.Signup.Bittr.Success.ourIbanLabel,
+                onCopy = { copy(ourIban) }, copyTag = TestID.Signup.Bittr.Success.ibanButton,
+            )
+            TransferDetailRow(
+                BuyStrings.OUR_NAME, ourName,
+                onCopy = { copy(ourName) }, copyTag = TestID.Signup.Bittr.Success.nameButton,
+            )
+            TransferDetailRow(
+                BuyStrings.YOUR_CODE, code,
+                valueTag = TestID.Signup.Bittr.Success.yourCodeLabel,
+                onCopy = { copy(code) }, copyTag = TestID.Signup.Bittr.Success.codeButton,
+            )
+        }
+        CanvasSpacer(30.dp)
+        Row(horizontalArrangement = Arrangement.spacedBy(10.dp, Alignment.CenterHorizontally)) {
+            // `screenshotView`: white at 70 % with 8 corners, the label black, in both schemes.
+            Box(
+                contentAlignment = Alignment.Center,
+                modifier = Modifier
+                    .height(40.dp)
+                    .clip(TransferPlateShape)
+                    .background(Color.White.copy(alpha = 0.7f))
+                    .clickable(role = Role.Button) {
+                        scope.launch {
+                            val saved = runCatching {
+                                val bitmap = view.rootView.drawToBitmap()
+                                withContext(Dispatchers.IO) { saveToPictures(context, bitmap) }
+                            }.getOrDefault(false)
+                            controller.onScreenshotResult(saved)
+                        }
+                    }
+                    .testTag(TestID.Signup.Bittr.Success.screenshotButton)
+                    .padding(horizontal = 17.dp),
+            ) {
+                Text(
+                    BuyStrings.SCREENSHOT,
+                    style = MaterialTheme.typography.labelLarge.copy(fontSize = 14.sp, lineHeight = 14.sp),
+                    color = Color.Black,
+                    modifier = Modifier.offset(y = 1.dp),
+                )
+            }
+            // As wide as its label and arrow: the primary button otherwise fills the row.
+            Box(Modifier.width(IntrinsicSize.Max)) {
+                BittrPrimaryButton(
+                    text = BuyStrings.FINAL_DETAILS,
+                    onClick = controller::onSuccessNext,
+                    modifier = Modifier.testTag(TestID.Signup.Bittr.Success.nextButton),
+                )
+            }
+        }
     }
 }
 
-/** `Transfer4ViewController`. */
+/**
+ * One of `Transfer3ViewController`'s rows: 45 tall, white with 8 corners, "Partner IBAN" and its
+ * siblings in yellow Gilroy-Bold 16 in a 100 pt column 15 in, the value in black 10 after it and 15
+ * from the end. The row is its copy button, drawn under the labels so they keep their own ids.
+ */
+@Composable
+private fun TransferDetailRow(
+    label: String,
+    value: String,
+    valueTag: String? = null,
+    onCopy: () -> Unit,
+    copyTag: String,
+) {
+    val style = MaterialTheme.typography.labelLarge.copy(lineHeight = 18.sp)
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .heightIn(min = 45.dp)
+            .clip(TransferPlateShape)
+            .background(Color.White),
+    ) {
+        Box(
+            modifier = Modifier
+                .matchParentSize()
+                .clickable(role = Role.Button, onClick = onCopy)
+                .testTag(copyTag),
+        )
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier
+                .align(Alignment.CenterStart)
+                .padding(horizontal = 15.dp, vertical = 12.dp)
+                .offset(y = 1.dp),
+        ) {
+            Text(label, style = style, color = BittrTheme.colors.brandFixed, modifier = Modifier.width(100.dp))
+            Text(
+                value,
+                style = style,
+                color = Color.Black,
+                modifier = Modifier
+                    .padding(start = 10.dp)
+                    .then(valueTag?.let { Modifier.testTag(it) } ?: Modifier),
+            )
+        }
+    }
+}
+
+private val TransferPlateShape = RoundedCornerShape(8.dp)
+
+/**
+ * `Transfer4ViewController`, as its scene is: four cards 15 in and 10 apart, the first 15 under
+ * the card's top; Let's go — 45 tall, the only one of its kind — 30 under them, and Back 10 under
+ * that and 20 from the bottom. Back's 25 pt row is a 48 dp touch target here, which spends the 10
+ * above it and leaves 7 below.
+ */
 @Composable
 private fun TransferInfoPage(controller: BuyController) {
-    BittrCard {
-        InfoCard(
-            BuyStrings.TRANSFER_3_AMOUNT, BuyStrings.TRANSFER_3_AMOUNT_LABEL,
-            TestID.Signup.Bittr.TransferInfo.amountTitle, TestID.Signup.Bittr.TransferInfo.amountLabel,
-        )
-        InfoCard(
-            BuyStrings.TRANSFER_3_LIGHTNING, BuyStrings.TRANSFER_3_LIGHTNING_LABEL,
-            TestID.Signup.Bittr.TransferInfo.lightningTitle, TestID.Signup.Bittr.TransferInfo.lightningLabel,
-        )
-        InfoCard(
-            BuyStrings.TRANSFER_3_CONNECTION, BuyStrings.TRANSFER_3_CONNECTION_LABEL,
-            TestID.Signup.Bittr.TransferInfo.connectionTitle, TestID.Signup.Bittr.TransferInfo.connectionLabel,
-        )
-        InfoCard(
-            BuyStrings.TRANSFER_3_DCA, BuyStrings.TRANSFER_3_DCA_LABEL,
-            TestID.Signup.Bittr.TransferInfo.dcaTitle, TestID.Signup.Bittr.TransferInfo.dcaLabel,
-        )
-        CanvasSpacer(BittrTokens.Spacing.lg)
+    BittrCard(contentPadding = PaddingValues(start = 15.dp, end = 15.dp, top = 15.dp, bottom = 7.dp)) {
+        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            InfoCard(
+                BuyStrings.TRANSFER_3_AMOUNT, BuyStrings.TRANSFER_3_AMOUNT_LABEL,
+                TestID.Signup.Bittr.TransferInfo.amountTitle, TestID.Signup.Bittr.TransferInfo.amountLabel,
+            )
+            InfoCard(
+                BuyStrings.TRANSFER_3_LIGHTNING, BuyStrings.TRANSFER_3_LIGHTNING_LABEL,
+                TestID.Signup.Bittr.TransferInfo.lightningTitle, TestID.Signup.Bittr.TransferInfo.lightningLabel,
+            )
+            InfoCard(
+                BuyStrings.TRANSFER_3_CONNECTION, BuyStrings.TRANSFER_3_CONNECTION_LABEL,
+                TestID.Signup.Bittr.TransferInfo.connectionTitle, TestID.Signup.Bittr.TransferInfo.connectionLabel,
+            )
+            InfoCard(
+                BuyStrings.TRANSFER_3_DCA, BuyStrings.TRANSFER_3_DCA_LABEL,
+                TestID.Signup.Bittr.TransferInfo.dcaTitle, TestID.Signup.Bittr.TransferInfo.dcaLabel,
+            )
+        }
+        CanvasSpacer(30.dp)
         BittrPrimaryButton(
             text = BuyStrings.LETS_GO,
             onClick = controller::onLetsGo,
-            modifier = Modifier.testTag(TestID.Signup.Bittr.TransferInfo.nextButton),
+            modifier = Modifier
+                .height(45.dp)
+                .testTag(TestID.Signup.Bittr.TransferInfo.nextButton),
         )
-        BittrTextButton(
-            text = BuyStrings.BACK,
-            onClick = controller::onTransferInfoBack,
-            modifier = Modifier.testTag(TestID.Signup.Bittr.TransferInfo.backButton),
-        )
+        // `backLabel`: Gilroy-Bold 14, black at 60 % (white in dark).
+        Box(
+            contentAlignment = Alignment.Center,
+            modifier = Modifier
+                .heightIn(min = 48.dp)
+                .clip(TransferPlateShape)
+                .clickable(role = Role.Button, onClick = controller::onTransferInfoBack)
+                .testTag(TestID.Signup.Bittr.TransferInfo.backButton)
+                .padding(horizontal = 16.dp),
+        ) {
+            Text(
+                BuyStrings.BACK,
+                style = MaterialTheme.typography.labelLarge.copy(fontSize = 14.sp, lineHeight = 14.sp),
+                color = BittrTheme.colors.mutedOnCanvas,
+                modifier = Modifier.offset(y = 1.dp),
+            )
+        }
     }
 }
 
+/**
+ * One of Transfer4's cards: `whiteorblue3` with 8 corners, the yellow Gilroy-Bold 16 title centred
+ * 18 from the top, and 7 under it the explanation in Gilroy-Regular 15, centred, 20 in and 17 from
+ * the bottom.
+ */
 @Composable
 private fun InfoCard(title: String, label: String, titleTag: String, labelTag: String) {
     Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
         modifier = Modifier
-            .padding(vertical = 4.dp)
             .fillMaxWidth()
-            // White, 20 dp, as a card inside a sheet is in the proposal (review S1).
-            .background(MaterialTheme.colorScheme.surfaceContainer, RoundedCornerShape(20.dp))
-            .padding(16.dp),
+            .background(MaterialTheme.colorScheme.surfaceContainerHigh, TransferPlateShape)
+            .padding(start = 20.dp, end = 20.dp, top = 17.dp, bottom = 16.dp),
     ) {
         Text(
             title,
-            style = MaterialTheme.typography.titleMedium.copy(fontSize = 17.sp),
-            color = MaterialTheme.colorScheme.onSurface,
+            style = MaterialTheme.typography.labelLarge.copy(lineHeight = 18.sp),
+            color = BittrTheme.colors.brandFixed,
+            textAlign = TextAlign.Center,
             modifier = Modifier.testTag(titleTag),
         )
-        CanvasSpacer(BittrTokens.Spacing.xs)
+        CanvasSpacer(7.dp)
         Text(
             label,
-            style = MaterialTheme.typography.bodyLarge.copy(fontSize = 15.sp, lineHeight = 22.sp),
+            style = MaterialTheme.typography.bodyLarge.copy(fontSize = 15.sp, lineHeight = 15.6.sp),
             color = MaterialTheme.colorScheme.onSurface,
-            modifier = Modifier.testTag(labelTag),
+            textAlign = TextAlign.Center,
+            modifier = Modifier
+                .fillMaxWidth()
+                .testTag(labelTag),
         )
     }
 }
