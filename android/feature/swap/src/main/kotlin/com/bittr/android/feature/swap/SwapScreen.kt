@@ -71,6 +71,13 @@ import androidx.compose.ui.draw.alpha
 import com.bittr.android.core.designsystem.BittrSheetHeader
 import com.bittr.android.core.designsystem.iosShadow
 import com.bittr.android.core.designsystem.rememberFillIcon
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.animation.togetherWith
+import androidx.compose.ui.unit.IntOffset
 
 /**
  * Swap funds — `SwapViewController`, with `SwapStatusViewController` taking the card's place once
@@ -146,24 +153,39 @@ internal fun SwapScreen(state: SwapUiState, controller: SwapController, onDown: 
             .pointerInput(Unit) { detectTapGestures { focusManager.clearFocus() } },
     ) {
         val sheetHeight = maxHeight
-        Column(
-            verticalArrangement = Arrangement.Center,
-            horizontalAlignment = Alignment.CenterHorizontally,
-            modifier = Modifier
-                .fillMaxWidth()
-                .verticalScroll(rememberScrollState())
-                .heightIn(min = sheetHeight)
-                .padding(horizontal = 15.dp, vertical = 58.dp),
-        ) {
-            val status = state.status
-            if (status == null) {
-                SwapCard(state, controller, clearFocus = { focusManager.clearFocus() })
-                PoweredByBoltz(onClick = {
-                    focusManager.clearFocus()
-                    controller.onBoltzTapped()
-                })
-            } else {
-                StatusCard(status, controller)
+        // `SwapViewController`'s move to `SwapStatusViewController`: the status card slides in from the
+        // right as the swap card leaves to the left, and back, over 0.3 s ease-in-out. Keyed on which
+        // card shows, so the status updating in place doesn't slide.
+        AnimatedContent(
+            targetState = state.status,
+            contentKey = { it != null },
+            transitionSpec = {
+                val forward = targetState != null
+                val spec = tween<IntOffset>(durationMillis = 300, easing = FastOutSlowInEasing)
+                slideInHorizontally(spec) { width -> if (forward) width else -width } togetherWith
+                    slideOutHorizontally(spec) { width -> if (forward) -width else width }
+            },
+            label = "swapStatusSlide",
+            modifier = Modifier.fillMaxSize(),
+        ) { status ->
+            Column(
+                verticalArrangement = Arrangement.Center,
+                horizontalAlignment = Alignment.CenterHorizontally,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .verticalScroll(rememberScrollState())
+                    .heightIn(min = sheetHeight)
+                    .padding(horizontal = 15.dp, vertical = 58.dp),
+            ) {
+                if (status == null) {
+                    SwapCard(state, controller, clearFocus = { focusManager.clearFocus() })
+                    PoweredByBoltz(onClick = {
+                        focusManager.clearFocus()
+                        controller.onBoltzTapped()
+                    })
+                } else {
+                    StatusCard(status, controller)
+                }
             }
         }
 
