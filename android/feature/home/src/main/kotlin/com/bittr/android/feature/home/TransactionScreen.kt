@@ -32,7 +32,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.draw.clip
 import androidx.compose.foundation.layout.navigationBarsPadding
@@ -54,13 +53,9 @@ import com.bittr.android.core.common.TestID
 import com.bittr.android.core.designsystem.BittrAlertDialog
 import com.bittr.android.core.designsystem.SYSTEM_CONFIRMS_COPY
 import com.bittr.android.core.designsystem.rememberTextClipboard
-import com.bittr.android.core.designsystem.BittrCanvasShapes
-import com.bittr.android.core.designsystem.BittrRowLabel
 import com.bittr.android.core.designsystem.dismissOnPullDown
-import com.bittr.android.core.designsystem.BittrCanvas
 import com.bittr.android.core.designsystem.BittrCard
 import com.bittr.android.core.designsystem.BittrIconPaths
-import com.bittr.android.core.designsystem.BittrModalHeader
 import com.bittr.android.core.designsystem.BittrTextFieldAlert
 import com.bittr.android.core.designsystem.BittrTheme
 import com.bittr.android.core.designsystem.BittrTokens
@@ -83,6 +78,25 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.unit.sp
+import com.bittr.android.core.designsystem.Gilroy
+import com.bittr.android.core.designsystem.iosShadow
+import com.bittr.android.core.designsystem.IosCardShape
+import com.bittr.android.core.designsystem.BittrSheetHeader
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.CompositingStrategy
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.BlendMode
 
 /**
  * Reads the transaction named by the route's [ID_ARG] out of the wallet overview, with bittr's record
@@ -228,28 +242,32 @@ fun TransactionScreen(
         )
     }
 
+    // As `TransactionViewController` lays it out: `addHeader` with the piggy over `mainCenterView`,
+    // centred in the whole sheet — for a bittr payout the piggy and "Good job", then `yellowCard` 15
+    // in with 13 corners and the shadow, then the reminder.
     Box(modifier = modifier) {
-        BittrCanvas(modifier = Modifier.fillMaxSize().dismissOnPullDown(onDown), appBar = false) {
-            BittrModalHeader(
-                title = HomeStrings.TRANSACTION,
-                onDown = onDown,
-                icon = BittrIconPaths.PIGGY,
-                titleTestTag = TestID.Header.titleLabel,
-                downTestTag = TestID.Header.downButton,
-            )
+        BoxWithConstraints(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(BittrTheme.colors.canvas)
+                .dismissOnPullDown(onDown),
+        ) {
+            val sheetHeight = maxHeight
             // The hearts fall behind the cards, not over the figures (review, `buy_more/05`).
-            Box(modifier = Modifier.weight(1f).fillMaxWidth()) {
+            Box(modifier = Modifier.fillMaxSize()) {
                 if (detail?.confetti == true) {
                     HeartsConfetti(modifier = Modifier.matchParentSize())
                 }
                 Column(
+                    verticalArrangement = Arrangement.Center,
                     modifier = Modifier
-                        .fillMaxSize()
+                        .fillMaxWidth()
                         .verticalScroll(rememberScrollState())
-                        .padding(BittrTokens.Spacing.md)
-                        // Clear of the gesture bar, so the last card is never under it.
-                        .navigationBarsPadding()
-                        .padding(bottom = 24.dp),
+                        .heightIn(min = sheetHeight)
+                        // The header's 58 above, and as much below so the block centres on the sheet,
+                        // clear of the gesture bar.
+                        .padding(horizontal = 15.dp, vertical = 58.dp)
+                        .navigationBarsPadding(),
                 ) {
                     val shown = detail ?: return@Column
                     fun copy(text: String) {
@@ -261,17 +279,36 @@ fun TransactionScreen(
                     if (shown.confetti) {
                         PayoutHeader()
                     }
-                    BittrCard(modifier = Modifier.testTag(TestID.Transaction.yellowCard)) {
-                        Column(verticalArrangement = Arrangement.spacedBy(BittrTokens.Spacing.sm)) {
-                            Text(
-                                text = shown.date,
-                                style = MaterialTheme.typography.titleMedium,
-                                textAlign = TextAlign.Center,
+                    // `yellowCard`: the date, then the rows 10 in and 10 apart. The date's band and, at the
+                    // bottom, "Add a note"'s are both 55 from the card's edge to the nearest row, as on
+                    // iOS, with each label centred in its band — iOS sets the date 8 from its band's
+                    // bottom and "Add a note" 6 below its row's middle, both off-centre (Tom, 2026-10-06).
+                    val addNoteLast = !shown.confetti && shown.note == null
+                    BittrCard(
+                        fill = BittrTheme.colors.levelCard,
+                        // "Add a note" is 45 tall and the column's 10 above it make its 55.
+                        contentPadding = PaddingValues(start = 10.dp, end = 10.dp, bottom = if (addNoteLast) 0.dp else 10.dp),
+                        modifier = Modifier.testTag(TestID.Transaction.yellowCard),
+                    ) {
+                        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                            // 45 here and the column's 10 make the 55 band; the offset centres the date on it.
+                            Box(
+                                contentAlignment = Alignment.Center,
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .padding(bottom = BittrTokens.Spacing.xs)
-                                    .testTag(TestID.Transaction.labelDate),
-                            )
+                                    .height(45.dp)
+                                    .offset(y = 5.dp),
+                            ) {
+                                Text(
+                                    text = shown.date,
+                                    style = MaterialTheme.typography.bodyLarge.copy(lineHeight = 16.sp),
+                                    color = MaterialTheme.colorScheme.onSurface,
+                                    textAlign = TextAlign.Center,
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .testTag(TestID.Transaction.labelDate),
+                                )
+                            }
                             DetailRow(HomeStrings.AMOUNT, shown.amount, valueTag = TestID.Transaction.labelAmount)
                             if (!shown.confetti) {
                                 DetailRow(HomeStrings.TYPE, shown.type, bolt = shown.typeBolt)
@@ -294,151 +331,250 @@ fun TransactionScreen(
                                 )
                             }
                             if (!shown.confetti) {
-                                IdRow(
-                                    title = shown.idTitle,
-                                    id = shown.id,
-                                    onCopy = { copy(shown.id) },
-                                    copyTag = TestID.Transaction.copyIdButton,
-                                    onExplorer = shown.explorerId?.let { explorerId -> { onOpenExplorer(explorerId) } },
-                                    explorerTag = TestID.Transaction.urlIdButton,
-                                )
                                 val swap = shown.swap
-                                if (swap?.bottomIdTitle != null) {
-                                    val bottomId = swap.bottomId.orEmpty()
-                                    IdRow(
-                                        title = swap.bottomIdTitle,
-                                        id = bottomId,
-                                        onCopy = if (swap.bottomIdCopyable) ({ copy(bottomId) }) else null,
-                                        copyTag = TestID.Transaction.copyBottomIdButton,
-                                        onExplorer = swap.bottomExplorerId?.let { explorerId -> { onOpenExplorer(explorerId) } },
-                                        explorerTag = null,
-                                    )
-                                }
+                                val bottomId = swap?.bottomId.orEmpty()
+                                IdCard(
+                                    top = IdLine(
+                                        title = shown.idTitle,
+                                        id = shown.id,
+                                        onCopy = { copy(shown.id) },
+                                        copyTag = TestID.Transaction.copyIdButton,
+                                        onExplorer = shown.explorerId?.let { explorerId -> { onOpenExplorer(explorerId) } },
+                                        explorerTag = TestID.Transaction.urlIdButton,
+                                    ),
+                                    bottom = swap?.bottomIdTitle?.let { title ->
+                                        IdLine(
+                                            title = title,
+                                            id = bottomId,
+                                            onCopy = if (swap.bottomIdCopyable) ({ copy(bottomId) }) else null,
+                                            copyTag = TestID.Transaction.copyBottomIdButton,
+                                            onExplorer = swap.bottomExplorerId?.let { explorerId -> { onOpenExplorer(explorerId) } },
+                                            explorerTag = null,
+                                        )
+                                    },
+                                )
                             }
                             shown.currentValue?.let { DetailRow(HomeStrings.CURRENT_VALUE, it) }
                             shown.bittr?.let { bittr ->
                                 BittrSection(bittr = bittr, onExplain = { title, body -> feeExplanation = title to body })
+                            }
+                            // `noteStack` / `addANoteStack`, the card's last rows. The payout summary
+                            // offers no note (`addANoteStack` hidden under `showConfetti`).
+                            if (!shown.confetti) {
+                                val note = shown.note
+                                if (note != null) {
+                                    Box(modifier = Modifier.bringIntoViewRequester(noteRequester)) {
+                                        TextRow(
+                                            title = HomeStrings.NOTE,
+                                            text = note,
+                                            textTag = TestID.Transaction.labelNote,
+                                            buttonTag = null,
+                                            onClick = { editingNote = true },
+                                        )
+                                    }
+                                    LaunchedEffect(note, revealNote) {
+                                        if (revealNote) {
+                                            noteRequester.bringIntoView()
+                                            revealNote = false
+                                        }
+                                    }
+                                } else {
+                                    AddNoteRow(onClick = { editingNote = true })
+                                }
                             }
                         }
                     }
                     if (shown.confetti) {
                         ReminderCard()
                     }
-                    // The payout summary offers no note (`addANoteStack` hidden under `showConfetti`).
-                    if (!shown.confetti) {
-                        val note = shown.note
-                        if (note != null) {
-                            Box(modifier = Modifier.bringIntoViewRequester(noteRequester)) {
-                                TextCard(
-                                    title = HomeStrings.NOTE,
-                                    text = note,
-                                    textTag = TestID.Transaction.labelNote,
-                                    buttonTag = null,
-                                    onClick = { editingNote = true },
-                                )
-                            }
-                            LaunchedEffect(note, revealNote) {
-                                if (revealNote) {
-                                    noteRequester.bringIntoView()
-                                    revealNote = false
-                                }
-                            }
-                        } else {
-                            // An action, so a tonal button rather than one more white row (review S16, pass 3).
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally),
-                                modifier = Modifier
-                                    .padding(top = 16.dp)
-                                    .fillMaxWidth()
-                                    .height(52.dp)
-                                    .clip(BittrCanvasShapes.pill)
-                                    .background(BittrTheme.colors.tonalFill)
-                                    .clickable(role = Role.Button) { editingNote = true }
-                                    .testTag(TestID.Transaction.addNoteButton),
-                            ) {
-                                Image(
-                                    rememberStrokeIcon(EDIT_NOTE_PATH, BittrTheme.colors.onTonalFill, strokeWidth = 2f),
-                                    contentDescription = null,
-                                    modifier = Modifier.size(20.dp),
-                                )
-                                Text(HomeStrings.ADD_A_NOTE, style = MaterialTheme.typography.labelLarge, color = BittrTheme.colors.onTonalFill)
-                            }
-                        }
-                    }
                 }
             }
         }
+
+        BittrSheetHeader(
+            icon = painterResource(R.drawable.home_piggy_white),
+            title = HomeStrings.TRANSACTION,
+            onDown = onDown,
+            titleTestTag = TestID.Header.titleLabel,
+            downTestTag = TestID.Header.downButton,
+        )
     }
 }
 
-/** `bittrPayoutStack`: the `bittrpiggy2` illustration and "Good job, …". */
+/**
+ * `bittrPayoutStack`: `bittrpiggy2` at 150 by 100, and 25 under it "Good job, …" in Gilroy-Bold 16,
+ * 40 in, with 30 to the card.
+ */
 @Composable
 private fun PayoutHeader() {
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(BittrTokens.Spacing.sm),
         modifier = Modifier
             .fillMaxWidth()
-            .padding(bottom = BittrTokens.Spacing.md),
+            .padding(bottom = 30.dp),
     ) {
         Image(
             painter = painterResource(R.drawable.bittr_piggy),
             contentDescription = null,
             contentScale = ContentScale.Fit,
-            modifier = Modifier.height(120.dp),
+            modifier = Modifier.size(width = 150.dp, height = 100.dp),
         )
+        Spacer(Modifier.height(25.dp))
         Text(
             text = HomeStrings.GOOD_JOB,
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.Bold,
+            style = RowStyle.copy(lineHeight = 16.4.sp),
+            color = MaterialTheme.colorScheme.onSurface,
+            textAlign = TextAlign.Center,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 25.dp),
+        )
+    }
+}
+
+/**
+ * `alertStack`: 20 under the card, `whiteorblue2` with 13 corners and the shadow; "Reminder" in yellow
+ * Gilroy-Bold 16 18 from the top, and 7 under it the reminder in Regular 15, both centred, 20 in.
+ */
+@Composable
+private fun ReminderCard() {
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        modifier = Modifier
+            .padding(top = 20.dp)
+            .fillMaxWidth()
+            .iosShadow(IosCardShape)
+            .background(MaterialTheme.colorScheme.surfaceContainer, IosCardShape)
+            .padding(start = 20.dp, end = 20.dp, top = 17.dp, bottom = 16.dp),
+    ) {
+        Text(HomeStrings.REMINDER, style = RowStyle, color = BittrTheme.colors.brandFixed, textAlign = TextAlign.Center)
+        Spacer(Modifier.height(7.dp))
+        Text(
+            HomeStrings.REMINDER_BODY,
+            style = MaterialTheme.typography.bodyLarge.copy(fontSize = 15.sp, lineHeight = 15.6.sp),
+            color = MaterialTheme.colorScheme.onSurface,
             textAlign = TextAlign.Center,
             modifier = Modifier.fillMaxWidth(),
         )
     }
 }
 
-/** `alertStack`: the reminder that the lightning funds live only on this device. */
+/**
+ * `bittrFeesStack`: one card — `whiteorblue3` with 8 corners — of 28 pt lines 15 in, the title in
+ * yellow and the figure in black or white on each. Received, the surcharge when there is one, the bittr
+ * fee and the transfer fee, then a 70 by 2 sum line at the right and, 9 under it, purchase value,
+ * exchange rate, current value and profit. The surcharge and the two fees carry a question mark and
+ * explain themselves when tapped (`bittrFeesTapped`); the fees keep iOS's `bittrFeeButton` and
+ * `transferFeeButton` ids.
+ */
 @Composable
-private fun ReminderCard() {
+private fun BittrSection(bittr: BittrDetail, onExplain: (String, String) -> Unit) {
     Column(
-        verticalArrangement = Arrangement.spacedBy(BittrTokens.Spacing.xs),
         modifier = Modifier
-            .padding(top = BittrTokens.Spacing.md)
             .fillMaxWidth()
-            .background(MaterialTheme.colorScheme.surfaceContainerLowest, BittrCanvasShapes.field)
-            .padding(BittrTokens.Spacing.md),
+            .clip(RowShape)
+            .background(MaterialTheme.colorScheme.surfaceContainerHigh)
+            .padding(start = 15.dp, end = 15.dp, top = 10.dp, bottom = 7.dp),
     ) {
-        Text(HomeStrings.REMINDER, style = MaterialTheme.typography.labelLarge, color = BittrTheme.colors.emphasis)
-        Text(HomeStrings.REMINDER_BODY, style = MaterialTheme.typography.bodyMedium)
+        FeeLine(HomeStrings.RECEIVED_AT_BITTR, bittr.receivedAtBittr)
+        bittr.surcharge?.let { surcharge ->
+            FeeLine(HomeStrings.SURCHARGE, surcharge, testTag = null) { onExplain(HomeStrings.SURCHARGE, HomeStrings.SURCHARGE_1) }
+        }
+        FeeLine(HomeStrings.BITTR_FEE, bittr.bittrFee, testTag = TestID.Transaction.bittrFeeButton) {
+            onExplain(HomeStrings.BITTR_FEE, HomeStrings.BITTR_FEE_1)
+        }
+        FeeLine(HomeStrings.TRANSFER_FEE, bittr.transferFee, testTag = TestID.Transaction.transferFeeButton) {
+            onExplain(HomeStrings.TRANSFER_FEE, bittr.transferFeeExplanation)
+        }
+        Box(
+            modifier = Modifier
+                .padding(top = 6.dp, bottom = 9.dp)
+                .align(Alignment.End)
+                .size(width = 70.dp, height = 2.dp)
+                .background(MaterialTheme.colorScheme.onSurface, RoundedCornerShape(1.dp)),
+        )
+        FeeLine(HomeStrings.PURCHASE_VALUE, bittr.purchaseValue)
+        FeeLine(HomeStrings.EXCHANGE_RATE, bittr.exchangeRate)
+        FeeLine(HomeStrings.CURRENT_VALUE, bittr.currentValue)
+        FeeLine(
+            HomeStrings.PROFIT,
+            bittr.profit,
+            valueColor = if (bittr.isLoss) BittrTheme.colors.loss else BittrTheme.colors.profit,
+        )
     }
 }
 
 /**
- * `bittrFeesStack`. The three fee rows explain themselves when tapped (`bittrFeesTapped`, tags 0–2);
- * the transfer fee and bittr fee carry iOS's `transferFeeButton` / `bittrFeeButton` ids.
+ * One 28 pt line of [BittrSection], its labels 6 from its top. With [onClick] the line is a button —
+ * the tap layer under the labels, so they keep their place in the tree — and the title has the yellow
+ * `questionmark.circle.fill` 8 after it.
  */
 @Composable
-private fun BittrSection(bittr: BittrDetail, onExplain: (String, String) -> Unit) {
-    DetailRow(HomeStrings.RECEIVED_AT_BITTR, bittr.receivedAtBittr)
-    bittr.surcharge?.let { surcharge ->
-        TappableRow(HomeStrings.SURCHARGE, surcharge, testTag = null) { onExplain(HomeStrings.SURCHARGE, HomeStrings.SURCHARGE_1) }
+private fun FeeLine(
+    title: String,
+    value: String,
+    testTag: String? = null,
+    valueColor: Color = Color.Unspecified,
+    onClick: (() -> Unit)? = null,
+) {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .heightIn(min = 28.dp),
+    ) {
+        if (onClick != null) {
+            Box(
+                modifier = Modifier
+                    .matchParentSize()
+                    .clickable(role = Role.Button, onClick = onClick)
+                    .then(if (testTag != null) Modifier.testTag(testTag) else Modifier),
+            )
+        }
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 5.dp, bottom = 5.dp),
+        ) {
+            RowTitle(title)
+            if (onClick != null) {
+                Box(
+                    contentAlignment = Alignment.Center,
+                    modifier = Modifier
+                        .padding(start = 8.dp)
+                        .offset(y = (-1).dp)
+                        .size(16.dp)
+                        .background(BittrTheme.colors.brandFixed.copy(alpha = 0.8f), CircleShape),
+                ) {
+                    Text(
+                        "?",
+                        style = RowStyle.copy(fontSize = 11.sp, lineHeight = 11.sp),
+                        color = MaterialTheme.colorScheme.surfaceContainerHigh,
+                    )
+                }
+            }
+            Spacer(Modifier.weight(1f))
+            Text(
+                text = value,
+                style = RowStyle,
+                color = if (valueColor == Color.Unspecified) MaterialTheme.colorScheme.onSurface else valueColor,
+                textAlign = TextAlign.End,
+                modifier = Modifier
+                    .padding(start = 15.dp)
+                    .offset(y = 1.dp),
+            )
+        }
     }
-    TappableRow(HomeStrings.BITTR_FEE, bittr.bittrFee, testTag = TestID.Transaction.bittrFeeButton) {
-        onExplain(HomeStrings.BITTR_FEE, HomeStrings.BITTR_FEE_1)
-    }
-    TappableRow(HomeStrings.TRANSFER_FEE, bittr.transferFee, testTag = TestID.Transaction.transferFeeButton) {
-        onExplain(HomeStrings.TRANSFER_FEE, bittr.transferFeeExplanation)
-    }
-    DetailRow(HomeStrings.PURCHASE_VALUE, bittr.purchaseValue)
-    DetailRow(HomeStrings.EXCHANGE_RATE, bittr.exchangeRate)
-    DetailRow(HomeStrings.CURRENT_VALUE, bittr.currentValue)
-    DetailRow(
-        HomeStrings.PROFIT,
-        bittr.profit,
-        valueColor = if (bittr.isLoss) BittrTheme.colors.loss else BittrTheme.colors.profit,
-    )
 }
+
+/** The rows' titles: Gilroy-Bold 16 in yellow, as every title on iOS's transaction card is. */
+@Composable
+private fun RowTitle(text: String, modifier: Modifier = Modifier) {
+    Text(text, style = RowStyle, color = BittrTheme.colors.brandFixed, modifier = modifier.offset(y = 1.dp))
+}
+
+private val RowShape = RoundedCornerShape(8.dp)
+private val RowStyle = TextStyle(fontFamily = Gilroy, fontWeight = FontWeight.Bold, fontSize = 16.sp, lineHeight = 18.sp)
 
 /** Two seconds of red hearts falling across the screen — iOS's `SPConfetti` `.fullWidthToDown` with `.heart` particles. */
 @Composable
@@ -484,32 +620,6 @@ private fun heartPath(side: Float): Path = Path().apply {
     close()
 }
 
-/**
- * The Description and Note cards. The whole card is the tap target, drawn under the text so
- * the text keeps its own id (a clickable parent would merge it away).
- */
-@Composable
-private fun TextCard(title: String, text: String, textTag: String, buttonTag: String?, onClick: () -> Unit) {
-    Box(modifier = Modifier.padding(top = BittrTokens.Spacing.md)) {
-        Box(
-            modifier = Modifier
-                .matchParentSize()
-                .background(MaterialTheme.colorScheme.surfaceContainerLowest, BittrCanvasShapes.field)
-                .clickable(onClick = onClick)
-                .then(if (buttonTag != null) Modifier.testTag(buttonTag) else Modifier),
-        )
-        Column(
-            verticalArrangement = Arrangement.spacedBy(BittrTokens.Spacing.xs),
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(BittrTokens.Spacing.md),
-        ) {
-            BittrRowLabel(title)
-            Text(text, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.testTag(textTag))
-        }
-    }
-}
-
 @Composable
 private fun DetailRow(
     title: String,
@@ -518,14 +628,17 @@ private fun DetailRow(
     bolt: Boolean = false,
     valueColor: Color = Color.Unspecified,
 ) {
+    // `cardAmount` and its siblings: 45 tall, `whiteorblue3` with 8 corners, title and figure in
+    // Gilroy-Bold 16, 15 in.
     Row(
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier
             .fillMaxWidth()
-            .background(MaterialTheme.colorScheme.surfaceContainerLowest, BittrCanvasShapes.field)
-            .padding(horizontal = BittrTokens.Spacing.md, vertical = BittrTokens.Spacing.md),
+            .heightIn(min = 45.dp)
+            .background(MaterialTheme.colorScheme.surfaceContainerHigh, RowShape)
+            .padding(horizontal = 15.dp, vertical = 12.dp),
     ) {
-        BittrRowLabel(title, modifier = Modifier.weight(1f))
+        RowTitle(title, modifier = Modifier.weight(1f))
         if (bolt) {
             Image(
                 imageVector = rememberStrokeIcon(BittrIconPaths.BOLT, BittrTheme.colors.emphasis, strokeWidth = 2f),
@@ -537,9 +650,11 @@ private fun DetailRow(
         }
         Text(
             text = value,
-            style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.SemiBold),
-            color = valueColor,
-            modifier = if (valueTag != null) Modifier.testTag(valueTag) else Modifier,
+            style = RowStyle,
+            color = if (valueColor == Color.Unspecified) MaterialTheme.colorScheme.onSurface else valueColor,
+            modifier = Modifier
+                .offset(y = 1.dp)
+                .then(if (valueTag != null) Modifier.testTag(valueTag) else Modifier),
         )
     }
 }
@@ -547,60 +662,103 @@ private fun DetailRow(
 /**
  * `descriptionStack`: "Description" and its text in a row like the others, copied when tapped. A bittr
  * purchase's description (the payout's notification id) is one line, truncated in the middle, as iOS
- * sets it; any other wraps. The tap layer sits under the labels so they stay readable to the flows.
+ * sets it; any other wraps.
  */
 @Composable
 private fun DescriptionRow(description: String, singleLine: Boolean, onClick: () -> Unit) {
+    TextRow(
+        title = HomeStrings.DESCRIPTION,
+        text = description,
+        textTag = TestID.Transaction.descriptionLabel,
+        buttonTag = TestID.Transaction.descriptionButton,
+        onClick = onClick,
+        singleLine = singleLine,
+    )
+}
+
+/**
+ * The Description and Note rows: at least 45 tall, the title 15 in and the text right-aligned 30
+ * after it, wrapping, 15 from the end. The whole row is the tap target, drawn under the text so the
+ * text keeps its own id (a clickable parent would merge it away).
+ */
+@Composable
+private fun TextRow(
+    title: String,
+    text: String,
+    textTag: String,
+    buttonTag: String?,
+    onClick: () -> Unit,
+    singleLine: Boolean = false,
+) {
     Box(modifier = Modifier.fillMaxWidth()) {
         Box(
             modifier = Modifier
                 .matchParentSize()
-                .background(MaterialTheme.colorScheme.surfaceContainerLowest, BittrCanvasShapes.field)
+                .clip(RowShape)
+                .background(MaterialTheme.colorScheme.surfaceContainerHigh)
                 .clickable(onClick = onClick)
-                .testTag(TestID.Transaction.descriptionButton),
+                .then(if (buttonTag != null) Modifier.testTag(buttonTag) else Modifier),
         )
         Row(
-            verticalAlignment = Alignment.CenterVertically,
+            verticalAlignment = Alignment.Top,
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = BittrTokens.Spacing.md, vertical = BittrTokens.Spacing.md),
+                .heightIn(min = 45.dp)
+                .padding(start = 15.dp, end = 15.dp, top = 13.dp, bottom = 12.dp),
         ) {
-            BittrRowLabel(HomeStrings.DESCRIPTION)
+            RowTitle(title)
             Text(
-                text = description,
-                style = MaterialTheme.typography.bodyLarge,
+                text = text,
+                style = RowStyle,
+                color = MaterialTheme.colorScheme.onSurface,
                 textAlign = TextAlign.End,
                 maxLines = if (singleLine) 1 else Int.MAX_VALUE,
                 overflow = if (singleLine) TextOverflow.MiddleEllipsis else TextOverflow.Clip,
                 modifier = Modifier
                     .weight(1f)
-                    .padding(start = BittrTokens.Spacing.md)
-                    .testTag(TestID.Transaction.descriptionLabel),
+                    .padding(start = 30.dp)
+                    .offset(y = 1.dp)
+                    .testTag(textTag),
             )
         }
     }
 }
 
-/** A detail row that explains itself when tapped. The tap layer sits under the labels so they stay readable to the flows. */
+/**
+ * `addANoteStack`: 45 tall in the card with no plate of its own, `pencil.circle.fill` at 80 % and
+ * "Add a note" in Gilroy-Regular 16 6 after it. The card's last row, with the 10 above it its band
+ * is 55; the pair sits 5 above the row's middle so it is centred on all of it.
+ */
 @Composable
-private fun TappableRow(title: String, value: String, testTag: String?, onClick: () -> Unit) {
-    Box(modifier = Modifier.fillMaxWidth()) {
-        Box(
-            modifier = Modifier
-                .matchParentSize()
-                .background(MaterialTheme.colorScheme.surfaceContainerLowest, BittrCanvasShapes.field)
-                .clickable(onClick = onClick)
-                .then(if (testTag != null) Modifier.testTag(testTag) else Modifier),
-        )
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = BittrTokens.Spacing.md, vertical = BittrTokens.Spacing.md),
-        ) {
-            BittrRowLabel(title, modifier = Modifier.weight(1f))
-            Text(text = value, style = MaterialTheme.typography.bodyLarge)
-            Text(" ⓘ", style = MaterialTheme.typography.bodyLarge, color = BittrTheme.colors.emphasis)
+private fun AddNoteRow(onClick: () -> Unit) {
+    val ink = MaterialTheme.colorScheme.onSurface
+    Box(
+        contentAlignment = Alignment.Center,
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(45.dp)
+            .clip(RowShape)
+            .clickable(role = Role.Button, onClick = onClick)
+            .testTag(TestID.Transaction.addNoteButton),
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.offset(y = (-5).dp)) {
+            Canvas(
+                modifier = Modifier
+                    .offset(y = (-1.5).dp)
+                    .size(16.dp)
+                    .graphicsLayer { compositingStrategy = CompositingStrategy.Offscreen },
+            ) {
+                val u = size.width / 16f
+                drawCircle(ink.copy(alpha = 0.8f), radius = 8f * u)
+                // The pencil, cut out of the disc.
+                drawLine(Color.Black, Offset(5f * u, 11f * u), Offset(10.6f * u, 5.4f * u), strokeWidth = 2.4f * u, cap = StrokeCap.Round, blendMode = BlendMode.Clear)
+            }
+            Text(
+                HomeStrings.ADD_A_NOTE,
+                style = MaterialTheme.typography.bodyLarge.copy(lineHeight = 16.sp),
+                color = ink,
+                modifier = Modifier.padding(start = 6.dp),
+            )
         }
     }
 }
@@ -615,7 +773,7 @@ private fun SwapStatusRow(status: String, onClick: (() -> Unit)?) {
         Box(
             modifier = Modifier
                 .matchParentSize()
-                .background(MaterialTheme.colorScheme.surfaceContainerLowest, BittrCanvasShapes.field)
+                .background(MaterialTheme.colorScheme.surfaceContainerHigh, RowShape)
                 .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier)
                 .testTag(TestID.Transaction.swapStatusButton),
         )
@@ -625,7 +783,7 @@ private fun SwapStatusRow(status: String, onClick: (() -> Unit)?) {
                 .fillMaxWidth()
                 .padding(horizontal = BittrTokens.Spacing.md, vertical = BittrTokens.Spacing.md),
         ) {
-            BittrRowLabel(HomeStrings.SWAP_STATUS, modifier = Modifier.weight(1f))
+            RowTitle(HomeStrings.SWAP_STATUS, modifier = Modifier.weight(1f))
             Text(text = status, style = MaterialTheme.typography.bodyLarge)
             if (onClick != null) {
                 Text(" ›", style = MaterialTheme.typography.bodyLarge, color = BittrTheme.colors.emphasis)
@@ -634,65 +792,107 @@ private fun SwapStatusRow(status: String, onClick: (() -> Unit)?) {
     }
 }
 
+/** One line of [IdCard]: its title and id, and what tapping it and its explorer link do. */
+private class IdLine(
+    val title: String,
+    val id: String,
+    val onCopy: (() -> Unit)?,
+    val copyTag: String,
+    val onExplorer: (() -> Unit)?,
+    val explorerTag: String?,
+)
+
+/**
+ * `idStack`: one 45 pt row, and for a swap a second line 6 under the first and 7 from the bottom.
+ * On each line the yellow title 15 in, the id in Gilroy-Bold 16 right-aligned 20 after it and
+ * truncated in the middle — a hash is checked by its two ends (review S29) — and, for an on-chain
+ * id, `rectangle.portrait.and.arrow.right.fill` at 80 % in a 22 pt slot 15 from the end. The line up
+ * to that slot is its copy button, as on iOS.
+ */
 @Composable
-private fun IdRow(
-    title: String,
-    id: String,
-    onCopy: (() -> Unit)?,
-    copyTag: String,
-    onExplorer: (() -> Unit)?,
-    explorerTag: String?,
-) {
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
+private fun IdCard(top: IdLine, bottom: IdLine?) {
+    Column(
         modifier = Modifier
             .fillMaxWidth()
-            .background(MaterialTheme.colorScheme.surfaceContainerLowest, BittrCanvasShapes.field)
-            .padding(start = BittrTokens.Spacing.md),
+            .clip(RowShape)
+            .background(MaterialTheme.colorScheme.surfaceContainerHigh)
+            .padding(bottom = if (bottom != null) 7.dp else 0.dp),
     ) {
-        BittrRowLabel(title)
-        // A hash is checked by its two ends, so it gives way in the middle (review S29).
-        Text(
-            text = id,
-            style = MaterialTheme.typography.bodyMedium.copy(fontFamily = FontFamily.Monospace),
-            maxLines = 1,
-            overflow = TextOverflow.MiddleEllipsis,
-            modifier = Modifier
-                .weight(1f)
-                .padding(horizontal = BittrTokens.Spacing.sm),
-        )
-        if (onExplorer != null) {
-            IconButton(LINK_PATH, "Open in explorer", onExplorer, explorerTag)
-        }
-        if (onCopy != null) {
-            IconButton(COPY_PATH, HomeStrings.COPIED, onCopy, copyTag)
-        }
+        IdLineRow(top, Modifier.heightIn(min = 45.dp), PaddingValues(top = 13.dp, bottom = 12.dp))
+        if (bottom != null) IdLineRow(bottom, Modifier, PaddingValues(top = 4.dp, bottom = 4.dp))
     }
 }
 
 @Composable
-private fun IconButton(path: String, label: String, onClick: () -> Unit, testTag: String?) {
-    Box(
-        contentAlignment = Alignment.Center,
-        modifier = Modifier
-            .size(BittrTokens.Size.minTouchTarget)
-            .clickable(onClick = onClick)
-            .then(if (testTag != null) Modifier.testTag(testTag) else Modifier),
-    ) {
-        Image(
-            imageVector = rememberStrokeIcon(path, MaterialTheme.colorScheme.onSurface, strokeWidth = 2f),
-            contentDescription = label,
-            modifier = Modifier.size(18.dp),
-        )
+private fun IdLineRow(line: IdLine, modifier: Modifier, padding: PaddingValues) {
+    Row(verticalAlignment = Alignment.CenterVertically, modifier = modifier.fillMaxWidth()) {
+        Box(modifier = Modifier.weight(1f)) {
+            if (line.onCopy != null) {
+                Box(
+                    modifier = Modifier
+                        .matchParentSize()
+                        .clickable(onClickLabel = "Copy", onClick = line.onCopy)
+                        .testTag(line.copyTag),
+                )
+            }
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(padding)
+                    .padding(start = 15.dp, end = if (line.onExplorer == null) 15.dp else 0.dp),
+            ) {
+                RowTitle(line.title)
+                Text(
+                    text = line.id,
+                    style = RowStyle,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    textAlign = TextAlign.End,
+                    maxLines = 1,
+                    overflow = TextOverflow.MiddleEllipsis,
+                    modifier = Modifier
+                        .weight(1f)
+                        .padding(start = 20.dp)
+                        .offset(y = 1.dp),
+                )
+            }
+        }
+        if (line.onExplorer != null) {
+            ExplorerLink(onClick = line.onExplorer, testTag = line.explorerTag)
+        }
     }
 }
 
-private const val COPY_PATH = "M9 9h11v11H9zM5 15V4h11"
-private const val LINK_PATH = "M10 14a5 5 0 0 0 7 0l3-3a5 5 0 0 0-7-7l-1 1M14 10a5 5 0 0 0-7 0l-3 3a5 5 0 0 0 7 7l1-1"
+/** `rectangle.portrait.and.arrow.right.fill` at 80 %, right-aligned in its 22 pt slot 15 from the row's end. */
+@Composable
+private fun ExplorerLink(onClick: () -> Unit, testTag: String?) {
+    val ink = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f)
+    Box(
+        contentAlignment = Alignment.CenterEnd,
+        modifier = Modifier
+            .padding(end = 15.dp)
+            .size(width = 22.dp, height = 45.dp)
+            .clickable(role = Role.Button, onClickLabel = "Open in explorer", onClick = onClick)
+            .then(if (testTag != null) Modifier.testTag(testTag) else Modifier),
+    ) {
+        Canvas(
+            modifier = Modifier
+                .offset(y = (-0.5).dp)
+                .size(16.dp)
+                .graphicsLayer { compositingStrategy = CompositingStrategy.Offscreen },
+        ) {
+            val u = size.width / 16f
+            // The page, with the arrow's shaft cut out of it, and the arrow carrying on to the right.
+            drawRoundRect(ink, Offset(1f * u, 1f * u), Size(8.5f * u, 14f * u), CornerRadius(1.8f * u))
+            drawLine(Color.Black, Offset(5f * u, 8f * u), Offset(9.5f * u, 8f * u), strokeWidth = 1.8f * u, cap = StrokeCap.Round, blendMode = BlendMode.Clear)
+            drawLine(ink, Offset(9.5f * u, 8f * u), Offset(14.8f * u, 8f * u), strokeWidth = 1.6f * u, cap = StrokeCap.Round)
+            drawLine(ink, Offset(12.3f * u, 5.5f * u), Offset(14.8f * u, 8f * u), strokeWidth = 1.6f * u, cap = StrokeCap.Round)
+            drawLine(ink, Offset(12.3f * u, 10.5f * u), Offset(14.8f * u, 8f * u), strokeWidth = 1.6f * u, cap = StrokeCap.Round)
+        }
+    }
+}
+
 
 /** `SPConfetti.startAnimating(…, duration: 2)`. */
 private const val CONFETTI_MILLIS = 1_500
 private const val HEART_COUNT = 40
-
-/** A pencil — the "Add a note" glyph. */
-private const val EDIT_NOTE_PATH = "M4 20h4L19 9l-4-4L4 16v4z M13.5 6.5l4 4"
