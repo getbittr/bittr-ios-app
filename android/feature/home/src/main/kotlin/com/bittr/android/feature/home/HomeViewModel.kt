@@ -75,8 +75,9 @@ class HomeViewModel @Inject constructor(
     private val refresher: WalletRefresher = WalletRefresher.None,
     private val internet: InternetConnection = InternetConnection.Always,
     private val cache: HomeCache = HomeCache.None,
-    prices: FiatPriceSource,
     private val purchases: BittrPurchaseSource = BittrPurchaseSource.None,
+    // Last, so callers can pass it as a trailing lambda.
+    prices: FiatPriceSource,
 ) : ViewModel() {
 
     private val alert = MutableStateFlow<HomeAlert?>(null)
