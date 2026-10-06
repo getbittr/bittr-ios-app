@@ -1136,12 +1136,9 @@ private fun HistoryCard(row: HistoryRow, position: Int, onClick: () -> Unit) {
             row.swap?.let { swap ->
                 // `swapImage`: blue once complete, grey while pending, with a row-indexed id.
                 val complete = swap == HistorySwap.Complete
+                // iOS's own `iconswapblue` / `iconswapgrey`, the same in both schemes.
                 Image(
-                    imageVector = rememberStrokeIcon(
-                        SWAP_ICON_PATH,
-                        if (complete) colors.emphasis else ink.copy(alpha = 0.4f),
-                        strokeWidth = 2f,
-                    ),
+                    painter = painterResource(if (complete) R.drawable.history_swap_complete else R.drawable.history_swap_pending),
                     contentDescription = if (complete) "Swap complete" else "Swap pending",
                     modifier = Modifier
                         .padding(end = 5.dp)
@@ -1197,8 +1194,6 @@ private val HistoryCardShape = RoundedCornerShape(13.dp)
 private val HistorySmall: TextStyle
     @Composable get() = MaterialTheme.typography.bodyMedium.copy(lineHeight = 14.sp)
 
-/** Two opposed arrows — the history row's swap icon. */
-private const val SWAP_ICON_PATH = "M7 20V5M7 5L4 8M7 5l3 3M17 4v15M17 19l-3-3M17 19l3-3"
 
 private val SYNCING_ALERT = HomeAlert(
     title = HomeStrings.SYNCING_WALLET,
