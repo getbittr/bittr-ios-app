@@ -8,7 +8,6 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
@@ -37,8 +36,6 @@ import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.font.FontWeight
 import com.bittr.android.core.designsystem.rememberFillIcon
-import com.bittr.android.core.designsystem.BittrRowLabel
-import com.bittr.android.core.designsystem.BittrCanvasShapes
 import com.bittr.android.core.designsystem.rememberTextClipboard
 import com.bittr.android.core.designsystem.BittrSpinner
 import androidx.compose.runtime.setValue
@@ -48,7 +45,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.semantics.Role
 import androidx.compose.foundation.selection.selectable
-import androidx.compose.foundation.border
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.SolidColor
@@ -57,15 +53,14 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.dp
 import com.bittr.android.core.common.TestID
 import com.bittr.android.core.designsystem.BittrLoadingCard
 import com.bittr.android.core.common.destination.Destination
 import com.bittr.android.core.designsystem.BittrAlert
-import com.bittr.android.core.designsystem.BittrHelpButton
 import com.bittr.android.core.designsystem.dismissOnPullDown
 import com.bittr.android.core.designsystem.BittrAlertButton
-import com.bittr.android.core.designsystem.BittrBody
 import com.bittr.android.core.designsystem.BittrIconPaths
 import com.bittr.android.core.designsystem.BittrTextFieldAlert
 import androidx.compose.foundation.layout.BoxScope
@@ -89,6 +84,14 @@ import androidx.compose.ui.unit.sp
 import com.bittr.android.core.designsystem.BittrSheetHeader
 import com.bittr.android.core.designsystem.iosShadow
 import com.bittr.android.core.designsystem.R as DesignR
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.animation.togetherWith
+import androidx.compose.ui.unit.IntOffset
 
 /**
  * Send — `SendViewController` with `ConfirmSendViewController` as its second page.
@@ -199,44 +202,59 @@ internal fun SendScreen(
             .pointerInput(Unit) { detectTapGestures { focusManager.clearFocus() } },
     ) {
         val sheetHeight = maxHeight
-        val confirm = state.confirm
-        Column(
-            verticalArrangement = Arrangement.Center,
-            horizontalAlignment = Alignment.CenterHorizontally,
-            modifier = Modifier
-                .fillMaxWidth()
-                .verticalScroll(rememberScrollState())
-                .heightIn(min = sheetHeight)
-                .padding(vertical = 58.dp),
-        ) {
-            if (confirm == null) {
-                ScanAndPaste(
-                    onScan = {
-                        focusManager.clearFocus()
-                        onOpenScanner()
-                    },
-                    onPaste = { focusManager.clearFocus() },
-                    controller = controller,
-                )
-                Gap(25.dp)
-            }
+        // `SendToConfirm`: the confirm page slides in from the right as the send page leaves to the
+        // left, and back again, over 0.3 s ease-in-out. Keyed on which page shows, so a fee change on
+        // the confirm page updates it in place rather than sliding.
+        AnimatedContent(
+            targetState = state.confirm,
+            contentKey = { it != null },
+            transitionSpec = {
+                val forward = targetState != null
+                val spec = tween<IntOffset>(durationMillis = 300, easing = FastOutSlowInEasing)
+                slideInHorizontally(spec) { width -> if (forward) width else -width } togetherWith
+                    slideOutHorizontally(spec) { width -> if (forward) -width else width }
+            },
+            label = "sendConfirmSlide",
+            modifier = Modifier.fillMaxSize(),
+        ) { confirm ->
             Column(
-                horizontalAlignment = if (confirm == null) Alignment.CenterHorizontally else Alignment.Start,
+                verticalArrangement = Arrangement.Center,
+                horizontalAlignment = Alignment.CenterHorizontally,
                 modifier = Modifier
-                    .padding(horizontal = 15.dp)
                     .fillMaxWidth()
-                    .iosShadow(YellowCardShape)
-                    .background(BittrTheme.colors.levelCard, YellowCardShape)
-                    .padding(start = 20.dp, end = 20.dp, top = 30.dp, bottom = if (confirm == null) 30.dp else 20.dp),
+                    .verticalScroll(rememberScrollState())
+                    .heightIn(min = sheetHeight)
+                    .padding(vertical = 58.dp),
             ) {
                 if (confirm == null) {
-                    SendPage(
-                        state = state,
+                    ScanAndPaste(
+                        onScan = {
+                            focusManager.clearFocus()
+                            onOpenScanner()
+                        },
+                        onPaste = { focusManager.clearFocus() },
                         controller = controller,
-                        clearFocus = { focusManager.clearFocus() },
                     )
-                } else {
-                    ConfirmPage(confirm, controller)
+                    Gap(25.dp)
+                }
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    modifier = Modifier
+                        .padding(horizontal = 15.dp)
+                        .fillMaxWidth()
+                        .iosShadow(YellowCardShape)
+                        .background(BittrTheme.colors.levelCard, YellowCardShape)
+                        .padding(start = 20.dp, end = 20.dp, top = 30.dp, bottom = if (confirm == null) 30.dp else 20.dp),
+                ) {
+                    if (confirm == null) {
+                        SendPage(
+                            state = state,
+                            controller = controller,
+                            clearFocus = { focusManager.clearFocus() },
+                        )
+                    } else {
+                        ConfirmPage(confirm, controller)
+                    }
                 }
             }
         }
@@ -482,119 +500,215 @@ private fun ColumnScope.SendPage(
     }
 }
 
+/**
+ * `ConfirmSendViewController`'s card, as its scene is: the heading in Gilroy-Regular 16 30 from the
+ * top and 40 in; 15 under it and 20 in, the address and amount rows (`whiteorblue3`, 8 corners), 10
+ * apart — the title in yellow Gilroy-Bold 16 and the value right-aligned in Bold 16, the amount's fiat
+ * under it in Regular 15. Then Lightning's estimated-fees row, or 30 under the rows the fee rate's line
+ * and its three tiles; the back and Send buttons 35 under those, centred, 20 from the bottom.
+ */
 @Composable
 private fun ColumnScope.ConfirmPage(confirm: ConfirmState, controller: SendController) {
-    Text(SendStrings.CHECK_DETAILS, style = MaterialTheme.typography.titleMedium, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth())
-    Gap()
-    // Gold label on the left, the value on the right — every detail row's shape (review S15,
-    // pass 3: these two had kept the stacked ink label).
-    InfoBox {
-        Row(verticalAlignment = Alignment.Top) {
-            BittrRowLabel(if (confirm.mode == SendMode.Onchain) SendStrings.ADDRESS else SendStrings.INVOICE, modifier = Modifier.padding(end = 16.dp))
+    val ink = MaterialTheme.colorScheme.onSurface
+    Text(
+        SendStrings.CHECK_DETAILS,
+        style = MaterialTheme.typography.bodyLarge.copy(lineHeight = 16.4.sp),
+        color = ink,
+        textAlign = TextAlign.Center,
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 20.dp),
+    )
+    Gap(15.dp)
+    ConfirmRow(if (confirm.mode == SendMode.Onchain) SendStrings.ADDRESS else SendStrings.INVOICE) {
+        Text(
+            confirm.displayedAddress,
+            style = ConfirmValue,
+            color = ink,
+            textAlign = TextAlign.End,
+            maxLines = 4,
+            modifier = Modifier.testTag(TestID.Send.Confirm.addressLabel),
+        )
+    }
+    Gap(10.dp)
+    ConfirmRow(SendStrings.AMOUNT) {
+        Column(horizontalAlignment = Alignment.End) {
             Text(
-                confirm.displayedAddress,
-                style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.SemiBold),
-                textAlign = TextAlign.End,
-                maxLines = 4,
+                SendMath.formattedAmount(confirm.amountSats),
+                style = ConfirmValue,
+                color = ink,
+                modifier = Modifier.testTag(TestID.Send.Confirm.amountLabel),
+            )
+            Text(
+                confirm.amountFiat.orEmpty(),
+                style = MaterialTheme.typography.bodyLarge.copy(fontSize = 15.sp, lineHeight = 15.sp),
+                color = ink,
                 modifier = Modifier
-                    .weight(1f)
-                    .testTag(TestID.Send.Confirm.addressLabel),
+                    .padding(top = 4.dp)
+                    .testTag(TestID.Send.Confirm.amountFiatLabel),
             )
         }
     }
-    Gap(BittrTokens.Spacing.sm)
-    InfoBox {
-        Row(verticalAlignment = Alignment.Top) {
-            BittrRowLabel(SendStrings.AMOUNT, modifier = Modifier.weight(1f))
-            Column(horizontalAlignment = Alignment.End) {
-                Text(SendMath.formattedAmount(confirm.amountSats), style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.SemiBold), modifier = Modifier.testTag(TestID.Send.Confirm.amountLabel))
-                Text(
-                    confirm.amountFiat.orEmpty(),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.70f),
-                    modifier = Modifier.testTag(TestID.Send.Confirm.amountFiatLabel),
+
+    if (confirm.mode == SendMode.Lightning) {
+        // `lightningFeesView`: 10 under the amount, the estimate and its question mark 8 after it.
+        Gap(10.dp)
+        ConfirmRow(SendStrings.ESTIMATED_FEES) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text("1 - ${SendMath.group(confirm.lightningFeesSats ?: 0)} ${SendStrings.SATS}", style = ConfirmValue, color = ink)
+                Image(
+                    rememberFillIcon(BittrIconPaths.HELP, ink),
+                    contentDescription = "More information",
+                    modifier = Modifier
+                        .padding(start = 8.dp)
+                        .offset(y = (-1).dp)
+                        .size(16.dp)
+                        .clip(CircleShape)
+                        .clickable(role = Role.Button, onClick = controller::onLightningFeesQuestion),
+                )
+            }
+        }
+    } else {
+        Gap(30.dp)
+        Text(
+            SendStrings.FEE_RATE,
+            style = MaterialTheme.typography.bodyLarge.copy(lineHeight = 16.sp),
+            color = ink,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.fillMaxWidth(),
+        )
+        Gap(15.dp)
+        // `feesView`: three tiles, each 30 % of the row's width, the middle one centred.
+        BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
+            val tile = maxWidth * 0.3f
+            Row(horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
+                FeeTile(confirm, FeeTier.High, SendStrings.TEN_MINS, TestID.Send.Confirm.feeFastButton, controller, Modifier.width(tile))
+                FeeTile(confirm, FeeTier.Medium, SendStrings.ONE_HOUR, TestID.Send.Confirm.feeMediumButton, controller, Modifier.width(tile))
+                FeeTile(
+                    confirm,
+                    FeeTier.Low,
+                    if (confirm.maxAvailableFeePerVb != null) SendStrings.SLOW else SendStrings.ONE_DAY,
+                    TestID.Send.Confirm.feeSlowButton,
+                    controller,
+                    Modifier.width(tile),
                 )
             }
         }
     }
-    Gap(BittrTokens.Spacing.sm)
 
-    if (confirm.mode == SendMode.Lightning) {
-        InfoBox {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                BittrRowLabel(SendStrings.ESTIMATED_FEES, modifier = Modifier.weight(1f))
-                QuestionMark(testTag = null, onClick = controller::onLightningFeesQuestion)
-            }
-            Text("1 - ${SendMath.group(confirm.lightningFeesSats ?: 0)} ${SendStrings.SATS}", style = MaterialTheme.typography.bodyLarge)
-        }
-    } else {
-        Text(SendStrings.FEE_RATE, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(vertical = BittrTokens.Spacing.xs))
-        Row(horizontalArrangement = Arrangement.spacedBy(BittrTokens.Spacing.sm)) {
-            FeeTile(confirm, FeeTier.High, SendStrings.TEN_MINS, TestID.Send.Confirm.feeFastButton, controller)
-            FeeTile(confirm, FeeTier.Medium, SendStrings.ONE_HOUR, TestID.Send.Confirm.feeMediumButton, controller)
-            FeeTile(confirm, FeeTier.Low, if (confirm.maxAvailableFeePerVb != null) SendStrings.SLOW else SendStrings.ONE_DAY, TestID.Send.Confirm.feeSlowButton, controller)
-        }
-    }
-
-    Gap()
-    Row(horizontalArrangement = Arrangement.spacedBy(BittrTokens.Spacing.sm), verticalAlignment = Alignment.CenterVertically) {
-        // An ink square with `arrow_back`, as the lesson pages' Back is (review, pass 3).
+    Gap(35.dp)
+    // `backView` and `confirmView`: 40 tall and black with 8 corners, 7 apart — the left arrow in a
+    // 40 square, and "Send" in Gilroy-Bold 14 17 in, the spinner in its place while it sends.
+    Row(horizontalArrangement = Arrangement.spacedBy(7.dp)) {
         Box(
             contentAlignment = Alignment.Center,
             modifier = Modifier
-                .size(56.dp)
-                .clip(RoundedCornerShape(16.dp))
+                .size(40.dp)
+                .clip(PlateShape)
                 .background(BittrTheme.colors.actionFill)
-                .clickable(role = Role.Button, onClick = controller::onBack),
+                .clickable(role = Role.Button, onClickLabel = "Back", onClick = controller::onBack),
         ) {
-            Image(rememberFillIcon(BittrIconPaths.BACK, BittrTheme.colors.onActionFill), contentDescription = "Back", modifier = Modifier.size(24.dp))
+            Image(
+                painter = painterResource(DesignR.drawable.bittr_arrow_right),
+                contentDescription = "Back",
+                colorFilter = ColorFilter.tint(BittrTheme.colors.onActionFill),
+                modifier = Modifier
+                    .size(11.dp)
+                    .graphicsLayer { scaleX = -1f },
+            )
         }
-        PrimaryButton(SendStrings.SEND, loading = confirm.sending, testTag = TestID.Send.Confirm.confirmButton, modifier = Modifier.weight(1f), onClick = controller::onConfirm)
+        Box(
+            contentAlignment = Alignment.Center,
+            modifier = Modifier
+                .height(40.dp)
+                .clip(PlateShape)
+                .background(BittrTheme.colors.actionFill)
+                .clickable(role = Role.Button, onClick = controller::onConfirm)
+                .testTag(TestID.Send.Confirm.confirmButton)
+                .padding(horizontal = 17.dp),
+        ) {
+            Text(
+                SendStrings.SEND,
+                style = Bold14,
+                color = BittrTheme.colors.onActionFill,
+                modifier = Modifier
+                    .offset(y = 1.dp)
+                    .alpha(if (confirm.sending) 0f else 1f),
+            )
+            if (confirm.sending) {
+                BittrSpinner(strokeWidth = 2.dp, color = BittrTheme.colors.onActionFill, modifier = Modifier.size(20.dp))
+            }
+        }
     }
 }
 
+/**
+ * One fee rate: 30 % of the row and 75 tall, 8 corners and the iOS shadow; `whiteorblue3` when chosen
+ * and `white0.7orblue1` otherwise. The time in Gilroy-Bold 14 (`blackoryellow`) 14 from the top, the
+ * fee and its fiat in Regular 13 under it, 5 apart, all centred.
+ */
 @Composable
-private fun RowScope.FeeTile(confirm: ConfirmState, tier: FeeTier, time: String, testTag: String, controller: SendController) {
+private fun FeeTile(
+    confirm: ConfirmState,
+    tier: FeeTier,
+    time: String,
+    testTag: String,
+    controller: SendController,
+    modifier: Modifier = Modifier,
+) {
     val selected = confirm.selectedFee == tier
     val fee = confirm.feeFor(tier)
+    val small = MaterialTheme.typography.bodyMedium.copy(fontSize = 13.sp, lineHeight = 13.sp)
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
-        modifier = Modifier
-            .weight(1f)
-            .background(
-                if (selected) MaterialTheme.colorScheme.surfaceContainerLowest else BittrTheme.colors.tonalFill,
-                RoundedCornerShape(12.dp),
-            )
-            // White against cream alone did not read as chosen (review S28, pass 4): the
-            // selected rate also carries an ink edge, from the first frame as after a tap.
-            .then(
-                if (selected) {
-                    Modifier.border(1.5.dp, MaterialTheme.colorScheme.onSurface, RoundedCornerShape(12.dp))
-                } else {
-                    Modifier
-                },
-            )
+        modifier = modifier
+            .height(75.dp)
+            .iosShadow(PlateShape)
+            .clip(PlateShape)
+            .background(if (selected) MaterialTheme.colorScheme.surfaceContainerHigh else BittrTheme.colors.scrim1)
             .clickable { controller.onFee(tier) }
             .testTag(testTag)
-            .padding(vertical = BittrTokens.Spacing.sm, horizontal = BittrTokens.Spacing.xs),
+            .padding(top = 14.dp, start = 4.dp, end = 4.dp),
     ) {
-        Text(time, style = MaterialTheme.typography.labelLarge, color = BittrTheme.colors.emphasis)
-        Text("$fee ${SendStrings.SATS}", style = MaterialTheme.typography.bodyMedium)
-        Text(SendMath.formattedFiat(fee, confirm.pricePerBitcoin, confirm.fiatSymbol).orEmpty(), style = MaterialTheme.typography.labelMedium)
+        Text(time, style = Bold14, color = BittrTheme.colors.emphasis, maxLines = 1)
+        Text("$fee ${SendStrings.SATS}", style = small, color = MaterialTheme.colorScheme.onSurface, maxLines = 1, modifier = Modifier.padding(top = 5.dp))
+        Text(
+            SendMath.formattedFiat(fee, confirm.pricePerBitcoin, confirm.fiatSymbol).orEmpty(),
+            style = small,
+            color = MaterialTheme.colorScheme.onSurface,
+            maxLines = 1,
+            modifier = Modifier.padding(top = 5.dp),
+        )
     }
 }
 
+/**
+ * A confirm row: `whiteorblue3` with 8 corners, at least 45 tall; the title in yellow Gilroy-Bold 16
+ * 15 in and centred on the row, the value at the end 15 after it, 12 from the top and 9 from the bottom.
+ */
 @Composable
-private fun InfoBox(content: @Composable ColumnScope.() -> Unit) {
-    Column(
-        verticalArrangement = Arrangement.spacedBy(BittrTokens.Spacing.xxs),
+private fun ConfirmRow(title: String, value: @Composable () -> Unit) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier
             .fillMaxWidth()
-            .background(MaterialTheme.colorScheme.surfaceContainerLowest, BittrCanvasShapes.field)
-            .padding(16.dp),
-        content = content,
-    )
+            .heightIn(min = 45.dp)
+            .background(MaterialTheme.colorScheme.surfaceContainerHigh, PlateShape)
+            .padding(start = 15.dp, end = 15.dp, top = 12.dp, bottom = 9.dp),
+    ) {
+        Text(title, style = ConfirmValue, color = BittrTheme.colors.brandFixed, modifier = Modifier.offset(y = 1.dp))
+        Box(
+            contentAlignment = Alignment.CenterEnd,
+            modifier = Modifier
+                .weight(1f)
+                .padding(start = 15.dp),
+        ) { value() }
+    }
 }
+
+/** The confirm rows' titles and values: Gilroy-Bold 16. */
+private val ConfirmValue: TextStyle
+    @Composable get() = MaterialTheme.typography.labelLarge.copy(lineHeight = 18.sp)
 
 /**
  * One half of `Switch Stack`: 40 tall with 8 corners, `whiteorblue3` with a faint shadow when
@@ -682,32 +796,6 @@ private fun NextButton(loading: Boolean, onClick: () -> Unit) {
         }
         if (loading) {
             BittrSpinner(strokeWidth = 2.dp, color = colors.onActionFill, modifier = Modifier.size(20.dp))
-        }
-    }
-}
-
-@Composable
-private fun QuestionMark(testTag: String?, onClick: () -> Unit) {
-    BittrHelpButton(
-        onClick = onClick,
-        modifier = if (testTag != null) Modifier.testTag(testTag) else Modifier,
-    )
-}
-
-@Composable
-private fun PrimaryButton(label: String, loading: Boolean, testTag: String, modifier: Modifier, onClick: () -> Unit) {
-    Box(
-        contentAlignment = Alignment.Center,
-        modifier = modifier
-            .height(52.dp)
-            .background(BittrTheme.colors.actionFill, RoundedCornerShape(8.dp))
-            .clickable(onClick = onClick)
-            .testTag(testTag),
-    ) {
-        if (loading) {
-            BittrSpinner(strokeWidth = 2.dp, color = BittrTheme.colors.onActionFill, modifier = Modifier.size(20.dp))
-        } else {
-            Text(label, style = MaterialTheme.typography.labelLarge, color = BittrTheme.colors.onActionFill)
         }
     }
 }
