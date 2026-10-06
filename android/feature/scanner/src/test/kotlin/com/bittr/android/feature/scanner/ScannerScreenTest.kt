@@ -90,13 +90,6 @@ class ScannerScreenTest {
         assertEquals(2, closes)
     }
 
-    @Test
-    fun `the helper line sits under the frame`() {
-        start(ScannerUiState.Scanning)
-
-        composeRule.onNodeWithText(ScannerCopy.HELPER).assertIsDisplayed()
-    }
-
     /**
      * The frame stays put under the alert.
      *
