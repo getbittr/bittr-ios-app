@@ -212,6 +212,23 @@ class TransactionConfirmationsTest {
     }
 
     @Test
+    fun `a payout that funded a new channel gives the funding its notification id as the description`() {
+        payouts.expect("notification-11", now)
+        lookup.confirms += "funding-11"
+        nodeEvents.tryEmit(NodeEvent.ChannelPending("channel-11", "funding-11"))
+        assertEquals(listOf(TransactionRequest("funding-11", confetti = true)), opened)
+        assertEquals("notification-11", lookup.descriptions["funding-11"])
+        assertNull("the payout is checked once", payouts.awaiting(now))
+    }
+
+    @Test
+    fun `a funding purchase with no payout expected stores no description`() {
+        lookup.confirms += "funding-12"
+        nodeEvents.tryEmit(NodeEvent.ChannelPending("channel-12", "funding-12"))
+        assertTrue(lookup.descriptions.isEmpty())
+    }
+
+    @Test
     fun `a confirmed funding purchase is kept for the history even while nothing can open`() {
         showable = false
         lookup.confirms += "funding-4"

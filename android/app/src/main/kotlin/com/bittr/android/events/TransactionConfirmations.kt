@@ -241,7 +241,16 @@ class TransactionConfirmations(
             txId = fundingTxId,
             inHistory = false,
             otherwise = null,
-            onPurchase = { bittr.rememberFunding(fundingTxId) },
+            onPurchase = {
+                bittr.rememberFunding(fundingTxId)
+                // `checkPaymentWithBittr(…isFundingTransaction: true)` stores the payout's notification id
+                // as the funding transaction's description too, and clears `lightningNotification`. Read
+                // here rather than on entry: the funding can land before the payout call is made.
+                payouts.awaiting(clockMillis())?.let { notificationId ->
+                    bittr.storeDescription(fundingTxId, notificationId)
+                    payouts.clear()
+                }
+            },
         )
     }
 

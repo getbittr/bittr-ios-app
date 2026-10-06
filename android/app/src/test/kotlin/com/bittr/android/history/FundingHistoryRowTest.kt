@@ -22,9 +22,12 @@ class FundingHistoryRowTest {
 
     private val raw = MutableStateFlow(WalletOverview(hasNode = true, hasSynced = true))
     private val funding = MutableStateFlow<List<WalletActivity>>(emptyList())
+    private val stored = MutableStateFlow<Map<String, String>>(emptyMap())
     private val descriptions = object : TransactionDescriptionStore {
-        override val descriptions: StateFlow<Map<String, String>> = MutableStateFlow(emptyMap())
-        override fun store(key: String, description: String) = Unit
+        override val descriptions: StateFlow<Map<String, String>> = stored
+        override fun store(key: String, description: String) {
+            stored.value = stored.value + (key to description)
+        }
     }
 
     private val source = MatchedWalletOverviewSource(
@@ -67,5 +70,12 @@ class FundingHistoryRowTest {
         raw.value = raw.value.copy(transactions = listOf(row("same", 200L)))
         funding.value = listOf(row("same", 100L))
         assertEquals(listOf(200L), source.overview.value.transactions.map { it.timestampSecs })
+    }
+
+    @Test
+    fun `a cached funding purchase shows the description stored for it`() {
+        funding.value = listOf(row("funding", 100L))
+        descriptions.store("funding", "014f5bae-c316-426e-9910-8de6e4312325")
+        assertEquals("014f5bae-c316-426e-9910-8de6e4312325", source.overview.value.transactions.single().description)
     }
 }
