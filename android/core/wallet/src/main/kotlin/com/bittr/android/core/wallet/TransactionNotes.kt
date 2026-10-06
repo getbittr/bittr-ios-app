@@ -17,4 +17,7 @@ interface TransactionNoteStore {
 
     /** Stores [note], trimmed; a blank note deletes the entry, as clearing the field does on iOS. */
     fun store(transactionId: String, note: String)
+
+    /** The wallet is gone: forget every note, so none shows on the next wallet's rows. */
+    fun clear() {}
 }

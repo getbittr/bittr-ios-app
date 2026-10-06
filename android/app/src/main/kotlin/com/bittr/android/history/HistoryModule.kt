@@ -158,6 +158,12 @@ class FileTransactionDescriptionStore(private val file: File) : TransactionDescr
         runCatching { write(_descriptions.value) }
     }
 
+    @Synchronized
+    override fun clear() {
+        _descriptions.value = emptyMap()
+        runCatching { file.delete() }
+    }
+
     private fun load(): Map<String, String> = runCatching {
         if (!file.exists()) return emptyMap()
         Json.parseToJsonElement(file.readText()).jsonObject

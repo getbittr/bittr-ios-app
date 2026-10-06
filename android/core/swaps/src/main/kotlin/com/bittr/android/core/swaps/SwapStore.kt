@@ -50,6 +50,14 @@ interface SwapStore {
     fun saveLatest(swap: Swap?)
 
     fun latest(): Swap?
+
+    /**
+     * The wallet is gone: forget which transactions were swaps — the swap ids, the suggested
+     * swaps' statuses and the latest swap — so the next wallet's history matches none of them.
+     * The swap files stay (they hold the refund keys Boltz's rescue flow needs) and so does the
+     * key index, which a restored seed must not start again from and reuse keys with.
+     */
+    fun forgetWallet() {}
 }
 
 /**
@@ -106,6 +114,12 @@ class FileSwapStore(private val directory: File) : SwapStore {
     }
 
     override fun latest(): Swap? = (readCache()[KEY_LATEST] as? JsonObject)?.let(SwapJson::fromJson)
+
+    override fun forgetWallet() = synchronized(lock) {
+        val cache = readCache()
+        if (cache.keys.none { it in setOf(KEY_SWAP_IDS, KEY_SUGGESTED, KEY_LATEST) }) return@synchronized
+        writeCache(JsonObject(cache - setOf(KEY_SWAP_IDS, KEY_SUGGESTED, KEY_LATEST)))
+    }
 
     private fun read(stem: String): Swap? {
         val file = File(directory, "$stem.json")
