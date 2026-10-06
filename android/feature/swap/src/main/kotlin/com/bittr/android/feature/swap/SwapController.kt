@@ -61,6 +61,11 @@ data class SwapUiState(
     val alert: SwapUiAlert? = null,
     /** The status card, once a swap is under way. */
     val status: SwapStatusState? = null,
+    /**
+     * Opened on an existing swap's status card — `SwapStatusViewController` on its own, from a
+     * transaction — rather than on the swap card it slides over from.
+     */
+    val statusOnly: Boolean = false,
 ) {
     val directionLabel: String get() = direction.label()
 }
@@ -85,7 +90,7 @@ class SwapController(
     private val scope: CoroutineScope,
     private val launch: SwapLaunch = SwapLaunch(),
 ) {
-    private val _state = MutableStateFlow(SwapUiState())
+    private val _state = MutableStateFlow(SwapUiState(statusOnly = launch.boltzId != null))
     val state: StateFlow<SwapUiState> = _state.asStateFlow()
 
     private val _effects = MutableSharedFlow<SwapUiEffect>(extraBufferCapacity = 8)

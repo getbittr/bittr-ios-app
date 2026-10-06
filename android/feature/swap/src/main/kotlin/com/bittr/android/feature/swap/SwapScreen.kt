@@ -73,6 +73,8 @@ import com.bittr.android.core.designsystem.BittrSheetHeader
 import com.bittr.android.core.designsystem.iosShadow
 import com.bittr.android.core.designsystem.rememberFillIcon
 import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.EnterTransition
+import androidx.compose.animation.ExitTransition
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.slideInHorizontally
@@ -156,11 +158,13 @@ internal fun SwapScreen(state: SwapUiState, controller: SwapController, onDown: 
         val sheetHeight = maxHeight
         // `SwapViewController`'s move to `SwapStatusViewController`: the status card slides in from the
         // right as the swap card leaves to the left, and back, over 0.3 s ease-in-out. Keyed on which
-        // card shows, so the status updating in place doesn't slide.
+        // card shows, so the status updating in place doesn't slide. Opened on the status card alone,
+        // from a transaction, there is no swap card to slide from.
         AnimatedContent(
             targetState = state.status,
             contentKey = { it != null },
             transitionSpec = {
+                if (state.statusOnly) return@AnimatedContent EnterTransition.None togetherWith ExitTransition.None
                 val forward = targetState != null
                 val spec = tween<IntOffset>(durationMillis = 300, easing = FastOutSlowInEasing)
                 slideInHorizontally(spec) { width -> if (forward) width else -width } togetherWith
@@ -179,6 +183,7 @@ internal fun SwapScreen(state: SwapUiState, controller: SwapController, onDown: 
                     .padding(horizontal = 15.dp, vertical = 58.dp),
             ) {
                 if (status == null) {
+                    if (state.statusOnly) return@Column
                     SwapCard(state, controller, clearFocus = { focusManager.clearFocus() })
                     PoweredByBoltz(onClick = {
                         focusManager.clearFocus()
