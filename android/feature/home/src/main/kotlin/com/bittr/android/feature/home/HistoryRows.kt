@@ -24,6 +24,8 @@ enum class HistorySwap { Complete, Pending }
  *   colours `unconfirmed`. Never true for Lightning, nor for a swap that is no longer pending.
  * @property swap the swap icon, with `history.swapComplete<N>` / `history.swapPending<N>`; null
  *   for a plain transaction and for a Swap & Pay leg, which iOS shows as the payment it made.
+ * @property gainPercent a bittr purchase's `relativeGain`, shown with the bittr mark beside the
+ *   amount (`showBittrStack`); null for anything else.
  */
 data class HistoryRow(
     val id: String,
@@ -34,6 +36,7 @@ data class HistoryRow(
     val isLightning: Boolean,
     val unconfirmed: Boolean,
     val swap: HistorySwap? = null,
+    val gainPercent: Int? = null,
 )
 
 internal fun historyRows(
@@ -41,6 +44,7 @@ internal fun historyRows(
     price: FiatPrice?,
     currentHeight: Int?,
     timeZone: TimeZone = TimeZone.getDefault(),
+    gainFor: (WalletActivity) -> Int? = { null },
 ): List<HistoryRow> {
     val dayFormat = SimpleDateFormat("MMM dd", Locale.ENGLISH).apply { this.timeZone = timeZone }
     val yearFormat = SimpleDateFormat("yyyy", Locale.ENGLISH).apply { this.timeZone = timeZone }
@@ -62,8 +66,20 @@ internal fun historyRows(
                 (height == null || (currentHeight ?: 0) - height + 1 < 1) &&
                 !(swap != null && swap.status != SwapActivityStatus.Pending),
             swap = swap?.let { if (it.status == SwapActivityStatus.Succeeded) HistorySwap.Complete else HistorySwap.Pending },
+            gainPercent = gainFor(activity),
         )
     }
+}
+
+/**
+ * A bittr purchase's `relativeGain` (`HistoryTable.swift`): what [netSats] is worth now in the
+ * purchase's currency against what was paid for it, as a whole percentage. 0 while bittr has sent
+ * no purchase amount or there is no price to value it at, as iOS shows then.
+ */
+internal fun purchaseGainPercent(netSats: Long, fiatNetAmount: Double?, pricePerBitcoin: Double?): Int {
+    if (fiatNetAmount == null || fiatNetAmount == 0.0 || pricePerBitcoin == null) return 0
+    val gain = (netSats / SATS_PER_BITCOIN * pricePerBitcoin - fiatNetAmount) / fiatNetAmount * 100
+    return if (gain.isFinite()) gain.roundToLong().toInt() else 0
 }
 
 /**

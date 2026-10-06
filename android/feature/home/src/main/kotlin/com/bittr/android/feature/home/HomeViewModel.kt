@@ -7,6 +7,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.bittr.android.core.wallet.FiatPrice
 import com.bittr.android.core.wallet.FiatPriceSource
+import com.bittr.android.core.wallet.BittrPurchaseSource
+import com.bittr.android.core.wallet.WalletActivity
 import com.bittr.android.core.wallet.HomeCache
 import com.bittr.android.core.wallet.WalletOverview
 import com.bittr.android.core.wallet.WalletOverviewSource
@@ -74,6 +76,7 @@ class HomeViewModel @Inject constructor(
     private val internet: InternetConnection = InternetConnection.Always,
     private val cache: HomeCache = HomeCache.None,
     prices: FiatPriceSource,
+    private val purchases: BittrPurchaseSource = BittrPurchaseSource.None,
 ) : ViewModel() {
 
     private val alert = MutableStateFlow<HomeAlert?>(null)
@@ -94,7 +97,27 @@ class HomeViewModel @Inject constructor(
         cache.savePrice(live)
     }
 
+    /**
+     * One bitcoin in each bittr purchase's own currency (`EUR` / `CHF`), for the rows' gain: iOS values
+     * a purchase in its currency even when Home shows another. The cached rate stands in until the
+     * live one lands.
+     */
+    private val purchasePrices = MutableStateFlow<Map<String, Double>>(emptyMap())
+
     init {
+        viewModelScope.launch {
+            merge(
+                purchases.purchases.map { bought -> bought.values.mapNotNull { it.currency }.toSet() }.distinctUntilChanged(),
+                price.map { purchases.purchases.value.values.mapNotNull { it.currency }.toSet() },
+            ).collect { codes ->
+                purchasePrices.value = codes.associateWith { code ->
+                    cache.cached.value?.price(if (code == "EUR") "€" else code)?.pricePerBitcoin
+                }.filterValues { it != null }.mapValues { it.value!! }
+                purchasePrices.value = codes.associateWith { code ->
+                    purchases.pricePerBitcoin(code) ?: purchasePrices.value[code]
+                }.filterValues { it != null }.mapValues { it.value!! }
+            }
+        }
         // iOS fetches conversion rates first thing at start (`SyncType.conversion`), before the
         // wallet has synced; the sync overlay's first row reports it.
         viewModelScope.launch { prices.current()?.let(::applyPrice) }
@@ -116,8 +139,8 @@ class HomeViewModel @Inject constructor(
         overview.overview,
         price,
         refresher.isRefreshing,
-        cache.cached,
-    ) { state, wallet, price, refreshing, cached ->
+        combine(cache.cached, purchases.purchases, purchasePrices) { cached, bought, rates -> Triple(cached, bought, rates) },
+    ) { state, wallet, price, refreshing, (cached, bought, rates) ->
         if (state == WalletState.Uninitialized) lastSynced = null
         if (wallet.hasSynced) lastSynced = wallet
         // A pull-to-refresh keeps the figures it started from on screen until the new reading
@@ -127,6 +150,12 @@ class HomeViewModel @Inject constructor(
         // Never without a wallet.
         val fromCache = cached?.takeIf {
             beforeRefresh == null && it.hasReading && !wallet.hasSynced && state != WalletState.Uninitialized
+        }
+        // `showBittrStack`: a bittr purchase's row carries its gain since it was bought.
+        val gainFor = { activity: WalletActivity ->
+            bought[activity.id]?.let { purchase ->
+                purchaseGainPercent(activity.netSats, purchase.fiatNetAmount, purchase.currency?.let { rates[it] })
+            }
         }
         val balance = when {
             wallet.hasSynced -> wallet.totalSatoshis
@@ -143,9 +172,9 @@ class HomeViewModel @Inject constructor(
             // reading or a rate — iOS never leaves the line out.
             balanceFiat = balanceFiat(balance ?: 0L, price) ?: "${prices.currentSymbol() ?: DEFAULT_SYMBOL} 0",
             history = when {
-                wallet.hasSynced -> historyRows(wallet.transactions, price, wallet.currentHeight)
-                beforeRefresh != null -> historyRows(beforeRefresh.transactions, price, beforeRefresh.currentHeight)
-                fromCache != null -> historyRows(fromCache.transactions, price, fromCache.currentHeight)
+                wallet.hasSynced -> historyRows(wallet.transactions, price, wallet.currentHeight, gainFor = gainFor)
+                beforeRefresh != null -> historyRows(beforeRefresh.transactions, price, beforeRefresh.currentHeight, gainFor = gainFor)
+                fromCache != null -> historyRows(fromCache.transactions, price, fromCache.currentHeight, gainFor = gainFor)
                 else -> emptyList()
             },
             conversionFetched = price != null,

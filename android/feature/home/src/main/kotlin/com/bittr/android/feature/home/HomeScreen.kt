@@ -95,6 +95,12 @@ import com.bittr.android.core.designsystem.IosCardShape
 import com.bittr.android.core.designsystem.LocalAppBarLogoVisible
 import com.bittr.android.core.designsystem.iosShadow
 import com.bittr.android.core.designsystem.rememberStrokeIcon
+import androidx.compose.ui.draw.dropShadow
+import androidx.compose.ui.graphics.shadow.Shadow
+import androidx.compose.ui.unit.DpOffset
+import com.bittr.android.core.designsystem.rememberFillIcon
+import com.bittr.android.core.designsystem.BittrMark
+import kotlin.math.abs
 
 /**
  * Home — `ios/bittr/Home/HomeViewController` — **in its no-funds state**.
@@ -1026,22 +1032,24 @@ private fun ActionSymbol(icon: ActionIcon, color: Color) {
  * the flows copy the top row's amount from.
  */
 private fun LazyListScope.historyItems(rows: List<HistoryRow>, onTransaction: (String) -> Unit) {
+    // `HistoryCell`: 75 tall, the 60 pt card 15 in and 7.5 from the row's top and bottom; a row that
+    // starts a new year is 102, the year 13 above its card.
     itemsIndexed(rows) { position, row ->
         Column(
-            verticalArrangement = Arrangement.spacedBy(BittrTokens.Spacing.sm),
+            horizontalAlignment = Alignment.CenterHorizontally,
             modifier = Modifier.padding(
-                start = BittrTokens.Spacing.md,
-                end = BittrTokens.Spacing.md,
-                top = if (position == 0) BittrTokens.Spacing.md else BittrTokens.Spacing.sm,
-                bottom = if (position == rows.lastIndex) BittrTokens.Spacing.md else 0.dp,
+                start = 15.dp,
+                end = 15.dp,
+                top = if (position == 0) BittrTokens.Spacing.md else 7.5.dp,
+                bottom = if (position == rows.lastIndex) BittrTokens.Spacing.md else 7.5.dp,
             ),
         ) {
             row.year?.let {
                 Text(
                     text = it,
-                    style = MaterialTheme.typography.labelMedium,
+                    style = MaterialTheme.typography.bodyMedium.copy(lineHeight = 14.sp),
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
-                    modifier = Modifier.padding(top = BittrTokens.Spacing.xs, start = BittrTokens.Spacing.xs),
+                    modifier = Modifier.padding(top = 6.dp, bottom = 13.dp),
                 )
             }
             HistoryCard(row = row, position = position, onClick = { onTransaction(row.id) })
@@ -1049,46 +1057,81 @@ private fun LazyListScope.historyItems(rows: List<HistoryRow>, onTransaction: (S
     }
 }
 
+/**
+ * `HistoryTableViewCell`'s card: 60 tall, `whiteorblue2` with 13 corners and its own soft shadow
+ * (black at 5 %, 8 down, 12 blur). `dateView` 10 in — `grey1orblue3`, 7 corners, 40 tall, the
+ * Gilroy-Regular 14 day 10 in from its sides — and 15 after it the amount in Gilroy-Bold 16 over its
+ * fiat value in Regular 14, 5 apart. At the end, 10 in: the swap or bolt icon in its 23 pt slot, and
+ * for a bittr purchase the bittr mark and, 10 after it, the gain in its 40 pt chip.
+ *
+ * The tap target is a transparent layer under the content rather than a clickable card, as iOS has
+ * `transactionButton` over the cell: a clickable parent merges its children's semantics, which
+ * would swallow `history.transactionAmountN`, the label the flows copy the top row's amount from.
+ */
 @Composable
 private fun HistoryCard(row: HistoryRow, position: Int, onClick: () -> Unit) {
     val colors = BittrTheme.colors
-    val figureColor = if (row.unconfirmed) colors.unconfirmed else MaterialTheme.colorScheme.onSurface
+    val ink = MaterialTheme.colorScheme.onSurface
+    val figureColor = if (row.unconfirmed) colors.unconfirmed else ink
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .background(MaterialTheme.colorScheme.surfaceContainerLowest, RoundedCornerShape(13.dp)),
+            .height(60.dp)
+            .dropShadow(
+                HistoryCardShape,
+                Shadow(radius = 20.dp, color = Color.Black, offset = DpOffset(0.dp, 8.dp), alpha = 0.05f),
+            )
+            .background(MaterialTheme.colorScheme.surfaceContainer, HistoryCardShape),
     ) {
-        // Drawn first, under the content. A later sibling that covers a node entirely
-        // removes that node from the accessibility tree, so a tap layer on top would take
-        // `history.transactionAmountN` out of reach of the flows; the labels handle no
-        // touches, so taps still reach this layer through them.
         Box(
             modifier = Modifier
                 .matchParentSize()
+                .clip(HistoryCardShape)
                 .clickable(onClick = onClick)
                 .testTag(TestID.History.transactionButtonAt(position)),
         )
         Row(
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = BittrTokens.Spacing.md, vertical = BittrTokens.Spacing.md),
+                .fillMaxSize()
+                .padding(horizontal = 10.dp),
         ) {
-            Text(
-                text = row.day,
-                style = MaterialTheme.typography.labelMedium,
+            Box(
+                contentAlignment = Alignment.Center,
                 modifier = Modifier
-                    .background(MaterialTheme.colorScheme.surfaceContainer, RoundedCornerShape(7.dp))
-                    .padding(horizontal = BittrTokens.Spacing.sm, vertical = BittrTokens.Spacing.xs),
-            )
-            if (row.isLightning) {
-                Image(
-                    imageVector = rememberStrokeIcon(BittrIconPaths.BOLT, colors.emphasis, strokeWidth = 2f),
-                    contentDescription = "Instant",
-                    modifier = Modifier
-                        .padding(start = BittrTokens.Spacing.sm)
-                        .size(18.dp),
+                    .height(40.dp)
+                    .widthIn(min = 40.dp)
+                    .background(colors.placeIconBox, RoundedCornerShape(7.dp))
+                    .padding(horizontal = 10.dp),
+            ) {
+                Text(
+                    text = row.day,
+                    style = HistorySmall,
+                    color = ink,
+                    modifier = Modifier.offset(y = 1.dp),
                 )
+            }
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .padding(start = 15.dp, end = 15.dp),
+            ) {
+                Text(
+                    text = row.sats,
+                    style = MaterialTheme.typography.labelLarge.copy(lineHeight = 16.sp),
+                    color = figureColor,
+                    maxLines = 1,
+                    modifier = Modifier.testTag(TestID.History.transactionAmountAt(position)),
+                )
+                row.fiat?.let {
+                    Text(
+                        text = it,
+                        style = HistorySmall,
+                        color = figureColor,
+                        maxLines = 1,
+                        modifier = Modifier.padding(top = 5.dp),
+                    )
+                }
             }
             row.swap?.let { swap ->
                 // `swapImage`: blue once complete, grey while pending, with a row-indexed id.
@@ -1096,30 +1139,63 @@ private fun HistoryCard(row: HistoryRow, position: Int, onClick: () -> Unit) {
                 Image(
                     imageVector = rememberStrokeIcon(
                         SWAP_ICON_PATH,
-                        if (complete) colors.emphasis else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f),
+                        if (complete) colors.emphasis else ink.copy(alpha = 0.4f),
                         strokeWidth = 2f,
                     ),
                     contentDescription = if (complete) "Swap complete" else "Swap pending",
                     modifier = Modifier
-                        .padding(start = BittrTokens.Spacing.sm)
+                        .padding(end = 5.dp)
                         .size(18.dp)
                         .testTag(if (complete) TestID.History.swapCompleteAt(position) else TestID.History.swapPendingAt(position)),
                 )
             }
-            Column(horizontalAlignment = Alignment.End, modifier = Modifier.weight(1f)) {
-                Text(
-                    text = row.sats,
-                    style = MaterialTheme.typography.titleMedium,
-                    color = figureColor,
-                    modifier = Modifier.testTag(TestID.History.transactionAmountAt(position)),
+            if (row.isLightning) {
+                // `bolt.fill` in yellow, 5 from its slot's end.
+                Image(
+                    imageVector = rememberFillIcon(BittrIconPaths.BOLT, colors.brandFixed),
+                    contentDescription = "Instant",
+                    modifier = Modifier
+                        .padding(end = 5.dp)
+                        .size(18.dp),
                 )
-                row.fiat?.let {
-                    Text(text = it, style = MaterialTheme.typography.bodyMedium, color = figureColor)
+            }
+            row.gainPercent?.let { gain ->
+                val isLoss = gain < 0
+                val foreground = if (isLoss) colors.loss else colors.profit
+                BittrMark(
+                    size = 18.dp,
+                    ink = ink,
+                    arc = colors.brandFixed,
+                    modifier = Modifier.padding(start = 1.dp, end = 10.dp),
+                )
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier
+                        .height(40.dp)
+                        .widthIn(min = 40.dp)
+                        .background(if (isLoss) colors.lossBg else colors.profitBg, RoundedCornerShape(7.dp))
+                        .padding(horizontal = 12.dp),
+                ) {
+                    Text(if (isLoss) "↓" else "↑", style = HistorySmall, color = foreground)
+                    Text(
+                        "${abs(gain)} %".let { if (isLoss) "- $it" else it },
+                        style = HistorySmall,
+                        color = foreground,
+                        modifier = Modifier
+                            .padding(start = 7.dp)
+                            .offset(y = 1.dp),
+                    )
                 }
             }
         }
     }
 }
+
+private val HistoryCardShape = RoundedCornerShape(13.dp)
+
+/** Gilroy-Regular 14 at its own height, as the cell's small labels are. */
+private val HistorySmall: TextStyle
+    @Composable get() = MaterialTheme.typography.bodyMedium.copy(lineHeight = 14.sp)
 
 /** Two opposed arrows — the history row's swap icon. */
 private const val SWAP_ICON_PATH = "M7 20V5M7 5L4 8M7 5l3 3M17 4v15M17 19l-3-3M17 19l3-3"
