@@ -37,7 +37,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import com.bittr.android.core.designsystem.rememberStrokeIcon
 import com.bittr.android.core.designsystem.rememberTextClipboard
 import com.bittr.android.core.designsystem.BittrIconPaths
 import androidx.compose.foundation.Image
@@ -49,9 +48,6 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.bittr.android.core.common.TestID
 import com.bittr.android.core.designsystem.BittrSpinner
-import androidx.compose.foundation.layout.RowScope
-import com.bittr.android.core.designsystem.BittrHelpButton
-import com.bittr.android.core.designsystem.BittrCopyButton
 import androidx.compose.foundation.layout.height
 import androidx.compose.runtime.CompositionLocalProvider
 import com.bittr.android.core.designsystem.BittrDialogTitle
@@ -81,6 +77,14 @@ import com.bittr.android.core.designsystem.BittrSheetHeader
 import com.bittr.android.core.designsystem.Gilroy
 import com.bittr.android.core.network.IbanEntity
 import com.bittr.android.core.permissions.BittrPermissions
+import androidx.compose.foundation.Canvas
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.BlendMode
+import androidx.compose.ui.graphics.CompositingStrategy
+import androidx.compose.ui.graphics.graphicsLayer
+import com.bittr.android.core.designsystem.rememberFillIcon
 
 /**
  * Buy — `BuyViewController`, and the signup container it opens over itself.
@@ -329,7 +333,11 @@ private val BuyLabel = TextStyle(
     lineHeight = 20.8.sp,
 )
 
-/** `IbanCollectionViewCell`. */
+/**
+ * `IbanCollectionViewCell`: `cardBackgroundView` in `yelloworblue2` with 20 corners and the iOS
+ * shadow, and in it, 10 in and 10 apart, six 45 pt `whiteorblue3` rows with 13 corners — the five
+ * details, then Lightning with its switch.
+ */
 @Composable
 private fun IbanCard(
     entity: IbanEntity,
@@ -340,55 +348,93 @@ private fun IbanCard(
     onToggle: (Boolean) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    BittrCard(modifier = modifier, horizontalAlignment = Alignment.Start) {
-        DetailRow(BuyStrings.YOUR_EMAIL, entity.yourEmail, valueTag = TestID.Buy.yourEmail)
-        DetailRow(BuyStrings.YOUR_IBAN, entity.yourIbanNumber, valueTag = TestID.Buy.yourIban)
-        DetailRow(BuyStrings.OUR_IBAN, entity.ourIbanNumber, onCopy = { onCopy(entity.ourIbanNumber) })
-        DetailRow(BuyStrings.OUR_NAME, entity.ourName, onCopy = { onCopy(entity.ourName) })
-        DetailRow(BuyStrings.YOUR_CODE, entity.yourUniqueCode, valueTag = TestID.Buy.yourCode, onCopy = { onCopy(entity.yourUniqueCode) })
-        DetailRowSurface {
-            Image(
-                imageVector = rememberStrokeIcon(BittrIconPaths.BOLT, MaterialTheme.colorScheme.onSurface, strokeWidth = 2f),
-                contentDescription = null,
+    val colors = BittrTheme.colors
+    BittrCard(
+        modifier = modifier,
+        horizontalAlignment = Alignment.Start,
+        shape = RoundedCornerShape(20.dp),
+        fill = colors.levelCard,
+        contentPadding = androidx.compose.foundation.layout.PaddingValues(10.dp),
+    ) {
+        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            DetailRow(BuyStrings.YOUR_EMAIL, entity.yourEmail, valueTag = TestID.Buy.yourEmail)
+            DetailRow(BuyStrings.YOUR_IBAN, entity.yourIbanNumber, valueTag = TestID.Buy.yourIban)
+            DetailRow(BuyStrings.OUR_IBAN, entity.ourIbanNumber, onCopy = { onCopy(entity.ourIbanNumber) })
+            DetailRow(BuyStrings.OUR_NAME, entity.ourName, onCopy = { onCopy(entity.ourName) })
+            DetailRow(BuyStrings.YOUR_CODE, entity.yourUniqueCode, valueTag = TestID.Buy.yourCode, onCopy = { onCopy(entity.yourUniqueCode) })
+            // `paymentModeView`: the 14 pt yellow bolt 15 in, "Lightning" 5 after it and the question
+            // mark 7 after that — the three are `paymentModeButton` — and the switch 15 from the end,
+            // its spinner 7 before it while the change is in flight.
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier
-                    .padding(end = 8.dp)
-                    .size(18.dp),
-            )
-            Text(BuyStrings.LIGHTNING, style = MaterialTheme.typography.labelLarge)
-            BittrHelpButton(
-                onClick = onQuestion,
-                modifier = Modifier.testTag(TestID.Buy.paymentModeButton),
-            )
-            Box(Modifier.weight(1f))
-            if (pending) {
-                BittrSpinner(
-                    strokeWidth = 2.dp,
-                    modifier = Modifier
-                        .padding(end = BittrTokens.Spacing.sm)
-                        .size(18.dp),
+                    .fillMaxWidth()
+                    .height(RowHeight)
+                    .background(MaterialTheme.colorScheme.surfaceContainerHigh, RowShape)
+                    .padding(end = 15.dp),
+            ) {
+                Box {
+                    // Under the title, not over it, so nothing inside loses its place in the tree.
+                    Box(
+                        modifier = Modifier
+                            .matchParentSize()
+                            .clip(RowShape)
+                            .clickable(role = Role.Button, onClick = onQuestion)
+                            .testTag(TestID.Buy.paymentModeButton),
+                    )
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.padding(start = 15.dp, end = 10.dp, top = 10.dp, bottom = 10.dp),
+                    ) {
+                        Image(
+                            imageVector = rememberFillIcon(BittrIconPaths.BOLT, colors.brandFixed),
+                            contentDescription = null,
+                            modifier = Modifier.size(14.dp),
+                        )
+                        Text(
+                            BuyStrings.LIGHTNING,
+                            style = RowStyle,
+                            color = colors.brandFixed,
+                            modifier = Modifier
+                                .padding(start = 5.dp)
+                                .offset(y = 1.dp),
+                        )
+                        Image(
+                            imageVector = rememberFillIcon(BittrIconPaths.HELP, colors.brandFixed),
+                            contentDescription = "More information",
+                            modifier = Modifier
+                                .padding(start = 7.dp)
+                                .size(16.dp),
+                        )
+                    }
+                }
+                Box(Modifier.weight(1f))
+                if (pending) {
+                    BittrSpinner(
+                        strokeWidth = 2.dp,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        modifier = Modifier
+                            .padding(end = 7.dp)
+                            .size(20.dp),
+                    )
+                }
+                Switch(
+                    checked = lightningOn,
+                    onCheckedChange = onToggle,
+                    enabled = !pending,
+                    colors = bittrSwitchColors(),
+                    modifier = Modifier.testTag(TestID.Buy.paymentModeSwitch),
                 )
             }
-            Switch(
-                checked = lightningOn,
-                onCheckedChange = onToggle,
-                enabled = !pending,
-                colors = bittrSwitchColors(),
-                modifier = Modifier
-                    .padding(end = 12.dp)
-                    .testTag(TestID.Buy.paymentModeSwitch),
-            )
         }
     }
 }
 
 /**
- * A label and a value on a white row, with a copy button at the row's end when [onCopy] is
- * given (review S4: the "Copy" text button was pale yellow on the yellow card and could not be
- * seen). The copy control is a sibling of the value rather than a layer over it, so the value
- * keeps its own id.
- *
- * The label stays [BittrColors.rowLabel] rather than the proposal's `#EFA900`: that yellow is
- * about 2 : 1 on white, and `rowLabel` is the darkened one signed off for exactly this (DEV-40).
+ * One of the card's detail rows: 45 tall, `whiteorblue3` with 13 corners, the title in yellow
+ * Gilroy-Bold 16 in a 100 pt column 15 in, and the value in black or white 15 after it. A row
+ * with [onCopy] is its own copy button, as on iOS, with `doc.on.doc.fill` at 80 % 15 from the
+ * end. The tap layer is under the labels, so the value keeps its own id.
  */
 @Composable
 internal fun DetailRow(
@@ -398,45 +444,71 @@ internal fun DetailRow(
     onCopy: (() -> Unit)? = null,
     copyTag: String? = null,
 ) {
-    DetailRowSurface {
-        Column(Modifier.weight(1f)) {
+    val colors = BittrTheme.colors
+    val ink = MaterialTheme.colorScheme.onSurface
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .heightIn(min = RowHeight)
+            .clip(RowShape)
+            .background(MaterialTheme.colorScheme.surfaceContainerHigh),
+    ) {
+        if (onCopy != null) {
+            Box(
+                modifier = Modifier
+                    .matchParentSize()
+                    .clickable(role = Role.Button, onClickLabel = "Copy", onClick = onCopy)
+                    .then(copyTag?.let { Modifier.testTag(it) } ?: Modifier),
+            )
+        }
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier
+                .align(Alignment.CenterStart)
+                .fillMaxWidth()
+                .padding(start = 15.dp, end = 15.dp, top = 12.dp, bottom = 12.dp),
+        ) {
             Text(
                 label,
-                style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.SemiBold),
-                color = BittrTheme.colors.rowLabel,
+                style = RowStyle,
+                color = colors.brandFixed,
+                modifier = Modifier
+                    .width(100.dp)
+                    .offset(y = 1.dp),
             )
             Text(
                 text = value,
-                style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.SemiBold),
-                modifier = valueTag?.let { Modifier.testTag(it) } ?: Modifier,
+                style = RowStyle,
+                color = ink,
+                modifier = Modifier
+                    .weight(1f)
+                    .padding(start = 15.dp, end = if (onCopy != null) 15.dp else 0.dp)
+                    .offset(y = 1.dp)
+                    .then(valueTag?.let { Modifier.testTag(it) } ?: Modifier),
             )
-        }
-        if (onCopy != null) {
-            BittrCopyButton(
-                onClick = onCopy,
-                modifier = copyTag?.let { Modifier.testTag(it) } ?: Modifier,
-            )
+            if (onCopy != null) CopySymbol(ink.copy(alpha = 0.8f))
         }
     }
 }
 
-/** The white 64 dp row [DetailRow] and the Lightning toggle sit on, 8 dp apart. */
+/** SF Symbols' `doc.on.doc.fill` at 13 pt: the back page, a gap round the front page, the front page. */
 @Composable
-private fun DetailRowSurface(content: @Composable RowScope.() -> Unit) {
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
+private fun CopySymbol(color: Color) {
+    Canvas(
         modifier = Modifier
-            .padding(vertical = 4.dp)
-            .fillMaxWidth()
-            .heightIn(min = 64.dp)
-            .background(MaterialTheme.colorScheme.surfaceContainer, BittrCanvasShapes.field)
-            .padding(start = 16.dp, end = 4.dp),
+            .size(13.dp)
+            .graphicsLayer { compositingStrategy = CompositingStrategy.Offscreen },
     ) {
-        CompositionLocalProvider(LocalContentColor provides MaterialTheme.colorScheme.onSurface) {
-            content()
-        }
+        val u = size.width / 16f
+        drawRoundRect(color, Offset(5.5f * u, 0f), Size(8.5f * u, 11.5f * u), CornerRadius(2f * u))
+        drawRoundRect(Color.Black, Offset(1f * u, 3.5f * u), Size(10.5f * u, 12.5f * u), CornerRadius(2.8f * u), blendMode = BlendMode.Clear)
+        drawRoundRect(color, Offset(2f * u, 4.5f * u), Size(8.5f * u, 11.5f * u), CornerRadius(2f * u))
     }
 }
+
+private val RowHeight = 45.dp
+private val RowShape = RoundedCornerShape(13.dp)
+private val RowStyle = TextStyle(fontFamily = Gilroy, fontWeight = FontWeight.Bold, fontSize = 16.sp, lineHeight = 18.sp)
 
 /**
  * `AlertManager.showAlert`, drawn in the screen's own window — the shared [BittrInlineAlert], with
