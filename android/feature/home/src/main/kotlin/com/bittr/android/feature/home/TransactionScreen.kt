@@ -97,6 +97,10 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.BlendMode
+import androidx.compose.foundation.layout.IntrinsicSize
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.width
+import androidx.compose.ui.graphics.drawscope.Stroke
 
 /**
  * Reads the transaction named by the route's [ID_ARG] out of the wallet overview, with bittr's record
@@ -313,15 +317,16 @@ fun TransactionScreen(
                             if (!shown.confetti) {
                                 DetailRow(HomeStrings.TYPE, shown.type, bolt = shown.typeBolt)
                             }
-                            shown.fees?.let { DetailRow(HomeStrings.FEES_PAID, it) }
-                            shown.confirmations?.let { DetailRow(HomeStrings.CONFIRMATIONS, it) }
+                            // `swapStack` comes before the fees in the storyboard, as one card.
                             shown.swap?.let { swap ->
-                                DetailRow(HomeStrings.SWAP_ID, swap.swapIdLabel)
-                                SwapStatusRow(
+                                SwapCard(
+                                    swapId = swap.swapIdLabel,
                                     status = swap.status,
                                     onClick = swap.boltzId?.let { boltzId -> { onOpenSwapStatus(boltzId) } },
                                 )
                             }
+                            shown.fees?.let { DetailRow(HomeStrings.FEES_PAID, it) }
+                            shown.confirmations?.let { DetailRow(HomeStrings.CONFIRMATIONS, it) }
                             // `descriptionStack` sits between Confirmations and the ids in the card (Main.storyboard).
                             shown.description?.let { description ->
                                 DescriptionRow(
@@ -764,29 +769,54 @@ private fun AddNoteRow(onClick: () -> Unit) {
 }
 
 /**
- * The swap status row. `buttonSwapStatus` covers it on iOS; here the tap layer is drawn under the
- * labels so they stay readable to the flows, and it carries `transaction.swapStatusButton`.
+ * `swapStack`: one 77 pt card, "Swap ID" and its id on the first line, "Swap status" and the status on
+ * the second, 28 apart, titles in yellow and values in Gilroy-Bold 16; the status has
+ * `arrow.right.circle.fill` at 80 % 6 after it when the swap can be opened, drawn at the 13 pt the
+ * symbol occupies in its 16 pt frame. `buttonSwapStatus` covers
+ * the card on iOS; here the tap layer is drawn under the labels so they stay readable to the flows,
+ * and it carries `transaction.swapStatusButton`.
  */
 @Composable
-private fun SwapStatusRow(status: String, onClick: (() -> Unit)?) {
+private fun SwapCard(swapId: String, status: String, onClick: (() -> Unit)?) {
+    val ink = MaterialTheme.colorScheme.onSurface
     Box(modifier = Modifier.fillMaxWidth()) {
         Box(
             modifier = Modifier
                 .matchParentSize()
-                .background(MaterialTheme.colorScheme.surfaceContainerHigh, RowShape)
+                .clip(RowShape)
+                .background(MaterialTheme.colorScheme.surfaceContainerHigh)
                 .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier)
                 .testTag(TestID.Transaction.swapStatusButton),
         )
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
+        Column(
+            verticalArrangement = Arrangement.spacedBy(10.dp),
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = BittrTokens.Spacing.md, vertical = BittrTokens.Spacing.md),
+                .padding(start = 15.dp, end = 15.dp, top = 17.dp, bottom = 14.dp),
         ) {
-            RowTitle(HomeStrings.SWAP_STATUS, modifier = Modifier.weight(1f))
-            Text(text = status, style = MaterialTheme.typography.bodyLarge)
-            if (onClick != null) {
-                Text(" ›", style = MaterialTheme.typography.bodyLarge, color = BittrTheme.colors.emphasis)
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                RowTitle(HomeStrings.SWAP_ID, modifier = Modifier.weight(1f))
+                Text(text = swapId, style = RowStyle, color = ink, maxLines = 1, modifier = Modifier.offset(y = 1.dp))
+            }
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                RowTitle(HomeStrings.SWAP_STATUS, modifier = Modifier.weight(1f))
+                Text(text = status, style = RowStyle, color = ink, maxLines = 1, modifier = Modifier.offset(y = 1.dp))
+                if (onClick != null) {
+                    Canvas(
+                        modifier = Modifier
+                            .padding(start = 6.dp)
+                            .size(13.dp)
+                            .graphicsLayer { compositingStrategy = CompositingStrategy.Offscreen },
+                    ) {
+                        val u = size.width / 16f
+                        drawCircle(ink.copy(alpha = 0.8f), radius = 8f * u)
+                        // The arrow, cut out of the disc.
+                        val arrow = Stroke(width = 1.8f * u, cap = StrokeCap.Round)
+                        drawLine(Color.Black, Offset(4.5f * u, 8f * u), Offset(11.3f * u, 8f * u), strokeWidth = arrow.width, cap = StrokeCap.Round, blendMode = BlendMode.Clear)
+                        drawLine(Color.Black, Offset(8.3f * u, 5f * u), Offset(11.3f * u, 8f * u), strokeWidth = arrow.width, cap = StrokeCap.Round, blendMode = BlendMode.Clear)
+                        drawLine(Color.Black, Offset(8.3f * u, 11f * u), Offset(11.3f * u, 8f * u), strokeWidth = arrow.width, cap = StrokeCap.Round, blendMode = BlendMode.Clear)
+                    }
+                }
             }
         }
     }
@@ -815,17 +845,22 @@ private fun IdCard(top: IdLine, bottom: IdLine?) {
         modifier = Modifier
             .fillMaxWidth()
             .clip(RowShape)
-            .background(MaterialTheme.colorScheme.surfaceContainerHigh)
-            .padding(bottom = if (bottom != null) 7.dp else 0.dp),
+            .background(MaterialTheme.colorScheme.surfaceContainerHigh),
     ) {
-        IdLineRow(top, Modifier.heightIn(min = 45.dp), PaddingValues(top = 13.dp, bottom = 12.dp))
-        if (bottom != null) IdLineRow(bottom, Modifier, PaddingValues(top = 4.dp, bottom = 4.dp))
+        if (bottom == null) {
+            IdLineRow(top, Modifier.heightIn(min = 45.dp), PaddingValues(top = 13.dp, bottom = 12.dp))
+        } else {
+            // Two lines 28 apart, 17 from the top and 14 from the bottom: the swap card's spacing, and
+            // the 77 pt iOS's two-id card comes to on screen.
+            IdLineRow(top, Modifier, PaddingValues(top = 17.dp, bottom = 5.dp))
+            IdLineRow(bottom, Modifier, PaddingValues(top = 5.dp, bottom = 14.dp))
+        }
     }
 }
 
 @Composable
 private fun IdLineRow(line: IdLine, modifier: Modifier, padding: PaddingValues) {
-    Row(verticalAlignment = Alignment.CenterVertically, modifier = modifier.fillMaxWidth()) {
+    Row(verticalAlignment = Alignment.CenterVertically, modifier = modifier.fillMaxWidth().height(IntrinsicSize.Min)) {
         Box(modifier = Modifier.weight(1f)) {
             if (line.onCopy != null) {
                 Box(
@@ -858,22 +893,30 @@ private fun IdLineRow(line: IdLine, modifier: Modifier, padding: PaddingValues) 
             }
         }
         if (line.onExplorer != null) {
-            ExplorerLink(onClick = line.onExplorer, testTag = line.explorerTag)
+            ExplorerLink(onClick = line.onExplorer, testTag = line.explorerTag, padding = padding)
         }
     }
 }
 
-/** `rectangle.portrait.and.arrow.right.fill` at 80 %, right-aligned in its 22 pt slot 15 from the row's end. */
+/**
+ * `rectangle.portrait.and.arrow.right.fill` at 80 %, right-aligned in its 22 pt slot 15 from the row's
+ * end, level with its id — 1.5 above the label's centre, as the storyboard has it.
+ */
 @Composable
-private fun ExplorerLink(onClick: () -> Unit, testTag: String?) {
+private fun ExplorerLink(onClick: () -> Unit, testTag: String?, padding: PaddingValues) {
     val ink = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f)
     Box(
         contentAlignment = Alignment.CenterEnd,
         modifier = Modifier
             .padding(end = 15.dp)
-            .size(width = 22.dp, height = 45.dp)
+            // As tall as its line: 45 for one id, the line's own height for two.
+            .width(22.dp)
+            .fillMaxHeight()
             .clickable(role = Role.Button, onClickLabel = "Open in explorer", onClick = onClick)
-            .then(if (testTag != null) Modifier.testTag(testTag) else Modifier),
+            .then(if (testTag != null) Modifier.testTag(testTag) else Modifier)
+            // The line's own padding, so the icon centres on the id beside it rather than on the
+            // line's whole height (whose padding differs above and below on a two-id card).
+            .padding(padding),
     ) {
         Canvas(
             modifier = Modifier
