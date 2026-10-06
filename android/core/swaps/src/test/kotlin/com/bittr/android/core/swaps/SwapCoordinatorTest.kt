@@ -78,7 +78,7 @@ class SwapCoordinatorTest {
         }
         override fun recordPaymentFees(key: String, feesSats: Long) = Unit
         override suspend fun sync() = Unit
-        override suspend fun transactionIdForPayment(paymentHash: String): String? = null
+        override suspend fun transactionIdForPayment(paymentHash: String, sync: Boolean): String? = null
     }
 
     private class Gate(var token: String? = "fcm-token") : SwapPushGate {

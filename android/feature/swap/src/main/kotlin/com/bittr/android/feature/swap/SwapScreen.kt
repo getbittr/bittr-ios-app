@@ -51,6 +51,7 @@ import com.bittr.android.core.designsystem.BittrAlert
 import com.bittr.android.core.designsystem.BittrSpinner
 import com.bittr.android.core.designsystem.BittrAlertButton
 import com.bittr.android.core.designsystem.BittrCard
+import com.bittr.android.core.designsystem.BittrLoadingCard
 import com.bittr.android.core.designsystem.BittrPrimaryButton
 import com.bittr.android.core.designsystem.BittrTheme
 import com.bittr.android.core.designsystem.BittrTokens
@@ -196,6 +197,12 @@ internal fun SwapScreen(state: SwapUiState, controller: SwapController, onDown: 
             titleTestTag = TestID.Header.titleLabel,
             downTestTag = TestID.Header.downButton,
         )
+
+        // `showLoading(message: "gatheringdetails")`: the completed swap's transaction is being put
+        // together before it opens. The card draws in this window, so it goes last, over the sheet.
+        if (state.status?.gathering == true) {
+            Box(Modifier.matchParentSize()) { BittrLoadingCard(message = SwapCopy.GATHERING_DETAILS) }
+        }
     }
 }
 

@@ -108,6 +108,8 @@ interface BittrLookup {
  * @param raw the node's overview, where a Lightning row still has its payment hash.
  * @param history the matched overview the transaction screen reads (descriptions and swaps applied).
  * @param refresh sync and take a reading, so a just-completed payment reaches [raw].
+ * @param swapPayment hands a received payment to the swap it completes, if it is one; true when it
+ *   was, and the swap opens its own transaction.
  */
 class TransactionConfirmations(
     private val scope: CoroutineScope,
@@ -122,6 +124,7 @@ class TransactionConfirmations(
     private val payouts: BittrPayoutTracker = BittrPayoutTracker(),
     private val clockMillis: () -> Long = System::currentTimeMillis,
     private val log: (String) -> Unit = { runCatching { Log.i(TAG, it) } },
+    private val swapPayment: (String) -> Boolean = { false },
 ) {
 
     private val _requests = MutableSharedFlow<TransactionRequest>(extraBufferCapacity = 8)
@@ -152,7 +155,11 @@ class TransactionConfirmations(
         scope.launch {
             nodeEvents.collect { event ->
                 when (event) {
-                    is NodeEvent.PaymentReceived -> scope.launch { openReceived(event.paymentHash) }
+                    // iOS: `isSwapPayment` → `openCompletedSwapTransaction`, straight from the event.
+                    is NodeEvent.PaymentReceived ->
+                        if (!runCatching { swapPayment(event.paymentHash) }.getOrDefault(false)) {
+                            scope.launch { openReceived(event.paymentHash) }
+                        }
                     is NodeEvent.PaymentSuccessful -> scope.launch { openPayment(event.paymentHash) }
                     is NodeEvent.ChannelPending -> scope.launch { openFunding(event.fundingTxId) }
                     is NodeEvent.PaymentFailed -> paymentFailed(event.reason)
@@ -373,6 +380,7 @@ object TransactionConfirmationsModule {
         canShow = { wallet.state.value == WalletState.Ready && !removal.isLockoutRemoval },
         bittr = bittr,
         payouts = payouts,
+        swapPayment = swaps::onPaymentReceived,
     )
 }
 

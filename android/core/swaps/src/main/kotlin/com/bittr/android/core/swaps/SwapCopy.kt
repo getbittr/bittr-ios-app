@@ -8,6 +8,7 @@ object SwapCopy {
     const val SUBTITLE = "Move satoshis between your bitcoin wallet and your bitcoin lightning connection."
     const val MOVE = "Move"
     const val NEXT = "Next"
+    const val GATHERING_DETAILS = "Gathering details"
     const val ONCHAIN_TO_LIGHTNING = "Onchain to Lightning"
     const val LIGHTNING_TO_ONCHAIN = "Lightning to Onchain"
     const val SATS_AT_A_TIME = "Move up to <amount> sats."
