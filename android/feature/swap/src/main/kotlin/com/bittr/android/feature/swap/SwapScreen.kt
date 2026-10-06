@@ -48,17 +48,13 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.bittr.android.core.common.TestID
 import com.bittr.android.core.designsystem.BittrAlert
-import com.bittr.android.core.designsystem.BittrCanvasShapes
-import com.bittr.android.core.designsystem.BittrRowLabel
 import com.bittr.android.core.designsystem.BittrSpinner
-import com.bittr.android.core.designsystem.BittrHelpButton
 import com.bittr.android.core.designsystem.BittrAlertButton
 import com.bittr.android.core.designsystem.BittrCard
 import com.bittr.android.core.designsystem.BittrPrimaryButton
 import com.bittr.android.core.designsystem.BittrTheme
 import com.bittr.android.core.designsystem.BittrTokens
 import com.bittr.android.core.designsystem.dismissOnPullDown
-import com.bittr.android.core.designsystem.rememberStrokeIcon
 import com.bittr.android.core.swaps.SwapAmounts
 import com.bittr.android.core.swaps.SwapCopy
 import com.bittr.android.core.swaps.SwapCoordinator
@@ -330,77 +326,146 @@ private fun PoweredByBoltz(onClick: () -> Unit) {
     }
 }
 
-/** `SwapStatusViewController`'s card: direction, amount, fees, status, download. */
+/**
+ * `SwapStatusViewController`'s `confirmCard`: `yelloworblue2` with 13 corners and the iOS shadow. Its
+ * header 20 in — `iconswapwhite` (`iconswap` in dark) at 18 and "swap status" in Gilroy-Bold 18,
+ * `whiteoryellow`, 10 after it — then, 20 under that and 10 in, four 45 pt rows 10 apart, and the
+ * download line 10 under them and 10 from the bottom.
+ */
 @Composable
 private fun StatusCard(status: SwapStatusState, controller: SwapController) {
     val swap = status.swap
-    BittrCard(horizontalAlignment = Alignment.Start, modifier = Modifier.testTag(TestID.SwapStatus.confirmCard)) {
-        // The card's own header, as the proposal draws it above the rows (review, Swapstatus).
-        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+    val colors = BittrTheme.colors
+    val dark = BittrTheme.isDark
+    BittrCard(
+        horizontalAlignment = Alignment.Start,
+        fill = colors.levelCard,
+        contentPadding = PaddingValues(start = 10.dp, end = 10.dp, top = 20.dp, bottom = 10.dp),
+        modifier = Modifier.testTag(TestID.SwapStatus.confirmCard),
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(start = 10.dp)) {
             Image(
-                rememberStrokeIcon(SWAP_PATH, MaterialTheme.colorScheme.onSurface, strokeWidth = 2f),
+                painter = painterResource(if (dark) R.drawable.swap_icon_yellow else R.drawable.swap_header_icon),
                 contentDescription = null,
-                modifier = Modifier.size(20.dp),
+                modifier = Modifier.size(18.dp),
             )
-            Text(SwapCopy.SWAP_STATUS_HEADER.lowercase(), style = MaterialTheme.typography.titleLarge.copy(fontSize = 20.sp))
+            Text(
+                SwapCopy.SWAP_STATUS_HEADER.lowercase(),
+                style = MaterialTheme.typography.titleMedium.copy(lineHeight = 18.sp),
+                color = colors.homeCardTitle,
+                modifier = Modifier
+                    .padding(start = 10.dp)
+                    .offset(y = 1.dp),
+            )
         }
-        Gap(16.dp)
-        InfoRow(SwapCopy.DIRECTION) { Text(swap.direction.label(), style = RowValue) }
-        Gap(BittrTokens.Spacing.sm)
-        InfoRow(SwapCopy.AMOUNT) { Text("${SwapAmounts.group(swap.satoshisAmount)} sats", style = RowValue) }
-        Gap(BittrTokens.Spacing.sm)
-        InfoRow(SwapCopy.FEES) { Text("${swap.formattedTotalFees()} sats", style = RowValue) }
-        Gap(BittrTokens.Spacing.sm)
-        InfoRow(SwapCopy.STATUS) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(status.statusText, style = RowValue, modifier = Modifier.weight(1f, fill = false).testTag(TestID.SwapStatus.confirmStatusLabel))
-                if (status.spinning) Spinner(Modifier.padding(start = BittrTokens.Spacing.xs))
-                Box(
-                    contentAlignment = Alignment.Center,
-                    modifier = Modifier
-                        .size(BittrTokens.Size.minTouchTarget)
-                        .clickable(onClick = controller::onRefresh)
-                        .testTag(TestID.SwapStatus.refreshButton),
-                ) {
-                    Image(rememberStrokeIcon(REFRESH_PATH, MaterialTheme.colorScheme.onSurface, strokeWidth = 2f), contentDescription = "Refresh", modifier = Modifier.size(18.dp))
+        Gap(20.dp)
+        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            InfoRow(SwapCopy.DIRECTION) { Text(swap.direction.label(), style = RowValue, color = MaterialTheme.colorScheme.onSurface) }
+            InfoRow(SwapCopy.AMOUNT) { Text("${SwapAmounts.group(swap.satoshisAmount)} sats", style = RowValue, color = MaterialTheme.colorScheme.onSurface) }
+            InfoRow(SwapCopy.FEES) { Text("${swap.formattedTotalFees()} sats", style = RowValue, color = MaterialTheme.colorScheme.onSurface) }
+            // `confirmStatus`: the spinner 8 after the title; at the end the 12 pt reset icon, the
+            // status 8 after it and the question mark 8 after that, 15 from the end.
+            InfoRow(SwapCopy.STATUS, endPadding = 7.dp, titleTrailing = {
+                if (status.spinning) Spinner(Modifier.padding(start = 8.dp))
+            }) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Box(
+                        contentAlignment = Alignment.Center,
+                        modifier = Modifier
+                            .size(width = 32.dp, height = RowHeight)
+                            .clickable(role = Role.Button, onClickLabel = "Refresh", onClick = controller::onRefresh)
+                            .testTag(TestID.SwapStatus.refreshButton),
+                    ) {
+                        Image(
+                            painter = painterResource(if (dark) R.drawable.swap_reset_white else R.drawable.swap_reset_black),
+                            contentDescription = "Refresh",
+                            modifier = Modifier
+                                .offset(y = (-1).dp)
+                                .size(12.dp),
+                        )
+                    }
+                    Text(
+                        status.statusText,
+                        style = RowValue,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        maxLines = 1,
+                        modifier = Modifier
+                            .weight(1f, fill = false)
+                            .testTag(TestID.SwapStatus.confirmStatusLabel),
+                    )
+                    Box(
+                        contentAlignment = Alignment.Center,
+                        modifier = Modifier
+                            .size(width = 32.dp, height = RowHeight)
+                            .clickable(role = Role.Button, onClickLabel = "More information", onClick = controller::onStatusQuestion),
+                    ) {
+                        Image(
+                            rememberFillIcon(BittrIconPaths.HELP, MaterialTheme.colorScheme.onSurface),
+                            contentDescription = "More information",
+                            modifier = Modifier
+                                .offset(y = (-1).dp)
+                                .size(16.dp),
+                        )
+                    }
                 }
-                QuestionMark(onClick = controller::onStatusQuestion)
             }
         }
-        Gap(16.dp)
-        // An action, so a button rather than one more white row that reads as data (review S16).
+        Gap(10.dp)
+        // `downloadView`: 35 tall with no plate, `icondownloadblack` (`icondownload` in dark) at 12 and
+        // "Download details" in Gilroy-Regular 16 8 after it, centred.
         Row(
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally),
+            horizontalArrangement = Arrangement.Center,
             modifier = Modifier
                 .fillMaxWidth()
-                .height(52.dp)
-                .clip(BittrCanvasShapes.pill)
-                .background(BittrTheme.colors.tonalFill)
+                .height(35.dp)
+                .clip(PlateShape)
                 .clickable(role = Role.Button, onClick = controller::onDownload),
         ) {
             Image(
-                rememberStrokeIcon(DOWNLOAD_PATH, BittrTheme.colors.onTonalFill, strokeWidth = 2f),
+                painter = painterResource(if (dark) R.drawable.swap_download_white else R.drawable.swap_download_black),
                 contentDescription = null,
-                modifier = Modifier.size(20.dp),
+                modifier = Modifier
+                    .offset(y = (-1).dp)
+                    .size(12.dp),
             )
-            Text(SwapCopy.DOWNLOAD_DETAILS, style = MaterialTheme.typography.labelLarge, color = BittrTheme.colors.onTonalFill)
+            Text(
+                SwapCopy.DOWNLOAD_DETAILS,
+                style = MaterialTheme.typography.bodyLarge.copy(lineHeight = 16.sp),
+                color = MaterialTheme.colorScheme.onSurface,
+                modifier = Modifier.padding(start = 8.dp),
+            )
         }
     }
 }
 
+/**
+ * One of the status card's rows: 45 tall, `whiteorblue3` with 8 corners, the title in yellow
+ * Gilroy-Bold 16 15 in and the value at the end, 15 from it unless [endPadding] says otherwise.
+ */
 @Composable
-private fun InfoRow(title: String, value: @Composable () -> Unit) {
-    Column(
+private fun InfoRow(
+    title: String,
+    endPadding: Dp = 15.dp,
+    titleTrailing: @Composable () -> Unit = {},
+    value: @Composable () -> Unit,
+) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier
             .fillMaxWidth()
-            .background(MaterialTheme.colorScheme.surfaceContainer, BittrCanvasShapes.field)
-            .padding(horizontal = BittrTokens.Spacing.md, vertical = BittrTokens.Spacing.sm),
+            .height(RowHeight)
+            .background(MaterialTheme.colorScheme.surfaceContainerHigh, PlateShape)
+            .padding(start = 15.dp, end = endPadding),
     ) {
-        BittrRowLabel(title)
-        value()
+        Text(title, style = RowValue, color = BittrTheme.colors.brandFixed, modifier = Modifier.offset(y = 1.dp))
+        titleTrailing()
+        Spacer(Modifier.weight(1f))
+        Box(modifier = Modifier.offset(y = 1.dp)) { value() }
     }
 }
+
+private val RowHeight = 45.dp
 
 /**
  * `amountTextField`: 45 tall, `white0.7orblue3` with 8 corners and the iOS shadow, Gilroy-Regular 16
@@ -444,11 +509,6 @@ private fun AmountField(value: String, onValueChange: (String) -> Unit, onDone: 
 }
 
 @Composable
-private fun QuestionMark(onClick: () -> Unit) {
-    BittrHelpButton(onClick = onClick)
-}
-
-@Composable
 private fun Spinner(modifier: Modifier = Modifier) {
     BittrSpinner(strokeWidth = 2.dp, color = MaterialTheme.colorScheme.onSurface, modifier = modifier.size(16.dp))
 }
@@ -458,15 +518,12 @@ private fun ColumnScope.Gap(height: Dp = BittrTokens.Spacing.md) {
     Spacer(Modifier.height(height))
 }
 
-private const val SWAP_PATH = "M7 4v16M3 8l4-4 4 4M17 20V4M13 16l4 4 4-4"
 
 private val PlateShape = RoundedCornerShape(8.dp)
 private val Bold14: TextStyle
     @Composable get() = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold, lineHeight = 14.sp)
-private const val REFRESH_PATH = "M20 12a8 8 0 1 1-2.34-5.66M20 4v5h-5"
 
-private const val DOWNLOAD_PATH = "M12 4v11m0 0l-5-5m5 5l5-5M5 20h14"
 
-/** A detail row's value — 16 sp semibold, under its gold [BittrRowLabel] (review S15). */
+/** The status rows' titles and values: Gilroy-Bold 16. */
 private val RowValue: TextStyle
-    @Composable get() = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.SemiBold)
+    @Composable get() = MaterialTheme.typography.labelLarge.copy(lineHeight = 18.sp)
