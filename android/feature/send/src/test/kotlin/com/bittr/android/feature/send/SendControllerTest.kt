@@ -22,6 +22,7 @@ class SendControllerTest {
     private class FakeSource(
         private val lightningBalance: Long = 0L,
         private val responses: Map<String, String> = emptyMap(),
+        private val hasChannel: Boolean = true,
     ) : SendSource {
         override val network: BitcoinNetwork = BitcoinNetwork.entries.first { it.bech32Hrp == "bcrt" }
         override val walletUpdates: Flow<Any> = emptyFlow()
@@ -43,6 +44,7 @@ class SendControllerTest {
         override fun onchainSpendableSats() = 294_424L
         var lightning = lightningBalance
         override fun lightningSendableSats() = lightning
+        override fun hasLightningChannel() = hasChannel
         override suspend fun feeEstimates() = FeeEstimates(fastest = 10.0, hour = 5.0, economy = 1.0)
         override suspend fun drainQuote(address: String?, satPerVb: Long) = DrainQuote(sendableSats = 290_000, feeSats = 2_000, vsize = 150)
         override suspend fun transactionVsize(address: String, amountSats: Long, satPerVb: Long) = Result.success(141L)
@@ -66,6 +68,42 @@ class SendControllerTest {
 
     private fun payRequest(min: Long, max: Long) =
         """{"tag":"payRequest","callback":"$callback","minSendable":$min,"maxSendable":$max,"metadata":"[[\"text/plain\",\"Pay to e2ebittr\"]]"}"""
+
+    @Test
+    fun `a bitcoin amount drops spaces and refuses a minus or a second separator`() = runTest {
+        val controller = SendController(FakeSource(), this)
+        controller.onCurrencyButton()
+        controller.onAlertButton(1) // Bitcoin
+        controller.onAmountChange(" 0.000 01 ")
+        assertEquals("0.00001", controller.state.value.amountText)
+
+        for (malformed in listOf("-0.1", "0.1.2", "0,1.2", "1,,2")) {
+            controller.onAmountChange(malformed)
+            controller.onNext()
+            assertEquals(malformed, SendStrings.ENTER_VALID_AMOUNT, controller.state.value.alert?.message)
+            controller.onAlertButton(0)
+        }
+        advanceUntilIdle()
+    }
+
+    @Test
+    fun `a satoshi amount keeps only digits`() = runTest {
+        val controller = SendController(FakeSource(), this)
+        controller.onAmountChange("1.500,5-")
+        assertEquals("15005", controller.state.value.amountText)
+    }
+
+    @Test
+    fun `send opens on Instant with a channel and on Regular without one`() = runTest {
+        val withChannel = SendController(FakeSource(hasChannel = true), this)
+        withChannel.start()
+        assertEquals(SendMode.Lightning, withChannel.state.value.mode)
+
+        val withoutChannel = SendController(FakeSource(hasChannel = false), this)
+        withoutChannel.start()
+        assertEquals(SendMode.Onchain, withoutChannel.state.value.mode)
+        advanceUntilIdle()
+    }
 
     @Test
     fun `a lightning address with a range takes the amount, then confirms the address and keeps the note`() = runTest {

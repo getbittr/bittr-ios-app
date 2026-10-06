@@ -38,7 +38,6 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.focus.onFocusChanged
 import com.bittr.android.core.designsystem.rememberFillIcon
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.ui.text.style.TextOverflow
@@ -86,9 +85,9 @@ import kotlinx.coroutines.withContext
  *
  * Two things differ from iOS because the platform does:
  *
- * - **"Done" is a button on screen.** iOS puts it on a toolbar above the keyboard, and
- *   `receive_onchain.yaml` taps it by its text. A keyboard toolbar is not part of the app's
- *   view hierarchy on Android, so the same button sits beside the amount field instead.
+ * - **"Done" is the keyboard's ✓.** iOS puts a Done button on a toolbar above the keyboard;
+ *   Android keyboards carry the action key themselves, and the fields answer it the same way.
+ *   It is not in the app's hierarchy, so the flows press Enter for it (`helpers/amount_done.yaml`).
  * - **The QR's long-press menu is a dropdown**, with the same two items — Copy and Share —
  *   and Share opens the system share sheet with the copyable text.
  */
@@ -456,18 +455,16 @@ private fun AmountStack(
     onCurrency: () -> Unit,
     onDone: () -> Unit,
 ) {
-    val colors = BittrTheme.colors
-    var editing by remember { mutableStateOf(false) }
-    Column(
-        verticalArrangement = Arrangement.spacedBy(BittrTokens.Spacing.sm),
-        modifier = Modifier.onFocusChanged { editing = it.hasFocus },
-    ) {
+    // The keyboard's ✓ is iOS's toolbar Done on both fields: it commits the amount and note.
+    Column(verticalArrangement = Arrangement.spacedBy(BittrTokens.Spacing.sm)) {
         Row(horizontalArrangement = Arrangement.spacedBy(BittrTokens.Spacing.sm), verticalAlignment = Alignment.CenterVertically) {
             EntryField(
                 value = state.amountText,
                 placeholder = ReceiveStrings.AMOUNT,
                 onValueChange = onAmountChange,
-                keyboardType = if (state.currency == ReceiveCurrency.Satoshis) KeyboardType.Number else KeyboardType.Decimal,
+                // Digits only for satoshis: `Number` still offers `,` `.` and `-` on Gboard and
+                // Samsung's keyboard; `NumberPassword` is the digit pad, unmasked in a BasicTextField.
+                keyboardType = if (state.currency == ReceiveCurrency.Satoshis) KeyboardType.NumberPassword else KeyboardType.Decimal,
                 onDone = onDone,
                 testTag = TestID.Receive.amountTextField,
                 modifier = Modifier.weight(1f),
@@ -486,21 +483,6 @@ private fun AmountStack(
                     style = MaterialTheme.typography.labelLarge,
                     modifier = Modifier.testTag(TestID.Receive.currencyLabel),
                 )
-            }
-            // Only while an amount or description is being typed, as on Send and Swap: at rest it
-            // held the strongest spot on the screen (review S18, pass 4). IME Done commits too.
-            if (editing) {
-                Box(
-                    contentAlignment = Alignment.Center,
-                    modifier = Modifier
-                        .height(52.dp)
-                        .clip(BittrCanvasShapes.pill)
-                        .background(colors.actionFill)
-                        .clickable(onClick = onDone)
-                        .padding(horizontal = BittrTokens.Spacing.lg),
-                ) {
-                    Text(ReceiveStrings.DONE, style = MaterialTheme.typography.labelLarge, color = colors.onActionFill)
-                }
             }
         }
         if (state.showsDescription) {

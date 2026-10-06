@@ -14,6 +14,7 @@ internal object SendStrings {
     const val ENTER_BITCOIN_ADDRESS = "Enter bitcoin address"
     const val ENTER_INVOICE = "Enter lightning address or invoice"
     const val ENTER_AMOUNT = "Enter amount"
+    const val ENTER_VALID_AMOUNT = "Please enter a valid amount."
     /** `sendvcscan`. */
     const val SCAN = "Scan"
     /** `sendvcpaste`. */
@@ -21,7 +22,6 @@ internal object SendStrings {
     const val REGULAR = "Regular"
     const val INSTANT = "Instant"
     const val NEXT = "Next"
-    const val DONE = "Done"
     const val SATS = "sats"
     const val SATS_LABEL = "Sats"
     const val BTC_LABEL = "BTC"

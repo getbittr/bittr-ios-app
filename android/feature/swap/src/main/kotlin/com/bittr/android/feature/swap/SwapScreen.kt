@@ -35,9 +35,6 @@ import androidx.compose.ui.Modifier
 import com.bittr.android.core.designsystem.BittrIconPaths
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.text.TextStyle
-import androidx.compose.runtime.setValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.SolidColor
@@ -74,9 +71,9 @@ import java.io.File
  * Swap funds — `SwapViewController`, with `SwapStatusViewController` taking the card's place once
  * a swap is under way (on iOS it slides in over the same controller).
  *
- * As on Send, "Done" is a button beside the amount field rather than a keyboard toolbar, because
- * `swap_leg1.yaml` taps it by its text. Pulling the screen down closes it, like the iOS sheet the
- * flows swipe away.
+ * iOS's keyboard-toolbar Done is the keyboard's own ✓ here, as on Send and Receive; the flows press
+ * Enter for it (`helpers/amount_done.yaml`). Pulling the screen down closes it, like the iOS sheet
+ * the flows swipe away.
  */
 @Composable
 fun SwapRoute(
@@ -160,7 +157,6 @@ internal fun SwapScreen(state: SwapUiState, controller: SwapController, onDown: 
 
 @Composable
 private fun SwapCard(state: SwapUiState, controller: SwapController, clearFocus: () -> Unit) {
-    var amountFocused by remember { mutableStateOf(false) }
     BittrCard(horizontalAlignment = Alignment.Start) {
         Text(
             SwapCopy.SUBTITLE,
@@ -174,29 +170,13 @@ private fun SwapCard(state: SwapUiState, controller: SwapController, clearFocus:
         Text(SwapCopy.MOVE, style = MaterialTheme.typography.titleMedium, color = BittrTheme.colors.emphasis)
         Gap(BittrTokens.Spacing.xs)
         Row(horizontalArrangement = Arrangement.spacedBy(BittrTokens.Spacing.sm), verticalAlignment = Alignment.CenterVertically) {
+            // The keyboard's ✓ is iOS's toolbar Done: it closes the keyboard.
             AmountField(
                 value = state.amountText,
                 onValueChange = controller::onAmountChange,
                 onDone = clearFocus,
-                modifier = Modifier
-                    .weight(1f)
-                    .onFocusChanged { amountFocused = it.hasFocus },
+                modifier = Modifier.weight(1f),
             )
-            // The keyboard's companion, so only there while the amount is being typed; with the
-            // keyboard down it posed as the primary action above Next (review S18).
-            if (amountFocused) {
-                Box(
-                    contentAlignment = Alignment.Center,
-                    modifier = Modifier
-                        .height(56.dp)
-                        .clip(BittrCanvasShapes.pill)
-                        .background(BittrTheme.colors.actionFill)
-                        .clickable(onClick = clearFocus)
-                        .padding(horizontal = BittrTokens.Spacing.lg),
-                ) {
-                    Text(SwapCopy.DONE, style = MaterialTheme.typography.labelLarge, color = BittrTheme.colors.onActionFill)
-                }
-            }
         }
 
         Gap(BittrTokens.Spacing.sm)
@@ -381,7 +361,9 @@ private fun AmountField(value: String, onValueChange: (String) -> Unit, onDone: 
             singleLine = true,
             textStyle = MaterialTheme.typography.bodyLarge.copy(color = MaterialTheme.colorScheme.onSurface),
             cursorBrush = SolidColor(MaterialTheme.colorScheme.onSurface),
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number, imeAction = ImeAction.Done),
+            // Satoshis, so digits only: `Number` still offers `,` `.` and `-` on Gboard and Samsung's
+            // keyboard; `NumberPassword` is the digit pad, unmasked in a BasicTextField.
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.NumberPassword, imeAction = ImeAction.Done),
             keyboardActions = KeyboardActions(onDone = { onDone() }),
             modifier = Modifier
                 .fillMaxWidth()

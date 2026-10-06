@@ -187,8 +187,13 @@ class SendController(
     /** `pendingLnurlNote`: the paid request's description, stored as the transaction's note. */
     private var pendingNote: String? = null
 
-    /** `viewDidLoad`: the label for the default type, and a refresh whenever balances move. */
+    /**
+     * `viewDidLoad`: the label for the default type, and a refresh whenever balances move. The
+     * default is Instant, except in a wallet with no Lightning channel, which cannot pay one —
+     * there Send opens on Regular.
+     */
     fun start() {
+        if (!source.hasLightningChannel()) _state.update { it.copy(mode = SendMode.Onchain) }
         refreshAvailable(quiet = true)
         scope.launch {
             source.walletUpdates.drop(1).collect {
@@ -221,7 +226,13 @@ class SendController(
 
     fun onAmountChange(text: String) {
         didTapAvailable = false
-        _state.update { it.copy(amountText = text) }
+        // Satoshis are whole: a paste or a hardware keyboard can still bring a separator the
+        // on-screen pad does not offer, so anything but digits is dropped here. Bitcoin and fiat
+        // amounts drop spaces, which the decimal keyboard offers and no amount uses; a `-` or a
+        // second separator stays, for Next to refuse with an explanation.
+        _state.update {
+            it.copy(amountText = if (it.currency == AmountCurrency.Satoshis) text.filter(Char::isDigit) else text.filterNot(Char::isWhitespace))
+        }
     }
 
     /**
@@ -354,6 +365,7 @@ class SendController(
     /** `nextButtonTapped`, and the amount field's Done. */
     fun onNext() {
         if (_state.value.nextLoading || _state.value.lnurlLoading) return
+        if (!SendMath.isWellFormedAmount(_state.value.amountText)) return raise(okay(SendStrings.OOPS, SendStrings.ENTER_VALID_AMOUNT))
         // A pay request with a range is waiting for this amount — `handleLNURLAmountCompletion`.
         if (pendingPay != null) {
             completePayAmount()

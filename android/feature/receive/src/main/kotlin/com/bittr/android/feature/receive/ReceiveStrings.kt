@@ -93,9 +93,6 @@ internal object ReceiveStrings {
     /** `description`, as the description field's placeholder. */
     const val DESCRIPTION = "Description"
 
-    /** The keyboard toolbar's button on iOS (`addDoneButton`); a visible button here. */
-    const val DONE = "Done"
-
     /** `copied`. */
     const val COPIED = "Copied"
 
@@ -104,6 +101,8 @@ internal object ReceiveStrings {
     const val MENU_SHARE = "Share"
 
     const val OKAY = "Okay"
+    const val OOPS = "Oops!"
+    const val ENTER_VALID_AMOUNT = "Please enter a valid amount."
     const val CANCEL = "Cancel"
     const val CONFIRM = "Confirm"
 }

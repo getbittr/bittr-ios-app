@@ -148,6 +148,13 @@ fun bitcoinAmount(satoshis: Long): String =
  * Satoshis take whole numbers only; bitcoin and fiat accept a comma or a dot as the
  * decimal separator. Fiat converts through [fiatPricePerBitcoin] and is null without it.
  */
+/**
+ * Android's decimal keyboard offers `-`, `,` and `.`: an amount with a minus sign, or with more
+ * than one separator of either kind, is not one. Blank is well formed — it means no amount.
+ */
+fun isWellFormedAmount(text: String): Boolean =
+    '-' !in text && text.count { it == '.' || it == ',' } <= 1
+
 fun parseAmountSats(text: String, currency: ReceiveCurrency, fiatPricePerBitcoin: Double?): Long? {
     val cleaned = text.trim().replace(" ", "").replace(',', '.')
     if (cleaned.isEmpty()) return null

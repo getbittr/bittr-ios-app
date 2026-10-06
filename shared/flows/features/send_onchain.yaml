@@ -169,8 +169,7 @@ appId: ${APP_ID}
 - tapOn:
     id: "send.amountTextField"
 - inputText: "5"
-- tapOn:
-    text: "Done"
+- runFlow: ../helpers/amount_done.yaml
 
 # The view slides to the ConfirmSendViewController. Verify the address and the
 # euro amount. The fiat amount is shown with two decimals and recomputed from

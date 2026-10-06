@@ -226,12 +226,22 @@ class ReceiveController(
         ),
     )
 
-    fun onAmountChange(text: String) = _state.update { it.copy(amountText = text) }
+    /**
+     * Satoshis keep digits only — a paste or a hardware keyboard can bring what the digit pad
+     * does not offer. Bitcoin and fiat drop spaces; a `-` or a second separator stays, for Done
+     * to refuse with an explanation.
+     */
+    fun onAmountChange(text: String) = _state.update {
+        it.copy(amountText = if (it.currency == ReceiveCurrency.Satoshis) text.filter(Char::isDigit) else text.filterNot(Char::isWhitespace))
+    }
 
     fun onDescriptionChange(text: String) = _state.update { it.copy(descriptionText = text) }
 
-    /** `doneButtonTapped`: regenerate with what was entered. */
-    fun onDone() = show(_state.value.type)
+    /** `doneButtonTapped`: regenerate with what was entered — unless it is not an amount. */
+    fun onDone() {
+        if (!isWellFormedAmount(_state.value.amountText)) return raise(okayAlert(ReceiveStrings.OOPS, ReceiveStrings.ENTER_VALID_AMOUNT))
+        show(_state.value.type)
+    }
 
     /** A button on the current alert, by position. */
     fun onAlertButton(position: Int) {

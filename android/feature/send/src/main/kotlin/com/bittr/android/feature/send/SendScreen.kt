@@ -32,6 +32,7 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.font.FontWeight
@@ -44,7 +45,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.draw.clip
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.semantics.Role
 import androidx.compose.foundation.selection.selectable
@@ -66,10 +66,7 @@ import com.bittr.android.core.designsystem.BittrHelpButton
 import com.bittr.android.core.designsystem.dismissOnPullDown
 import com.bittr.android.core.designsystem.BittrAlertButton
 import com.bittr.android.core.designsystem.BittrBody
-import com.bittr.android.core.designsystem.BittrCanvas
-import com.bittr.android.core.designsystem.BittrCard
 import com.bittr.android.core.designsystem.BittrIconPaths
-import com.bittr.android.core.designsystem.BittrModalHeader
 import com.bittr.android.core.designsystem.BittrTextFieldAlert
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.gestures.detectTapGestures
@@ -77,13 +74,28 @@ import androidx.compose.ui.input.pointer.pointerInput
 import com.bittr.android.core.designsystem.BittrTheme
 import com.bittr.android.core.designsystem.BittrTokens
 import com.bittr.android.core.designsystem.rememberStrokeIcon
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.sp
+import com.bittr.android.core.designsystem.BittrSheetHeader
+import com.bittr.android.core.designsystem.iosShadow
+import com.bittr.android.core.designsystem.R as DesignR
 
 /**
  * Send — `SendViewController` with `ConfirmSendViewController` as its second page.
  *
- * As on Receive, "Done" is a button beside the amount field rather than a keyboard
- * toolbar: the flows tap it by its text, and a keyboard toolbar is not in an Android
- * app's view hierarchy. Labels that sit inside a tappable control carry their own test
+ * iOS's keyboard-toolbar Done is the keyboard's own ✓ here, which closes the keyboard and goes
+ * on to Next as `doneButtonTapped` does; the flows press Enter for it
+ * (`helpers/amount_done.yaml`). Labels that sit inside a tappable control carry their own test
  * id, so the tap target is a transparent layer over them rather than their parent —
  * a clickable parent would merge the label's id away.
  *
@@ -174,33 +186,53 @@ internal fun SendScreen(
         }
     }
 
+    // `addHeader` with the piggy over a block centred in the whole sheet, as `SendViewController`
+    // lays it out: Scan and Paste, and 25 under them `yellowCard`, 15 in, `yelloworblue2` with 13
+    // corners and the iOS shadow. A tap beside the fields closes the keyboard (`backgroundButton`).
     Box(modifier = modifier) {
-    BittrCanvas(modifier = Modifier.dismissOnPullDown(onDown), appBar = false) {
-        BittrModalHeader(
-            title = SendStrings.SEND_BITCOIN,
-            onDown = onDown,
-            icon = BittrIconPaths.PIGGY,
-            titleTestTag = TestID.Header.titleLabel,
-            downTestTag = TestID.Header.downButton,
-        )
+    BoxWithConstraints(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(BittrTheme.colors.canvas)
+            .dismissOnPullDown(onDown)
+            .imePadding()
+            .pointerInput(Unit) { detectTapGestures { focusManager.clearFocus() } },
+    ) {
+        val sheetHeight = maxHeight
+        val confirm = state.confirm
         Column(
+            verticalArrangement = Arrangement.Center,
+            horizontalAlignment = Alignment.CenterHorizontally,
             modifier = Modifier
-                .weight(1f)
                 .fillMaxWidth()
-                .imePadding()
                 .verticalScroll(rememberScrollState())
-                .padding(BittrTokens.Spacing.md),
+                .heightIn(min = sheetHeight)
+                .padding(vertical = 58.dp),
         ) {
-            BittrCard(horizontalAlignment = Alignment.Start) {
-                val confirm = state.confirm
+            if (confirm == null) {
+                ScanAndPaste(
+                    onScan = {
+                        focusManager.clearFocus()
+                        onOpenScanner()
+                    },
+                    onPaste = { focusManager.clearFocus() },
+                    controller = controller,
+                )
+                Gap(25.dp)
+            }
+            Column(
+                horizontalAlignment = if (confirm == null) Alignment.CenterHorizontally else Alignment.Start,
+                modifier = Modifier
+                    .padding(horizontal = 15.dp)
+                    .fillMaxWidth()
+                    .iosShadow(YellowCardShape)
+                    .background(BittrTheme.colors.levelCard, YellowCardShape)
+                    .padding(start = 20.dp, end = 20.dp, top = 30.dp, bottom = if (confirm == null) 30.dp else 20.dp),
+            ) {
                 if (confirm == null) {
                     SendPage(
                         state = state,
                         controller = controller,
-                        onScan = {
-                            focusManager.clearFocus()
-                            onOpenScanner()
-                        },
                         clearFocus = { focusManager.clearFocus() },
                     )
                 } else {
@@ -208,6 +240,14 @@ internal fun SendScreen(
                 }
             }
         }
+
+        BittrSheetHeader(
+            icon = painterResource(DesignR.drawable.bittr_piggy_icon),
+            title = SendStrings.SEND_BITCOIN,
+            onDown = onDown,
+            titleTestTag = TestID.Header.titleLabel,
+            downTestTag = TestID.Header.downButton,
+        )
     }
     if (state.lnurlLoading) LoadingCover(SendStrings.HANDLING_LNURL, TestID.Loading.handlingLnurl)
     }
@@ -221,65 +261,109 @@ private fun BoxScope.LoadingCover(message: String, testTag: String) {
     }
 }
 
+/**
+ * `Buttons Stack`: Scan and Paste, two 70 pt `whiteorblue3` squares 10 apart with 8 corners and
+ * the iOS shadow. The labels share one line, 43 from the top; above them `qrcode` (22 × 19) and
+ * `clipboard` (20 × 23) sit where the storyboard draws them, 17.7 and 13.7 from the top, so the
+ * taller clipboard rises rather than pushing its label down.
+ */
+@Composable
+private fun ScanAndPaste(onScan: () -> Unit, onPaste: () -> Unit, controller: SendController) {
+    val clipboard = rememberTextClipboard()
+    Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+        SquareButton(SendStrings.SCAN, SCAN_PATH, iconWidth = 22.dp, iconHeight = 19.dp, iconTop = 17.67.dp, testTag = TestID.Send.scanButton, onClick = onScan)
+        SquareButton(SendStrings.PASTE, PASTE_PATH, iconWidth = 20.dp, iconHeight = 23.dp, iconTop = 13.67.dp, testTag = TestID.Send.pasteButton) {
+            onPaste()
+            clipboard.paste(controller::onPaste)
+        }
+    }
+}
+
+@Composable
+private fun SquareButton(
+    label: String,
+    path: String,
+    iconWidth: Dp,
+    iconHeight: Dp,
+    iconTop: Dp,
+    testTag: String,
+    onClick: () -> Unit,
+) {
+    Box(
+        modifier = Modifier
+            .size(70.dp)
+            .iosShadow(PlateShape)
+            .clip(PlateShape)
+            .background(MaterialTheme.colorScheme.surfaceContainerHigh)
+            .clickable(onClick = onClick)
+            .testTag(testTag),
+    ) {
+        Image(
+            rememberStrokeIcon(path, MaterialTheme.colorScheme.onSurface, strokeWidth = 1.6f),
+            contentDescription = null,
+            contentScale = ContentScale.FillBounds,
+            modifier = Modifier
+                .align(Alignment.TopCenter)
+                .padding(top = iconTop)
+                .size(width = iconWidth, height = iconHeight),
+        )
+        Text(
+            label,
+            style = Bold14,
+            color = MaterialTheme.colorScheme.onSurface,
+            modifier = Modifier
+                .align(Alignment.TopCenter)
+                .padding(top = 43.dp),
+        )
+    }
+}
+
+/**
+ * The card's content: the Regular / Instant switch with its question mark, `toLabel` 25 under
+ * it, the address and the amount fields (45 tall, 10 apart, the text centred), what can be sent
+ * with its question mark, and Next — as the storyboard spaces them.
+ */
 @Composable
 private fun ColumnScope.SendPage(
     state: SendUiState,
     controller: SendController,
-    onScan: () -> Unit,
     clearFocus: () -> Unit,
 ) {
-    val clipboard = rememberTextClipboard()
     val amountFocus = remember { FocusRequester() }
-    var amountFocused by remember { mutableStateOf(false) }
     // A pay request with a range: `amountTextField.becomeFirstResponder()`.
     LaunchedEffect(state.focusAmountRequests) {
         if (state.focusAmountRequests > 0) amountFocus.requestFocus()
     }
 
-    Row(horizontalArrangement = Arrangement.spacedBy(BittrTokens.Spacing.sm), verticalAlignment = Alignment.CenterVertically) {
-        // One connected, single-select control — the proposal's segmented button — rather than
-        // two detached chips (review, `send_lightning/02`).
-        Row(
-            modifier = Modifier
-                .weight(1f)
-                .height(48.dp)
-                .clip(BittrCanvasShapes.pill)
-                .border(1.dp, MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f), BittrCanvasShapes.pill),
-        ) {
-            ModeTile(SendStrings.REGULAR, selected = state.mode == SendMode.Onchain, bolt = false, testTag = TestID.Send.regularButton, modifier = Modifier.weight(1f)) {
+    // `Switch Stack` centred on the card, `switchQuestionMark` 10 after it. The 40 on the left
+    // balances the question mark's 40 target on the right, so the switch itself is centred.
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Spacer(Modifier.width(40.dp))
+        Row(horizontalArrangement = Arrangement.spacedBy(7.5.dp)) {
+            ModeTile(SendStrings.REGULAR, selected = state.mode == SendMode.Onchain, bolt = false, testTag = TestID.Send.regularButton) {
                 clearFocus()
                 controller.onModeSelected(SendMode.Onchain)
             }
-            Box(
-                Modifier
-                    .width(1.dp)
-                    .fillMaxHeight()
-                    .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f)),
-            )
-            ModeTile(SendStrings.INSTANT, selected = state.mode == SendMode.Lightning, bolt = true, testTag = null, modifier = Modifier.weight(1f)) {
+            ModeTile(SendStrings.INSTANT, selected = state.mode == SendMode.Lightning, bolt = true, testTag = null) {
                 clearFocus()
                 controller.onModeSelected(SendMode.Lightning)
             }
         }
-        QuestionMark(TestID.Send.switchQuestionButton) {
+        SmallQuestion(TestID.Send.switchQuestionButton, Modifier.offset(x = (-2).dp)) {
             clearFocus()
             controller.onSwitchQuestion()
         }
     }
 
-    Gap()
-    Text(state.toLabel, style = MaterialTheme.typography.titleMedium, color = BittrTheme.colors.emphasis, modifier = Modifier.testTag(TestID.Send.toLabel))
-    Gap(BittrTokens.Spacing.xs)
-    // The two ways in first, then the field they fill — the proposal's order (review, pass 2,
-    // `send_swap_suggestion_*/02`).
-    Row(horizontalArrangement = Arrangement.spacedBy(BittrTokens.Spacing.sm)) {
-        ActionTile(SendStrings.SCAN, SCAN_PATH, TestID.Send.scanButton, Modifier.weight(1f), onScan)
-        ActionTile(SendStrings.PASTE, PASTE_PATH, TestID.Send.pasteButton, Modifier.weight(1f)) {
-            clearFocus()
-            clipboard.paste(controller::onPaste)
-        }
-    }
-    Gap(BittrTokens.Spacing.sm)
+    Gap(25.dp)
+    Text(
+        state.toLabel,
+        style = MaterialTheme.typography.labelLarge.copy(lineHeight = 16.sp),
+        color = BittrTheme.colors.emphasis,
+        textAlign = TextAlign.Center,
+        modifier = Modifier.testTag(TestID.Send.toLabel),
+    )
+    Gap(12.dp)
     Entry(
         value = state.toText,
         placeholder = state.toPlaceholder,
@@ -292,61 +376,70 @@ private fun ColumnScope.SendPage(
         ellipsizeWhenIdle = true,
     )
 
-    Gap()
-    Row(verticalAlignment = Alignment.CenterVertically) {
+    Gap(10.dp)
+    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
         Entry(
             value = state.amountText,
             placeholder = SendStrings.ENTER_AMOUNT,
             onValueChange = controller::onAmountChange,
-            keyboardType = if (state.currency == AmountCurrency.Satoshis) KeyboardType.Number else KeyboardType.Decimal,
+            // Whole satoshis take digits only. `Number` is not that: Gboard and Samsung's keyboard
+            // still offer `,` `.` and `-` on it. `NumberPassword` is the digit-only pad, and a
+            // BasicTextField has no visual transformation, so nothing is masked. Bitcoin and
+            // fiat amounts keep the decimal separator.
+            keyboardType = if (state.currency == AmountCurrency.Satoshis) KeyboardType.NumberPassword else KeyboardType.Decimal,
             imeAction = ImeAction.Done,
             onIme = {
                 clearFocus()
                 controller.onNext()
             },
             testTag = TestID.Send.amountTextField,
+            // The keyboard's ✓ is iOS's toolbar Done (`doneButtonTapped`): it closes the
+            // keyboard and goes on to Next.
             modifier = Modifier
                 .weight(1f)
-                .focusRequester(amountFocus)
-                .onFocusChanged { amountFocused = it.hasFocus },
-            // Field and unit are one control: the field's right corners and the chip's left
-            // ones are square, and nothing sits between them (review, pass 3).
-            shape = RoundedCornerShape(topStart = 16.dp, bottomStart = 16.dp),
+                .focusRequester(amountFocus),
         )
-        OverlaidTile(
-            TestID.Send.currencyButton,
-            onClick = {
-                clearFocus()
-                controller.onCurrencyButton()
-            },
-            shape = RoundedCornerShape(topEnd = 16.dp, bottomEnd = 16.dp),
+        // `btcView`: 45 square, `whiteorblue3` with the iOS shadow.
+        Box(
+            contentAlignment = Alignment.Center,
+            modifier = Modifier
+                .height(FieldHeight)
+                .widthIn(min = FieldHeight)
+                .iosShadow(PlateShape)
+                .background(MaterialTheme.colorScheme.surfaceContainerHigh, PlateShape),
         ) {
-            Text(state.currencyLabel, style = MaterialTheme.typography.labelLarge, modifier = Modifier.testTag(TestID.Send.currencyLabel))
-        }
-        // The keyboard's companion, so only there while the amount is being typed: with the
-        // keyboard down it competed with the screen's own Next (review, `send_lightning/02`).
-        if (amountFocused) {
+            // Under the label, not over it: a node a later sibling covers entirely is dropped
+            // from the accessibility tree, which would hide the label's own test id.
             Box(
-                contentAlignment = Alignment.Center,
                 modifier = Modifier
-                    .padding(start = BittrTokens.Spacing.sm)
-                    .height(56.dp)
-                    .clip(BittrCanvasShapes.pill)
-                    .background(BittrTheme.colors.actionFill)
+                    .matchParentSize()
+                    .clip(PlateShape)
                     .clickable {
                         clearFocus()
-                        controller.onNext()
+                        controller.onCurrencyButton()
                     }
-                    .padding(horizontal = BittrTokens.Spacing.lg),
-            ) {
-                Text(SendStrings.DONE, style = MaterialTheme.typography.labelLarge, color = BittrTheme.colors.onActionFill)
-            }
+                    .testTag(TestID.Send.currencyButton),
+            )
+            Text(
+                state.currencyLabel,
+                style = Bold14,
+                color = MaterialTheme.colorScheme.onSurface,
+                modifier = Modifier
+                    .padding(horizontal = 6.dp)
+                    .offset(y = 1.dp)
+                    .testTag(TestID.Send.currencyLabel),
+            )
         }
     }
 
-    Gap(BittrTokens.Spacing.sm)
-    Row(verticalAlignment = Alignment.CenterVertically) {
-        Box(modifier = Modifier.weight(1f, fill = false)) {
+    // `Available Stack`: 2 under the amount, 40 tall, the line centred with its question mark 5
+    // after it and `bdkSpinner` 8 after that.
+    Gap(2.dp)
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier.height(40.dp),
+    ) {
+        Box {
             Box(
                 modifier = Modifier
                     .matchParentSize()
@@ -356,26 +449,34 @@ private fun ColumnScope.SendPage(
                     }
                     .testTag(TestID.Send.availableButton),
             )
-            Text(state.available, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.testTag(TestID.Send.availableLabel))
-        }
-        if (state.availableLoading) {
-            BittrSpinner(
-                strokeWidth = 2.dp,
+            Text(
+                state.available,
+                style = MaterialTheme.typography.bodyLarge.copy(lineHeight = 16.sp),
                 color = MaterialTheme.colorScheme.onSurface,
-                modifier = Modifier
-                    .padding(start = BittrTokens.Spacing.xs)
-                    .size(16.dp)
-                    .testTag(TestID.Send.bdkSpinner),
+                textAlign = TextAlign.Center,
+                modifier = Modifier.testTag(TestID.Send.availableLabel),
             )
         }
-        QuestionMark(TestID.Send.availableQuestionButton) {
-            clearFocus()
-            controller.onAvailableQuestion()
+        Box(contentAlignment = Alignment.CenterStart) {
+            SmallQuestion(TestID.Send.availableQuestionButton, Modifier.offset(x = (-7).dp)) {
+                clearFocus()
+                controller.onAvailableQuestion()
+            }
+            if (state.availableLoading) {
+                BittrSpinner(
+                    strokeWidth = 2.dp,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    modifier = Modifier
+                        .padding(start = 29.dp)
+                        .size(16.dp)
+                        .testTag(TestID.Send.bdkSpinner),
+                )
+            }
         }
     }
 
-    Gap()
-    PrimaryButton(SendStrings.NEXT, loading = state.nextLoading, testTag = TestID.Send.nextButton, modifier = Modifier.fillMaxWidth()) {
+    Gap(16.dp)
+    NextButton(loading = state.nextLoading) {
         clearFocus()
         controller.onNext()
     }
@@ -495,77 +596,93 @@ private fun InfoBox(content: @Composable ColumnScope.() -> Unit) {
     )
 }
 
-/** One segment of the payment-mode selector: white with a leading glyph when selected, cream when not. */
+/**
+ * One half of `Switch Stack`: 40 tall with 8 corners, `whiteorblue3` with a faint shadow when
+ * chosen and `white0.7orblue1` when not; the Gilroy-Bold 14 label 20 from either end, and on
+ * Instant the 12 pt `bolt.fill` 16 in with the label 4 after it.
+ */
 @Composable
-private fun ModeTile(label: String, selected: Boolean, bolt: Boolean, testTag: String?, modifier: Modifier, onClick: () -> Unit) {
+private fun ModeTile(label: String, selected: Boolean, bolt: Boolean, testTag: String?, onClick: () -> Unit) {
+    val colors = BittrTheme.colors
     Row(
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.Center,
-        modifier = modifier
-            .fillMaxHeight()
-            .background(if (selected) MaterialTheme.colorScheme.surfaceContainer else BittrTheme.colors.tonalFill)
+        modifier = Modifier
+            .height(40.dp)
+            .then(if (selected) Modifier.iosShadow(PlateShape) else Modifier)
+            .clip(PlateShape)
+            .background(if (selected) MaterialTheme.colorScheme.surfaceContainerHigh else colors.scrim1)
             .selectable(selected = selected, role = Role.RadioButton, onClick = onClick)
-            .then(if (testTag != null) Modifier.testTag(testTag) else Modifier),
+            .then(if (testTag != null) Modifier.testTag(testTag) else Modifier)
+            .padding(start = if (bolt) 16.dp else 20.dp, end = 20.dp),
     ) {
-        // The lightning segment always shows its bolt; the selected segment leads with a check
-        // otherwise, as Material's segmented button does.
-        val glyph = when {
-            bolt -> BittrIconPaths.BOLT
-            selected -> BittrIconPaths.CHECK
-            else -> null
-        }
-        if (glyph != null) {
+        if (bolt) {
             Image(
-                rememberStrokeIcon(glyph, MaterialTheme.colorScheme.onSurface, strokeWidth = 2f),
+                rememberFillIcon(BittrIconPaths.BOLT, MaterialTheme.colorScheme.onSurface),
                 contentDescription = null,
                 modifier = Modifier
-                    .padding(end = 6.dp)
-                    .size(18.dp),
+                    .padding(end = 4.dp)
+                    .size(13.dp),
             )
         }
-        Text(label, style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurface)
+        Text(label, style = Bold14, color = MaterialTheme.colorScheme.onSurface, modifier = Modifier.offset(y = 1.dp))
     }
 }
 
+/** `questionmark.circle`, 16 pt in black or white, in a 40 pt target. */
 @Composable
-private fun ActionTile(label: String, path: String, testTag: String, modifier: Modifier, onClick: () -> Unit) {
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(6.dp, Alignment.CenterHorizontally),
+private fun SmallQuestion(testTag: String, modifier: Modifier = Modifier, onClick: () -> Unit) {
+    Box(
+        contentAlignment = Alignment.Center,
         modifier = modifier
-            .height(44.dp)
-            .background(BittrTheme.colors.tonalFill, RoundedCornerShape(8.dp))
-            .clickable(onClick = onClick)
+            .size(40.dp)
+            .clip(CircleShape)
+            .clickable(role = Role.Button, onClick = onClick)
             .testTag(testTag),
     ) {
-        Image(rememberStrokeIcon(path, BittrTheme.colors.onTonalFill, strokeWidth = 2f), contentDescription = null, modifier = Modifier.size(18.dp))
-        Text(label, style = MaterialTheme.typography.labelLarge, color = BittrTheme.colors.onTonalFill)
+        Image(
+            rememberFillIcon(BittrIconPaths.HELP, MaterialTheme.colorScheme.onSurface),
+            contentDescription = "More information",
+            modifier = Modifier.size(16.dp),
+        )
     }
 }
 
+/**
+ * `nextView`: 40 tall and black with 8 corners, "Next" in Gilroy-Bold 14 17 in and the 11 pt
+ * white arrow 10 after it and 17 from the end; the spinner in its place while it works.
+ */
 @Composable
-private fun OverlaidTile(
-    testTag: String,
-    onClick: () -> Unit,
-    shape: androidx.compose.ui.graphics.Shape = RoundedCornerShape(8.dp),
-    content: @Composable () -> Unit,
-) {
+private fun NextButton(loading: Boolean, onClick: () -> Unit) {
+    val colors = BittrTheme.colors
     Box(
         contentAlignment = Alignment.Center,
         modifier = Modifier
-            .height(56.dp)
-            .background(BittrTheme.colors.tonalFill, shape)
-            .padding(horizontal = BittrTokens.Spacing.md),
+            .height(40.dp)
+            .clip(PlateShape)
+            .background(colors.actionFill)
+            .clickable(onClick = onClick)
+            .testTag(TestID.Send.nextButton),
     ) {
-        // Under the content, not over it: a node a later sibling covers entirely is dropped
-        // from the accessibility tree, which would hide the label's own test id.
-        Box(
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier
-                .matchParentSize()
-                .clickable(onClick = onClick)
-                .testTag(testTag),
-        )
-        content()
+                .padding(horizontal = 17.dp)
+                .alpha(if (loading) 0f else 1f),
+        ) {
+            Text(SendStrings.NEXT, style = Bold14, color = colors.onActionFill, modifier = Modifier.offset(y = 1.dp))
+            // iOS's own `arrowrightwhite`, tinted so it follows the label in dark mode too.
+            Image(
+                painter = painterResource(DesignR.drawable.bittr_arrow_right),
+                contentDescription = null,
+                colorFilter = ColorFilter.tint(colors.onActionFill),
+                modifier = Modifier
+                    .padding(start = 10.dp)
+                    .size(11.dp),
+            )
+        }
+        if (loading) {
+            BittrSpinner(strokeWidth = 2.dp, color = colors.onActionFill, modifier = Modifier.size(20.dp))
+        }
     }
 }
 
@@ -595,6 +712,10 @@ private fun PrimaryButton(label: String, loading: Boolean, testTag: String, modi
     }
 }
 
+/**
+ * `toView` / `amountView`: 45 tall, `white0.7orblue1` with 8 corners, Gilroy-Regular 16 centred
+ * 15 from either end.
+ */
 @Composable
 private fun Entry(
     value: String,
@@ -605,7 +726,6 @@ private fun Entry(
     onIme: () -> Unit,
     testTag: String,
     modifier: Modifier = Modifier,
-    shape: androidx.compose.ui.graphics.Shape = BittrCanvasShapes.field,
     ellipsizeWhenIdle: Boolean = false,
 ) {
     val colors = BittrTheme.colors
@@ -614,32 +734,42 @@ private fun Entry(
     // clipping mid-string at the field's edge (review, pass 3). The field underneath keeps the
     // whole value, and its test id, for editing and for the flows.
     val idleText = ellipsizeWhenIdle && !focused && value.isNotEmpty()
+    val style = MaterialTheme.typography.bodyLarge.copy(textAlign = TextAlign.Center)
     Box(
-        contentAlignment = Alignment.CenterStart,
+        contentAlignment = Alignment.Center,
         modifier = modifier
-            .height(56.dp)
-            .background(MaterialTheme.colorScheme.surfaceContainerLowest, shape)
+            .height(FieldHeight)
+            .background(colors.scrim1, PlateShape)
             .onFocusChanged { focused = it.hasFocus }
-            .padding(horizontal = BittrTokens.Spacing.md),
+            .padding(horizontal = 15.dp),
     ) {
         if (idleText) {
             Text(
                 value,
-                style = MaterialTheme.typography.bodyLarge,
+                style = style,
                 color = MaterialTheme.colorScheme.onSurface,
                 maxLines = 1,
                 overflow = TextOverflow.MiddleEllipsis,
-                modifier = Modifier.clearAndSetSemantics {},
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clearAndSetSemantics {},
             )
         }
         if (value.isEmpty()) {
-            Text(placeholder, style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1)
+            Text(
+                placeholder,
+                style = style,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.fillMaxWidth(),
+            )
         }
         BasicTextField(
             value = value,
             onValueChange = onValueChange,
             singleLine = true,
-            textStyle = MaterialTheme.typography.bodyLarge.copy(
+            textStyle = style.copy(
                 color = if (idleText) Color.Transparent else MaterialTheme.colorScheme.onSurface,
             ),
             cursorBrush = SolidColor(colors.onTonalFill),
@@ -656,5 +786,14 @@ private fun Entry(
 private fun Gap(height: androidx.compose.ui.unit.Dp = BittrTokens.Spacing.md) =
     androidx.compose.foundation.layout.Spacer(Modifier.height(height))
 
-private const val SCAN_PATH = "M4 8V4h4M16 4h4v4M20 16v4h-4M8 20H4v-4M4 12h16"
-private const val PASTE_PATH = "M9 4h6v3H9zM7 5H5v15h14V5h-2"
+private val YellowCardShape = RoundedCornerShape(13.dp)
+private val PlateShape = RoundedCornerShape(8.dp)
+private val FieldHeight = 45.dp
+private val Bold14 @Composable get() = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold, lineHeight = 14.sp)
+
+/** SF Symbols' `qrcode`: three finder squares and the scattered modules, drawn on a 24 grid. */
+private const val SCAN_PATH =
+    "M3.5 3.5h7v7h-7z M13.5 3.5h7v7h-7z M3.5 13.5h7v7h-7z M6.5 6.5h1v1h-1z M16.5 6.5h1v1h-1z M6.5 16.5h1v1h-1z " +
+        "M14 14h2 M19 14h1.5 M14 17.5v3 M17.5 17.5h3v3"
+/** SF Symbols' `clipboard`: the board with its clip on top. */
+private const val PASTE_PATH = "M8 4.5H6.5a2 2 0 00-2 2v13a2 2 0 002 2h11a2 2 0 002-2v-13a2 2 0 00-2-2H16 M8.5 3h7v3h-7z"
