@@ -100,6 +100,7 @@ import androidx.compose.ui.graphics.shadow.Shadow
 import androidx.compose.ui.unit.DpOffset
 import com.bittr.android.core.designsystem.rememberFillIcon
 import com.bittr.android.core.designsystem.BittrMark
+import com.bittr.android.core.designsystem.AboveChrome
 import kotlin.math.abs
 
 /**
@@ -342,7 +343,8 @@ internal fun HomeScreen(
                 .padding(bottom = 20.dp),
         )
     }
-    if (syncStatusVisible) SyncStatusSheet(syncProgress(state), onClose = { syncStatusVisible = false })
+    // Over the menu bar, which the screen around Home draws after it — as iOS draws the sync view.
+    if (syncStatusVisible) AboveChrome { SyncStatusSheet(syncProgress(state), onClose = { syncStatusVisible = false }) }
     }
 }
 

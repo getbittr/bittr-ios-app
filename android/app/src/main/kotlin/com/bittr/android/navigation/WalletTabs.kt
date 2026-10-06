@@ -34,6 +34,10 @@ import com.bittr.android.core.designsystem.BittrNavTab
 import com.bittr.android.core.designsystem.BittrTheme
 import com.bittr.android.core.designsystem.MenuSlideSpec
 import kotlin.math.roundToInt
+import com.bittr.android.core.designsystem.OverlayHost
+import com.bittr.android.core.designsystem.LocalOverlayHost
+import com.bittr.android.core.designsystem.OverlayHostLayer
+import androidx.compose.runtime.remember
 
 /**
  * Wallet and Academy side by side under one menu bar — iOS's `homeContainerView` and
@@ -69,6 +73,9 @@ internal fun WalletTabs(
     BackHandler(enabled = tab == BittrNavTab.Academy) { tab = BittrNavTab.Wallet }
     // The bar's plates, their 10 above and 20 below, and the system bar under them.
     val bottomSpace = MenuBarSpace + WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
+    // What a page puts above the menu bar — Home's sync view, drawn over everything as iOS's
+    // `CoreViewController` draws it.
+    val overlay = remember { OverlayHost() }
 
     // Behind both pages, and seen only where the spring overshoots and a page's trailing edge pulls
     // away from the screen's: the canvas yellow, as the pages' own tops and Academy are.
@@ -82,6 +89,7 @@ internal fun WalletTabs(
         CompositionLocalProvider(
             LocalAppBarLogoVisible provides false,
             LocalAppBarBackgroundVisible provides false,
+            LocalOverlayHost provides overlay,
         ) {
             BoxWithConstraints(
                 modifier = Modifier
@@ -129,6 +137,7 @@ internal fun WalletTabs(
                 .navigationBarsPadding()
                 .padding(bottom = 20.dp),
         )
+        OverlayHostLayer(overlay)
     }
 }
 
