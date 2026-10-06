@@ -20,7 +20,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.foundation.border
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
@@ -40,8 +39,6 @@ import com.bittr.android.core.designsystem.dismissOnPullDown
 import com.bittr.android.core.designsystem.BittrCard
 import com.bittr.android.core.designsystem.BittrSheetHeader
 import com.bittr.android.core.designsystem.BittrTheme
-import com.bittr.android.core.designsystem.BittrTokens
-import com.bittr.android.core.designsystem.CanvasSpacer
 import com.bittr.android.core.wallet.ChannelSummary
 import com.bittr.android.core.wallet.WalletOverviewSource
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -50,6 +47,8 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
+import androidx.compose.ui.draw.clip
+import com.bittr.android.core.designsystem.iosShadow
 
 /** The active channel, for the chart on [LightningQuestionScreen]. */
 @HiltViewModel
@@ -114,7 +113,7 @@ private fun questionVc7(channel: ChannelSummary): String =
  * `QuestionViewController`: `addHeader` with the piggy and the lower-case title, over the card
  * centred in the whole sheet — `yelloworblue2`, 13 corners and the iOS shadow, 15 from the
  * sheet's sides. The answer is Gilroy-Regular 16, centred, 25 in and 30 from the card's top, at
- * the 16.1 line pitch the iOS screenshot shows; 30 of card under it, or the channel chart 20
+ * `attributed()`'s 1.28 line height; 30 of card under it, or the channel chart 20
  * under it and 15 in, when [channel] is given. iOS leaves only 10 under the text, which sits it
  * visibly high in the card; the 30 here centres it, a deliberate departure. `<b>` in [answer] is drawn bold, as iOS's
  * `attributed()`.
@@ -154,7 +153,8 @@ fun QuestionScreen(
             ) {
                 Text(
                     text = boldTagged(answer),
-                    style = MaterialTheme.typography.bodyLarge.copy(lineHeight = 16.1.sp),
+                    // `attributed()`: Gilroy 16 at `line-height: 1.28`.
+                    style = MaterialTheme.typography.bodyLarge.copy(lineHeight = 20.48.sp),
                     color = MaterialTheme.colorScheme.onSurface,
                     textAlign = TextAlign.Center,
                     modifier = Modifier
@@ -195,48 +195,65 @@ fun QuestionScreen(
     }
 }
 
-/** `setChannelChart(forChannel:)`: balance and receive limit, the bar, and the total and reserve. */
+/**
+ * `channelView` with `setChannelChart(forChannel:)`'s figures: `whiteorblue3`, 8 corners and the iOS
+ * shadow. "Your balance" and "Receive limit" in Gilroy-Bold 14 (`blackoryellow`) 17 from the top and
+ * 15 from either side, each figure 5 under its title in Regular 13 at 90 %; 13 under those the 6 pt
+ * bar — the balance in yellow over the darker gold track, 2 corners — and 13 under it the total and
+ * reserve, centred, 15 from the bottom.
+ */
 @Composable
 private fun ChannelChart(channel: ChannelSummary) {
+    val colors = BittrTheme.colors
+    val ink = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.9f)
+    val title = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold, lineHeight = 14.sp)
+    val figure = MaterialTheme.typography.bodyMedium.copy(fontSize = 13.sp, lineHeight = 13.sp)
     Column(
-        verticalArrangement = Arrangement.spacedBy(BittrTokens.Spacing.sm),
         modifier = Modifier
             .fillMaxWidth()
-            .background(MaterialTheme.colorScheme.surfaceContainer, RoundedCornerShape(20.dp))
-            .padding(16.dp)
+            .iosShadow(ChartShape)
+            .background(MaterialTheme.colorScheme.surfaceContainerHigh, ChartShape)
+            .padding(start = 15.dp, end = 15.dp, top = 17.dp, bottom = 15.dp)
             .testTag(TestID.Question.channelView),
     ) {
         Row(modifier = Modifier.fillMaxWidth()) {
             Column(modifier = Modifier.weight(1f)) {
-                Text(SettingsStrings.YOUR_BALANCE, style = MaterialTheme.typography.labelLarge, color = BittrTheme.colors.emphasis)
-                Text(group(channel.balanceSats), style = MaterialTheme.typography.titleMedium)
+                Text(SettingsStrings.YOUR_BALANCE, style = title, color = colors.emphasis)
+                Text(group(channel.balanceSats), style = figure, color = ink, modifier = Modifier.padding(top = 5.dp))
             }
             Column(horizontalAlignment = androidx.compose.ui.Alignment.End) {
-                Text(SettingsStrings.RECEIVE_LIMIT, style = MaterialTheme.typography.labelLarge, color = BittrTheme.colors.emphasis)
-                Text(group(channel.receiveLimitSats), style = MaterialTheme.typography.titleMedium)
+                Text(SettingsStrings.RECEIVE_LIMIT, style = title, color = colors.emphasis)
+                Text(group(channel.receiveLimitSats), style = figure, color = ink, modifier = Modifier.padding(top = 5.dp))
             }
         }
         Box(
             modifier = Modifier
+                .padding(top = 13.dp)
                 .fillMaxWidth()
-                .height(8.dp)
-                .background(BittrTheme.colors.barTrackWarm, RoundedCornerShape(4.dp))
-                // A warm track with a faint ink edge, not a grey one (review S30, pass 4).
-                .border(1.dp, MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f), RoundedCornerShape(4.dp)),
+                .height(6.dp)
+                .clip(RoundedCornerShape(2.dp))
+                .background(colors.barTrack),
         ) {
             Box(
                 modifier = Modifier
                     .fillMaxHeight()
                     .fillMaxWidth(channel.balanceFraction)
-                    .background(BittrTheme.colors.brandFixed, RoundedCornerShape(4.dp)),
+                    .background(colors.brandFixed),
             )
         }
         Text(
             text = "${group(channel.valueSats)} ${SettingsStrings.TOTAL}, ${group(channel.reserveSats)} ${SettingsStrings.RESERVE}",
-            style = MaterialTheme.typography.bodyMedium,
+            style = figure,
+            color = ink,
+            textAlign = TextAlign.Center,
+            modifier = Modifier
+                .padding(top = 13.dp)
+                .fillMaxWidth(),
         )
     }
 }
+
+private val ChartShape = RoundedCornerShape(8.dp)
 
 /** `addSpaces()`. */
 private fun group(value: Long): String = value.toString().reversed().chunked(3).joinToString(" ").reversed()
