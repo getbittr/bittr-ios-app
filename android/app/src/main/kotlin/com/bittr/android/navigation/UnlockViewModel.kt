@@ -301,6 +301,7 @@ class UnlockViewModel @Inject constructor(
      * never navigates to Home for a wallet that is still locked behind the old PIN.
      */
     fun submitConfirmationPin(pin: String, onDone: () -> Unit) {
+        if (_uiState.value.busy) return
         val expected = firstPin
         val mnemonic = provenSeed
         if (expected == null || mnemonic == null) {
@@ -313,14 +314,16 @@ class UnlockViewModel @Inject constructor(
             showAlert(SignupStrings.INCORRECT_PIN, SignupStrings.REPEAT_NUMBER)
             return
         }
-        if (_uiState.value.busy) return
         _uiState.value = _uiState.value.copy(busy = true)
         viewModelScope.launch {
             try {
                 wallet.resetPin(mnemonic, pin)
                 provenSeed = null
                 firstPin = null
-                _uiState.value = UnlockUiState()
+                // Restore3 stays on as the gate leaves: iOS's `hideSignup` slides it away to Home,
+                // as the unlock pad goes. Stepping back to the pad here would run the gate's own
+                // slide down to it against the slide up to Home, which then sits there already. Still
+                // busy, so a second Confirm during the slide does nothing.
                 onDone()
             } catch (e: WrongSeedException) {
                 // Belt and braces: holdsSeed already said yes. Reaching here means the
