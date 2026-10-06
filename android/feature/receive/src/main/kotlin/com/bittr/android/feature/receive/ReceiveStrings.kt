@@ -29,6 +29,9 @@ internal object ReceiveStrings {
     const val COPY = "Copy"
     const val RENEW = "Renew"
     const val ADD_AMOUNT = "Add amount"
+    /** `receiveenteramount` and `receiveenterdescription`, the amount stack's placeholders. */
+    const val ENTER_AMOUNT = "Enter amount"
+    const val ADD_A_NOTE = "Add a note"
     const val MORE = "More"
 
     // The question-mark alerts.
@@ -86,12 +89,6 @@ internal object ReceiveStrings {
     const val BITCOIN = "Bitcoin"
     const val SATS_LABEL = "Sats"
     const val BTC_LABEL = "BTC"
-
-    /** `amount`, as the amount field's placeholder. */
-    const val AMOUNT = "Amount"
-
-    /** `description`, as the description field's placeholder. */
-    const val DESCRIPTION = "Description"
 
     /** `copied`. */
     const val COPIED = "Copied"
