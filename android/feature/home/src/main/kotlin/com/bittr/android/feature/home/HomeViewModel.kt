@@ -44,6 +44,8 @@ import kotlinx.coroutines.launch
 data class HomeUiState(
     val walletState: WalletState = WalletState.Uninitialized,
     val walletHasSynced: Boolean = false,
+    /** The node is up (`completeSync(.ldk)`), ahead of the sync and the first reading. */
+    val nodeStarted: Boolean = false,
     val showSyncSpinner: Boolean = false,
     val balanceSats: Long? = null,
     /** `conversionLabel` — the balance in the display currency, e.g. "CHF 190". */
@@ -167,6 +169,7 @@ class HomeViewModel @Inject constructor(
         HomeUiState(
             walletState = state,
             walletHasSynced = wallet.hasSynced,
+            nodeStarted = wallet.nodeStarted,
             showSyncSpinner = wallet.hasNode && !wallet.hasSynced,
             balanceSats = balance,
             // `updateConversionLabel`: the chosen currency and the balance in it, "€ 0" before a

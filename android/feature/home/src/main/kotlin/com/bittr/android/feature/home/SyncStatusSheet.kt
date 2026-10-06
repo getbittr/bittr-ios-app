@@ -52,15 +52,15 @@ import kotlinx.coroutines.launch
 /**
  * The three rows of `CoreViewController`'s sync view, and whether each is done.
  *
- * iOS completes "Start lightning node" when the node has started and "Final calculations" after
- * `loadWalletData()`. Android's overview only publishes once both have happened, so the two
- * complete together on the first wallet reading.
+ * iOS completes "Start lightning node" when the node has started (`completeSync(.ldk)`) and runs
+ * the wallets' sync and `loadWalletData()` under "Final calculations", which completes with the
+ * first wallet reading.
  */
 internal data class SyncProgress(val conversion: Boolean, val node: Boolean, val final: Boolean)
 
 internal fun syncProgress(state: HomeUiState) = SyncProgress(
     conversion = state.conversionFetched,
-    node = state.walletHasSynced,
+    node = state.nodeStarted || state.walletHasSynced,
     final = state.walletHasSynced,
 )
 

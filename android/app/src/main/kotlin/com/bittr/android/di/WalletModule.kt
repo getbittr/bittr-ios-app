@@ -640,6 +640,7 @@ object WalletModule {
                         Log.e(TAG, "Runner $name failed", failure)
                     }
                 },
+                onNodeUp = overview::nodeUp,
             ),
             // `wipeNodeState` deliberately left as the no-op default. Removing a
             // wallet erases the seed and nothing else, which is
