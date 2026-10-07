@@ -44,6 +44,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.bittr.android.core.common.TestID
+import com.bittr.android.core.designsystem.ScreenshotProtection
 import com.bittr.android.core.designsystem.BittrCanvas
 import com.bittr.android.core.designsystem.BittrCard
 import com.bittr.android.core.designsystem.BittrPrimaryButton
@@ -98,6 +99,8 @@ fun VerifyScreen(
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    // Words of the recovery phrase are typed here: out of screenshots, recordings and Recents.
+    ScreenshotProtection()
     val answers = remember(challenge) {
         mutableStateListOf(*Array(SeedChallenge.ASK_COUNT) { "" })
     }

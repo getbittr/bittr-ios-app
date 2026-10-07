@@ -53,6 +53,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.bittr.android.core.common.TestID
+import com.bittr.android.core.designsystem.ScreenshotProtection
 import com.bittr.android.core.designsystem.BittrCanvas
 import com.bittr.android.core.designsystem.BittrPrimaryButton
 import com.bittr.android.core.designsystem.BittrTextButton
@@ -125,6 +126,8 @@ fun RestoreScreen(
     onRemoveWallet: (() -> Unit)? = null,
     onOpenArticle: ((String) -> Unit)? = null,
 ) {
+    // The recovery phrase is typed here: out of screenshots, recordings and Recents.
+    ScreenshotProtection()
     val words = remember { mutableStateListOf(*Array(Bip39.WORD_COUNT) { "" }) }
     val focusRequesters = remember { List(Bip39.WORD_COUNT) { FocusRequester() } }
     val keyboard = LocalSoftwareKeyboardController.current

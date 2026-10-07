@@ -25,6 +25,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.bittr.android.core.common.TestID
+import com.bittr.android.core.designsystem.ScreenshotProtection
 import com.bittr.android.core.designsystem.BittrCanvas
 import com.bittr.android.core.designsystem.BittrCard
 import com.bittr.android.core.designsystem.BittrPrimaryButton
@@ -64,6 +65,8 @@ fun MnemonicScreen(
     modifier: Modifier = Modifier,
     onOpenArticle: ((String) -> Unit)? = null,
 ) {
+    // The recovery phrase is on screen: out of screenshots, recordings and Recents.
+    ScreenshotProtection()
     BackHandler(enabled = onBack != null) { onBack?.invoke() }
     // No arrow in the app bar, as on iOS; the system back gesture goes back when there is a back.
     // The words scroll up under the translucent top bar, as they do on iOS.
