@@ -30,9 +30,15 @@ appId: ${APP_ID}
     id: "signup.bittr.start.emailButton"
 - inputText: "e2ebittr@getbittr.com"
 - takeScreenshot: shared/docs/screenshots/onboarding/14_bittr_start_filled
-# Press Return — Transfer1's textFieldShouldReturn auto-triggers nextButtonTapped
-# when the email field is focused and both fields are valid.
-- pressKey: Enter
+# Dismiss the keyboard via the top label, then tap Verify — as
+# buy_signup_no_notifications.yaml does. Not `pressKey: Enter`: on Android that is
+# a hardware key, which puts the window in non-touch mode, so Verify's
+# clearFocus() hands focus straight back to the IBAN field and the keyboard stays
+# up over the initiative sheet's confirm button.
+- tapOn:
+    id: "signup.bittr.start.topLabelOne"
+- tapOn:
+    id: "signup.bittr.start.nextButton"
 
 # The T&C §2.5 exclusive-initiative confirmation. It is asked once per
 # registration and nothing reaches Bittr until it is given, so this sits
