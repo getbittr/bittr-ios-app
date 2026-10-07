@@ -85,6 +85,7 @@ internal fun PushAlertOverlay(alert: PushAlert, transactionOpen: Boolean, onButt
             BittrAlertButton(label = button.label, dismissesAlert = button.dismisses) { onButton(button) }
         },
         cardTestTag = alert.testTag,
+        identity = alert,
     )
 }
 

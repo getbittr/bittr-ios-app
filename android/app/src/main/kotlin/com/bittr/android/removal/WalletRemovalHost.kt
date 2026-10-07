@@ -75,6 +75,7 @@ fun WalletRemovalHost(
                         onClick = { coordinator.press(alert, button) },
                     )
                 },
+                identity = alert,
             )
         }
     }

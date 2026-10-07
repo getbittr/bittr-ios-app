@@ -177,6 +177,7 @@ internal fun SendScreen(
                 onSave = { text -> controller.onAlertText(1, text) },
                 testTag = alert.tag,
                 keyboardType = KeyboardType.Number,
+                identity = alert,
             )
         } else {
             BittrAlert(
@@ -186,6 +187,7 @@ internal fun SendScreen(
                     BittrAlertButton(label = button.label, dismissesAlert = position == 0, onClick = { controller.onAlertButton(position) })
                 },
                 modifier = if (alert.tag != null) Modifier.testTag(alert.tag) else Modifier,
+                identity = alert,
             )
         }
     }

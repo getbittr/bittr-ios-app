@@ -61,9 +61,13 @@ fun BittrTextFieldAlert(
     message: String? = null,
     testTag: String? = null,
     keyboardType: KeyboardType = KeyboardType.Text,
+    // See [BittrAlert]: asked again — the LNURL withdraw amount after one out of range — the
+    // alert is new, with the same title and an empty field, and needs its own card.
+    identity: Any? = null,
 ) {
-    var text by remember(initialText) { mutableStateOf(initialText) }
-    val motion = rememberAlertMotion(title, initialText)
+    val key = AlertIdentity.of(identity)
+    var text by remember(key, initialText) { mutableStateOf(initialText) }
+    val motion = rememberAlertMotion(key, title, initialText)
     if (motion.gone) return
     val focus = LocalFocusManager.current
     val field = remember { FocusRequester() }

@@ -141,6 +141,7 @@ internal fun SwapScreen(state: SwapUiState, controller: SwapController, onDown: 
                 BittrAlertButton(label = button.label, dismissesAlert = position == 0, onClick = button.onClick)
             },
             modifier = if (alert.tag != null) Modifier.testTag(alert.tag) else Modifier,
+            identity = alert,
         )
     }
 

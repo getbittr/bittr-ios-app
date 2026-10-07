@@ -153,6 +153,7 @@ internal fun DeviceScreen(
             message = it.message,
             messageIsValue = it.messageIsValue,
             valueWraps = true,
+            identity = it,
             buttons = it.buttons.map { button ->
                 BittrAlertButton(
                     label = button.label,

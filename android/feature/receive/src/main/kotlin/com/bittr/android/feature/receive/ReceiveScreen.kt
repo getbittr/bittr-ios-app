@@ -142,6 +142,7 @@ internal fun ReceiveScreen(
             title = alert.title,
             message = alert.message,
             messageIsValue = alert.messageIsValue,
+            identity = alert,
             buttons = alert.buttons.mapIndexed { position, button ->
                 BittrAlertButton(
                     label = button.label,

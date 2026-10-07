@@ -38,6 +38,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.RememberObserver
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -114,6 +115,9 @@ data class BittrAlertButton(
  * ids keep the caller's order wherever the button lands.
  *
  * Its own window: a full-screen dialog whose dim and motion are this card's.
+ *
+ * [identity] is the caller's alert, when it has one: a new one gets its own card even with the same
+ * words, rather than the card of one that is sliding away — see [rememberAlertMotion].
  */
 @Composable
 fun BittrAlert(
@@ -123,12 +127,13 @@ fun BittrAlert(
     modifier: Modifier = Modifier,
     messageIsValue: Boolean = false,
     valueWraps: Boolean = false,
+    identity: Any? = null,
 ) {
     require(buttons.isNotEmpty()) {
         "A BittrAlert with no buttons cannot be dismissed — it would trap the user on " +
             "the screen underneath it."
     }
-    val motion = rememberAlertMotion(title, message, buttons.map { it.label })
+    val motion = rememberAlertMotion(AlertIdentity.of(identity), title, message, buttons.map { it.label })
     if (motion.gone) return
     // Out here, in the screen's composition: inside the dialog the focus and keyboard are the
     // dialog window's, not the field's that has the keyboard up.
@@ -169,12 +174,14 @@ fun BittrInlineAlert(
     cardTestTag: String? = null,
     messageIsValue: Boolean = false,
     valueWraps: Boolean = false,
+    // See [BittrAlert].
+    identity: Any? = null,
 ) {
     require(buttons.isNotEmpty()) {
         "A BittrInlineAlert with no buttons cannot be dismissed — it would trap the user on " +
             "the screen underneath it."
     }
-    val motion = rememberAlertMotion(title, message, buttons.map { it.label })
+    val motion = rememberAlertMotion(AlertIdentity.of(identity), title, message, buttons.map { it.label })
     if (motion.gone) return
     CloseKeyboardOnShow(motion)
     AlertOverlay(
@@ -240,14 +247,20 @@ fun BittrLoadingCard(
 /**
  * The card's motion: 0 below the screen, 1 in place. [close] slides it out, then marks it
  * [gone] — so its window or dim stops catching touches — and only then runs what closed it.
+ *
+ * Only if this is still the card on screen. The slide takes [AlertCloseMs], and a newer alert can
+ * replace this one meanwhile — a push, a status that arrived — which forgets this motion. Run then,
+ * the tap would act on that newer alert instead: clear it, or press its button at the same
+ * position. The tap belonged to an alert that is gone, so it does nothing.
  */
 @Stable
-internal class AlertMotion(private val scope: CoroutineScope) {
+internal class AlertMotion(private val scope: CoroutineScope) : RememberObserver {
     val progress = Animatable(0f)
     var closing by mutableStateOf(false)
         private set
     var gone by mutableStateOf(false)
         private set
+    private var current = true
 
     fun close(after: () -> Unit) {
         if (closing) return
@@ -255,12 +268,40 @@ internal class AlertMotion(private val scope: CoroutineScope) {
         scope.launch {
             progress.animateTo(0f, tween(AlertCloseMs, easing = FastOutSlowInEasing))
             gone = true
-            after()
+            if (current) after()
         }
+    }
+
+    override fun onRemembered() = Unit
+
+    override fun onForgotten() {
+        current = false
+    }
+
+    override fun onAbandoned() {
+        current = false
     }
 }
 
-/** A fresh motion whenever [keys] change: a different alert slides in anew, as iOS rebuilds its card. */
+/**
+ * A caller's alert as a key, by reference: two alerts with the same words are still two alerts.
+ * Null without one, which leaves the card to its words.
+ */
+internal class AlertIdentity private constructor(private val alert: Any) {
+    override fun equals(other: Any?) = other is AlertIdentity && other.alert === alert
+
+    override fun hashCode() = System.identityHashCode(alert)
+
+    companion object {
+        fun of(alert: Any?): AlertIdentity? = alert?.let(::AlertIdentity)
+    }
+}
+
+/**
+ * A fresh motion whenever [keys] change: a different alert slides in anew, as iOS rebuilds its card.
+ * Without the caller's alert among them, a new alert with the same words as one sliding away
+ * would take that card — gone, so never drawn — rather than one of its own.
+ */
 @Composable
 internal fun rememberAlertMotion(vararg keys: Any?): AlertMotion {
     val scope = rememberCoroutineScope()

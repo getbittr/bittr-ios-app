@@ -539,6 +539,7 @@ internal fun BuyAlertCard(alert: BuyAlert, onAction: (BuyAction) -> Unit) {
         },
         cardTestTag = alert.id,
         messageIsValue = alert.id == TestID.Alert.copied,
+        identity = alert,
     )
 }
 
