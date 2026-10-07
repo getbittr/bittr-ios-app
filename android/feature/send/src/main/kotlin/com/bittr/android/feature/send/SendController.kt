@@ -14,13 +14,13 @@ import com.bittr.android.core.lnurl.LnurlService
 import com.bittr.android.core.lnurl.LnurlServiceResponse
 import com.bittr.android.core.lnurl.LnurlSource
 import com.bittr.android.core.lnurl.LnurlSourcePolicy
+import kotlinx.coroutines.flow.receiveAsFlow
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.update
@@ -163,8 +163,13 @@ class SendController(
     private val _state = MutableStateFlow(SendUiState(fiatCode = source.fiatCurrency().code))
     val state: StateFlow<SendUiState> = _state.asStateFlow()
 
-    private val _effects = MutableSharedFlow<SendEffect>(extraBufferCapacity = 8)
-    val effects: SharedFlow<SendEffect> = _effects.asSharedFlow()
+    // A queue, not a broadcast: the screen's collector stops while the app is in the background —
+    // Send is a dialog destination, out of composition until the app starts again — and a payment
+    // that finished meanwhile still has to open its transaction when the user comes back. Broadcast
+    // to no one, it was dropped, and Send came back emptied with nothing to say the payment went:
+    // an invitation to pay again. One collector, the screen, so each effect is delivered once.
+    private val _effects = Channel<SendEffect>(Channel.BUFFERED)
+    val effects: Flow<SendEffect> = _effects.receiveAsFlow()
 
     private var maxSendableOnchainSats: Long? = null
     private var didTapAvailable = false
@@ -290,7 +295,7 @@ class SendController(
     /** `availableQuestionTapped`. */
     fun onAvailableQuestion() {
         if (_state.value.mode == SendMode.Lightning) {
-            _effects.tryEmit(SendEffect.OpenLightningQuestion)
+            _effects.trySend(SendEffect.OpenLightningQuestion)
         } else {
             raise(okay(SendStrings.SEND_BITCOIN, SendStrings.MAXIMUM_ONCHAIN))
         }
@@ -523,7 +528,7 @@ class SendController(
                             buttons = listOf(
                                 // `cancelSwapOffer` clears the amount.
                                 SendAlertButton(SendStrings.CANCEL) { _state.update { it.copy(amountText = "") } },
-                                SendAlertButton(SendStrings.SWAP_AND_PAY) { _effects.tryEmit(SendEffect.SwapAndPayAddress(address, requested)) },
+                                SendAlertButton(SendStrings.SWAP_AND_PAY) { _effects.trySend(SendEffect.SwapAndPayAddress(address, requested)) },
                             ),
                         ),
                     )
@@ -639,7 +644,7 @@ class SendController(
                         message = lightningShort + "\n\n" + SendStrings.SWAP_INSUFFICIENT_FUNDS.replace("<amount>", SendMath.group(onchain)),
                         buttons = listOf(
                             SendAlertButton(SendStrings.CANCEL),
-                            SendAlertButton(SendStrings.SWAP_AND_PAY) { _effects.tryEmit(SendEffect.SwapAndPayInvoice(destination.invoice, sats)) },
+                            SendAlertButton(SendStrings.SWAP_AND_PAY) { _effects.trySend(SendEffect.SwapAndPayInvoice(destination.invoice, sats)) },
                         ),
                     ),
                 )
@@ -798,7 +803,7 @@ class SendController(
         _state.update { it.copy(confirm = null) }
         refreshAvailable(quiet = true)
         if (historyId != null) {
-            _effects.emit(SendEffect.OpenTransaction(historyId))
+            _effects.send(SendEffect.OpenTransaction(historyId))
         } else {
             raise(okay(SendStrings.SUCCESS, SendStrings.TRANSACTION_SUCCESS))
         }

@@ -11,13 +11,13 @@ import com.bittr.android.core.swaps.SwapPreparation
 import com.bittr.android.core.swaps.SwapRequest
 import com.bittr.android.core.swaps.SwapStatusState
 import java.io.File
+import kotlinx.coroutines.flow.receiveAsFlow
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -93,8 +93,11 @@ class SwapController(
     private val _state = MutableStateFlow(SwapUiState(statusOnly = launch.boltzId != null))
     val state: StateFlow<SwapUiState> = _state.asStateFlow()
 
-    private val _effects = MutableSharedFlow<SwapUiEffect>(extraBufferCapacity = 8)
-    val effects: SharedFlow<SwapUiEffect> = _effects.asSharedFlow()
+    // A queue, not a broadcast, as Send's: a swap takes minutes and often completes while the app
+    // is in the background, where the screen's collector has stopped; its transaction opens when
+    // the user comes back rather than not at all. One collector, the screen.
+    private val _effects = Channel<SwapUiEffect>(Channel.BUFFERED)
+    val effects: Flow<SwapUiEffect> = _effects.receiveAsFlow()
 
     private var maxOnchainToLightning: Long? = null
     private var maxLightningToOnchain: Long? = null
@@ -169,7 +172,7 @@ class SwapController(
 
     fun onDownload() {
         val id = _state.value.status?.swap?.boltzId ?: return
-        coordinator.swapFile(id)?.let { _effects.tryEmit(SwapUiEffect.ShareFile(it)) }
+        coordinator.swapFile(id)?.let { _effects.trySend(SwapUiEffect.ShareFile(it)) }
     }
 
     fun dismissAlert() {
@@ -251,7 +254,7 @@ class SwapController(
                 val current = _state.value.status?.swap?.boltzId
                 if (event.boltzId == null || current == null || event.boltzId == current) show(event.alert.toUi())
             }
-            is SwapEvent.OpenTransaction -> _effects.tryEmit(SwapUiEffect.OpenTransaction(event.transactionId))
+            is SwapEvent.OpenTransaction -> _effects.trySend(SwapUiEffect.OpenTransaction(event.transactionId))
             is SwapEvent.ShowSwap -> if (_state.value.status?.swap?.boltzId != event.boltzId) coordinator.statusOf(event.boltzId)?.let(::watch)
         }
     }
@@ -262,7 +265,7 @@ class SwapController(
         buttons = listOf(
             SwapUiButton(SwapCopy.OKAY) {
                 dismissAlert()
-                if (requestsNotifications) _effects.tryEmit(SwapUiEffect.RequestNotifications)
+                if (requestsNotifications) _effects.trySend(SwapUiEffect.RequestNotifications)
             },
         ),
         tag = testTag,

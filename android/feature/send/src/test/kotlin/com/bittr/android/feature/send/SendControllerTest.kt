@@ -324,6 +324,30 @@ class SendControllerTest {
     }
 
     @Test
+    fun `a payment that finishes while no one collects still opens its transaction when the screen is back`() = runTest {
+        val source = FakeSource()
+        val controller = SendController(source, this)
+
+        // Confirmed, then the app goes to the background: Send leaves composition and with it the
+        // screen's collector, and the payment finishes with no one listening.
+        controller.onModeSelected(SendMode.Onchain)
+        controller.onToChange(address)
+        controller.onAmountChange("5000")
+        controller.onNext()
+        advanceUntilIdle()
+        controller.onConfirm()
+        controller.onAlertButton(1)
+        advanceUntilIdle()
+        assertEquals(Triple(address, 5_000L, false), source.sent)
+
+        // Back in the app: the screen collects again and is told to open the transaction.
+        val effects = mutableListOf<SendEffect>()
+        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { controller.effects.toList(effects) }
+        advanceUntilIdle()
+        assertEquals(listOf<SendEffect>(SendEffect.OpenTransaction("txid")), effects)
+    }
+
+    @Test
     fun `confirming broadcasts and opens the new transaction`() = runTest {
         val source = FakeSource()
         val controller = SendController(source, this)
