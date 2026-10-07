@@ -178,7 +178,10 @@ class UnlockViewModel @Inject constructor(
             }
 
             if (wallet.unlock(pin)) {
-                _uiState.value = _uiState.value.copy(busy = false)
+                // Still busy: the accepted PIN stays on the pad while it slides away to Home, so
+                // Confirm stays live, and a second tap would unlock again behind the slide — a
+                // second Home on the back stack and a second node start. The pad's ViewModel is
+                // cleared with its screen; a later lock builds a new one.
                 onUnlocked()
                 startWalletBehindHome()
                 return@launch
