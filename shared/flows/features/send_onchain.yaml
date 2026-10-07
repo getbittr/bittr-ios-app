@@ -70,18 +70,44 @@ appId: ${APP_ID}
 - tapOn:
     id: "home.sendButton"
 
-# Open the QR scanner → ScannerViewController. The simulator has no camera, so
-# the scanner immediately shows a "scanning not supported" alert (single Okay
-# button) whose Okay action also closes the scanner → back on Send.
+# Open the QR scanner → ScannerViewController, and close it again → back on
+# Send. Without a camera — the iOS simulator, CI's emulator — the scanner shows
+# a "scanning not supported" alert (single Okay button) that closes it; with
+# one, Close does.
 - tapOn:
     id: "send.scanButton"
 - assertVisible:
     id: "scanner.scannerView"
-- assertVisible:
-    id: "alert.button.0"
-- takeScreenshot: shared/docs/screenshots/send_onchain/01b_scanner_alert
-- tapOn:
-    id: "alert.button.0"
+# An Android emulator started with a camera (the AVD's default, unless it is
+# booted with `-camera-back none` as test_suite_android.sh --boot and CI do) or a
+# phone: the live scanner and no alert. Close it without scanning. Android
+# decides on the camera before the scanner's first frame, so where there is no
+# camera the alert is already up by now.
+- runFlow:
+    when:
+      platform: Android
+      notVisible:
+        id: "alert.button.0"
+    commands:
+      - tapOn:
+          id: "scanner.closeButton"
+# The iOS simulator never has a camera: wait for its alert.
+- runFlow:
+    when:
+      platform: iOS
+    commands:
+      - assertVisible:
+          id: "alert.button.0"
+# No camera: the "scanning not supported" alert, whose Okay also closes the
+# scanner. Skipped after the Close above, where there is no alert.
+- runFlow:
+    when:
+      visible:
+        id: "alert.button.0"
+    commands:
+      - takeScreenshot: shared/docs/screenshots/send_onchain/01b_scanner_alert
+      - tapOn:
+          id: "alert.button.0"
 - assertVisible:
     id: "send.regularButton"
 
