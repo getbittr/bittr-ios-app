@@ -4,10 +4,13 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.hasSetTextAction
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performTextInput
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertSame
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -90,5 +93,54 @@ class AlertReplacementTest {
         composeRule.onNodeWithText("Okay").performClick()
         composeRule.mainClock.advanceTimeBy(2_000)
         assertSame(second, pressed.single())
+    }
+
+    /**
+     * The LNURL withdraw amount: Confirm with an amount out of range asks again — a new alert, the
+     * same title, an empty field — from inside the button that closed the first. Keyed on its
+     * words, the field alert took the card that had just slid away and drew nothing, and the
+     * withdrawal stalled.
+     */
+    @Test
+    fun `a text field alert asked again from its own button is drawn again`() {
+        var asked by mutableStateOf<Alert?>(null)
+        val saved = mutableListOf<String>()
+        fun ask() {
+            asked = Alert("withdraw request", "Enter an amount")
+        }
+        ask()
+        composeRule.mainClock.autoAdvance = false
+        composeRule.setContent {
+            BittrTheme {
+                asked?.let { shown ->
+                    BittrTextFieldAlert(
+                        title = shown.title,
+                        message = shown.message,
+                        initialText = "",
+                        placeholder = "Amount in satoshis",
+                        cancelLabel = "Cancel",
+                        saveLabel = "Confirm",
+                        onCancel = { asked = null },
+                        onSave = { text ->
+                            asked = null
+                            if (text == "5") ask() else saved += text
+                        },
+                        identity = shown,
+                    )
+                }
+            }
+        }
+        composeRule.mainClock.advanceTimeBy(2_000)
+
+        composeRule.onNode(hasSetTextAction()).performTextInput("5")
+        composeRule.onNodeWithText("Confirm").performClick()
+        composeRule.mainClock.advanceTimeBy(2_000)
+
+        // Out of range: asked again, and drawn — with an empty field, ready for the next amount.
+        composeRule.onNodeWithText("Enter an amount").assertIsDisplayed()
+        composeRule.onNode(hasSetTextAction()).performTextInput("5000")
+        composeRule.onNodeWithText("Confirm").performClick()
+        composeRule.mainClock.advanceTimeBy(2_000)
+        assertEquals(listOf("5000"), saved)
     }
 }
