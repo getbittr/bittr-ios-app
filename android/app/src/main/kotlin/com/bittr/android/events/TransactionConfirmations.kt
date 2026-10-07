@@ -223,9 +223,12 @@ class TransactionConfirmations(
 
     /** `.paymentReceived`: a bittr payout is checked with bittr first; anything else opens as it is. */
     private suspend fun openReceived(paymentHash: String) {
+        // Read as the payment arrives, not after the row is found: the payout is expected before its
+        // payment can come in (the push handler expects it, then asks bittr to pay), and the wait for
+        // the row is the window in which anything else could act on it.
+        val notificationId = payouts.awaiting(clockMillis())
         val lookup = findRow(paymentHash)
         val found = lookup as? Lookup.Row
-        val notificationId = payouts.awaiting(clockMillis())
         log("Payment received: ${lookup::class.simpleName}, payout expected: ${notificationId != null}")
         if (found == null) return
         if (notificationId == null) {
@@ -251,11 +254,15 @@ class TransactionConfirmations(
             onPurchase = {
                 bittr.rememberFunding(fundingTxId)
                 // `checkPaymentWithBittr(…isFundingTransaction: true)` stores the payout's notification id
-                // as the funding transaction's description too, and clears `lightningNotification`. Read
-                // here rather than on entry: the funding can land before the payout call is made.
+                // as the funding transaction's description too. Read here rather than on entry: the
+                // funding can land before the payout call is made.
+                //
+                // Not cleared, where iOS clears `lightningNotification`: a payout that opens the channel
+                // can also send its payment over it, and that payment is checked against this same
+                // expected payout — cleared first, it opened without bittr's summary or description.
+                // The payment's own check clears it; with no payment, it lapses after its window.
                 payouts.awaiting(clockMillis())?.let { notificationId ->
                     bittr.storeDescription(fundingTxId, notificationId)
-                    payouts.clear()
                 }
             },
         )

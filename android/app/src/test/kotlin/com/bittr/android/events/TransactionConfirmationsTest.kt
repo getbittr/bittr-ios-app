@@ -218,7 +218,27 @@ class TransactionConfirmationsTest {
         nodeEvents.tryEmit(NodeEvent.ChannelPending("channel-11", "funding-11"))
         assertEquals(listOf(TransactionRequest("funding-11", confetti = true)), opened)
         assertEquals("notification-11", lookup.descriptions["funding-11"])
-        assertNull("the payout is checked once", payouts.awaiting(now))
+        assertEquals("left for the payment the payout may still send", "notification-11", payouts.awaiting(now))
+    }
+
+    @Test
+    fun `a payout that funds a channel and pays over it labels both, however the checks interleave`() {
+        payouts.expect("notification-13", now)
+        lookup.confirms += "funding-13"
+        lookup.confirms += "preimage13"
+        // The funding's check finishes first.
+        nodeEvents.tryEmit(NodeEvent.ChannelPending("channel-13", "funding-13"))
+        assertEquals("notification-13", lookup.descriptions["funding-13"])
+
+        publish(lightningRow("preimage13", "hash13"))
+        nodeEvents.tryEmit(NodeEvent.PaymentReceived("hash13", 1_000_000))
+
+        assertEquals("notification-13", lookup.descriptions["hash13"])
+        assertEquals(
+            listOf(TransactionRequest("funding-13", confetti = true), TransactionRequest("preimage13", confetti = true)),
+            opened,
+        )
+        assertNull("the payment's check is the one that clears it", payouts.awaiting(now))
     }
 
     @Test
