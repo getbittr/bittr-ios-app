@@ -87,10 +87,19 @@ class SendControllerTest {
     }
 
     @Test
-    fun `a satoshi amount keeps only digits`() = runTest {
+    fun `a satoshi amount with a separator is refused, not read as more satoshis`() = runTest {
         val controller = SendController(FakeSource(), this)
-        controller.onAmountChange("1.500,5-")
-        assertEquals("15005", controller.state.value.amountText)
+        controller.onAmountChange("50 000")
+        assertEquals("50000", controller.state.value.amountText)
+
+        for (malformed in listOf("50000.00", "50,000", "1.500,5", "-5")) {
+            controller.onAmountChange(malformed)
+            assertEquals(malformed, controller.state.value.amountText)
+            controller.onNext()
+            assertEquals(malformed, SendStrings.ENTER_VALID_AMOUNT, controller.state.value.alert?.message)
+            controller.onAlertButton(0)
+        }
+        advanceUntilIdle()
     }
 
     @Test

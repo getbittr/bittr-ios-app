@@ -44,8 +44,15 @@ class ReceiveControllerTest {
         controller.start()
         advanceUntilIdle()
 
-        controller.onAmountChange("1.5 00-")
-        assertEquals("Satoshis keep digits only.", "1500", controller.state.value.amountText)
+        controller.onAmountChange("1 500")
+        assertEquals("1500", controller.state.value.amountText)
+        // A separator is refused rather than dropped, which would have asked for 100 times as much.
+        for (malformed in listOf("50000.00", "50,000", "15-")) {
+            controller.onAmountChange(malformed)
+            controller.onDone()
+            assertEquals(malformed, ReceiveStrings.ENTER_VALID_AMOUNT, controller.state.value.alert?.message)
+            controller.onAlertButton(0)
+        }
 
         controller.onCurrencyButton()
         controller.onAlertButton(3) // Bitcoin

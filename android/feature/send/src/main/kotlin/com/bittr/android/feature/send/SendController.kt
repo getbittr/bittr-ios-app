@@ -230,13 +230,10 @@ class SendController(
 
     fun onAmountChange(text: String) {
         didTapAvailable = false
-        // Satoshis are whole: a paste or a hardware keyboard can still bring a separator the
-        // on-screen pad does not offer, so anything but digits is dropped here. Bitcoin and fiat
-        // amounts drop spaces, which the decimal keyboard offers and no amount uses; a `-` or a
-        // second separator stays, for Next to refuse with an explanation.
-        _state.update {
-            it.copy(amountText = if (it.currency == AmountCurrency.Satoshis) text.filter(Char::isDigit) else text.filterNot(Char::isWhitespace))
-        }
+        // Spaces go: the keyboards offer them and no amount uses them. Anything else stays — a
+        // separator in satoshis, a `-` or a second separator — for Next to refuse with an
+        // explanation. Dropped instead, a pasted "50000.00" would read as 5 000 000 satoshis.
+        _state.update { it.copy(amountText = text.filterNot(Char::isWhitespace)) }
     }
 
     /**
@@ -369,7 +366,9 @@ class SendController(
     /** `nextButtonTapped`, and the amount field's Done. */
     fun onNext() {
         if (_state.value.nextLoading || _state.value.lnurlLoading) return
-        if (!SendMath.isWellFormedAmount(_state.value.amountText)) return raise(okay(SendStrings.OOPS, SendStrings.ENTER_VALID_AMOUNT))
+        if (!SendMath.isWellFormedAmount(_state.value.amountText, _state.value.currency)) {
+            return raise(okay(SendStrings.OOPS, SendStrings.ENTER_VALID_AMOUNT))
+        }
         // A pay request with a range is waiting for this amount — `handleLNURLAmountCompletion`.
         if (pendingPay != null) {
             completePayAmount()
