@@ -147,7 +147,12 @@ fun BuyRoute(
     Box(modifier = modifier.fillMaxSize()) {
         val signup = state.signup
         if (onboarding) {
-            signup?.let { SignupLayers(it, controller, onOpenArticle, onboarding = true) }
+            // The last page stays on as the signup leaves, as `hideSignup` slides it up to Home with
+            // the rest of SignupViewController. Drawn only while the signup was open, the page went
+            // the moment Done or "Go to wallet" closed it, and the destination slid up empty.
+            var presented by remember { mutableStateOf<SignupUiState?>(null) }
+            if (signup != null && presented != signup) presented = signup
+            presented?.let { SignupLayers(it, controller, onOpenArticle, onboarding = true) }
             state.alert?.let { alert -> BuyAlertCard(alert = alert, onAction = controller::onAlertAction) }
         } else {
             BuyCards(state = state, controller = controller, onDown = onDown)
