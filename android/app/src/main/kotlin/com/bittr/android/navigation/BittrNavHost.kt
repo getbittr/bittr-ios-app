@@ -328,26 +328,31 @@ fun BittrNavHost(
     // on every change and pop the back stack with it — creating a wallet unlocks it on the
     // Ready page, which would throw the user out of onboarding before the bittr signup. Every
     // later transition navigates explicitly: unlock, the end of onboarding or restore, removal.
-    // The screen lock, from anywhere. `MainActivity` puts the wallet back to Locked when the
-    // task is swiped away or after long enough in the background, and the user lands on the PIN
-    // screen with the back stack cleared rather than inside the wallet they just locked.
+    // The screen lock, from anywhere. A Locked wallet shows only the screens a locked wallet may:
+    // the PIN pad, the signup pages and an article over either ([LockedRoutes]). Anything else on
+    // the back stack — Home, a sheet over it, an article opened from it — and the user lands on the
+    // PIN screen with the back stack cleared rather than inside a wallet that is locked.
     //
-    // Only from Ready. Finishing signup or restore goes Uninitialized → Locked → Ready — `setPin`
-    // stores the PIN, then `unlock` with it takes a key derivation's time — and following that
-    // passing Locked threw the user out of onboarding onto the PIN pad before the Ready page.
+    // Two ways to get there. `MainActivity` locks the wallet when the task is swiped away or after
+    // long enough in the background. And a process Android killed in the background comes back
+    // Locked with its back stack restored — Home, say — and no transition to see: a rule keyed on
+    // Ready → Locked missed that one and showed the wallet without its PIN. Hence the back stack,
+    // not the transition. The signup pages are exempt because finishing signup or restore passes
+    // through Locked — `setPin` stores the PIN, then `unlock` with it takes a key derivation's
+    // time — and following that threw the user out of onboarding before the Ready page.
     //
     // The jump itself is instant, as iOS's `lockForReauthentication` shows the PIN inside
     // `performWithoutAnimation`: the lock mostly lands while the app is in the background, and a
     // slide would play out in front of the user as they come back to it. [lockJump] holds until
     // the PIN pad is alone on screen.
-    var previousWalletState by remember { mutableStateOf(walletState) }
     var lockJump by remember { mutableStateOf(false) }
-    LaunchedEffect(walletState) {
-        val wasReady = previousWalletState == WalletState.Ready
-        previousWalletState = walletState
-        if (wasReady && walletState == WalletState.Locked &&
-            navController.currentDestination?.route != Routes.PIN_UNLOCK
-        ) {
+    val backStack by navController.currentBackStack.collectAsState()
+    LaunchedEffect(walletState, backStack) {
+        // Decided on the live values, not this composition's: unlocking sets Ready and then pushes
+        // Home, and a frame that saw the new back stack before the new state must not send the
+        // user back to the pad they have just passed.
+        val routes = navController.currentBackStack.value.map { it.destination }.filter { it !is NavGraph }.map { it.route }
+        if (needsPin(viewModel.walletState.value, routes)) {
             lockJump = true
             navController.navigate(Routes.PIN_UNLOCK) {
                 popUpTo(navController.graph.id) { inclusive = true }
@@ -733,6 +738,21 @@ private fun signupPage(route: String?): Int? = when (route) {
     Routes.SIGNUP_BITTR -> SignupPage.TRANSFER
     else -> null
 }
+
+/**
+ * What a Locked wallet may show: the PIN pad, the signup pages — onboarding passes through Locked
+ * on its way to Ready — and an article opened from either. See the screen lock in [BittrNavHost].
+ */
+private val LockedRoutes = setOf(
+    Routes.PIN_UNLOCK,
+    Routes.SIGNUP_START,
+    Routes.SIGNUP_RESTORE,
+    Routes.ARTICLE,
+)
+
+/** Whether a wallet in [walletState] with [backStackRoutes] on screen has to go to the PIN pad. */
+internal fun needsPin(walletState: WalletState, backStackRoutes: List<String?>): Boolean =
+    walletState == WalletState.Locked && backStackRoutes.any { it !in LockedRoutes }
 
 /**
  * The destinations whose logo sits where the app bar's does: the signup pages, the bittr signup
