@@ -26,7 +26,6 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -35,6 +34,7 @@ import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.font.FontWeight
+import com.bittr.android.core.designsystem.rememberRetained
 import com.bittr.android.core.designsystem.MiddleEllipsisText
 import com.bittr.android.core.designsystem.rememberFillIcon
 import com.bittr.android.core.designsystem.rememberTextClipboard
@@ -121,8 +121,8 @@ fun SendRoute(
     onSwapAndPayAddress: (address: String, amountSats: Long) -> Unit = { _, _ -> },
     lnurlRequest: SendLnurlRequest? = null,
 ) {
-    val scope = rememberCoroutineScope()
-    val controller = remember(source) { SendController(source, scope) }
+    // Kept on the sheet's back-stack entry, not this composition — see [rememberRetained].
+    val controller = rememberRetained("send") { scope -> SendController(source, scope) }
     val openTransaction by rememberUpdatedState(onOpenTransaction)
     val openQuestion by rememberUpdatedState(onOpenLightningQuestion)
     val swapInvoice by rememberUpdatedState(onSwapAndPayInvoice)

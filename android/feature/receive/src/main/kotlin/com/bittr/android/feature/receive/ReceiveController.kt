@@ -82,9 +82,15 @@ class ReceiveController(
     val state: StateFlow<ReceiveUiState> = _state.asStateFlow()
 
     private var loadJob: Job? = null
+    private var started = false
 
-    /** `viewDidLoad`: open on the default type. */
+    /**
+     * `viewDidLoad`: open on the default type. Once: the controller outlives the screen's
+     * composition, which runs this again when the app comes back to it.
+     */
     fun start() {
+        if (started) return
+        started = true
         show(ReceiveType.default(source.lightningAvailable(), source.lightningAddress()))
     }
 

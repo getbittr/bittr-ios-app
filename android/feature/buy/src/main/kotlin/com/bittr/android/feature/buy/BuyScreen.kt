@@ -34,9 +34,9 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import com.bittr.android.core.designsystem.rememberRetained
 import com.bittr.android.core.designsystem.rememberTextClipboard
 import com.bittr.android.core.designsystem.BittrIconPaths
 import androidx.compose.foundation.Image
@@ -108,10 +108,11 @@ fun BuyRoute(
     /** A signup page's article card was tapped (`launchArticle(articleTag:)`). */
     onOpenArticle: (String) -> Unit = {},
 ) {
-    val scope = rememberCoroutineScope()
     // Onboarding opens on the IBAN page before the first frame, so the page that slides in from
     // Signup7 is Transfer1 rather than an empty canvas that fills in once the effect below runs.
-    val controller = remember(source) {
+    // Kept on the back-stack entry, not this composition, so a signup left for its email code is
+    // still there on return — see [rememberRetained].
+    val controller = rememberRetained("buy") { scope ->
         BuyController(source, scope).also { if (onboarding) it.onStartSignupAtIban() }
     }
     val permission = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->

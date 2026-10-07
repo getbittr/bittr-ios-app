@@ -51,6 +51,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.bittr.android.core.common.TestID
+import com.bittr.android.core.designsystem.rememberRetained
 import com.bittr.android.core.designsystem.BittrAlertDialog
 import com.bittr.android.core.designsystem.BittrSheetHeader
 import com.bittr.android.core.designsystem.BittrSpinner
@@ -144,11 +145,16 @@ internal fun MapScreen(
     val places = remember(repository) { repository ?: HttpPlacesRepository(context) }
     val colors = BittrTheme.colors
 
-    var state by remember { mutableStateOf(MapUiState()) }
+    // Kept on the sheet's back-stack entry, not this composition, so the map and an open place
+    // are as they were when the app comes back from "Go to maps" — see [rememberRetained].
+    val retained = rememberRetained("map") { RetainedMap() }
+    var state by retained::state
 
     // Cached places, then the sync. Two effects rather than one so the cached set
-    // paints without waiting on the network.
+    // paints without waiting on the network. Once per opening: the effects run again when the
+    // app comes back to the screen, and the places are already there.
     LaunchedEffect(places) {
+        if (retained.loaded) return@LaunchedEffect
         val cached = places.cached()
         if (cached.isNotEmpty()) {
             state = state.copy(allPlaces = cached).withPlacesForRegion().framedIfUntouched()
@@ -171,12 +177,17 @@ internal fun MapScreen(
                 }
             },
         )
+        retained.loaded = true
     }
 
     // The arrival fix. iOS asks in `viewDidAppear` and centres once if it gets one;
     // with no permission and no fix the default region is what stays on screen.
+    // Once too: again on the way back, it would re-centre a map the user has moved.
     LaunchedEffect(Unit) {
-        val fix = UserLocationFix.current(context) ?: return@LaunchedEffect
+        if (retained.located) return@LaunchedEffect
+        val fix = UserLocationFix.current(context)
+        retained.located = true
+        if (fix == null) return@LaunchedEffect
         state = state.copy(
             region = MapRegion(fix.latitude, fix.longitude, MapRegion.USER_SPAN_DEGREES),
             hasFix = true,
@@ -603,4 +614,11 @@ private fun BasemapView(inputs: BasemapInputs, modifier: Modifier = Modifier) {
             controller.onPlaceTapped = inputs.onPlaceTapped
         },
     )
+}
+
+/** What [MapScreen] keeps across the app's stop: its state, and which arrival effects have run. */
+private class RetainedMap {
+    var state by mutableStateOf(MapUiState())
+    var loaded = false
+    var located = false
 }

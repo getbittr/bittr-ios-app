@@ -34,10 +34,10 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import com.bittr.android.core.designsystem.rememberRetained
 import com.bittr.android.core.designsystem.MiddleEllipsisText
 import com.bittr.android.core.designsystem.rememberFillIcon
 import androidx.compose.foundation.shape.CircleShape
@@ -109,8 +109,8 @@ import com.bittr.android.core.designsystem.R as DesignR
  */
 @Composable
 fun ReceiveRoute(source: ReceiveSource, onDown: () -> Unit, modifier: Modifier = Modifier) {
-    val scope = rememberCoroutineScope()
-    val controller = remember(source) { ReceiveController(source, scope) }
+    // Kept on the sheet's back-stack entry, not this composition — see [rememberRetained].
+    val controller = rememberRetained("receive") { scope -> ReceiveController(source, scope) }
     LaunchedEffect(controller) { controller.start() }
     val state by controller.state.collectAsState()
     ReceiveScreen(state = state, controller = controller, onDown = onDown, modifier = modifier)

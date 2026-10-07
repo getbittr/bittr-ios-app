@@ -172,6 +172,7 @@ class SendController(
     private var fees: FeeEstimates? = null
     private var availableJob: Job? = null
     private var readinessJob: Job? = null
+    private var started = false
 
     /** `pendingLNURLCallback` & co.: a pay request with a range, waiting for the amount. */
     private data class PendingPay(
@@ -190,9 +191,12 @@ class SendController(
     /**
      * `viewDidLoad`: the label for the default type, and a refresh whenever balances move. The
      * default is Instant, except in a wallet with no Lightning channel, which cannot pay one —
-     * there Send opens on Regular.
+     * there Send opens on Regular. Once: the controller outlives the screen's composition, which
+     * runs this again when the app comes back to it.
      */
     fun start() {
+        if (started) return
+        started = true
         if (!source.hasLightningChannel()) _state.update { it.copy(mode = SendMode.Onchain) }
         refreshAvailable(quiet = true)
         scope.launch {
