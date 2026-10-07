@@ -65,6 +65,10 @@ import com.bittr.android.core.designsystem.bittrMarkup
 import com.bittr.android.core.designsystem.bittrSwitchColors
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.focusable
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.semantics.Role
@@ -535,12 +539,24 @@ internal fun BuyAlertCard(alert: BuyAlert, onAction: (BuyAction) -> Unit) {
 /** `showConfirmationSheet` for the exclusive-initiative confirmation (`Transfer1ViewController:175`). */
 @Composable
 private fun InitiativeSheet(onConfirm: () -> Unit, onCancel: () -> Unit) {
+    // iOS's `nextButtonTapped` ends editing before the sheet goes up. Verify's clearFocus()
+    // is not enough here: after a hardware Enter the window is in non-touch mode, and
+    // Android hands focus straight back to the IBAN field, whose keyboard then covers the
+    // confirm button. The sheet takes focus itself, so no field behind it holds it.
+    val sheetFocus = remember { FocusRequester() }
+    val keyboard = LocalSoftwareKeyboardController.current
+    LaunchedEffect(Unit) {
+        runCatching { sheetFocus.requestFocus() }
+        keyboard?.hide()
+    }
     Box(
         contentAlignment = Alignment.Center,
         modifier = Modifier
             .fillMaxSize()
             .background(Color.Black.copy(alpha = 0.45f))
-            .pointerInput(Unit) { detectTapGestures { } },
+            .pointerInput(Unit) { detectTapGestures { } }
+            .focusRequester(sheetFocus)
+            .focusable(),
     ) {
         // An opaque dialog, like every other alert. It painted the card wash — white at 9 % —
         // over the signup page, so the page read straight through the sentence the user is
