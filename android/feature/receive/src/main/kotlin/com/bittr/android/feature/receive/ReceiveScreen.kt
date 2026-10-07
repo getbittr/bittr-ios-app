@@ -38,9 +38,9 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import com.bittr.android.core.designsystem.MiddleEllipsisText
 import com.bittr.android.core.designsystem.rememberFillIcon
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.graphics.Color
 import com.bittr.android.core.designsystem.rememberTextClipboard
 import com.bittr.android.core.designsystem.BittrSpinner
@@ -402,12 +402,12 @@ private fun AddressBox(state: ReceiveUiState, onQuestion: () -> Unit) {
         }
         val lower = if (state.loading) "" else display?.lowerLabel.orEmpty()
         if (lower.isNotEmpty()) {
-            Text(
+            // `lowerAddressLabel`: three lines, truncated in the middle, so the end can be checked.
+            MiddleEllipsisText(
                 text = lower,
                 style = style,
                 color = MaterialTheme.colorScheme.onSurface,
                 maxLines = 3,
-                overflow = TextOverflow.Ellipsis,
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(top = 10.dp)

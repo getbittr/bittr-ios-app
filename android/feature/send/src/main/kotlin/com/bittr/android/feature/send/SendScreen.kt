@@ -35,6 +35,7 @@ import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.font.FontWeight
+import com.bittr.android.core.designsystem.MiddleEllipsisText
 import com.bittr.android.core.designsystem.rememberFillIcon
 import com.bittr.android.core.designsystem.rememberTextClipboard
 import com.bittr.android.core.designsystem.BittrSpinner
@@ -521,7 +522,8 @@ private fun ColumnScope.ConfirmPage(confirm: ConfirmState, controller: SendContr
     )
     Gap(15.dp)
     ConfirmRow(if (confirm.mode == SendMode.Onchain) SendStrings.ADDRESS else SendStrings.INVOICE) {
-        Text(
+        // Truncated in the middle, as iOS's `addressLabel` is, so the end can be checked.
+        MiddleEllipsisText(
             confirm.displayedAddress,
             style = ConfirmValue,
             color = ink,
