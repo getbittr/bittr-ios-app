@@ -34,20 +34,17 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.focus.onFocusChanged
+import com.bittr.android.core.designsystem.rememberRetained
+import com.bittr.android.core.designsystem.MiddleEllipsisText
 import com.bittr.android.core.designsystem.rememberFillIcon
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.graphics.Color
-import com.bittr.android.core.designsystem.BittrCanvasShapes
 import com.bittr.android.core.designsystem.rememberTextClipboard
 import com.bittr.android.core.designsystem.BittrSpinner
 import com.bittr.android.core.designsystem.BittrMark
-import com.bittr.android.core.designsystem.BittrRowLabel
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.draw.clip
@@ -64,18 +61,36 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.bittr.android.core.common.TestID
 import com.bittr.android.core.designsystem.BittrAlert
-import com.bittr.android.core.designsystem.BittrHelpButton
 import com.bittr.android.core.designsystem.dismissOnPullDown
 import com.bittr.android.core.designsystem.BittrAlertButton
-import com.bittr.android.core.designsystem.BittrCanvas
-import com.bittr.android.core.designsystem.BittrCard
 import com.bittr.android.core.designsystem.BittrIconPaths
-import com.bittr.android.core.designsystem.BittrModalHeader
 import com.bittr.android.core.designsystem.BittrTheme
-import com.bittr.android.core.designsystem.BittrTokens
-import com.bittr.android.core.designsystem.rememberStrokeIcon
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.width
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.BlendMode
+import androidx.compose.ui.graphics.CompositingStrategy
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.StrokeJoin
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.unit.sp
+import com.bittr.android.core.designsystem.BittrSheetHeader
+import com.bittr.android.core.designsystem.iosShadow
+import com.bittr.android.core.designsystem.R as DesignR
 
 /**
  * Receive — `ios/bittr/Move, Send, Receive/ReceiveVC/ReceiveViewController`.
@@ -86,16 +101,16 @@ import kotlinx.coroutines.withContext
  *
  * Two things differ from iOS because the platform does:
  *
- * - **"Done" is a button on screen.** iOS puts it on a toolbar above the keyboard, and
- *   `receive_onchain.yaml` taps it by its text. A keyboard toolbar is not part of the app's
- *   view hierarchy on Android, so the same button sits beside the amount field instead.
+ * - **"Done" is the keyboard's ✓.** iOS puts a Done button on a toolbar above the keyboard;
+ *   Android keyboards carry the action key themselves, and the fields answer it the same way.
+ *   It is not in the app's hierarchy, so the flows press Enter for it (`helpers/amount_done.yaml`).
  * - **The QR's long-press menu is a dropdown**, with the same two items — Copy and Share —
  *   and Share opens the system share sheet with the copyable text.
  */
 @Composable
 fun ReceiveRoute(source: ReceiveSource, onDown: () -> Unit, modifier: Modifier = Modifier) {
-    val scope = rememberCoroutineScope()
-    val controller = remember(source) { ReceiveController(source, scope) }
+    // Kept on the sheet's back-stack entry, not this composition — see [rememberRetained].
+    val controller = rememberRetained("receive") { scope -> ReceiveController(source, scope) }
     LaunchedEffect(controller) { controller.start() }
     val state by controller.state.collectAsState()
     ReceiveScreen(state = state, controller = controller, onDown = onDown, modifier = modifier)
@@ -127,6 +142,7 @@ internal fun ReceiveScreen(
             title = alert.title,
             message = alert.message,
             messageIsValue = alert.messageIsValue,
+            identity = alert,
             buttons = alert.buttons.mapIndexed { position, button ->
                 BittrAlertButton(
                     label = button.label,
@@ -137,35 +153,45 @@ internal fun ReceiveScreen(
         )
     }
 
-    BittrCanvas(modifier = modifier.dismissOnPullDown(onDown), appBar = false) {
-        BittrModalHeader(
-            title = ReceiveStrings.RECEIVE_BITCOIN,
-            onDown = onDown,
-            icon = BittrIconPaths.PIGGY,
-            titleTestTag = TestID.Header.titleLabel,
-            downTestTag = TestID.Header.downButton,
-        )
-
+    // As `ReceiveViewController` lays it out: `addHeader` with the piggy over `yellowCard`, centred
+    // in the whole sheet, 15 in, `yelloworblue2` with 13 corners and the iOS shadow. Inside it, 15
+    // in, the QR, the address 15 under it, the cards 14 under that and, when opened, the amount
+    // stack 14 under those. A tap beside the fields closes the keyboard (`contentBackgroundButton`).
+    BoxWithConstraints(
+        modifier = modifier
+            .fillMaxSize()
+            .background(BittrTheme.colors.canvas)
+            .dismissOnPullDown(onDown)
+            // Before the scroll, so the visible area ends at the keyboard.
+            .imePadding()
+            .pointerInput(Unit) { detectTapGestures { focusManager.clearFocus() } },
+    ) {
+        val sheetHeight = maxHeight
         Column(
             verticalArrangement = Arrangement.Center,
             modifier = Modifier
-                .weight(1f)
                 .fillMaxWidth()
-                // Before the scroll, so the visible area ends at the keyboard.
-                .imePadding()
                 .verticalScroll(rememberScrollState())
-                .padding(horizontal = BittrTokens.Spacing.md, vertical = BittrTokens.Spacing.md),
+                .heightIn(min = sheetHeight)
+                .padding(vertical = 58.dp),
         ) {
-            BittrCard {
+            Column(
+                modifier = Modifier
+                    .padding(horizontal = 15.dp)
+                    .fillMaxWidth()
+                    .iosShadow(YellowCardShape)
+                    .background(BittrTheme.colors.levelCard, YellowCardShape)
+                    .padding(15.dp),
+            ) {
                 QrBox(
                     payload = state.display?.qrPayload,
                     loading = state.loading,
                     onCopy = ::copy,
                     onShare = ::share,
                 )
-                Spacer(BittrTokens.Spacing.md)
+                Spacer(15.dp)
                 AddressBox(state = state, onQuestion = controller::onQuestion)
-                Spacer(BittrTokens.Spacing.md)
+                Spacer(14.dp)
                 CardsRow(
                     cards = state.cards,
                     onCopy = ::copy,
@@ -183,7 +209,7 @@ internal fun ReceiveScreen(
                     },
                 )
                 if (state.amountOpen) {
-                    Spacer(BittrTokens.Spacing.md)
+                    Spacer(14.dp)
                     AmountStack(
                         state = state,
                         onAmountChange = controller::onAmountChange,
@@ -200,6 +226,14 @@ internal fun ReceiveScreen(
                 }
             }
         }
+
+        BittrSheetHeader(
+            icon = painterResource(DesignR.drawable.bittr_piggy_icon),
+            title = ReceiveStrings.RECEIVE_BITCOIN,
+            onDown = onDown,
+            titleTestTag = TestID.Header.titleLabel,
+            downTestTag = TestID.Header.downButton,
+        )
     }
 }
 
@@ -211,13 +245,16 @@ private fun QrBox(payload: String?, loading: Boolean, onCopy: () -> Unit, onShar
         value = payload?.let { withContext(Dispatchers.Default) { qrBitmap(it).asImageBitmap() } }
     }
 
+    // `qrWhiteView`: square, white in both schemes (a QR reads dark on light), 8 corners and the
+    // iOS shadow, the code 15 in.
     Box(
         contentAlignment = Alignment.Center,
         modifier = Modifier
             .fillMaxWidth()
             .aspectRatio(1f)
-            .background(MaterialTheme.colorScheme.surfaceContainer, RoundedCornerShape(24.dp))
-            .padding(16.dp),
+            .iosShadow(PlateShape)
+            .background(Color.White, PlateShape)
+            .padding(15.dp),
     ) {
         val shown = bitmap
         if (!loading && shown != null) {
@@ -290,59 +327,103 @@ private fun QrBox(payload: String?, loading: Boolean, onCopy: () -> Unit, onShar
     }
 }
 
+/**
+ * `addressView`: `whiteorblue3` with 8 corners and the iOS shadow, at least 45 tall. The title in
+ * yellow Gilroy-Bold 16 15 in — after the 14 pt bolt for Lightning — with `questionmark.circle` 7
+ * after it; the address in black or white, right-aligned and wrapping, at least 15 after that. An
+ * invoice or a Bitcoin QR has no room there and runs under the title instead, up to three lines.
+ * `questionButton` is the title and its question mark, as on iOS.
+ */
 @Composable
 private fun AddressBox(state: ReceiveUiState, onQuestion: () -> Unit) {
     val display = state.display
+    val colors = BittrTheme.colors
+    val style = MaterialTheme.typography.labelLarge.copy(lineHeight = 18.sp)
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .background(MaterialTheme.colorScheme.surfaceContainer, RoundedCornerShape(16.dp))
-            .padding(horizontal = BittrTokens.Spacing.lg, vertical = BittrTokens.Spacing.md),
+            .heightIn(min = 45.dp)
+            .iosShadow(PlateShape)
+            .background(MaterialTheme.colorScheme.surfaceContainerHigh, PlateShape)
+            .padding(start = 15.dp, end = 15.dp, top = 15.dp, bottom = 12.dp),
     ) {
-        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
-            if (display?.showBolt == true) {
-                Image(
-                    imageVector = rememberStrokeIcon(BittrIconPaths.BOLT, BittrTheme.colors.rowLabel),
-                    contentDescription = null,
-                    modifier = Modifier.size(16.dp),
+        Row(verticalAlignment = Alignment.Top, modifier = Modifier.fillMaxWidth()) {
+            Box {
+                // Under the title, not over it: a node a later sibling covers entirely is dropped
+                // from the accessibility tree, which would hide the title's own test id.
+                Box(
+                    modifier = Modifier
+                        .matchParentSize()
+                        .clickable(role = Role.Button, onClick = onQuestion)
+                        .testTag(TestID.Receive.questionButton),
                 )
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    if (display?.showBolt == true && !state.loading) {
+                        Image(
+                            imageVector = rememberFillIcon(BittrIconPaths.BOLT, colors.brandFixed),
+                            contentDescription = null,
+                            modifier = Modifier
+                                .padding(end = 5.dp)
+                                .size(14.dp),
+                        )
+                    }
+                    Text(
+                        text = if (state.loading) "" else display?.title.orEmpty(),
+                        style = style,
+                        color = colors.brandFixed,
+                        modifier = Modifier.testTag(TestID.Receive.addressTitle),
+                    )
+                    if (!state.loading) {
+                        Image(
+                            imageVector = rememberFillIcon(BittrIconPaths.HELP, colors.brandFixed),
+                            contentDescription = "More information",
+                            modifier = Modifier
+                                .padding(start = 7.dp)
+                                .offset(y = (-1).dp)
+                                .size(16.dp),
+                        )
+                    }
+                }
             }
-            BittrRowLabel(
-                text = if (state.loading) "" else display?.title.orEmpty(),
-                modifier = Modifier
-                    .padding(start = if (display?.showBolt == true) BittrTokens.Spacing.xs else 0.dp)
-                    .testTag(TestID.Receive.addressTitle),
-            )
-            BittrHelpButton(onClick = onQuestion, modifier = Modifier.testTag(TestID.Receive.questionButton))
             val address = if (state.loading) "" else display?.addressLabel.orEmpty()
             // A Lightning address is read aloud and typed, so it is never elided (review, pass 2,
-            // `receive/02`): up to two lines, breaking before the `@` rather than inside the
-            // domain. The zero-width space is display only — the copy action reads the model.
+            // `receive/02`): it wraps, breaking before the `@` rather than inside the domain. The
+            // zero-width space is display only — the copy action reads the model.
             val lightningAddress = '@' in address
             Text(
                 text = if (lightningAddress) address.replace("@", "\u200B@") else address,
-                style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.SemiBold),
+                style = style,
+                color = MaterialTheme.colorScheme.onSurface,
                 textAlign = TextAlign.End,
                 modifier = Modifier
                     .weight(1f)
+                    .padding(start = 15.dp)
                     .testTag(TestID.Receive.addressLabel),
             )
         }
         val lower = if (state.loading) "" else display?.lowerLabel.orEmpty()
         if (lower.isNotEmpty()) {
-            Text(
+            // `lowerAddressLabel`: three lines, truncated in the middle, so the end can be checked.
+            MiddleEllipsisText(
                 text = lower,
-                style = MaterialTheme.typography.bodyLarge,
+                style = style,
+                color = MaterialTheme.colorScheme.onSurface,
                 maxLines = 3,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(top = BittrTokens.Spacing.xs)
+                    .padding(top = 10.dp)
                     .testTag(TestID.Receive.invoiceLabel),
             )
         }
     }
 }
 
+/**
+ * `cardsStack`, sized as `updateCards(for:)` sizes it: 12 apart across the card's width, 35 tall.
+ * On the address Copy is a 35 square with its icon alone; elsewhere it is labelled. Around the
+ * even share, Add amount takes 22 more, and Copy, Renew and More give up 10, 10 and 12 — Renew 22
+ * when there is no More — so the row still fills the width exactly.
+ */
 @Composable
 private fun CardsRow(
     cards: ReceiveCards,
@@ -351,103 +432,189 @@ private fun CardsRow(
     onEdit: () -> Unit,
     onMore: () -> Unit,
 ) {
-    // Two actions sit icon-beside-label at 52 dp; three or four stack the icon above the label so
-    // none truncates (review S8). Every action is labelled either way (review S16).
-    val stacked = listOf(true, cards.refresh, cards.edit, cards.more).count { it } > 2
-    Row(horizontalArrangement = Arrangement.spacedBy(BittrTokens.Spacing.sm), modifier = Modifier.fillMaxWidth()) {
-        ReceiveCard(
-            label = ReceiveStrings.COPY,
-            path = COPY_PATH,
-            contentDescription = ReceiveStrings.COPY,
-            onClick = onCopy,
-            testTag = TestID.Receive.copyButton,
-            modifier = Modifier.weight(1f),
-            stacked = stacked,
-        )
-        if (cards.refresh) {
-            ReceiveCard(ReceiveStrings.RENEW, RENEW_PATH, ReceiveStrings.RENEW, onRefresh, TestID.Receive.refreshButton, Modifier.weight(1f), stacked)
+    BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
+        val gap = 12.dp
+        val count = listOf(true, cards.refresh, cards.edit, cards.more).count { it }
+        val share = if (cards.copyLabel) {
+            (maxWidth - gap * (count - 1)) / count
+        } else {
+            (maxWidth - CardHeight - gap * (count - 1)) / (count - 1)
         }
-        if (cards.edit) {
-            ReceiveCard(ReceiveStrings.ADD_AMOUNT, EDIT_PATH, ReceiveStrings.ADD_AMOUNT, onEdit, TestID.Receive.editButton, Modifier.weight(1.3f), stacked)
-        }
-        if (cards.more) {
-            ReceiveCard(ReceiveStrings.MORE, MORE_PATH, ReceiveStrings.MORE, onMore, TestID.Receive.moreButton, Modifier.weight(1f), stacked)
+        Row(horizontalArrangement = Arrangement.spacedBy(gap)) {
+            ReceiveCard(
+                label = if (cards.copyLabel) ReceiveStrings.COPY else null,
+                symbol = CardSymbol.Copy,
+                contentDescription = ReceiveStrings.COPY,
+                onClick = onCopy,
+                testTag = TestID.Receive.copyButton,
+                modifier = Modifier.width(
+                    when {
+                        !cards.copyLabel -> CardHeight
+                        cards.edit -> share - 10.dp
+                        else -> share
+                    },
+                ),
+            )
+            if (cards.refresh) {
+                ReceiveCard(
+                    label = ReceiveStrings.RENEW,
+                    symbol = CardSymbol.Renew,
+                    contentDescription = ReceiveStrings.RENEW,
+                    onClick = onRefresh,
+                    testTag = TestID.Receive.refreshButton,
+                    modifier = Modifier.width(if (cards.more) share - 10.dp else share - 22.dp),
+                )
+            }
+            if (cards.edit) {
+                ReceiveCard(
+                    label = ReceiveStrings.ADD_AMOUNT,
+                    symbol = CardSymbol.Edit,
+                    contentDescription = ReceiveStrings.ADD_AMOUNT,
+                    onClick = onEdit,
+                    testTag = TestID.Receive.editButton,
+                    modifier = Modifier.width(share + 22.dp),
+                )
+            }
+            if (cards.more) {
+                ReceiveCard(
+                    label = ReceiveStrings.MORE,
+                    symbol = CardSymbol.More,
+                    contentDescription = ReceiveStrings.MORE,
+                    onClick = onMore,
+                    testTag = TestID.Receive.moreButton,
+                    modifier = Modifier.width(if (cards.edit) share - 12.dp else share),
+                )
+            }
         }
     }
 }
 
 /**
- * One tonal action: the icon above its label, so the label has the whole width of the button.
- * Side by side they truncated ("Rene", "Add") — review S8. A label that still does not fit, at a
- * large font scale, is dropped rather than cut, and the icon carries the name for TalkBack.
- */
-/**
- * One tonal action. Stacked — icon above label — when the row holds three or four, so the label
- * has the button's whole width (side by side they truncated, "Rene", "Add": review S8); side by
- * side at 52 dp when it holds two. A label that still does not fit at a large font scale is
- * dropped rather than cut, and the icon carries the name for TalkBack.
+ * One card: `white0.7orblue3` with 8 corners and the iOS shadow, its SF-style symbol and the
+ * Gilroy-Bold 14 label 6 after it, centred. A label that does not fit — a narrow phone at a large
+ * font scale — is dropped rather than cut, and the symbol carries the name for TalkBack.
  */
 @Composable
 private fun ReceiveCard(
     label: String?,
-    path: String,
+    symbol: CardSymbol,
     contentDescription: String,
     onClick: () -> Unit,
     testTag: String,
     modifier: Modifier = Modifier,
-    stacked: Boolean = true,
 ) {
     val colors = BittrTheme.colors
-    var labelFits by remember(label, stacked) { mutableStateOf(true) }
+    val ink = MaterialTheme.colorScheme.onSurface
+    var labelFits by remember(label) { mutableStateOf(true) }
     val showLabel = label != null && labelFits
-    val icon = @Composable {
-        Image(
-            imageVector = rememberStrokeIcon(path, colors.onTonalFill, strokeWidth = 2f),
-            contentDescription = if (showLabel) null else contentDescription,
-            modifier = Modifier.size(20.dp),
-        )
-    }
-    val text = @Composable {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.Center,
+        modifier = modifier
+            .height(CardHeight)
+            .iosShadow(PlateShape)
+            .clip(PlateShape)
+            .background(colors.scrim3)
+            .clickable(role = Role.Button, onClick = onClick)
+            .testTag(testTag)
+            .padding(horizontal = 6.dp),
+    ) {
+        CardIcon(symbol, ink, contentDescription = if (showLabel) null else contentDescription)
         if (label != null && labelFits) {
             Text(
                 label,
-                style = if (stacked) MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold) else MaterialTheme.typography.labelLarge,
-                color = colors.onTonalFill,
+                style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold, lineHeight = 14.sp),
+                color = ink,
                 maxLines = 1,
                 softWrap = false,
                 onTextLayout = { if (it.hasVisualOverflow) labelFits = false },
+                modifier = Modifier
+                    .padding(start = 6.dp)
+                    .offset(y = 1.dp),
             )
-        }
-    }
-    val base = modifier
-        .widthIn(min = 56.dp)
-        .height(if (stacked) 64.dp else 52.dp)
-        .clip(if (stacked) RoundedCornerShape(16.dp) else BittrCanvasShapes.pill)
-        .background(colors.tonalFill)
-        .clickable(role = Role.Button, onClick = onClick)
-        .padding(horizontal = if (stacked) 4.dp else BittrTokens.Spacing.md)
-        .testTag(testTag)
-    if (stacked) {
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(4.dp, Alignment.CenterVertically),
-            modifier = base,
-        ) {
-            icon()
-            text()
-        }
-    } else {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally),
-            modifier = base,
-        ) {
-            icon()
-            text()
         }
     }
 }
 
+private enum class CardSymbol { Copy, Renew, Edit, More }
+
+/**
+ * The cards' SF Symbols, drawn on a 16 pt square: `doc.on.doc.fill`,
+ * `arrow.counterclockwise.circle.fill`, `pencil.line` and `arrowtriangle.down.circle.fill`. The
+ * filled ones have their arrow, gap or triangle cut out, so the card shows through as on iOS.
+ */
+@Composable
+private fun CardIcon(symbol: CardSymbol, color: Color, contentDescription: String?) {
+    Canvas(
+        modifier = Modifier
+            .size(16.dp)
+            .graphicsLayer { compositingStrategy = CompositingStrategy.Offscreen }
+            .then(if (contentDescription != null) Modifier.semantics { this.contentDescription = contentDescription } else Modifier),
+    ) {
+        val u = size.width / 16f
+        val center = Offset(8f * u, 8f * u)
+        when (symbol) {
+            CardSymbol.Copy -> {
+                // The back page, a 1 pt gap round the front page, and the front page.
+                drawRoundRect(color, Offset(5.5f * u, 0f), Size(8.5f * u, 11.5f * u), CornerRadius(2f * u))
+                drawRoundRect(Color.Black, Offset(1f * u, 3.5f * u), Size(10.5f * u, 12.5f * u), CornerRadius(2.8f * u), blendMode = BlendMode.Clear)
+                drawRoundRect(color, Offset(2f * u, 4.5f * u), Size(8.5f * u, 11.5f * u), CornerRadius(2f * u))
+            }
+            CardSymbol.Renew -> {
+                drawCircle(color, radius = 7f * u, center = center)
+                // The arc, open at the upper left, and its head at the top pointing back along it.
+                drawArc(
+                    Color.Black,
+                    startAngle = -70f,
+                    sweepAngle = 280f,
+                    useCenter = false,
+                    topLeft = Offset(4.3f * u, 4.3f * u),
+                    size = Size(7.4f * u, 7.4f * u),
+                    style = Stroke(width = 1.5f * u, cap = StrokeCap.Round),
+                    blendMode = BlendMode.Clear,
+                )
+                val head = Path().apply {
+                    moveTo(6f * u, 4.6f * u)
+                    lineTo(8.6f * u, 2.6f * u)
+                    lineTo(8.6f * u, 6.6f * u)
+                    close()
+                }
+                drawPath(head, Color.Black, blendMode = BlendMode.Clear)
+            }
+            CardSymbol.Edit -> {
+                val stroke = Stroke(width = 1.3f * u, cap = StrokeCap.Round, join = StrokeJoin.Round)
+                val pencil = Path().apply {
+                    moveTo(2.5f * u, 13.5f * u)
+                    lineTo(3f * u, 10.5f * u)
+                    lineTo(10.8f * u, 2.7f * u)
+                    lineTo(13.3f * u, 5.2f * u)
+                    lineTo(5.5f * u, 13f * u)
+                    close()
+                    moveTo(9.3f * u, 4.2f * u)
+                    lineTo(11.8f * u, 6.7f * u)
+                }
+                drawPath(pencil, color, style = stroke)
+                drawLine(color, Offset(8.5f * u, 15f * u), Offset(14.5f * u, 15f * u), strokeWidth = 1.3f * u, cap = StrokeCap.Round)
+            }
+            CardSymbol.More -> {
+                drawCircle(color, radius = 7f * u, center = center)
+                val triangle = Path().apply {
+                    moveTo(4.9f * u, 6.4f * u)
+                    lineTo(11.1f * u, 6.4f * u)
+                    lineTo(8f * u, 10.6f * u)
+                    close()
+                }
+                drawPath(triangle, Color.Black, blendMode = BlendMode.Clear)
+            }
+        }
+    }
+}
+
+/**
+ * `amountStack`: the amount field and, 10 after it, `btcView` — a 45 square in `whiteorblue3` with
+ * the iOS shadow; for an invoice or a Bitcoin QR the description field 10 under them. Both fields
+ * are 45 tall, `white0.7orblue1` with 8 corners and their text centred.
+ */
 @Composable
 private fun AmountStack(
     state: ReceiveUiState,
@@ -456,18 +623,16 @@ private fun AmountStack(
     onCurrency: () -> Unit,
     onDone: () -> Unit,
 ) {
-    val colors = BittrTheme.colors
-    var editing by remember { mutableStateOf(false) }
-    Column(
-        verticalArrangement = Arrangement.spacedBy(BittrTokens.Spacing.sm),
-        modifier = Modifier.onFocusChanged { editing = it.hasFocus },
-    ) {
-        Row(horizontalArrangement = Arrangement.spacedBy(BittrTokens.Spacing.sm), verticalAlignment = Alignment.CenterVertically) {
+    // The keyboard's ✓ is iOS's toolbar Done on both fields: it commits the amount and note.
+    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        Row(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
             EntryField(
                 value = state.amountText,
-                placeholder = ReceiveStrings.AMOUNT,
+                placeholder = ReceiveStrings.ENTER_AMOUNT,
                 onValueChange = onAmountChange,
-                keyboardType = if (state.currency == ReceiveCurrency.Satoshis) KeyboardType.Number else KeyboardType.Decimal,
+                // Digits only for satoshis: `Number` still offers `,` `.` and `-` on Gboard and
+                // Samsung's keyboard; `NumberPassword` is the digit pad, unmasked in a BasicTextField.
+                keyboardType = if (state.currency == ReceiveCurrency.Satoshis) KeyboardType.NumberPassword else KeyboardType.Decimal,
                 onDone = onDone,
                 testTag = TestID.Receive.amountTextField,
                 modifier = Modifier.weight(1f),
@@ -475,50 +640,40 @@ private fun AmountStack(
             Box(
                 contentAlignment = Alignment.Center,
                 modifier = Modifier
-                    .height(52.dp)
-                    .background(MaterialTheme.colorScheme.surfaceContainer, RoundedCornerShape(12.dp))
-                    .clickable(onClick = onCurrency)
-                    .padding(horizontal = BittrTokens.Spacing.md)
-                    .testTag(TestID.Receive.currencyButton),
+                    .height(FieldHeight)
+                    .widthIn(min = FieldHeight)
+                    .iosShadow(PlateShape)
+                    .background(MaterialTheme.colorScheme.surfaceContainerHigh, PlateShape),
             ) {
+                // Under the label, not over it, so the label keeps its own test id.
+                Box(
+                    modifier = Modifier
+                        .matchParentSize()
+                        .clip(PlateShape)
+                        .clickable(onClick = onCurrency)
+                        .testTag(TestID.Receive.currencyButton),
+                )
                 Text(
                     text = state.currencyLabel,
-                    style = MaterialTheme.typography.labelLarge,
-                    modifier = Modifier.testTag(TestID.Receive.currencyLabel),
-                )
-            }
-            // Only while an amount or description is being typed, as on Send and Swap: at rest it
-            // held the strongest spot on the screen (review S18, pass 4). IME Done commits too.
-            if (editing) {
-                Box(
-                    contentAlignment = Alignment.Center,
+                    style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold, lineHeight = 14.sp),
+                    color = MaterialTheme.colorScheme.onSurface,
                     modifier = Modifier
-                        .height(52.dp)
-                        .clip(BittrCanvasShapes.pill)
-                        .background(colors.actionFill)
-                        .clickable(onClick = onDone)
-                        .padding(horizontal = BittrTokens.Spacing.lg),
-                ) {
-                    Text(ReceiveStrings.DONE, style = MaterialTheme.typography.labelLarge, color = colors.onActionFill)
-                }
+                        .padding(horizontal = 6.dp)
+                        .offset(y = 1.dp)
+                        .testTag(TestID.Receive.currencyLabel),
+                )
             }
         }
         if (state.showsDescription) {
-            // A labelled white field, as the proposal draws text fields, rather than a bare
-            // cream bar (review, `receive_invoice/02`).
-            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                Text(ReceiveStrings.DESCRIPTION, style = MaterialTheme.typography.labelMedium)
-                EntryField(
-                    value = state.descriptionText,
-                    placeholder = ReceiveStrings.DESCRIPTION,
-                    onValueChange = onDescriptionChange,
-                    keyboardType = KeyboardType.Text,
-                    onDone = onDone,
-                    testTag = null,
-                    modifier = Modifier.fillMaxWidth(),
-                    white = true,
-                )
-            }
+            EntryField(
+                value = state.descriptionText,
+                placeholder = ReceiveStrings.ADD_A_NOTE,
+                onValueChange = onDescriptionChange,
+                keyboardType = KeyboardType.Text,
+                onDone = onDone,
+                testTag = null,
+                modifier = Modifier.fillMaxWidth(),
+            )
         }
     }
 }
@@ -532,34 +687,30 @@ private fun EntryField(
     onDone: () -> Unit,
     testTag: String?,
     modifier: Modifier = Modifier,
-    white: Boolean = false,
 ) {
     val colors = BittrTheme.colors
+    val style = MaterialTheme.typography.bodyLarge.copy(textAlign = TextAlign.Center)
     Box(
-        contentAlignment = if (white) Alignment.CenterStart else Alignment.Center,
+        contentAlignment = Alignment.Center,
         modifier = modifier
-            .height(if (white) 56.dp else 52.dp)
-            .background(
-                if (white) MaterialTheme.colorScheme.surfaceContainer else colors.tonalFill,
-                if (white) BittrCanvasShapes.field else RoundedCornerShape(12.dp),
-            )
-            .padding(horizontal = BittrTokens.Spacing.md),
+            .height(FieldHeight)
+            .background(colors.scrim1, PlateShape)
+            .padding(horizontal = 15.dp),
     ) {
         if (value.isEmpty()) {
             Text(
                 placeholder,
-                style = MaterialTheme.typography.bodyLarge,
-                color = if (white) MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f) else MaterialTheme.colorScheme.onSurfaceVariant,
+                style = style,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1,
+                modifier = Modifier.fillMaxWidth(),
             )
         }
         BasicTextField(
             value = value,
             onValueChange = onValueChange,
             singleLine = true,
-            textStyle = MaterialTheme.typography.bodyLarge.copy(
-                color = if (white) MaterialTheme.colorScheme.onSurface else colors.onTonalFill,
-                textAlign = if (white) TextAlign.Start else TextAlign.Center,
-            ),
+            textStyle = style.copy(color = MaterialTheme.colorScheme.onSurface),
             cursorBrush = SolidColor(colors.onTonalFill),
             keyboardOptions = KeyboardOptions(keyboardType = keyboardType, imeAction = ImeAction.Done),
             keyboardActions = KeyboardActions(onDone = { onDone() }),
@@ -574,11 +725,10 @@ private fun EntryField(
 private fun Spacer(height: androidx.compose.ui.unit.Dp) =
     androidx.compose.foundation.layout.Spacer(Modifier.height(height))
 
-// Glyphs for the four cards, as stroke paths on the design system's 24-unit grid.
-private const val COPY_PATH = "M9 9h11v11H9zM5 15V4h11"
-private const val RENEW_PATH = "M4 12a8 8 0 1 0 2.4-5.7M4 4v5h5"
-private const val EDIT_PATH = "M4 20h4L19 9l-4-4L4 16zM14 6l4 4"
-private const val MORE_PATH = "M6 9l6 6 6-6"
+private val YellowCardShape = RoundedCornerShape(13.dp)
+private val PlateShape = RoundedCornerShape(8.dp)
+private val CardHeight = 35.dp
+private val FieldHeight = 45.dp
 
 /** Material's filled `share` (Apache 2.0). */
 private const val SHARE_PATH =

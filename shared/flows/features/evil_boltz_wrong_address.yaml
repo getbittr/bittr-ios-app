@@ -104,8 +104,7 @@ appId: ${EVIL_APP_ID}
 - tapOn:
     id: "swap.amountTextField"
 - inputText: "50000"
-- tapOn:
-    text: "Done"
+- runFlow: ../helpers/amount_done.yaml
 - takeScreenshot: shared/docs/screenshots/evil_boltz_wrong_address/01_submarine_ready
 # Next → swap creation (and, on an armed build, the tampered lockup address —
 # watch the console for the 🚨 EVIL BOLTZ log).

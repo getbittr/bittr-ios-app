@@ -212,6 +212,43 @@ class TransactionConfirmationsTest {
     }
 
     @Test
+    fun `a payout that funded a new channel gives the funding its notification id as the description`() {
+        payouts.expect("notification-11", now)
+        lookup.confirms += "funding-11"
+        nodeEvents.tryEmit(NodeEvent.ChannelPending("channel-11", "funding-11"))
+        assertEquals(listOf(TransactionRequest("funding-11", confetti = true)), opened)
+        assertEquals("notification-11", lookup.descriptions["funding-11"])
+        assertEquals("left for the payment the payout may still send", "notification-11", payouts.awaiting(now))
+    }
+
+    @Test
+    fun `a payout that funds a channel and pays over it labels both, however the checks interleave`() {
+        payouts.expect("notification-13", now)
+        lookup.confirms += "funding-13"
+        lookup.confirms += "preimage13"
+        // The funding's check finishes first.
+        nodeEvents.tryEmit(NodeEvent.ChannelPending("channel-13", "funding-13"))
+        assertEquals("notification-13", lookup.descriptions["funding-13"])
+
+        publish(lightningRow("preimage13", "hash13"))
+        nodeEvents.tryEmit(NodeEvent.PaymentReceived("hash13", 1_000_000))
+
+        assertEquals("notification-13", lookup.descriptions["hash13"])
+        assertEquals(
+            listOf(TransactionRequest("funding-13", confetti = true), TransactionRequest("preimage13", confetti = true)),
+            opened,
+        )
+        assertNull("the payment's check is the one that clears it", payouts.awaiting(now))
+    }
+
+    @Test
+    fun `a funding purchase with no payout expected stores no description`() {
+        lookup.confirms += "funding-12"
+        nodeEvents.tryEmit(NodeEvent.ChannelPending("channel-12", "funding-12"))
+        assertTrue(lookup.descriptions.isEmpty())
+    }
+
+    @Test
     fun `a confirmed funding purchase is kept for the history even while nothing can open`() {
         showable = false
         lookup.confirms += "funding-4"

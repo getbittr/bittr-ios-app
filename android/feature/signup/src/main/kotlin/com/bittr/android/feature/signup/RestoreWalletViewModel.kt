@@ -149,6 +149,7 @@ class RestoreWalletViewModel @Inject constructor(
      * where the first emulator run of `restore_wallet.yaml` ended.
      */
     fun submitConfirmationPin(pin: String, onDone: () -> Unit) {
+        if (_uiState.value.busy) return
         val expected = firstPin
         if (expected == null) {
             backToPinSet()
@@ -158,13 +159,16 @@ class RestoreWalletViewModel @Inject constructor(
             showAlert(SignupStrings.INCORRECT_PIN, SignupStrings.REPEAT_NUMBER)
             return
         }
-        if (_uiState.value.busy) return
         _uiState.value = _uiState.value.copy(busy = true)
         viewModelScope.launch {
             try {
                 wallet.setPin(pin)
                 wallet.unlock(pin)
-                finish()
+                // Restore3 stays on as the arc leaves, as `hideSignup` slides it away to Home.
+                // [finish] here would step the pages back to the phrase while the arc is still
+                // on screen, sliding them across under the slide up to Home. Still busy, so a
+                // second Confirm during the slide does nothing.
+                firstPin = null
                 onDone()
                 // Cancelled when this ViewModel is cleared; the start itself runs in
                 // `WalletNodeHost`'s own scope and only the waiting stops.

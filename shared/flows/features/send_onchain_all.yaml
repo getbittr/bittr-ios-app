@@ -111,8 +111,7 @@ appId: ${APP_ID}
     id: "send.toTextField"
 - inputText: "bcrt1qz2d3feqzlr3ggslt3ugs768utz8kmweah95qgv"
 - pressKey: Enter
-- tapOn:
-    text: "Done"
+- runFlow: ../helpers/amount_done.yaml
 
 # Slid to the ConfirmSendViewController. Remember the BTC amount (8 decimals, so
 # it changes reliably if the amount is later reduced to fit the fee).

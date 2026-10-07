@@ -143,8 +143,7 @@ appId: ${APP_ID}
 - tapOn:
     id: "receive.amountTextField"
 - inputText: "2000"
-- tapOn:
-    text: "Done"
+- runFlow: ../helpers/amount_done.yaml
 
 # The invoice regenerates with the amount baked in. Wait for the spinner to
 # settle, then confirm a fresh invoice rendered.
@@ -214,8 +213,7 @@ appId: ${APP_ID}
 - tapOn:
     id: "receive.amountTextField"
 - inputText: "1000"
-- tapOn:
-    text: "Done"
+- runFlow: ../helpers/amount_done.yaml
 - extendedWaitUntil:
     notVisible:
       id: "receive.qrSpinner"

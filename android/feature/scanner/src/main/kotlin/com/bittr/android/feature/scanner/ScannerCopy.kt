@@ -57,6 +57,9 @@ internal object ScannerCopy {
      * there was nothing to carry over, and this came with the design review's sheet
      * treatment. **Approved by Ruben on 2026-09-22**; [Id.HELPER] is the id it takes when
      * `shared/strings/` grows one, which is BIT-12's job rather than this file's.
+     *
+     * **Not shown since 2026-10-06:** the scanner now follows `ScannerViewController`, which has
+     * no helper line (Tom). Kept so that putting it back is one `Text` under the frame.
      */
     const val HELPER = "Point your camera at a QR code."
 

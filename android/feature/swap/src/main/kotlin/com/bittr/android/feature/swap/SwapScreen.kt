@@ -35,9 +35,6 @@ import androidx.compose.ui.Modifier
 import com.bittr.android.core.designsystem.BittrIconPaths
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.text.TextStyle
-import androidx.compose.runtime.setValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.SolidColor
@@ -51,32 +48,47 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.bittr.android.core.common.TestID
 import com.bittr.android.core.designsystem.BittrAlert
-import com.bittr.android.core.designsystem.BittrCanvasShapes
-import com.bittr.android.core.designsystem.BittrRowLabel
 import com.bittr.android.core.designsystem.BittrSpinner
-import com.bittr.android.core.designsystem.BittrHelpButton
 import com.bittr.android.core.designsystem.BittrAlertButton
-import com.bittr.android.core.designsystem.BittrCanvas
 import com.bittr.android.core.designsystem.BittrCard
-import com.bittr.android.core.designsystem.BittrModalHeader
+import com.bittr.android.core.designsystem.BittrLoadingCard
 import com.bittr.android.core.designsystem.BittrPrimaryButton
 import com.bittr.android.core.designsystem.BittrTheme
 import com.bittr.android.core.designsystem.BittrTokens
 import com.bittr.android.core.designsystem.dismissOnPullDown
-import com.bittr.android.core.designsystem.rememberStrokeIcon
 import com.bittr.android.core.swaps.SwapAmounts
 import com.bittr.android.core.swaps.SwapCopy
 import com.bittr.android.core.swaps.SwapCoordinator
 import com.bittr.android.core.swaps.SwapStatusState
 import java.io.File
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.draw.alpha
+import com.bittr.android.core.designsystem.BittrSheetHeader
+import com.bittr.android.core.designsystem.iosShadow
+import com.bittr.android.core.designsystem.rememberFillIcon
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.EnterTransition
+import androidx.compose.animation.ExitTransition
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.animation.togetherWith
+import androidx.compose.ui.unit.IntOffset
 
 /**
  * Swap funds — `SwapViewController`, with `SwapStatusViewController` taking the card's place once
  * a swap is under way (on iOS it slides in over the same controller).
  *
- * As on Send, "Done" is a button beside the amount field rather than a keyboard toolbar, because
- * `swap_leg1.yaml` taps it by its text. Pulling the screen down closes it, like the iOS sheet the
- * flows swipe away.
+ * iOS's keyboard-toolbar Done is the keyboard's own ✓ here, as on Send and Receive; the flows press
+ * Enter for it (`helpers/amount_done.yaml`). Pulling the screen down closes it, like the iOS sheet
+ * the flows swipe away.
  */
 @Composable
 fun SwapRoute(
@@ -129,126 +141,177 @@ internal fun SwapScreen(state: SwapUiState, controller: SwapController, onDown: 
                 BittrAlertButton(label = button.label, dismissesAlert = position == 0, onClick = button.onClick)
             },
             modifier = if (alert.tag != null) Modifier.testTag(alert.tag) else Modifier,
+            identity = alert,
         )
     }
 
-    BittrCanvas(modifier = modifier.dismissOnPullDown(onDown), appBar = false) {
-        BittrModalHeader(
+    // `addHeader` with `iconswapwhite` over a block centred in the whole sheet: `centerCard`, 15 in
+    // with 13 corners and the iOS shadow, and "Powered by" Boltz 25 under it. A tap beside the fields
+    // closes the keyboard (`contentBackground`).
+    BoxWithConstraints(
+        modifier = modifier
+            .fillMaxSize()
+            .background(BittrTheme.colors.canvas)
+            .dismissOnPullDown(onDown)
+            .imePadding()
+            .pointerInput(Unit) { detectTapGestures { focusManager.clearFocus() } },
+    ) {
+        val sheetHeight = maxHeight
+        // `SwapViewController`'s move to `SwapStatusViewController`: the status card slides in from the
+        // right as the swap card leaves to the left, and back, over 0.3 s ease-in-out. Keyed on which
+        // card shows, so the status updating in place doesn't slide. Opened on the status card alone,
+        // from a transaction, there is no swap card to slide from.
+        AnimatedContent(
+            targetState = state.status,
+            contentKey = { it != null },
+            transitionSpec = {
+                if (state.statusOnly) return@AnimatedContent EnterTransition.None togetherWith ExitTransition.None
+                val forward = targetState != null
+                val spec = tween<IntOffset>(durationMillis = 300, easing = FastOutSlowInEasing)
+                slideInHorizontally(spec) { width -> if (forward) width else -width } togetherWith
+                    slideOutHorizontally(spec) { width -> if (forward) -width else width }
+            },
+            label = "swapStatusSlide",
+            modifier = Modifier.fillMaxSize(),
+        ) { status ->
+            Column(
+                verticalArrangement = Arrangement.Center,
+                horizontalAlignment = Alignment.CenterHorizontally,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .verticalScroll(rememberScrollState())
+                    .heightIn(min = sheetHeight)
+                    .padding(horizontal = 15.dp, vertical = 58.dp),
+            ) {
+                if (status == null) {
+                    if (state.statusOnly) return@Column
+                    SwapCard(state, controller, clearFocus = { focusManager.clearFocus() })
+                    PoweredByBoltz(onClick = {
+                        focusManager.clearFocus()
+                        controller.onBoltzTapped()
+                    })
+                } else {
+                    StatusCard(status, controller)
+                }
+            }
+        }
+
+        BittrSheetHeader(
+            icon = painterResource(R.drawable.swap_header_icon),
             title = SwapCopy.SWAP_FUNDS_HEADER,
             onDown = onDown,
-            icon = SWAP_PATH,
             titleTestTag = TestID.Header.titleLabel,
             downTestTag = TestID.Header.downButton,
         )
-        Column(
-            modifier = Modifier
-                .weight(1f)
-                .fillMaxWidth()
-                .imePadding()
-                .verticalScroll(rememberScrollState())
-                .padding(BittrTokens.Spacing.md),
-        ) {
-            val status = state.status
-            if (status == null) {
-                SwapCard(state, controller, clearFocus = { focusManager.clearFocus() })
-            } else {
-                StatusCard(status, controller)
-            }
+
+        // `showLoading(message: "gatheringdetails")`: the completed swap's transaction is being put
+        // together before it opens. The card draws in this window, so it goes last, over the sheet.
+        if (state.status?.gathering == true) {
+            Box(Modifier.matchParentSize()) { BittrLoadingCard(message = SwapCopy.GATHERING_DETAILS) }
         }
     }
 }
 
+/**
+ * `centerCard`: the subtitle in Gilroy-Regular 16 40 from the top and 40 in, "Move" in Gilroy-Bold 16
+ * 30 under it, then — 40 in — the amount field 10 under that and the direction button 10 under the
+ * field. "Move up to …" with its question mark 15 under those, Next 25 under that, 30 from the bottom.
+ */
 @Composable
 private fun SwapCard(state: SwapUiState, controller: SwapController, clearFocus: () -> Unit) {
-    var amountFocused by remember { mutableStateOf(false) }
-    BittrCard(horizontalAlignment = Alignment.Start) {
+    BittrCard(
+        fill = BittrTheme.colors.levelCard,
+        contentPadding = PaddingValues(start = 40.dp, end = 40.dp, top = 40.dp, bottom = 30.dp),
+    ) {
         Text(
             SwapCopy.SUBTITLE,
-            style = MaterialTheme.typography.bodyLarge,
+            style = MaterialTheme.typography.bodyLarge.copy(lineHeight = 16.4.sp),
+            color = MaterialTheme.colorScheme.onSurface,
             textAlign = TextAlign.Center,
             modifier = Modifier
                 .fillMaxWidth()
                 .testTag(TestID.Swap.subtitleLabel),
         )
-        Gap()
-        Text(SwapCopy.MOVE, style = MaterialTheme.typography.titleMedium, color = BittrTheme.colors.emphasis)
-        Gap(BittrTokens.Spacing.xs)
-        Row(horizontalArrangement = Arrangement.spacedBy(BittrTokens.Spacing.sm), verticalAlignment = Alignment.CenterVertically) {
-            AmountField(
-                value = state.amountText,
-                onValueChange = controller::onAmountChange,
-                onDone = clearFocus,
-                modifier = Modifier
-                    .weight(1f)
-                    .onFocusChanged { amountFocused = it.hasFocus },
-            )
-            // The keyboard's companion, so only there while the amount is being typed; with the
-            // keyboard down it posed as the primary action above Next (review S18).
-            if (amountFocused) {
-                Box(
-                    contentAlignment = Alignment.Center,
-                    modifier = Modifier
-                        .height(56.dp)
-                        .clip(BittrCanvasShapes.pill)
-                        .background(BittrTheme.colors.actionFill)
-                        .clickable(onClick = clearFocus)
-                        .padding(horizontal = BittrTokens.Spacing.lg),
-                ) {
-                    Text(SwapCopy.DONE, style = MaterialTheme.typography.labelLarge, color = BittrTheme.colors.onActionFill)
-                }
-            }
-        }
+        Gap(30.dp)
+        Text(
+            SwapCopy.MOVE,
+            style = MaterialTheme.typography.labelLarge.copy(lineHeight = 16.sp),
+            color = BittrTheme.colors.emphasis,
+            textAlign = TextAlign.Center,
+        )
+        Gap(10.dp)
+        // The keyboard's ✓ is iOS's toolbar Done: it closes the keyboard.
+        AmountField(
+            value = state.amountText,
+            onValueChange = controller::onAmountChange,
+            onDone = clearFocus,
+            modifier = Modifier.fillMaxWidth(),
+        )
 
-        Gap(BittrTokens.Spacing.sm)
-        // The direction pill. The tap layer is under the label so the label keeps its own id.
+        Gap(10.dp)
+        // `fromView`: 40 tall, `whiteorblue3` with 8 corners and the iOS shadow, the direction in
+        // Gilroy-Bold 14, centred. The tap layer is under the label so the label keeps its own id.
         Box(
+            contentAlignment = Alignment.Center,
             modifier = Modifier
                 .fillMaxWidth()
-                .height(52.dp)
-                .background(MaterialTheme.colorScheme.surfaceContainer, BittrCanvasShapes.field),
+                .height(40.dp)
+                .iosShadow(PlateShape)
+                .background(MaterialTheme.colorScheme.surfaceContainerHigh, PlateShape),
         ) {
             Box(
                 modifier = Modifier
                     .matchParentSize()
+                    .clip(PlateShape)
                     .clickable {
                         clearFocus()
                         controller.onDirectionTapped()
                     }
                     .testTag(TestID.Swap.fromButton),
             )
+            Text(
+                state.directionLabel,
+                style = Bold14,
+                color = MaterialTheme.colorScheme.onSurface,
+                modifier = Modifier
+                    .offset(y = 1.dp)
+                    .testTag(TestID.Swap.fromLabel),
+            )
+        }
+
+        Gap(15.dp)
+        // `availableView`: the line and its question mark 5 after it, centred; the spinner 10 after.
+        Row(verticalAlignment = Alignment.CenterVertically) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier
-                    .align(Alignment.CenterStart)
-                    .padding(horizontal = BittrTokens.Spacing.md),
+                    .clip(PlateShape)
+                    .clickable {
+                        clearFocus()
+                        controller.onAvailableQuestion()
+                    }
+                    .padding(vertical = 4.dp),
             ) {
-                Text(state.directionLabel, style = MaterialTheme.typography.labelLarge, modifier = Modifier.testTag(TestID.Swap.fromLabel))
-                Spacer(Modifier.size(BittrTokens.Spacing.xs))
-                Image(rememberStrokeIcon(SWAP_PATH, MaterialTheme.colorScheme.onSurface, strokeWidth = 2f), contentDescription = null, modifier = Modifier.size(16.dp))
-            }
-        }
-
-        Gap(BittrTokens.Spacing.sm)
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Box(modifier = Modifier.weight(1f, fill = false)) {
-                Box(
-                    modifier = Modifier
-                        .matchParentSize()
-                        .clickable {
-                            clearFocus()
-                            controller.onAvailableQuestion()
-                        },
+                Text(
+                    state.available,
+                    style = MaterialTheme.typography.bodyLarge.copy(lineHeight = 16.sp),
+                    color = MaterialTheme.colorScheme.onSurface,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.weight(1f, fill = false),
                 )
-                Text(state.available, style = MaterialTheme.typography.bodyMedium)
+                Image(
+                    rememberFillIcon(BittrIconPaths.HELP, MaterialTheme.colorScheme.onSurface),
+                    contentDescription = "More information",
+                    modifier = Modifier
+                        .padding(start = 5.dp)
+                        .offset(y = (-1).dp)
+                        .size(16.dp),
+                )
             }
-            if (state.availableLoading) Spinner(Modifier.padding(start = BittrTokens.Spacing.xs))
-            QuestionMark {
-                clearFocus()
-                controller.onAvailableQuestion()
-            }
+            if (state.availableLoading) Spinner(Modifier.padding(start = 10.dp))
         }
 
-        Gap()
+        Gap(25.dp)
         BittrPrimaryButton(
             text = SwapCopy.NEXT,
             onClick = {
@@ -262,137 +325,222 @@ private fun SwapCard(state: SwapUiState, controller: SwapController, clearFocus:
                 null
             },
         )
-
-        Gap(BittrTokens.Spacing.sm)
-        Row(
-            horizontalArrangement = Arrangement.spacedBy(BittrTokens.Spacing.xs, Alignment.CenterHorizontally),
-            verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier
-                .fillMaxWidth()
-                .heightIn(min = BittrTokens.Size.minTouchTarget)
-                .clickable {
-                    clearFocus()
-                    controller.onBoltzTapped()
-                },
-        ) {
-            // "Powered by ⚡ Boltz", with the bolt iOS puts before the wordmark (review, `swap/03`).
-            Text(
-                SwapCopy.POWERED_BY,
-                style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Medium),
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.60f),
-            )
-            Image(
-                rememberStrokeIcon(BittrIconPaths.BOLT, MaterialTheme.colorScheme.onSurface, strokeWidth = 2f),
-                contentDescription = null,
-                modifier = Modifier.size(16.dp),
-            )
-            Text("Boltz", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
-        }
     }
 }
 
-/** `SwapStatusViewController`'s card: direction, amount, fees, status, download. */
+/**
+ * Under the card, 25 below it and at half opacity: "Powered by" in Gilroy-Bold 14 and, 5 after it,
+ * the Boltz wordmark at 43 by 12 — `boltzblack`, `boltzwhite` in dark. A tap opens Boltz's site.
+ */
+@Composable
+private fun PoweredByBoltz(onClick: () -> Unit) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier
+            // 25 to the label on iOS; the 48 dp touch target spends 17 of it.
+            .padding(top = 7.dp)
+            .heightIn(min = BittrTokens.Size.minTouchTarget)
+            .clip(PlateShape)
+            .clickable(onClick = onClick)
+            .padding(horizontal = 10.dp)
+            .alpha(0.5f),
+    ) {
+        Text(
+            SwapCopy.POWERED_BY,
+            style = Bold14,
+            color = MaterialTheme.colorScheme.onSurface,
+            modifier = Modifier.offset(y = 1.5.dp),
+        )
+        Image(
+            painter = painterResource(if (BittrTheme.isDark) R.drawable.swap_boltz_white else R.drawable.swap_boltz_black),
+            contentDescription = "Boltz",
+            modifier = Modifier
+                .padding(start = 5.dp)
+                .size(width = 43.dp, height = 12.dp),
+        )
+    }
+}
+
+/**
+ * `SwapStatusViewController`'s `confirmCard`: `yelloworblue2` with 13 corners and the iOS shadow. Its
+ * header 20 in — `iconswapwhite` (`iconswap` in dark) at 18 and "swap status" in Gilroy-Bold 18,
+ * `whiteoryellow`, 10 after it — then, 20 under that and 10 in, four 45 pt rows 10 apart, and the
+ * download line 10 under them and 10 from the bottom.
+ */
 @Composable
 private fun StatusCard(status: SwapStatusState, controller: SwapController) {
     val swap = status.swap
-    BittrCard(horizontalAlignment = Alignment.Start, modifier = Modifier.testTag(TestID.SwapStatus.confirmCard)) {
-        // The card's own header, as the proposal draws it above the rows (review, Swapstatus).
-        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+    val colors = BittrTheme.colors
+    val dark = BittrTheme.isDark
+    BittrCard(
+        horizontalAlignment = Alignment.Start,
+        fill = colors.levelCard,
+        contentPadding = PaddingValues(start = 10.dp, end = 10.dp, top = 20.dp, bottom = 10.dp),
+        modifier = Modifier.testTag(TestID.SwapStatus.confirmCard),
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(start = 10.dp)) {
             Image(
-                rememberStrokeIcon(SWAP_PATH, MaterialTheme.colorScheme.onSurface, strokeWidth = 2f),
+                painter = painterResource(if (dark) R.drawable.swap_icon_yellow else R.drawable.swap_header_icon),
                 contentDescription = null,
-                modifier = Modifier.size(20.dp),
+                modifier = Modifier.size(18.dp),
             )
-            Text(SwapCopy.SWAP_STATUS_HEADER.lowercase(), style = MaterialTheme.typography.titleLarge.copy(fontSize = 20.sp))
+            Text(
+                SwapCopy.SWAP_STATUS_HEADER.lowercase(),
+                style = MaterialTheme.typography.titleMedium.copy(lineHeight = 18.sp),
+                color = colors.homeCardTitle,
+                modifier = Modifier
+                    .padding(start = 10.dp)
+                    .offset(y = 1.dp),
+            )
         }
-        Gap(16.dp)
-        InfoRow(SwapCopy.DIRECTION) { Text(swap.direction.label(), style = RowValue) }
-        Gap(BittrTokens.Spacing.sm)
-        InfoRow(SwapCopy.AMOUNT) { Text("${SwapAmounts.group(swap.satoshisAmount)} sats", style = RowValue) }
-        Gap(BittrTokens.Spacing.sm)
-        InfoRow(SwapCopy.FEES) { Text("${swap.formattedTotalFees()} sats", style = RowValue) }
-        Gap(BittrTokens.Spacing.sm)
-        InfoRow(SwapCopy.STATUS) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(status.statusText, style = RowValue, modifier = Modifier.weight(1f, fill = false).testTag(TestID.SwapStatus.confirmStatusLabel))
-                if (status.spinning) Spinner(Modifier.padding(start = BittrTokens.Spacing.xs))
-                Box(
-                    contentAlignment = Alignment.Center,
-                    modifier = Modifier
-                        .size(BittrTokens.Size.minTouchTarget)
-                        .clickable(onClick = controller::onRefresh)
-                        .testTag(TestID.SwapStatus.refreshButton),
-                ) {
-                    Image(rememberStrokeIcon(REFRESH_PATH, MaterialTheme.colorScheme.onSurface, strokeWidth = 2f), contentDescription = "Refresh", modifier = Modifier.size(18.dp))
+        Gap(20.dp)
+        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            InfoRow(SwapCopy.DIRECTION) { Text(swap.direction.label(), style = RowValue, color = MaterialTheme.colorScheme.onSurface) }
+            InfoRow(SwapCopy.AMOUNT) { Text("${SwapAmounts.group(swap.satoshisAmount)} sats", style = RowValue, color = MaterialTheme.colorScheme.onSurface) }
+            InfoRow(SwapCopy.FEES) { Text("${swap.formattedTotalFees()} sats", style = RowValue, color = MaterialTheme.colorScheme.onSurface) }
+            // `confirmStatus`: the spinner 8 after the title; at the end the 12 pt reset icon, the
+            // status 8 after it and the question mark 8 after that, 15 from the end.
+            InfoRow(SwapCopy.STATUS, endPadding = 7.dp, titleTrailing = {
+                if (status.spinning) Spinner(Modifier.padding(start = 8.dp))
+            }) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Box(
+                        contentAlignment = Alignment.Center,
+                        modifier = Modifier
+                            .size(width = 32.dp, height = RowHeight)
+                            .clickable(role = Role.Button, onClickLabel = "Refresh", onClick = controller::onRefresh)
+                            .testTag(TestID.SwapStatus.refreshButton),
+                    ) {
+                        Image(
+                            painter = painterResource(if (dark) R.drawable.swap_reset_white else R.drawable.swap_reset_black),
+                            contentDescription = "Refresh",
+                            modifier = Modifier
+                                .offset(y = (-1).dp)
+                                .size(12.dp),
+                        )
+                    }
+                    Text(
+                        status.statusText,
+                        style = RowValue,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        maxLines = 1,
+                        modifier = Modifier
+                            .weight(1f, fill = false)
+                            .testTag(TestID.SwapStatus.confirmStatusLabel),
+                    )
+                    Box(
+                        contentAlignment = Alignment.Center,
+                        modifier = Modifier
+                            .size(width = 32.dp, height = RowHeight)
+                            .clickable(role = Role.Button, onClickLabel = "More information", onClick = controller::onStatusQuestion),
+                    ) {
+                        Image(
+                            rememberFillIcon(BittrIconPaths.HELP, MaterialTheme.colorScheme.onSurface),
+                            contentDescription = "More information",
+                            modifier = Modifier
+                                .offset(y = (-1).dp)
+                                .size(16.dp),
+                        )
+                    }
                 }
-                QuestionMark(onClick = controller::onStatusQuestion)
             }
         }
-        Gap(16.dp)
-        // An action, so a button rather than one more white row that reads as data (review S16).
+        Gap(10.dp)
+        // `downloadView`: 35 tall with no plate, `icondownloadblack` (`icondownload` in dark) at 12 and
+        // "Download details" in Gilroy-Regular 16 8 after it, centred.
         Row(
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally),
+            horizontalArrangement = Arrangement.Center,
             modifier = Modifier
                 .fillMaxWidth()
-                .height(52.dp)
-                .clip(BittrCanvasShapes.pill)
-                .background(BittrTheme.colors.tonalFill)
+                .height(35.dp)
+                .clip(PlateShape)
                 .clickable(role = Role.Button, onClick = controller::onDownload),
         ) {
             Image(
-                rememberStrokeIcon(DOWNLOAD_PATH, BittrTheme.colors.onTonalFill, strokeWidth = 2f),
+                painter = painterResource(if (dark) R.drawable.swap_download_white else R.drawable.swap_download_black),
                 contentDescription = null,
-                modifier = Modifier.size(20.dp),
+                modifier = Modifier
+                    .offset(y = (-1).dp)
+                    .size(12.dp),
             )
-            Text(SwapCopy.DOWNLOAD_DETAILS, style = MaterialTheme.typography.labelLarge, color = BittrTheme.colors.onTonalFill)
+            Text(
+                SwapCopy.DOWNLOAD_DETAILS,
+                style = MaterialTheme.typography.bodyLarge.copy(lineHeight = 16.sp),
+                color = MaterialTheme.colorScheme.onSurface,
+                modifier = Modifier.padding(start = 8.dp),
+            )
         }
     }
 }
 
+/**
+ * One of the status card's rows: 45 tall, `whiteorblue3` with 8 corners, the title in yellow
+ * Gilroy-Bold 16 15 in and the value at the end, 15 from it unless [endPadding] says otherwise.
+ */
 @Composable
-private fun InfoRow(title: String, value: @Composable () -> Unit) {
-    Column(
+private fun InfoRow(
+    title: String,
+    endPadding: Dp = 15.dp,
+    titleTrailing: @Composable () -> Unit = {},
+    value: @Composable () -> Unit,
+) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier
             .fillMaxWidth()
-            .background(MaterialTheme.colorScheme.surfaceContainer, BittrCanvasShapes.field)
-            .padding(horizontal = BittrTokens.Spacing.md, vertical = BittrTokens.Spacing.sm),
+            .height(RowHeight)
+            .background(MaterialTheme.colorScheme.surfaceContainerHigh, PlateShape)
+            .padding(start = 15.dp, end = endPadding),
     ) {
-        BittrRowLabel(title)
-        value()
+        Text(title, style = RowValue, color = BittrTheme.colors.brandFixed, modifier = Modifier.offset(y = 1.dp))
+        titleTrailing()
+        Spacer(Modifier.weight(1f))
+        Box(modifier = Modifier.offset(y = 1.dp)) { value() }
     }
 }
 
+private val RowHeight = 45.dp
+
+/**
+ * `amountTextField`: 45 tall, `white0.7orblue3` with 8 corners and the iOS shadow, Gilroy-Regular 16
+ * centred.
+ */
 @Composable
 private fun AmountField(value: String, onValueChange: (String) -> Unit, onDone: () -> Unit, modifier: Modifier = Modifier) {
+    val style = MaterialTheme.typography.bodyLarge.copy(textAlign = TextAlign.Center)
     Box(
-        contentAlignment = Alignment.CenterStart,
+        contentAlignment = Alignment.Center,
         modifier = modifier
-            .height(52.dp)
-            .background(MaterialTheme.colorScheme.surfaceContainer, BittrCanvasShapes.field)
-            .padding(horizontal = BittrTokens.Spacing.md),
+            .height(45.dp)
+            .iosShadow(PlateShape)
+            .background(BittrTheme.colors.scrim3, PlateShape)
+            .padding(horizontal = 15.dp),
     ) {
         if (value.isEmpty()) {
-            Text(SwapCopy.ENTER_AMOUNT_OF_SATOSHIS, style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(
+                SwapCopy.ENTER_AMOUNT_OF_SATOSHIS,
+                style = style,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1,
+                modifier = Modifier.fillMaxWidth(),
+            )
         }
         BasicTextField(
             value = value,
             onValueChange = onValueChange,
             singleLine = true,
-            textStyle = MaterialTheme.typography.bodyLarge.copy(color = MaterialTheme.colorScheme.onSurface),
+            textStyle = style.copy(color = MaterialTheme.colorScheme.onSurface),
             cursorBrush = SolidColor(MaterialTheme.colorScheme.onSurface),
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number, imeAction = ImeAction.Done),
+            // Satoshis, so digits only: `Number` still offers `,` `.` and `-` on Gboard and Samsung's
+            // keyboard; `NumberPassword` is the digit pad, unmasked in a BasicTextField.
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.NumberPassword, imeAction = ImeAction.Done),
             keyboardActions = KeyboardActions(onDone = { onDone() }),
             modifier = Modifier
                 .fillMaxWidth()
                 .testTag(TestID.Swap.amountTextField),
         )
     }
-}
-
-@Composable
-private fun QuestionMark(onClick: () -> Unit) {
-    BittrHelpButton(onClick = onClick)
 }
 
 @Composable
@@ -405,11 +553,12 @@ private fun ColumnScope.Gap(height: Dp = BittrTokens.Spacing.md) {
     Spacer(Modifier.height(height))
 }
 
-private const val SWAP_PATH = "M7 4v16M3 8l4-4 4 4M17 20V4M13 16l4 4 4-4"
-private const val REFRESH_PATH = "M20 12a8 8 0 1 1-2.34-5.66M20 4v5h-5"
 
-private const val DOWNLOAD_PATH = "M12 4v11m0 0l-5-5m5 5l5-5M5 20h14"
+private val PlateShape = RoundedCornerShape(8.dp)
+private val Bold14: TextStyle
+    @Composable get() = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold, lineHeight = 14.sp)
 
-/** A detail row's value — 16 sp semibold, under its gold [BittrRowLabel] (review S15). */
+
+/** The status rows' titles and values: Gilroy-Bold 16. */
 private val RowValue: TextStyle
-    @Composable get() = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.SemiBold)
+    @Composable get() = MaterialTheme.typography.labelLarge.copy(lineHeight = 18.sp)

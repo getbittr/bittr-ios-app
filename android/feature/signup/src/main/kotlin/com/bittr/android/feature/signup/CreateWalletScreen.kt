@@ -1,14 +1,18 @@
 package com.bittr.android.feature.signup
 
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.animation.AnimatedContent
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.bittr.android.core.common.TestID
 import com.bittr.android.core.designsystem.BittrAlertDialog
+import com.bittr.android.core.designsystem.BittrCanvas
+import com.bittr.android.core.designsystem.pageSlide
 
 /**
  * The whole create-wallet arc, as one destination.
@@ -53,79 +57,109 @@ fun CreateWalletScreen(
         )
     }
 
-    when (state.step) {
-        CreateWalletStep.Start -> SignupStartScreen(
-            onCreateWallet = viewModel::startCreate,
-            onRestoreWallet = onRestoreWallet,
-            modifier = modifier,
-            onOpenArticle = onOpenArticle,
-        )
+    // iOS slides between these pages (`moveToPage`); see pageSlide.
+    AnimatedContent(
+        targetState = state.step,
+        transitionSpec = { pageSlide(initialState.page, targetState.page) },
+        label = "createWalletPages",
+    ) { step ->
+        // The page leaving still recomposes with the new state while it slides out, so the fallbacks
+        // below — a step whose data has gone — act only on the page arriving, and a departing page
+        // with nothing left to show slides out as the bare canvas.
+        val arriving = step == state.step
+        when (step) {
+            CreateWalletStep.Start -> SignupStartScreen(
+                onCreateWallet = viewModel::startCreate,
+                onRestoreWallet = onRestoreWallet,
+                modifier = modifier,
+                onOpenArticle = onOpenArticle,
+            )
 
-        CreateWalletStep.Confirm -> ConfirmScreen(
-            onUnderstood = viewModel::createWallet,
-            onBack = viewModel::backToStart,
-            busy = state.busy,
-            modifier = modifier,
-            onOpenArticle = onOpenArticle,
-        )
+            CreateWalletStep.Confirm -> ConfirmScreen(
+                onUnderstood = viewModel::createWallet,
+                onBack = viewModel::backToStart,
+                busy = state.busy,
+                modifier = modifier,
+                onOpenArticle = onOpenArticle,
+            )
 
-        CreateWalletStep.Phrase -> {
-            val mnemonic = state.mnemonic
-            if (mnemonic == null) {
-                // Only reachable if the phrase was dropped out from under the step,
-                // which would mean showing an empty backup screen. Go back instead.
-                LaunchedEffect(Unit) { viewModel.finish() }
-            } else {
-                MnemonicScreen(
-                    mnemonic = mnemonic,
-                    onNext = viewModel::confirmPhraseSeen,
-                    modifier = modifier,
-                    onOpenArticle = onOpenArticle,
-                )
+            CreateWalletStep.Phrase -> {
+                val mnemonic = state.mnemonic
+                if (mnemonic == null) {
+                    // Only reachable if the phrase was dropped out from under the step,
+                    // which would mean showing an empty backup screen. Go back instead.
+                    if (arriving) LaunchedEffect(Unit) { viewModel.finish() } else BittrCanvas(modifier) {}
+                } else {
+                    MnemonicScreen(
+                        mnemonic = mnemonic,
+                        onNext = viewModel::confirmPhraseSeen,
+                        modifier = modifier,
+                        onOpenArticle = onOpenArticle,
+                    )
+                }
             }
-        }
 
-        CreateWalletStep.Verify -> {
-            val challenge = state.challenge
-            if (challenge == null) {
-                LaunchedEffect(Unit) { viewModel.backToPhrase() }
-            } else {
-                VerifyScreen(
-                    challenge = challenge,
-                    onSubmit = viewModel::submitVerification,
-                    onBack = viewModel::backToPhrase,
-                    modifier = modifier,
-                )
+            CreateWalletStep.Verify -> {
+                // Back drops the challenge in the same update that starts the slide to the phrase,
+                // so the page keeps the one it was showing and slides out as it was, words typed
+                // and all, instead of as the bare canvas.
+                val challenge = rememberLastNonNull(state.challenge)
+                if (arriving && state.challenge == null) {
+                    LaunchedEffect(Unit) { viewModel.backToPhrase() }
+                } else if (challenge == null) {
+                    BittrCanvas(modifier) {}
+                } else {
+                    VerifyScreen(
+                        challenge = challenge,
+                        onSubmit = viewModel::submitVerification,
+                        onBack = viewModel::backToPhrase,
+                        modifier = modifier,
+                    )
+                }
             }
+
+            CreateWalletStep.PinSet -> PinScreen(
+                title = SignupStrings.SET_A_PIN,
+                confirmLabel = SignupStrings.NEXT,
+                titleTestTag = TestID.Signup.Create.PinSet.topLabel,
+                onSubmit = viewModel::submitFirstPin,
+                modifier = modifier,
+            )
+
+            CreateWalletStep.PinConfirm -> PinScreen(
+                title = SignupStrings.CONFIRM_YOUR_PIN,
+                titleTestTag = TestID.Signup.Create.PinConfirm.topLabel,
+                onSubmit = viewModel::submitConfirmationPin,
+                onBack = viewModel::backToPinSet,
+                modifier = modifier,
+            )
+
+            // Leaving from here does not reset the arc with `finish()`: that puts the step back to
+            // Start, and the page, still drawn while it slides away to Home or Transfer1, would
+            // race six pages sideways as it went. Both ways out pop this destination, which clears
+            // the view model; the PIN and the phrase were dropped when the PIN was confirmed.
+            CreateWalletStep.Ready -> ReadyScreen(
+                onContinue = onContinueToSignup,
+                onSkip = onFinished,
+                modifier = modifier,
+                onOpenArticle = onOpenArticle,
+            )
         }
-
-        CreateWalletStep.PinSet -> PinScreen(
-            title = SignupStrings.SET_A_PIN,
-            confirmLabel = SignupStrings.NEXT,
-            titleTestTag = TestID.Signup.Create.PinSet.topLabel,
-            onSubmit = viewModel::submitFirstPin,
-            modifier = modifier,
-        )
-
-        CreateWalletStep.PinConfirm -> PinScreen(
-            title = SignupStrings.CONFIRM_YOUR_PIN,
-            titleTestTag = TestID.Signup.Create.PinConfirm.topLabel,
-            onSubmit = viewModel::submitConfirmationPin,
-            onBack = viewModel::backToPinSet,
-            modifier = modifier,
-        )
-
-        CreateWalletStep.Ready -> ReadyScreen(
-            onContinue = {
-                viewModel.finish()
-                onContinueToSignup()
-            },
-            onSkip = {
-                viewModel.finish()
-                onFinished()
-            },
-            modifier = modifier,
-            onOpenArticle = onOpenArticle,
-        )
     }
+}
+
+/**
+ * [value], or the last non-null value it had while this call stayed composed — for a page that goes
+ * on being drawn while it slides out after its data has been cleared. A plain holder, not state:
+ * nothing needs to recompose when it changes, as [value] changing already has.
+ */
+@Composable
+private fun <T : Any> rememberLastNonNull(value: T?): T? {
+    val last = remember { LastValue<T>() }
+    if (value != null) last.value = value
+    return last.value
+}
+
+private class LastValue<T : Any> {
+    var value: T? = null
 }

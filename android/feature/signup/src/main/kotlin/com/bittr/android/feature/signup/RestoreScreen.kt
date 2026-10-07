@@ -1,22 +1,29 @@
 package com.bittr.android.feature.signup
 
+import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.ui.semantics.Role
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.statusBars
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -41,19 +48,22 @@ import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.bittr.android.core.common.TestID
+import com.bittr.android.core.designsystem.ScreenshotProtection
 import com.bittr.android.core.designsystem.BittrCanvas
-import com.bittr.android.core.designsystem.BittrCard
-import com.bittr.android.core.designsystem.BittrNumeral
 import com.bittr.android.core.designsystem.BittrPrimaryButton
-import com.bittr.android.core.designsystem.BittrStepHeading
 import com.bittr.android.core.designsystem.BittrTextButton
 import com.bittr.android.core.designsystem.BittrTheme
 import com.bittr.android.core.designsystem.BittrTokens
-import com.bittr.android.core.designsystem.BittrValueRow
 import com.bittr.android.core.designsystem.CanvasSpacer
+import com.bittr.android.core.designsystem.appBarContentPadding
+import com.bittr.android.core.designsystem.AppBarContentInset
+import com.bittr.android.core.designsystem.IosCardShape
+import com.bittr.android.core.designsystem.iosShadow
 import com.bittr.android.core.wallet.seed.Bip39
 import com.bittr.android.feature.academy.ArticleCard
 import com.bittr.android.feature.academy.BittrArticles
@@ -61,10 +71,9 @@ import com.bittr.android.feature.academy.BittrArticles
 /**
  * Android counterpart of iOS `RestoreViewController` — the twelve fields.
  *
- * Built out of the same [WordField] shape as [VerifyScreen], because on iOS they are
- * literally the same control (`MnemonicTextField`) and a user who has been through
- * signup should recognise it. The differences are that there are twelve of them and
- * that nothing on this screen knows what the right answer is — the verdict comes from
+ * Laid out as the storyboard's scene is (decision 55): no yellow card, but one white card of
+ * twelve numbered words in two columns under a centred heading, and the button without an arrow.
+ * Nothing on this screen knows what the right answer is — the verdict comes from
  * `SeedPhraseEntry` via [RestoreWalletViewModel].
  *
  * **Restore is never dimmed.** [VerifyScreen] dims Confirm until all three fields have
@@ -82,16 +91,15 @@ import com.bittr.android.feature.academy.BittrArticles
  * trade-off here than on Verify — it is twelve words, not three — which is exactly
  * why it is made the same way.
  *
- * **The focused field is parked near the top, so the next ones are above the keyboard.**
- * Twelve fields plus a keyboard are taller than any phone, and the first emulator run
- * of `restore_wallet.yaml` stopped at field 7: it sat behind the keyboard, where it
- * cannot be seen or tapped. Asking Compose to bring the next field into view on focus
- * was not enough, because moving focus between text fields hides and re-shows the
- * keyboard — the visible area changes height mid-animation, and a request made against
- * that height lands short. So focusing a field scrolls it, without animation, to one
- * row below the top of the visible area, and while a field has focus the content gets
- * a visible-area's worth of room below it so even the twelfth can go there. That does
- * not depend on what the keyboard is doing at the time.
+ * **With a field focused, the heading is parked at the top, so every field is above the
+ * keyboard.** The first emulator run of `restore_wallet.yaml`, with twelve 56 dp rows, stopped
+ * at field 7 behind the keyboard. Asking Compose to bring the next field into view on focus
+ * was not enough, because moving focus between text fields hides and re-shows the keyboard —
+ * the visible area changes height mid-animation, and a request made against that height lands
+ * short. So focusing a field scrolls, without animation, to put the heading at the top of the
+ * visible area, and while a field has focus the content gets a visible-area's worth of room
+ * below it. iOS's white card is 240 pt, so heading and all twelve fields then fit above the
+ * keyboard, and the heading the flows tap to dismiss it stays on screen.
  *
  * **The same screen serves the forgot-PIN reset**, which is iOS's arrangement too —
  * `startPinReset` opens this very view controller with `resettingPin` set, and the
@@ -118,6 +126,8 @@ fun RestoreScreen(
     onRemoveWallet: (() -> Unit)? = null,
     onOpenArticle: ((String) -> Unit)? = null,
 ) {
+    // The recovery phrase is typed here: out of screenshots, recordings and Recents.
+    ScreenshotProtection()
     val words = remember { mutableStateListOf(*Array(Bip39.WORD_COUNT) { "" }) }
     val focusRequesters = remember { List(Bip39.WORD_COUNT) { FocusRequester() } }
     val keyboard = LocalSoftwareKeyboardController.current
@@ -129,16 +139,19 @@ fun RestoreScreen(
     // Where the visible area starts on screen, and how tall it is, in px.
     var viewportTop by remember { mutableIntStateOf(0) }
     var viewportHeight by remember { mutableIntStateOf(0) }
-    // Each row's top on screen, in px, as of its last placement.
-    val rowTops = remember { IntArray(Bip39.WORD_COUNT) }
+    // The heading's top on screen, in px, as of its last placement.
+    var headingTop by remember { mutableIntStateOf(0) }
+    // The top bar the content scrolls under: the status bar and the bar's 50, in px.
+    val appBarBottom = WindowInsets.statusBars.getTop(density) + with(density) { AppBarContentInset.roundToPx() }
 
+    // With a field focused, the heading goes to the top of the visible area, just below the top
+    // bar the content scrolls under. The white card is
+    // compact enough that all twelve fields then sit between it and the keyboard, and the heading
+    // stays on screen — `forgot_pin.yaml` taps it after the last word to put the keyboard away,
+    // which on iOS falls through to `backgroundButtonTapped`.
     LaunchedEffect(focusedIndex) {
         if (focusedIndex == NO_FOCUS) return@LaunchedEffect
-        // Top of the row within the scrolled content: where it is on screen, minus
-        // where the visible area starts, plus how far the content is already scrolled.
-        val rowInContent = rowTops[focusedIndex] - viewportTop + scrollState.value
-        val oneRowAbove = with(density) { (RowHeight + RowGap).roundToPx() }
-        scrollState.scrollTo((rowInContent - oneRowAbove).coerceAtLeast(0))
+        scrollState.scrollTo((headingTop - viewportTop - appBarBottom + scrollState.value).coerceAtLeast(0))
     }
 
     fun submit() {
@@ -146,29 +159,16 @@ fun RestoreScreen(
         onSubmit(words.toList())
     }
 
-    BittrCanvas(modifier = modifier, onBack = onCancel) {
-        // Above the scroll, not inside it: a focused field is parked near the top of the
-        // visible area, which would scroll the heading away. `restore_wallet.yaml` taps
-        // it after the twelfth word to put the keyboard away — on iOS that tap falls
-        // through to `backgroundButtonTapped` — so it has to stay on screen, and a tap
-        // on it does the same thing here.
-        BittrStepHeading(
-            text = SignupStrings.ENTER_RECOVERY_PHRASE,
-            modifier = Modifier
-                .padding(horizontal = CanvasGutter)
-                .padding(top = BittrTokens.Spacing.sm)
-                .clickable(
-                    interactionSource = remember { MutableInteractionSource() },
-                    indication = null,
-                ) {
-                    focusManager.clearFocus()
-                    keyboard?.hide()
-                }
-                .testTag(TestID.Signup.Restore.topLabel),
-        )
-
+    BackHandler(onBack = onCancel)
+    // No arrow in the app bar: Cancel goes back, as on iOS, and the system back
+    // gesture does what that button does. The fields scroll up under the translucent top bar.
+    BittrCanvas(modifier = modifier, scrollsUnderAppBar = true) {
+        // RestoreViewController's scene: no yellow card. The heading, the white card of twelve
+        // words 30 below it, the button 30 below that, Cancel, and the article card — one group,
+        // centred 40 above the middle of the screen.
         Column(
             verticalArrangement = Arrangement.Center,
+            horizontalAlignment = Alignment.CenterHorizontally,
             modifier = Modifier
                 .weight(1f)
                 // Before the scroll, not inside it: padding applied inside a scroll
@@ -180,15 +180,43 @@ fun RestoreScreen(
                 }
                 .onSizeChanged { viewportHeight = it.height }
                 .verticalScroll(scrollState)
-                .padding(horizontal = CanvasGutter, vertical = BittrTokens.Spacing.lg),
+                .appBarContentPadding()
+                .padding(top = BittrTokens.Spacing.lg, bottom = BittrTokens.Spacing.lg + 80.dp),
         ) {
-            BittrCard {
-                // Two columns of six, as the storyboard lays them out (`Restore1`): twelve
-                // full-width rows push the buttons under them off the screen, and
-                // forgot_pin_remove_wallet.yaml taps `removeWalletButton` without scrolling.
+            Text(
+                text = SignupStrings.ENTER_RECOVERY_PHRASE,
+                // Gilroy Bold 16, centred, 40 from the screen edges.
+                style = MaterialTheme.typography.titleMedium.copy(fontSize = 16.sp, lineHeight = 20.sp),
+                textAlign = TextAlign.Center,
+                modifier = Modifier
+                    .padding(horizontal = 40.dp)
+                    .onGloballyPositioned { headingTop = it.positionInRoot().y.toInt() }
+                    .clickable(
+                        interactionSource = remember { MutableInteractionSource() },
+                        indication = null,
+                    ) {
+                        focusManager.clearFocus()
+                        keyboard?.hide()
+                    }
+                    .testTag(TestID.Signup.Restore.topLabel),
+            )
+            CanvasSpacer(30.dp)
+
+            // `mnemonicView`: white, 13 pt corners, `setShadow()`, 40 from the screen edges and 15
+            // inside. Two columns of six rows, each 35 pt — the storyboard's 240 pt card less its
+            // padding, in six — so the buttons under it stay on screen:
+            // forgot_pin_remove_wallet.yaml taps `removeWalletButton` without scrolling.
+            val colors = BittrTheme.colors
+            Column(
+                modifier = Modifier
+                    .padding(horizontal = 40.dp)
+                    .fillMaxWidth()
+                    .iosShadow(IosCardShape)
+                    .background(colors.phraseCard, IosCardShape)
+                    .padding(15.dp),
+            ) {
                 repeat(Bip39.WORD_COUNT / FieldColumns) { row ->
-                    if (row > 0) CanvasSpacer(RowGap)
-                    Row(horizontalArrangement = Arrangement.spacedBy(RowGap)) {
+                    Row(modifier = Modifier.height(RowHeight)) {
                         repeat(FieldColumns) { column ->
                             val index = row * FieldColumns + column
                             val last = index == Bip39.WORD_COUNT - 1
@@ -199,7 +227,6 @@ fun RestoreScreen(
                                 fieldTag = RestoreFieldTags[index],
                                 last = last,
                                 focusRequester = focusRequesters[index],
-                                onPlaced = { top -> rowTops[index] = top },
                                 onFocusChange = { focused ->
                                     if (focused) {
                                         focusedIndex = index
@@ -212,36 +239,57 @@ fun RestoreScreen(
                                 onImeAction = {
                                     if (last) submit() else focusRequesters[index + 1].requestFocus()
                                 },
-                                modifier = Modifier.weight(1f),
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .fillMaxHeight(),
                             )
                         }
                     }
                 }
-
-                CanvasSpacer(BittrTokens.Spacing.xl)
-                BittrPrimaryButton(
-                    text = submitLabel,
-                    onClick = ::submit,
-                    enabled = !busy,
-                    modifier = Modifier.testTag(TestID.Signup.Restore.nextButton),
-                )
-                BittrTextButton(text = SignupStrings.CANCEL, onClick = onCancel)
-                if (onRemoveWallet != null) {
-                    BittrTextButton(
-                        text = SignupStrings.REMOVE_WALLET_FROM_DEVICE,
-                        onClick = onRemoveWallet,
-                        modifier = Modifier.testTag(TestID.Signup.Restore.removeWalletButton),
-                    )
-                }
             }
+
+            CanvasSpacer(30.dp)
+            // iOS's `restoreView`: the plate with its label alone — no arrow.
+            BittrPrimaryButton(
+                text = submitLabel,
+                onClick = ::submit,
+                enabled = !busy,
+                arrow = false,
+                modifier = Modifier.testTag(TestID.Signup.Restore.nextButton),
+            )
+            // iOS leaves 10 pt and a 25 pt row for Cancel; its 48 dp touch target spends the 10.
+            BittrTextButton(text = SignupStrings.CANCEL, onClick = onCancel)
             if (onOpenArticle != null) {
-                CanvasSpacer(BittrTokens.Spacing.lg)
+                // 50 below Cancel's 25 pt row on iOS, less the rest of the 48 dp target.
+                CanvasSpacer(38.dp)
                 // RestoreViewController's `pageArticle1Slug = "wallet-recovery"`.
                 ArticleCard(slug = BittrArticles.WALLET_RECOVERY, onOpen = onOpenArticle)
             }
+            if (onRemoveWallet != null) {
+                // `removeWalletStack`, straight under the article card: a 45 pt row with the label
+                // centred in it, Gilroy-Bold 14 in iOS's red at half alpha, and its button 10
+                // around the label.
+                Box(
+                    contentAlignment = Alignment.Center,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(45.dp),
+                ) {
+                    Text(
+                        text = SignupStrings.REMOVE_WALLET,
+                        style = MaterialTheme.typography.labelLarge.copy(fontSize = 14.sp, lineHeight = 14.sp),
+                        color = BittrTheme.colors.removeWalletLabel,
+                        modifier = Modifier
+                            .clickable(role = Role.Button, onClick = onRemoveWallet)
+                            .padding(10.dp)
+                            .offset(y = 1.dp)
+                            .testTag(TestID.Signup.Restore.removeWalletButton),
+                    )
+                }
+            }
 
-            // Room to park even the last field one row from the top. Only while a field
-            // has focus, so the resting layout is unchanged.
+            // Room to park the heading at the top. Only while a field has focus, so the
+            // resting layout is unchanged.
             if (focusedIndex != NO_FOCUS && viewportHeight > 0) {
                 Spacer(Modifier.height(with(density) { viewportHeight.toDp() }))
             }
@@ -254,11 +302,8 @@ private const val NO_FOCUS = -1
 /** The storyboard's two columns of six fields. */
 private const val FieldColumns = 2
 
-/** [BittrValueRow]'s default height, which every row here uses. */
-private val RowHeight = 56.dp
-
-/** The gap between rows. */
-private val RowGap = 12.dp
+/** One row of the white card: (240 − 2 × 15) / 6. */
+private val RowHeight = 35.dp
 
 /**
  * `signup.restore.field1` … `field12`, in field order.
@@ -284,14 +329,8 @@ private val RestoreFieldTags = listOf(
 )
 
 /**
- * One numbered field. The restore twin of `VerifyScreen`'s private `WordField`.
- *
- * Kept separate rather than shared because this one has to drive focus to the next
- * field — twelve fields is enough that making the user tap each one is a real cost,
- * where three is not — and folding the focus plumbing into Verify's would complicate
- * the screen that does not need it.
- *
- * @param onPlaced the row's top on screen, in px, each time it is placed.
+ * One numbered word in the white card. The restore twin of `VerifyScreen`'s private
+ * `WordField`, kept separate because this one drives focus to the next field.
  */
 @Composable
 private fun WordField(
@@ -301,40 +340,46 @@ private fun WordField(
     fieldTag: String,
     last: Boolean,
     focusRequester: FocusRequester,
-    onPlaced: (Int) -> Unit,
     onFocusChange: (Boolean) -> Unit,
     onImeAction: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    BittrValueRow(
-        modifier = modifier.onGloballyPositioned { onPlaced(it.positionInRoot().y.toInt()) },
+    val colors = BittrTheme.colors
+    // iOS: the number 15 in, 20 wide, in Gilroy Bold 16 and the brand yellow; 3 pt; the field in
+    // Gilroy Regular 18. Both centred 2 pt below the row's centre, as the storyboard has them.
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = modifier
+            .offset(y = 2.dp)
+            .padding(start = 15.dp),
     ) {
-        BittrNumeral(text = "$wordNumber", width = 18.dp)
+        Text(
+            text = "$wordNumber",
+            style = MaterialTheme.typography.titleMedium.copy(fontSize = 16.sp, lineHeight = 16.sp),
+            color = colors.brandFixed,
+            modifier = Modifier.width(20.dp),
+        )
         Box(
             contentAlignment = Alignment.CenterStart,
             modifier = Modifier
                 .weight(1f)
-                .padding(start = BittrTokens.Spacing.lg),
+                .padding(start = 3.dp),
         ) {
+            val wordStyle = MaterialTheme.typography.bodyLarge.copy(fontSize = 18.sp, lineHeight = 22.sp)
             if (value.isEmpty()) {
                 Text(
                     text = SignupStrings.ENTER_WORD,
-                    style = MaterialTheme.typography.bodyLarge,
-                    // A11Y-21: placeholders on a field fill use `onSurfaceVariant`,
-                    // never `outline`.
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    style = wordStyle,
+                    color = colors.phrasePlaceholder,
+                    maxLines = 1,
                 )
             }
             BasicTextField(
                 value = value,
                 onValueChange = onValueChange,
                 singleLine = true,
-                textStyle = LocalTextStyle.current.merge(
-                    MaterialTheme.typography.labelLarge.copy(
-                        color = MaterialTheme.colorScheme.onSurface,
-                    ),
-                ),
-                cursorBrush = SolidColor(MaterialTheme.colorScheme.onSurface),
+                textStyle = wordStyle.copy(color = colors.onPhraseCard),
+                cursorBrush = SolidColor(colors.onPhraseCard),
                 keyboardOptions = KeyboardOptions(
                     capitalization = KeyboardCapitalization.None,
                     autoCorrectEnabled = false,

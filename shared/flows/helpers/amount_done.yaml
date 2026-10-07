@@ -1,0 +1,26 @@
+# Reusable subflow: "Done" on an amount field's keyboard — Send, Receive and Swap.
+#
+# iOS puts a Done button in the number pad's toolbar (`doneButtonTapped` and
+# its Receive and Swap twins), which is part of the app and tapped by its text.
+#
+# Android has no such toolbar and no button for it: the keyboard's own action
+# key (✓) is Done, and it belongs to the keyboard app, not to bittr, so it is
+# not in the hierarchy Maestro can tap. Enter is that key's event — a
+# single-line Compose field answers it with its IME action, which on these
+# fields does exactly what iOS's Done does.
+#
+# Assumes the amount field has focus and the amount has been typed.
+
+appId: ${APP_ID}
+---
+- runFlow:
+    when:
+      platform: iOS
+    commands:
+      - tapOn:
+          text: "Done"
+- runFlow:
+    when:
+      platform: Android
+    commands:
+      - pressKey: Enter

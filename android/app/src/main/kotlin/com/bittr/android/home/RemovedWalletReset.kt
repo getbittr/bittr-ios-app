@@ -2,7 +2,10 @@ package com.bittr.android.home
 
 import com.bittr.android.buy.AppProfits
 import com.bittr.android.core.network.BittrCustomerStore
+import com.bittr.android.core.swaps.SwapStore
 import com.bittr.android.core.wallet.HomeCache
+import com.bittr.android.core.wallet.TransactionDescriptionStore
+import com.bittr.android.core.wallet.TransactionNoteStore
 import com.bittr.android.core.wallet.WalletService
 import com.bittr.android.core.wallet.WalletState
 import com.bittr.android.di.WalletComposition
@@ -30,7 +33,11 @@ import kotlinx.coroutines.launch
  * its first reading replaces them. Runs on every transition to [WalletState.Uninitialized]; at a
  * launch with no wallet there is nothing to empty, which is harmless.
  *
- * Swap files are left alone, as iOS leaves them: they are the user's rescue artifact for Boltz.
+ * The records that tie the history to the old wallet go too — descriptions, notes, swap ids and
+ * suggested-swap statuses — so a wallet restored from the same phrase shows only what its node
+ * finds, not old swaps half-matched from their on-chain legs. iOS keeps those keys; Android drops
+ * them, as nothing from a removed wallet should come back. Swap files are left alone, as iOS
+ * leaves them: they are the user's rescue artifact for Boltz.
  */
 class RemovedWalletReset(
     private val walletState: StateFlow<WalletState>,
@@ -65,6 +72,9 @@ object RemovedWalletResetModule {
         confirmations: TransactionConfirmations,
         payouts: BittrPayoutTracker,
         homeCache: HomeCache,
+        descriptions: TransactionDescriptionStore,
+        notes: TransactionNoteStore,
+        swaps: SwapStore,
     ): RemovedWalletReset = RemovedWalletReset(
         walletState = wallet.state,
         scope = CoroutineScope(SupervisorJob() + Dispatchers.Default),
@@ -78,6 +88,10 @@ object RemovedWalletResetModule {
             // The payout iOS tracks as `lightningNotification`, and which rows were already opened.
             payouts::clear,
             confirmations::reset,
+            // Which transactions were swaps, and what each was called or noted as.
+            descriptions::clear,
+            notes::clear,
+            swaps::forgetWallet,
         ),
     )
 }

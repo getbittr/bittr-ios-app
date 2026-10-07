@@ -1,38 +1,48 @@
 package com.bittr.android.core.designsystem
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.ime
+import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.union
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.heightIn
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.Alignment
+import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.window.DialogProperties
+import androidx.compose.ui.window.Dialog
 import com.bittr.android.core.common.TestID
+import kotlinx.coroutines.flow.first
 
 /**
  * An alert with one text field — iOS's `showTextFieldAlert(id:title:message:initialText:placeholder:…)`
- * in `AlertManager`, used for "Add a note" and the LNURL withdraw amount.
+ * in `AlertManager`, used for "Add a note" and the LNURL withdraw amount. [BittrAlert]'s card: the
+ * header, the message when there is one, the white 45 pt field 25 under it and 20 in, and Cancel
+ * and Save side by side 20 under the field. The field takes focus once the card is up, and the
+ * card rides up with the keyboard.
  *
  * The same ids iOS gives it: the card carries [testTag] (`alert.addNote`, `alert.withdrawRequest`),
  * the field `alert.textField`, and the buttons `alert.button.0` (cancel) and `alert.button.1`
@@ -51,72 +61,83 @@ fun BittrTextFieldAlert(
     message: String? = null,
     testTag: String? = null,
     keyboardType: KeyboardType = KeyboardType.Text,
+    // See [BittrAlert]: asked again — the LNURL withdraw amount after one out of range — the
+    // alert is new, with the same title and an empty field, and needs its own card.
+    identity: Any? = null,
 ) {
-    var text by remember(initialText) { mutableStateOf(initialText) }
-    val tagged = if (testTag != null) modifier.testTag(testTag) else modifier
+    val key = AlertIdentity.of(identity)
+    var text by remember(key, initialText) { mutableStateOf(initialText) }
+    val motion = rememberAlertMotion(key, title, initialText)
+    if (motion.gone) return
+    val focus = LocalFocusManager.current
+    val field = remember { FocusRequester() }
+    // `becomeFirstResponder` once the card has slid up.
+    LaunchedEffect(motion) {
+        snapshotFlow { motion.progress.value >= 0.99f }.first { it }
+        runCatching { field.requestFocus() }
+    }
+    val buttons = listOf(
+        BittrAlertButton(label = cancelLabel, dismissesAlert = true, onClick = onCancel),
+        BittrAlertButton(label = saveLabel, onClick = { onSave(text) }),
+    )
 
-    AlertDialog(
-        onDismissRequest = onCancel,
-        properties = DialogProperties(dismissOnClickOutside = false),
-        containerColor = BittrTheme.colors.dialogContainer,
-        titleContentColor = BittrTheme.colors.onDialogContainer,
-        textContentColor = BittrTheme.colors.onDialogContainer,
-        shape = BittrCanvasShapes.card,
-        title = { BittrDialogTitle(title) },
-        text = {
-            Column(verticalArrangement = Arrangement.spacedBy(BittrTokens.Spacing.md)) {
-                if (message != null) BittrDialogMessage(message)
-                // A white 16 dp field, as every text field in the app — the note field was
-                // Material's `surfaceContainerLowest` before, which the theme leaves unset.
-                Box(
-                    contentAlignment = Alignment.CenterStart,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .heightIn(min = 56.dp)
-                        .background(Color.White, BittrCanvasShapes.field)
-                        .padding(horizontal = BittrTokens.Spacing.md),
-                ) {
-                    if (text.isEmpty()) {
-                        Text(placeholder, style = MaterialTheme.typography.bodyLarge, color = BittrTheme.colors.onCanvas.copy(alpha = 0.38f))
+    Dialog(onDismissRequest = {}, properties = AlertDialogProperties) {
+        AlertWindowSetup()
+        AlertOverlay(
+            motion = motion,
+            onBack = onCancel,
+            // On the keyboard while typing, as iOS lifts it; on the safe area otherwise.
+            bottomInsets = WindowInsets.ime.union(WindowInsets.navigationBars),
+            cardModifier = if (testTag != null) modifier.testTag(testTag) else modifier,
+        ) {
+            AlertCardContent(
+                title = title,
+                message = if (message.isNullOrEmpty()) null else {
+                    {
+                        Text(
+                            text = bittrMarkup(message),
+                            style = AlertMessageStyle,
+                            color = androidx.compose.material3.MaterialTheme.colorScheme.onSurface,
+                            textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                            modifier = Modifier.fillMaxWidth(),
+                        )
                     }
-                    BasicTextField(
-                        value = text,
-                        onValueChange = { text = it },
-                        singleLine = true,
-                        textStyle = MaterialTheme.typography.bodyLarge.copy(color = Color.Black),
-                        cursorBrush = SolidColor(Color.Black),
-                        keyboardOptions = KeyboardOptions(keyboardType = keyboardType),
+                },
+                buttons = buttons,
+                motion = motion,
+                field = {
+                    // White, 45 tall at 8 corners; the text Gilroy-Regular 16 in black, 15 in.
+                    Box(
+                        contentAlignment = Alignment.CenterStart,
                         modifier = Modifier
                             .fillMaxWidth()
-                            .testTag(TestID.Alert.textField),
-                    )
-                }
-            }
-        },
-        confirmButton = {
-            Column(
-                modifier = Modifier.fillMaxWidth(),
-                verticalArrangement = Arrangement.spacedBy(BittrTokens.Spacing.xs),
-            ) {
-                BittrTextButton(
-                    text = cancelLabel,
-                    onClick = onCancel,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .testTag(TestID.Alert.buttonAt(0)),
-                )
-                BittrPrimaryButton(
-                    text = saveLabel,
-                    onClick = { onSave(text) },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(BittrDialogButtonHeight)
-                        .testTag(TestID.Alert.buttonAt(1)),
-                    arrow = false,
-                )
-            }
-        },
-        // A dialog is its own window: see exposeTestTags.
-        modifier = tagged.exposeTestTags(),
-    )
+                            .height(45.dp)
+                            .background(Color.White, RoundedCornerShape(8.dp))
+                            .padding(horizontal = 15.dp),
+                    ) {
+                        if (text.isEmpty()) {
+                            Text(placeholder, style = AlertMessageStyle, color = Color.Black.copy(alpha = 0.3f))
+                        }
+                        BasicTextField(
+                            value = text,
+                            onValueChange = { text = it },
+                            singleLine = true,
+                            textStyle = AlertMessageStyle.copy(color = Color.Black),
+                            cursorBrush = SolidColor(Color.Black),
+                            keyboardOptions = KeyboardOptions(
+                                keyboardType = keyboardType,
+                                capitalization = if (keyboardType == KeyboardType.Text) KeyboardCapitalization.Sentences else KeyboardCapitalization.None,
+                                imeAction = ImeAction.Done,
+                            ),
+                            keyboardActions = KeyboardActions(onDone = { focus.clearFocus() }),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .focusRequester(field)
+                                .testTag(TestID.Alert.textField),
+                        )
+                    }
+                },
+            )
+        }
+    }
 }

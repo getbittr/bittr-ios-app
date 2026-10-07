@@ -62,4 +62,15 @@ class HistoryRowsTest {
         assertFalse(rows[1].unconfirmed)
         assertFalse(rows[2].unconfirmed)
     }
+
+    @Test
+    fun `a bittr purchase's gain is its value now against what was paid, as a whole percentage`() {
+        // 187 207 sats bought for 93.51, now at 67 200 a bitcoin: 125.80, a 35 % gain (iOS: 35 %).
+        assertEquals(35, purchaseGainPercent(187_207, 93.51, 67_200.0))
+        // At a lower price it is a loss.
+        assertEquals(-20, purchaseGainPercent(187_207, 93.51, 39_950.0))
+        // No purchase amount from bittr yet, or no price: 0, as iOS shows.
+        assertEquals(0, purchaseGainPercent(187_207, 0.0, 67_200.0))
+        assertEquals(0, purchaseGainPercent(187_207, 93.51, null))
+    }
 }

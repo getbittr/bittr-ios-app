@@ -640,15 +640,29 @@ object WalletModule {
                         Log.e(TAG, "Runner $name failed", failure)
                     }
                 },
+                onNodeUp = overview::nodeUp,
             ),
-            // `wipeNodeState` deliberately left as the no-op default. Removing a
-            // wallet erases the seed and nothing else, which is
-            // `WalletService.removeWallet`'s stated contract; the LDK state
-            // directory is left where it is, and that is the safe direction
-            // rather than an omission. The next create or restore runs
-            // `prepareNodeState` below, which finds state whose discriminator
-            // does not match the new seed and *quarantines* it — BIT-20's design —
-            // instead of deleting force-close sweep material.
+            // `performWalletReset`: iOS deletes the node's storage (`deleteDocuments()`) and
+            // `deleteClientInfo()` the address, funding and closure caches, so the next wallet —
+            // the same phrase restored included — starts with no Lightning history, only what
+            // the chain gives back. The node state is *quarantined* rather than deleted, as
+            // BIT-20 has it: out of the next node's way, and still on the device as force-close
+            // sweep material. A quarantine that fails throws, and the removal stops with the
+            // seed still there, as iOS's does when its teardown fails.
+            wipeNodeState = {
+                LdkStateStore(paths).quarantineLightningState()?.let { directory ->
+                    Log.i(TAG, "Quarantined the removed wallet's node state in ${directory.name}")
+                }
+                listOf(
+                    CachedOnchainAddressStore.KEY_ADDRESSES,
+                    CachedOnchainAddressStore.KEY_LAST_ADDRESS,
+                    CachedChannelClosureStore.KEY_FUNDING_OUTPOINT,
+                    CachedChannelClosureStore.KEY_CLOSURE_TX_IDS,
+                ).forEach(cache::remove)
+            },
+            // The next create or restore runs `prepareNodeState` below. After a removal there is
+            // no state left to judge; otherwise state whose discriminator does not match the new
+            // seed is quarantined — BIT-20's design — instead of deleting force-close sweep material.
             prepareNodeState = { mnemonic ->
                 val guard = SeedImportGuard(
                     vault = vault,

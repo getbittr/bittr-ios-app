@@ -19,6 +19,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -50,103 +51,65 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.bittr.android.core.common.TestID
 import com.bittr.android.core.designsystem.BittrCanvasShapes
 import com.bittr.android.core.designsystem.BittrLightColorsExtended
+import com.bittr.android.core.designsystem.BittrTheme
+import com.bittr.android.core.designsystem.IosCardShape
+import com.bittr.android.core.designsystem.iosShadow
 import kotlin.math.roundToInt
 
 /**
- * The colours the chart card draws with, all pinned to one value in both schemes.
+ * The colours the value card draws with — iOS's `ValueViewController`: the card
+ * `yelloworblue2`, the price `blackorwhite`, the axes `blackorwhite` at 20 % (lines) and
+ * 40 % (labels), and the span buttons white and white at 70 %, as `showSelectedSpan`
+ * paints them. The card follows the scheme again, as iOS's does; the line on it is white
+ * (see [GraphView]).
  *
- * The card is `chartSurface` — fixed white in light *and* dark, for the arithmetic on
- * `BittrColors.chartSurface` (BIT-156): no dark fill has an edge on `blue1` and still
- * carries white text. Everything drawn on it therefore has to be pinned too, and the
- * trap is the scheme-following tokens that *look* right: `tonalFill` is `blue3` in
- * dark, `profit` is a pale green meant for the blue canvas, `emphasis` is yellow. Each
- * of those would land on white at under 2 : 1. So every colour here is read off
- * [BittrLightColorsExtended] — the light value, which is the one measured against a
- * light surface — rather than off `BittrTheme.colors`.
- *
- * The three alphas are the design review's (2026-09-18) and are named here rather
- * than at their call sites so there is one place to change them. They would belong in
- * `core/designsystem` beside `chartSurface`; this module does not own that file.
+ * The scrub card keeps the pinned cream and hairline it floats on the chart with.
  */
 internal object ChartColors {
-    val surface: Color = BittrLightColorsExtended.chartSurface
-    val ink: Color = BittrLightColorsExtended.onChartSurface
+    val card: Color @Composable get() = BittrTheme.colors.levelCard
+    val ink: Color @Composable get() = BittrTheme.colors.onCanvas
+    val axisLabel: Color @Composable get() = ink.copy(alpha = 0.4f)
+    val axisLine: Color @Composable get() = ink.copy(alpha = 0.2f)
 
-    /**
-     * The axis labels. The review asks for ink at **55 %**, which on white is
-     * `#7A7A7A` — **4.30 : 1**, under AA's 4.5 for text this size. This is the card's
-     * existing muted ink, 70 %, at 7.39 : 1, which is also what the scrub card's date
-     * already uses: one caption colour on this card, not two.
-     */
-    val inkMuted: Color = BittrLightColorsExtended.onChartSurfaceMuted
-
-    /** The cream: the range selector's track and the scrub card. See [RangeSelector]. */
+    /** The scrub card's fill and edge, fixed in both schemes. See [GraphView]. */
     val raised: Color = BittrLightColorsExtended.tonalFill
+    val hairline: Color = BittrLightColorsExtended.onChartSurface.copy(alpha = 0.12f)
 
-    /** Gridlines and the segmented control's outline — the review's ink @ 12 %. */
-    val hairline: Color = ink.copy(alpha = 0.12f)
+    /** The span buttons: white selected, white at 70 % otherwise, ink labels on both. */
+    val spanSelected: Color = Color.White
+    val spanUnselected: Color = Color.White.copy(alpha = 0.7f)
+    val spanLabel: Color = BittrLightColorsExtended.onChartSurface
+    val spanLabelDisabled: Color = spanLabel.copy(alpha = 0.5f)
 
-    /** The loading placeholder — the review's ink @ 8 %. */
-    val placeholder: Color = ink.copy(alpha = 0.08f)
-
-    /** The travelling highlight across [placeholder]. */
-    val placeholderSweep: Color = Color.White.copy(alpha = 0.65f)
-
-    /**
-     * A range label while the selector is disabled. Ink at 50 %, not Material's 38 %:
-     * the same floor `onActionFillDisabled` was set to, the lightest alpha that keeps
-     * a disabled label at 3 : 1 — here 3.6 : 1 on white and 3.5 : 1 on the cream.
-     */
-    val disabledLabel: Color = ink.copy(alpha = 0.50f)
-
-    /**
-     * The delta chip. The review specified `#E7F6EC`/`#1F8A4C` and
-     * `#FDEBEC`/`#B3261E`; these are the signed-off profit/loss tokens instead
-     * (A11Y-04 / DEV-60, founder sign-off BIT-15), which carry the contrast decisions
-     * the rest of the app's profit pills are held to. Light values, because the chip
-     * is on the white card in both schemes — the dark ones are a pale label on a
-     * translucent pill meant for `blue1`.
-     */
-    val profit: Color = BittrLightColorsExtended.profit
-    val profitBg: Color = BittrLightColorsExtended.profitBg
-    val loss: Color = BittrLightColorsExtended.loss
-    val lossBg: Color = BittrLightColorsExtended.lossBg
+    /** The loading placeholder and its travelling highlight. */
+    val placeholder: Color @Composable get() = ink.copy(alpha = 0.08f)
+    val placeholderSweep: Color = Color.White.copy(alpha = 0.35f)
 }
 
-/** The plot's height with its axis bands, from the review. */
-private val ChartHeight: Dp = 200.dp
+/** `graphView`'s height less the band its dates sit in. */
+private val ChartHeight: Dp = 140.dp
 
 /**
  * How far the top and bottom gridlines sit inside [ChartHeight]. Half a label's height,
- * so the top and bottom Y labels centre on their lines without leaving the chart, and
- * the 3 dp stroke on an extreme gridline is not cut by the edge.
+ * so the top and bottom Y labels centre on their lines without leaving the chart.
  */
 private val PlotInsetVertical: Dp = 8.dp
 
-/** The review's: the curve stops this far short of the card's content edge. */
-private val PlotInsetEnd: Dp = 8.dp
-
-/** The review's Y-label gutter, left of the plot and outside it. */
-private val YGutter: Dp = 32.dp
-
-private val SegmentHeight: Dp = 40.dp
-
-/** How far the white selected segment sits inside the cream track, so the track shows round it. */
-private val SelectedInset: Dp = 3.dp
-private val ChipShape = RoundedCornerShape(12.dp)
-private val GlyphSize: Dp = 14.dp
+/** How far inside the gridlines the curve starts and stops, the same at both ends. */
+private val PlotInsetHorizontal: Dp = 10.dp
 
 /**
- * Below this, a selected segment drops its check and keeps only the long label.
- *
- * `1 month` in Bold 14 is ~55 dp, and the check and its gap add 18. A 411 dp phone
- * gives each segment ~81 dp; a 320 dp one gives 58, where the check would push the
- * label into the next segment. The long label and the fill still say "selected" there.
+ * The Y labels' gutter: `graphView` starts 55 into the card, whose padding is 15. The plot
+ * leaves as much again empty on its right, so the gridlines, the curve, the dates and the
+ * loading placeholder are centred on the card rather than pushed right by the labels.
  */
-private val CheckMinSegmentWidth: Dp = 78.dp
+private val YGutter: Dp = 40.dp
+
+private val SpanShape = RoundedCornerShape(8.dp)
 
 /**
  * The chart module the design review (2026-09-18, `bitcoin_value/04`–`08`) asked for:
@@ -168,19 +131,23 @@ internal fun ValueChartCard(
     val points = state.visiblePoints
     val axis = remember(points) { PriceAxis.of(points.map { it.price }) }
 
+    // `centerCard`: `yelloworblue2` with 13 pt corners and `setShadow()`. The price 50 from its
+    // top, the pill 10 under it, the graph 20 under that, the span buttons 45 below the graph
+    // (its dates take the first 25 of that) and 30 above the card's bottom.
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         modifier = modifier
             .fillMaxWidth()
-            .background(ChartColors.surface, BittrCanvasShapes.card)
-            .padding(20.dp),
+            .iosShadow(IosCardShape)
+            .background(ChartColors.card, IosCardShape)
+            .padding(start = 15.dp, end = 15.dp, top = 50.dp, bottom = 30.dp),
     ) {
         PriceLine(state)
-        Spacer(Modifier.height(8.dp))
+        Spacer(Modifier.height(10.dp))
         DeltaChipSlot(state)
         Spacer(Modifier.height(20.dp))
         ChartFrame(state, axis)
-        Spacer(Modifier.height(16.dp))
+        Spacer(Modifier.height(20.dp))
         RangeSelector(state = state, onSelect = onSelect)
     }
 }
@@ -223,9 +190,9 @@ private fun PriceLine(state: ValueUiState) {
  */
 @Composable
 private fun DeltaChipSlot(state: ValueUiState) {
-    Box(contentAlignment = Alignment.Center, modifier = Modifier.heightIn(min = 28.dp)) {
+    Box(contentAlignment = Alignment.Center, modifier = Modifier.heightIn(min = 26.dp)) {
         if (state.isFetchingData) {
-            Placeholder(Modifier.size(width = 72.dp, height = 28.dp), ChipShape)
+            Placeholder(Modifier.size(width = 72.dp, height = 26.dp), RoundedCornerShape(13.dp))
         } else {
             DeltaChip(state)
         }
@@ -250,22 +217,27 @@ private fun DeltaChip(state: ValueUiState) {
     if (!state.hasData) return
     val percentage = profitPercentage(state.visiblePoints.map { it.price }) ?: return
     val loss = percentage.startsWith("-")
-    val content = if (loss) ChartColors.loss else ChartColors.profit
+    val colors = BittrTheme.colors
+    val content = if (loss) colors.loss else colors.profit
 
+    // `profitView`: 26 tall with 13 pt corners, `profitbackground0.8` (or the loss pair); the
+    // 11 pt arrow 13 in, the percentage 5 after it in Gilroy Regular 14, 13 from the end.
     Row(
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(4.dp),
+        horizontalArrangement = Arrangement.spacedBy(5.dp),
         modifier = Modifier
-            .background(if (loss) ChartColors.lossBg else ChartColors.profitBg, ChipShape)
-            .padding(horizontal = 10.dp, vertical = 4.dp),
+            .height(26.dp)
+            .background(if (loss) colors.lossBgMuted else colors.profitBgMuted, RoundedCornerShape(13.dp))
+            .padding(horizontal = 13.dp),
     ) {
         ArrowGlyph(up = !loss, color = content)
-        // Bold 14 is `bodyMedium` with the weight, per `Type.kt`'s convention table.
         Text(
             text = percentage,
-            style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
+            style = MaterialTheme.typography.bodyMedium.copy(fontSize = 14.sp, lineHeight = 14.sp),
             color = content,
-            modifier = Modifier.testTag(TestID.Value.profitLabel),
+            modifier = Modifier
+                .offset(y = 1.dp)
+                .testTag(TestID.Value.profitLabel),
         )
     }
 }
@@ -273,7 +245,8 @@ private fun DeltaChip(state: ValueUiState) {
 /**
  * The plot, its gridlines, and both axes' labels.
  *
- * The Y labels sit in a gutter *outside* the plot and the curve stops [PlotInsetEnd]
+ * The Y labels sit in a gutter *outside* the plot, mirrored by an empty one on its right, and
+ * the curve stops [PlotInsetHorizontal]
  * short of the right edge — before the review the line ran into the edge of the screen.
  * The gridlines span the full plot including that inset, so the line ends visibly
  * inside the frame rather than at it.
@@ -281,6 +254,7 @@ private fun DeltaChip(state: ValueUiState) {
 @Composable
 private fun ChartFrame(state: ValueUiState, axis: PriceAxis?) {
     val loading = state.isFetchingData
+    val axisLine = ChartColors.axisLine
     Column(Modifier.fillMaxWidth()) {
         Row(
             Modifier
@@ -303,7 +277,7 @@ private fun ChartFrame(state: ValueUiState, axis: PriceAxis?) {
                         gridFractions(axis).forEach { fraction ->
                             val y = inset + (1 - fraction) * (size.height - 2 * inset)
                             drawLine(
-                                color = ChartColors.hairline,
+                                color = axisLine,
                                 start = Offset(0f, y),
                                 end = Offset(size.width, y),
                                 strokeWidth = 1.dp.toPx(),
@@ -314,7 +288,12 @@ private fun ChartFrame(state: ValueUiState, axis: PriceAxis?) {
                 Box(
                     Modifier
                         .fillMaxSize()
-                        .padding(end = PlotInsetEnd, top = PlotInsetVertical, bottom = PlotInsetVertical),
+                        .padding(
+                        start = PlotInsetHorizontal,
+                        end = PlotInsetHorizontal,
+                        top = PlotInsetVertical,
+                        bottom = PlotInsetVertical,
+                    ),
                 ) {
                     // Tagged and present from the first frame — the flow asserts it
                     // before the data arrives, so it must not be gated on having points.
@@ -331,8 +310,8 @@ private fun ChartFrame(state: ValueUiState, axis: PriceAxis?) {
                         // not a failure (`ValueViewController.swift:366-372`).
                         Text(
                             text = ValueCopy.NO_DATA,
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = ChartColors.inkMuted,
+                            style = MaterialTheme.typography.bodyLarge.copy(fontSize = 16.sp),
+                            color = ChartColors.ink,
                             textAlign = TextAlign.Center,
                             modifier = Modifier.align(Alignment.Center),
                         )
@@ -351,8 +330,9 @@ private fun ChartFrame(state: ValueUiState, axis: PriceAxis?) {
                     )
                 }
             }
+            Spacer(Modifier.width(YGutter))
         }
-        Spacer(Modifier.height(8.dp))
+        Spacer(Modifier.height(10.dp))
         Row(Modifier.fillMaxWidth()) {
             Spacer(Modifier.width(YGutter))
             XAxisLabels(
@@ -361,8 +341,9 @@ private fun ChartFrame(state: ValueUiState, axis: PriceAxis?) {
                 modifier = Modifier
                     .weight(1f)
                     .heightIn(min = 18.dp)
-                    .padding(end = PlotInsetEnd),
+                    .padding(horizontal = PlotInsetHorizontal),
             )
+            Spacer(Modifier.width(YGutter))
         }
     }
 }
@@ -446,122 +427,63 @@ private fun gridFractions(axis: PriceAxis?): List<Float> =
 private fun AxisLabel(text: String) {
     Text(
         text = text,
-        style = MaterialTheme.typography.labelMedium,
-        color = ChartColors.inkMuted,
+        // Gilroy Regular 12 at 40 %, as iOS draws the axis labels.
+        style = MaterialTheme.typography.bodyMedium.copy(fontSize = 12.sp, lineHeight = 12.sp),
+        color = ChartColors.axisLabel,
         maxLines = 1,
         softWrap = false,
     )
 }
 
 /**
- * The range selector: one connected, single-select segmented control where there were
- * four detached pills.
+ * The span buttons — `buttonsView`: four plates 30 tall with 8 pt corners, 5 apart and centred,
+ * each sized to its label (Gilroy Bold 14, 10 in from either side, 1.5 below centre). The selected
+ * one is white with `setShadow()` and reads long ("1 week"); the others are white at 70 % and read
+ * short ("m"), as `showSelectedSpan` paints them. The long label is also why the flow taps
+ * `value.monthButton` and then looks for the graph rather than for "m".
  *
- * **A cream track with a white selected segment, which carries a check.** Pass 2 had
- * this the other way round — cream selected, white unselected — because the segments
- * then sat straight on the white card, where a white selected segment has nothing to
- * stand out against (the inversion BIT-156 fixed once on this screen). The third
- * review (2026-09-18) asked again for white-selected on cream, and the way to give it
- * that without the inversion is to put the cream *under the whole control*: the track
- * is the background the white segment reads against, not the card. The selected
- * segment is inset inside the track and outlined, because cream against white is only
- * 1.16 : 1 and the fill alone is not relied on — the check, and the long label
- * (`showSelectedSpan`), say which is selected without colour (WCAG 1.4.1).
- *
- * The long label is also why the flow taps `value.monthButton` and then looks for the
- * graph rather than for "m": the label it just tapped has changed to "1 month".
- *
- * Each segment is a full 48 dp touch target (`BittrTokens.Size.minTouchTarget`); the
- * review's 40 dp is the drawn band inside it.
+ * While the fetch is in flight the taps are dropped ([ValueUiState.selectSpan]) and the labels
+ * say so, dimmed.
  */
 @Composable
 private fun RangeSelector(state: ValueUiState, onSelect: (GraphSpan) -> Unit) {
     val enabled = !state.isFetchingData
-    val spans = GraphSpan.entries
-    BoxWithConstraints(
-        contentAlignment = Alignment.Center,
-        modifier = Modifier.fillMaxWidth(),
+    Row(
+        horizontalArrangement = Arrangement.spacedBy(5.dp),
+        modifier = Modifier.selectableGroup(),
     ) {
-        val showCheck = maxWidth / spans.size >= CheckMinSegmentWidth
-        // The track, drawn once under all four segments.
-        Box(
-            Modifier
-                .fillMaxWidth()
-                .height(SegmentHeight)
-                .background(ChartColors.raised, BittrCanvasShapes.pill),
-        )
-        Row(Modifier.fillMaxWidth().selectableGroup()) {
-            spans.forEachIndexed { index, span ->
-                val selected = span == state.selectedSpan
-                Box(
-                    contentAlignment = Alignment.Center,
-                    modifier = Modifier
-                        .weight(1f)
-                        .height(48.dp)
-                        .selectable(
-                            selected = selected,
-                            enabled = enabled,
-                            role = Role.RadioButton,
-                            onClick = { onSelect(span) },
-                        )
-                        .testTag(span.testTag),
-                ) {
-                    Row(
-                        horizontalArrangement = Arrangement.Center,
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(SegmentHeight)
-                            .drawBehind {
-                                // Dividers only between two cream segments: beside the
-                                // white one, its own outline is the edge.
-                                val previous = spans.getOrNull(index - 1) ?: return@drawBehind
-                                if (selected || previous == state.selectedSpan) return@drawBehind
-                                drawLine(
-                                    color = ChartColors.hairline,
-                                    start = Offset(0f, 0f),
-                                    end = Offset(0f, size.height),
-                                    strokeWidth = 1.dp.toPx(),
-                                )
-                            }
-                            .then(
-                                if (selected) {
-                                    Modifier
-                                        .padding(SelectedInset)
-                                        .background(ChartColors.surface, BittrCanvasShapes.pill)
-                                        .border(1.dp, ChartColors.hairline, BittrCanvasShapes.pill)
-                                } else {
-                                    Modifier
-                                },
-                            ),
-                    ) {
-                        val label = if (enabled) ChartColors.ink else ChartColors.disabledLabel
-                        if (selected && showCheck) {
-                            CheckGlyph(color = label)
-                            Spacer(Modifier.width(4.dp))
-                        }
-                        // Bold 14, where the review says 600: Gilroy has no SemiBold,
-                        // and 600 resolves to the Bold face regardless.
-                        Text(
-                            text = state.titleFor(span),
-                            style = MaterialTheme.typography.bodyMedium
-                                .copy(fontWeight = FontWeight.Bold),
-                            color = label,
-                            maxLines = 1,
-                            softWrap = false,
-                        )
-                    }
-                }
+        GraphSpan.entries.forEach { span ->
+            val selected = span == state.selectedSpan
+            Box(
+                contentAlignment = Alignment.Center,
+                modifier = Modifier
+                    .height(30.dp)
+                    .then(if (selected) Modifier.iosShadow(SpanShape) else Modifier)
+                    .clip(SpanShape)
+                    .background(if (selected) ChartColors.spanSelected else ChartColors.spanUnselected)
+                    .selectable(
+                        selected = selected,
+                        enabled = enabled,
+                        role = Role.RadioButton,
+                        onClick = { onSelect(span) },
+                    )
+                    .testTag(span.testTag)
+                    .padding(horizontal = 10.dp),
+            ) {
+                Text(
+                    text = state.titleFor(span),
+                    style = MaterialTheme.typography.bodyMedium.copy(
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 14.sp,
+                        lineHeight = 14.sp,
+                    ),
+                    color = if (enabled) ChartColors.spanLabel else ChartColors.spanLabelDisabled,
+                    maxLines = 1,
+                    softWrap = false,
+                    modifier = Modifier.offset(y = 1.5.dp),
+                )
             }
         }
-        // The outline is drawn once over the whole band rather than per segment, so it
-        // is one pill and not four. No pointer input, so taps fall through to the row.
-        Box(
-            Modifier
-                .fillMaxWidth()
-                .height(SegmentHeight)
-                .border(1.dp, ChartColors.hairline, BittrCanvasShapes.pill),
-        )
     }
 }
 
@@ -582,6 +504,7 @@ private val GraphSpan.testTag: String
  */
 @Composable
 private fun Placeholder(modifier: Modifier, shape: Shape) {
+    val placeholder = ChartColors.placeholder
     val sweep = rememberInfiniteTransition(label = "placeholder").animateFloat(
         initialValue = 0f,
         targetValue = 1f,
@@ -591,7 +514,7 @@ private fun Placeholder(modifier: Modifier, shape: Shape) {
     Box(
         modifier
             .clip(shape)
-            .background(ChartColors.placeholder)
+            .background(placeholder)
             .drawBehind {
                 val band = size.width * 0.5f
                 val start = -band + sweep.value * (size.width + band)
@@ -614,7 +537,8 @@ private fun Placeholder(modifier: Modifier, shape: Shape) {
  */
 @Composable
 private fun ArrowGlyph(up: Boolean, color: Color) {
-    Canvas(Modifier.size(GlyphSize)) {
+    // `arrow.up` / `arrow.down`, 11 by 14.
+    Canvas(Modifier.size(width = 11.dp, height = 14.dp)) {
         val stroke = Stroke(width = 1.75.dp.toPx(), cap = StrokeCap.Round, join = StrokeJoin.Round)
         val w = size.width
         val h = size.height
@@ -630,21 +554,5 @@ private fun ArrowGlyph(up: Boolean, color: Color) {
                 style = stroke,
             )
         }
-    }
-}
-
-/** The selected segment's leading check, drawn for the reason [ArrowGlyph] is. */
-@Composable
-private fun CheckGlyph(color: Color) {
-    Canvas(Modifier.size(GlyphSize)) {
-        drawPath(
-            Path().apply {
-                moveTo(size.width * 0.15f, size.height * 0.52f)
-                lineTo(size.width * 0.4f, size.height * 0.76f)
-                lineTo(size.width * 0.85f, size.height * 0.26f)
-            },
-            color,
-            style = Stroke(width = 2.dp.toPx(), cap = StrokeCap.Round, join = StrokeJoin.Round),
-        )
     }
 }

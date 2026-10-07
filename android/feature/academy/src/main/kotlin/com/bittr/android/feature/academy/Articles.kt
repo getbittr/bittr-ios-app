@@ -103,7 +103,11 @@ object ArticleMarkup {
     private val MARKER = Regex("&lt;(title|subtitle|intro|header|normal)&gt;")
     private val TAG = Regex("<[^>]+>")
 
-    fun paragraphs(html: String): List<List<ArticleRun>> {
+    /**
+     * @param keepBlank keep the empty `<p>&nbsp;</p>` paragraphs, as empty lists. iOS renders them as
+     *   an empty line, which is the gap under an article's byline.
+     */
+    fun paragraphs(html: String, keepBlank: Boolean = false): List<List<ArticleRun>> {
         val bodies = PARAGRAPH.findAll(html).map { it.groupValues[1] }.toList().ifEmpty { listOf(html) }
         return bodies.map { body ->
             val runs = mutableListOf<ArticleRun>()
@@ -116,7 +120,8 @@ object ArticleMarkup {
             }
             addRun(runs, style, body.substring(cursor))
             runs
-        }.filter { runs -> runs.any { it.text.isNotBlank() } }
+        }.map { runs -> if (runs.any { it.text.isNotBlank() }) runs else emptyList() }
+            .filter { runs -> keepBlank || runs.isNotEmpty() }
     }
 
     private fun addRun(runs: MutableList<ArticleRun>, style: ArticleStyle, fragment: String) {

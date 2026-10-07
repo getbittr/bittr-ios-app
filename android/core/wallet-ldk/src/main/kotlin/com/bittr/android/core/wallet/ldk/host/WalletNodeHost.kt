@@ -138,6 +138,11 @@ class WalletNodeHost(
      * normally.
      */
     private val onRunnerStopped: (String, Throwable?) -> Unit = { _, _ -> },
+    /**
+     * Whether a node is up, told on every start and stop: true once a start is usable, before
+     * the runners' first sync — iOS's `completeSync(.ldk)` — and false when the node goes down.
+     */
+    private val onNodeUp: (Boolean) -> Unit = {},
 ) {
 
     private val mutex = Mutex()
@@ -188,6 +193,7 @@ class WalletNodeHost(
             // `NodeLifecycle.buildAndStart` has already discarded.
             stopRunnersLocked()
             presence.demote()
+            onNodeUp(false)
             return@withLock result
         }
 
@@ -207,6 +213,7 @@ class WalletNodeHost(
 
             NodeStartOutcome.Failed -> Unit // unreachable: !isUsable above.
         }
+        onNodeUp(true)
 
         result
     }
@@ -266,6 +273,7 @@ class WalletNodeHost(
             lifecycle.stop()
         } finally {
             presence.demote()
+            onNodeUp(false)
         }
     }
 

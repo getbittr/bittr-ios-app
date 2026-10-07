@@ -10,6 +10,7 @@ import com.bittr.android.core.wallet.ldk.lightning.ChannelView
 import com.bittr.android.core.wallet.ldk.lightning.PendingSweepView
 import com.bittr.android.core.wallet.ldk.lightning.WalletNodeReading
 import com.bittr.android.core.wallet.seed.SeedWalletService
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runBlocking
@@ -41,6 +42,8 @@ class WalletRemovalCoordinatorTest {
         override var hasNode = true
         var synced = true
         var starts = true
+        /** Holds [startAndSync] until completed, for a test that acts while the node starts. */
+        var startGate: CompletableDeferred<Unit>? = null
         var peerConnected = true
         var connects = true
         var closeFails = false
@@ -49,7 +52,10 @@ class WalletRemovalCoordinatorTest {
         val forceClosed = mutableListOf<String>()
 
         override fun isSynced() = synced
-        override suspend fun startAndSync() = starts
+        override suspend fun startAndSync(): Boolean {
+            startGate?.await()
+            return starts
+        }
         override fun read() = reading
         override fun isPeerConnected() = peerConnected
         override suspend fun connectPeer(): Boolean {
@@ -92,7 +98,7 @@ class WalletRemovalCoordinatorTest {
     private val alert get() = removal.uiState.value.alert
     private val seedIsThere get() = store.contains(SeedWalletService.KEY_SEED)
 
-    private fun tap(index: Int) = removal.press(alert!!.buttons[index])
+    private fun tap(index: Int) = alert!!.let { removal.press(it, it.buttons[index]) }
 
     @Test
     fun `settings with no channel confirms twice, then erases`() {
@@ -189,6 +195,25 @@ class WalletRemovalCoordinatorTest {
         tap(0)
         assertFalse(seedIsThere)
         assertTrue(removal.handOff.value)
+    }
+
+    @Test
+    fun `the lockout's Okay, landing after the still-closing alert, leaves that alert up`() {
+        node.reading = reading(channels = listOf(openChannel()))
+        val gate = CompletableDeferred<Unit>()
+        node.startGate = gate
+        removal.lockedOut()
+        val lockoutAlert = alert!!
+        assertEquals(RemovalStrings.PIN_LOCK, lockoutAlert.message)
+
+        // The close lands while the lockout's card is still sliding away from its Okay.
+        gate.complete(Unit)
+        assertEquals(RemovalStrings.STILL_CLOSING, alert?.message)
+        removal.press(lockoutAlert, lockoutAlert.buttons[0])
+
+        assertEquals(RemovalStrings.STILL_CLOSING, alert?.message)
+        assertEquals(listOf(RemovalStrings.TRY_AGAIN), alert?.buttons?.map { it.label })
+        assertTrue(seedIsThere)
     }
 
     @Test

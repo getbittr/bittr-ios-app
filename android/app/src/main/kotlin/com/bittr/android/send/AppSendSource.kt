@@ -68,6 +68,8 @@ class AppSendSource(
 
     override fun lightningSendableSats(): Long = overview.overview.value.lightningSendableSats
 
+    override fun hasLightningChannel(): Boolean = overview.overview.value.channelCount > 0
+
     override suspend fun feeEstimates(): FeeEstimates? = fees.fetch()
 
     override suspend fun drainQuote(address: String?, satPerVb: Long): DrainQuote? = io {

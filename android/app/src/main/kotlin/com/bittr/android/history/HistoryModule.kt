@@ -102,7 +102,9 @@ class MatchedWalletOverviewSource(
 
     override val overview: StateFlow<WalletOverview> =
         combine(raw.overview, descriptions.descriptions, fundingRows) { wallet, stored, funding ->
-            withCachedRows(matched(wallet, stored), funding)
+            // The cached funding rows take their stored descriptions too: a bittr payout that funded
+            // the channel keeps its notification id, as its row does on iOS.
+            withCachedRows(matched(wallet, stored), SwapHistory.withDescriptions(funding, stored))
         }.stateIn(scope, SharingStarted.Eagerly, raw.overview.value)
 
     /** The cached rows the history doesn't already have, in date order with the rest (newest first). */
@@ -154,6 +156,12 @@ class FileTransactionDescriptionStore(private val file: File) : TransactionDescr
         if (key.isBlank() || description.isBlank()) return
         _descriptions.update { it + (key to description) }
         runCatching { write(_descriptions.value) }
+    }
+
+    @Synchronized
+    override fun clear() {
+        _descriptions.value = emptyMap()
+        runCatching { file.delete() }
     }
 
     private fun load(): Map<String, String> = runCatching {
