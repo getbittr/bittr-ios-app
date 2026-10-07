@@ -552,9 +552,8 @@ class SwapCoordinator(
         private val refunding = AtomicBoolean(false)
         private val completionHandled = AtomicBoolean(false)
 
-        /** Whether a status has come in yet, and whether the first one already said the swap was done. */
+        /** Whether a status has come in yet. */
         private var sawStatus = false
-        private var completeBeforeWatching = false
 
         fun update(block: (SwapStatusState) -> SwapStatusState) = _state.update(block)
 
@@ -584,14 +583,11 @@ class SwapCoordinator(
                 if (current.isSuggested && current.dateId.isNotEmpty()) store.setSuggestedStatus(current.dateId, marker)
             }
             // A swap whose very first status is complete finished before this card was watching it —
-            // its transaction screen is where it was opened from, or was already shown. Neither the
-            // completion nor a refresh's claim runs again for it.
+            // its transaction screen is where it was opened from, or was already shown. Its completion
+            // does not run again. A refresh's claim still can — see below.
             if (!sawStatus) {
                 sawStatus = true
-                if (BoltzStatus.phase(update.status) == SwapPhase.Complete) {
-                    completeBeforeWatching = true
-                    completionHandled.set(true)
-                }
+                if (BoltzStatus.phase(update.status) == SwapPhase.Complete) completionHandled.set(true)
             }
             showStatus(update.status)
 
@@ -602,7 +598,12 @@ class SwapCoordinator(
                     if (current.direction == SwapDirection.OnchainToLightning) refund()
                 }
                 lightningToOnchain && update.status == "transaction.mempool" && update.transactionHex != null -> claim(update.transactionHex)
-                lightningToOnchain && fromRefresh && !completeBeforeWatching &&
+                // Skipped only for a swap whose claim is known to have been broadcast. `invoice.settled`
+                // is no such proof: claimTransaction hands Boltz the preimage before it broadcasts, so
+                // a claim cut off between the two ends on that status too, with Boltz paid and the
+                // lockup still ours to take until its timelock lets Boltz take it back. Retrying a
+                // claim that did go out only fails: its lockup is spent, to our own address.
+                lightningToOnchain && fromRefresh && store.claimedTransactionId(id) == null &&
                     (update.status == "transaction.confirmed" || update.status == "invoice.settled") ->
                     (update.transactionHex ?: store.load(id)?.lockupTx)?.let { claim(it) }
                 update.status == "transaction.claimed" -> {
@@ -647,6 +648,8 @@ class SwapCoordinator(
             store.save(withLockup)
             runCatching { claimTransaction(withLockup) }
                 .onSuccess { txId ->
+                    // First: what tells a later refresh this claim needs no retry.
+                    withLockup.boltzId?.let { store.markClaimed(it, txId) }
                     update { it.copy(statusText = SwapCopy.STATUS_COMPLETE, complete = true, spinning = false) }
                     unsubscribe()
                     // `addOnchainTransactionToUI`.

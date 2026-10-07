@@ -37,6 +37,7 @@ import kotlinx.serialization.json.long
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
+import org.junit.Assert.assertNull
 import org.junit.Test
 
 /**
@@ -93,6 +94,10 @@ class SwapCoordinatorTest {
         var submarineAddressOverride: String? = null
         lateinit var funding: Transaction
         var broadcast: Transaction? = null
+        /** What `GET /swap/{id}` reports. The mempool status carries the lockup, as Boltz's does. */
+        var status = "transaction.mempool"
+        /** The node refuses the broadcast: a claim cut off after Boltz was handed the preimage. */
+        var failBroadcast = false
 
         override suspend fun execute(request: HttpRequest): HttpResponse {
             val path = request.url.substringAfter("/v2")
@@ -103,7 +108,10 @@ class SwapCoordinatorTest {
                 path == "/swap/reverse" -> reverse(body!!)
                 path == "/swap/submarine" -> submarine(body!!)
                 path.startsWith("/swap/reverse/") && path.endsWith("/claim") -> claim(body!!)
-                path.startsWith("/swap/") -> ok("""{"status":"transaction.mempool","transaction":{"hex":"${Transaction.write(funding).toHex()}"}}""")
+                path.startsWith("/swap/") && status == "transaction.mempool" ->
+                    ok("""{"status":"transaction.mempool","transaction":{"hex":"${Transaction.write(funding).toHex()}"}}""")
+                path.startsWith("/swap/") -> ok("""{"status":"$status"}""")
+                path == "/chain/BTC/transaction" && failBroadcast -> HttpResponse(400, """{"error":"broadcast failed"}""")
                 path == "/chain/BTC/transaction" -> {
                     val tx = Transaction.read(body!!["hex"]!!.jsonPrimitive.content)
                     Transaction.correctlySpends(tx, listOf(funding), ScriptFlags.STANDARD_SCRIPT_VERIFY_FLAGS)
@@ -165,10 +173,15 @@ class SwapCoordinatorTest {
         private fun ok(body: String) = HttpResponse(200, body)
     }
 
-    private fun TestScope.coordinator(boltz: FakeBoltz, wallet: FakeWallet, gate: Gate = Gate()) = SwapCoordinator(
+    private fun TestScope.coordinator(
+        boltz: FakeBoltz,
+        wallet: FakeWallet,
+        gate: Gate = Gate(),
+        store: SwapStore = FileSwapStore(Files.createTempDirectory("swaps").toFile()),
+    ) = SwapCoordinator(
         api = BoltzApi(boltz, BoltzEndpoints.DEVELOPMENT, pause = {}),
         wallet = wallet,
-        store = FileSwapStore(Files.createTempDirectory("swaps").toFile()),
+        store = store,
         pushGate = gate,
         feed = { emptyFlow() },
         invoices = InvoiceInspector { invoice ->
@@ -211,6 +224,60 @@ class SwapCoordinatorTest {
         val claim = assertNotNull(boltz.broadcast).let { boltz.broadcast!! }
         assertEquals(50_247L - 247L, claim.txOut.single().amount.toLong())
         assertEquals(swap.dateId, wallet.descriptions[claimTxId])
+    }
+
+    /** A lightning-to-onchain swap taken as far as its claim, on [store]. */
+    private suspend fun TestScope.claimedOnce(boltz: FakeBoltz, store: SwapStore) {
+        val coordinator = coordinator(boltz, FakeWallet(), store = store)
+        val ready = coordinator.prepare(SwapRequest(SwapDirection.LightningToOnchain, 50_000, maxLightningToOnchain = 60_000)) as SwapPreparation.Ready
+        val swap = ready.swap
+        boltz.lastLockup = {
+            BoltzTaproot.lockup(boltzKey.publicKey(), PublicKey(Hex.decode(swap.claimPublicKey!!)), Hex.decode(swap.claimLeafOutput!!), Hex.decode(swap.refundLeafOutput!!))
+        }
+        assertNotNull(coordinator.proceed(ready))
+        advanceUntilIdle()
+    }
+
+    @Test
+    fun `a claim cut off after Boltz was paid is claimed again on refresh after a relaunch`() = runTest {
+        val boltz = FakeBoltz()
+        val store = FileSwapStore(Files.createTempDirectory("swaps").toFile())
+        // The preimage reaches Boltz with the claim request; the claim never reaches the chain.
+        boltz.failBroadcast = true
+        claimedOnce(boltz, store)
+        assertNull(boltz.broadcast)
+        assertNull(store.claimedTransactionId("rev1"))
+
+        // Relaunched: Boltz has settled the invoice with that preimage, so the first status the new
+        // card hears is already a complete one. The lockup is still ours to take.
+        boltz.failBroadcast = false
+        boltz.status = "invoice.settled"
+        val relaunched = coordinator(boltz, FakeWallet(), store = store)
+        assertNotNull(relaunched.statusOf("rev1"))
+        advanceUntilIdle()
+        assertNull("Watching alone does not claim", boltz.broadcast)
+
+        relaunched.refresh("rev1")
+        advanceUntilIdle()
+        assertNotNull(boltz.broadcast)
+        assertEquals(claimTxId, store.claimedTransactionId("rev1"))
+    }
+
+    @Test
+    fun `refresh does not claim again a swap whose claim was broadcast`() = runTest {
+        val boltz = FakeBoltz()
+        val store = FileSwapStore(Files.createTempDirectory("swaps").toFile())
+        claimedOnce(boltz, store)
+        assertEquals(claimTxId, store.claimedTransactionId("rev1"))
+
+        boltz.broadcast = null
+        boltz.status = "invoice.settled"
+        val relaunched = coordinator(boltz, FakeWallet(), store = store)
+        assertNotNull(relaunched.statusOf("rev1"))
+        advanceUntilIdle()
+        relaunched.refresh("rev1")
+        advanceUntilIdle()
+        assertNull(boltz.broadcast)
     }
 
     @Test
