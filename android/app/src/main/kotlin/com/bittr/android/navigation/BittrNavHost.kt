@@ -13,7 +13,11 @@ import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.ExitTransition
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.statusBars
+import androidx.compose.ui.platform.LocalDensity
+import com.bittr.android.risingWithLaunchLogo
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Modifier
 import androidx.navigation.NamedNavArgument
@@ -227,6 +231,9 @@ fun BittrNavHost(
         // are the ones the regtest suite fails on, and they left no trace.
         OkHttpBittrHttpClient(log = { line -> if (BuildConfig.DEBUG) android.util.Log.i("BittrHttp", line) })
     },
+    // The launch logo's rise, 0 to 1, which the PIN or signup page rises with — see
+    // [risingWithLaunchLogo]. Up already when there is no launch animation.
+    launchRise: () -> Float = { 1f },
 ) {
     val walletState by viewModel.walletState.collectAsState()
     val removal = hiltViewModel<WalletRemovalViewModel>().coordinator
@@ -401,9 +408,17 @@ fun BittrNavHost(
             LocalAppBarLogoVisible provides (launchLogoVisible && !logoPinned),
             LocalAppBarBackgroundVisible provides !barPinned,
         ) {
+            // The PIN or signup page rises with the launch logo, over the canvas, which stays put as
+            // `coreVCBackground` does. Home is not pinned to iOS's top bar and does not.
+            val statusTop = WindowInsets.statusBars.getTop(LocalDensity.current)
             NavHost(
                 navController = navController,
                 startDestination = startDestination,
+                modifier = if (startDestination == Routes.HOME) {
+                    Modifier
+                } else {
+                    Modifier.risingWithLaunchLogo(statusTop, launchRise)
+                },
             ) {
                 composable(
                     Routes.SIGNUP_START,

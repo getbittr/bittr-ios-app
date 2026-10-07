@@ -2,6 +2,7 @@ package com.bittr.android
 
 import androidx.annotation.DrawableRes
 import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.AnimationVector1D
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
@@ -23,6 +24,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clipToBounds
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
@@ -67,13 +69,18 @@ import kotlinx.coroutines.delay
  * [onFinished] has fired, so no flow taps into a cover that still swallows taps. The app's own
  * logo stays hidden until then (`LocalAppBarLogoVisible`), and this one lands exactly on it.
  *
+ * @param rise stage 3's progress, 0 to 1. Hoisted so the PIN or signup page can rise with the
+ *   logo — see [risingWithLaunchLogo].
  * @param onFinished stage 3 is over, the cover is gone and the app is interactive.
  */
 @Composable
-fun LaunchAnimation(onFinished: () -> Unit, modifier: Modifier = Modifier) {
+fun LaunchAnimation(
+    rise: Animatable<Float, AnimationVector1D>,
+    onFinished: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
     val slide = remember { Animatable(0f) }
     val widen = remember { Animatable(0f) }
-    val rise = remember { Animatable(0f) }
 
     LaunchedEffect(Unit) {
         delay(COIN_DELAY_MS)
@@ -143,6 +150,22 @@ fun LaunchAnimation(onFinished: () -> Unit, modifier: Modifier = Modifier) {
             }
         }
     }
+}
+
+/**
+ * The PIN or signup page under the launch logo, held as far below its place as the logo is below
+ * the app bar's and rising with it. iOS pins `pinContainerView` and `signupContainerView` to
+ * `topBar`'s top, which `viewDidLayoutSubviews` lowers to `centeredTopBarTop` and
+ * `logoSlidesToTop` springs back to 0, so the page keeps its place under the logo all the way up.
+ *
+ * @param statusTop the status bar's height, in pixels.
+ * @param rise [LaunchAnimation]'s stage 3, 0 to 1; read in the layer, so the page moves without
+ *   recomposing.
+ */
+fun Modifier.risingWithLaunchLogo(statusTop: Int, rise: () -> Float): Modifier = graphicsLayer {
+    // The logo's travel: from centred on the screen to 10 below the status bar.
+    val lowered = size.height / 2 - (LOGO_HEIGHT / 2).toPx() - statusTop - LOGO_TOP_IN_BAR.toPx()
+    translationY = lowered * (1f - rise())
 }
 
 /** One of iOS's image pieces, aspect-fit into its frame in the logo box. */
