@@ -84,7 +84,7 @@ enum PriceHistory {
     
     // `cache` is HomeViewController, which holds the fetched payloads and warms
     // them at startup (see prefetchPriceData). Pass nil to always hit the network.
-    static func load(cache:HomeViewController?) async throws -> Snapshot {
+    static func load(cache:HomeViewController?, spans:[GraphSpan] = GraphSpan.allCases) async throws -> Snapshot {
         
         let bitcoinValue = BitcoinManager.shared.bittrWallet.getCorrectBitcoinValue()
         let isChf = (bitcoinValue.chosenCurrency == "CHF")
@@ -106,6 +106,42 @@ enum PriceHistory {
                 cache?.eurDataFetched = Date()
             }
         }
+        
+        // Parse off the main thread, because the longer series hold thousands of points.
+        let now = Date()
+        let parsedSeries = try await Task.detached(priority: .userInitiated) { [historyData] in
+            try PriceHistory.parseSeries(historyData, spans: spans, now: now)
+        }.value
+        
+        // Current value.
+        var valueData = Data()
+        if let cached = cache?.currentValue, let fetchedAt = cache?.currentValueFetched, fetchedAt > freshCutoff {
+            valueData = cached
+        } else {
+            (valueData, _) = try await URLSession.shared.data(from: URL(string: "https://getbittr.com/api/price/btc")!)
+            cache?.currentValue = valueData
+            cache?.currentValueFetched = Date()
+        }
+        
+        guard let currentJson = try JSONSerialization.jsonObject(with: valueData) as? [String: Any], let actualEurValue = currentJson["btc_eur"] as? String, let actualChfValue = currentJson["btc_chf"] as? String else { throw LoadError.badResponse }
+        
+        let rawValue = isChf ? actualChfValue : actualEurValue
+        let currentValue = rawValue.toNumber()
+        let preferredCurrency = isChf ? "CHF" : "€"
+        
+        Log.debug("EUR value: \(ValueViewController.formatEuroValue(actualEurValue)), CHF value: \(ValueViewController.formatEuroValue(actualChfValue)), currency: \(preferredCurrency)")
+        
+        // Append the current value so each graph ends on the value shown above it.
+        let currentPoint = PricePoint(date: Date(), price: currentValue)
+        var series = [GraphSpan:[PricePoint]]()
+        for eachSpan in spans {
+            series[eachSpan] = (parsedSeries[eachSpan] ?? []) + [currentPoint]
+        }
+        
+        return Snapshot(series: series, currentValue: currentValue, currency: preferredCurrency, formattedValue: ValueViewController.formatEuroValue(rawValue))
+    }
+    
+    nonisolated static func parseSeries(_ historyData:Data, spans:[GraphSpan], now:Date) throws -> [GraphSpan:[PricePoint]] {
         
         guard let json = try JSONSerialization.jsonObject(with: historyData) as? [NSDictionary] else { throw LoadError.badResponse }
         
@@ -132,43 +168,17 @@ enum PriceHistory {
         
         // Parse each data point once with a single shared formatter.
         let isoFormatter = ISO8601DateFormatter()
-        let now = Date()
         
         var parsedSeries = [GraphSpan:[PricePoint]]()
-        for eachSpan in GraphSpan.allCases {
+        for eachSpan in spans {
             guard json.count > eachSpan.apiIndex, let rawPoints = json[eachSpan.apiIndex]["data"] as? [NSDictionary] else { throw LoadError.badResponse }
             parsedSeries[eachSpan] = self.pricePoints(from: rawPoints, span: eachSpan, formatter: isoFormatter, now: now)
         }
         
-        // Current value.
-        var valueData = Data()
-        if let cached = cache?.currentValue, let fetchedAt = cache?.currentValueFetched, fetchedAt > freshCutoff {
-            valueData = cached
-        } else {
-            (valueData, _) = try await URLSession.shared.data(from: URL(string: "https://getbittr.com/api/price/btc")!)
-            cache?.currentValue = valueData
-            cache?.currentValueFetched = Date()
-        }
-        
-        guard let currentJson = try JSONSerialization.jsonObject(with: valueData) as? [String: Any], let actualEurValue = currentJson["btc_eur"] as? String, let actualChfValue = currentJson["btc_chf"] as? String else { throw LoadError.badResponse }
-        
-        let rawValue = isChf ? actualChfValue : actualEurValue
-        let currentValue = rawValue.toNumber()
-        let preferredCurrency = isChf ? "CHF" : "€"
-        
-        Log.debug("EUR value: \(ValueViewController.formatEuroValue(actualEurValue)), CHF value: \(ValueViewController.formatEuroValue(actualChfValue)), currency: \(preferredCurrency)")
-        
-        // Append the current value so each graph ends on the value shown above it.
-        let currentPoint = PricePoint(date: Date(), price: currentValue)
-        var series = [GraphSpan:[PricePoint]]()
-        for eachSpan in GraphSpan.allCases {
-            series[eachSpan] = (parsedSeries[eachSpan] ?? []) + [currentPoint]
-        }
-        
-        return Snapshot(series: series, currentValue: currentValue, currency: preferredCurrency, formattedValue: ValueViewController.formatEuroValue(rawValue))
+        return parsedSeries
     }
     
-    static func pricePoints(from rawPoints:[NSDictionary], span:GraphSpan, formatter:ISO8601DateFormatter, now:Date) -> [PricePoint] {
+    nonisolated static func pricePoints(from rawPoints:[NSDictionary], span:GraphSpan, formatter:ISO8601DateFormatter, now:Date) -> [PricePoint] {
         
         let cutoff = span.startDate(from: now)
         var points = [PricePoint]()
