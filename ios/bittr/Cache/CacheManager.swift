@@ -18,6 +18,7 @@ class CacheManager: NSObject {
         CacheStore.remove(CacheKeys.lightningTransactions)
         CacheStore.remove(CacheKeys.onchainAddresses)
         CacheStore.remove(CacheKeys.lastBdkFullScan)
+        CacheStore.remove(CacheKeys.bdkRebuildRequested)
         CacheStore.remove(CacheKeys.channelFundingOutpoint)
         CacheStore.remove(CacheKeys.channelClosureTxIDs)
         

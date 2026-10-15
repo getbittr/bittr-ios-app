@@ -174,9 +174,14 @@ extension BitcoinManager {
         // Create a BIP84 internal descriptor using the same BIP32 extended root key, specifying the keychain as internal and the network as testnet
         let bip84InternalDescriptor = Descriptor.newBip84(secretKey: bip32ExtendedRootKey, keychain: .internal, network: EnvironmentConfig.bitcoinDevKitNetwork)
         
-        // Open the stored wallet database, keeping whatever it already holds.
+        // Open the stored wallet database, or an empty one when the user asked for a rebuild.
         do {
-            self.connection = try Connection.open()
+            if self.bdkRebuildIsRequested {
+                Log.info("A BDK rebuild was requested. Will start from an empty database.")
+                self.connection = try Connection.recreate()
+            } else {
+                self.connection = try Connection.open()
+            }
         } catch where error.isCorruptDatabase {
             self.handleError(error: error, row: 211)
             
@@ -248,6 +253,9 @@ extension BitcoinManager {
                 if let topIndex = CacheManager.getOnchainAddresses().map(\.addressIndex).max() {
                     self.revealAddresses(toIndex: topIndex)
                 }
+                
+                // The wallet has been built from scratch, so a requested rebuild is done.
+                self.clearBdkRebuildRequest()
             } catch {
                 self.handleError(error: error, row: 218)
                 self.clearBdkWalletReferences()
@@ -294,11 +302,44 @@ extension BitcoinManager {
     func clearBdkScanState() {
         self.bdkScan.clear()
     }
-    func markBdkNeedsFullScan() {
+    func markBdkNeedsRebuild() {
         self.bdkScan.markNeedsFullScan()
+        
+        // Remember the request, so the next launch still rebuilds the wallet if this session doesn't.
+        CacheStore.set(true, for: CacheKeys.bdkRebuildRequested)
         
         // Forget the last full scan, so the next launch still scans if this one doesn't finish.
         self.clearFullScanCompletion()
+    }
+    var bdkRebuildIsRequested: Bool {
+        return CacheStore.value(for: CacheKeys.bdkRebuildRequested) == true
+    }
+    func clearBdkRebuildRequest() {
+        CacheStore.set(nil, for: CacheKeys.bdkRebuildRequested)
+    }
+    
+    // Throw the loaded BDK wallet away and build it again from an empty database.
+    private func didRebuildBdkWallet() -> Bool {
+        Log.info("Will rebuild the BDK wallet.")
+        
+        // Wait for a running light sync to finish, as it still writes to the stored database.
+        let deadline = Date().addingTimeInterval(30)
+        while !self.bdkScan.claimLightSync() {
+            guard Date() < deadline else {
+                Log.info("A light sync is still running. Will rebuild the BDK wallet later.")
+                return false
+            }
+            Thread.sleep(forTimeInterval: 0.25)
+        }
+        defer { self.bdkScan.endLightSync() }
+        
+        // Release the loaded wallet, so didStartBDK builds a new one.
+        self.bdkStartLock.lock()
+        self.bdkWallet = nil
+        self.connection = nil
+        self.bdkStartLock.unlock()
+        
+        return self.didStartBDK()
     }
     func markBdkPreviouslyScanned() {
         self.bdkScan.markPreviouslyScanned()
@@ -351,6 +392,15 @@ extension BitcoinManager {
         }
         
         DispatchQueue.global(qos: .background).async {
+            // Rebuild the wallet first when the user asked for it.
+            if self.bdkRebuildIsRequested {
+                guard self.didRebuildBdkWallet() else {
+                    self.endBdkScan(scanned: false)
+                    completion(false)
+                    return
+                }
+            }
+            
             // Get Electrum Client.
             if self.electrumClient == nil {
                 do {
