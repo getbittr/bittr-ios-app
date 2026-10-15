@@ -20,7 +20,8 @@ extension HomeViewController {
             DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
                 // Perform reset.
                 Task {
-                    _ = await BitcoinManager.shared.didGetLatestBlockHeight()
+                    // The reset cleared the conversion rates, so fetch them again with the block height.
+                    await self.fetchConversionAndBlockHeight()
                     DispatchQueue.main.async {
                         self.coreVC!.startWallet()
                         BitcoinManager.shared.didSyncBdkWallet { hasBeenSynced in
@@ -54,6 +55,7 @@ extension HomeViewController {
         
         self.couldNotFetchConversion = false
         self.didFetchConversion = false
+        self.graphLoadFailedAt = nil
         self.coreVC?.walletHasSynced = false
         self.homeTableView.reloadData()
         
