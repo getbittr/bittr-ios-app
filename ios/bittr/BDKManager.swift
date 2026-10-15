@@ -193,7 +193,6 @@ extension BitcoinManager {
             
             if self.storedFullScanIsFresh {
                 Log.info("Stored full scan is fresh. Will light sync rather than scan.")
-                self.bdkScan.markPreviouslyScanned()
                 SentryManager.countMetric("sync.bdk.scan.skipped")
             } else {
                 Log.info("No recent full scan is available. Will scan.")
@@ -279,6 +278,9 @@ extension BitcoinManager {
     }
     func markBdkNeedsFullScan() {
         self.bdkScan.markNeedsFullScan()
+    }
+    func markBdkPreviouslyScanned() {
+        self.bdkScan.markPreviouslyScanned()
     }
     
     // How long a completed full scan stands for.

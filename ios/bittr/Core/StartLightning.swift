@@ -202,6 +202,29 @@ extension CoreViewController {
             return
         }
         
+        guard BitcoinManager.shared.storedFullScanIsFresh else {
+            self.fullScanBDK()
+            return
+        }
+        
+        // A recently scanned wallet only counts as scanned once a light sync brings it up to date.
+        DispatchQueue.global(qos: .background).async {
+            let didLightSync = BitcoinManager.shared.lightSyncBdkWallet()
+            DispatchQueue.main.async {
+                guard didLightSync else {
+                    // The loaded data may be stale, so scan in full instead.
+                    Log.info("Could not light sync the loaded BDK wallet. Will scan.")
+                    self.fullScanBDK()
+                    return
+                }
+                Log.info("Did light sync the loaded BDK wallet.")
+                BitcoinManager.shared.markBdkPreviouslyScanned()
+                self.didFinishBDKSync()
+            }
+        }
+    }
+    
+    func fullScanBDK() {
         BitcoinManager.shared.didSyncBdkWallet { hasBeenSynced in
             guard hasBeenSynced else {
                 Log.info("Could not scan BDK wallet.")
@@ -214,17 +237,21 @@ extension CoreViewController {
                 return
             }
             Log.info("Did scan BDK wallet.")
-            
-            // Start timer
-            if self.walletSync == nil {
-                self.walletSync = BackgroundSync()
-                self.walletSync!.start()
-            }
-            // Check if VCs are awaiting BDK scan.
-            DispatchQueue.main.async {
-                self.homeVC?.sendVC?.setSendAllLabel()
-                self.homeVC?.moveVC?.swapVC?.calculateSendableAmount()
-            }
+            self.didFinishBDKSync()
+        }
+    }
+    
+    func didFinishBDKSync() {
+        
+        // Start timer
+        if self.walletSync == nil {
+            self.walletSync = BackgroundSync()
+            self.walletSync!.start()
+        }
+        // Check if VCs are awaiting BDK scan.
+        DispatchQueue.main.async {
+            self.homeVC?.sendVC?.setSendAllLabel()
+            self.homeVC?.moveVC?.swapVC?.calculateSendableAmount()
         }
     }
     
