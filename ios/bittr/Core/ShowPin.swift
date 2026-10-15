@@ -78,6 +78,7 @@ extension CoreViewController {
     
     @objc func appWillEnterForeground() {
         self.retryOnchainScanIfNeeded()
+        self.homeVC?.refreshValueCard()
         guard let wentAway = self.backgroundedAt else { return }
         self.backgroundedAt = nil
         

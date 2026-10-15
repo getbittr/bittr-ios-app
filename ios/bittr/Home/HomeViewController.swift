@@ -49,6 +49,10 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
     var chfDataFetched:Date?
     var currentValue:Data?
     var currentValueFetched:Date?
+    var graphPoints:[PricePoint]?
+    var graphPointsFetched:Date?
+    var isLoadingGraph = false
+    var graphLoadID = 0
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -74,6 +78,12 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
     }
     
     func changeCurrency() {
+        // Update value card, and ignore a load that started for the old currency.
+        self.graphPoints = nil
+        self.graphPointsFetched = nil
+        self.graphLoadID += 1
+        self.isLoadingGraph = false
+        
         // Update table.
         self.reloadTransactionsTable()
     }
@@ -81,6 +91,12 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
     @objc func changeColors() {
         // Update table.
         self.reloadTransactionsTable()
+    }
+    
+    func refreshValueCard() {
+        // The header cell reloads its graph itself once the points are out of date.
+        let headerCell = self.homeTableView.cellForRow(at: IndexPath(row: 0, section: 0)) as? HomeHeaderTableViewCell
+        headerCell?.loadGraph()
     }
     
     override func viewDidLayoutSubviews() {

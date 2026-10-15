@@ -161,7 +161,7 @@ extension HomeViewController {
     
     func tableView(_ tableView: UITableView, estimatedHeightForRowAt indexPath: IndexPath) -> CGFloat {
         // These estimates match the cellHeight values set in cellForRowAt.
-        if indexPath.row == 0 { return 430 }
+        if indexPath.row == 0 { return 557 }
         if indexPath.row == 1 { return 102 }
         return 75
     }
