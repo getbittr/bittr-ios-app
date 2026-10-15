@@ -61,7 +61,8 @@ class AcademyViewController: UIViewController, UITableViewDelegate, UITableViewD
         
         // Width first.
         newHeaderView.frame.size.width = self.academyTableView.bounds.width
-        let height = newHeaderView.systemLayoutSizeFitting(UIView.layoutFittingCompressedSize).height
+        let fittingSize = CGSize(width: self.academyTableView.bounds.width, height: 0)
+        let height = newHeaderView.systemLayoutSizeFitting(fittingSize, withHorizontalFittingPriority: .required, verticalFittingPriority: .fittingSizeLevel).height
         
         guard height > 0, height != self.appliedHeaderHeight else { return }
         self.appliedHeaderHeight = height

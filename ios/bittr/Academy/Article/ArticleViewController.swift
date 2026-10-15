@@ -56,7 +56,8 @@ class ArticleViewController: UIViewController, UITableViewDelegate, UITableViewD
         
         // Width first.
         headerView.frame.size.width = self.oneArticleTableView.bounds.width
-        let height = headerView.systemLayoutSizeFitting(UIView.layoutFittingCompressedSize).height
+        let fittingSize = CGSize(width: self.oneArticleTableView.bounds.width, height: 0)
+        let height = headerView.systemLayoutSizeFitting(fittingSize, withHorizontalFittingPriority: .required, verticalFittingPriority: .fittingSizeLevel).height
         
         guard height > 0, height != self.appliedHeaderHeight else { return }
         self.appliedHeaderHeight = height
