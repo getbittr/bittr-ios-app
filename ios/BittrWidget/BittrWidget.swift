@@ -21,20 +21,21 @@ struct Provider: AppIntentTimelineProvider {
     func timeline(for configuration: ConfigurationAppIntent, in context: Context) async -> Timeline<SimpleEntry> {
         
         let currentDate = Date()
-        let dateFormatter = DateFormatter()
-        dateFormatter.dateFormat = "dd MMM yyyy HH:mm"
+        
+        // A cache without a readable timestamp counts as stale.
+        let mostRecentDownload = UserDefaults.standard.value(forKey: "mostrecentwidgetdata") as? NSDictionary
+        let cachedAt = (mostRecentDownload?["timestamp"] as? Double).map { Date(timeIntervalSince1970: $0) }
         
         var entry:SimpleEntry = {
             if
-                let mostRecentDownload = UserDefaults.standard.value(forKey: "mostrecentwidgetdata") as? NSDictionary,
-                let date = mostRecentDownload["date"] as? String,
+                let mostRecentDownload,
                 let formattedEurValue = mostRecentDownload["formattedEurValue"] as? String,
                 let formattedChfValue = mostRecentDownload["formattedChfValue"] as? String,
                 let preferredCurrency = mostRecentDownload["preferredCurrency"] as? String {
                 
                 // Cache is available.
                 return SimpleEntry (
-                    date: dateFormatter.date(from: date) ?? currentDate,
+                    date: cachedAt ?? currentDate,
                     configuration: configuration,
                     eurValue: formattedEurValue,
                     chfValue: formattedChfValue,
@@ -61,11 +62,11 @@ struct Provider: AppIntentTimelineProvider {
         // reasons. Serve a recent cache rather than spending two requests on it;
         // the app is hitting the same endpoints at launch and the server rate
         // limits.
-        if entry.eurValue != "N/A", currentDate.timeIntervalSince(entry.date) < 900 {
+        if entry.eurValue != "N/A", let cachedAt, (0..<900).contains(currentDate.timeIntervalSince(cachedAt)) {
             #if DEBUG
             print("Cached widget data is still fresh. Not fetching.")
             #endif
-            return Timeline(entries: [entry], policy: .after(entry.date.addingTimeInterval(7200)))
+            return Timeline(entries: [entry], policy: .after(cachedAt.addingTimeInterval(7200)))
         }
         
         var newDataWasFetched = false
@@ -105,7 +106,7 @@ struct Provider: AppIntentTimelineProvider {
                 
                 // Cache latest data.
                 let cacheDict:NSDictionary = [
-                    "date": dateFormatter.string(from: currentDate),
+                    "timestamp": currentDate.timeIntervalSince1970,
                     "formattedEurValue":formattedEurValue,
                     "formattedChfValue":formattedChfValue,
                     "preferredCurrency":preferredCurrency,
