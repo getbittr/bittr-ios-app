@@ -241,7 +241,7 @@ extension HomeViewController {
                 }
             }
         } catch {
-            SentryManager.capture(error, context: "LoadWalletData row 394")
+            SentryManager.capture(error, context: "LoadWalletData row 394", filterHttpErrors: true)
             Log.info("Could not download conversion rates.")
             return false
         }
