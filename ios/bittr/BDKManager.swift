@@ -14,13 +14,21 @@ struct OnchainDrainPreview {
     let vsize:UInt64
 }
 
+struct LightSyncClaim {
+    let id = UUID()
+    let startedAt = Date()
+    
+    // The previous light sync held the claim for too long, so its Electrum connection may be stuck.
+    let replacesHungSync:Bool
+}
+
 final class BdkScanState {
     
     private let lock = NSLock()
     private var _isScanning = false
     private var _hasBeenScanned = false
     private var _timedOut = false
-    private var _isLightSyncing = false
+    private var _lightSync:LightSyncClaim?
     private var waiters = [(Bool) -> Void]()
     
     var isScanning: Bool {
@@ -71,21 +79,28 @@ final class BdkScanState {
         DispatchQueue.main.async { waiting.forEach { $0(scanned) } }
     }
 
-    func claimLightSync() -> Bool {
-        // Claims the right to run a light sync.
+    // How long a light sync may hold its claim before it counts as hung.
+    static let lightSyncClaimLimit:TimeInterval = 120
+    
+    func claimLightSync() -> LightSyncClaim? {
+        // Claims the right to run a light sync, taking over from one that has hung.
         lock.lock()
         defer { lock.unlock() }
         
-        guard !_isLightSyncing else { return false }
-        _isLightSyncing = true
-        return true
+        if let current = _lightSync, Date().timeIntervalSince(current.startedAt) < BdkScanState.lightSyncClaimLimit {
+            return nil
+        }
+        let claim = LightSyncClaim(replacesHungSync: _lightSync != nil)
+        _lightSync = claim
+        return claim
     }
     
-    func endLightSync() {
-        // Releases the light sync claim.
+    func endLightSync(_ claim:LightSyncClaim) {
+        // Releases the claim, unless a newer light sync has taken it over.
         lock.lock()
         defer { lock.unlock() }
-        _isLightSyncing = false
+        guard _lightSync?.id == claim.id else { return }
+        _lightSync = nil
     }
     
     func markPreviouslyScanned() {
@@ -325,14 +340,16 @@ extension BitcoinManager {
         
         // Wait for a running light sync to finish, as it still writes to the stored database.
         let deadline = Date().addingTimeInterval(30)
-        while !self.bdkScan.claimLightSync() {
-            guard Date() < deadline else {
-                Log.info("A light sync is still running. Will rebuild the BDK wallet later.")
-                return false
-            }
+        var lightSyncClaim = self.bdkScan.claimLightSync()
+        while lightSyncClaim == nil, Date() < deadline {
             Thread.sleep(forTimeInterval: 0.25)
+            lightSyncClaim = self.bdkScan.claimLightSync()
         }
-        defer { self.bdkScan.endLightSync() }
+        guard let lightSyncClaim else {
+            Log.info("A light sync is still running. Will rebuild the BDK wallet later.")
+            return false
+        }
+        defer { self.bdkScan.endLightSync(lightSyncClaim) }
         
         // Release the loaded wallet, so didStartBDK builds a new one.
         self.bdkStartLock.lock()
@@ -495,11 +512,23 @@ extension BitcoinManager {
         }
         
         // One light sync at a time.
-        guard self.bdkScan.claimLightSync() else {
+        guard let lightSyncClaim = self.bdkScan.claimLightSync() else {
             Log.info("Skipping light sync — another one is in progress.")
             return false
         }
-        defer { self.bdkScan.endLightSync() }
+        defer { self.bdkScan.endLightSync(lightSyncClaim) }
+        
+        // A hung light sync may have left the Electrum connection stuck, so open a new one.
+        if lightSyncClaim.replacesHungSync {
+            Log.info("A light sync has hung. Will reconnect to Electrum.")
+            SentryManager.countMetric("sync.bdk.lightsync.hung")
+            do {
+                self.electrumClient = try ElectrumClient(url: EnvironmentConfig.electrumURL)
+            } catch {
+                self.handleError(error: error, row: 565)
+                return false
+            }
+        }
 
         guard let bdkWallet = self.bdkWallet,
               let electrumClient = self.electrumClient,
