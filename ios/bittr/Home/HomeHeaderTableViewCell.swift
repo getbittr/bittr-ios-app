@@ -55,7 +55,7 @@ class HomeHeaderTableViewCell: UITableViewCell {
     @IBOutlet weak var buyLabel: UILabel!
     
     // Variables
-    var homeVC:HomeViewController?
+    weak var homeVC:HomeViewController?
     var appliedNoTransactionsHTML:String?
     
     override func awakeFromNib() {
