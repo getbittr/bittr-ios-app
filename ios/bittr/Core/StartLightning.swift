@@ -202,12 +202,12 @@ extension CoreViewController {
             return
         }
         
-        guard BitcoinManager.shared.storedFullScanIsFresh else {
+        guard BitcoinManager.shared.hasStoredFullScan else {
             self.fullScanBDK()
             return
         }
         
-        // A recently scanned wallet only counts as scanned once a light sync brings it up to date.
+        // A previously scanned wallet only counts as scanned once a light sync brings it up to date.
         DispatchQueue.global(qos: .background).async {
             let didLightSync = BitcoinManager.shared.lightSyncBdkWallet()
             DispatchQueue.main.async {

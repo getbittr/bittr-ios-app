@@ -209,11 +209,11 @@ extension BitcoinManager {
             SentryManager.countMetric("sync.bdk.loaded")
             self.bdkWallet = loaded
             
-            if self.storedFullScanIsFresh {
-                Log.info("Stored full scan is fresh. Will light sync rather than scan.")
+            if self.hasStoredFullScan {
+                Log.info("A full scan is stored. Will light sync rather than scan.")
                 SentryManager.countMetric("sync.bdk.scan.skipped")
             } else {
-                Log.info("No recent full scan is available. Will scan.")
+                Log.info("No stored full scan is available. Will scan.")
             }
         } catch {
             // Only replace a database that is corrupt, or doesn't hold this wallet.
@@ -304,15 +304,10 @@ extension BitcoinManager {
         self.bdkScan.markPreviouslyScanned()
     }
     
-    // How long a completed full scan stands for.
-    static let fullScanValidityDays = 7
-    var storedFullScanIsFresh: Bool {
+    // A full scan stands until the user asks for another one by pulling to refresh.
+    var hasStoredFullScan: Bool {
         // Check when the BDK wallet was last scanned.
         guard let scannedAt = CacheStore.value(for: CacheKeys.lastBdkFullScan) else { return false }
-        let age = Date().timeIntervalSince1970 - Double(scannedAt)
-        
-        // Rescan if the last scan happened more than 7 days ago.
-        guard age >= 0, age < Double(BitcoinManager.fullScanValidityDays * 24 * 60 * 60) else { return false }
         
         // Make sure the cached most recent scan date is after this database's creation date.
         guard let databaseCreated = Connection.walletDatabaseCreationDate else { return false }
