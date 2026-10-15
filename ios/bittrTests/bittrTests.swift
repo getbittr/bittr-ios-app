@@ -562,9 +562,10 @@ final class BDKWalletLoadTests: XCTestCase {
                                              changeDescriptor: keysB.change,
                                              connection: connection!))
 
-        // Release before deleting the file underneath it, as didStartBDK does.
+        // Release, then delete and recreate the whole directory, as Connection.recreate does.
         connection = nil
-        try FileManager.default.removeItem(atPath: path)
+        try FileManager.default.removeItem(at: directory)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
 
         connection = try Connection(path: path)
         let recreated = try Wallet(descriptor: keysB.external,
