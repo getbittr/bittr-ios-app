@@ -93,7 +93,8 @@ appId: com.bittr.bittr-regtest
 - tapOn:
     id: "home.buyButton"
 - assertVisible:
-    id: "buy.headerLabel"
+    id: "header.titleLabel"
+    text: "buy bitcoin"
 - tapOn:
     id: "buy.continueButton"
 
@@ -125,7 +126,8 @@ appId: com.bittr.bittr-regtest
 
 # Back on Buy — restart the signup.
 - assertVisible:
-    id: "buy.headerLabel"
+    id: "header.titleLabel"
+    text: "buy bitcoin"
 - tapOn:
     id: "buy.continueButton"
 - assertVisible:
