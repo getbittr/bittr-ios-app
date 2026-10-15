@@ -37,7 +37,7 @@ class Transfer4ViewController: UIViewController {
     @IBOutlet weak var dcaLabel: UILabel!
     
     var coreVC:CoreViewController?
-    var signupVC:SignupViewController?
+    weak var signupVC:SignupViewController?
     var ibanVC:RegisterIbanViewController?
     
     override func viewDidLoad() {

@@ -116,6 +116,11 @@ extension CoreViewController {
         
         // Remove signup view from container.
         self.signupContainerView.alpha = 0
+        for eachChild in self.children where eachChild.viewIfLoaded?.superview == self.signupContainerView {
+            eachChild.willMove(toParent: nil)
+            eachChild.view.removeFromSuperview()
+            eachChild.removeFromParent()
+        }
         for eachSubview in self.signupContainerView.subviews {
             eachSubview.removeFromSuperview()
         }

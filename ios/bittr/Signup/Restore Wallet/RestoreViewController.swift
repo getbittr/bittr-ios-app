@@ -62,7 +62,7 @@ class RestoreViewController: UIViewController, UITextFieldDelegate {
     @IBOutlet weak var restoreButtonSpinner: UIActivityIndicatorView!
     
     var coreVC:CoreViewController?
-    var signupVC:SignupViewController?
+    weak var signupVC:SignupViewController?
     
     // No longer needed with inline autocomplete
     

@@ -41,7 +41,7 @@ class Signup4ViewController: UIViewController, UITextFieldDelegate {
     // Three checkable mnemonic words.
     var checkWords = [String]()
     var coreVC:CoreViewController?
-    var signupVC:SignupViewController?
+    weak var signupVC:SignupViewController?
     
     override func viewDidLoad() {
         super.viewDidLoad()

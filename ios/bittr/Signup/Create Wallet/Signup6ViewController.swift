@@ -11,7 +11,7 @@ class Signup6ViewController: UIViewController, UITextFieldDelegate {
 
     // View for user to confirm their new pin.
     var coreVC:CoreViewController?
-    var signupVC:SignupViewController?
+    weak var signupVC:SignupViewController?
     
     var previousPIN:String?
     

@@ -60,7 +60,7 @@ class Transfer1ViewController: UIViewController, UITextFieldDelegate {
     
     // Variables
     var coreVC:CoreViewController?
-    var signupVC:SignupViewController?
+    weak var signupVC:SignupViewController?
     var ibanVC:RegisterIbanViewController?
     
     override func viewDidLoad() {

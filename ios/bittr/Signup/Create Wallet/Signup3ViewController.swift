@@ -43,7 +43,7 @@ class Signup3ViewController: UIViewController {
     
     // Upper VCs
     var coreVC:CoreViewController?
-    var signupVC:SignupViewController?
+    weak var signupVC:SignupViewController?
     
     override func viewDidLoad() {
         super.viewDidLoad()

@@ -14,7 +14,7 @@ class Restore3ViewController: UIViewController, UITextFieldDelegate {
     
     var previousPIN:String?
     var coreVC:CoreViewController?
-    var signupVC:SignupViewController?
+    weak var signupVC:SignupViewController?
     
     override func viewDidLoad() {
         super.viewDidLoad()

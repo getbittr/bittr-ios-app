@@ -39,7 +39,7 @@ class Signup7ViewController: UIViewController {
     
     // Variables
     var coreVC:CoreViewController?
-    var signupVC:SignupViewController?
+    weak var signupVC:SignupViewController?
     var ibanVC:RegisterIbanViewController?
     
     override func viewDidLoad() {
