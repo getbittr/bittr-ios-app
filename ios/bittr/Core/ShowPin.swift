@@ -67,6 +67,9 @@ extension CoreViewController {
     }
     
     @objc func appDidEnterBackground() {
+        // Make sure the cover is up for the app switcher snapshot.
+        self.showPrivacyCover()
+        
         // Keep track of when the app was backgrounded.
         self.backgroundedAt = self.userHasSignedIn ? Date() : nil
         // Interrupt BDK scan if ongoing.
