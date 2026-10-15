@@ -159,7 +159,20 @@ extension BitcoinManager {
         // Open the stored wallet database, keeping whatever it already holds.
         do {
             self.connection = try Connection.open()
+        } catch where error.isCorruptDatabase {
+            self.handleError(error: error, row: 211)
+            
+            // A corrupt database holds nothing worth keeping, so start an empty one.
+            self.clearFullScanCompletion()
+            do {
+                self.connection = try Connection.recreate()
+            } catch {
+                self.handleError(error: error, row: 214)
+                self.clearBdkWalletReferences()
+                return false
+            }
         } catch {
+            // Anything else may pass, so leave the file for the next launch to try again.
             self.handleError(error: error, row: 211)
             self.clearBdkWalletReferences()
             return false
@@ -186,15 +199,23 @@ extension BitcoinManager {
                 Log.info("No recent full scan is available. Will scan.")
             }
         } catch {
-            let reason:String = {
+            // Only replace a database that is corrupt, or doesn't hold this wallet.
+            let reason:String? = {
                 switch error {
                 case LoadWithPersistError.CouldNotLoad: return "nothing stored"
                 case LoadWithPersistError.InvalidChangeSet: return "stored data did not match"
-                case LoadWithPersistError.Persist: return "could not read the database"
                 case WalletError.storedWalletOnAnotherNetwork: return "stored on another network"
-                default: return "unrecognised failure"
+                case _ where error.isCorruptDatabase: return "database is corrupt"
+                default: return nil
                 }
             }()
+            
+            guard let reason else {
+                // A read failure may pass, so keep the file for the next launch to try again.
+                self.handleError(error: error, row: 216)
+                self.clearBdkWalletReferences()
+                return false
+            }
             Log.info("No stored BDK wallet to load (\(reason)). Creating one.")
             SentryManager.countMetric("sync.bdk.recreated")
             
@@ -205,6 +226,11 @@ extension BitcoinManager {
             do {
                 self.connection = try Connection.recreate()
                 self.bdkWallet = try Wallet(descriptor: bip84ExternalDescriptor, changeDescriptor: bip84InternalDescriptor, network: EnvironmentConfig.bitcoinDevKitNetwork, connection: self.connection!)
+                
+                // A new wallet has revealed nothing, so reveal the cached address pool again for syncs to watch.
+                if let topIndex = CacheManager.getOnchainAddresses().map(\.addressIndex).max() {
+                    self.revealAddresses(toIndex: topIndex)
+                }
             } catch {
                 self.handleError(error: error, row: 218)
                 self.clearBdkWalletReferences()
@@ -625,5 +651,19 @@ extension BitcoinManager {
         }
         let thisAddress = bdkWallet.peekAddress(keychain: .external, index: UInt32(atIndex)).address.description
         return thisAddress
+    }
+}
+
+extension Error {
+    
+    var isCorruptDatabase:Bool {
+        // SQLite's own wording for a damaged file, or one that isn't a database at all.
+        let message:String
+        switch self as Error {
+        case SqliteError.Sqlite(let rusqliteError): message = rusqliteError
+        case LoadWithPersistError.Persist(let errorMessage): message = errorMessage
+        default: return false
+        }
+        return message.contains("database disk image is malformed") || message.contains("file is not a database")
     }
 }

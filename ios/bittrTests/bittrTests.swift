@@ -526,6 +526,23 @@ final class BDKWalletLoadTests: XCTestCase {
                 // the fallback would need to catch this case too.
                 return XCTFail("expected .CouldNotLoad for an empty database, got \(error)")
             }
+            XCTAssertFalse(error.isCorruptDatabase, "an empty database must not count as corrupt")
+        }
+    }
+    
+    // A file that isn't a database must count as corrupt, wherever BDK first reports it.
+    func testJunkFileIsReportedAsCorrupt() throws {
+        
+        let path = databasePath()
+        try Data(repeating: 0x42, count: 4096).write(to: URL(fileURLWithPath: path))
+        let keys = try descriptors(for: seedA)
+        
+        do {
+            let connection = try Connection(path: path)
+            _ = try Wallet.load(descriptor: keys.external, changeDescriptor: keys.change, connection: connection)
+            XCTFail("a junk file loaded as a wallet")
+        } catch {
+            XCTAssertTrue(error.isCorruptDatabase, "not recognised as corrupt: \(error)")
         }
     }
 
