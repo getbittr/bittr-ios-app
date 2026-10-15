@@ -88,6 +88,9 @@ extension CoreViewController {
                 !BitcoinManager.shared.bdkWalletHasBeenScanned else { return }
         Log.info("No BDK full scan has succeeded yet. Retrying it on foreground.")
         
+        // A scan cut off by the background is likely hung, so start a fresh one.
+        BitcoinManager.shared.abandonInterruptedBdkScan()
+        
         BitcoinManager.shared.didSyncBdkWallet { hasBeenSynced in
             guard hasBeenSynced else { return }
             Log.info("Retried BDK full scan succeeded.")

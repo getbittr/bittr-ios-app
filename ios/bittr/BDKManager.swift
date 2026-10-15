@@ -21,6 +21,7 @@ final class BdkScanState {
     private var _hasBeenScanned = false
     private var _timedOut = false
     private var _wasInterrupted = false
+    private var generation = 0
     private var waiters = [(Bool) -> Void]()
     
     var isScanning: Bool {
@@ -38,53 +39,80 @@ final class BdkScanState {
     }
     
     var timedOut: Bool {
-        // The running scan passed its watchdog.
+        // The last scan was given up on by its watchdog.
         lock.lock()
         defer { lock.unlock() }
         return _timedOut
     }
     
-    var wasInterrupted: Bool {
-        // The app was backgrounded while this scan was running.
+    func claim(withWaiter waiter: @escaping (Bool) -> Void) -> Int? {
+        // Queues the waiter, and returns a scan number when no scan is running yet.
         lock.lock()
         defer { lock.unlock() }
-        return _wasInterrupted
-    }
-    
-    func claim(orWaitWith waiter: @escaping (Bool) -> Void) -> Bool {
-        // Claims the right to run a full scan.
-        lock.lock()
-        defer { lock.unlock() }
-
-        if _isScanning {
-            waiters += [waiter]
-            return false
-        }
+        
+        waiters += [waiter]
+        guard !_isScanning else { return nil }
         _isScanning = true
         _timedOut = false
         _wasInterrupted = false
-        return true
+        generation += 1
+        return generation
     }
     
-    func end(scanned: Bool) {
+    func isCurrent(_ scan: Int) -> Bool {
+        // The scan still holds the claim.
+        lock.lock()
+        defer { lock.unlock() }
+        return _isScanning && generation == scan
+    }
+    
+    func end(_ scan: Int, scanned: Bool) {
         // Releases the claim and hands the outcome to whoever was waiting on it.
         lock.lock()
+        guard _isScanning, generation == scan else {
+            // A scan that was given up on doesn't speak for the current one.
+            lock.unlock()
+            return
+        }
         _isScanning = false
+        _wasInterrupted = false
         if scanned { _hasBeenScanned = true }
         let waiting = waiters
         waiters.removeAll()
         lock.unlock()
-
+        
         guard !waiting.isEmpty else { return }
         DispatchQueue.main.async { waiting.forEach { $0(scanned) } }
     }
-
-    func markTimedOut() {
-        // The watchdog fired.
+    
+    func abandonTimedOut(_ scan: Int) -> Bool {
+        // The watchdog gives up on the scan and fails everyone waiting on it.
+        lock.lock()
+        guard _isScanning, generation == scan else {
+            lock.unlock()
+            return false
+        }
+        _isScanning = false
+        _timedOut = !_wasInterrupted
+        _wasInterrupted = false
+        let waiting = waiters
+        waiters.removeAll()
+        lock.unlock()
+        
+        if !waiting.isEmpty {
+            DispatchQueue.main.async { waiting.forEach { $0(false) } }
+        }
+        return true
+    }
+    
+    func abandonInterrupted() -> Bool {
+        // Gives up on a scan that ran into the background, keeping its waiters for the next one.
         lock.lock()
         defer { lock.unlock() }
-        guard _isScanning else { return }
-        _timedOut = true
+        guard _isScanning, _wasInterrupted else { return false }
+        _isScanning = false
+        _wasInterrupted = false
+        return true
     }
     
     func markInterrupted() {
@@ -205,16 +233,27 @@ extension BitcoinManager {
     var bdkWalletIsScanning: Bool { self.bdkScan.isScanning }
     var bdkWalletHasBeenScanned: Bool { self.bdkScan.hasBeenScanned }
     var bdkFullScanTimedOut: Bool { self.bdkScan.timedOut }
-    var bdkScanWasInterrupted: Bool { self.bdkScan.wasInterrupted }
 
-    func claimBdkScan(orWaitWith waiter: @escaping (Bool) -> Void) -> Bool {
-        return self.bdkScan.claim(orWaitWith: waiter)
+    func claimBdkScan(withWaiter waiter: @escaping (Bool) -> Void) -> Int? {
+        return self.bdkScan.claim(withWaiter: waiter)
     }
-    func endBdkScan(scanned: Bool) {
-        self.bdkScan.end(scanned: scanned)
+    func isCurrentBdkScan(_ scan: Int) -> Bool {
+        return self.bdkScan.isCurrent(scan)
     }
-    func markBdkScanTimedOut() {
-        self.bdkScan.markTimedOut()
+    func endBdkScan(_ scan: Int, scanned: Bool) {
+        self.bdkScan.end(scan, scanned: scanned)
+    }
+    func abandonTimedOutBdkScan(_ scan: Int) -> Bool {
+        guard self.bdkScan.abandonTimedOut(scan) else { return false }
+        // The hung scan may still hold the client, so the next scan gets a fresh one.
+        self.electrumClient = nil
+        return true
+    }
+    func abandonInterruptedBdkScan() {
+        guard self.bdkScan.abandonInterrupted() else { return }
+        Log.info("Gave up on a BDK full scan that ran into the background.")
+        // The old scan may still hold the client, so the next scan gets a fresh one.
+        self.electrumClient = nil
     }
     func markBdkScanInterrupted() {
         self.bdkScan.markInterrupted()
@@ -235,8 +274,8 @@ extension BitcoinManager {
             }
         }
         
-        // Take the scan, or wait on the one already running.
-        guard self.claimBdkScan(orWaitWith: completion) else {
+        // Wait on the scan, and run it if none is running yet.
+        guard let scan = self.claimBdkScan(withWaiter: completion) else {
             Log.info("A BDK full scan is already running. Waiting on it.")
             return
         }
@@ -244,11 +283,8 @@ extension BitcoinManager {
         
         // TODO: Consider a higher timeout limit for mainnet wallets.
         DispatchQueue.global(qos: .background).asyncAfter(deadline: .now() + 180) {
-            if !self.bdkScanWasInterrupted {
-                Log.info("BDK full scan timed out after 180s; failing so callers don't hang.")
-                self.markBdkScanTimedOut()
-            }
-            completion(false)
+            guard self.abandonTimedOutBdkScan(scan) else { return }
+            Log.info("BDK full scan timed out after 180s; failing so callers don't hang.")
         }
         
         DispatchQueue.global(qos: .background).async {
@@ -258,8 +294,7 @@ extension BitcoinManager {
                     self.electrumClient = try ElectrumClient(url: EnvironmentConfig.electrumURL)
                 } catch {
                     self.handleError(error: error, row: 222)
-                    self.endBdkScan(scanned: false)
-                    completion(false)
+                    self.endBdkScan(scan, scanned: false)
                     return
                 }
             }
@@ -268,8 +303,7 @@ extension BitcoinManager {
             guard let bdkWallet = self.bdkWallet,
                   let electrumClient = self.electrumClient,
                   let connection = self.connection else {
-                self.endBdkScan(scanned: false)
-                completion(false)
+                self.endBdkScan(scan, scanned: false)
                 return
             }
             Log.info("Will perform a full scan.")
@@ -280,8 +314,7 @@ extension BitcoinManager {
                 syncRequest = try bdkWallet.startFullScan().build()
             } catch {
                 self.handleError(error: error, row: 212)
-                self.endBdkScan(scanned: false)
-                completion(false)
+                self.endBdkScan(scan, scanned: false)
                 return
             }
             
@@ -296,15 +329,13 @@ extension BitcoinManager {
                 )
             } catch {
                 self.handleError(error: error, row: 236)
-                self.endBdkScan(scanned: false)
-                completion(false)
+                self.endBdkScan(scan, scanned: false)
                 return
             }
             
-            // Ensure bdkWallet still exists.
-            guard self.bdkWallet === bdkWallet else {
-                self.endBdkScan(scanned: false)
-                completion(false)
+            // Ensure bdkWallet still exists, and this scan wasn't given up on.
+            guard self.bdkWallet === bdkWallet, self.isCurrentBdkScan(scan) else {
+                self.endBdkScan(scan, scanned: false)
                 return
             }
             
@@ -313,8 +344,7 @@ extension BitcoinManager {
                 try bdkWallet.applyUpdate(update: update)
             } catch {
                 self.handleError(error: error, row: 243)
-                self.endBdkScan(scanned: false)
-                completion(false)
+                self.endBdkScan(scan, scanned: false)
                 return
             }
             
@@ -327,9 +357,8 @@ extension BitcoinManager {
             
             // Update syncing status.
             Log.info("Did sync BDK wallet.")
-            self.endBdkScan(scanned: true)
+            self.endBdkScan(scan, scanned: true)
             self.storeChannelClosureTxIDIfFound()
-            completion(true)
         }
     }
     
