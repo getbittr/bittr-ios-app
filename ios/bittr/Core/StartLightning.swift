@@ -192,7 +192,7 @@ extension CoreViewController {
             
             // Light sync BDK wallet.
             DispatchQueue.global(qos: .background).async {
-                let didLightSync = BitcoinManager.shared.lightSyncBdkWallet()
+                let didLightSync = BitcoinManager.shared.lightSyncBdkWallet() == .synced
                 Log.info(didLightSync ? "Did light sync the loaded BDK wallet." : "Could not light sync the loaded BDK wallet.")
                 DispatchQueue.main.async {
                     self.homeVC?.sendVC?.setSendAllLabel()
@@ -208,18 +208,32 @@ extension CoreViewController {
         }
         
         // A previously scanned wallet only counts as scanned once a light sync brings it up to date.
+        self.lightSyncLoadedBDKWallet()
+    }
+    
+    func lightSyncLoadedBDKWallet() {
         DispatchQueue.global(qos: .background).async {
-            let didLightSync = BitcoinManager.shared.lightSyncBdkWallet()
+            let outcome = BitcoinManager.shared.lightSyncBdkWallet()
             DispatchQueue.main.async {
-                guard didLightSync else {
+                switch outcome {
+                case .synced:
+                    Log.info("Did light sync the loaded BDK wallet.")
+                    BitcoinManager.shared.markBdkPreviouslyScanned()
+                    self.didFinishBDKSync()
+                case .skippedForFullScan:
+                    // Wait for the running full scan instead.
+                    self.fullScanBDK()
+                case .skippedForLightSync:
+                    // Try again once the running light sync has had time to finish.
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+                        guard !BitcoinManager.shared.bdkWalletHasBeenScanned else { return }
+                        self.lightSyncLoadedBDKWallet()
+                    }
+                case .failed:
                     // The loaded data may be stale, so scan in full instead.
                     Log.info("Could not light sync the loaded BDK wallet. Will scan.")
                     self.fullScanBDK()
-                    return
                 }
-                Log.info("Did light sync the loaded BDK wallet.")
-                BitcoinManager.shared.markBdkPreviouslyScanned()
-                self.didFinishBDKSync()
             }
         }
     }

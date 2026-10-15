@@ -14,6 +14,13 @@ struct OnchainDrainPreview {
     let vsize:UInt64
 }
 
+enum LightSyncOutcome {
+    case synced
+    case skippedForFullScan
+    case skippedForLightSync
+    case failed
+}
+
 struct LightSyncClaim {
     let id = UUID()
     let startedAt = Date()
@@ -504,17 +511,17 @@ extension BitcoinManager {
         }
     }
     
-    func lightSyncBdkWallet() -> Bool {
+    func lightSyncBdkWallet() -> LightSyncOutcome {
         // Stand down while a full scan is running.
         guard !self.bdkWalletIsScanning else {
             Log.info("Skipping light sync — a BDK full scan is in progress.")
-            return false
+            return .skippedForFullScan
         }
         
         // One light sync at a time.
         guard let lightSyncClaim = self.bdkScan.claimLightSync() else {
             Log.info("Skipping light sync — another one is in progress.")
-            return false
+            return .skippedForLightSync
         }
         defer { self.bdkScan.endLightSync(lightSyncClaim) }
         
@@ -526,14 +533,14 @@ extension BitcoinManager {
                 self.electrumClient = try ElectrumClient(url: EnvironmentConfig.electrumURL)
             } catch {
                 self.handleError(error: error, row: 565)
-                return false
+                return .failed
             }
         }
 
         guard let bdkWallet = self.bdkWallet,
               let electrumClient = self.electrumClient,
               let connection = self.connection else {
-            return false
+            return .failed
         }
         
         // Create sync request.
@@ -542,7 +549,7 @@ extension BitcoinManager {
             syncRequest = try bdkWallet.startSyncWithRevealedSpks().build()
         } catch {
             self.handleError(error: error, row: 570)
-            return false
+            return .failed
         }
         
         // Create update.
@@ -555,12 +562,12 @@ extension BitcoinManager {
             )
         } catch {
             self.handleError(error: error, row: 582)
-            return false
+            return .failed
         }
         
         // Ensure bdkWallet hasn't been cleared in the meantime.
         guard self.bdkWallet === bdkWallet else {
-            return false
+            return .failed
         }
         
         // Apply update to wallet.
@@ -568,7 +575,7 @@ extension BitcoinManager {
             try bdkWallet.applyUpdate(update: update)
         } catch {
             self.handleError(error: error, row: 594)
-            return false
+            return .failed
         }
         
         // Persist update to wallet.
@@ -580,7 +587,7 @@ extension BitcoinManager {
         
         self.storeChannelClosureTxIDIfFound()
         
-        return true
+        return .synced
     }
     
     func getSize(address:String, amountSats:Int, selectedVbyte:Double?) throws -> UInt64 {
