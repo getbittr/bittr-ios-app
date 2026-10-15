@@ -62,7 +62,10 @@ struct Provider: AppIntentTimelineProvider {
         // reasons. Serve a recent cache rather than spending two requests on it;
         // the app is hitting the same endpoints at launch and the server rate
         // limits.
-        if entry.eurValue != "N/A", let cachedAt, (0..<900).contains(currentDate.timeIntervalSince(cachedAt)) {
+        // Only a cache in the chosen currency, with the week's prices, can stand in for a fetch.
+        let chosenCurrency = WidgetShare.currency == "CHF" ? "CHF" : "€"
+        let cacheIsUsable = entry.eurValue != "N/A" && entry.currency == chosenCurrency && !entry.weekPrices.isEmpty
+        if cacheIsUsable, let cachedAt, (0..<900).contains(currentDate.timeIntervalSince(cachedAt)) {
             #if DEBUG
             print("Cached widget data is still fresh. Not fetching.")
             #endif
