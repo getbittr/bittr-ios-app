@@ -12,7 +12,8 @@ import Foundation
 // app's, so nothing the app writes to the standard suite is visible here.
 enum WidgetShare {
 
-    static let appGroup = "group.com.bittr.bittr"
+    // Each build configuration has its own group, so regtest and production don't share values.
+    static let appGroup = Bundle.main.object(forInfoDictionaryKey: "BittrAppGroup") as? String ?? "group.com.bittr.bittr"
 
     enum Key {
         static let currency = "currency"
