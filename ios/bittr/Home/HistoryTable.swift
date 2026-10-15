@@ -159,6 +159,13 @@ extension HomeViewController {
         return self.visibleTransactions.count + 1
     }
     
+    func tableView(_ tableView: UITableView, estimatedHeightForRowAt indexPath: IndexPath) -> CGFloat {
+        // These estimates match the cellHeight values set in cellForRowAt.
+        if indexPath.row == 0 { return 430 }
+        if indexPath.row == 1 { return 102 }
+        return 75
+    }
+    
     // MARK: Update Year label
     func tableView(_ tableView: UITableView, didEndDisplaying cell: UITableViewCell, forRowAt indexPath: IndexPath) {
         guard let visibleRows = tableView.indexPathsForVisibleRows, !visibleRows.isEmpty else { return }

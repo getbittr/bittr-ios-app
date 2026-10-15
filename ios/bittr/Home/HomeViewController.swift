@@ -56,7 +56,6 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
         // Table view
         self.homeTableView.delegate = self
         self.homeTableView.dataSource = self
-        self.homeTableView.estimatedRowHeight = 430
         self.homeTableView.contentInsetAdjustmentBehavior = .never
         
         // Check if dark mode is on.
