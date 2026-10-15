@@ -251,7 +251,8 @@ extension BitcoinManager {
                 
                 // A new wallet has revealed nothing, so reveal the cached address pool again for syncs to watch.
                 if let topIndex = CacheManager.getOnchainAddresses().map(\.addressIndex).max() {
-                    self.revealAddresses(toIndex: topIndex)
+                    // Reveal a little beyond the pool too, like manageOnchainAddresses does for channel closures.
+                    self.revealAddresses(toIndex: topIndex + 5)
                 }
                 
                 // The wallet has been built from scratch, so a requested rebuild is done.
