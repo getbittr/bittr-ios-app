@@ -28,7 +28,7 @@ extension HomeHeaderTableViewCell {
         self.calculateProfit()
         
         // Stop sync status spinner.
-        if homeVC.coreVC!.walletHasSynced {
+        if homeVC.coreVC?.walletHasSynced == true {
             self.showLabels()
         } else {
             self.headerSpinner.startAnimating()
@@ -63,7 +63,7 @@ extension HomeHeaderTableViewCell {
         
         // Calculate total balance
         let totalBalanceSats:Int
-        if homeVC.coreVC!.walletHasSynced {
+        if homeVC.coreVC?.walletHasSynced == true {
             totalBalanceSats = BitcoinManager.shared.bittrWallet.satoshisOnchain + BitcoinManager.shared.bittrWallet.satoshisLightning + BitcoinManager.shared.bittrWallet.pendingBalancesFromChannelClosures
         } else {
             totalBalanceSats = Int(CacheManager.cachedSatsBalance ?? "0") ?? 0
