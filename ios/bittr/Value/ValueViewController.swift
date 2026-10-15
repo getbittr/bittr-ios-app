@@ -82,13 +82,16 @@ enum PriceHistory {
     
     enum LoadError:Error { case badResponse }
     
+    // How long fetched price data counts as current.
+    static let freshFor:TimeInterval = 15 * 60
+    
     // `cache` is HomeViewController, which holds the fetched payloads and warms
     // them at startup (see prefetchPriceData). Pass nil to always hit the network.
     static func load(cache:HomeViewController?, spans:[GraphSpan] = GraphSpan.allCases) async throws -> Snapshot {
         
         let bitcoinValue = BitcoinManager.shared.bittrWallet.getCorrectBitcoinValue()
         let isChf = (bitcoinValue.chosenCurrency == "CHF")
-        let freshCutoff = Calendar.current.date(byAdding: .minute, value: -15, to: Date())!
+        let freshCutoff = Date().addingTimeInterval(-self.freshFor)
         
         // Historical series.
         var historyData = Data()

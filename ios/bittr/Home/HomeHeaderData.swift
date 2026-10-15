@@ -55,12 +55,20 @@ extension HomeHeaderTableViewCell {
         // Show whatever has already been fetched.
         self.conversionGraph.points = homeVC.graphPoints ?? []
         
-        guard homeVC.graphPoints == nil, !homeVC.isLoadingGraph else { return }
+        // Load when there's nothing yet, or when the points are over an hour old.
+        let isFresh = homeVC.graphPointsFetched.map { Date().timeIntervalSince($0) < 60 * 60 } ?? false
+        guard !isFresh, !homeVC.isLoadingGraph else { return }
         homeVC.isLoadingGraph = true
         let loadID = homeVC.graphLoadID
         
         Task { [weak self, weak homeVC] in
-            let snapshot = try? await PriceHistory.load(cache: homeVC, spans: [.week])
+            var snapshot:PriceHistory.Snapshot?
+            do {
+                snapshot = try await PriceHistory.load(cache: homeVC, spans: [.week])
+            } catch {
+                Log.info("Could not load the home value graph: \(error)")
+                SentryManager.capture(error, context: "HomeHeaderData loadGraph")
+            }
             
             // A currency change while loading makes this result stale.
             guard let homeVC, homeVC.graphLoadID == loadID else { return }
@@ -68,6 +76,7 @@ extension HomeHeaderTableViewCell {
             
             guard let points = snapshot?.series[.week] else { return }
             homeVC.graphPoints = points
+            homeVC.graphPointsFetched = Date()
             self?.conversionGraph.points = points
             self?.updateGraphProfit()
         }
