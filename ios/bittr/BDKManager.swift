@@ -278,6 +278,9 @@ extension BitcoinManager {
     }
     func markBdkNeedsFullScan() {
         self.bdkScan.markNeedsFullScan()
+        
+        // Forget the last full scan, so the next launch still scans if this one doesn't finish.
+        self.clearFullScanCompletion()
     }
     func markBdkPreviouslyScanned() {
         self.bdkScan.markPreviouslyScanned()
