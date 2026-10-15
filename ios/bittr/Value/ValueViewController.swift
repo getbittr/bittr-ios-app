@@ -109,12 +109,14 @@ enum PriceHistory {
         
         // Historical series.
         var historyData = Data()
+        var didFetchHistory = false
         if isChf, let cached = cache?.chfData, let fetchedAt = cache?.chfDataFetched, fetchedAt > freshCutoff {
             historyData = cached
         } else if !isChf, let cached = cache?.eurData, let fetchedAt = cache?.eurDataFetched, fetchedAt > freshCutoff {
             historyData = cached
         } else {
             historyData = try await PriceHistory.fetch(bitcoinValue.apiUrl)
+            didFetchHistory = true
         }
         
         // Parse off the main thread, because the longer series hold thousands of points.
@@ -123,27 +125,31 @@ enum PriceHistory {
             try PriceHistory.parseSeries(historyData, spans: spans, now: now)
         }.value
         
-        // Cache the payload only now that it has parsed.
-        if isChf {
+        // Cache a fetched payload only now that it has parsed, so a cache hit keeps its age.
+        if didFetchHistory, isChf {
             cache?.chfData = historyData
             cache?.chfDataFetched = Date()
-        } else {
+        } else if didFetchHistory {
             cache?.eurData = historyData
             cache?.eurDataFetched = Date()
         }
         
         // Current value.
         var valueData = Data()
+        var didFetchValue = false
         if let cached = cache?.currentValue, let fetchedAt = cache?.currentValueFetched, fetchedAt > freshCutoff {
             valueData = cached
         } else {
             valueData = try await PriceHistory.fetch("https://getbittr.com/api/price/btc")
+            didFetchValue = true
         }
         
         guard let currentJson = try JSONSerialization.jsonObject(with: valueData) as? [String: Any], let actualEurValue = currentJson["btc_eur"] as? String, let actualChfValue = currentJson["btc_chf"] as? String else { throw LoadError.badResponse }
         
-        cache?.currentValue = valueData
-        cache?.currentValueFetched = Date()
+        if didFetchValue {
+            cache?.currentValue = valueData
+            cache?.currentValueFetched = Date()
+        }
         
         let rawValue = isChf ? actualChfValue : actualEurValue
         let currentValue = rawValue.toNumber()
