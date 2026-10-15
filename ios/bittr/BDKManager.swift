@@ -397,16 +397,19 @@ extension BitcoinManager {
                 return
             }
             
-            // Persist wallet changes.
+            // Persist wallet changes, and only then count the full scan as done.
             do {
                 let _ = try bdkWallet.persist(connection: connection)
+                self.storeFullScanCompletion()
             } catch {
                 self.handleError(error: error, row: 250)
+                
+                // The stored data lacks this scan, so the next launch must scan again.
+                self.clearFullScanCompletion()
             }
             
             // Update syncing status.
             Log.info("Did sync BDK wallet.")
-            self.storeFullScanCompletion()
             self.endBdkScan(scanned: true)
             self.storeChannelClosureTxIDIfFound()
             completion(true)
