@@ -387,10 +387,15 @@ extension CoreViewController {
     func didCloseChannel() {
         Log.info("didCloseChannel() - Clearing channel cache and triggering sync")
         
-        BitcoinManager.shared.bittrWallet.lightningChannels = [ChannelDetails]()
+        // Show the channel's funds as pending until the sync below replaces them.
+        BitcoinManager.shared.bittrWallet.pendingBalancesFromChannelClosures += BitcoinManager.shared.bittrWallet.satoshisLightning
         BitcoinManager.shared.bittrWallet.satoshisLightning = 0
+        BitcoinManager.shared.bittrWallet.lightningChannels = [ChannelDetails]()
         
+        // Show changes immediately in HomeVC and MoveVC.
         self.homeVC?.reloadTransactionsTable()
+        self.homeVC?.moveVC?.updateLabels()
+        self.homeVC?.moveVC?.changeColors()
         
         // Trigger a fresh sync to get updated channel data.
         DispatchQueue.global(qos: .userInitiated).async {
@@ -403,18 +408,13 @@ extension CoreViewController {
                 return
             }
             
-            // Get fresh channel data
-            let updatedChannels = BitcoinManager.shared.listChannels()
-            Log.info("Updated channel count: \(updatedChannels.count)")
-            
             DispatchQueue.main.async {
-                // Update the cached channel data
-                BitcoinManager.shared.bittrWallet.lightningChannels = updatedChannels
+                // Reload channels, balances and transactions from the synced node.
+                self.homeVC?.loadWalletData()
+                self.homeVC?.moveVC?.updateLabels()
+                self.homeVC?.moveVC?.changeColors()
                 
-                // Update balance if needed
-                self.homeVC?.reloadTransactionsTable()
-                
-                Log.info("Channel cache updated successfully")
+                Log.info("Wallet data reloaded after channel closure")
             }
         }
     }
