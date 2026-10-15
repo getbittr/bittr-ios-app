@@ -14,12 +14,28 @@ struct OnchainDrainPreview {
     let vsize:UInt64
 }
 
+enum LightSyncOutcome {
+    case synced
+    case skippedForFullScan
+    case skippedForLightSync
+    case failed
+}
+
+struct LightSyncClaim {
+    let id = UUID()
+    let startedAt = Date()
+    
+    // The previous light sync held the claim for too long, so its Electrum connection may be stuck.
+    let replacesHungSync:Bool
+}
+
 final class BdkScanState {
     
     private let lock = NSLock()
     private var _isScanning = false
     private var _hasBeenScanned = false
     private var _timedOut = false
+    private var _lightSync:LightSyncClaim?
     private var waiters = [(Bool) -> Void]()
     
     var isScanning: Bool {
@@ -70,6 +86,42 @@ final class BdkScanState {
         DispatchQueue.main.async { waiting.forEach { $0(scanned) } }
     }
 
+    // How long a light sync may hold its claim before it counts as hung.
+    static let lightSyncClaimLimit:TimeInterval = 120
+    
+    func claimLightSync() -> LightSyncClaim? {
+        // Claims the right to run a light sync, taking over from one that has hung.
+        lock.lock()
+        defer { lock.unlock() }
+        
+        if let current = _lightSync, Date().timeIntervalSince(current.startedAt) < BdkScanState.lightSyncClaimLimit {
+            return nil
+        }
+        let claim = LightSyncClaim(replacesHungSync: _lightSync != nil)
+        _lightSync = claim
+        return claim
+    }
+    
+    func endLightSync(_ claim:LightSyncClaim) {
+        // Releases the claim, unless a newer light sync has taken it over.
+        lock.lock()
+        defer { lock.unlock() }
+        guard _lightSync?.id == claim.id else { return }
+        _lightSync = nil
+    }
+    
+    func markPreviouslyScanned() {
+        lock.lock()
+        defer { lock.unlock() }
+        _hasBeenScanned = true
+    }
+    
+    func markNeedsFullScan() {
+        lock.lock()
+        defer { lock.unlock() }
+        _hasBeenScanned = false
+    }
+    
     func markTimedOut() {
         // The watchdog fired.
         lock.lock()
@@ -144,21 +196,94 @@ extension BitcoinManager {
         // Create a BIP84 internal descriptor using the same BIP32 extended root key, specifying the keychain as internal and the network as testnet
         let bip84InternalDescriptor = Descriptor.newBip84(secretKey: bip32ExtendedRootKey, keychain: .internal, network: EnvironmentConfig.bitcoinDevKitNetwork)
         
-        // Initialize a wallet instance using the BIP84 external and internal descriptors, testnet network, and SQLite database configuration
+        // Open the stored wallet database, or an empty one when the user asked for a rebuild.
         do {
-            self.connection = try Connection.createConnection()
-        } catch {
+            if self.bdkRebuildIsRequested {
+                Log.info("A BDK rebuild was requested. Will start from an empty database.")
+                self.connection = try Connection.recreate()
+            } else {
+                self.connection = try Connection.open()
+            }
+        } catch where error.isCorruptDatabase {
             self.handleError(error: error, row: 211)
+            
+            // A corrupt database holds nothing worth keeping, so start an empty one.
+            self.clearFullScanCompletion()
+            do {
+                self.connection = try Connection.recreate()
+            } catch {
+                self.handleError(error: error, row: 214)
+                self.clearBdkWalletReferences()
+                return false
+            }
+        } catch {
+            // Anything else may pass, so leave the file for the next launch to try again.
+            self.handleError(error: error, row: 213)
             self.clearBdkWalletReferences()
             return false
         }
         
         do {
-            self.bdkWallet = try Wallet(descriptor: bip84ExternalDescriptor, changeDescriptor: bip84InternalDescriptor, network: EnvironmentConfig.bitcoinDevKitNetwork, connection: self.connection!)
+            // Check whether a stored BDK wallet is available.
+            let loaded = try Wallet.load(descriptor: bip84ExternalDescriptor, changeDescriptor: bip84InternalDescriptor, connection: self.connection!)
+            
+            // Confirm the stored wallet's network matches this build's network.
+            guard loaded.network() == EnvironmentConfig.bitcoinDevKitNetwork else {
+                throw WalletError.storedWalletOnAnotherNetwork
+            }
+            
+            Log.info("Did load the stored BDK wallet.")
+            SentryManager.countMetric("sync.bdk.loaded")
+            self.bdkWallet = loaded
+            
+            if self.hasStoredFullScan {
+                Log.info("A full scan is stored. Will light sync rather than scan.")
+                SentryManager.countMetric("sync.bdk.scan.skipped")
+            } else {
+                Log.info("No stored full scan is available. Will scan.")
+            }
         } catch {
-            self.handleError(error: error, row: 218)
-            self.clearBdkWalletReferences()
-            return false
+            // Only replace a database that is corrupt, or doesn't hold this wallet.
+            let reason:String? = {
+                switch error {
+                case LoadWithPersistError.CouldNotLoad: return "nothing stored"
+                case LoadWithPersistError.InvalidChangeSet: return "stored data did not match"
+                case WalletError.storedWalletOnAnotherNetwork: return "stored on another network"
+                case _ where error.isCorruptDatabase: return "database is corrupt"
+                default: return nil
+                }
+            }()
+            
+            guard let reason else {
+                // A read failure may pass, so keep the file for the next launch to try again.
+                self.handleError(error: error, row: 216)
+                self.clearBdkWalletReferences()
+                return false
+            }
+            Log.info("No stored BDK wallet to load (\(reason)). Creating one.")
+            SentryManager.countMetric("sync.bdk.recreated")
+            
+            // Release the database before deleting the file underneath it.
+            self.connection = nil
+            self.clearFullScanCompletion()
+            
+            do {
+                self.connection = try Connection.recreate()
+                self.bdkWallet = try Wallet(descriptor: bip84ExternalDescriptor, changeDescriptor: bip84InternalDescriptor, network: EnvironmentConfig.bitcoinDevKitNetwork, connection: self.connection!)
+                
+                // A new wallet has revealed nothing, so reveal the cached address pool again for syncs to watch.
+                if let topIndex = CacheManager.getOnchainAddresses().map(\.addressIndex).max() {
+                    // Reveal a little beyond the pool too, like manageOnchainAddresses does for channel closures.
+                    self.revealAddresses(toIndex: topIndex + 5)
+                }
+                
+                // The wallet has been built from scratch, so a requested rebuild is done.
+                self.clearBdkRebuildRequest()
+            } catch {
+                self.handleError(error: error, row: 218)
+                self.clearBdkWalletReferences()
+                return false
+            }
         }
         
         // Configure and create an Electrum blockchain connection to interact with the Bitcoin network
@@ -200,6 +325,70 @@ extension BitcoinManager {
     func clearBdkScanState() {
         self.bdkScan.clear()
     }
+    func markBdkNeedsRebuild() {
+        self.bdkScan.markNeedsFullScan()
+        
+        // Remember the request, so the next launch still rebuilds the wallet if this session doesn't.
+        CacheStore.set(true, for: CacheKeys.bdkRebuildRequested)
+        
+        // Forget the last full scan, so the next launch still scans if this one doesn't finish.
+        self.clearFullScanCompletion()
+    }
+    var bdkRebuildIsRequested: Bool {
+        return CacheStore.value(for: CacheKeys.bdkRebuildRequested) == true
+    }
+    func clearBdkRebuildRequest() {
+        CacheStore.set(nil, for: CacheKeys.bdkRebuildRequested)
+    }
+    
+    // Throw the loaded BDK wallet away and build it again from an empty database.
+    private func didRebuildBdkWallet() -> Bool {
+        Log.info("Will rebuild the BDK wallet.")
+        
+        // Wait for a running light sync to finish, as it still writes to the stored database.
+        let deadline = Date().addingTimeInterval(30)
+        var lightSyncClaim = self.bdkScan.claimLightSync()
+        while lightSyncClaim == nil, Date() < deadline {
+            Thread.sleep(forTimeInterval: 0.25)
+            lightSyncClaim = self.bdkScan.claimLightSync()
+        }
+        guard let lightSyncClaim else {
+            Log.info("A light sync is still running. Will rebuild the BDK wallet later.")
+            return false
+        }
+        defer { self.bdkScan.endLightSync(lightSyncClaim) }
+        
+        // Release the loaded wallet, so didStartBDK builds a new one.
+        self.bdkStartLock.lock()
+        self.bdkWallet = nil
+        self.connection = nil
+        self.bdkStartLock.unlock()
+        
+        return self.didStartBDK()
+    }
+    func markBdkPreviouslyScanned() {
+        self.bdkScan.markPreviouslyScanned()
+    }
+    
+    // A full scan stands until the user asks for another one by pulling to refresh.
+    var hasStoredFullScan: Bool {
+        // Check when the BDK wallet was last scanned.
+        guard let scannedAt = CacheStore.value(for: CacheKeys.lastBdkFullScan) else { return false }
+        
+        // Make sure the cached most recent scan date is after this database's creation date.
+        guard let databaseCreated = Connection.walletDatabaseCreationDate else { return false }
+        
+        // The scan date is stored in whole seconds, so compare the creation date in whole seconds too.
+        return Int(databaseCreated.timeIntervalSince1970) <= scannedAt
+    }
+    
+    // Keep track of latest full BDK scan.
+    func storeFullScanCompletion() {
+        CacheStore.set(Int(Date().timeIntervalSince1970), for: CacheKeys.lastBdkFullScan)
+    }
+    func clearFullScanCompletion() {
+        CacheStore.set(nil, for: CacheKeys.lastBdkFullScan)
+    }
     
     func didSyncBdkWallet(completion originalCompletion: @escaping (Bool) -> Void) {
         
@@ -228,6 +417,15 @@ extension BitcoinManager {
         }
         
         DispatchQueue.global(qos: .background).async {
+            // Rebuild the wallet first when the user asked for it.
+            if self.bdkRebuildIsRequested {
+                guard self.didRebuildBdkWallet() else {
+                    self.endBdkScan(scanned: false)
+                    completion(false)
+                    return
+                }
+            }
+            
             // Get Electrum Client.
             if self.electrumClient == nil {
                 do {
@@ -294,11 +492,15 @@ extension BitcoinManager {
                 return
             }
             
-            // Persist wallet changes.
+            // Persist wallet changes, and only then count the full scan as done.
             do {
                 let _ = try bdkWallet.persist(connection: connection)
+                self.storeFullScanCompletion()
             } catch {
                 self.handleError(error: error, row: 250)
+                
+                // The stored data lacks this scan, so the next launch must scan again.
+                self.clearFullScanCompletion()
             }
             
             // Update syncing status.
@@ -309,17 +511,36 @@ extension BitcoinManager {
         }
     }
     
-    func lightSyncBdkWallet() -> Bool {
+    func lightSyncBdkWallet() -> LightSyncOutcome {
         // Stand down while a full scan is running.
         guard !self.bdkWalletIsScanning else {
             Log.info("Skipping light sync — a BDK full scan is in progress.")
-            return false
+            return .skippedForFullScan
+        }
+        
+        // One light sync at a time.
+        guard let lightSyncClaim = self.bdkScan.claimLightSync() else {
+            Log.info("Skipping light sync — another one is in progress.")
+            return .skippedForLightSync
+        }
+        defer { self.bdkScan.endLightSync(lightSyncClaim) }
+        
+        // A hung light sync may have left the Electrum connection stuck, so open a new one.
+        if lightSyncClaim.replacesHungSync {
+            Log.info("A light sync has hung. Will reconnect to Electrum.")
+            SentryManager.countMetric("sync.bdk.lightsync.hung")
+            do {
+                self.electrumClient = try ElectrumClient(url: EnvironmentConfig.electrumURL)
+            } catch {
+                self.handleError(error: error, row: 565)
+                return .failed
+            }
         }
 
         guard let bdkWallet = self.bdkWallet,
               let electrumClient = self.electrumClient,
               let connection = self.connection else {
-            return false
+            return .failed
         }
         
         // Create sync request.
@@ -328,7 +549,7 @@ extension BitcoinManager {
             syncRequest = try bdkWallet.startSyncWithRevealedSpks().build()
         } catch {
             self.handleError(error: error, row: 570)
-            return false
+            return .failed
         }
         
         // Create update.
@@ -341,12 +562,12 @@ extension BitcoinManager {
             )
         } catch {
             self.handleError(error: error, row: 582)
-            return false
+            return .failed
         }
         
         // Ensure bdkWallet hasn't been cleared in the meantime.
         guard self.bdkWallet === bdkWallet else {
-            return false
+            return .failed
         }
         
         // Apply update to wallet.
@@ -354,7 +575,7 @@ extension BitcoinManager {
             try bdkWallet.applyUpdate(update: update)
         } catch {
             self.handleError(error: error, row: 594)
-            return false
+            return .failed
         }
         
         // Persist update to wallet.
@@ -366,7 +587,7 @@ extension BitcoinManager {
         
         self.storeChannelClosureTxIDIfFound()
         
-        return true
+        return .synced
     }
     
     func getSize(address:String, amountSats:Int, selectedVbyte:Double?) throws -> UInt64 {
@@ -547,5 +768,19 @@ extension BitcoinManager {
         }
         let thisAddress = bdkWallet.peekAddress(keychain: .external, index: UInt32(atIndex)).address.description
         return thisAddress
+    }
+}
+
+extension Error {
+    
+    var isCorruptDatabase:Bool {
+        // SQLite's own wording for a damaged file, or one that isn't a database at all.
+        let message:String
+        switch self as Error {
+        case SqliteError.Sqlite(let rusqliteError): message = rusqliteError
+        case LoadWithPersistError.Persist(let errorMessage): message = errorMessage
+        default: return false
+        }
+        return message.contains("database disk image is malformed") || message.contains("file is not a database")
     }
 }

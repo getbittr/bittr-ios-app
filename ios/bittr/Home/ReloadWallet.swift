@@ -42,6 +42,9 @@ extension HomeViewController {
         Log.info("Reset wallet.")
         self.didStartReset = true
         
+        // Prepare to rebuild the BDK wallet from scratch.
+        BitcoinManager.shared.markBdkNeedsRebuild()
+        
         self.visibleTransactions.removeAll()
         self.newTransactions.removeAll()
         self.calculatedProfit = 0
