@@ -610,8 +610,9 @@ extension CoreViewController {
         Log.info("Received swap notification from background for ID.")
         
         // Check if SwapViewController is already open - if so, ignore the notification
-        if self.swapVC != nil || self.homeVC?.swapStatusVC != nil {
-            Log.info("SwapViewController is already open, ignoring notification")
+        if self.swapScreenIsVisible() {
+            Log.info("A swap screen is already on screen, ignoring notification")
+            self.lightningNotification = nil
             return
         }
         
@@ -644,12 +645,46 @@ extension CoreViewController {
             return
         }
         
-        self.homeVC?.performSegue(withIdentifier: "HomeToSwapStatus", sender: self.homeVC)
+        self.presentSwapStatus()
+    }
+    
+    func swapScreenIsVisible() -> Bool {
+        if let swapVC = self.swapVC, swapVC.presentingViewController != nil || swapVC.parent != nil {
+            return true
+        }
+        if let statusVC = self.homeVC?.swapStatusVC, statusVC.presentingViewController != nil || statusVC.parent != nil {
+            return true
+        }
+        return false
+    }
+    
+    func presentSwapStatus() {
+        guard let homeVC = self.homeVC else { return }
+        
+        if let statusVC = homeVC.swapStatusVC {
+            guard statusVC.presentingViewController == nil, statusVC.parent == nil else { return }
+            
+            // Reopen existing SwapStatusVC, but only if it shows the latest swap.
+            if let latestID = CacheManager.getLatestSwap()?.boltzID, statusVC.thisSwap?.boltzID == latestID {
+                homeVC.present(statusVC, animated: true)
+                return
+            }
+        }
+        
+        // Build a SwapStatusVC for the latest swap.
+        homeVC.performSegue(withIdentifier: "HomeToSwapStatus", sender: homeVC)
     }
     
     // Tapping the swap Live Activity (Dynamic Island / Lock Screen) routes here.
     @objc func openSwapStatus() {
         DispatchQueue.main.async {
+            // The swap screen carries amounts, so it waits for the PIN.
+            guard self.userHasSignedIn else {
+                Log.info("openSwapStatus while locked. Deferring until the PIN is entered.")
+                self.deferredPresentation = { [weak self] in self?.openSwapStatus() }
+                return
+            }
+            
             guard CacheManager.getLatestSwap() != nil else { return }
             
             if let swapVC = self.swapVC {
@@ -659,9 +694,8 @@ extension CoreViewController {
                 // with "already has a parent").
                 guard swapVC.presentingViewController == nil, swapVC.parent == nil else { return }
                 self.present(swapVC, animated: true)
-            } else if self.homeVC?.swapStatusVC == nil {
-                // The segue lives on the Home scene, so perform it on homeVC.
-                self.homeVC?.performSegue(withIdentifier: "HomeToSwapStatus", sender: self.homeVC)
+            } else {
+                self.presentSwapStatus()
             }
         }
     }
