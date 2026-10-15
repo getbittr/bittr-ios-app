@@ -660,14 +660,19 @@ extension CoreViewController {
     
     func presentSwapStatus() {
         guard let homeVC = self.homeVC else { return }
-        guard let statusVC = homeVC.swapStatusVC else {
-            // Nothing built yet.
-            homeVC.performSegue(withIdentifier: "HomeToSwapStatus", sender: homeVC)
-            return
+        
+        if let statusVC = homeVC.swapStatusVC {
+            guard statusVC.presentingViewController == nil, statusVC.parent == nil else { return }
+            
+            // Reopen existing SwapStatusVC, but only if it shows the latest swap.
+            if let latestID = CacheManager.getLatestSwap()?.boltzID, statusVC.thisSwap?.boltzID == latestID {
+                homeVC.present(statusVC, animated: true)
+                return
+            }
         }
-        // Reopen existing SwapStatusVC.
-        guard statusVC.presentingViewController == nil, statusVC.parent == nil else { return }
-        homeVC.present(statusVC, animated: true)
+        
+        // Build a SwapStatusVC for the latest swap.
+        homeVC.performSegue(withIdentifier: "HomeToSwapStatus", sender: homeVC)
     }
     
     // Tapping the swap Live Activity (Dynamic Island / Lock Screen) routes here.
