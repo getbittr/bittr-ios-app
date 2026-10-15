@@ -45,10 +45,7 @@ extension CoreViewController {
     }
     
     func fromPinToHome() {
-        self.hidePinAndSignup()
-        
-        // Wait for 0.8 second animation.
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) {
+        self.hidePinAndSignup {
             self.pinContainerView.alpha = 0
             
             if self.lightningNotification != nil || self.needsToHandleURI() {
@@ -109,9 +106,7 @@ extension CoreViewController {
     
     func fromSignupToHome() {
         // Move from Signup to Home.
-        self.hidePinAndSignup()
-        
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) {
+        self.hidePinAndSignup {
             self.hideSignup()
         }
     }
@@ -133,7 +128,7 @@ extension CoreViewController {
         }
     }
     
-    func hidePinAndSignup() {
+    func hidePinAndSignup(completion: (() -> Void)? = nil) {
         self.currentPage = .home
         UIView.animate(withDuration: 0.8, delay: 0, usingSpringWithDamping: 0.75, initialSpringVelocity: 0, options: .curveEaseInOut) {
             NSLayoutConstraint.deactivate([self.signupBottom, self.pinBottom, self.homeContainerTop, self.menuBarBottom])
@@ -143,6 +138,8 @@ extension CoreViewController {
             self.menuBarBottom = NSLayoutConstraint(item: self.menuBarContainer, attribute: .bottom, relatedBy: .equal, toItem: self.view.safeAreaLayoutGuide, attribute: .bottom, multiplier: 1, constant: 10)
             NSLayoutConstraint.activate([self.signupBottom, self.pinBottom, self.homeContainerTop, self.menuBarBottom])
             self.view.layoutIfNeeded()
+        } completion: { finished in
+            completion?()
         }
     }
     
