@@ -298,7 +298,9 @@ extension BitcoinManager {
         
         // Make sure the cached most recent scan date is after this database's creation date.
         guard let databaseCreated = Connection.walletDatabaseCreationDate else { return false }
-        return databaseCreated.timeIntervalSince1970 <= Double(scannedAt)
+        
+        // The scan date is stored in whole seconds, so compare the creation date in whole seconds too.
+        return Int(databaseCreated.timeIntervalSince1970) <= scannedAt
     }
     
     // Keep track of latest full BDK scan.
