@@ -20,6 +20,7 @@ final class BdkScanState {
     private var _isScanning = false
     private var _hasBeenScanned = false
     private var _timedOut = false
+    private var _isLightSyncing = false
     private var waiters = [(Bool) -> Void]()
     
     var isScanning: Bool {
@@ -70,6 +71,23 @@ final class BdkScanState {
         DispatchQueue.main.async { waiting.forEach { $0(scanned) } }
     }
 
+    func claimLightSync() -> Bool {
+        // Claims the right to run a light sync.
+        lock.lock()
+        defer { lock.unlock() }
+        
+        guard !_isLightSyncing else { return false }
+        _isLightSyncing = true
+        return true
+    }
+    
+    func endLightSync() {
+        // Releases the light sync claim.
+        lock.lock()
+        defer { lock.unlock() }
+        _isLightSyncing = false
+    }
+    
     func markPreviouslyScanned() {
         lock.lock()
         defer { lock.unlock() }
@@ -429,6 +447,13 @@ extension BitcoinManager {
             Log.info("Skipping light sync — a BDK full scan is in progress.")
             return false
         }
+        
+        // One light sync at a time.
+        guard self.bdkScan.claimLightSync() else {
+            Log.info("Skipping light sync — another one is in progress.")
+            return false
+        }
+        defer { self.bdkScan.endLightSync() }
 
         guard let bdkWallet = self.bdkWallet,
               let electrumClient = self.electrumClient,
