@@ -57,11 +57,17 @@ extension HomeHeaderTableViewCell {
         
         guard homeVC.graphPoints == nil, !homeVC.isLoadingGraph else { return }
         homeVC.isLoadingGraph = true
+        let loadID = homeVC.graphLoadID
         
         Task { [weak self, weak homeVC] in
-            defer { homeVC?.isLoadingGraph = false }
-            guard let snapshot = try? await PriceHistory.load(cache: homeVC, spans: [.week]), let points = snapshot.series[.week] else { return }
-            homeVC?.graphPoints = points
+            let snapshot = try? await PriceHistory.load(cache: homeVC, spans: [.week])
+            
+            // A currency change while loading makes this result stale.
+            guard let homeVC, homeVC.graphLoadID == loadID else { return }
+            homeVC.isLoadingGraph = false
+            
+            guard let points = snapshot?.series[.week] else { return }
+            homeVC.graphPoints = points
             self?.conversionGraph.points = points
             self?.updateGraphProfit()
         }

@@ -51,6 +51,7 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
     var currentValueFetched:Date?
     var graphPoints:[PricePoint]?
     var isLoadingGraph = false
+    var graphLoadID = 0
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -76,8 +77,10 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
     }
     
     func changeCurrency() {
-        // Update value card.
+        // Update value card, and ignore a load that started for the old currency.
         self.graphPoints = nil
+        self.graphLoadID += 1
+        self.isLoadingGraph = false
         
         // Update table.
         self.reloadTransactionsTable()
