@@ -22,7 +22,7 @@ extension CoreViewController {
         self.showSignup()
     }
     
-    func launchSignup(onPage:Int) {
+    func launchSignup(onPage:Int, checkConnection:Bool = true) {
         if self.signupContainerView.subviews.count == 0 {
             // Add signup view to container.
             let storyboard = UIStoryboard(name: "Main", bundle: Bundle.main)
@@ -34,7 +34,7 @@ extension CoreViewController {
             newChild.didMove(toParent: self)
             
             (newChild as! SignupViewController).animateTransition = false
-            (newChild as! SignupViewController).moveToPage(onPage)
+            (newChild as! SignupViewController).moveToPage(onPage, checkConnection: checkConnection)
         }
     }
     
@@ -370,20 +370,14 @@ extension CoreViewController {
                 
                 // Hide signup view and launch create wallet flow.
                 Log.info("ResetApp - Launching signup after cleanup")
+                // The wallet is gone, so reach create-wallet even when offline.
                 if self.currentPage == .signup, let signupVC = self.signupViewController() {
                     // We're already on Signup (the Restore screen).
                     signupVC.animateTransition = true
-                    signupVC.moveToPage(3) // Page 3 is create wallet
-                    
-                    if signupVC.currentPage != 3 {
-                        Log.info("Could not page signup across. Rebuilding it.")
-                        self.hideSignup()
-                        self.launchSignup(onPage: 3)
-                        self.showSignup()
-                    }
+                    signupVC.moveToPage(3, checkConnection: false) // Page 3 is create wallet
                 } else {
-                    // We're on Home or Pin.
-                    self.launchSignup(onPage: 3) // Page 3 is create wallet
+                    // Build Signup, and slide it in when coming from Home or Pin.
+                    self.launchSignup(onPage: 3, checkConnection: false) // Page 3 is create wallet
                     self.showSignup()
                 }
                 
