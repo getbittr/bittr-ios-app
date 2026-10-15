@@ -460,6 +460,20 @@ final class BDKWalletLoadTests: XCTestCase {
         _ = try wallet.persist(connection: connection)
         return wallet.peekAddress(keychain: .external, index: 0).address.description
     }
+    
+    // A minimal transaction paying the amount to the script, from an input that doesn't need to exist.
+    private func fundingTransaction(paying amount: UInt64, to script: Script) throws -> Transaction {
+        let scriptBytes = script.toBytes()
+        
+        // Version 2, one input with an empty scriptSig, one output, and no locktime.
+        var bytes: [UInt8] = [0x02, 0x00, 0x00, 0x00, 0x01]
+        bytes += [UInt8](repeating: 0x11, count: 32) + [0x00, 0x00, 0x00, 0x00]
+        bytes += [0x00] + [0xff, 0xff, 0xff, 0xff]
+        bytes += [0x01] + withUnsafeBytes(of: amount.littleEndian, Array.init)
+        bytes += [UInt8(scriptBytes.count)] + scriptBytes
+        bytes += [0x00, 0x00, 0x00, 0x00]
+        return try Transaction(transactionBytes: bytes)
+    }
 
     // MARK: The question this file exists to answer
 
@@ -507,6 +521,40 @@ final class BDKWalletLoadTests: XCTestCase {
         // what makes a light sync sufficient for a loaded wallet.
         XCTAssertEqual(loaded.revealAddressesTo(keychain: .external, index: 5).count, 0,
                        "the persisted revealed-address index did not come back")
+    }
+    
+    // A loaded wallet must still sign, or every fee estimate built on a signed PSBT comes out too small.
+    func testLoadedWalletCanSign() throws {
+        
+        let path = databasePath()
+        let keys = try descriptors(for: seedA)
+        
+        // Fund a new wallet with an unconfirmed payment to its first address, and persist it.
+        var connection: Connection? = try Connection(path: path)
+        let created = try Wallet(descriptor: keys.external,
+                                 changeDescriptor: keys.change,
+                                 network: network,
+                                 connection: connection!)
+        let script = created.revealNextAddress(keychain: .external).address.scriptPubkey()
+        let funding = try fundingTransaction(paying: 100_000, to: script)
+        created.applyUnconfirmedTxs(unconfirmedTxs: [UnconfirmedTx(tx: funding, lastSeen: 1)])
+        _ = try created.persist(connection: connection!)
+        connection = nil
+        
+        // Load it back from the database, as didStartBDK does.
+        let loaded = try Wallet.load(descriptor: keys.external,
+                                     changeDescriptor: keys.change,
+                                     connection: try Connection(path: path))
+        
+        // Drain it the way previewOnchainDrain does.
+        let psbt = try TxBuilder()
+            .drainWallet()
+            .drainTo(script: script)
+            .feeRate(feeRate: try FeeRate.fromSatPerVb(satVb: 1))
+            .finish(wallet: loaded)
+        
+        XCTAssertTrue(try loaded.sign(psbt: psbt, signOptions: nil), "the loaded wallet could not sign its own input")
+        XCTAssertFalse(try psbt.extractTx().input().first?.witness.isEmpty ?? true, "the signed input carries no witness")
     }
 
     // An empty database must fail rather than hand back a blank wallet, so the
