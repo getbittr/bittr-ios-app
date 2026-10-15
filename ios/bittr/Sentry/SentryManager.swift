@@ -269,7 +269,14 @@ extension Error {
             default: return nil
             }
         }
-        guard let apiError = self as? APIError, case .requestFailed(let message) = apiError else { return nil }
+        let message:String
+        if let apiError = self as? APIError, case .requestFailed(let text) = apiError {
+            message = text
+        } else if let boltzError = self as? BoltzAPIError, case .requestFailed(let text) = boltzError {
+            message = text
+        } else {
+            return nil
+        }
         
         // "HTTP 429" from CallsManager, "HTTP 429: <body>" from BoltzAPI.
         let prefix = "HTTP "
