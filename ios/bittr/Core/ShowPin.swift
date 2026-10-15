@@ -116,6 +116,9 @@ extension CoreViewController {
         if self.presentedViewController != nil { self.dismiss(animated: false) }
         self.hideSettings()
         
+        // Remove any loading overlay, because it would block the PIN pad.
+        self.hideLoading()
+        
         // Prepare and show PinVC.
         self.pinVC?.clearPinField()
         self.userHasSignedIn = false
