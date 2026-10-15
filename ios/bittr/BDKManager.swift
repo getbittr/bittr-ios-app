@@ -218,7 +218,7 @@ extension BitcoinManager {
             }
         } catch {
             // Anything else may pass, so leave the file for the next launch to try again.
-            self.handleError(error: error, row: 211)
+            self.handleError(error: error, row: 213)
             self.clearBdkWalletReferences()
             return false
         }
