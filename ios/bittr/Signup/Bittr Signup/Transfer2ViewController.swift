@@ -43,7 +43,7 @@ class Transfer2ViewController: UIViewController, UITextFieldDelegate, UNUserNoti
     var hasAutoTriggered = false
     var notificationsDenied = false
     var coreVC:CoreViewController?
-    var signupVC:SignupViewController?
+    weak var signupVC:SignupViewController?
     var ibanVC:RegisterIbanViewController?
     
     override func viewDidLoad() {

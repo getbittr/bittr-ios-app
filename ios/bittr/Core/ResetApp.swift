@@ -294,21 +294,16 @@ extension CoreViewController {
     func performWalletReset() {
         self.hideSettings()
         
-        // Stop background sync timer. This has to happen before the teardown
-        // below — a sync running against a half-deleted wallet is worse than
-        // losing the timer if the cleanup then fails, and the failure alert
-        // tells the user to reopen the app, which starts it again.
+        // Stop background sync timer.
         self.walletSync?.stop()
         self.walletSync = nil
-
-        // Reset PIN reset state, remembering it so the failure path can put it
-        // back: if nothing was actually removed the user is still mid-PIN-reset
-        // or still locked out, and clearing these strands them outside both flows.
+        
+        // Remember, then reset PIN reset state.
         let wasResettingPin = self.resettingPin
         let wasRemovingWalletForIncorrectPin = self.removingWalletForIncorrectPin
         self.resettingPin = false
         self.removingWalletForIncorrectPin = false
-
+        
         // Remove wallet from device and remove corresponding cached data.
         DispatchQueue.global(qos: .userInitiated).async {
             var cleanupSucceeded = false
@@ -317,18 +312,15 @@ extension CoreViewController {
                 
                 // Always try to stop the node first if it exists
                 if BitcoinManager.shared.ldkNode != nil {
-                    Log.info("Stopping Lightning node")
                     try BitcoinManager.shared.stop()
                     Log.info("Lightning node stopped successfully")
                 }
                 
                 // Always clean up documents directory
-                Log.info("Cleaning up documents directory")
                 try BitcoinManager.shared.deleteDocuments()
                 Log.info("Documents directory cleaned successfully")
                 
                 // Reset node state to clear all references
-                Log.info("Resetting node state")
                 BitcoinManager.shared.resetNodeState()
                 Log.info("Node state reset completed")
                 
@@ -372,19 +364,12 @@ extension CoreViewController {
             
             // Relaunch the create-wallet flow on main.
             DispatchQueue.main.async {
-                // Clear the in-memory account entity now that the on-device
-                // wallet is actually gone. Doing this up front would leave a
-                // zeroed-out wallet behind on the failure path above, where
-                // everything it described still exists.
+                // Clear the in-memory account entity.
                 BitcoinManager.shared.bittrWallet = BittrWallet()
-
-                // Hide signup view and launch create wallet flow
-                // Since we've cleared the PIN, we need to manually show the create wallet flow
-                self.hideSignup()
                 self.userHasSignedIn = false
                 
-                // Launch signup on create wallet page after a delay to ensure cleanup is complete
-                DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+                // Hide signup view and launch create wallet flow.
+                self.fromSignupToPin {
                     Log.info("ResetApp - Launching signup after cleanup")
                     self.launchSignup(onPage: 3) // Page 3 is create wallet
                     self.showSignup()
@@ -402,12 +387,15 @@ extension CoreViewController {
     func didCloseChannel() {
         Log.info("didCloseChannel() - Clearing channel cache and triggering sync")
         
-        BitcoinManager.shared.bittrWallet.lightningChannels = [ChannelDetails]()
+        // Show the channel's funds as pending until the sync below replaces them.
+        BitcoinManager.shared.bittrWallet.pendingBalancesFromChannelClosures += BitcoinManager.shared.bittrWallet.satoshisLightning
         BitcoinManager.shared.bittrWallet.satoshisLightning = 0
+        BitcoinManager.shared.bittrWallet.lightningChannels = [ChannelDetails]()
         
-        if self.homeVC!.balanceLabel.alpha == 1 {
-            self.homeVC!.setTotalSats()
-        }
+        // Show changes immediately in HomeVC and MoveVC.
+        self.homeVC?.reloadTransactionsTable()
+        self.homeVC?.moveVC?.updateLabels()
+        self.homeVC?.moveVC?.changeColors()
         
         // Trigger a fresh sync to get updated channel data.
         DispatchQueue.global(qos: .userInitiated).async {
@@ -420,20 +408,13 @@ extension CoreViewController {
                 return
             }
             
-            // Get fresh channel data
-            let updatedChannels = BitcoinManager.shared.listChannels()
-            Log.info("Updated channel count: \(updatedChannels.count)")
-            
             DispatchQueue.main.async {
-                // Update the cached channel data
-                BitcoinManager.shared.bittrWallet.lightningChannels = updatedChannels
+                // Reload channels, balances and transactions from the synced node.
+                self.homeVC?.loadWalletData()
+                self.homeVC?.moveVC?.updateLabels()
+                self.homeVC?.moveVC?.changeColors()
                 
-                // Update balance if needed
-                if self.homeVC!.balanceLabel.alpha == 1 {
-                    self.homeVC!.setTotalSats()
-                }
-                
-                Log.info("Channel cache updated successfully")
+                Log.info("Wallet data reloaded after channel closure")
             }
         }
     }

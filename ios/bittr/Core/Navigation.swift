@@ -59,6 +59,7 @@ extension CoreViewController {
         newChild.view.frame.size = self.infoContainerView.frame.size
         self.infoContainerView.addSubview(newChild.view)
         newChild.didMove(toParent: self)
+        self.infoContainerView.layoutIfNeeded()
     }
     
     func hideInfoVC() {

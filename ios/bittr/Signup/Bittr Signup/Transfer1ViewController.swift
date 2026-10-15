@@ -60,7 +60,7 @@ class Transfer1ViewController: UIViewController, UITextFieldDelegate {
     
     // Variables
     var coreVC:CoreViewController?
-    var signupVC:SignupViewController?
+    weak var signupVC:SignupViewController?
     var ibanVC:RegisterIbanViewController?
     
     override func viewDidLoad() {
@@ -211,7 +211,7 @@ class Transfer1ViewController: UIViewController, UITextFieldDelegate {
     func alertGoToWallet() {
         self.coreVC!.buyVC?.registerIbanVC?.dismiss(animated: true)
         self.coreVC!.buyVC?.parseIbanEntities(uponPageLaunch: false)
-        self.coreVC!.hideSignup()
+        self.coreVC!.fromSignupToHome()
     }
     
     @IBAction func backgroundButtonTapped(_ sender: UIButton) {
