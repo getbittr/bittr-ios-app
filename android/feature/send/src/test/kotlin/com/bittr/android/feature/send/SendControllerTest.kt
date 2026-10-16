@@ -30,8 +30,12 @@ class SendControllerTest {
         val fetched = mutableListOf<String>()
         val notes = mutableMapOf<String, String>()
 
+        /** URLs whose next fetch fails, as a dropped connection would, before they answer. */
+        val failOnce = mutableSetOf<String>()
+
         override suspend fun lnurlGet(url: String): Result<String> {
             fetched += url
+            if (failOnce.remove(url)) return Result.failure(java.io.IOException("connection reset"))
             return responses[url]?.let { Result.success(it) } ?: Result.failure(IllegalStateException("404"))
         }
         override suspend fun createInvoice(amountMsat: Long, description: String) = Result.success("lnbcrt-withdraw-$amountMsat")
@@ -208,6 +212,102 @@ class SendControllerTest {
         // The service returned a 150-sat invoice for a 200-sat request.
         assertTrue(controller.state.value.alert!!.message.contains("doesn't match"))
         assertEquals(null, controller.state.value.confirm)
+    }
+
+    // ---- A failed LNURL request offers Cancel and Try again, as iOS since #100. ----
+
+    private fun assertRetryAlert(alert: SendAlert?) {
+        assertEquals(SendStrings.LNURL_FAIL_3, alert?.message)
+        assertEquals(listOf(SendStrings.CANCEL, SendStrings.TRY_AGAIN), alert?.buttons?.map { it.label })
+    }
+
+    @Test
+    fun `a failed service fetch offers try again, which fetches it again`() = runTest {
+        val source = FakeSource(lightningBalance = 10_000, responses = mapOf(wellKnown to payRequest(min = 1_000, max = 1_000_000_000)))
+        source.failOnce += wellKnown
+        val controller = SendController(source, this)
+        controller.onToChange(lightningAddress)
+        controller.onToReturn()
+        advanceUntilIdle()
+        assertRetryAlert(controller.state.value.alert)
+
+        controller.onAlertButton(1)
+        advanceUntilIdle()
+
+        assertEquals(listOf(wellKnown, wellKnown), source.fetched)
+        assertEquals(null, controller.state.value.alert)
+        assertEquals("the amount field is asked for, as on a first success", 1, controller.state.value.focusAmountRequests)
+    }
+
+    @Test
+    fun `cancel on a failed request does nothing more`() = runTest {
+        val source = FakeSource(responses = mapOf(wellKnown to payRequest(min = 1_000, max = 1_000_000_000)))
+        source.failOnce += wellKnown
+        val controller = SendController(source, this)
+        controller.onToChange(lightningAddress)
+        controller.onToReturn()
+        advanceUntilIdle()
+
+        controller.onAlertButton(0)
+        advanceUntilIdle()
+
+        assertEquals(listOf(wellKnown), source.fetched)
+        assertEquals(null, controller.state.value.alert)
+    }
+
+    @Test
+    fun `a failed pay callback offers try again, which asks for the invoice again`() = runTest {
+        val payCall = "$callback?amount=150000"
+        val source = FakeSource(
+            lightningBalance = 10_000,
+            responses = mapOf(
+                wellKnown to payRequest(min = 1_000, max = 1_000_000_000),
+                payCall to """{"pr":"$invoice150Sats","routes":[]}""",
+            ),
+        )
+        source.failOnce += payCall
+        val controller = SendController(source, this)
+        controller.onToChange(lightningAddress)
+        controller.onToReturn()
+        advanceUntilIdle()
+        controller.onAmountChange("150")
+        controller.onNext()
+        advanceUntilIdle()
+        assertRetryAlert(controller.state.value.alert)
+
+        controller.onAlertButton(1)
+        advanceUntilIdle()
+
+        assertEquals(invoice150Sats, controller.state.value.confirm?.addressOrInvoice)
+        assertEquals(2, source.fetched.count { it == payCall })
+    }
+
+    @Test
+    fun `a failed withdraw callback offers try again, which hands the service a new invoice`() = runTest {
+        val service = "https://lnbits.example.com/withdraw"
+        val cb = "https://lnbits.example.com/withdraw/cb"
+        val withdrawCall = "$cb?k1=abc&pr=lnbcrt-withdraw-20000"
+        val source = FakeSource(
+            responses = mapOf(
+                service to """{"tag":"withdrawRequest","callback":"$cb","k1":"abc","minWithdrawable":1000,"maxWithdrawable":50000}""",
+                withdrawCall to """{"status":"OK"}""",
+            ),
+        )
+        source.failOnce += withdrawCall
+        val controller = SendController(source, this)
+        controller.onDestination(
+            Destination.Lnurl(raw = "lnurl1", target = com.bittr.android.core.common.destination.LnurlTarget.Service(service)),
+        )
+        advanceUntilIdle()
+        controller.onAlertText(1, "20")
+        advanceUntilIdle()
+        assertRetryAlert(controller.state.value.alert)
+
+        controller.onAlertButton(1)
+        advanceUntilIdle()
+
+        assertEquals(null, controller.state.value.alert)
+        assertEquals(2, source.fetched.count { it == withdrawCall })
     }
 
     @Test
