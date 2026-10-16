@@ -28,4 +28,10 @@ fun interface FiatPriceSource {
      * old currency after Settings changes it. Empty for a source whose currency is fixed.
      */
     val currencyChanges: Flow<Any> get() = emptyFlow()
+
+    /**
+     * Emits when a newer price has been fetched somewhere else in the app — the Value screen
+     * setting Home's rates as it loads, as on iOS. Empty for a source that cannot say.
+     */
+    val priceUpdates: Flow<Any> get() = emptyFlow()
 }

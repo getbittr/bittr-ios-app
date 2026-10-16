@@ -25,8 +25,6 @@ import com.bittr.android.core.common.TestID
 import com.bittr.android.core.designsystem.BittrAlertDialog
 import com.bittr.android.core.designsystem.BittrSheetHeader
 import com.bittr.android.core.designsystem.BittrTheme
-import com.bittr.android.core.network.BittrEnvironment
-import com.bittr.android.core.network.HttpClient
 import java.time.LocalDate
 
 /**
@@ -46,18 +44,16 @@ import java.time.LocalDate
  *    to come first. That guard lives in [ValueUiState.selectSpan] and is tested.
  */
 /**
- * [environment] and [http] are passed in rather than defaulted, and that is
- * deliberate: this screen used to build its own URL from a literal, so the regtest
- * build read the production price API (BIT-32, fixed in BIT-41 item 1). A default
- * here would put the choice of backend back inside a feature module, where
- * `ApiBaseUrlGuardTest` would have to allow a second hostname. `BittrNavHost` reads
- * it once out of `BuildConfig` and hands it down, the same way it does
- * `BitcoinNetwork`.
+ * [history] is passed in rather than built here, and that is deliberate: this screen
+ * used to build its own URL from a literal, so the regtest build read the production
+ * price API (BIT-32, fixed in BIT-41 item 1). The app builds the one [PriceHistory]
+ * from the environment `BuildConfig` names, which keeps the choice of backend out of
+ * this feature module, and shares it with Home's value card.
  */
 @Composable
 fun ValueScreen(
-    environment: BittrEnvironment,
-    http: HttpClient,
+    // The app's one price history, shared with Home's value card.
+    history: PriceHistory,
     onBack: () -> Unit,
     // The chosen currency. No default: one let every caller draw the chart in euros.
     currency: PriceCurrency,
@@ -66,7 +62,11 @@ fun ValueScreen(
     onBack = onBack,
     modifier = modifier,
     currency = currency,
-    repository = remember(environment, http) { HttpPriceRepository(environment, http) },
+    repository = remember(history) {
+        object : PriceRepository {
+            override suspend fun load(currency: PriceCurrency, today: LocalDate) = history.load(currency, today)
+        }
+    },
 )
 
 /**
