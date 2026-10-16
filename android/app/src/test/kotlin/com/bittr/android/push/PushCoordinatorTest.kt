@@ -282,6 +282,24 @@ class PushCoordinatorTest {
         assertEquals(PushUiState(), state)
     }
 
+    /**
+     * `lockForReauthentication`'s `hideLoading()`: the card is drawn above the app and swallows
+     * taps and Back, so left up through the 2-minute lock it would block the PIN pad. A push
+     * still pending at unlock puts it back (`fromPinToHome`).
+     */
+    @Test
+    fun `locking takes the loading card down, and unlocking with a push pending puts it back`() {
+        walletState.value = WalletState.Ready
+        coordinator.receive(PushEnvelope.HtlcIncoming)
+        assertEquals(TestID.Loading.syncingWallet, state.loading?.testTag)
+
+        walletState.value = WalletState.Locked
+        assertNull("the PIN pad must be reachable", state.loading)
+
+        walletState.value = WalletState.Ready
+        assertEquals(TestID.Loading.syncingWallet, state.loading?.testTag)
+    }
+
     @Test
     fun `an HTLC push while open asks first, then signs and posts htlc ready`() {
         unlockAndSync()

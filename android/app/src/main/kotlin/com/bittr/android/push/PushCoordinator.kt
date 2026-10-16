@@ -60,6 +60,10 @@ data class PushUiState(
  * (`lowerPinView`), and the first finished sync re-dispatches it (`finalizeSync`), which
  * then skips the "you're receiving a payment" alert and goes straight to the payout.
  * Information, expired and unknown pushes open their card at once, locked or not.
+ *
+ * Locking takes the loading card down (`lockForReauthentication`'s `hideLoading()`): it is
+ * drawn above the app and swallows taps and Back, so left up it would block the PIN pad. A
+ * push still pending at unlock puts it back, as above.
  */
 class PushCoordinator(
     private val scope: CoroutineScope,
@@ -121,6 +125,10 @@ class PushCoordinator(
                 .distinctUntilChanged()
                 .collect { (nowSignedIn, nowSynced) ->
                     val waiting = pending
+                    if (wasSignedIn && !nowSignedIn) {
+                        // lockForReauthentication: the loading card would block the PIN pad.
+                        hideLoading()
+                    }
                     if (waiting != null && nowSignedIn && !wasSignedIn && !nowSynced) {
                         // lowerPinView: a push will be handled once the wallet has synced.
                         showLoading(TestID.Loading.syncingWallet, PushStrings.SYNCING_WALLET_3)
