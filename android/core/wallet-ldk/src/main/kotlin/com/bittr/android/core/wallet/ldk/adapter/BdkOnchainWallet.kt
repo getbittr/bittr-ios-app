@@ -1,7 +1,10 @@
 package com.bittr.android.core.wallet.ldk.adapter
 
 import com.bittr.android.core.wallet.ldk.node.WalletNetwork
+import com.bittr.android.core.wallet.ldk.onchain.BdkOpenPort
+import com.bittr.android.core.wallet.ldk.onchain.BdkScanRecord
 import com.bittr.android.core.wallet.ldk.onchain.BdkStore
+import com.bittr.android.core.wallet.ldk.onchain.BdkWalletOpener
 import com.bittr.android.core.wallet.ldk.onchain.ChannelClosureRecorder
 import com.bittr.android.core.wallet.ldk.onchain.ChannelClosureScan
 import com.bittr.android.core.wallet.ldk.onchain.DescriptorXpub
@@ -19,6 +22,7 @@ import org.bitcoindevkit.Amount
 import org.bitcoindevkit.CanonicalTx
 import org.bitcoindevkit.FeeRate
 import org.bitcoindevkit.Script
+import org.bitcoindevkit.SqliteException
 import org.bitcoindevkit.TxBuilder
 import org.bitcoindevkit.Connection
 import org.bitcoindevkit.Descriptor
@@ -26,6 +30,7 @@ import org.bitcoindevkit.DescriptorSecretKey
 import org.bitcoindevkit.ElectrumClient
 import org.bitcoindevkit.FullScanRequest
 import org.bitcoindevkit.KeychainKind
+import org.bitcoindevkit.LoadWithPersistException
 import org.bitcoindevkit.Mnemonic
 import org.bitcoindevkit.Network
 import org.bitcoindevkit.SyncRequest
@@ -60,14 +65,18 @@ import kotlinx.coroutines.flow.asStateFlow
  *   value**: `OnchainSync` re-reads it after the network round trip to catch a
  *   wallet replaced mid-scan, and a captured instance would make that check
  *   compare an object to itself and always pass.
- * @param connection the store `wallet` was opened against, for `persist`.
+ * @param connection the store a wallet was opened against, for `persist`. Looked up
+ *   for that wallet, so a wallet replaced since the sync began is never persisted
+ *   into its replacement's store.
  * @param electrum the Electrum client. Also a lambda, because iOS rebuilds it
  *   lazily when it has been cleared (`BDKManager.swift:225–233`).
+ * @param reconnect replace the Electrum client with a new one, after a light sync hung.
  */
 class BdkSyncPort(
     private val wallet: () -> Wallet?,
-    private val connection: () -> Connection,
+    private val connection: (Wallet) -> Connection,
     private val electrum: () -> ElectrumClient,
+    private val reconnect: () -> Unit,
 ) : OnchainSyncPort<Wallet, FullScanRequest, SyncRequest, Update> {
 
     override fun currentWallet(): Wallet? = wallet()
@@ -96,8 +105,10 @@ class BdkSyncPort(
     override fun applyUpdate(wallet: Wallet, update: Update) = wallet.applyUpdate(update)
 
     override fun persist(wallet: Wallet) {
-        wallet.persist(connection())
+        wallet.persist(connection(wallet))
     }
+
+    override fun reconnectElectrum() = reconnect()
 }
 
 /**
@@ -192,14 +203,14 @@ class BdkWallet(
 }
 
 /**
- * `didStartBDK()` from the mnemonic down to the `Wallet` (`BDKManager.swift:99–172`).
+ * `didStartBDK()` from the mnemonic down to the `Wallet` (`BDKManager.swift`, PR #99).
  *
- * ## Nothing here decides anything, and the two places it could have are gone
+ * ## Nothing here decides anything
  *
- * The store's path and its wipe-on-start are [BdkStore]'s, tested on the JVM
- * against a real temp directory; the xpub parse is [DescriptorXpub]'s. What is
- * left is six BDK constructors in iOS's order, which is what an adapter should
- * be.
+ * Whether to load the stored wallet or build a new one, and when a database is
+ * thrown away, is [BdkWalletOpener]'s, tested on the JVM. The store's path is
+ * [BdkStore]'s and the xpub parse is [DescriptorXpub]'s. What is left is the BDK
+ * constructors in iOS's order, which is what an adapter should be.
  *
  * ## The empty passphrase is the same decision as on the Lightning side
  *
@@ -222,75 +233,127 @@ object BdkWalletFactory {
     }
 
     /**
-     * Open the wallet, clearing and recreating its store first.
+     * Open the wallet: load the stored one, or build a new one — see [BdkWalletOpener].
      *
      * @param mnemonic the device's twelve words.
-     * @param databaseFile `WalletPaths.bdkDatabaseFile`. Passed through
-     *   [BdkStore.prepare], which refuses a path outside `bdk_store/` — the
-     *   fence that stops this recursive delete from reaching the seed blob.
-     * @throws java.io.IOException if the store directory cannot be prepared.
-     * @throws org.bitcoindevkit.Bip39Exception if the mnemonic does not parse.
+     * @param databaseFile `WalletPaths.bdkDatabaseFile`. [BdkStore] refuses a path
+     *   outside `bdk_store/` — the fence that stops its recursive delete from
+     *   reaching the seed blob.
+     * @param topPoolIndex the highest index in the cached on-chain address pool.
+     * @throws Exception when no wallet could be opened.
      */
-    fun open(mnemonic: String, network: WalletNetwork, databaseFile: File): BdkWallet {
+    fun open(
+        mnemonic: String,
+        network: WalletNetwork,
+        databaseFile: File,
+        record: BdkScanRecord,
+        topPoolIndex: () -> Int?,
+        log: (String) -> Unit,
+        onError: (Throwable, Int) -> Unit,
+    ): BdkWallet {
         val bdkNetwork = network(network)
-        val databasePath = BdkStore.prepare(databaseFile)
 
-        var connection: Connection? = null
-        try {
-            // `use` on all four, and the two secret-bearing ones are the reason.
-            //
-            // ARC frees these at the end of `didStartBDK` on iOS. UniFFI's
-            // Kotlin bindings free the Rust object from a `java.lang.ref.Cleaner`
-            // instead, at an unspecified time — so a dropped reference to a
-            // `Mnemonic` or a `DescriptorSecretKey` is the **seed and the BIP32
-            // root key sitting in native heap for an unbounded period**, on a
-            // platform where the process is routinely killed and its memory
-            // handed back to the system. That is a longer exposure than iOS
-            // has, on exactly the material BIT-8 rule 1 is about, and it is the
-            // same class of hazard as `ManagedNode.close` — except the thing
-            // being held is secret rather than a file handle.
-            //
-            // Closing after `Wallet(...)` is safe rather than a use-after-free
-            // for the reason given in `BdkSyncPort`: UniFFI lowers every object
-            // argument through `uniffiClonePointer()`, so the wallet holds its
-            // own `Arc` and these four handles are ours to return.
-            Mnemonic.fromString(mnemonic).use { words ->
-                DescriptorSecretKey(
-                    network = bdkNetwork,
-                    mnemonic = words,
-                    password = LdkNodeConfig.MNEMONIC_PASSPHRASE,
-                ).use { rootKey ->
-                    Descriptor.newBip84(rootKey, KeychainKind.EXTERNAL, bdkNetwork).use { external ->
-                        Descriptor.newBip84(rootKey, KeychainKind.INTERNAL, bdkNetwork).use { internal ->
-                            // `toString()` is the descriptor with the key material
-                            // *replaced by the xpub*. `toStringWithSecret()` is the
-                            // other one, and it is the one that must never reach a
-                            // log or the signup request. Named here because the two
-                            // are one word apart at a call site that ships a string
-                            // to our backend (`Transfer2ViewController.swift:344–362`).
-                            val accountXpub = DescriptorXpub.extract(external.toString())
+        // `use` on all four, and the two secret-bearing ones are the reason.
+        //
+        // ARC frees these at the end of `didStartBDK` on iOS. UniFFI's Kotlin
+        // bindings free the Rust object from a `java.lang.ref.Cleaner` instead, at
+        // an unspecified time — so a dropped reference to a `Mnemonic` or a
+        // `DescriptorSecretKey` is the **seed and the BIP32 root key sitting in
+        // native heap for an unbounded period**, on a platform where the process is
+        // routinely killed and its memory handed back to the system.
+        //
+        // Closing after `Wallet.load` or `Wallet(...)` is safe rather than a
+        // use-after-free for the reason given in `BdkSyncPort`: UniFFI lowers every
+        // object argument through `uniffiClonePointer()`, so the wallet holds its
+        // own `Arc` and these four handles are ours to return.
+        Mnemonic.fromString(mnemonic).use { words ->
+            DescriptorSecretKey(
+                network = bdkNetwork,
+                mnemonic = words,
+                password = LdkNodeConfig.MNEMONIC_PASSPHRASE,
+            ).use { rootKey ->
+                Descriptor.newBip84(rootKey, KeychainKind.EXTERNAL, bdkNetwork).use { external ->
+                    Descriptor.newBip84(rootKey, KeychainKind.INTERNAL, bdkNetwork).use { internal ->
+                        // `toString()` is the descriptor with the key material
+                        // *replaced by the xpub*. `toStringWithSecret()` is the
+                        // other one, and it is the one that must never reach a
+                        // log or the signup request. Named here because the two
+                        // are one word apart at a call site that ships a string
+                        // to our backend (`Transfer2ViewController.swift:344–362`).
+                        val accountXpub = DescriptorXpub.extract(external.toString())
 
-                            val store = Connection(databasePath.absolutePath)
-                            connection = store
-
-                            return BdkWallet(
-                                wallet = Wallet(external, internal, bdkNetwork, store),
-                                connection = store,
-                                accountXpub = accountXpub,
-                            )
-                        }
+                        val opened = BdkWalletOpener(
+                            port = BdkOpen(databaseFile, bdkNetwork, external, internal),
+                            record = record,
+                            topPoolIndex = topPoolIndex,
+                            log = log,
+                            onError = onError,
+                        ).open()
+                        return BdkWallet(
+                            wallet = opened.wallet,
+                            connection = opened.store,
+                            accountXpub = accountXpub,
+                        )
                     }
                 }
             }
-        } catch (failure: Exception) {
-            // iOS's `clearBdkWalletReferences()` on a failed start. The store is
-            // a native handle on a SQLite file; leaving it to the cleaner means
-            // the next start's `BdkStore.prepare` may be deleting a directory
-            // something still has open.
-            runCatching { connection?.close() }
-            throw failure
         }
     }
+
+    /** [BdkOpenPort] over bdk-android: one-line forwards, as [BdkSyncPort] is. */
+    private class BdkOpen(
+        private val databaseFile: File,
+        private val network: Network,
+        private val external: Descriptor,
+        private val internal: Descriptor,
+    ) : BdkOpenPort<Connection, Wallet> {
+
+        override fun openStore(): Connection = Connection(BdkStore.open(databaseFile).absolutePath)
+
+        override fun recreateStore(): Connection = Connection(BdkStore.recreate(databaseFile).absolutePath)
+
+        override fun closeStore(store: Connection) {
+            runCatching { store.close() }
+        }
+
+        override fun load(store: Connection): Wallet = Wallet.load(external, internal, store)
+
+        override fun isOnThisNetwork(wallet: Wallet): Boolean = wallet.network() == network
+
+        override fun closeWallet(wallet: Wallet) {
+            runCatching { wallet.close() }
+        }
+
+        override fun create(store: Connection): Wallet = Wallet(external, internal, network, store)
+
+        override fun revealTo(wallet: Wallet, store: Connection, index: Int) {
+            val revealed = wallet.revealAddressesTo(KeychainKind.EXTERNAL, index.toUInt())
+            try {
+                if (revealed.isNotEmpty()) wallet.persist(store)
+            } finally {
+                revealed.forEach { it.destroy() }
+            }
+        }
+
+        override fun isCorruptDatabase(failure: Throwable): Boolean {
+            // SQLite's own wording for a damaged file, or one that isn't a database at all.
+            val message = when (failure) {
+                is SqliteException.Sqlite -> failure.rusqliteError
+                is LoadWithPersistException.Persist -> failure.errorMessage
+                else -> return false
+            }
+            return CORRUPT_DATABASE_MESSAGES.any { it in message }
+        }
+
+        override fun nothingToLoadReason(failure: Throwable): String? = when (failure) {
+            is LoadWithPersistException.CouldNotLoad -> "nothing stored"
+            is LoadWithPersistException.InvalidChangeSet -> "stored data did not match"
+            else -> null
+        }
+    }
+
+    /** `Error.isCorruptDatabase`'s two SQLite messages. */
+    private val CORRUPT_DATABASE_MESSAGES = listOf("database disk image is malformed", "file is not a database")
 }
 
 /**
@@ -312,6 +375,9 @@ object BdkWalletFactory {
  * calls; this is the only implementation, and everything in it is a field
  * assignment around [BdkWalletFactory.open].
  *
+ * [reopen] is `didRebuildBdkWallet()`'s release-and-start: with a rebuild requested
+ * in [record], the open it runs builds the wallet from an empty database.
+ *
  * ## The locking is iOS's `bdkStartLock`, plus one Android-only read
  *
  * [open] and [close] are `synchronized` for the reason `didStartBDK` takes a
@@ -331,12 +397,20 @@ object BdkWalletFactory {
  *   BDK at Electrum, so reusing `LdkEnvironment.chainSourceUrl` here would hand
  *   `ElectrumClient` an HTTP Esplora endpoint on every development build and
  *   fail as "sync failed" with nothing naming the cause.
+ * @param record the stored full scan and rebuild request.
+ * @param topPoolIndex the highest index in the cached on-chain address pool, revealed
+ *   again (plus five) on a newly built wallet.
  */
 class BdkOnchainWalletHolder(
     private val mnemonic: () -> String?,
     private val network: WalletNetwork,
     private val databaseFile: File,
     private val electrumUrl: String,
+    private val record: BdkScanRecord,
+    private val topPoolIndex: () -> Int?,
+    private val log: (String) -> Unit = {},
+    /** A failure iOS hands `handleError`, with its row. */
+    private val onError: (Throwable, Int) -> Unit = { _, _ -> },
     /** A start that failed, with the exception iOS hands `handleError`. */
     private val onOpenFailure: (Throwable) -> Unit = {},
 ) : OnchainWalletPort {
@@ -391,13 +465,13 @@ class BdkOnchainWalletHolder(
             // than failing one open.
             val words = mnemonic() ?: return false
 
-            current = BdkWalletFactory.open(words, network, databaseFile)
+            current = BdkWalletFactory.open(words, network, databaseFile, record, topPoolIndex, log, onError)
             _opened.value = true
             // Built here as well as lazily below, because iOS builds it inside
             // `didStartBDK` (`BDKManager.swift:166`) and treats a failure there
             // as a failed start rather than as a failed sync. A wallet that
             // cannot reach its Electrum server is not a wallet that opened.
-            electrum = ElectrumClient(electrumUrl)
+            replaceElectrum()
             true
         } catch (failure: Exception) {
             onOpenFailure(failure)
@@ -409,12 +483,34 @@ class BdkOnchainWalletHolder(
     override fun close() = synchronized(lock) { closeLocked() }
 
     /**
+     * Release the open wallet and open it again — `didRebuildBdkWallet()`'s
+     * `bdkWallet = nil; connection = nil; didStartBDK()`. With a rebuild requested in
+     * [record], the open builds the wallet from an empty database.
+     *
+     * False, opening nothing, when no wallet is open: the holder has been closed by a
+     * teardown, and a rebuild that outlived it must not open a wallet nobody owns.
+     */
+    fun reopen(): Boolean = synchronized(lock) {
+        if (current == null) return false
+        closeLocked()
+        open()
+    }
+
+    /** A new Electrum client in place of the current one, which is closed. */
+    private fun replaceElectrum() {
+        val previous = electrum
+        electrum = ElectrumClient(electrumUrl)
+        // A call still inside the previous client keeps its handle until it returns.
+        runCatching { previous?.close() }
+    }
+
+    /**
      * The sync sequence for whatever wallet is open, bound to [scans].
      *
      * Returned star-projected so `di/WalletModule` can hold one: `:app` cannot
      * name `org.bitcoindevkit.Wallet`, because `:core:wallet-ldk` depends on
-     * bdk-android with `implementation`. Nothing is lost — `fullScan` and
-     * `lightSync` both return `Boolean`.
+     * bdk-android with `implementation`. Nothing is lost — neither `fullScan` nor
+     * `lightSync` returns a BDK type.
      *
      * Built once and valid across opens: every lambda in [BdkSyncPort] re-reads
      * the field, which is the property its own KDoc says the identity check
@@ -432,14 +528,28 @@ class BdkOnchainWalletHolder(
     ): OnchainSync<*, *, *, *> = OnchainSync(
         port = BdkSyncPort(
             wallet = { current?.wallet },
-            connection = { requireNotNull(current).connection },
+            connection = { wallet ->
+                current?.takeIf { it.wallet === wallet }?.connection
+                    ?: throw IllegalStateException("The wallet was replaced before it could persist")
+            },
             // iOS's `if self.electrumClient == nil` inside `didSyncBdkWallet`
             // (`BDKManager.swift:232–239`): rebuilt on demand when a teardown
             // cleared it, rather than failing the sync.
             electrum = { electrum ?: ElectrumClient(electrumUrl).also { electrum = it } },
+            // A hung light sync may have left the Electrum connection stuck, so open a new one.
+            reconnect = {
+                synchronized(lock) {
+                    check(current != null) { "No wallet is open" }
+                    replaceElectrum()
+                }
+            },
         ),
         scans = scans,
         closures = closures,
+        record = record,
+        reopenWallet = ::reopen,
+        log = log,
+        onError = onError,
     )
 
     /**
@@ -450,7 +560,7 @@ class BdkOnchainWalletHolder(
      * freed here once the string is out, for the reason [BdkWalletTransactions] frees what
      * it walks.
      */
-    fun peekAddress(index: Int): String? {
+    fun peekAddress(index: Int): String? = synchronized(lock) {
         val wallet = current?.wallet ?: return null
         val info = wallet.peekAddress(KeychainKind.EXTERNAL, index.toUInt())
         return try {

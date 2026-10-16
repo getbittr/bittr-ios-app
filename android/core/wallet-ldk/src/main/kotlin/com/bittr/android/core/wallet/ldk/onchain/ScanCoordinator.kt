@@ -37,11 +37,9 @@ import kotlinx.coroutines.withTimeout
  * timer belongs to*. So a scan that completes in two seconds leaves a live timer
  * that, three minutes later, flags whatever healthy scan happens to be running
  * at that moment as timed out — and `AlertManager` shows the user a scan-failed
- * alert for a scan that is fine. On iOS a full scan per launch makes the overlap
- * uncommon. On Android it is the normal case: process death is routine, every
- * start wipes BDK's store (see [BdkStore]) and so every start full-scans, and
- * Doze stretches a scan across the window where the previous timer is still
- * armed.
+ * alert for a scan that is fine. The overlap is uncommon, but on Android process
+ * death is routine and Doze stretches a scan across the window where the
+ * previous timer is still armed.
  *
  * A literal port would therefore import a latent iOS bug into the one place it
  * reliably fires. So the timeout here is scoped to the scan it belongs to, via
@@ -59,6 +57,14 @@ import kotlinx.coroutines.withTimeout
  * [withTimeout] around the *await* rather than around the scan body is what
  * expresses it — the caller gives up waiting, the work does not give up running.
  *
+ * ## One light sync at a time, and a hung one gives way
+ *
+ * `BdkScanState.claimLightSync()` (PR #99). A light sync holds a claim while it
+ * runs, and a second one skips rather than updating the wallet beside it. A claim
+ * held longer than [LIGHT_SYNC_CLAIM_LIMIT_MILLIS] counts as hung: the next light
+ * sync takes it over and reconnects to Electrum, since the hung one's connection
+ * may be stuck.
+ *
  * Proved by `ScanCoordinatorTest`, including the cross-talk case as a negative
  * control: a timer from a finished scan must not mark a live one.
  */
@@ -72,6 +78,8 @@ class ScanCoordinator(
     private val scope: CoroutineScope,
     /** iOS's 180 seconds (`BDKManager.swift:216`). Injected so tests need no wait. */
     private val timeoutMillis: Long = DEFAULT_TIMEOUT_MILLIS,
+    /** A monotonic clock in milliseconds, for the light-sync claim. Injected so tests need no wait. */
+    private val nowMillis: () -> Long = { System.nanoTime() / 1_000_000 },
 ) {
 
     private val lock = Any()
@@ -86,11 +94,16 @@ class ScanCoordinator(
 
     private var scanned = false
     private var timedOutGeneration: Long = -1
+    private var lightSync: LightSyncClaim? = null
+    private var lightSyncClaims: Long = 0
 
     /** `bdkWalletIsScanning`. A full scan is running right now. */
     val isScanning: Boolean get() = synchronized(lock) { inFlight != null }
 
-    /** `bdkWalletHasBeenScanned`. A full scan has finished at least once since launch. */
+    /**
+     * `bdkWalletHasBeenScanned`. A full scan has finished since launch, or a stored
+     * one was brought up to date by a light sync ([markPreviouslyScanned]).
+     */
     val hasBeenScanned: Boolean get() = synchronized(lock) { scanned }
 
     /**
@@ -107,9 +120,11 @@ class ScanCoordinator(
      * the wallet got scanned.
      *
      * @param scan the adapter's `startFullScan` → `fullScan` → `applyUpdate` →
-     *   `persist` sequence. `true` if the update was applied.
+     *   `persist` sequence. `true` if the update was applied. It is handed the scan's
+     *   generation, so it can tell with [isCurrent] whether a teardown has cleared it
+     *   while it ran.
      */
-    suspend fun fullScan(scan: suspend () -> Boolean): Boolean {
+    suspend fun fullScan(scan: suspend (generation: Long) -> Boolean): Boolean {
         val attached: Deferred<Boolean>
         val myGeneration: Long
 
@@ -127,7 +142,8 @@ class ScanCoordinator(
                 // finishes before this block publishes it would clear a field
                 // that has not been set, and the next caller attaches to a
                 // corpse.
-                val fresh = scope.async(start = CoroutineStart.LAZY) { runScan(scan) }
+                val scanGeneration = generation
+                val fresh = scope.async(start = CoroutineStart.LAZY) { runScan(scanGeneration, scan) }
                 fresh.invokeOnCompletion {
                     synchronized(lock) { if (inFlight === fresh) inFlight = null }
                 }
@@ -152,9 +168,10 @@ class ScanCoordinator(
         }
     }
 
-    private suspend fun runScan(scan: suspend () -> Boolean): Boolean {
-        val ok = scan()
-        synchronized(lock) { if (ok) scanned = true }
+    private suspend fun runScan(generation: Long, scan: suspend (Long) -> Boolean): Boolean {
+        val ok = scan(generation)
+        // A scan that outlived a teardown says nothing about the wallet opened after it.
+        synchronized(lock) { if (ok && this.generation == generation) scanned = true }
         return ok
     }
 
@@ -168,7 +185,51 @@ class ScanCoordinator(
      */
     fun mayLightSync(): Boolean = !isScanning
 
-    /** `clearBdkScanState()`. Forgets all of it — called on wallet teardown. */
+    /**
+     * Whether [generation] is still the current scan's — false once [clear] has run, which
+     * a teardown does. A scan that outlives its wallet must not act on the next one.
+     */
+    fun isCurrent(generation: Long): Boolean = synchronized(lock) { this.generation == generation }
+
+    /**
+     * `claimLightSync()`: claim the right to run a light sync, taking over from one that
+     * has hung. Null while another light sync holds a claim younger than
+     * [LIGHT_SYNC_CLAIM_LIMIT_MILLIS].
+     */
+    fun claimLightSync(): LightSyncClaim? = synchronized(lock) {
+        val current = lightSync
+        if (current != null && nowMillis() - current.startedAtMillis < LIGHT_SYNC_CLAIM_LIMIT_MILLIS) {
+            return null
+        }
+        lightSyncClaims += 1
+        LightSyncClaim(
+            id = lightSyncClaims,
+            startedAtMillis = nowMillis(),
+            replacesHungSync = current != null,
+        ).also { lightSync = it }
+    }
+
+    /** `endLightSync(_:)`: release the claim, unless a newer light sync has taken it over. */
+    fun endLightSync(claim: LightSyncClaim) {
+        synchronized(lock) { if (lightSync?.id == claim.id) lightSync = null }
+    }
+
+    /** `markPreviouslyScanned()`: a stored full scan was brought up to date by a light sync. */
+    fun markPreviouslyScanned() {
+        synchronized(lock) { scanned = true }
+    }
+
+    /** `markNeedsFullScan()`: the user asked for a rescan by pulling to refresh. */
+    fun markNeedsFullScan() {
+        synchronized(lock) { scanned = false }
+    }
+
+    /**
+     * `clearBdkScanState()`. Forgets all of it — called on wallet teardown.
+     *
+     * The light-sync claim is kept, as on iOS: a light sync still running holds it until
+     * it ends, or until it counts as hung.
+     */
     fun clear() {
         synchronized(lock) {
             inFlight = null
@@ -183,5 +244,20 @@ class ScanCoordinator(
     companion object {
         /** `BDKManager.swift:216`. */
         const val DEFAULT_TIMEOUT_MILLIS: Long = 180_000L
+
+        /** `BdkScanState.lightSyncClaimLimit`: how long a light sync may hold its claim before it counts as hung. */
+        const val LIGHT_SYNC_CLAIM_LIMIT_MILLIS: Long = 120_000L
     }
 }
+
+/**
+ * iOS's `LightSyncClaim`: the right to run one light sync.
+ *
+ * @param replacesHungSync the previous light sync held the claim for too long, so its
+ *   Electrum connection may be stuck.
+ */
+class LightSyncClaim(
+    val id: Long,
+    val startedAtMillis: Long,
+    val replacesHungSync: Boolean,
+)

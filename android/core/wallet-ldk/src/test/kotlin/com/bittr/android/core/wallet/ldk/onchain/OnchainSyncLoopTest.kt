@@ -28,10 +28,8 @@ import org.junit.Test
  *   [OnchainLoopEvent.FullScanFailed] is softened into a fall-through. A light
  *   sync only revisits scripts the wallet has revealed, so a timer on an
  *   unscanned wallet is round trips that cannot find anything.
- * - `a second run does not re-scan` fails if `hasBeenScanned` is dropped, which
- *   is tempting because [BdkStore] wipes the store on every *process* start and
- *   the branch then looks redundant. It is not: a node restart inside one
- *   process would otherwise pay for a second full scan.
+ * - `a second run does not re-scan` fails if `hasBeenScanned` is dropped. A node
+ *   restart inside one process would otherwise pay for a second full scan.
  * - `cancellation clears the scan state before closing the wallet` fails if the
  *   teardown is written in the iOS listing's order. The generation bump has to
  *   land while the flags still describe a live wallet.
@@ -100,6 +98,18 @@ class OnchainSyncLoopTest {
         override fun applyUpdate(wallet: String, update: String) = Unit
 
         override fun persist(wallet: String) = Unit
+
+        override fun reconnectElectrum() = Unit
+    }
+
+    /** A [BdkScanRecord] in memory. */
+    private class FakeRecord(var fullScanStored: Boolean = false) : BdkScanRecord {
+        override var rebuildRequested = false
+        override val hasStoredFullScan: Boolean get() = fullScanStored
+        override fun storeFullScanCompletion() { fullScanStored = true }
+        override fun clearFullScanCompletion() { fullScanStored = false }
+        override fun requestRebuild() { rebuildRequested = true; fullScanStored = false }
+        override fun clearRebuildRequest() { rebuildRequested = false }
     }
 
     private class Fixture(val scope: TestScope, canOpen: Boolean = true) {
@@ -107,50 +117,168 @@ class OnchainSyncLoopTest {
         val wallet = FakeWallet(canOpen)
         val port = StubPort()
         val scans = ScanCoordinator(scope)
+        val record = FakeRecord()
         val events = mutableListOf<OnchainLoopEvent>()
+        var reopens = 0
 
-        fun loop(balances: WalletBalanceRead? = null) = OnchainSyncLoop(
+        fun loop(
+            balances: WalletBalanceRead? = null,
+            foregroundReturns: kotlinx.coroutines.flow.Flow<Unit>? = null,
+        ) = OnchainSyncLoop(
             wallet = wallet,
-            sync = OnchainSync(port, scans, closures = null),
+            sync = OnchainSync(
+                port,
+                scans,
+                closures = null,
+                record = record,
+                reopenWallet = {
+                    reopens += 1
+                    // The open after a rebuild request builds the wallet from scratch.
+                    record.clearRebuildRequest()
+                    true
+                },
+            ),
             scans = scans,
+            record = record,
             balances = balances,
+            foregroundReturns = foregroundReturns,
+            lightSyncScope = scope,
             report = { events += it },
         )
     }
 
-    /** Home's pull-to-refresh: a request brings the next tick forward and gets its reading. */
+    // ---- Home's pull-to-refresh: a rebuild. ----
+
     @Test
-    fun `sync now runs a tick on the loop at once and answers with the balance read`() = runTest {
+    fun `rebuild now rebuilds the wallet, scans it in full and answers with the balance read`() = runTest {
         val fixture = Fixture(this)
         var reads = 0
         val loop = fixture.loop(balances = { reads += 1; true })
         val runner = launch { loop.run() }
         runCurrent()
         assertEquals("the node-start read", 1, reads)
+        assertEquals(1, fixture.port.fullScans)
 
+        // `markBdkNeedsRebuild()`, as the refresh does before asking.
+        fixture.scans.markNeedsFullScan()
+        fixture.record.requestRebuild()
         var answer: Boolean? = null
-        val request = launch { answer = loop.syncNow() }
+        val request = launch { answer = loop.rebuildNow() }
         runCurrent()
 
         assertEquals("the request does not wait for the 30 s interval", true, answer)
+        assertEquals(1, fixture.reopens)
+        assertEquals(2, fixture.port.fullScans)
+        assertEquals(0, fixture.port.lightSyncs)
         assertEquals(2, reads)
-        assertEquals(1, fixture.port.lightSyncs)
+        assertTrue(fixture.scans.hasBeenScanned)
+        assertTrue("the rebuilt wallet's scan is stored", fixture.record.fullScanStored)
 
         // The timer carries on from there.
         advanceTimeBy(OnchainSyncLoop.LIGHT_SYNC_INTERVAL_MILLIS)
         runCurrent()
-        assertEquals(2, fixture.port.lightSyncs)
+        assertEquals(1, fixture.port.lightSyncs)
 
         request.cancelAndJoin()
         runner.cancelAndJoin()
     }
 
+    /**
+     * A refresh whose rebuild fails keeps the loop and the wallet. Each tick after it tries the
+     * full scan again, as iOS's Send and Swap screens do, until one succeeds.
+     */
     @Test
-    fun `a sync request still waiting when the loop stops is answered with no reading`() = runTest {
+    fun `a failed rebuild keeps the loop, and the ticks after it scan again`() = runTest {
+        val fixture = Fixture(this)
+        val loop = fixture.loop()
+        val runner = launch { loop.run() }
+        runCurrent()
+
+        fixture.port.applies = false
+        fixture.scans.markNeedsFullScan()
+        var answer: Boolean? = null
+        launch { answer = loop.rebuildNow() }
+        runCurrent()
+
+        assertEquals(false, answer)
+        assertEquals(OnchainLoopEvent.FullScanFailed, fixture.events.last())
+        assertFalse("the runner keeps going", runner.isCompleted)
+        assertTrue("and the wallet stays open", fixture.wallet.isOpen)
+
+        fixture.port.applies = true
+        advanceTimeBy(OnchainSyncLoop.LIGHT_SYNC_INTERVAL_MILLIS)
+        runCurrent()
+        assertEquals(OnchainLoopEvent.FullScanApplied, fixture.events.last())
+        assertTrue(fixture.scans.hasBeenScanned)
+        assertEquals("no light sync on the unscanned wallet", 0, fixture.port.lightSyncs)
+
+        // Then light syncs again.
+        advanceTimeBy(OnchainSyncLoop.LIGHT_SYNC_INTERVAL_MILLIS)
+        runCurrent()
+        assertEquals(1, fixture.port.lightSyncs)
+
+        runner.cancelAndJoin()
+    }
+
+    /** iOS stops `BackgroundSync` at the pull, so no light sync is running when the rebuild wants the database. */
+    @Test
+    fun `light syncs pause from the pull until the rebuild has run`() = runTest {
+        val fixture = Fixture(this)
+        val loop = fixture.loop()
+        val runner = launch { loop.run() }
+        runCurrent()
+
+        loop.pauseLightSyncs()
+        advanceTimeBy(OnchainSyncLoop.LIGHT_SYNC_INTERVAL_MILLIS * 3)
+        runCurrent()
+        assertEquals(0, fixture.port.lightSyncs)
+
+        launch { loop.rebuildNow() }
+        runCurrent()
+        advanceTimeBy(OnchainSyncLoop.LIGHT_SYNC_INTERVAL_MILLIS)
+        runCurrent()
+        assertEquals(1, fixture.port.lightSyncs)
+
+        runner.cancelAndJoin()
+    }
+
+    @Test
+    fun `rebuild now stores the request, so the next start rebuilds if this run doesn't`() = runTest {
+        val fixture = Fixture(this, canOpen = false)
+        val loop = fixture.loop()
+
+        val request = launch { loop.rebuildNow() }
+        runCurrent()
+
+        assertTrue(fixture.record.rebuildRequested)
+        request.cancelAndJoin()
+    }
+
+    /** A request left from before a run is answered without a second scan: that run's open rebuilt. */
+    @Test
+    fun `a rebuild request from before a run is answered at its start`() = runTest {
+        val fixture = Fixture(this)
+        val loop = fixture.loop()
+        var answer: Boolean? = null
+        launch { answer = loop.rebuildNow() }
+        runCurrent()
+
+        val runner = launch { loop.run() }
+        runCurrent()
+
+        assertEquals(false, answer)
+        assertEquals(listOf(OnchainLoopEvent.FullScanApplied), fixture.events)
+        assertEquals(1, fixture.port.fullScans)
+
+        runner.cancelAndJoin()
+    }
+
+    @Test
+    fun `a rebuild request still waiting when the loop stops is answered with no reading`() = runTest {
         val fixture = Fixture(this, canOpen = false)
         val loop = fixture.loop(balances = { true })
         var answer: Boolean? = null
-        val request = launch { answer = loop.syncNow() }
+        val request = launch { answer = loop.rebuildNow() }
         runCurrent()
         assertEquals(null, answer)
 
@@ -158,6 +286,99 @@ class OnchainSyncLoopTest {
         runCurrent()
         assertEquals(false, answer)
         request.cancelAndJoin()
+    }
+
+    // ---- The start, with a stored full scan (PR #99). ----
+
+    @Test
+    fun `a stored full scan is brought up to date by a light sync instead of scanned again`() = runTest {
+        val fixture = Fixture(this)
+        fixture.record.fullScanStored = true
+        val balances = FakeBalanceRead()
+        val runner = launch { fixture.loop(balances).run() }
+        runCurrent()
+
+        assertEquals(0, fixture.port.fullScans)
+        assertEquals(1, fixture.port.lightSyncs)
+        assertTrue(fixture.scans.hasBeenScanned)
+        assertEquals(
+            listOf(OnchainLoopEvent.LoadedWalletLightSynced, OnchainLoopEvent.BalancesRead),
+            fixture.events,
+        )
+
+        // And the timer follows.
+        advanceTimeBy(OnchainSyncLoop.LIGHT_SYNC_INTERVAL_MILLIS)
+        runCurrent()
+        assertEquals(2, fixture.port.lightSyncs)
+
+        runner.cancelAndJoin()
+    }
+
+    /** The loaded data may be stale, so it is scanned in full. */
+    @Test
+    fun `a stored full scan whose light sync fails is scanned in full`() = runTest {
+        val fixture = Fixture(this)
+        fixture.record.fullScanStored = true
+        val failingOnce = object : OnchainSyncPort<String, String, String, String> by fixture.port {
+            var failed = false
+            override fun sync(request: String, parameters: LightSyncParameters): String {
+                if (!failed) {
+                    failed = true
+                    throw IllegalStateException("electrum unreachable")
+                }
+                return fixture.port.sync(request, parameters)
+            }
+        }
+        val runner = launch {
+            OnchainSyncLoop(
+                wallet = fixture.wallet,
+                sync = OnchainSync(failingOnce, fixture.scans, closures = null, record = fixture.record, reopenWallet = null),
+                scans = fixture.scans,
+                record = fixture.record,
+                balances = null,
+                foregroundReturns = null,
+                lightSyncScope = this@runTest,
+                report = { fixture.events += it },
+            ).run()
+        }
+        runCurrent()
+
+        assertEquals(listOf(OnchainLoopEvent.FullScanApplied), fixture.events)
+        assertEquals(1, fixture.port.fullScans)
+
+        runner.cancelAndJoin()
+    }
+
+    @Test
+    fun `a stored full scan waits for a running light sync and tries again`() = runTest {
+        val fixture = Fixture(this)
+        fixture.record.fullScanStored = true
+        val held = fixture.scans.claimLightSync()!!
+        val runner = launch { fixture.loop().run() }
+        runCurrent()
+        assertEquals(0, fixture.port.lightSyncs)
+        assertEquals(0, fixture.port.fullScans)
+
+        fixture.scans.endLightSync(held)
+        advanceTimeBy(OnchainSyncLoop.LOADED_WALLET_RETRY_MILLIS)
+        runCurrent()
+
+        assertEquals(1, fixture.port.lightSyncs)
+        assertEquals(0, fixture.port.fullScans)
+        assertEquals(listOf(OnchainLoopEvent.LoadedWalletLightSynced), fixture.events)
+
+        runner.cancelAndJoin()
+    }
+
+    @Test
+    fun `a full scan at the start is stored`() = runTest {
+        val fixture = Fixture(this)
+        val runner = launch { fixture.loop().run() }
+        runCurrent()
+
+        assertTrue(fixture.record.fullScanStored)
+
+        runner.cancelAndJoin()
     }
 
     @Test
@@ -244,22 +465,26 @@ class OnchainSyncLoopTest {
         val second = launch {
             OnchainSyncLoop(
                 wallet = FakeWallet(),
-                sync = OnchainSync(port, scans, closures = null),
+                sync = OnchainSync(port, scans, closures = null, record = null, reopenWallet = null),
                 scans = scans,
+                record = null,
                 balances = null,
+                foregroundReturns = null,
+                lightSyncScope = this@runTest,
                 report = { events += it },
             ).run()
         }
         runCurrent()
 
-        assertEquals(listOf(OnchainLoopEvent.AlreadyScanned), events)
+        assertEquals(listOf(OnchainLoopEvent.AlreadyScanned, OnchainLoopEvent.LightSyncApplied), events)
         assertEquals("no second full scan", 0, port.fullScans)
+        assertEquals("a light sync at once, as iOS has since PR #99", 1, port.lightSyncs)
 
         // It still gets the timer — iOS's `guard !hasBeenScanned else { restart
         // the light sync timer; return }`.
         advanceTimeBy(OnchainSyncLoop.LIGHT_SYNC_INTERVAL_MILLIS)
         runCurrent()
-        assertEquals(1, port.lightSyncs)
+        assertEquals(2, port.lightSyncs)
 
         second.cancelAndJoin()
     }
@@ -424,16 +649,19 @@ class OnchainSyncLoopTest {
         val runner = launch {
             OnchainSyncLoop(
                 wallet = FakeWallet(),
-                sync = OnchainSync(StubPort(), scans, closures = null),
+                sync = OnchainSync(StubPort(), scans, closures = null, record = null, reopenWallet = null),
                 scans = scans,
+                record = null,
                 balances = balances,
+                foregroundReturns = null,
+                lightSyncScope = this@runTest,
                 report = { events += it },
             ).run()
         }
         runCurrent()
 
         assertEquals(
-            listOf(OnchainLoopEvent.AlreadyScanned, OnchainLoopEvent.BalancesRead),
+            listOf(OnchainLoopEvent.AlreadyScanned, OnchainLoopEvent.LightSyncApplied, OnchainLoopEvent.BalancesRead),
             events,
         )
 
@@ -472,9 +700,12 @@ class OnchainSyncLoopTest {
         val runner = launch {
             OnchainSyncLoop(
                 wallet = wallet,
-                sync = OnchainSync(fixture.port, fixture.scans, closures = null),
+                sync = OnchainSync(fixture.port, fixture.scans, closures = null, record = null, reopenWallet = null),
                 scans = fixture.scans,
+                record = null,
                 balances = null,
+                foregroundReturns = null,
+                lightSyncScope = this@runTest,
             ).run()
         }
         runCurrent()
@@ -486,5 +717,67 @@ class OnchainSyncLoopTest {
         // first, flags after — this reads `close-before-clear`, and a watchdog
         // still armed for the abandoned scan could mark the next node's.
         assertEquals(listOf("close-after-clear"), order)
+    }
+
+    // ---- A failed start, retried on each return to the foreground (iOS #95). ----
+
+    @Test
+    fun `a failed start keeps the wallet open and scans again when the app returns`() = runTest {
+        val fixture = Fixture(this)
+        val returns = kotlinx.coroutines.flow.MutableSharedFlow<Unit>()
+        fixture.port.applies = false
+        val runner = launch { fixture.loop(foregroundReturns = returns).run() }
+        runCurrent()
+
+        assertEquals(listOf(OnchainLoopEvent.FullScanFailed), fixture.events)
+        assertFalse("the runner waits rather than ending", runner.isCompleted)
+        assertTrue(fixture.wallet.isOpen)
+        advanceTimeBy(OnchainSyncLoop.LIGHT_SYNC_INTERVAL_MILLIS * 3)
+        runCurrent()
+        assertEquals("no timer, and no retry, while the app stays away", 1, fixture.port.fullScans)
+        assertEquals(0, fixture.port.lightSyncs)
+
+        // Back in the foreground, and still failing: one more try, then it waits again.
+        returns.emit(Unit)
+        runCurrent()
+        assertEquals(2, fixture.port.fullScans)
+
+        // Back again, and this time it scans: the timer starts.
+        fixture.port.applies = true
+        returns.emit(Unit)
+        runCurrent()
+        assertEquals(OnchainLoopEvent.FullScanApplied, fixture.events.last())
+        assertTrue(fixture.scans.hasBeenScanned)
+        advanceTimeBy(OnchainSyncLoop.LIGHT_SYNC_INTERVAL_MILLIS)
+        runCurrent()
+        assertEquals(1, fixture.port.lightSyncs)
+
+        runner.cancelAndJoin()
+    }
+
+    /** A pull to refresh while the start waits is run at once rather than left waiting. */
+    @Test
+    fun `a failed start runs a rebuild asked for while it waits`() = runTest {
+        val fixture = Fixture(this)
+        fixture.port.applies = false
+        val loop = fixture.loop(balances = { true }, foregroundReturns = kotlinx.coroutines.flow.MutableSharedFlow())
+        val runner = launch { loop.run() }
+        runCurrent()
+
+        fixture.port.applies = true
+        var answer: Boolean? = null
+        launch { answer = loop.rebuildNow() }
+        runCurrent()
+
+        assertEquals("answered with the reading after the scan", true, answer)
+        assertEquals(1, fixture.reopens)
+        assertTrue(fixture.scans.hasBeenScanned)
+        assertEquals(
+            "one balance read, which answers the rebuild",
+            listOf(OnchainLoopEvent.FullScanFailed, OnchainLoopEvent.FullScanApplied, OnchainLoopEvent.BalancesRead),
+            fixture.events,
+        )
+
+        runner.cancelAndJoin()
     }
 }
