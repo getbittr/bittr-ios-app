@@ -810,9 +810,9 @@ class BackupExclusionTest {
      * The split this suite was planting on the wrong side of.
      *
      * Until BIT-6 separated `bdk_store`, BDK's database sat directly in the
-     * wallet directory — and `BdkStore.prepare` ports an iOS line that deletes
-     * its whole store directory on every start, which in that layout would have
-     * taken the seed blob and every channel state with it. The database moved;
+     * wallet directory — and `BdkStore.recreate` ports an iOS line that deletes
+     * its whole store directory, which in that layout would have taken the seed
+     * blob and every channel state with it. The database moved;
      * this file did not, and went on planting a marker at a path the product
      * stopped writing.
      *
@@ -822,9 +822,9 @@ class BackupExclusionTest {
      */
     private fun assertTheBdkDatabaseIsStillInItsOwnDirectory() {
         assertTrue(
-            "${paths.bdkDatabaseFile} is not under ${paths.bdkStoreDir}. BdkStore.prepare " +
-                "recursively deletes its store directory on every start (the port of " +
-                "BitcoinManager.swift:838–840), so a database sited outside that directory " +
+            "${paths.bdkDatabaseFile} is not under ${paths.bdkStoreDir}. BdkStore.recreate " +
+                "recursively deletes its store directory (the port of iOS's " +
+                "Connection.recreate()), so a database sited outside that directory " +
                 "means the wipe is aimed at a directory holding something else — the seed " +
                 "blob and the LDK state are its siblings. See WalletPaths.bdkStoreDir.",
             paths.bdkDatabaseFile.canonicalFile.startsWith(paths.bdkStoreDir.canonicalFile),
