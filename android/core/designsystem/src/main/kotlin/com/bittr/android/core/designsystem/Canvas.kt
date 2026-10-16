@@ -357,7 +357,6 @@ fun BittrPrimaryButton(
     arrow: Boolean = true,
     compact: Boolean = false,
     dimmed: Boolean = !enabled,
-    wrapLabel: Boolean = false,
     fullWidth: Boolean = false,
     content: (@Composable () -> Unit)? = null,
 ) {
@@ -370,12 +369,12 @@ fun BittrPrimaryButton(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(10.dp, Alignment.CenterHorizontally),
                 modifier = modifier
-                    .then(if (wrapLabel) Modifier.heightIn(min = 40.dp) else Modifier.height(40.dp))
+                    .height(40.dp)
                     .widthIn(min = 80.dp)
                     .clip(shape)
                     .background(if (dimmed) colors.actionFillDisabled else colors.actionFill, shape)
                     .clickable(enabled = enabled, role = Role.Button, onClick = onClick)
-                    .padding(horizontal = 17.dp, vertical = if (wrapLabel) 10.dp else 0.dp),
+                    .padding(horizontal = 17.dp),
             ) {
                 if (content != null) {
                     content()
@@ -406,16 +405,7 @@ fun BittrPrimaryButton(
         horizontalArrangement = Arrangement.spacedBy(10.dp, Alignment.CenterHorizontally),
         modifier = modifier
             .fillMaxWidth()
-            // A sentence-long label — the exclusive-initiative confirmation — needs the pill to
-            // grow: at a fixed height it overflowed its own background and drew over the text
-            // above it (Ruben, 2026-09-22). Every other label is two or three words.
-            .then(
-                if (wrapLabel) {
-                    Modifier.heightIn(min = if (compact) ButtonHeightCompact else ButtonHeight)
-                } else {
-                    Modifier.height(if (compact) ButtonHeightCompact else ButtonHeight)
-                },
-            )
+            .height(if (compact) ButtonHeightCompact else ButtonHeight)
             // Clipped before `clickable`, so the press and focus highlight follows the pill
             // instead of drawing a rectangle around it.
             .clip(BittrCanvasShapes.pill)
@@ -434,7 +424,6 @@ fun BittrPrimaryButton(
                 style = MaterialTheme.typography.labelLarge,
                 color = labelColor,
                 textAlign = TextAlign.Center,
-                modifier = if (wrapLabel) Modifier.padding(horizontal = 20.dp, vertical = 14.dp) else Modifier,
             )
             if (arrow) {
                 Image(

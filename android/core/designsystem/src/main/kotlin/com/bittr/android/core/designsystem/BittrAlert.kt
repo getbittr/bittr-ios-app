@@ -14,19 +14,24 @@ import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.WindowInsetsSides
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
@@ -65,6 +70,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.LineHeightStyle
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -101,12 +107,13 @@ data class BittrAlertButton(
  * - **The header:** the bell, 17 pt at 19 from the top and 20 in, and the title lower-cased in
  *   Gilroy-Bold 18, 10 after it, both in `whiteoryellow`; the 14 pt X 20 from the right when a
  *   button only closes the alert.
- * - **The message** 25 under the bell and 40 in: iOS's `attributed()`, Gilroy-Regular 16 at a
- *   1.28 line height, centred, `<b>` bold.
+ * - **The message** 25 under the bell and 20 in: iOS's `attributed()`, Gilroy-Regular 16 at a
+ *   1.28 line height, centred, `<b>` bold. It scrolls when the card would otherwise rise past
+ *   10 under the safe area's top.
  * - **The buttons** 25 under that, 15 in and 15 from the bottom, 10 apart: side by side for one
  *   or two whose titles are shorter than 16 characters, stacked otherwise, with the first button
- *   at the bottom. Each is 40 tall, `white0.7orblue1` at 8 corners with the shadow, its title
- *   Gilroy-Bold 16.
+ *   at the bottom. Each is at least 40 tall, `white0.7orblue1` at 8 corners with the shadow, its
+ *   title Gilroy-Bold 16, wrapping 10 in when it doesn't fit on one line.
  *
  * Two things here are load-bearing for the Maestro suite. **The button ids are applied here, by
  * index** — `alert.button.0`, `alert.button.1`, … from [TestID.Alert.buttonAt], as
@@ -376,6 +383,9 @@ internal fun AlertOverlay(
             modifier = Modifier
                 .align(Alignment.BottomCenter)
                 .windowInsetsPadding(bottomInsets)
+                // A message too long for the screen scrolls instead of pushing the card off the top.
+                .windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Top))
+                .padding(top = 10.dp)
                 .padding(horizontal = 10.dp)
                 .fillMaxWidth()
                 // Below the screen by its own height and the inset it sits on, until the spring
@@ -408,7 +418,13 @@ internal fun AlertCardContent(
             AlertHeader(title)
             if (message != null) {
                 Spacer(Modifier.height(25.dp))
-                Box(Modifier.padding(horizontal = 40.dp)) { message() }
+                // It takes only the room the header and buttons leave, and scrolls within it.
+                // A text field's message stays 40 in, as iOS's showTextFieldAlert has it.
+                Box(
+                    Modifier
+                        .weight(1f, fill = false)
+                        .padding(horizontal = if (field != null) 40.dp else 20.dp),
+                ) { message() }
             }
             if (field != null) {
                 Spacer(Modifier.height(25.dp))
@@ -476,14 +492,13 @@ private fun AlertHeader(title: String) {
 
 /**
  * The message as iOS's `attributed()` sets it, or a value — a key or an invoice — on one line
- * that gives way in the middle unless [valueWraps]. Scrolls rather than clips past 45 % of the
- * screen, faded at the bottom while there is more below.
+ * that gives way in the middle unless [valueWraps]. Scrolls rather than clips when the card runs
+ * out of screen, faded at the bottom while there is more below.
  */
 @Composable
 private fun AlertMessage(message: String, isValue: Boolean, valueWraps: Boolean) {
     val scroll = rememberScrollState()
     val fadeInto = BittrTheme.colors.levelCard
-    val maxHeight = (LocalConfiguration.current.screenHeightDp * 0.45f).dp
     Text(
         text = if (isValue) AnnotatedString(message) else bittrMarkup(message),
         style = AlertMessageStyle,
@@ -493,7 +508,6 @@ private fun AlertMessage(message: String, isValue: Boolean, valueWraps: Boolean)
         overflow = if (isValue && !valueWraps) TextOverflow.MiddleEllipsis else TextOverflow.Clip,
         modifier = Modifier
             .fillMaxWidth()
-            .heightIn(max = maxHeight)
             .drawWithContent {
                 drawContent()
                 if (scroll.canScrollForward) {
@@ -540,24 +554,30 @@ private fun AlertButtons(buttons: List<BittrAlertButton>, motion: AlertMotion, s
             }
         }
     } else {
+        // Side by side, the buttons share the tallest one's height.
         Row(
             horizontalArrangement = Arrangement.spacedBy(10.dp),
-            modifier = Modifier.padding(horizontal = 15.dp),
+            modifier = Modifier
+                .padding(horizontal = 15.dp)
+                .height(IntrinsicSize.Min),
         ) {
             indexed.forEach { (position, button) ->
-                AlertButton(button, position, motion, Modifier.weight(1f))
+                AlertButton(button, position, motion, Modifier.weight(1f).fillMaxHeight())
             }
         }
     }
 }
 
-/** `makeAlertButton`: the rounded, shadowed plate with its centred label. */
+/**
+ * `makeAlertButton`: the rounded, shadowed plate with its centred label. A one-line title keeps the
+ * 40 plate, and one that wraps grows it, 10 clear of each edge.
+ */
 @Composable
 private fun AlertButton(button: BittrAlertButton, position: Int, motion: AlertMotion, modifier: Modifier) {
     Box(
         contentAlignment = Alignment.Center,
         modifier = modifier
-            .height(40.dp)
+            .heightIn(min = 40.dp)
             .iosShadow(AlertButtonShape)
             .clip(AlertButtonShape)
             .background(BittrTheme.colors.scrim1)
@@ -566,12 +586,17 @@ private fun AlertButton(button: BittrAlertButton, position: Int, motion: AlertMo
     ) {
         Text(
             text = button.label,
-            style = MaterialTheme.typography.labelLarge.copy(fontSize = 16.sp, lineHeight = 16.sp),
+            // Wrapped lines sit Gilroy-Bold's own 19.8 apart, as a UILabel sets them. Centred in
+            // its line, a single line sits where it did at 16.
+            style = MaterialTheme.typography.labelLarge.copy(
+                fontSize = 16.sp,
+                lineHeight = 20.sp,
+                lineHeightStyle = LineHeightStyle(LineHeightStyle.Alignment.Center, LineHeightStyle.Trim.None),
+            ),
             color = MaterialTheme.colorScheme.onSurface,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
+            textAlign = TextAlign.Center,
             modifier = Modifier
-                .padding(horizontal = 8.dp)
+                .padding(horizontal = 10.dp, vertical = 10.dp)
                 .offset(y = 1.dp),
         )
     }
@@ -584,9 +609,6 @@ private const val AlertStiffness = 131f
 
 /** `slideOut`'s 0.3 s. */
 private const val AlertCloseMs = 300
-
-/** The proposal's dialog action height, still used by the Buy initiative sheet. */
-val BittrDialogButtonHeight = 52.dp
 
 /**
  * An alert's title: 22 sp bold, centred. Every alert in the app uses it, including the

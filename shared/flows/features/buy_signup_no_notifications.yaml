@@ -151,25 +151,23 @@ appId: ${APP_ID}
 - tapOn:
     id: "signup.bittr.start.nextButton"
 
-# The T&C §2.5 exclusive-initiative confirmation. Both fields are non-empty and
-# the email is valid, so this is the first Verify that would reach Bittr, and it
-# is where the confirmation is asked for. It is asked once per registration: the
-# later Verify taps in this flow — including the one after the resend detour,
-# where moveToPage re-instantiates Transfer1 — read it back off the IBAN entity
-# and go straight through.
-- assertVisible:
-    id: "signup.bittr.initiative.confirmButton"
+# The exclusive-initiative alert. Confirm is alert.button.1, stacked above Cancel.
+# It's asked once per registration, so the later Verify taps below go straight through.
+- extendedWaitUntil:
+    visible:
+      id: "alert.button.1"
+    timeout: 10000
 
-# Decline first. §2.5 makes the confirmation a precondition of Bittr providing
-# any Service, so declining has to leave the customer where they were with
-# nothing sent and nothing recorded — the property that matters more than the
-# confirm path, and the only one that fails silently if it regresses.
+# Decline first: Cancel is alert.button.0. Declining has to leave the customer
+# where they were, with nothing sent and nothing recorded.
 - tapOn:
-    id: "signup.bittr.initiative.cancelButton"
+    id: "alert.button.0"
+- extendedWaitUntil:
+    notVisible:
+      id: "alert.button.1"
+    timeout: 5000
 
-# Still on Transfer1, sheet gone, fields as they were.
-- assertNotVisible:
-    id: "signup.bittr.initiative.confirmButton"
+# Still on Transfer1, alert gone, fields as they were.
 - assertVisible:
     id: "signup.bittr.start.ibanTextField"
 
@@ -179,16 +177,25 @@ appId: ${APP_ID}
 - assertNotVisible:
     id: "alert.button.0"
 
-# Verify again. The sheet comes back, which only happens when the decline
+# Verify again. The alert comes back, which only happens when the decline
 # recorded nothing: a stored initiativeConfirmedAt would send this straight
 # through to the IBAN check.
 - tapOn:
     id: "signup.bittr.start.nextButton"
-- assertVisible:
-    id: "signup.bittr.initiative.confirmButton"
+- extendedWaitUntil:
+    visible:
+      id: "alert.button.1"
+    timeout: 10000
+- waitForAnimationToEnd:
+    timeout: 3000
 - takeScreenshot: shared/docs/screenshots/buy_signup_no_notifications/02a_initiative_confirmation
 - tapOn:
-    id: "signup.bittr.initiative.confirmButton"
+    id: "alert.button.1"
+# Let it slide out, so a following alert.button.0 is the next alert's, not its Cancel.
+- extendedWaitUntil:
+    notVisible:
+      id: "alert.button.1"
+    timeout: 5000
 
 # Async IBAN check → "Oops" invalid-IBAN alert.
 - extendedWaitUntil:

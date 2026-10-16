@@ -79,19 +79,27 @@ appId: ${APP_ID}
 # buy_signup_no_notifications.yaml does. Not `pressKey: Enter`: on Android that is
 # a hardware key, which puts the window in non-touch mode, so Verify's
 # clearFocus() hands focus straight back to the IBAN field and the keyboard stays
-# up over the initiative sheet's confirm button.
+# up over the initiative alert's buttons.
 - tapOn:
     id: "signup.bittr.start.topLabelOne"
 - tapOn:
     id: "signup.bittr.start.nextButton"
 
-# The T&C §2.5 exclusive-initiative confirmation. It is asked once per
-# registration and nothing reaches Bittr until it is given, so this sits
-# between Verify and the IBAN/email call.
-- assertVisible:
-    id: "signup.bittr.initiative.confirmButton"
+# The exclusive-initiative alert. Confirm is alert.button.1, stacked above Cancel.
+- extendedWaitUntil:
+    visible:
+      id: "alert.button.1"
+    timeout: 10000
+- waitForAnimationToEnd:
+    timeout: 3000
+- takeScreenshot: shared/docs/screenshots/buy_signup/05a_exclusive_initiative
 - tapOn:
-    id: "signup.bittr.initiative.confirmButton"
+    id: "alert.button.1"
+# Let it slide out, so a following alert.button.0 is the next alert's, not its Cancel.
+- extendedWaitUntil:
+    notVisible:
+      id: "alert.button.1"
+    timeout: 5000
 
 # Transfer2: OTP entry. Test-mode fixed code 123456. Auto-submits at 6
 # digits.
