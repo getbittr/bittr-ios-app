@@ -114,7 +114,7 @@ class OkHttpBittrHttpClient(
          * retry budget in `api-contract` §2.3 rule 2 needs in order to be a budget:
          * "≤3 attempts in one app session" is meaningless if an attempt never ends.
          *
-         * 30s matches the value `HttpPriceRepository` already used for the two price
+         * 30s matches the value the price repository (now `PriceHistory`) already used for the two price
          * calls, so the app has one answer to "how long before we give up".
          */
         fun defaultClient(): OkHttpClient = OkHttpClient.Builder()

@@ -131,9 +131,9 @@ class ApiBaseUrlGuardTest {
                 "the URL is correct for the other build. That is BIT-32: the iOS call " +
                 "site it was filed for reads authenticated payout state, so the regtest " +
                 "build reads production customer data.\n" +
-                "Take the base URL from BittrEnvironment instead. It is a parameter of " +
-                "the screens that need it (see ValueScreen), read once out of BuildConfig " +
-                "in BittrNavHost.",
+                "Take the base URL from BittrEnvironment instead. It is read once out of " +
+                "BuildConfig and injected (see PushModule), and the classes that need it " +
+                "take it as a parameter (see PriceHistory).",
             offenders.isEmpty(),
         )
     }
