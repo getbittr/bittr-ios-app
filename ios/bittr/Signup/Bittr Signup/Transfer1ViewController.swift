@@ -139,14 +139,22 @@ class Transfer1ViewController: UIViewController, UITextFieldDelegate {
         
         if self.nextView.backgroundColor == UIColor.black {
             // Fields have been filled.
-            self.nextButtonLabel.alpha = 0
-            self.nextButtonArrow.alpha = 0
-            self.nextButtonActivityIndicator.startAnimating()
-            self.gatherIbanDetails()
+            self.confirmInitiative {
+                self.nextButtonLabel.alpha = 0
+                self.nextButtonArrow.alpha = 0
+                self.nextButtonActivityIndicator.startAnimating()
+                self.gatherIbanDetails()
+            }
         } else {
             // Fields have not yet been filled.
             self.showAlert(title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "transfer1vc"), buttons: [.dismiss(Language.getWord(withID: "okay"))])
         }
+    }
+    
+    func confirmInitiative(then proceed: @escaping () -> Void) {
+        
+        // The user confirms they're requesting Bittr's service on their own initiative.
+        self.showAlert(title: Language.getWord(withID: "initiativetitle"), message: Language.getWord(withID: "initiativemessage"), buttons: [.dismiss(Language.getWord(withID: "cancel")), .action(Language.getWord(withID: "initiativeconfirm"), proceed)])
     }
     
     func gatherIbanDetails() {

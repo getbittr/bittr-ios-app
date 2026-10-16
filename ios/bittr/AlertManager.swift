@@ -178,9 +178,10 @@ private extension UIViewController {
         button.accessibilityIdentifier = "alert.button.\(index)"
         button.addAction(UIAction { _ in handler() }, for: .touchUpInside)
         
+        // The title wraps when it doesn't fit on one line.
         let buttonLabel = UILabel()
         buttonLabel.translatesAutoresizingMaskIntoConstraints = false
-        buttonLabel.numberOfLines = 1
+        buttonLabel.numberOfLines = 0
         buttonLabel.font = UIFont(name: "Gilroy-Bold", size: 16)
         buttonLabel.text = title
         buttonLabel.textColor = Colors.getColor("blackorwhite")
@@ -188,10 +189,17 @@ private extension UIViewController {
         buttonLabel.isAccessibilityElement = false
         button.addSubview(buttonLabel)
         
+        // A one-line title keeps the 40pt plate, and a wrapped one grows it.
+        let preferredHeight = button.heightAnchor.constraint(equalToConstant: 40)
+        preferredHeight.priority = .defaultLow
+        
         NSLayoutConstraint.activate([
-            button.heightAnchor.constraint(equalToConstant: 40),
-            buttonLabel.centerXAnchor.constraint(equalTo: button.centerXAnchor),
-            buttonLabel.centerYAnchor.constraint(equalTo: button.centerYAnchor, constant: 1)
+            preferredHeight,
+            button.heightAnchor.constraint(greaterThanOrEqualToConstant: 40),
+            buttonLabel.centerYAnchor.constraint(equalTo: button.centerYAnchor, constant: 1),
+            buttonLabel.topAnchor.constraint(greaterThanOrEqualTo: button.topAnchor, constant: 10),
+            buttonLabel.leadingAnchor.constraint(equalTo: button.leadingAnchor, constant: 10),
+            buttonLabel.trailingAnchor.constraint(equalTo: button.trailingAnchor, constant: -10)
         ])
         return button
     }
@@ -287,12 +295,21 @@ extension UIViewController {
             closeButton.addAction(UIAction { [weak self] _ in self?.hideAlert() }, for: .touchUpInside)
             card.addSubview(closeButton)
             
-            // Message
+            // Message, inside a scroll view for when it doesn't fit on screen.
+            let messageScrollView = UIScrollView()
+            messageScrollView.translatesAutoresizingMaskIntoConstraints = false
+            messageScrollView.backgroundColor = .clear
+            card.addSubview(messageScrollView)
+            
             let messageLabel = UILabel()
             messageLabel.translatesAutoresizingMaskIntoConstraints = false
             messageLabel.numberOfLines = 0
             messageLabel.attributedText = message.attributed()
-            card.addSubview(messageLabel)
+            messageScrollView.addSubview(messageLabel)
+            
+            // The scroll view takes the message's full height, unless that would push the card above the safe area.
+            let messageFullHeight = messageScrollView.heightAnchor.constraint(equalTo: messageScrollView.contentLayoutGuide.heightAnchor)
+            messageFullHeight.priority = .defaultHigh
             
             // Check whether to stack buttons vertically or horizontally.
             let titlesFitSideBySide = buttons.allSatisfy { eachButton in eachButton.title.count < 16 }
@@ -304,37 +321,53 @@ extension UIViewController {
                     eachButton.action?()
                 }
             }
-
+            
+            // Stacked buttons each keep their own height, so a wrapped title doesn't stretch the others.
             let buttonsStack = UIStackView(arrangedSubviews: stackButtonsVertically ? buttonViews.reversed() : buttonViews)
             buttonsStack.translatesAutoresizingMaskIntoConstraints = false
             buttonsStack.axis = stackButtonsVertically ? .vertical : .horizontal
-            buttonsStack.distribution = .fillEqually
+            buttonsStack.distribution = stackButtonsVertically ? .fill : .fillEqually
             buttonsStack.spacing = 10
             buttonsStack.clipsToBounds = false
             card.addSubview(buttonsStack)
-
+            
             NSLayoutConstraint.activate([
                 closeIcon.centerYAnchor.constraint(equalTo: alertIcon.centerYAnchor),
                 closeIcon.trailingAnchor.constraint(equalTo: card.trailingAnchor, constant: -20),
                 closeIcon.heightAnchor.constraint(equalToConstant: 14),
                 closeIcon.widthAnchor.constraint(equalToConstant: 14),
-
+                
                 closeButton.centerXAnchor.constraint(equalTo: closeIcon.centerXAnchor),
                 closeButton.centerYAnchor.constraint(equalTo: closeIcon.centerYAnchor),
                 closeButton.heightAnchor.constraint(equalToConstant: 40),
                 closeButton.widthAnchor.constraint(equalToConstant: 40),
-
-                messageLabel.topAnchor.constraint(equalTo: alertIcon.bottomAnchor, constant: 25),
-                messageLabel.leadingAnchor.constraint(equalTo: card.leadingAnchor, constant: 40),
-                messageLabel.trailingAnchor.constraint(equalTo: card.trailingAnchor, constant: -40),
-
-                buttonsStack.topAnchor.constraint(equalTo: messageLabel.bottomAnchor, constant: 25),
+                
+                messageScrollView.topAnchor.constraint(equalTo: alertIcon.bottomAnchor, constant: 25),
+                messageScrollView.leadingAnchor.constraint(equalTo: card.leadingAnchor, constant: 20),
+                messageScrollView.trailingAnchor.constraint(equalTo: card.trailingAnchor, constant: -20),
+                messageFullHeight,
+                
+                messageLabel.topAnchor.constraint(equalTo: messageScrollView.contentLayoutGuide.topAnchor),
+                messageLabel.bottomAnchor.constraint(equalTo: messageScrollView.contentLayoutGuide.bottomAnchor),
+                messageLabel.leadingAnchor.constraint(equalTo: messageScrollView.contentLayoutGuide.leadingAnchor),
+                messageLabel.trailingAnchor.constraint(equalTo: messageScrollView.contentLayoutGuide.trailingAnchor),
+                messageLabel.widthAnchor.constraint(equalTo: messageScrollView.frameLayoutGuide.widthAnchor),
+                
+                buttonsStack.topAnchor.constraint(equalTo: messageScrollView.bottomAnchor, constant: 25),
                 buttonsStack.leadingAnchor.constraint(equalTo: card.leadingAnchor, constant: 15),
                 buttonsStack.trailingAnchor.constraint(equalTo: card.trailingAnchor, constant: -15),
-                buttonsStack.bottomAnchor.constraint(equalTo: card.bottomAnchor, constant: -15)
+                buttonsStack.bottomAnchor.constraint(equalTo: card.bottomAnchor, constant: -15),
+                
+                // A message too long for the screen scrolls instead of pushing the card off the top.
+                card.topAnchor.constraint(greaterThanOrEqualTo: chrome.overlay.safeAreaLayoutGuide.topAnchor, constant: 10)
             ])
-
-            self.slideIn(chrome, on: host)
+            
+            self.slideIn(chrome, on: host) {
+                // Show the scroll bar when part of the message is hidden.
+                if messageScrollView.contentSize.height > messageScrollView.bounds.height {
+                    messageScrollView.flashScrollIndicators()
+                }
+            }
         }
     }
     
