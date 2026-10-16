@@ -797,11 +797,13 @@ worth making to the product to satisfy a test.
       that is no longer live — the unlock path. It fails closed (balance zero,
       and a drain that refuses rather than offering a wrong number), which is
       why this is a cost rather than a fund risk. It is still the most likely
-      reason an Android user sees "no funds" on a wallet that has them, and
-      `BdkStore` wiping the store on every start is what makes the scan
-      mandatory rather than an optimisation. **That wipe is a port of iOS and
-      changing it is a deviation, so it is **BIT-131**'s decision to take and
-      not one to make in code.**
+      reason an Android user sees "no funds" on a wallet that has them. Since
+      iOS PR #99 the store is kept between starts: a launch loads the stored
+      wallet and, with a full scan stored that is newer than the database,
+      only light syncs it. A full scan then runs only for a new or replaced
+      database, a failed light sync, or a pull to refresh, which rebuilds the
+      wallet from an empty database. Wallet removal deletes the store, so the
+      removed wallet's history doesn't outlive its seed.
     - **On-chain balance is still not read from BDK, deliberately.** Every
       on-chain figure iOS shows comes from `node.listBalances()`, never
       `bdkWallet.balance()`, because BDK does not know about the anchor-channel
@@ -834,10 +836,10 @@ worth making to the product to satisfy a test.
     both wanted `CacheManager`-shaped storage Android did not have. That
     storage is `WalletCache`, a file store under `no_backup/wallet/cache` — a
     sibling of `ldk_state/` and `bdk_store/` and a child of neither, because
-    the BIT-20 quarantine *moves* the first and `BdkStore.prepare` *deletes*
+    the BIT-20 quarantine *moves* the first and `BdkStore.recreate` *deletes*
     the second, and a ledger inside either forgets everything without
     reporting an error. `CacheSurvivesStateLifecyclesTest` runs a real
-    quarantine and a real prepare over a populated cache. The pump's handler is
+    quarantine and a real recreate over a populated cache. The pump's handler is
     a log line and nothing else, because Android has no payment screen yet —
     the *variant name* rather than the rendering, since a rendered
     `PaymentSuccessful` carries the payment preimage.

@@ -178,4 +178,62 @@ class ScanCoordinatorTest {
         releaseB.complete(Unit)
         assertTrue(b.await())
     }
+
+    // --- The light-sync claim (PR #99) ---------------------------------------
+
+    @Test
+    fun `a light sync claim is refused while another is held, and given again once released`() = runTest {
+        val scans = ScanCoordinator(this)
+        val first = scans.claimLightSync()!!
+        assertFalse(first.replacesHungSync)
+
+        assertEquals(null, scans.claimLightSync())
+
+        scans.endLightSync(first)
+        val second = scans.claimLightSync()!!
+        assertFalse("the first ended rather than hung", second.replacesHungSync)
+    }
+
+    @Test
+    fun `a claim held for two minutes counts as hung and is taken over`() = runTest {
+        var now = 0L
+        val scans = ScanCoordinator(this, nowMillis = { now })
+        val hung = scans.claimLightSync()!!
+
+        now += ScanCoordinator.LIGHT_SYNC_CLAIM_LIMIT_MILLIS - 1
+        assertEquals("not yet hung", null, scans.claimLightSync())
+
+        now += 1
+        val takeover = scans.claimLightSync()!!
+        assertTrue(takeover.replacesHungSync)
+
+        // The hung one ending late must not release the claim that replaced it.
+        scans.endLightSync(hung)
+        assertEquals(null, scans.claimLightSync())
+
+        scans.endLightSync(takeover)
+        assertTrue(scans.claimLightSync() != null)
+    }
+
+    @Test
+    fun `a stored scan brought up to date counts as scanned, and a rescan request undoes it`() = runTest {
+        val scans = ScanCoordinator(this)
+
+        scans.markPreviouslyScanned()
+        assertTrue(scans.hasBeenScanned)
+
+        scans.markNeedsFullScan()
+        assertFalse(scans.hasBeenScanned)
+    }
+
+    /** As on iOS, a light sync still running when the wallet is torn down keeps its claim. */
+    @Test
+    fun `clearing the scan state keeps a held light sync claim`() = runTest {
+        val scans = ScanCoordinator(this)
+        scans.claimLightSync()!!
+
+        scans.clear()
+
+        assertEquals(null, scans.claimLightSync())
+    }
 }

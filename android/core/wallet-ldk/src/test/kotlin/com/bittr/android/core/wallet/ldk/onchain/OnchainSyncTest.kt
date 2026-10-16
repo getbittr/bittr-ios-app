@@ -3,6 +3,8 @@ package com.bittr.android.core.wallet.ldk.onchain
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.async
+import kotlinx.coroutines.test.advanceTimeBy
+import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -98,6 +100,24 @@ class OnchainSyncTest {
             calls += "persist"
             persistFailure?.let { throw it() }
         }
+
+        var reconnectFailure: (() -> Exception)? = null
+
+        override fun reconnectElectrum() {
+            calls += "reconnectElectrum"
+            reconnectFailure?.let { throw it() }
+        }
+    }
+
+    /** A [BdkScanRecord] in memory. */
+    private class FakeRecord : BdkScanRecord {
+        var fullScanStored = false
+        override var rebuildRequested = false
+        override val hasStoredFullScan: Boolean get() = fullScanStored
+        override fun storeFullScanCompletion() { fullScanStored = true }
+        override fun clearFullScanCompletion() { fullScanStored = false }
+        override fun requestRebuild() { rebuildRequested = true; fullScanStored = false }
+        override fun clearRebuildRequest() { rebuildRequested = false }
     }
 
     /**
@@ -106,8 +126,12 @@ class OnchainSyncTest {
      * end of a sync that applied is `ChannelClosureRecorderTest`'s, and it
      * asserts its position there against the same class.
      */
-    private fun sync(port: FakeSyncPort, scans: ScanCoordinator) =
-        OnchainSync(port, scans, closures = null)
+    private fun sync(
+        port: FakeSyncPort,
+        scans: ScanCoordinator,
+        record: BdkScanRecord? = null,
+        reopenWallet: (() -> Boolean)? = null,
+    ) = OnchainSync(port, scans, closures = null, record = record, reopenWallet = reopenWallet)
 
     /**
      * The step a sync stopped at, or a failure that says what happened instead.
@@ -347,5 +371,192 @@ class OnchainSyncTest {
             1,
             port.calls.count { it == "fullScan" },
         )
+    }
+
+    // --- The stored full scan (PR #99) ---------------------------------------
+
+    @Test
+    fun `a full scan that persisted is stored`() = runTest {
+        val record = FakeRecord()
+
+        assertTrue(sync(FakeSyncPort(), ScanCoordinator(this), record).fullScan())
+
+        assertTrue(record.fullScanStored)
+    }
+
+    /** The stored data lacks this scan, so the next launch must scan again. */
+    @Test
+    fun `a full scan that did not persist forgets the stored one`() = runTest {
+        val record = FakeRecord().apply { fullScanStored = true }
+        val port = FakeSyncPort().apply { persistFailure = { IllegalStateException("disk full") } }
+
+        assertTrue("still applied, as before", sync(port, ScanCoordinator(this), record).fullScan())
+
+        assertFalse(record.fullScanStored)
+    }
+
+    @Test
+    fun `a full scan that failed leaves the stored one as it was`() = runTest {
+        val record = FakeRecord()
+        val port = FakeSyncPort().apply { fetchFailure = { java.io.IOException("electrum unreachable") } }
+
+        assertFalse(sync(port, ScanCoordinator(this), record).fullScan())
+
+        assertFalse(record.fullScanStored)
+    }
+
+    // --- The rebuild, inside the scan ------------------------------------------
+
+    @Test
+    fun `a requested rebuild reopens the wallet before the scan`() = runTest {
+        val record = FakeRecord().apply { rebuildRequested = true }
+        val port = FakeSyncPort()
+        val order = mutableListOf<String>()
+        val subject = sync(port, ScanCoordinator(this), record) {
+            order += "reopen(scans=${port.calls.size})"
+            true
+        }
+
+        assertTrue(subject.fullScan())
+
+        assertEquals("reopened before any scan step", listOf("reopen(scans=0)"), order)
+        assertEquals(1, port.calls.count { it == "fullScan" })
+    }
+
+    @Test
+    fun `a rebuild that could not reopen the wallet scans nothing`() = runTest {
+        val record = FakeRecord().apply { rebuildRequested = true }
+        val port = FakeSyncPort()
+        val scans = ScanCoordinator(this)
+
+        assertFalse(sync(port, scans, record) { false }.fullScan())
+
+        assertEquals(emptyList<String>(), port.calls)
+        assertFalse(scans.hasBeenScanned)
+    }
+
+    @Test
+    fun `no rebuild is run unless one is requested`() = runTest {
+        var reopened = false
+
+        assertTrue(sync(FakeSyncPort(), ScanCoordinator(this), FakeRecord()) { reopened = true; true }.fullScan())
+
+        assertFalse(reopened)
+    }
+
+    /** A running light sync still writes to the stored database, so the rebuild waits for it. */
+    @Test
+    fun `a rebuild waits for a running light sync to end`() = runTest {
+        val scans = ScanCoordinator(this)
+        val record = FakeRecord().apply { rebuildRequested = true }
+        var reopened = false
+        val claim = scans.claimLightSync()!!
+
+        val scan = async { sync(FakeSyncPort(), scans, record) { reopened = true; true }.fullScan() }
+        advanceTimeBy(OnchainSync.REBUILD_WAIT_MILLIS * 4)
+        runCurrent()
+        assertFalse("not while the light sync holds its claim", reopened)
+
+        scans.endLightSync(claim)
+        advanceTimeBy(OnchainSync.REBUILD_WAIT_MILLIS)
+        runCurrent()
+
+        assertTrue(scan.await())
+        assertTrue(reopened)
+        assertTrue("the rebuild releases the claim it took", scans.claimLightSync() != null)
+    }
+
+    @Test
+    fun `a rebuild gives up after thirty seconds of a running light sync`() = runTest {
+        val scans = ScanCoordinator(this, timeoutMillis = 60_000L)
+        val record = FakeRecord().apply { rebuildRequested = true }
+        var reopened = false
+        scans.claimLightSync()!!
+
+        val scan = async { sync(FakeSyncPort(), scans, record) { reopened = true; true }.fullScan() }
+        advanceTimeBy(OnchainSync.REBUILD_WAIT_MILLIS * OnchainSync.REBUILD_WAIT_ATTEMPTS + 1)
+        runCurrent()
+
+        assertFalse(scan.await())
+        assertFalse(reopened)
+        assertTrue("the request stays, so the next start rebuilds", record.rebuildRequested)
+    }
+
+    // --- Light-sync outcomes -------------------------------------------------
+
+    @Test
+    fun `a light sync reports synced`() = runTest {
+        assertEquals(LightSyncOutcome.Synced, sync(FakeSyncPort(), ScanCoordinator(this)).lightSync())
+    }
+
+    @Test
+    fun `a light sync that failed is told apart from a skipped one`() = runTest {
+        val port = FakeSyncPort().apply { fetchFailure = { java.io.IOException("electrum unreachable") } }
+
+        assertEquals(LightSyncOutcome.Failed, sync(port, ScanCoordinator(this)).lightSync())
+    }
+
+    @Test
+    fun `a light sync stands down while a full scan runs`() = runTest {
+        val scans = ScanCoordinator(this)
+        val gate = CompletableDeferred<Unit>()
+        val scan = async { scans.fullScan { gate.await(); true } }
+        runCurrent()
+
+        val port = FakeSyncPort()
+        assertEquals(LightSyncOutcome.SkippedForFullScan, sync(port, scans).lightSync())
+        assertEquals(emptyList<String>(), port.calls)
+
+        gate.complete(Unit)
+        scan.await()
+    }
+
+    @Test
+    fun `one light sync at a time`() = runTest {
+        val scans = ScanCoordinator(this)
+        val claim = scans.claimLightSync()!!
+        val port = FakeSyncPort()
+
+        assertEquals(LightSyncOutcome.SkippedForLightSync, sync(port, scans).lightSync())
+        assertEquals(emptyList<String>(), port.calls)
+
+        scans.endLightSync(claim)
+        assertEquals(LightSyncOutcome.Synced, sync(port, scans).lightSync())
+    }
+
+    @Test
+    fun `a light sync releases its claim when it ends, applied or not`() = runTest {
+        val scans = ScanCoordinator(this)
+        val port = FakeSyncPort().apply { fetchFailure = { java.io.IOException("electrum unreachable") } }
+
+        sync(port, scans).lightSync()
+
+        assertTrue(scans.claimLightSync() != null)
+    }
+
+    /** A hung light sync may have left the Electrum connection stuck, so the next opens a new one. */
+    @Test
+    fun `a light sync that takes over a hung one reconnects to Electrum first`() = runTest {
+        var now = 0L
+        val scans = ScanCoordinator(this, nowMillis = { now })
+        scans.claimLightSync()!!
+        now += ScanCoordinator.LIGHT_SYNC_CLAIM_LIMIT_MILLIS
+        val port = FakeSyncPort()
+
+        assertEquals(LightSyncOutcome.Synced, sync(port, scans).lightSync())
+
+        assertEquals("reconnectElectrum", port.calls.first())
+    }
+
+    @Test
+    fun `a failed reconnect fails the light sync`() = runTest {
+        var now = 0L
+        val scans = ScanCoordinator(this, nowMillis = { now })
+        scans.claimLightSync()!!
+        now += ScanCoordinator.LIGHT_SYNC_CLAIM_LIMIT_MILLIS
+        val port = FakeSyncPort().apply { reconnectFailure = { java.io.IOException("unreachable") } }
+
+        assertEquals(LightSyncOutcome.Failed, sync(port, scans).lightSync())
+        assertEquals(listOf("reconnectElectrum"), port.calls)
     }
 }
