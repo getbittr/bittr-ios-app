@@ -11,12 +11,13 @@ import org.junit.rules.TemporaryFolder
 import java.io.File
 
 /**
- * The wipe-per-start, and the fence that stops it reaching the seed.
+ * The kept store, its recreate, and the fence that stops a delete reaching the seed.
  *
- * The first two tests are the ported behaviour. The rest are the fence, and they
- * are the reason this class matters: the iOS line being ported is safe on iOS
- * *because of a directory layout*, and the port had the wrong layout until the
- * delete was written down and fenced.
+ * The first tests are the ported behaviour: `Connection.open()` keeps the stored
+ * wallet, `Connection.recreate()` throws it away, and the creation time stands in
+ * for the database file's creation date. The rest are the fence, and they are the
+ * reason this class matters: the iOS delete is safe on iOS *because of a directory
+ * layout*, and the port had the wrong layout until the delete was fenced.
  */
 class BdkStoreTest {
 
@@ -26,39 +27,92 @@ class BdkStoreTest {
     private fun paths() = WalletPaths(temporaryFolder.newFolder("no_backup"))
 
     @Test
-    fun `prepare leaves an empty store directory and returns the database path`() {
+    fun `open creates the store directory and returns the database path`() {
         val paths = paths()
-        val returned = BdkStore.prepare(paths.bdkDatabaseFile)
+        val returned = BdkStore.open(paths.bdkDatabaseFile)
 
         assertEquals(paths.bdkDatabaseFile, returned)
         assertTrue("The store directory must exist afterwards", paths.bdkStoreDir.isDirectory)
-        assertEquals(
-            "A fresh store directory must be empty",
-            emptyList<String>(),
-            paths.bdkStoreDir.list()?.toList() ?: emptyList<String>(),
-        )
     }
 
     @Test
-    fun `prepare deletes an existing store, which is what forces the full scan`() {
+    fun `open keeps an existing store, so the stored wallet can load`() {
+        val paths = paths()
+        paths.bdkStoreDir.mkdirs()
+        paths.bdkDatabaseFile.writeText("stored chain data")
+
+        BdkStore.open(paths.bdkDatabaseFile)
+
+        assertEquals("stored chain data", paths.bdkDatabaseFile.readText())
+    }
+
+    @Test
+    fun `recreate deletes an existing store, sidecars included`() {
         val paths = paths()
         paths.bdkStoreDir.mkdirs()
         paths.bdkDatabaseFile.writeText("stale chain data")
         File(paths.bdkStoreDir, "bdk_wallet.sqlite-wal").writeText("stale wal")
 
-        BdkStore.prepare(paths.bdkDatabaseFile)
+        BdkStore.recreate(paths.bdkDatabaseFile)
 
         assertFalse("The old database must be gone", paths.bdkDatabaseFile.exists())
         assertEquals(
             "SQLite sidecars must go with it — a -wal left beside a deleted " +
                 "database is how SQLite reopens onto a half-state.",
-            emptyList<String>(),
+            listOf(BdkStore.CREATED_AT_FILE),
             paths.bdkStoreDir.list()?.toList() ?: emptyList<String>(),
         )
     }
 
     @Test
-    fun `prepare does not touch the seed blob, the LDK state or a quarantine`() {
+    fun `delete removes the whole store directory`() {
+        val paths = paths()
+        BdkStore.open(paths.bdkDatabaseFile)
+        paths.bdkDatabaseFile.writeText("removed wallet's history")
+
+        BdkStore.delete(paths.bdkDatabaseFile)
+
+        assertFalse(paths.bdkStoreDir.exists())
+    }
+
+    @Test
+    fun `the creation time is recorded by a recreate and kept by later opens`() {
+        val paths = paths()
+        val before = System.currentTimeMillis() / 1000
+        BdkStore.recreate(paths.bdkDatabaseFile)
+        paths.bdkDatabaseFile.writeText("database")
+        val created = BdkStore.creationEpochSeconds(paths.bdkDatabaseFile)!!
+        assertTrue(created >= before)
+
+        File(paths.bdkStoreDir, BdkStore.CREATED_AT_FILE).writeText("1000")
+        BdkStore.open(paths.bdkDatabaseFile)
+
+        assertEquals("an open must not move the creation time", 1000L, BdkStore.creationEpochSeconds(paths.bdkDatabaseFile))
+    }
+
+    @Test
+    fun `a store with no recorded creation time counts as created at its first open`() {
+        val paths = paths()
+        paths.bdkStoreDir.mkdirs()
+        paths.bdkDatabaseFile.writeText("database from an older build")
+        assertEquals(null, BdkStore.creationEpochSeconds(paths.bdkDatabaseFile))
+
+        val before = System.currentTimeMillis() / 1000
+        BdkStore.open(paths.bdkDatabaseFile)
+
+        assertTrue(BdkStore.creationEpochSeconds(paths.bdkDatabaseFile)!! >= before)
+    }
+
+    @Test
+    fun `there is no creation time without a database`() {
+        val paths = paths()
+        BdkStore.recreate(paths.bdkDatabaseFile)
+
+        assertEquals(null, BdkStore.creationEpochSeconds(paths.bdkDatabaseFile))
+    }
+
+    @Test
+    fun `recreate does not touch the seed blob, the LDK state or a quarantine`() {
         // The fund-loss case. If the BDK database ever sits next to these again,
         // the recursive delete above destroys the user's only on-device copy of
         // the seed and every channel state they have.
@@ -72,7 +126,8 @@ class BdkStoreTest {
         paths.discriminatorFile.writeText("discriminator")
         val priorQuarantine = File(paths.quarantineRoot, "foreign-1").also { it.mkdirs() }
 
-        BdkStore.prepare(paths.bdkDatabaseFile)
+        BdkStore.recreate(paths.bdkDatabaseFile)
+        BdkStore.delete(paths.bdkDatabaseFile)
 
         assertTrue("The seed blob must survive a BDK store wipe", paths.seedBlobFile.exists())
         assertEquals("wrapped seed blob", paths.seedBlobFile.readText())
@@ -82,7 +137,7 @@ class BdkStoreTest {
     }
 
     @Test
-    fun `prepare refuses a database sited directly in the wallet directory`() {
+    fun `the store refuses a database sited directly in the wallet directory`() {
         // The layout that existed before `bdkStoreDir`. It must fail loudly
         // rather than wipe `walletDir`.
         val paths = paths()
@@ -91,7 +146,7 @@ class BdkStoreTest {
 
         val misSited = File(paths.walletDir, "bdk_wallet.sqlite")
         val failure = assertThrows(IllegalArgumentException::class.java) {
-            BdkStore.prepare(misSited)
+            BdkStore.recreate(misSited)
         }
 
         assertTrue(
@@ -105,14 +160,17 @@ class BdkStoreTest {
     }
 
     @Test
-    fun `prepare refuses the LDK state directory itself`() {
+    fun `the store refuses the LDK state directory itself`() {
         val paths = paths()
         paths.createDirectories()
         val channelState = File(paths.ldkStateDir, "ldk_node_data.sqlite")
         channelState.writeText("channel monitors")
 
         assertThrows(IllegalArgumentException::class.java) {
-            BdkStore.prepare(File(paths.ldkStateDir, "bdk_wallet.sqlite"))
+            BdkStore.delete(File(paths.ldkStateDir, "bdk_wallet.sqlite"))
+        }
+        assertThrows(IllegalArgumentException::class.java) {
+            BdkStore.open(File(paths.ldkStateDir, "bdk_wallet.sqlite"))
         }
         assertTrue("Channel state must be intact", channelState.exists())
     }

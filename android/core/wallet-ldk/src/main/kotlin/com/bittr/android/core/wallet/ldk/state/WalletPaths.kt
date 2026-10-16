@@ -58,23 +58,23 @@ class WalletPaths(
      * (`BitcoinManager.swift:836`), and a directory rather than a bare file for
      * one load-bearing reason.
      *
-     * `BdkStore.prepare` ports iOS's *delete the whole directory on every start*
-     * (`BitcoinManager.swift:838–840`). On iOS that directory holds nothing but
-     * `wallet.sqlite`, so the delete is safe. If BDK's database sat directly in
-     * [walletDir] — as it did until this was split out — the same ported delete
-     * would take [seedBlobFile], [ldkStateDir] and [quarantineRoot] with it: the
-     * seed blob and every channel state on the device, wiped on a routine start.
+     * `BdkStore.recreate` ports iOS's `Connection.recreate()`, which deletes the
+     * whole directory when the stored wallet is thrown away. On iOS that directory
+     * holds nothing but `wallet.sqlite`, so the delete is safe. If BDK's database
+     * sat directly in [walletDir] — as it did until this was split out — the same
+     * ported delete would take [seedBlobFile], [ldkStateDir] and [quarantineRoot]
+     * with it: the seed blob and every channel state on the device.
      *
      * That is the whole fund-loss path, reached by porting a safe iOS line into a
      * directory layout that differs. The directory is the fix, and
-     * `BdkStoreTest` is the proof — it asserts the siblings survive a prepare.
+     * `BdkStoreTest` is the proof — it asserts the siblings survive a recreate.
      *
      * Not inside [ldkStateDir]: the BIT-20 quarantine moves that directory, and
      * BDK's rebuildable cache must not ride along with it.
      */
     val bdkStoreDir: File = File(walletDir, BDK_STORE_DIR)
 
-    /** BDK's SQLite `Connection` path, inside its own wipeable directory. */
+    /** BDK's SQLite `Connection` path, inside its own deletable directory. */
     val bdkDatabaseFile: File = File(bdkStoreDir, "bdk_wallet.sqlite")
 
     /** The Keystore-wrapped mnemonic. A cache, never the only copy — BIT-8 rule 3. */
@@ -101,9 +101,9 @@ class WalletPaths(
      *   along with it would forget every handled event the moment a foreign-seed
      *   import fired — the issue's own words, and the reason this is not a file
      *   inside the state directory.
-     * - [bdkStoreDir] is **deleted in full on every start** by `BdkStore.prepare`.
-     *   A ledger there would forget everything once per process, which on Android
-     *   is once per user session or oftener.
+     * - [bdkStoreDir] is **deleted in full** by `BdkStore.recreate` whenever the
+     *   stored wallet is thrown away — a corrupt database, another seed, or a pull
+     *   to refresh. A ledger there would forget everything each time.
      *
      * So it sits directly under [walletDir], beside them, where nothing this
      * module does removes it. Wallet removal does not either: `removeWallet`
@@ -135,7 +135,7 @@ class WalletPaths(
     /**
      * Creates every directory a caller may write into without first asking.
      *
-     * [bdkStoreDir] is in this list even though `BdkStore.prepare` creates it
+     * [bdkStoreDir] is in this list even though `BdkStore.open` creates it
      * too, and that is not redundancy — it is the contract. When the store
      * directory was split out of [walletDir], this method was not updated, so
      * `File(bdkDatabaseFile).writeText(…)` started throwing `ENOENT` for any
