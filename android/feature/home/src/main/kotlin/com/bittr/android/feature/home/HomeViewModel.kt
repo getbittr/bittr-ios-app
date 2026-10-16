@@ -135,6 +135,10 @@ class HomeViewModel @Inject constructor(
                 if (overview.overview.value.hasSynced) prices.current()?.let(::applyPrice)
             }
         }
+        // A price fetched elsewhere — the Value screen as it loads — updates Home's rate too.
+        viewModelScope.launch {
+            prices.priceUpdates.collect { prices.current()?.let(::applyPrice) }
+        }
     }
 
     val uiState: StateFlow<HomeUiState> = combine(
