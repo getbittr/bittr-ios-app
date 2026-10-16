@@ -59,8 +59,9 @@ fun ValueScreen(
     environment: BittrEnvironment,
     http: HttpClient,
     onBack: () -> Unit,
+    // The chosen currency. No default: one let every caller draw the chart in euros.
+    currency: PriceCurrency,
     modifier: Modifier = Modifier,
-    currency: PriceCurrency = PriceCurrency.EUR,
 ) = ValueScreen(
     onBack = onBack,
     modifier = modifier,
@@ -90,7 +91,7 @@ internal fun ValueScreen(
     var failed by remember { mutableStateOf(false) }
     var attempt by remember { mutableStateOf(0) }
 
-    LaunchedEffect(prices, attempt) {
+    LaunchedEffect(prices, currency, attempt) {
         state = ValueUiState()
         failed = false
         runCatching { prices.load(currency, LocalDate.now()) }.fold(
