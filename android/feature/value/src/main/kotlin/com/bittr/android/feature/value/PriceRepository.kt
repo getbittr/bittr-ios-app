@@ -105,15 +105,18 @@ internal class HttpPriceRepository(
 }
 
 /**
- * The week's prices, oldest first and ending on the current one — what Home's value card draws.
- * iOS's `loadGraph` reads `PriceHistory.load(...).series[.week]` for it, the same fetch the value
- * screen makes.
+ * The week's prices in [currency], oldest first and ending on the current one — what Home's value
+ * card draws. iOS's `loadGraph` reads `PriceHistory.load(...).series[.week]` for it, the same
+ * fetch the value screen makes.
+ *
+ * The series already ends on the current price ([HttpPriceRepository.load] appends it to every
+ * span), so nothing is appended here: a second copy drew a flat stub at the end of the line.
  */
 suspend fun loadWeekPrices(
     environment: BittrEnvironment,
     http: HttpClient,
-    currency: PriceCurrency = PriceCurrency.EUR,
+    currency: PriceCurrency,
 ): List<Double> {
     val snapshot = HttpPriceRepository(environment, http).load(currency, LocalDate.now())
-    return snapshot.series[GraphSpan.WEEK].orEmpty().map { it.price } + snapshot.currentPrice
+    return snapshot.series[GraphSpan.WEEK].orEmpty().map { it.price }
 }

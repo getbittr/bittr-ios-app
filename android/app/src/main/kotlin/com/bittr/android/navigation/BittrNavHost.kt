@@ -3,6 +3,8 @@ package com.bittr.android.navigation
 import com.bittr.android.core.designsystem.BittrPopup
 import com.bittr.android.core.designsystem.BittrSheet
 import com.bittr.android.home.HomeValueViewModel
+import com.bittr.android.home.ValueCurrencyViewModel
+import com.bittr.android.home.priceCurrency
 import com.bittr.android.core.designsystem.BittrTheme
 import androidx.compose.ui.window.DialogProperties
 import androidx.navigation.compose.currentBackStackEntryAsState
@@ -583,10 +585,12 @@ fun BittrNavHost(
                 }
 
                 sheet(navController, Routes.VALUE) { _, dismiss ->
+                    val currency by hiltViewModel<ValueCurrencyViewModel>().currency.collectAsState()
                     ValueScreen(
                         environment = environment,
                         http = http,
                         onBack = dismiss,
+                        currency = currency.priceCurrency(),
                     )
                 }
 
