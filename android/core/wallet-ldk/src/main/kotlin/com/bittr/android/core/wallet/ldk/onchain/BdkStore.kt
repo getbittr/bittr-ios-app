@@ -30,7 +30,9 @@ import java.io.File
  * not reliably report a creation date — `BasicFileAttributes.creationTime()`
  * falls back to the modification time, which every write moves past the scan.
  * So the creation time is written down instead, in [CREATED_AT_FILE] beside the
- * database, by [recreate] and by the first [open] that finds none.
+ * database, by [recreate] and by the first [open] that finds none, or finds one it
+ * cannot read. It is not essential: when it cannot be written, the database simply
+ * has no known creation time, and the next launch scans in full.
  *
  * ## Where the store lives, and why the delete is fenced
  *
@@ -64,10 +66,10 @@ object BdkStore {
         if (!directory.mkdirs() && !directory.isDirectory) {
             throw java.io.IOException("Could not create BDK store directory: $directory")
         }
-        // A store from before the creation time was written down counts as created now.
+        // A store whose creation time is missing or unreadable counts as created now.
         // Any full scan recorded before this moment is then distrusted, as on iOS.
         val createdAt = File(directory, CREATED_AT_FILE)
-        if (!createdAt.exists()) writeCreatedAt(createdAt)
+        if (readCreatedAt(createdAt) == null) writeCreatedAt(createdAt)
         return databaseFile
     }
 
@@ -91,6 +93,11 @@ object BdkStore {
      */
     fun delete(databaseFile: File) {
         val directory = storeDirectory(databaseFile)
+        // `deleteRecursively` follows a symlinked directory, so a link here could reach
+        // anything the app can write. Nothing in the app creates one.
+        require(!java.nio.file.Files.isSymbolicLink(directory.toPath())) {
+            "Refusing to delete '$directory': it is a symbolic link"
+        }
         if (directory.exists() && !directory.deleteRecursively()) {
             throw java.io.IOException("Could not clear BDK store directory: $directory")
         }
@@ -103,16 +110,20 @@ object BdkStore {
      */
     fun creationEpochSeconds(databaseFile: File): Long? {
         if (!databaseFile.exists()) return null
-        val createdAt = File(databaseFile.parentFile ?: return null, CREATED_AT_FILE)
-        return runCatching { createdAt.readText().trim().toLong() }.getOrNull()
+        return readCreatedAt(File(databaseFile.parentFile ?: return null, CREATED_AT_FILE))
     }
 
+    private fun readCreatedAt(file: File): Long? =
+        runCatching { file.readText().trim().toLong() }.getOrNull()
+
+    /** Written to a temporary file and renamed into place, so it is never read half-written. */
     private fun writeCreatedAt(file: File) {
-        try {
-            file.writeText((System.currentTimeMillis() / 1000).toString())
-        } catch (failure: java.io.IOException) {
-            throw java.io.IOException("Could not record when the BDK store was created: $file", failure)
-        }
+        val temporary = File(file.parentFile, "$CREATED_AT_FILE.tmp")
+        val written = runCatching {
+            temporary.writeText((System.currentTimeMillis() / 1000).toString())
+            temporary.renameTo(file)
+        }.getOrDefault(false)
+        if (!written) temporary.delete()
     }
 
     private fun storeDirectory(databaseFile: File): File {

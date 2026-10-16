@@ -71,6 +71,12 @@ class BdkWalletLoadTest {
             onError = { _, _ -> },
         )
 
+    /** How many external addresses revealing up to [index] adds, with their handles freed. */
+    private fun BdkWallet.newlyRevealedTo(index: UInt): Int {
+        val revealed = wallet.revealAddressesTo(KeychainKind.EXTERNAL, index)
+        return revealed.size.also { revealed.forEach { it.destroy() } }
+    }
+
     private fun BdkWallet.firstAddress(): String {
         val info = wallet.peekAddress(KeychainKind.EXTERNAL, 0u)
         return try {
@@ -83,7 +89,7 @@ class BdkWalletLoadTest {
     @Test
     fun the_same_seed_loads_its_stored_wallet_with_its_revealed_addresses() {
         open(seedA).use { created ->
-            created.wallet.revealAddressesTo(KeychainKind.EXTERNAL, 5u).forEach { it.destroy() }
+            created.newlyRevealedTo(5u)
             created.wallet.persist(created.connection)
         }
 
@@ -92,7 +98,7 @@ class BdkWalletLoadTest {
             assertTrue(log.toString(), "Did load the stored BDK wallet." in log)
             // Revealing to the index already persisted produces nothing new, which it only
             // can if the revealed index survived. That is what makes a light sync enough.
-            assertEquals(0, loaded.wallet.revealAddressesTo(KeychainKind.EXTERNAL, 5u).size)
+            assertEquals(0, loaded.newlyRevealedTo(5u))
         }
     }
 
@@ -136,13 +142,13 @@ class BdkWalletLoadTest {
     @Test
     fun a_requested_rebuild_starts_from_an_empty_database() {
         open(seedA).use { created ->
-            created.wallet.revealAddressesTo(KeychainKind.EXTERNAL, 5u).forEach { it.destroy() }
+            created.newlyRevealedTo(5u)
             created.wallet.persist(created.connection)
         }
 
         val record = FakeRecord().apply { rebuildRequested = true }
         open(seedA, record).use { rebuilt ->
-            assertEquals("nothing revealed survived", 6, rebuilt.wallet.revealAddressesTo(KeychainKind.EXTERNAL, 5u).size)
+            assertEquals("nothing revealed survived", 6, rebuilt.newlyRevealedTo(5u))
         }
         assertFalse(record.rebuildRequested)
     }

@@ -672,6 +672,11 @@ object WalletModule {
             // sweep material. A quarantine that fails throws, and the removal stops with the
             // seed still there, as iOS's does when its teardown fails.
             wipeNodeState = {
+                // iOS deletes the BDK database with the rest of `Documents`, so the removed
+                // wallet's history doesn't outlive its seed. First, because it is the step
+                // most likely to fail and the cheapest to redo: a failure stops the removal
+                // before the node state has been quarantined.
+                BdkStore.delete(paths.bdkDatabaseFile)
                 LdkStateStore(paths).quarantineLightningState()?.let { directory ->
                     Log.i(TAG, "Quarantined the removed wallet's node state in ${directory.name}")
                 }
@@ -683,9 +688,6 @@ object WalletModule {
                     CachedChannelClosureStore.KEY_FUNDING_OUTPOINT,
                     CachedChannelClosureStore.KEY_CLOSURE_TX_IDS,
                 ).forEach(cache::remove)
-                // iOS deletes the BDK database with the rest of `Documents`, so the removed
-                // wallet's history doesn't outlive its seed.
-                BdkStore.delete(paths.bdkDatabaseFile)
             },
             // The next create or restore runs `prepareNodeState` below. After a removal there is
             // no state left to judge; otherwise state whose discriminator does not match the new
@@ -789,9 +791,10 @@ object WalletModule {
                 canResync = { overview.overview.value.hasSynced },
                 markResyncing = {
                     overview.markResyncing()
-                    // `markBdkNeedsRebuild()`.
+                    // `markBdkNeedsRebuild()` and `walletSync.stop()`. The request itself is
+                    // stored by `rebuildNow`, off the thread that handled the pull.
                     scans.markNeedsFullScan()
-                    scanRecord.requestRebuild()
+                    onchainLoop.pauseLightSyncs()
                 },
                 endResync = overview::endResync,
                 syncNode = lightning::syncWallets,

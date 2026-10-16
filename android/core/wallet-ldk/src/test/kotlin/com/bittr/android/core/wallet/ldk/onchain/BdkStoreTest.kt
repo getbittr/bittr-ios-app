@@ -193,4 +193,31 @@ class BdkStoreTest {
             paths.bdkStoreDir.canonicalPath.startsWith(paths.ldkStateDir.canonicalPath),
         )
     }
+
+    /** An unreadable creation time would otherwise force a full scan on every launch. */
+    @Test
+    fun `an unreadable creation time is written again`() {
+        val paths = paths()
+        BdkStore.open(paths.bdkDatabaseFile)
+        paths.bdkDatabaseFile.writeText("database")
+        File(paths.bdkStoreDir, BdkStore.CREATED_AT_FILE).writeText("not a number")
+
+        BdkStore.open(paths.bdkDatabaseFile)
+
+        assertTrue(BdkStore.creationEpochSeconds(paths.bdkDatabaseFile) != null)
+    }
+
+    @Test
+    fun `delete refuses a store directory that is a symbolic link`() {
+        val paths = paths()
+        paths.createDirectories()
+        paths.bdkStoreDir.deleteRecursively()
+        val elsewhere = temporaryFolder.newFolder("elsewhere")
+        val kept = File(elsewhere, "kept").apply { writeText("kept") }
+        java.nio.file.Files.createSymbolicLink(paths.bdkStoreDir.toPath(), elsewhere.toPath())
+
+        assertThrows(IllegalArgumentException::class.java) { BdkStore.delete(paths.bdkDatabaseFile) }
+
+        assertTrue(kept.exists())
+    }
 }

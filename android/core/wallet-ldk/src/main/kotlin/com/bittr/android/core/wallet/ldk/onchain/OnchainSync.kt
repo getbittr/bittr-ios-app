@@ -248,6 +248,8 @@ class OnchainSync<W : Any, F : Any, S : Any, U : Any>(
      */
     private val reopenWallet: (() -> Boolean)?,
     private val log: (String) -> Unit = {},
+    /** A failure iOS hands `handleError(error:row:)`, with its row. */
+    private val onError: (Throwable, Int) -> Unit = { _, _ -> },
 ) {
 
     /**
@@ -260,19 +262,23 @@ class OnchainSync<W : Any, F : Any, S : Any, U : Any>(
      * seconds is told `false` while the scan runs on. Both are
      * [ScanCoordinator]'s behaviour and its tests.
      */
-    suspend fun fullScan(): Boolean = scans.fullScan {
+    suspend fun fullScan(): Boolean = scans.fullScan { generation ->
         // Rebuild the wallet first when the user asked for it.
-        if (record?.rebuildRequested == true && !rebuildWallet()) return@fullScan false
+        if (record?.rebuildRequested == true && !rebuildWallet(generation)) return@fullScan false
 
         val outcome = runFullScan()
-        if (outcome is SyncOutcome.Applied) {
-            // Only count the full scan as done once it has persisted.
-            if (outcome.persisted) {
-                record?.storeFullScanCompletion()
-            } else {
-                // The stored data lacks this scan, so the next launch must scan again.
-                record?.clearFullScanCompletion()
+        when (outcome) {
+            is SyncOutcome.Applied -> {
+                // Only count the full scan as done once it has persisted.
+                if (outcome.persisted) {
+                    record?.storeFullScanCompletion()
+                } else {
+                    // The stored data lacks this scan, so the next launch must scan again.
+                    outcome.persistFailure?.let { onError(it, ROW_FULL_SCAN_PERSIST) }
+                    record?.clearFullScanCompletion()
+                }
             }
+            is SyncOutcome.NotApplied -> outcome.cause?.let { onError(it, fullScanRow(outcome.step)) }
         }
         outcome.applied
     }
@@ -284,8 +290,12 @@ class OnchainSync<W : Any, F : Any, S : Any, U : Any>(
      * Waits up to [REBUILD_WAIT_ATTEMPTS] × [REBUILD_WAIT_MILLIS] for a running light sync
      * to finish, as it still writes to the stored database, and gives up otherwise. The
      * request stays stored then, so the next start rebuilds.
+     *
+     * A scan outlives its runner, so the wallet may have been torn down while this waited.
+     * It then refuses: rebuilding would open a wallet nobody owns — after a removal, the
+     * removed seed's.
      */
-    private suspend fun rebuildWallet(): Boolean {
+    private suspend fun rebuildWallet(generation: Long): Boolean {
         log("Will rebuild the BDK wallet.")
         val reopen = reopenWallet ?: return false
 
@@ -301,7 +311,12 @@ class OnchainSync<W : Any, F : Any, S : Any, U : Any>(
             return false
         }
         return try {
-            reopen()
+            if (!scans.isCurrent(generation)) {
+                log("The BDK wallet was torn down. Will not rebuild it.")
+                false
+            } else {
+                reopen()
+            }
         } finally {
             scans.endLightSync(claim)
         }
@@ -332,17 +347,23 @@ class OnchainSync<W : Any, F : Any, S : Any, U : Any>(
                 try {
                     port.reconnectElectrum()
                 } catch (failure: Exception) {
+                    onError(failure, ROW_RECONNECT)
                     return LightSyncOutcome.Failed
                 }
             }
             return when (val outcome = runLightSync()) {
-                is SyncOutcome.Applied -> LightSyncOutcome.Synced
-                is SyncOutcome.NotApplied ->
+                is SyncOutcome.Applied -> {
+                    outcome.persistFailure?.let { onError(it, ROW_LIGHT_SYNC_PERSIST) }
+                    LightSyncOutcome.Synced
+                }
+                is SyncOutcome.NotApplied -> {
+                    outcome.cause?.let { onError(it, lightSyncRow(outcome.step)) }
                     if (outcome.step == SyncStep.FullScanInProgress) {
                         LightSyncOutcome.SkippedForFullScan
                     } else {
                         LightSyncOutcome.Failed
                     }
+                }
             }
         } finally {
             scans.endLightSync(claim)
@@ -472,5 +493,28 @@ class OnchainSync<W : Any, F : Any, S : Any, U : Any>(
 
         /** Its 30-second deadline, in polls. */
         const val REBUILD_WAIT_ATTEMPTS: Int = 120
+
+        // iOS's `handleError` rows, so a log line can be matched to the iOS step.
+        const val ROW_FULL_SCAN_BUILD = 212
+        const val ROW_FULL_SCAN_FETCH = 236
+        const val ROW_FULL_SCAN_APPLY = 243
+        const val ROW_FULL_SCAN_PERSIST = 250
+        const val ROW_RECONNECT = 565
+        const val ROW_LIGHT_SYNC_BUILD = 570
+        const val ROW_LIGHT_SYNC_FETCH = 582
+        const val ROW_LIGHT_SYNC_APPLY = 594
+        const val ROW_LIGHT_SYNC_PERSIST = 603
+
+        private fun fullScanRow(step: SyncStep): Int = when (step) {
+            SyncStep.BuildRequest -> ROW_FULL_SCAN_BUILD
+            SyncStep.ApplyUpdate -> ROW_FULL_SCAN_APPLY
+            else -> ROW_FULL_SCAN_FETCH
+        }
+
+        private fun lightSyncRow(step: SyncStep): Int = when (step) {
+            SyncStep.BuildRequest -> ROW_LIGHT_SYNC_BUILD
+            SyncStep.ApplyUpdate -> ROW_LIGHT_SYNC_APPLY
+            else -> ROW_LIGHT_SYNC_FETCH
+        }
     }
 }

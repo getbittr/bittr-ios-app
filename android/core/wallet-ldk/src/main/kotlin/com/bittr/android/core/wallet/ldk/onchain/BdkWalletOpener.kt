@@ -148,6 +148,8 @@ class BdkWalletOpener<C : Any, W : Any>(
             port.closeStore(store)
             throw failure
         }
+        // Only the reason is logged, never the failure. A mismatch's message carries both
+        // wallets' descriptors, which would put the other seed's xpub in the log.
         log("No stored BDK wallet to load ($reason). Creating one.")
 
         // Release the database before deleting the file underneath it.
@@ -163,7 +165,12 @@ class BdkWalletOpener<C : Any, W : Any>(
             // A new wallet has revealed nothing, so reveal the cached address pool again for syncs to watch.
             topPoolIndex()?.let { topIndex ->
                 // Reveal a little beyond the pool too, like manageOnchainAddresses does for channel closures.
-                port.revealTo(wallet, fresh, topIndex + REVEAL_BEYOND_POOL)
+                try {
+                    port.revealTo(wallet, fresh, topIndex + REVEAL_BEYOND_POOL)
+                } catch (revealFailure: Exception) {
+                    // As iOS's `revealAddresses`: reported, and the wallet still opens.
+                    onError(revealFailure, ROW_REVEAL_FAILED)
+                }
             }
 
             // The wallet has been built from scratch, so a requested rebuild is done.
@@ -186,5 +193,6 @@ class BdkWalletOpener<C : Any, W : Any>(
         const val ROW_RECREATE_FAILED = 214
         const val ROW_LOAD_FAILED = 216
         const val ROW_CREATE_FAILED = 218
+        const val ROW_REVEAL_FAILED = 468
     }
 }
