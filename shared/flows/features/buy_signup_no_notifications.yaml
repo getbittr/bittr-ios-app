@@ -152,6 +152,7 @@ appId: com.bittr.bittr-regtest
     id: "signup.bittr.start.nextButton"
 
 # The exclusive-initiative alert. Confirm is alert.button.1, stacked above Cancel.
+# It's asked once per registration, so the later Verify taps below go straight through.
 - extendedWaitUntil:
     visible:
       id: "alert.button.1"
@@ -208,19 +209,6 @@ appId: com.bittr.bittr-regtest
     id: "signup.bittr.start.topLabelOne"
 - tapOn:
     id: "signup.bittr.start.nextButton"
-
-# The exclusive-initiative alert. Confirm is alert.button.1, stacked above Cancel.
-- extendedWaitUntil:
-    visible:
-      id: "alert.button.1"
-    timeout: 10000
-- tapOn:
-    id: "alert.button.1"
-# Let it slide out, so a following alert.button.0 is the next alert's, not its Cancel.
-- extendedWaitUntil:
-    notVisible:
-      id: "alert.button.1"
-    timeout: 5000
 
 # Transfer2 (OTP). The code field auto-focuses and auto-submits once 6
 # digits are entered. We enter a WRONG code first (111111) to exercise the
@@ -291,19 +279,6 @@ appId: com.bittr.bittr-regtest
     id: "signup.bittr.start.topLabelOne"
 - tapOn:
     id: "signup.bittr.start.nextButton"
-
-# The exclusive-initiative alert. Confirm is alert.button.1, stacked above Cancel.
-- extendedWaitUntil:
-    visible:
-      id: "alert.button.1"
-    timeout: 10000
-- tapOn:
-    id: "alert.button.1"
-# Let it slide out, so a following alert.button.0 is the next alert's, not its Cancel.
-- extendedWaitUntil:
-    notVisible:
-      id: "alert.button.1"
-    timeout: 5000
 
 # Back on Transfer2 — wait for the code field again before entering the code.
 - extendedWaitUntil:

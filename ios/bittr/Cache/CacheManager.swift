@@ -124,6 +124,10 @@ class CacheManager: NSObject {
         updateIban(id: ibanID) { $0.paymentMode = paymentMode }
     }
     
+    static func setInitiativeConfirmedAt(ibanID:String, timestamp:String) {
+        updateIban(id: ibanID) { $0.initiativeConfirmedAt = timestamp }
+    }
+    
     static func addBittrIban(ibanID:String, ourIban:String, ourSwift:String, yourCode:String, lightningAddressUsername:String?) {
         updateIban(id: ibanID) { iban in
             iban.ourIbanNumber = ourIban
