@@ -223,9 +223,11 @@ shared/flows/
     push_notification.js        POSTs an APNS payload to push_server.js.
     push_server.js              Local helper bridging Maestro → `xcrun simctl push`.
     set_clipboard.js            POSTs output.clipboardText to clipboard_server.js.
-    clipboard_server.js         Local helper bridging Maestro → `xcrun simctl
-                                pbcopy` so flows can seed the OS clipboard for
-                                the in-app Paste button (send_lightning.yaml).
+    clipboard_server.js         Local helper that seeds the simulator clipboard
+                                for the in-app Paste button (send_lightning.yaml).
+                                Copies on the Mac too (pasteboard sync carries
+                                it over; `simctl pbcopy` alone doesn't on
+                                Xcode 27), then verifies with `simctl pbpaste`.
     parse_mnemonic.js           Splits the MNEMONIC env var into
                                 output.words[1..12] for forgot_pin.yaml.
     resolve_lnurl.js            GETs a Lightning Address's /.well-known/lnurlp
