@@ -121,7 +121,10 @@ class OnchainSyncLoopTest {
         val events = mutableListOf<OnchainLoopEvent>()
         var reopens = 0
 
-        fun loop(balances: WalletBalanceRead? = null) = OnchainSyncLoop(
+        fun loop(
+            balances: WalletBalanceRead? = null,
+            foregroundReturns: kotlinx.coroutines.flow.Flow<Unit>? = null,
+        ) = OnchainSyncLoop(
             wallet = wallet,
             sync = OnchainSync(
                 port,
@@ -138,6 +141,7 @@ class OnchainSyncLoopTest {
             scans = scans,
             record = record,
             balances = balances,
+            foregroundReturns = foregroundReturns,
             lightSyncScope = scope,
             report = { events += it },
         )
@@ -332,6 +336,7 @@ class OnchainSyncLoopTest {
                 scans = fixture.scans,
                 record = fixture.record,
                 balances = null,
+                foregroundReturns = null,
                 lightSyncScope = this@runTest,
                 report = { fixture.events += it },
             ).run()
@@ -464,6 +469,7 @@ class OnchainSyncLoopTest {
                 scans = scans,
                 record = null,
                 balances = null,
+                foregroundReturns = null,
                 lightSyncScope = this@runTest,
                 report = { events += it },
             ).run()
@@ -647,6 +653,7 @@ class OnchainSyncLoopTest {
                 scans = scans,
                 record = null,
                 balances = balances,
+                foregroundReturns = null,
                 lightSyncScope = this@runTest,
                 report = { events += it },
             ).run()
@@ -697,6 +704,7 @@ class OnchainSyncLoopTest {
                 scans = fixture.scans,
                 record = null,
                 balances = null,
+                foregroundReturns = null,
                 lightSyncScope = this@runTest,
             ).run()
         }
@@ -709,5 +717,67 @@ class OnchainSyncLoopTest {
         // first, flags after — this reads `close-before-clear`, and a watchdog
         // still armed for the abandoned scan could mark the next node's.
         assertEquals(listOf("close-after-clear"), order)
+    }
+
+    // ---- A failed start, retried on each return to the foreground (iOS #95). ----
+
+    @Test
+    fun `a failed start keeps the wallet open and scans again when the app returns`() = runTest {
+        val fixture = Fixture(this)
+        val returns = kotlinx.coroutines.flow.MutableSharedFlow<Unit>()
+        fixture.port.applies = false
+        val runner = launch { fixture.loop(foregroundReturns = returns).run() }
+        runCurrent()
+
+        assertEquals(listOf(OnchainLoopEvent.FullScanFailed), fixture.events)
+        assertFalse("the runner waits rather than ending", runner.isCompleted)
+        assertTrue(fixture.wallet.isOpen)
+        advanceTimeBy(OnchainSyncLoop.LIGHT_SYNC_INTERVAL_MILLIS * 3)
+        runCurrent()
+        assertEquals("no timer, and no retry, while the app stays away", 1, fixture.port.fullScans)
+        assertEquals(0, fixture.port.lightSyncs)
+
+        // Back in the foreground, and still failing: one more try, then it waits again.
+        returns.emit(Unit)
+        runCurrent()
+        assertEquals(2, fixture.port.fullScans)
+
+        // Back again, and this time it scans: the timer starts.
+        fixture.port.applies = true
+        returns.emit(Unit)
+        runCurrent()
+        assertEquals(OnchainLoopEvent.FullScanApplied, fixture.events.last())
+        assertTrue(fixture.scans.hasBeenScanned)
+        advanceTimeBy(OnchainSyncLoop.LIGHT_SYNC_INTERVAL_MILLIS)
+        runCurrent()
+        assertEquals(1, fixture.port.lightSyncs)
+
+        runner.cancelAndJoin()
+    }
+
+    /** A pull to refresh while the start waits is run at once rather than left waiting. */
+    @Test
+    fun `a failed start runs a rebuild asked for while it waits`() = runTest {
+        val fixture = Fixture(this)
+        fixture.port.applies = false
+        val loop = fixture.loop(balances = { true }, foregroundReturns = kotlinx.coroutines.flow.MutableSharedFlow())
+        val runner = launch { loop.run() }
+        runCurrent()
+
+        fixture.port.applies = true
+        var answer: Boolean? = null
+        launch { answer = loop.rebuildNow() }
+        runCurrent()
+
+        assertEquals("answered with the reading after the scan", true, answer)
+        assertEquals(1, fixture.reopens)
+        assertTrue(fixture.scans.hasBeenScanned)
+        assertEquals(
+            "one balance read, which answers the rebuild",
+            listOf(OnchainLoopEvent.FullScanFailed, OnchainLoopEvent.FullScanApplied, OnchainLoopEvent.BalancesRead),
+            fixture.events,
+        )
+
+        runner.cancelAndJoin()
     }
 }

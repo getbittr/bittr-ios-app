@@ -790,13 +790,13 @@ worth making to the product to satisfy a test.
 
     Three things to be plain about:
 
-    - **A failed full scan presents an empty wallet, and nothing here retries
-      it.** iOS's retry is the user reopening a screen that calls
-      `didSyncBdkWallet` again; Android has no such screen yet, so the only
-      thing that revives it is `WalletNodeHost.start()` relaunching a runner
-      that is no longer live — the unlock path. It fails closed (balance zero,
-      and a drain that refuses rather than offering a wrong number), which is
-      why this is a cost rather than a fund risk. It is still the most likely
+    - **A failed full scan presents an empty wallet until a retry succeeds.**
+      As on iOS (#95), the start's scan is tried again each time the app
+      returns to the foreground, and a pull to refresh runs it at once; a
+      refresh whose rebuild fails is retried on each 30-second tick. It fails
+      closed meanwhile (balance zero, and a drain that refuses rather than
+      offering a wrong number), which is why this is a cost rather than a fund
+      risk. It is still the most likely
       reason an Android user sees "no funds" on a wallet that has them. Since
       iOS PR #99 the store is kept between starts: a launch loads the stored
       wallet and, with a full scan stored that is newer than the database,
