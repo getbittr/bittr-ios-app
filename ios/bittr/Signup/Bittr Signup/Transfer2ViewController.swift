@@ -368,6 +368,12 @@ class Transfer2ViewController: UIViewController, UITextFieldDelegate, UNUserNoti
                 parameters["payment_mode"] = "onchain"
             }
 
+            // When the user confirmed they're requesting the service on their own exclusive initiative.
+            // A registration from before the app asked has none, so the field is left out rather than invented.
+            if let initiativeConfirmedAt = ibanEntity.initiativeConfirmedAt, initiativeConfirmedAt != "" {
+                parameters["exclusive_initiative_confirmed_at"] = initiativeConfirmedAt
+            }
+            
             // Recovery: reuse the existing deposit code so the backend updates the
             // existing customer instead of creating a new order. lightning_pubkey
             // (above) must match the one sent in check2fa and stored on the customer.

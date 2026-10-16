@@ -151,6 +151,20 @@ appId: com.bittr.bittr-regtest
 - tapOn:
     id: "signup.bittr.start.nextButton"
 
+# The exclusive-initiative alert. Confirm is alert.button.1, stacked above Cancel.
+# It's asked once per registration, so the later Verify taps below go straight through.
+- extendedWaitUntil:
+    visible:
+      id: "alert.button.1"
+    timeout: 10000
+- tapOn:
+    id: "alert.button.1"
+# Let it slide out, so a following alert.button.0 is the next alert's, not its Cancel.
+- extendedWaitUntil:
+    notVisible:
+      id: "alert.button.1"
+    timeout: 5000
+
 # Async IBAN check → "Oops" invalid-IBAN alert.
 - extendedWaitUntil:
     visible:

@@ -63,6 +63,10 @@ class Transfer1ViewController: UIViewController, UITextFieldDelegate {
     var signupVC:SignupViewController?
     var ibanVC:RegisterIbanViewController?
     
+    // The exclusive-initiative confirmation given on this screen.
+    // Held until gatherIbanDetails has an IBAN entity to store it on.
+    var initiativeConfirmedAt:String?
+    
     override func viewDidLoad() {
         super.viewDidLoad()
 
@@ -139,14 +143,46 @@ class Transfer1ViewController: UIViewController, UITextFieldDelegate {
         
         if self.nextView.backgroundColor == UIColor.black {
             // Fields have been filled.
-            self.nextButtonLabel.alpha = 0
-            self.nextButtonArrow.alpha = 0
-            self.nextButtonActivityIndicator.startAnimating()
-            self.gatherIbanDetails()
+            self.confirmInitiative {
+                self.nextButtonLabel.alpha = 0
+                self.nextButtonArrow.alpha = 0
+                self.nextButtonActivityIndicator.startAnimating()
+                self.gatherIbanDetails()
+            }
         } else {
             // Fields have not yet been filled.
             self.showAlert(title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "transfer1vc"), buttons: [.dismiss(Language.getWord(withID: "okay"))])
         }
+    }
+    
+    var recordedInitiativeConfirmation:String? {
+        
+        // The confirmation already stored on the IBAN entity being registered, or the one given on this screen.
+        let currentIbanID = self.signupVC?.currentIbanID ?? self.ibanVC?.currentIbanID ?? ""
+        if currentIbanID != "",
+           let storedConfirmation = BitcoinManager.shared.bittrWallet.ibanEntities.first(where: { $0.id == currentIbanID })?.initiativeConfirmedAt,
+           storedConfirmation != "" {
+            return storedConfirmation
+        }
+        return self.initiativeConfirmedAt
+    }
+    
+    func confirmInitiative(then proceed: @escaping () -> Void) {
+        
+        // Ask once per registration, so correcting the email doesn't ask again.
+        guard self.recordedInitiativeConfirmation == nil else {
+            proceed()
+            return
+        }
+        
+        // The user confirms they're requesting Bittr's service on their own initiative.
+        self.showAlert(title: Language.getWord(withID: "initiativetitle"), message: Language.getWord(withID: "initiativemessage"), buttons: [.dismiss(Language.getWord(withID: "cancel")), .action(Language.getWord(withID: "initiativeconfirm")) {
+            // Stored in UTC, so the time is unambiguous wherever the user was.
+            let formatter = ISO8601DateFormatter()
+            formatter.timeZone = TimeZone(secondsFromGMT: 0)
+            self.initiativeConfirmedAt = formatter.string(from: Date())
+            proceed()
+        }])
     }
     
     func gatherIbanDetails() {
@@ -154,6 +190,7 @@ class Transfer1ViewController: UIViewController, UITextFieldDelegate {
         let currentIbanID = self.signupVC?.currentIbanID ?? self.ibanVC!.currentIbanID
         let enteredEmail = self.emailTextField.text!.trimmingCharacters(in: .whitespacesAndNewlines)
         let enteredIban = self.ibanTextField.text!.trimmingCharacters(in: .whitespacesAndNewlines).replacingOccurrences(of: " ", with: "")
+        let initiativeConfirmedAt = self.recordedInitiativeConfirmation
         
         if currentIbanID != "" {
             // We're updating information to an existing IBAN entity.
@@ -161,8 +198,15 @@ class Transfer1ViewController: UIViewController, UITextFieldDelegate {
                 if eachIbanEntity.id == currentIbanID {
                     eachIbanEntity.yourEmail = enteredEmail
                     eachIbanEntity.yourIbanNumber = enteredIban
+                    if let initiativeConfirmedAt {
+                        eachIbanEntity.initiativeConfirmedAt = initiativeConfirmedAt
+                    }
                     BitcoinManager.shared.bittrWallet.ibanEntities[index] = eachIbanEntity
                     CacheManager.addIban(iban: eachIbanEntity)
+                    // addIban only updates the IBAN and email of a stored entity, so the confirmation is stored separately.
+                    if let initiativeConfirmedAt {
+                        CacheManager.setInitiativeConfirmedAt(ibanID: eachIbanEntity.id, timestamp: initiativeConfirmedAt)
+                    }
                 }
             }
         } else {
@@ -172,6 +216,7 @@ class Transfer1ViewController: UIViewController, UITextFieldDelegate {
             newIbanEntity.id = UUID().uuidString
             newIbanEntity.yourEmail = enteredEmail
             newIbanEntity.yourIbanNumber = enteredIban
+            newIbanEntity.initiativeConfirmedAt = initiativeConfirmedAt
             
             BitcoinManager.shared.bittrWallet.ibanEntities += [newIbanEntity]
             CacheManager.addIban(iban: newIbanEntity)
