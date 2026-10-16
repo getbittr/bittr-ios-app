@@ -1,6 +1,7 @@
 package com.bittr.android.di
 
 import com.bittr.android.core.wallet.WalletRefresher
+import com.bittr.android.AppForeground
 import com.bittr.android.core.wallet.ldk.host.WalletResync
 
 import android.content.Context
@@ -66,7 +67,10 @@ import javax.inject.Singleton
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.flow.drop
+import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.map
 
 /**
  * The one place the app names a wallet implementation.
@@ -190,6 +194,7 @@ object WalletModule {
         @ApplicationContext context: Context,
         store: SecureStore,
         http: HttpClient,
+        foreground: AppForeground,
     ): WalletComposition {
         val seed = SeedWalletService(store)
 
@@ -547,6 +552,8 @@ object WalletModule {
             // defaulted, because a loop wired without one is exactly
             // the silent failure BIT-144 was about.
             balances = { balances.read() != null },
+            // iOS's `appWillEnterForeground`: a start whose scan failed tries again on each return.
+            foregroundReturns = foreground.isActive.drop(1).filter { it }.map { },
             // Process-lifetime, so a hung light sync never holds up the loop or outlives its scope.
             lightSyncScope = scope,
             report = { event -> Log.i(TAG, "On-chain sync: $event") },

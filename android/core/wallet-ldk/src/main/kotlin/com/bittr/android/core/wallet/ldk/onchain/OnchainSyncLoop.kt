@@ -8,9 +8,13 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.async
 import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.ensureActive
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.selects.select
 import kotlinx.coroutines.withTimeoutOrNull
 
 /**
@@ -185,12 +189,14 @@ enum class OnchainLoopEvent {
  *
  * ## What a failed full scan costs, and what revives it
  *
- * **A failed full scan at the start leaves the on-chain wallet unscanned until
- * something restarts this runner**, as iOS starts no timer after one — and the
- * one thing that does is `WalletNodeHost.start()` on an already-running node,
- * which relaunches runners that are no longer live. That is the unlock path, so
- * in practice it is "the user opens the app again". A refresh is different: the
- * wallet was scanned and open, so a failed rebuild keeps both, see above.
+ * **A failed full scan at the start gets no timer, and is tried again each time
+ * the app returns to the foreground**, until one succeeds — iOS's
+ * `appWillEnterForeground` → `startBDK()` (#95). The wallet stays open meanwhile,
+ * and a pull to refresh that arrives is run then rather than left waiting. Only
+ * once a scan succeeds does the timer start. Without [foregroundReturns] the
+ * runner ends instead, and `WalletNodeHost.start()` on unlock relaunches it. A
+ * refresh is different: the wallet was scanned and open, so a failed rebuild
+ * keeps both and its ticks retry, see above.
  *
  * ## The teardown is Android's, and it is not decoration
  *
@@ -258,6 +264,12 @@ class OnchainSyncLoop(
      */
     private val balances: WalletBalanceRead?,
     /**
+     * Each return of the app to the foreground, which retries a start whose scan failed.
+     * Nullable but not defaulted, for the reason [balances] gives: null ends the runner
+     * after a failed scan, as before.
+     */
+    private val foregroundReturns: Flow<Unit>?,
+    /**
      * Where the timer's light syncs run, so a hung one never holds up the loop. Must
      * outlive any one run, for the reason [ScanCoordinator]'s scope does.
      */
@@ -324,9 +336,10 @@ class OnchainSyncLoop(
                 // branch takes no separate node-start read.
                 launchTick(ticks)
             } else {
-                if (!bringUpToDate(ticks)) return
-                // The node-start read.
-                readBalances()
+                val retried = if (bringUpToDate(ticks)) null else retryUntilScanned(ticks) ?: return
+                // The node-start read, which also answers a rebuild the retry ran.
+                val read = readBalances()
+                retried?.rebuild?.complete(read)
             }
 
             while (true) {
@@ -364,7 +377,8 @@ class OnchainSyncLoop(
      * The light sync runs in [lightSyncScope] and is awaited, so a stop is not held up by
      * an Electrum call that hangs: the await is cancelled, and the call is left to end.
      *
-     * @return whether the wallet counts as scanned. False ends the runner, with no timer.
+     * @return whether the wallet counts as scanned. False starts no timer: the start is
+     *   retried on the next return to the foreground (see [retryUntilScanned]).
      */
     private suspend fun bringUpToDate(ticks: Job): Boolean {
         if (record?.hasStoredFullScan == true) {
@@ -391,6 +405,48 @@ class OnchainSyncLoop(
         val scanned = sync.fullScan()
         report(if (scanned) OnchainLoopEvent.FullScanApplied else OnchainLoopEvent.FullScanFailed)
         return scanned
+    }
+
+    /** A start that succeeded on a retry, with the rebuild it ran, if it was a pull to refresh. */
+    private class Retried(val rebuild: CompletableDeferred<Boolean>?)
+
+    /**
+     * After a failed start, the scan again on each return to the foreground — or at once
+     * for a pull to refresh — until one succeeds.
+     *
+     * @return once the wallet counts as scanned; null, ending the runner, when there is no
+     *   foreground signal to wait for.
+     */
+    private suspend fun retryUntilScanned(ticks: Job): Retried? {
+        val returns = foregroundReturns ?: return null
+        while (true) {
+            val rebuild = nextReturnOrRebuild(returns)
+            val scanned = if (rebuild != null) {
+                // A requested rebuild runs inside the full scan.
+                sync.fullScan().also { scanned ->
+                    report(if (scanned) OnchainLoopEvent.FullScanApplied else OnchainLoopEvent.FullScanFailed)
+                }
+            } else {
+                // As iOS's `startBDK()` on each return: a stored scan is light synced again first.
+                bringUpToDate(ticks)
+            }
+            lightSyncsPaused = false
+            if (scanned) return Retried(rebuild)
+            rebuild?.complete(false)
+        }
+    }
+
+    /** Suspends until the app next returns to the foreground (null) or a rebuild is asked for. */
+    private suspend fun nextReturnOrRebuild(returns: Flow<Unit>): CompletableDeferred<Boolean>? = coroutineScope {
+        val returned = async { returns.first() }
+        try {
+            select {
+                rebuildRequests.onReceive { it }
+                returned.onAwait { null }
+            }
+        } finally {
+            returned.cancel()
+        }
     }
 
     /**
