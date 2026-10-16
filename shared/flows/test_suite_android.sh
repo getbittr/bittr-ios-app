@@ -44,6 +44,10 @@
 #   APP_ID            default com.bittr.android.regtest
 #   BITTR_LOG_DIR     keep this run's logs here instead of a throwaway /tmp dir
 #
+# Screenshots: maestro writes a flow's takeScreenshot images under its --test-output-dir.
+# After each flow they are copied to shared/docs/screenshots/android/<flow_name>/, so they
+# outlive the /tmp log dir and never overwrite the iOS set in shared/docs/screenshots/.
+#
 # Exit code: 0 if everything passed, 1 if any flow failed, 2 on preflight errors.
 
 set -uo pipefail
@@ -60,6 +64,7 @@ FLOWS_DIR="shared/flows"
 SCRIPTS_DIR="${FLOWS_DIR}/scripts"
 LOG_DIR="${BITTR_LOG_DIR:-$(mktemp -d /tmp/bittr-test-suite-android.XXXXXX)}"
 mkdir -p "${LOG_DIR}" || { echo "cannot create log dir ${LOG_DIR}" >&2; exit 2; }
+SHOTS_DIR="shared/docs/screenshots/android"
 
 PUSH_PORT=8888
 CLIPBOARD_PORT=8889
@@ -371,6 +376,17 @@ ensure_server "clipboard_server" "${CLIPBOARD_PORT}" "${SCRIPTS_DIR}/clipboard_s
 
 # ── Run the flows ────────────────────────────────────────────────────────────
 
+# Copies a flow's takeScreenshot images out of its maestro output dir into ${SHOTS_DIR},
+# keeping the flow's own <flow_name>/<step>.png layout. Runs after failures too, so the
+# steps that passed still leave their screenshots.
+copy_screenshots() {
+    local taken="$1/screenshots/shared/docs/screenshots"
+    [[ -d "${taken}" ]] || return 0
+    mkdir -p "${SHOTS_DIR}" && cp -R "${taken}/." "${SHOTS_DIR}/" \
+        && info "  screenshots: ${SHOTS_DIR}" \
+        || warn "could not copy screenshots from ${taken}"
+}
+
 FLOWS_TO_RUN=()
 if [[ ${#EXPLICIT_FLOWS[@]} -gt 0 ]]; then
     FLOWS_TO_RUN=("${EXPLICIT_FLOWS[@]}")
@@ -428,9 +444,11 @@ for flow in "${FLOWS_TO_RUN[@]}"; do
             --env SLOW_SYNC=0 --test-output-dir "${OUT_DIR}" \
             "${FLOW_PATH}" 2>&1 | tee "${FLOW_LOG}"; then
         kill "${WATCHDOG_PID}" 2>/dev/null || true
+        copy_screenshots "${OUT_DIR}"
         RESULTS+=("${GREEN}✔${RESET} ${flow} ($(($(date +%s) - START_TS))s)")
     else
         kill "${WATCHDOG_PID}" 2>/dev/null || true
+        copy_screenshots "${OUT_DIR}"
         RESULTS+=("${RED}✖${RESET} ${flow} ($(($(date +%s) - START_TS))s) — log: ${FLOW_LOG}")
         FAILURES=$((FAILURES + 1))
         fail "${flow} failed — full output: ${FLOW_LOG}"

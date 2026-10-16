@@ -438,7 +438,11 @@ def verify(repo, records, shots_dir):
     root = shots_dir if os.path.isabs(shots_dir) else os.path.join(repo, shots_dir)
     all_declared = {r["screenshot"] for r in records}
     on_disk = set()
-    for dirpath, _dirs, files in os.walk(root):
+    for dirpath, dirs, files in os.walk(root):
+        # The Android suite copies its captures to android/ (test_suite_android.sh). They
+        # are a second platform's frames, not part of the canonical iOS set checked here.
+        if dirpath == root and "android" in dirs:
+            dirs.remove("android")
         for f in files:
             if f.endswith(".png"):
                 p = os.path.join(dirpath, f)
