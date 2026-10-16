@@ -39,6 +39,10 @@ internal object HomeStrings {
     const val SYNCING_WALLET_2 = "Please wait a moment while we're syncing your wallet."
 
     const val OKAY = "Okay"
+    const val OOPS = "Oops!"
+    const val CONVERSION_FAIL =
+        "We're experiencing an issue fetching the latest conversion rates. Temporarily, our calculations - if " +
+            "available - won't reflect bitcoin's current value."
 
     // The transaction screen — `TransactionVCLanguage.swift`.
     /** `transaction`. */
