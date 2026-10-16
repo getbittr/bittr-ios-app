@@ -65,14 +65,16 @@ import kotlinx.coroutines.flow.asStateFlow
  *   value**: `OnchainSync` re-reads it after the network round trip to catch a
  *   wallet replaced mid-scan, and a captured instance would make that check
  *   compare an object to itself and always pass.
- * @param connection the store `wallet` was opened against, for `persist`.
+ * @param connection the store a wallet was opened against, for `persist`. Looked up
+ *   for that wallet, so a wallet replaced since the sync began is never persisted
+ *   into its replacement's store.
  * @param electrum the Electrum client. Also a lambda, because iOS rebuilds it
  *   lazily when it has been cleared (`BDKManager.swift:225–233`).
  * @param reconnect replace the Electrum client with a new one, after a light sync hung.
  */
 class BdkSyncPort(
     private val wallet: () -> Wallet?,
-    private val connection: () -> Connection,
+    private val connection: (Wallet) -> Connection,
     private val electrum: () -> ElectrumClient,
     private val reconnect: () -> Unit,
 ) : OnchainSyncPort<Wallet, FullScanRequest, SyncRequest, Update> {
@@ -103,7 +105,7 @@ class BdkSyncPort(
     override fun applyUpdate(wallet: Wallet, update: Update) = wallet.applyUpdate(update)
 
     override fun persist(wallet: Wallet) {
-        wallet.persist(connection())
+        wallet.persist(connection(wallet))
     }
 
     override fun reconnectElectrum() = reconnect()
@@ -469,7 +471,7 @@ class BdkOnchainWalletHolder(
             // `didStartBDK` (`BDKManager.swift:166`) and treats a failure there
             // as a failed start rather than as a failed sync. A wallet that
             // cannot reach its Electrum server is not a wallet that opened.
-            electrum = ElectrumClient(electrumUrl)
+            replaceElectrum()
             true
         } catch (failure: Exception) {
             onOpenFailure(failure)
@@ -484,10 +486,22 @@ class BdkOnchainWalletHolder(
      * Release the open wallet and open it again — `didRebuildBdkWallet()`'s
      * `bdkWallet = nil; connection = nil; didStartBDK()`. With a rebuild requested in
      * [record], the open builds the wallet from an empty database.
+     *
+     * False, opening nothing, when no wallet is open: the holder has been closed by a
+     * teardown, and a rebuild that outlived it must not open a wallet nobody owns.
      */
     fun reopen(): Boolean = synchronized(lock) {
+        if (current == null) return false
         closeLocked()
         open()
+    }
+
+    /** A new Electrum client in place of the current one, which is closed. */
+    private fun replaceElectrum() {
+        val previous = electrum
+        electrum = ElectrumClient(electrumUrl)
+        // A call still inside the previous client keeps its handle until it returns.
+        runCatching { previous?.close() }
     }
 
     /**
@@ -514,16 +528,20 @@ class BdkOnchainWalletHolder(
     ): OnchainSync<*, *, *, *> = OnchainSync(
         port = BdkSyncPort(
             wallet = { current?.wallet },
-            connection = { requireNotNull(current).connection },
+            connection = { wallet ->
+                current?.takeIf { it.wallet === wallet }?.connection
+                    ?: throw IllegalStateException("The wallet was replaced before it could persist")
+            },
             // iOS's `if self.electrumClient == nil` inside `didSyncBdkWallet`
             // (`BDKManager.swift:232–239`): rebuilt on demand when a teardown
             // cleared it, rather than failing the sync.
             electrum = { electrum ?: ElectrumClient(electrumUrl).also { electrum = it } },
             // A hung light sync may have left the Electrum connection stuck, so open a new one.
             reconnect = {
-                val previous = electrum
-                electrum = ElectrumClient(electrumUrl)
-                runCatching { previous?.close() }
+                synchronized(lock) {
+                    check(current != null) { "No wallet is open" }
+                    replaceElectrum()
+                }
             },
         ),
         scans = scans,
@@ -531,6 +549,7 @@ class BdkOnchainWalletHolder(
         record = record,
         reopenWallet = ::reopen,
         log = log,
+        onError = onError,
     )
 
     /**
@@ -541,7 +560,7 @@ class BdkOnchainWalletHolder(
      * freed here once the string is out, for the reason [BdkWalletTransactions] frees what
      * it walks.
      */
-    fun peekAddress(index: Int): String? {
+    fun peekAddress(index: Int): String? = synchronized(lock) {
         val wallet = current?.wallet ?: return null
         val info = wallet.peekAddress(KeychainKind.EXTERNAL, index.toUInt())
         return try {

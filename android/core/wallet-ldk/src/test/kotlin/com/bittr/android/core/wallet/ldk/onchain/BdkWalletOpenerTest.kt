@@ -27,6 +27,7 @@ class BdkWalletOpenerTest {
         var recreateFailure: Failure? = null
         var loadFailure: Failure? = null
         var createFailure: Failure? = null
+        var revealFailure: Failure? = null
         var onThisNetwork = true
 
         override fun openStore(): String {
@@ -65,6 +66,7 @@ class BdkWalletOpenerTest {
 
         override fun revealTo(wallet: String, store: String, index: Int) {
             calls += "revealTo($index)"
+            revealFailure?.let { throw it }
         }
 
         override fun isCorruptDatabase(failure: Throwable) = (failure as? Failure)?.kind == "corrupt"
@@ -90,7 +92,14 @@ class BdkWalletOpenerTest {
     private val record = FakeRecord()
     private var topPoolIndex: Int? = null
 
-    private fun opener() = BdkWalletOpener(port, record, topPoolIndex = { topPoolIndex })
+    private val errors = mutableListOf<Pair<String, Int>>()
+
+    private fun opener() = BdkWalletOpener(
+        port,
+        record,
+        topPoolIndex = { topPoolIndex },
+        onError = { failure, row -> errors += (failure.message ?: "") to row },
+    )
 
     @Test
     fun `the stored wallet is loaded and its full scan kept`() {
@@ -240,5 +249,37 @@ class BdkWalletOpenerTest {
         val failure = assertThrows(Failure::class.java) { opener().open() }
 
         assertEquals("disk", failure.kind)
+    }
+
+    /** As iOS's `revealAddresses`: a failed reveal is reported, and the wallet still opens. */
+    @Test
+    fun `a failed reveal is reported and the new wallet still opens`() {
+        port.loadFailure = Failure("couldNotLoad")
+        port.revealFailure = Failure("disk")
+        topPoolIndex = 3
+        record.rebuildRequested = true
+
+        val opened = opener().open()
+
+        assertEquals("created-in-store-2", opened.wallet)
+        assertEquals(listOf("disk" to BdkWalletOpener.ROW_REVEAL_FAILED), errors)
+        assertFalse(record.rebuildRequested)
+    }
+
+    /**
+     * A mismatch's message carries both wallets' descriptors, so the failure behind a
+     * replacement is never reported — only its reason is logged.
+     */
+    @Test
+    fun `the failure behind a replacement is never reported`() {
+        for (kind in listOf("couldNotLoad", "invalidChangeSet", "corrupt")) {
+            port.loadFailure = Failure(kind)
+            opener().open()
+        }
+        port.loadFailure = null
+        port.onThisNetwork = false
+        opener().open()
+
+        assertEquals(emptyList<Pair<String, Int>>(), errors)
     }
 }

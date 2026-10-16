@@ -559,4 +559,67 @@ class OnchainSyncTest {
         assertEquals(LightSyncOutcome.Failed, sync(port, scans).lightSync())
         assertEquals(listOf("reconnectElectrum"), port.calls)
     }
+
+    // --- A scan that outlives a teardown -------------------------------------
+
+    /**
+     * A rebuild waiting for a light sync's claim when the wallet is torn down must not reopen
+     * it afterwards: after a removal, that would open the removed seed's wallet.
+     */
+    @Test
+    fun `a rebuild whose wallet was torn down while it waited does not reopen it`() = runTest {
+        val scans = ScanCoordinator(this)
+        val record = FakeRecord().apply { rebuildRequested = true }
+        var reopened = false
+        val claim = scans.claimLightSync()!!
+
+        val scan = async { sync(FakeSyncPort(), scans, record) { reopened = true; true }.fullScan() }
+        runCurrent()
+        scans.clear()
+        scans.endLightSync(claim)
+        advanceTimeBy(OnchainSync.REBUILD_WAIT_MILLIS)
+        runCurrent()
+
+        assertFalse(scan.await())
+        assertFalse(reopened)
+        assertFalse(scans.hasBeenScanned)
+    }
+
+    // --- Errors reported with iOS's rows -------------------------------------
+
+    @Test
+    fun `failures are reported with iOS's rows`() = runTest {
+        val rows = mutableListOf<Int>()
+        fun reporting(port: FakeSyncPort, scans: ScanCoordinator) =
+            OnchainSync(port, scans, closures = null, record = null, reopenWallet = null, onError = { _, row -> rows += row })
+
+        reporting(FakeSyncPort().apply { fetchFailure = { java.io.IOException("down") } }, ScanCoordinator(this)).fullScan()
+        reporting(FakeSyncPort().apply { persistFailure = { IllegalStateException("disk") } }, ScanCoordinator(this)).fullScan()
+        reporting(FakeSyncPort().apply { buildFailure = { IllegalStateException("build") } }, ScanCoordinator(this)).lightSync()
+        reporting(FakeSyncPort().apply { applyFailure = { IllegalStateException("apply") } }, ScanCoordinator(this)).lightSync()
+
+        assertEquals(
+            listOf(
+                OnchainSync.ROW_FULL_SCAN_FETCH,
+                OnchainSync.ROW_FULL_SCAN_PERSIST,
+                OnchainSync.ROW_LIGHT_SYNC_BUILD,
+                OnchainSync.ROW_LIGHT_SYNC_APPLY,
+            ),
+            rows,
+        )
+    }
+
+    @Test
+    fun `a failed reconnect is reported`() = runTest {
+        var now = 0L
+        val scans = ScanCoordinator(this, nowMillis = { now })
+        scans.claimLightSync()!!
+        now += ScanCoordinator.LIGHT_SYNC_CLAIM_LIMIT_MILLIS
+        val rows = mutableListOf<Int>()
+        val port = FakeSyncPort().apply { reconnectFailure = { java.io.IOException("unreachable") } }
+
+        OnchainSync(port, scans, closures = null, record = null, reopenWallet = null, onError = { _, row -> rows += row }).lightSync()
+
+        assertEquals(listOf(OnchainSync.ROW_RECONNECT), rows)
+    }
 }

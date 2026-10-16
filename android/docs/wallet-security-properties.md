@@ -782,9 +782,9 @@ worth making to the product to satisfy a test.
     down to a `Wallet`, and `OnchainSync` is the scan sequence, generic over
     its four BDK types so the whole of it is asserted on the JVM. Both had **no
     caller in `main`** until `OnchainSyncLoop`, which is `startBDK()` plus
-    `BackgroundSync` as a `NodeRunner`: open the wallet, full-scan unless a
-    scan has already succeeded in this process, and only then start the
-    30-second light-sync timer. It is in the host's runner list beside the
+    `BackgroundSync` as a `NodeRunner`: open the wallet, bring it up to date —
+    a light sync when a stored full scan stands, a full scan otherwise — and
+    only then start the 30-second light-sync timer. It is in the host's runner list beside the
     event pump, so it is cancelled on every node stop and relaunched on every
     start.
 
