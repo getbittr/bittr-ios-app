@@ -1,10 +1,15 @@
 package com.bittr.android.core.wallet.ldk.onchain
 
 import com.bittr.android.core.wallet.ldk.host.NodeRunner
+import kotlin.coroutines.cancellation.CancellationException
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.async
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeoutOrNull
 
@@ -14,7 +19,7 @@ import kotlinx.coroutines.withTimeoutOrNull
  * Port of `didStartBDK()` and `clearBdkWalletReferences()`
  * (`BDKManager.swift:98–183`) reduced to what [OnchainSyncLoop] decides against.
  * The implementation is `BdkOnchainWalletHolder`, in `adapter/`, and it is a
- * field assignment either side of six BDK constructors.
+ * field assignment either side of `BdkWalletFactory.open`.
  */
 interface OnchainWalletPort {
 
@@ -173,17 +178,19 @@ enum class OnchainLoopEvent {
  * `ReloadWallet.swift` since PR #99: the reset marks the wallet as needing a
  * rebuild ([BdkScanRecord.requestRebuild], [ScanCoordinator.markNeedsFullScan]),
  * and [rebuildNow] then runs a full scan, which first builds the wallet again
- * from an empty database. The timer pauses for it, as iOS stops
- * `BackgroundSync`, and starts again once the scan succeeds.
+ * from an empty database. The timer is paused from the moment of the pull
+ * ([pauseLightSyncs]), as iOS stops `BackgroundSync`, and starts again once the
+ * scan has run. A rebuild or scan that fails keeps the loop and the wallet, and
+ * each tick after it tries the full scan again until one succeeds.
  *
  * ## What a failed full scan costs, and what revives it
  *
- * **A failed full scan leaves the on-chain wallet unscanned until something
- * restarts this runner**, as iOS starts no timer after one — and the one thing
- * that does is `WalletNodeHost.start()` on an already-running node, which
- * relaunches runners that are no longer live. That is the unlock path, so in
- * practice it is "the user opens the app again". A rebuild that failed stays
- * requested, so that start rebuilds.
+ * **A failed full scan at the start leaves the on-chain wallet unscanned until
+ * something restarts this runner**, as iOS starts no timer after one — and the
+ * one thing that does is `WalletNodeHost.start()` on an already-running node,
+ * which relaunches runners that are no longer live. That is the unlock path, so
+ * in practice it is "the user opens the app again". A refresh is different: the
+ * wallet was scanned and open, so a failed rebuild keeps both, see above.
  *
  * ## The teardown is Android's, and it is not decoration
  *
@@ -211,6 +218,12 @@ enum class OnchainLoopEvent {
  * which [OnchainSync] catches into a `NotApplied` — the right answer for a scan
  * whose wallet has been torn down. This is a use-after-free that the binding
  * rules out, not one this code is careful about.
+ *
+ * A scan that outlives its runner must not act on the next wallet either. It
+ * carries its generation, which [ScanCoordinator.clear] retires: a rebuild it
+ * was waiting to run refuses, and its success does not mark the next wallet as
+ * scanned. `BdkOnchainWalletHolder.reopen` also refuses a holder that has been
+ * closed.
  *
  * Proved by `OnchainSyncLoopTest`.
  */
@@ -260,23 +273,46 @@ class OnchainSyncLoop(
     /** Requests to rebuild the wallet, from Home's pull-to-refresh. */
     private val rebuildRequests = Channel<CompletableDeferred<Boolean>>(Channel.UNLIMITED)
 
+    /** Whether the timer's light syncs are paused, between a pull and its rebuild. */
+    @Volatile
+    private var lightSyncsPaused = false
+
+    /**
+     * `resetWallet()`'s `walletSync.stop()`: pause the timer's light syncs from the moment of
+     * the pull, so none is running when the rebuild wants the stored database. The rebuild
+     * starts them again, as does the next run.
+     */
+    fun pauseLightSyncs() {
+        lightSyncsPaused = true
+    }
+
     /**
      * Rebuild the wallet from an empty database and scan it in full, on this loop's
-     * coroutine — `ReloadWallet.swift`'s `didSyncBdkWallet` after the pull. The rebuild
-     * itself must already be requested ([BdkScanRecord.requestRebuild]).
+     * coroutine — `ReloadWallet.swift`'s `didSyncBdkWallet` after the pull.
+     *
+     * The request is stored first ([BdkScanRecord.requestRebuild]), so the next start still
+     * rebuilds if this run doesn't.
      *
      * @return whether a balance reading was taken after the scan. Suspends until the loop
-     *   gets to it, which is never while the loop is not running (no node, or a failed
-     *   full scan): the caller bounds the wait.
+     *   gets to it, which is never while the loop is not running: the caller bounds the
+     *   wait. A request still waiting when a run starts is answered with no reading, since
+     *   that run's own open has rebuilt the wallet.
      */
     suspend fun rebuildNow(): Boolean {
+        record?.requestRebuild()
         val answer = CompletableDeferred<Boolean>()
         rebuildRequests.send(answer)
         return answer.await()
     }
 
     override suspend fun run() {
+        // The timer's light syncs belong to this run, and are cancelled on the way out, so
+        // none acts on the wallet after the run has let it go.
+        val ticks = SupervisorJob(lightSyncScope.coroutineContext[Job])
         try {
+            answerPendingRebuilds(false)
+            lightSyncsPaused = false
+
             if (!wallet.open()) {
                 report(OnchainLoopEvent.WalletUnavailable)
                 return
@@ -286,9 +322,9 @@ class OnchainSyncLoop(
                 report(OnchainLoopEvent.AlreadyScanned)
                 // Light sync at once. The tick reads the balances after it, so this
                 // branch takes no separate node-start read.
-                launchTick()
+                launchTick(ticks)
             } else {
-                if (!bringUpToDate()) return
+                if (!bringUpToDate(ticks)) return
                 // The node-start read.
                 readBalances()
             }
@@ -299,27 +335,23 @@ class OnchainSyncLoop(
                 // chain. A rebuild request interrupts the wait.
                 val rebuild = withTimeoutOrNull(lightSyncIntervalMillis) { rebuildRequests.receive() }
                 if (rebuild == null) {
-                    launchTick()
+                    launchTick(ticks)
                     continue
                 }
 
-                // The timer pauses for the rebuild, and starts again once its scan succeeds.
+                // The timer stays paused for the rebuild. A rebuild that fails keeps the
+                // loop and the wallet: the ticks after it try the full scan again.
                 val scanned = sync.fullScan()
                 report(if (scanned) OnchainLoopEvent.FullScanApplied else OnchainLoopEvent.FullScanFailed)
-                if (!scanned) {
-                    rebuild.complete(false)
-                    return
-                }
-                val read = readBalances()
-                rebuild.complete(read)
-                // Requests that arrived during the scan share its answer.
-                answerPendingRebuilds(read)
+                lightSyncsPaused = false
+                rebuild.complete(if (scanned) readBalances() else false)
             }
         } finally {
             // Non-suspending, all of them, which is what makes this correct on
             // the cancellation path — a `suspend` call in a `finally` after a
             // cancellation needs `NonCancellable` to run at all, and none of
             // these does.
+            ticks.cancel()
             answerPendingRebuilds(false)
             scans.clear()
             wallet.close()
@@ -329,13 +361,16 @@ class OnchainSyncLoop(
     /**
      * The start's scan, unless a stored one can be brought up to date by a light sync.
      *
+     * The light sync runs in [lightSyncScope] and is awaited, so a stop is not held up by
+     * an Electrum call that hangs: the await is cancelled, and the call is left to end.
+     *
      * @return whether the wallet counts as scanned. False ends the runner, with no timer.
      */
-    private suspend fun bringUpToDate(): Boolean {
+    private suspend fun bringUpToDate(ticks: Job): Boolean {
         if (record?.hasStoredFullScan == true) {
             // A previously scanned wallet only counts as scanned once a light sync brings it up to date.
             while (true) {
-                when (sync.lightSync()) {
+                when (lightSyncScope.async(ticks) { sync.lightSync() }.await()) {
                     LightSyncOutcome.Synced -> {
                         scans.markPreviouslyScanned()
                         report(OnchainLoopEvent.LoadedWalletLightSynced)
@@ -359,22 +394,44 @@ class OnchainSyncLoop(
     }
 
     /**
-     * One timer tick, launched beside the loop: a light sync, then the balance read.
+     * One timer tick, launched beside the loop: a sync, then the balance read.
+     *
+     * The sync is a light sync while the wallet counts as scanned. After a refresh whose
+     * rebuild or scan failed it does not, and the tick tries the full scan again — what
+     * iOS's Send and Swap screens do when they find the wallet unscanned. That attaches to
+     * a scan still running rather than starting a second one, and runs a rebuild still
+     * requested.
      *
      * The read is after the sync, and after the closure scan inside it — see the class
      * comment. Unconditional on whether the sync applied, because this reads the *node*
      * and the node's channels can move without BDK seeing anything: a light sync skipped
      * for want of an Electrum server is not a reason to stop watching a channel.
      */
-    private fun launchTick() {
-        lightSyncScope.launch {
-            report(
-                if (sync.lightSync() == LightSyncOutcome.Synced) {
-                    OnchainLoopEvent.LightSyncApplied
+    private fun launchTick(ticks: Job) {
+        if (lightSyncsPaused) return
+        lightSyncScope.launch(ticks) {
+            val event = try {
+                if (scans.hasBeenScanned) {
+                    if (sync.lightSync() == LightSyncOutcome.Synced) {
+                        OnchainLoopEvent.LightSyncApplied
+                    } else {
+                        OnchainLoopEvent.LightSyncSkipped
+                    }
+                } else if (sync.fullScan()) {
+                    OnchainLoopEvent.FullScanApplied
                 } else {
-                    OnchainLoopEvent.LightSyncSkipped
-                },
-            )
+                    OnchainLoopEvent.FullScanFailed
+                }
+            } catch (cancellation: CancellationException) {
+                throw cancellation
+            } catch (failure: Exception) {
+                // Nothing here is meant to throw. If it does, it is one skipped tick, not
+                // an uncaught exception in the process scope.
+                OnchainLoopEvent.LightSyncSkipped
+            }
+            // A run that ended while this synced has let the wallet go.
+            ensureActive()
+            report(event)
             readBalances()
         }
     }

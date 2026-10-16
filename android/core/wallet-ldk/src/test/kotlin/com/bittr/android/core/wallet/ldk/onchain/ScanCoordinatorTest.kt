@@ -236,4 +236,22 @@ class ScanCoordinatorTest {
 
         assertEquals(null, scans.claimLightSync())
     }
+
+    /** A scan that outlived a teardown says nothing about the wallet opened after it. */
+    @Test
+    fun `a scan that ends after a clear does not mark the next wallet scanned`() = runTest {
+        val scans = ScanCoordinator(this)
+        val gate = CompletableDeferred<Unit>()
+        var generation = -1L
+        val scan = async { scans.fullScan { scanGeneration -> generation = scanGeneration; gate.await(); true } }
+        testScheduler.runCurrent()
+        assertTrue(scans.isCurrent(generation))
+
+        scans.clear()
+        assertFalse(scans.isCurrent(generation))
+        gate.complete(Unit)
+        scan.await()
+
+        assertFalse(scans.hasBeenScanned)
+    }
 }

@@ -120,9 +120,11 @@ class ScanCoordinator(
      * the wallet got scanned.
      *
      * @param scan the adapter's `startFullScan` → `fullScan` → `applyUpdate` →
-     *   `persist` sequence. `true` if the update was applied.
+     *   `persist` sequence. `true` if the update was applied. It is handed the scan's
+     *   generation, so it can tell with [isCurrent] whether a teardown has cleared it
+     *   while it ran.
      */
-    suspend fun fullScan(scan: suspend () -> Boolean): Boolean {
+    suspend fun fullScan(scan: suspend (generation: Long) -> Boolean): Boolean {
         val attached: Deferred<Boolean>
         val myGeneration: Long
 
@@ -140,7 +142,8 @@ class ScanCoordinator(
                 // finishes before this block publishes it would clear a field
                 // that has not been set, and the next caller attaches to a
                 // corpse.
-                val fresh = scope.async(start = CoroutineStart.LAZY) { runScan(scan) }
+                val scanGeneration = generation
+                val fresh = scope.async(start = CoroutineStart.LAZY) { runScan(scanGeneration, scan) }
                 fresh.invokeOnCompletion {
                     synchronized(lock) { if (inFlight === fresh) inFlight = null }
                 }
@@ -165,9 +168,10 @@ class ScanCoordinator(
         }
     }
 
-    private suspend fun runScan(scan: suspend () -> Boolean): Boolean {
-        val ok = scan()
-        synchronized(lock) { if (ok) scanned = true }
+    private suspend fun runScan(generation: Long, scan: suspend (Long) -> Boolean): Boolean {
+        val ok = scan(generation)
+        // A scan that outlived a teardown says nothing about the wallet opened after it.
+        synchronized(lock) { if (ok && this.generation == generation) scanned = true }
         return ok
     }
 
@@ -180,6 +184,12 @@ class ScanCoordinator(
      * BDK's `Wallet` is not safe to update from two places at once.
      */
     fun mayLightSync(): Boolean = !isScanning
+
+    /**
+     * Whether [generation] is still the current scan's — false once [clear] has run, which
+     * a teardown does. A scan that outlives its wallet must not act on the next one.
+     */
+    fun isCurrent(generation: Long): Boolean = synchronized(lock) { this.generation == generation }
 
     /**
      * `claimLightSync()`: claim the right to run a light sync, taking over from one that
