@@ -187,6 +187,8 @@ private extension UIViewController {
         buttonLabel.textColor = Colors.getColor("blackorwhite")
         buttonLabel.textAlignment = .center
         buttonLabel.isAccessibilityElement = false
+        // A wrapped title keeps all its lines when the card runs out of room.
+        buttonLabel.setContentCompressionResistancePriority(.required, for: .vertical)
         button.addSubview(buttonLabel)
         
         // A one-line title keeps the 40pt plate, and a wrapped one grows it.
@@ -309,7 +311,8 @@ extension UIViewController {
             
             // The scroll view takes the message's full height, unless that would push the card above the safe area.
             let messageFullHeight = messageScrollView.heightAnchor.constraint(equalTo: messageScrollView.contentLayoutGuide.heightAnchor)
-            messageFullHeight.priority = .defaultHigh
+            // It sits just below the label's compression resistance, so a tall message scrolls instead of being cut off.
+            messageFullHeight.priority = .defaultHigh - 1
             
             // Check whether to stack buttons vertically or horizontally.
             let titlesFitSideBySide = buttons.allSatisfy { eachButton in eachButton.title.count < 16 }
