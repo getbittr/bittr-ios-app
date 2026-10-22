@@ -161,15 +161,22 @@ appId: ${APP_ID}
       - evalScript: ${output.blocksToMine = 6}
       - runScript: ../scripts/mine_blocks.js
 
-      # The Settings popup is still open over Home: DeviceVC dismissed
+      # On iOS the Settings popup is still open over Home: DeviceVC dismissed
       # back onto it after the restore tap, and none of the channel-close
       # alerts closed it. Close the popup by tapping the Settings header
       # Down button — UIViewController.dismissVC now routes a
       # SettingsViewController to CoreViewController.hideSettings — rather
       # than navigating away via a tab (the tab bar sits behind the
-      # popup). That returns us to Home.
-      - tapOn:
-          id: "header.downButton"
+      # popup). That returns us to Home. Android closes Settings and
+      # Device details before the first removal alert, so it is already
+      # on Home.
+      - runFlow:
+          when:
+            visible:
+              id: "header.downButton"
+          commands:
+            - tapOn:
+                id: "header.downButton"
       - assertVisible:
           id: "home.headerLabel"
 
