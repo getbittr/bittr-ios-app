@@ -237,8 +237,10 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate, UIContextMen
             amountText = "?amount=\(amount)"
             bitcoinQRParameters.append("amount=\(amount)")
         }
-        if enteredDescription != "" {
-            bitcoinQRParameters.append("label=\(enteredDescription)")
+        // Only unreserved characters stay as typed, so no label can end its parameter or the URI early.
+        let unreserved = CharacterSet(charactersIn: "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~")
+        if enteredDescription != "", let label = enteredDescription.addingPercentEncoding(withAllowedCharacters: unreserved) {
+            bitcoinQRParameters.append("label=\(label)")
         }
         bitcoinQRParameters.append("lightning=\(lightningInvoice)")
         
