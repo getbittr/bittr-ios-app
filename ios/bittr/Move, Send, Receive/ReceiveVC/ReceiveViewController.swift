@@ -273,7 +273,8 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate, UIContextMen
             case .lightning:
                 self.addressTitle.text = Language.getWord(withID: "invoice")
                 self.lowerAddressLabel.font = .monospacedSystemFont(ofSize: 15, weight: .bold)
-                self.lowerAddressLabel.attributedText = self.shortenedInGroups(lightningInvoice, font: self.lowerAddressLabel.font, color: self.lowerAddressLabel.textColor)
+                // The label sits 90 points narrower than the screen.
+                self.lowerAddressLabel.attributedText = lightningInvoice.inGroupsOfFour(width: UIScreen.main.bounds.width - 90, lines: 3, font: self.lowerAddressLabel.font, color: self.lowerAddressLabel.textColor)
                 qrCode = "lightning:\(lightningInvoice)".uppercased().toBigQRCode()!
                 self.currentCopyableText = lightningInvoice
             case .bitcoinqr:
@@ -638,46 +639,6 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate, UIContextMen
         } else {
             return true
         }
-    }
-    
-    func shortenedInGroups(_ text:String, font:UIFont, color:UIColor) -> NSAttributedString {
-        
-        // The label sits 90 points narrower than the screen, and every character in a monospaced font is as wide as a zero.
-        let labelWidth = UIScreen.main.bounds.width - 90
-        let characterWidth = ("0" as NSString).size(withAttributes: [.font: font]).width
-        let groupsPerLine = max(2, Int((labelWidth + characterWidth) / (5 * characterWidth)))
-        
-        var groups = text.inGroupsOfFour().components(separatedBy: " ")
-        var ellipsisIndex:Int?
-        if groups.count > groupsPerLine * 3 {
-            // The third line keeps groups from both ends, with an ellipsis in the slot of the groups in between.
-            let tailCount = (groupsPerLine - 1) / 2
-            let headCount = groupsPerLine * 3 - 1 - tailCount
-            ellipsisIndex = headCount
-            // The tail is grouped from the end, so its last group is never cut short.
-            let tail = String(text.suffix(tailCount * 4)).inGroupsOfFour().components(separatedBy: " ")
-            groups = Array(groups.prefix(headCount)) + ["\u{2026}"] + tail
-        }
-        
-        let attributes:[NSAttributedString.Key:Any] = [.font: font, .foregroundColor: color]
-        let shortened = NSMutableAttributedString()
-        for (index, group) in groups.enumerated() {
-            if index > 0 {
-                shortened.append(NSAttributedString(string: index % groupsPerLine == 0 ? "\n" : " ", attributes: attributes))
-            }
-            shortened.append(NSAttributedString(string: group, attributes: attributes))
-        }
-        
-        if let ellipsisIndex {
-            // Centre the ellipsis in a four-character slot, so the groups after it stay in their columns.
-            let ellipsisWidth = ("\u{2026}" as NSString).size(withAttributes: [.font: font]).width
-            let padding = (4 * characterWidth - ellipsisWidth) / 2
-            let ellipsisLocation = ellipsisIndex * 5
-            shortened.addAttribute(.kern, value: padding, range: NSRange(location: ellipsisLocation - 1, length: 1))
-            shortened.addAttribute(.kern, value: padding, range: NSRange(location: ellipsisLocation, length: 1))
-        }
-        
-        return shortened
     }
     
     func userLNURL() -> String? {
