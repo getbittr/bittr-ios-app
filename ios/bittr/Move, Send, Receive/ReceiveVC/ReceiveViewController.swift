@@ -103,7 +103,10 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate, UIContextMen
     // Type
     var currentType:TransactionType = .onchain
     var currentCopyableText = ""
-    var codeIncludesAmount = false
+    // What the shown code was made from, so that any change to it makes the code again.
+    var codeInputs:ReceiveInputs?
+    // Counts up with every request for a code, so a request that has been replaced never shows its result.
+    var codeRequest = 0
     
     var keyboardIsActive = false
     var maximumReceivableLNSats:Int?
@@ -162,41 +165,42 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate, UIContextMen
         }
     }
     
-    func setLabels(for type:TransactionType, newAddress:Bool = false) async {
+    func setLabels(for type:TransactionType, newAddress:Bool = false, request:Int, inputs:ReceiveInputs) async {
         DispatchQueue.main.async {
+            guard request == self.codeRequest else { return }
             self.updateCards(for: type)
             self.currentType = type
         }
         
-        // Gather
-        let onchainAddress:String = {
+        // Gather. Nil when there is no address, so nothing stands in for one in a code.
+        let onchainAddress:String? = {
             if type == .onchain || type == .bitcoinqr {
                 if newAddress {
                     let nextUnusedAddress = BitcoinManager.shared.bittrWallet.onchainAddresses?.getNextUnusedAddress()
                     if nextUnusedAddress == nil {
                         self.showAlert(title: Language.getWord(withID: "address"), message: Language.getWord(withID: "noaddressavailable"), buttons: [.dismiss(Language.getWord(withID: "okay"))])
                     }
-                    return nextUnusedAddress ?? self.getCachedOnchainAddress() ?? Language.getWord(withID: "unavailable")
+                    return nextUnusedAddress ?? self.getCachedOnchainAddress()
                 } else {
-                    return self.getCachedOnchainAddress() ?? Language.getWord(withID: "unavailable")
+                    return self.getCachedOnchainAddress()
                 }
             } else {
-                return ""
+                return nil
             }
         }()
         
-        let enteredDescription = (self.bothDescriptionTextField.text?.trimmingCharacters(in: .whitespacesAndNewlines) ?? "")
+        let enteredDescription = inputs.description
         
         // Read the entered amount once, as whole satoshis, and derive everything else from it.
+        let enteredAmount = inputs.amount
         let amountInSatoshis:Int? = {
-            let enteredAmount = (self.bothAmountTextField.text ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
-            guard !enteredAmount.isEmpty else {
+            guard let currency = inputs.currency else {
                 // No amount has been entered. Create a zero invoice.
                 return nil
             }
             
             // An amount has been entered. Convert the selected currency to satoshis.
-            switch self.selectedCurrency {
+            switch currency {
             case .satoshis:
                 return enteredAmount.parsedUserAmount(allowingFraction: false)?.satoshis()
             case .bitcoin:
@@ -211,10 +215,11 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate, UIContextMen
                 return (fiatAmount / rate).satoshisFromBitcoin()
             }
         }()
-        let amountInBTC:CGFloat? = amountInSatoshis.map { $0.inBTC() }
+        // An amount that can't be read gets no code, rather than one without the amount.
+        let amountIsInvalid = !enteredAmount.isEmpty && amountInSatoshis == nil
         
-        let lightningInvoice:String = await {
-            guard !(type == .onchain || type == .lnurl) else {
+        let lightningInvoice:String? = await {
+            guard !(type == .onchain || type == .lnurl), !amountIsInvalid else {
                 return nil
             }
             
@@ -222,29 +227,42 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate, UIContextMen
                 return await self.getZeroInvoice(enteredDescription: enteredDescription)
             }
             return await self.getRegularInvoice(amountMsat: UInt64(amountInSatoshis) * 1_000, description: enteredDescription, expirySecs: 3600)
-        }() ?? Language.getWord(withID: "unavailable")
+        }()
         
         var amountText:String = ""
-        var labelText:String = ""
+        var bitcoinQRParameters:[String] = []
         
-        if amountInBTC != nil {
-            let formatter = NumberFormatter()
-            formatter.numberStyle = .decimal
-            formatter.minimumFractionDigits = 0
-            formatter.maximumFractionDigits = 8
-            formatter.usesGroupingSeparator = false
-            amountText = "?amount=\(formatter.string(from: amountInBTC! as NSNumber)!)".replacingOccurrences(of: ",", with: ".")
+        if let amountInSatoshis {
+            // Written out from whole satoshis in ASCII digits, so neither rounding nor the phone's locale can change it.
+            var fraction = String(amountInSatoshis % 100_000_000)
+            fraction = String(repeating: "0", count: 8 - fraction.count) + fraction
+            while fraction.hasSuffix("0") {
+                fraction.removeLast()
+            }
+            let wholeBitcoin = String(amountInSatoshis / 100_000_000)
+            let amount = fraction.isEmpty ? wholeBitcoin : wholeBitcoin + "." + fraction
+            amountText = "?amount=\(amount)"
+            bitcoinQRParameters.append("amount=\(amount)")
         }
-        if enteredDescription != "" {
-            labelText = "&label=\(enteredDescription)"
+        // Only unreserved characters stay as typed, so no label can end its parameter or the URI early.
+        let unreserved = CharacterSet(charactersIn: "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~")
+        if enteredDescription != "", let label = enteredDescription.addingPercentEncoding(withAllowedCharacters: unreserved) {
+            bitcoinQRParameters.append("label=\(label)")
         }
         
-        let bitcoinQR:String = "bitcoin:\(onchainAddress)\(amountText)\(labelText)&lightning=\(lightningInvoice)"
+        // The Bitcoin QR needs both halves, so without either it isn't made at all.
+        var bitcoinQR:String?
+        if let onchainAddress, let lightningInvoice {
+            bitcoinQRParameters.append("lightning=\(lightningInvoice)")
+            // The first parameter follows a question mark, with or without an amount.
+            bitcoinQR = "bitcoin:\(onchainAddress)?" + bitcoinQRParameters.joined(separator: "&")
+        }
         
-        let userLightningURL = self.userLNURL()
-        let lnurl = userLightningURL ?? Language.getWord(withID: "unavailable")
+        let lnurl = self.userLNURL()
         
         DispatchQueue.main.async {
+            
+            guard request == self.codeRequest else { return }
             
             // Show lightning bolt.
             switch type {
@@ -259,43 +277,57 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate, UIContextMen
                 self.boltStackWidth.constant = 19
             }
             
-            // Set labels. Optional: an unavailable LNURL has no QR (see .lnurl).
-            let qrCode:UIImage?
+            // Set labels, and the code's content only from data that is there.
+            var qrContent:String?
             switch type {
             case .onchain:
                 self.addressTitle.text = Language.getWord(withID: "address")
-                self.lowerAddressLabel.text = onchainAddress.inGroupsOfFour() + amountText
-                self.lowerAddressLabel.font = .monospacedSystemFont(ofSize: 15, weight: .bold)
-                qrCode = "bitcoin:\(onchainAddress)\(amountText)".uppercased().toBigQRCode()!
-                self.currentCopyableText = amountText.isEmpty
-                    ? onchainAddress
-                    : "bitcoin:\(onchainAddress)\(amountText)"
+                if let onchainAddress {
+                    self.lowerAddressLabel.text = onchainAddress.inGroupsOfFour() + amountText
+                    self.lowerAddressLabel.font = .monospacedSystemFont(ofSize: 15, weight: .bold)
+                    qrContent = "bitcoin:\(onchainAddress)\(amountText)".uppercased()
+                    self.currentCopyableText = amountText.isEmpty
+                        ? onchainAddress
+                        : "bitcoin:\(onchainAddress)\(amountText)"
+                }
             case .lightning:
                 self.addressTitle.text = Language.getWord(withID: "invoice")
-                self.lowerAddressLabel.font = .monospacedSystemFont(ofSize: 15, weight: .bold)
-                self.lowerAddressLabel.attributedText = self.shortenedInGroups(lightningInvoice, font: self.lowerAddressLabel.font, color: self.lowerAddressLabel.textColor)
-                qrCode = "lightning:\(lightningInvoice)".uppercased().toBigQRCode()!
-                self.currentCopyableText = lightningInvoice
+                if let lightningInvoice {
+                    self.lowerAddressLabel.font = .monospacedSystemFont(ofSize: 15, weight: .bold)
+                    self.lowerAddressLabel.attributedText = self.shortenedInGroups(lightningInvoice, font: self.lowerAddressLabel.font, color: self.lowerAddressLabel.textColor)
+                    qrContent = "lightning:\(lightningInvoice)".uppercased()
+                    self.currentCopyableText = lightningInvoice
+                }
             case .bitcoinqr:
                 self.addressTitle.text = Language.getWord(withID: "bitcoinqr")
-                self.lowerAddressLabel.text = bitcoinQR.replacingOccurrences(of: "?", with: "?\u{2060}")
-                self.lowerAddressLabel.font = UIFont(name: "Gilroy-Bold", size: 16)
-                qrCode = bitcoinQR.toBigQRCode()!
-                self.currentCopyableText = bitcoinQR
+                if let bitcoinQR {
+                    self.lowerAddressLabel.text = bitcoinQR.replacingOccurrences(of: "?", with: "?\u{2060}")
+                    self.lowerAddressLabel.font = UIFont(name: "Gilroy-Bold", size: 16)
+                    qrContent = bitcoinQR
+                    self.currentCopyableText = bitcoinQR
+                }
             case .lnurl:
                 self.addressTitle.text = Language.getWord(withID: "url")
-                self.lowerAddressLabel.text = lnurl
-                self.lowerAddressLabel.font = UIFont(name: "Gilroy-Bold", size: 16)
-                // Don't build a QR for an unavailable address — it would encode
-                // the literal word "Unavailable". Leave it empty in that case.
-                qrCode = userLightningURL != nil ? lnurl.toBigQRCode() : nil
-                self.currentCopyableText = lnurl
+                if let lnurl {
+                    self.lowerAddressLabel.text = lnurl
+                    self.lowerAddressLabel.font = UIFont(name: "Gilroy-Bold", size: 16)
+                    qrContent = lnurl
+                    self.currentCopyableText = lnurl
+                }
             }
-
-            self.codeIncludesAmount = amountInSatoshis != nil || !enteredDescription.isEmpty
+            
+            if amountIsInvalid {
+                qrContent = nil
+            }
+            if qrContent == nil {
+                self.lowerAddressLabel.text = Language.getWord(withID: amountIsInvalid ? "receiveinvalidamount" : "unavailable")
+                self.lowerAddressLabel.font = UIFont(name: "Gilroy-Bold", size: 16)
+                self.currentCopyableText = ""
+            }
+            let qrCode = qrContent?.toBigQRCode()
             
             // Read without the groups' spaces, by VoiceOver and the flows alike.
-            self.lowerAddressLabel.accessibilityLabel = self.currentCopyableText
+            self.lowerAddressLabel.accessibilityLabel = self.currentCopyableText.isEmpty ? nil : self.currentCopyableText
             self.qrImageView.image = qrCode
 
             // Hide the QR view entirely when there's nothing to encode.
@@ -415,6 +447,9 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate, UIContextMen
     }
     
     @IBAction func copyTapped(_ sender: UIButton) {
+        // An edit that isn't in the code yet makes the code again, instead of copying the old one.
+        self.view.endEditing(true)
+        guard self.currentInputs() == self.codeInputs, !self.currentCopyableText.isEmpty else { return }
         let copyingText = self.currentCopyableText
         UIPasteboard.general.string = copyingText
         self.showAlert(title: Language.getWord(withID: "copied"), message: copyingText, buttons: [.dismiss(Language.getWord(withID: "okay"))])
@@ -434,10 +469,7 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate, UIContextMen
         self.view.endEditing(true)
         if self.amountStack.alpha == 1 {
             self.hideAmountStack()
-            // Closing Add amount drops the amount, so a code made with one is made again without it.
-            if self.codeIncludesAmount {
-                self.alertTapped(for: self.currentType)
-            }
+            self.makeCodeAgainIfInputsChanged()
         } else {
             self.showAmountStack()
         }
@@ -454,6 +486,12 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate, UIContextMen
         if type != self.currentType {
             self.hideAmountStack()
         }
+        // Read once, here, so the code is made from exactly the inputs Copy compares with later.
+        let inputs = self.currentInputs()
+        self.codeInputs = inputs
+        self.codeRequest += 1
+        let request = self.codeRequest
+        self.currentCopyableText = ""
         self.qrImageView.alpha = 0
         self.addressTitle.alpha = 0
         self.lowerAddressLabel.alpha = 0
@@ -481,7 +519,8 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate, UIContextMen
 
         let delay:Double = withoutAnimation ? 0 : 0.7
         DispatchQueue.main.asyncAfter(deadline: .now() + delay) {
-            Task { await self.setLabels(for: type, newAddress: newAddress) }
+            guard request == self.codeRequest else { return }
+            Task { await self.setLabels(for: type, newAddress: newAddress, request: request, inputs: inputs) }
         }
     }
     
@@ -545,10 +584,16 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate, UIContextMen
         let bitcoinValue = BitcoinManager.shared.bittrWallet.getCorrectBitcoinValue()
         self.showAlert(title: Language.getWord(withID: "selectcurrency"), message: Language.getWord(withID: "selectcurrencymessage"), buttons: [
             .dismiss(Language.getWord(withID: "cancel")),
-            .action(bitcoinValue.chosenCurrency) { self.selectCurrency(.currency) },
-            .action("Satoshis") { self.selectCurrency(.satoshis) },
-            .action("Bitcoin") { self.selectCurrency(.bitcoin) }
+            .action(bitcoinValue.chosenCurrency) { self.chooseCurrency(.currency) },
+            .action("Satoshis") { self.chooseCurrency(.satoshis) },
+            .action("Bitcoin") { self.chooseCurrency(.bitcoin) }
         ])
+    }
+    
+    func chooseCurrency(_ type:SelectedCurrency) {
+        // The entered number keeps its digits and now counts in the new unit, as on Send.
+        self.selectCurrency(type)
+        self.makeCodeAgainIfInputsChanged()
     }
     
     func selectCurrency(_ type:SelectedCurrency) {
@@ -571,7 +616,33 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate, UIContextMen
         self.view.endEditing(true)
         self.bothAmountButton.alpha = 1
         self.bothDescriptionButton.alpha = 1
-        self.alertTapped(for: self.currentType)
+    }
+    
+    func textFieldDidEndEditing(_ textField: UITextField) {
+        // Checked on the next turn, so a button that ends editing and then clears the fields makes one code, not two.
+        DispatchQueue.main.async {
+            self.makeCodeAgainIfInputsChanged()
+        }
+    }
+    
+    func currentInputs() -> ReceiveInputs {
+        let amount = (self.bothAmountTextField.text ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+        let description = (self.bothDescriptionTextField.text ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+        return ReceiveInputs(amount: amount, description: description, currency: amount.isEmpty ? nil : self.selectedCurrency)
+    }
+    
+    func makeCodeAgainIfInputsChanged() {
+        if self.currentInputs() != self.codeInputs {
+            self.alertTapped(for: self.currentType)
+        }
+    }
+    
+    func textField(_ textField: UITextField, shouldChangeCharactersIn range: NSRange, replacementString string: String) -> Bool {
+        
+        guard textField == self.bothDescriptionTextField, let text = textField.text, let textRange = Range(range, in: text) else { return true }
+        
+        // Counted in bytes, which is what the description costs in the Bitcoin QR, so that code always fits.
+        return text.replacingCharacters(in: textRange, with: string).utf8.count <= 100
     }
     
     func textFieldShouldReturn(_ textField: UITextField) -> Bool {
@@ -732,6 +803,8 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate, UIContextMen
             }
             
             let shareAction = UIAction(title: "Share", image: UIImage(systemName: "square.and.arrow.up")) { _ in
+                self.view.endEditing(true)
+                guard self.currentInputs() == self.codeInputs, !self.currentCopyableText.isEmpty else { return }
                 let items: [Any] = [self.currentCopyableText, (self.qrImageView.image as Any)].compactMap { $0 }
                 let vc = UIActivityViewController(activityItems: items, applicationActivities: nil)
                 self.present(vc, animated: true)
@@ -747,4 +820,10 @@ enum TransactionType {
     case lightning
     case bitcoinqr
     case lnurl
+}
+
+struct ReceiveInputs: Equatable {
+    let amount:String
+    let description:String
+    let currency:SelectedCurrency?
 }
