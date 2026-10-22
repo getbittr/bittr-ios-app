@@ -77,7 +77,7 @@ class ReceiveControllerTest {
         val state = controller.state.value
         assertEquals(ReceiveType.Onchain, state.type)
         assertFalse(state.loading)
-        assertEquals("addr-1", state.display?.addressLabel)
+        assertEquals("addr-1", state.display?.copyText)
         assertFalse(state.cards.more)
     }
 
@@ -93,7 +93,7 @@ class ReceiveControllerTest {
         advanceTimeBy(1_500)
         advanceUntilIdle()
         assertFalse(controller.state.value.loading)
-        assertEquals("addr-1", controller.state.value.display?.addressLabel)
+        assertEquals("addr-1", controller.state.value.display?.copyText)
     }
 
     @Test
@@ -108,7 +108,7 @@ class ReceiveControllerTest {
         advanceUntilIdle()
 
         assertEquals(ReceiveType.Lightning, controller.state.value.type)
-        assertEquals("lnbcrt-zero", controller.state.value.display?.lowerLabel)
+        assertEquals("lnbcrt-zero", controller.state.value.display?.copyText)
         assertNull(controller.state.value.alert)
     }
 
@@ -121,13 +121,13 @@ class ReceiveControllerTest {
         controller.onRefresh()
         controller.onAlertButton(1)
         advanceUntilIdle()
-        assertEquals("addr-2", controller.state.value.display?.addressLabel)
+        assertEquals("addr-2", controller.state.value.display?.copyText)
         assertNull(controller.state.value.alert)
 
         controller.onRefresh()
         controller.onAlertButton(1)
         advanceUntilIdle()
-        assertEquals("addr-2", controller.state.value.display?.addressLabel)
+        assertEquals("addr-2", controller.state.value.display?.copyText)
         assertEquals(ReceiveStrings.NO_ADDRESS_AVAILABLE, controller.state.value.alert?.message)
         assertEquals(1, controller.state.value.alert?.buttons?.size)
     }
@@ -151,6 +151,47 @@ class ReceiveControllerTest {
 
         assertEquals(10_000L, source.invoiceAmounts.last())
         assertTrue(controller.state.value.display!!.copyText.contains("amount=0.0001"))
+    }
+
+    @Test
+    fun `closing Add amount makes a code with an amount again without it`() = runTest {
+        val source = FakeSource(channel = true)
+        val controller = controller(source)
+        controller.start()
+        advanceUntilIdle()
+        controller.onMore()
+        controller.onAlertButton(3)
+        advanceUntilIdle()
+
+        controller.onEdit()
+        controller.onAmountChange("5000")
+        controller.onDone()
+        advanceUntilIdle()
+        assertEquals(5_000L, source.invoiceAmounts.last())
+        assertTrue(controller.state.value.codeIncludesAmount)
+
+        controller.onEdit()
+        advanceUntilIdle()
+        assertFalse(controller.state.value.amountOpen)
+        assertEquals("lnbcrt-zero", controller.state.value.display?.copyText)
+        assertFalse(controller.state.value.codeIncludesAmount)
+    }
+
+    @Test
+    fun `closing Add amount leaves a code without an amount as it is`() = runTest {
+        val controller = controller(FakeSource())
+        controller.start()
+        advanceUntilIdle()
+        val shown = controller.state.value.display
+
+        controller.onEdit()
+        controller.onAmountChange("5000")
+        controller.onEdit()
+        advanceUntilIdle()
+
+        assertEquals("", controller.state.value.amountText)
+        assertFalse(controller.state.value.loading)
+        assertTrue("Never made again, so the same display.", shown === controller.state.value.display)
     }
 
     @Test

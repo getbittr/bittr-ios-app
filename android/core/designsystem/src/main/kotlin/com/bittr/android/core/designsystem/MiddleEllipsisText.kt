@@ -24,8 +24,9 @@ import androidx.compose.ui.unit.Constraints
  * The lines before the last are kept whole; the last holds as much of what follows them as fits,
  * then "…", then as much of the string's end.
  *
- * What the screen shows is shortened; what it says is not: the node's text is the whole string,
- * as a truncated UILabel's is, so the flows' `copyTextFrom` and text assertions read it all.
+ * What the screen shows is shortened; what it says is not: the node's text is [readAs], the whole
+ * string unless a caller says otherwise, as a truncated UILabel's is, so the flows' `copyTextFrom`
+ * and text assertions read it all.
  * [modifier] goes on that node, so a test tag there names it.
  */
 @Composable
@@ -36,8 +37,9 @@ fun MiddleEllipsisText(
     modifier: Modifier = Modifier,
     color: Color = Color.Unspecified,
     textAlign: TextAlign? = null,
+    readAs: String = text,
 ) {
-    BoxWithConstraints(modifier.clearAndSetSemantics { this.text = AnnotatedString(text) }) {
+    BoxWithConstraints(modifier.clearAndSetSemantics { this.text = AnnotatedString(readAs) }) {
         val measurer = rememberTextMeasurer()
         val width = constraints.maxWidth
         val shown = remember(text, style, maxLines, width) {

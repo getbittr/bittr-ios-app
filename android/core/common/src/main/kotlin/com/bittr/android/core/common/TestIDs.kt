@@ -182,7 +182,6 @@ object TestID {
         const val currencyButton = "receive.currencyButton"
         const val currencyLabel = "receive.currencyLabel"
         const val editButton = "receive.editButton"
-        const val invoiceLabel = "receive.invoiceLabel"
         const val moreButton = "receive.moreButton"
         const val qrImageView = "receive.qrImageView"
         const val qrSpinner = "receive.qrSpinner"
