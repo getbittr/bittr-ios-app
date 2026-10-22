@@ -137,7 +137,7 @@ class Signup1ViewController: UIViewController {
     func setWords() {
         
         self.headerLabel.text = Language.getWord(withID: "welcome")
-        self.topLabel.text = Language.getWord(withID: "createyourownwallet")
+        self.topLabel.setText(Language.getWord(withID: "createyourownwallet"))
         self.createWalletLabel.text = Language.getWord(withID: "createwallet")
         self.restoreLabel.text = Language.getWord(withID: "restorewallet")
     }
