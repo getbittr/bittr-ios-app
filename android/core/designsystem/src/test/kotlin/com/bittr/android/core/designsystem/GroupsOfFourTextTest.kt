@@ -59,6 +59,19 @@ class GroupsOfFourTextTest {
     }
 
     @Test
+    fun `narrowed to its longest line for the trailing edge, the text wraps exactly as before`() {
+        val address = inGroupsOfFour("bc1p5d7rjq7g6rdk2yhzks9smlaqtedr4dekq08ge8ztwac72sfr9rusxg3297")
+        for (width in 100..420 step 3) {
+            for (shown in listOf(shortenedInGroups(measurer, address, style, 16f, Int.MAX_VALUE, width), shortenedInGroups(measurer, inGroupsOfFour(invoice), style, 16f, 3, width))) {
+                val full = measurer.measure(shown, style, constraints = Constraints(maxWidth = width))
+                val narrowed = measurer.measure(shown, style, constraints = Constraints(maxWidth = longestLine(measurer, shown, style, width)))
+                assertEquals("Lines at $width px", full.lineCount, narrowed.lineCount)
+                for (line in 0 until full.lineCount) assertEquals("Line ${line + 1} at $width px", full.getLineEnd(line), narrowed.getLineEnd(line))
+            }
+        }
+    }
+
+    @Test
     fun `text that fits is left as it is`() {
         val address = inGroupsOfFour("bcrt1ql0pkt3du7900avnxcjusmcjgm3fvvtkzm2u6nw")
         assertEquals(address, shortenedInGroups(measurer, address, style, 16f, maxLines = 3, width = 300).text)

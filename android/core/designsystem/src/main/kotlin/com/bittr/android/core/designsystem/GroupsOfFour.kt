@@ -1,6 +1,7 @@
 package com.bittr.android.core.designsystem
 
 import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.width
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
@@ -19,6 +20,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.em
+import kotlin.math.ceil
 
 /**
  * [text] in groups of four characters, a space between them — iOS's `String.inGroupsOfFour()` — as
@@ -34,6 +36,9 @@ fun inGroupsOfFour(text: String): String = text.chunked(4).joinToString(" ")
  * both ends, with "…" centred in the slot of the groups in between, so every group after it stays
  * in its column. The tail is grouped from the end, so its last group is never cut short.
  *
+ * With [trailing], the text is as wide as its longest line, so a parent aligning it to its end puts
+ * that line against the edge while the lines stay left-aligned in their columns.
+ *
  * What the screen shows is grouped; what it says is [readAs], so TalkBack and the flows' text
  * assertions and `copyTextFrom` read the string whole. [modifier] goes on that node, so a test tag
  * there names it.
@@ -46,6 +51,7 @@ fun GroupsOfFourText(
     modifier: Modifier = Modifier,
     color: Color = Color.Unspecified,
     maxLines: Int = Int.MAX_VALUE,
+    trailing: Boolean = false,
 ) {
     BoxWithConstraints(modifier.clearAndSetSemantics { this.text = AnnotatedString(readAs) }) {
         val measurer = rememberTextMeasurer()
@@ -54,12 +60,16 @@ fun GroupsOfFourText(
         val shown = remember(measurer, text, style, fontSizePx, maxLines, width) {
             shortenedInGroups(measurer, text, style, fontSizePx, maxLines, width)
         }
+        val longestLine = remember(measurer, shown, style, width, trailing) {
+            if (trailing && width != Constraints.Infinity) longestLine(measurer, shown, style, width) else null
+        }
         Text(
             shown,
             style = style,
             color = color,
             maxLines = maxLines,
             overflow = TextOverflow.Clip,
+            modifier = if (longestLine != null) Modifier.width(with(LocalDensity.current) { longestLine.toDp() }) else Modifier,
         )
     }
 }
@@ -113,6 +123,12 @@ internal fun shortenedInGroups(
     var headCount = groupsPerLine * maxLines - 1 - tailCount
     while (headCount > 0 && !fits(arranged(headCount))) headCount--
     return arranged(headCount)
+}
+
+/** The widest of [shown]'s lines at [width] px, rounded up to whole pixels so none of them wraps again. */
+internal fun longestLine(measurer: TextMeasurer, shown: AnnotatedString, style: TextStyle, width: Int): Int {
+    val layout = measurer.measure(shown, style, constraints = Constraints(maxWidth = width))
+    return ceil((0 until layout.lineCount).maxOf { layout.getLineRight(it) }).toInt()
 }
 
 /** Characters measured together, so one character's width comes out to a fraction of a pixel. */
