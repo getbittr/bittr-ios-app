@@ -5,7 +5,7 @@
 // The calling flow captures the bolt11 first (copyTextFrom the invoice label,
 // then stash it on output.invoice) and then runs this script:
 //
-//   - copyTextFrom: { id: "receive.invoiceLabel" }
+//   - copyTextFrom: { id: "receive.addressLabel" }
 //   - evalScript: ${output.invoice = maestro.copiedText}
 //   - runScript: ../scripts/submit_invoice.js
 

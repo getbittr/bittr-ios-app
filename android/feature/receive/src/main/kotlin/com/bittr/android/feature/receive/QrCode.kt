@@ -6,6 +6,16 @@ import com.google.zxing.BarcodeFormat
 import com.google.zxing.EncodeHintType
 import com.google.zxing.qrcode.QRCodeWriter
 import com.google.zxing.qrcode.decoder.ErrorCorrectionLevel
+import kotlin.math.ceil
+
+/**
+ * A QR code edge to edge, and the white box for the logo over its middle, as a share of its width.
+ *
+ * @property logoBox the box's width: whole modules, odd or even like the code itself, so it centres
+ * on the module grid and its edges fall on module edges.
+ * @property logoMark the logo's width inside the box, which leaves it 30 px of the 1080 all round.
+ */
+internal class QrCode(val bitmap: Bitmap, val logoBox: Float, val logoMark: Float)
 
 /**
  * `String.toBigQRCode()` — a square black-on-white QR, error correction level H.
@@ -21,7 +31,7 @@ import com.google.zxing.qrcode.decoder.ErrorCorrectionLevel
  * and the smaller it read on screen. iOS scales its code to the full 1080 (`toBigQRCode`'s
  * `scale`), and the screen scales this bitmap to fill its box the same way.
  */
-internal fun qrBitmap(payload: String, minSizePx: Int = QR_SIZE_PX): Bitmap {
+internal fun qrCode(payload: String, minSizePx: Int = QR_SIZE_PX): QrCode {
     // Width and height 0: ZXing renders at the code's own size, one pixel per module.
     val matrix = QRCodeWriter().encode(
         payload,
@@ -46,8 +56,30 @@ internal fun qrBitmap(payload: String, minSizePx: Int = QR_SIZE_PX): Bitmap {
             pixels[row + x] = if (matrix[x / scale, moduleY]) Color.BLACK else Color.WHITE
         }
     }
-    return Bitmap.createBitmap(pixels, size, size, Bitmap.Config.ARGB_8888)
+    val bitmap = Bitmap.createBitmap(pixels, size, size, Bitmap.Config.ARGB_8888)
+
+    val boxPx = logoModules(modules) * scale
+    return QrCode(
+        bitmap = bitmap,
+        logoBox = boxPx.toFloat() / size,
+        logoMark = (boxPx - 2 * LOGO_PADDING_PX).toFloat() / boxPx,
+    )
+}
+
+/**
+ * How many modules wide the logo's box is in a code [modules] wide: about 13 % of the width, rounded up
+ * to whole modules and to the code's parity, so it centres on the grid.
+ */
+internal fun logoModules(modules: Int): Int {
+    val atLeast = ceil(modules * LOGO_SHARE).toInt()
+    return if (atLeast % 2 == modules % 2) atLeast else atLeast + 1
 }
 
 /** `toBigQRCode`'s `targetSize`. */
 private const val QR_SIZE_PX = 1080
+
+/** `toBigQRCode`'s `0.13`. */
+private const val LOGO_SHARE = 0.13
+
+/** `toBigQRCode`'s `padding`. */
+private const val LOGO_PADDING_PX = 30
