@@ -45,6 +45,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.bittr.android.core.common.TestID
 import com.bittr.android.core.designsystem.ScreenshotProtection
+import com.bittr.android.core.designsystem.NoKeyboardLearning
 import com.bittr.android.core.designsystem.BittrCanvas
 import com.bittr.android.core.designsystem.BittrCard
 import com.bittr.android.core.designsystem.BittrPrimaryButton
@@ -266,33 +267,35 @@ private fun WordField(
                     maxLines = 1,
                 )
             }
-            BasicTextField(
-                value = value,
-                onValueChange = onValueChange,
-                singleLine = true,
-                textStyle = wordStyle.copy(color = colors.onPhraseCard),
-                cursorBrush = SolidColor(colors.onPhraseCard),
-                // No autocorrect and no capitalisation: the keyboard "helpfully"
-                // turning `abandon` into `Abandon` or into a different word is the
-                // single most common way this screen fails for a user who did write
-                // the phrase down correctly.
-                keyboardOptions = KeyboardOptions(
-                    capitalization = KeyboardCapitalization.None,
-                    autoCorrectEnabled = false,
-                    imeAction = if (last) ImeAction.Done else ImeAction.Next,
-                ),
-                keyboardActions = KeyboardActions(
-                    onNext = { onNext() },
-                    onDone = { onDone() },
-                ),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .onFocusChanged { state ->
-                        if (focused && !state.isFocused) onFocusLost()
-                        focused = state.isFocused
-                    }
-                    .testTag(fieldTag),
-            )
+            NoKeyboardLearning {
+                BasicTextField(
+                    value = value,
+                    onValueChange = onValueChange,
+                    singleLine = true,
+                    textStyle = wordStyle.copy(color = colors.onPhraseCard),
+                    cursorBrush = SolidColor(colors.onPhraseCard),
+                    // No autocorrect and no capitalisation: the keyboard "helpfully"
+                    // turning `abandon` into `Abandon` or into a different word is the
+                    // single most common way this screen fails for a user who did write
+                    // the phrase down correctly.
+                    keyboardOptions = KeyboardOptions(
+                        capitalization = KeyboardCapitalization.None,
+                        autoCorrectEnabled = false,
+                        imeAction = if (last) ImeAction.Done else ImeAction.Next,
+                    ),
+                    keyboardActions = KeyboardActions(
+                        onNext = { onNext() },
+                        onDone = { onDone() },
+                    ),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .onFocusChanged { state ->
+                            if (focused && !state.isFocused) onFocusLost()
+                            focused = state.isFocused
+                        }
+                        .testTag(fieldTag),
+                )
+            }
         }
     }
 }
