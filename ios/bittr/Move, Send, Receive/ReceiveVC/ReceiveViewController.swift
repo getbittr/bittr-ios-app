@@ -165,7 +165,7 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate, UIContextMen
         }
     }
     
-    func setLabels(for type:TransactionType, newAddress:Bool = false, request:Int) async {
+    func setLabels(for type:TransactionType, newAddress:Bool = false, request:Int, inputs:ReceiveInputs) async {
         DispatchQueue.main.async {
             guard request == self.codeRequest else { return }
             self.updateCards(for: type)
@@ -189,18 +189,18 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate, UIContextMen
             }
         }()
         
-        let enteredDescription = (self.bothDescriptionTextField.text?.trimmingCharacters(in: .whitespacesAndNewlines) ?? "")
+        let enteredDescription = inputs.description
         
         // Read the entered amount once, as whole satoshis, and derive everything else from it.
-        let enteredAmount = (self.bothAmountTextField.text ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+        let enteredAmount = inputs.amount
         let amountInSatoshis:Int? = {
-            guard !enteredAmount.isEmpty else {
+            guard let currency = inputs.currency else {
                 // No amount has been entered. Create a zero invoice.
                 return nil
             }
             
             // An amount has been entered. Convert the selected currency to satoshis.
-            switch self.selectedCurrency {
+            switch currency {
             case .satoshis:
                 return enteredAmount.parsedUserAmount(allowingFraction: false)?.satoshis()
             case .bitcoin:
@@ -486,7 +486,9 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate, UIContextMen
         if type != self.currentType {
             self.hideAmountStack()
         }
-        self.codeInputs = self.currentInputs()
+        // Read once, here, so the code is made from exactly the inputs Copy compares with later.
+        let inputs = self.currentInputs()
+        self.codeInputs = inputs
         self.codeRequest += 1
         let request = self.codeRequest
         self.currentCopyableText = ""
@@ -518,7 +520,7 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate, UIContextMen
         let delay:Double = withoutAnimation ? 0 : 0.7
         DispatchQueue.main.asyncAfter(deadline: .now() + delay) {
             guard request == self.codeRequest else { return }
-            Task { await self.setLabels(for: type, newAddress: newAddress, request: request) }
+            Task { await self.setLabels(for: type, newAddress: newAddress, request: request, inputs: inputs) }
         }
     }
     
