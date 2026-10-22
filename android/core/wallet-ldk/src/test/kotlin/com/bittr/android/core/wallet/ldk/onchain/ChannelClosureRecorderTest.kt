@@ -202,6 +202,7 @@ class OnchainSyncClosureScanTest {
         override fun sync(request: String, parameters: LightSyncParameters) = "update"
         override fun applyUpdate(wallet: String, update: String) { applyFailure?.let { throw it } }
         override fun persist(wallet: String) = Unit
+        override fun reconnectElectrum() = Unit
     }
 
     private fun TestScope.sync(port: SimplePort, store: CountingStore) = OnchainSync(
@@ -212,6 +213,8 @@ class OnchainSyncClosureScanTest {
             transactions = { listOf("closing-tx" to listOf(funding)) },
             openChannelFundingTxIds = { emptyList() },
         ),
+        record = null,
+        reopenWallet = null,
     )
 
     @Test
@@ -227,7 +230,7 @@ class OnchainSyncClosureScanTest {
     fun `a light sync that applies runs the closure scan`() = runTest {
         val store = CountingStore().apply { outpoint = funding }
 
-        assertTrue(sync(SimplePort(), store).lightSync())
+        assertEquals(LightSyncOutcome.Synced, sync(SimplePort(), store).lightSync())
 
         assertEquals(listOf("closing-tx"), store.stored)
     }
@@ -242,7 +245,7 @@ class OnchainSyncClosureScanTest {
         val store = CountingStore().apply { outpoint = funding }
         val port = SimplePort(applyFailure = IllegalStateException("cannot connect"))
 
-        assertFalse(sync(port, store).lightSync())
+        assertEquals(LightSyncOutcome.Failed, sync(port, store).lightSync())
 
         assertNull(store.stored)
         assertEquals(funding, store.outpoint)
@@ -254,6 +257,8 @@ class OnchainSyncClosureScanTest {
             port = SimplePort(),
             scans = ScanCoordinator(this),
             closures = null,
+            record = null,
+            reopenWallet = null,
         ).runLightSync()
 
         assertTrue(outcome.applied)

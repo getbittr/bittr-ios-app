@@ -150,7 +150,7 @@ class FileWalletCache(
      * is true today: a key that later arrives from a payment, a channel id or a
      * server would otherwise be able to name `../../seed.bin`, and this class
      * deletes and replaces the files it is handed. Same shape as
-     * `BdkStore.prepare`'s directory-name check, for the same reason — a comment
+     * `BdkStore`'s directory-name check, for the same reason — a comment
      * would not have stopped it.
      */
     private fun fileFor(key: String): File {

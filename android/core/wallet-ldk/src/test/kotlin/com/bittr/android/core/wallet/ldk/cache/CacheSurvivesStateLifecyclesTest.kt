@@ -23,8 +23,9 @@ import org.junit.rules.TemporaryFolder
  *   when a foreign-seed import is detected (BIT-20 rule 4). A ledger under it
  *   would forget every handled event at exactly the moment the app is most
  *   confused about which wallet it is.
- * - `BdkStore.prepare()` **deletes** `bdk_store/` in full on every start, ported
- *   from iOS. A ledger under it would forget everything once per process.
+ * - `BdkStore.recreate()` **deletes** `bdk_store/` in full whenever the stored
+ *   wallet is thrown away, ported from iOS. A ledger under it would forget
+ *   everything each time.
  *
  * Neither failure would show up as an error. Both would show up as the user
  * being notified twice about one payment, and as a force-close whose sweep
@@ -69,10 +70,10 @@ class CacheSurvivesStateLifecyclesTest {
     }
 
     @Test
-    fun `clearing BDK's store on start leaves the cache untouched`() {
+    fun `recreating BDK's store leaves the cache untouched`() {
         paths.bdkDatabaseFile.writeText("bdk chain data")
 
-        BdkStore.prepare(paths.bdkDatabaseFile)
+        BdkStore.recreate(paths.bdkDatabaseFile)
 
         assertFalse("The BDK store really was cleared.", paths.bdkDatabaseFile.exists())
         assertEquals(

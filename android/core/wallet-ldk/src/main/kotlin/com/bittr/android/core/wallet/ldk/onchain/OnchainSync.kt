@@ -1,5 +1,7 @@
 package com.bittr.android.core.wallet.ldk.onchain
 
+import kotlinx.coroutines.delay
+
 /**
  * What iOS hands Electrum for a full scan (`BDKManager.swift:258–263`).
  *
@@ -100,6 +102,20 @@ sealed interface SyncOutcome {
 }
 
 /**
+ * How a light sync went — iOS's `LightSyncOutcome` (PR #99).
+ *
+ * A skip is told apart from a failure, because the start treats them differently: a
+ * loaded wallet whose light sync failed is scanned in full, and one skipped for another
+ * light sync is tried again shortly.
+ */
+enum class LightSyncOutcome {
+    Synced,
+    SkippedForFullScan,
+    SkippedForLightSync,
+    Failed,
+}
+
+/**
  * The BDK calls a sync makes, as a seam with no BDK types in it.
  *
  * Four type parameters rather than one, because BDK's two sync paths do not
@@ -140,6 +156,9 @@ interface OnchainSyncPort<W : Any, F : Any, S : Any, U : Any> {
 
     /** `wallet.persist(connection)`. The connection is the port's business, not this layer's. */
     fun persist(wallet: W)
+
+    /** `self.electrumClient = try ElectrumClient(url:)`: a new connection, after a light sync hung. */
+    fun reconnectElectrum()
 }
 
 /**
@@ -166,29 +185,9 @@ interface OnchainSyncPort<W : Any, F : Any, S : Any, U : Any> {
  *    screen at all. The cost of the real failure is a rescan; the cost of the
  *    mistranslation is a wallet that will not let its owner spend.
  *
- *    Worth recording alongside that: on Android the persist is nearly moot
- *    anyway. [BdkStore] deletes the whole store on every start, ported from
- *    iOS, so nothing persisted here survives to be read back. It is kept
- *    because it is what iOS does and because the day that delete is
- *    reconsidered — BIT-131 is the decision, still open — the persist has to
- *    already be in the right place.
- *
- *    **Necessary, but not sufficient — do not read this as "delete the delete
- *    and persistence works".** `BdkWalletFactory.open` builds the wallet with
- *    bdk-android's *create* constructor, `Wallet(external, internal, network,
- *    connection)`, and the binding declares `CreateWithPersistException`
- *    `.DataAlreadyExists` for exactly the case of a store that already holds a
- *    changeset. Removing the wipe on its own therefore yields a wallet that
- *    opens once and throws on every start after it — and that failure is
- *    *quieter* than the one it was meant to cure, because
- *    `OnchainWalletPort.open` returns false and [OnchainSyncLoop] reports
- *    `WalletUnavailable` and returns without attempting a scan at all. Keeping
- *    the store means also routing construction through
- *    `Wallet.load(external, internal, connection)` — which takes no `Network`,
- *    so the network assertion moves out of our code and into an opaque
- *    `LoadWithPersistException.InvalidChangeSet(errorMessage: String)` — and
- *    falling back to create on `CouldNotLoad`, the empty-store case. Recorded
- *    on BIT-131.
+ *    What a persist failure does change is the stored full scan: it is only
+ *    recorded once the scan has persisted, and forgotten when it hasn't, so
+ *    the next launch scans again rather than loading a store that lacks it.
  *
  * 2. **An `applyUpdate` failure does fail it.** BDK throws `CannotConnectException`
  *    when the update does not attach to the chain the wallet already knows. The
@@ -237,6 +236,20 @@ class OnchainSync<W : Any, F : Any, S : Any, U : Any>(
      * written down.
      */
     private val closures: ChannelClosureRecorder?,
+    /**
+     * The stored full scan and rebuild request, or null for a wallet that keeps none.
+     * Nullable but not defaulted, for the reason [closures] gives.
+     */
+    private val record: BdkScanRecord?,
+    /**
+     * Throw the open wallet away and open it again — which builds it from an empty
+     * database while [record] has a rebuild requested. Null for a wallet that cannot be
+     * rebuilt.
+     */
+    private val reopenWallet: (() -> Boolean)?,
+    private val log: (String) -> Unit = {},
+    /** A failure iOS hands `handleError(error:row:)`, with its row. */
+    private val onError: (Throwable, Int) -> Unit = { _, _ -> },
 ) {
 
     /**
@@ -249,10 +262,113 @@ class OnchainSync<W : Any, F : Any, S : Any, U : Any>(
      * seconds is told `false` while the scan runs on. Both are
      * [ScanCoordinator]'s behaviour and its tests.
      */
-    suspend fun fullScan(): Boolean = scans.fullScan { runFullScan().applied }
+    suspend fun fullScan(): Boolean = scans.fullScan { generation ->
+        // Rebuild the wallet first when the user asked for it.
+        if (record?.rebuildRequested == true && !rebuildWallet(generation)) return@fullScan false
 
-    /** `lightSyncBdkWallet() -> Bool`. */
-    fun lightSync(): Boolean = runLightSync().applied
+        val outcome = runFullScan()
+        when (outcome) {
+            is SyncOutcome.Applied -> {
+                // Only count the full scan as done once it has persisted.
+                if (outcome.persisted) {
+                    record?.storeFullScanCompletion()
+                } else {
+                    // The stored data lacks this scan, so the next launch must scan again.
+                    outcome.persistFailure?.let { onError(it, ROW_FULL_SCAN_PERSIST) }
+                    record?.clearFullScanCompletion()
+                }
+            }
+            is SyncOutcome.NotApplied -> outcome.cause?.let { onError(it, fullScanRow(outcome.step)) }
+        }
+        outcome.applied
+    }
+
+    /**
+     * `didRebuildBdkWallet()`: throw the loaded wallet away and build it again from an
+     * empty database.
+     *
+     * Waits up to [REBUILD_WAIT_ATTEMPTS] × [REBUILD_WAIT_MILLIS] for a running light sync
+     * to finish, as it still writes to the stored database, and gives up otherwise. The
+     * request stays stored then, so the next start rebuilds.
+     *
+     * A scan outlives its runner, so the wallet may have been torn down while this waited.
+     * It then refuses: rebuilding would open a wallet nobody owns — after a removal, the
+     * removed seed's.
+     */
+    private suspend fun rebuildWallet(generation: Long): Boolean {
+        log("Will rebuild the BDK wallet.")
+        val reopen = reopenWallet ?: return false
+
+        var claim = scans.claimLightSync()
+        var attempts = 0
+        while (claim == null && attempts < REBUILD_WAIT_ATTEMPTS) {
+            delay(REBUILD_WAIT_MILLIS)
+            attempts += 1
+            claim = scans.claimLightSync()
+        }
+        if (claim == null) {
+            log("A light sync is still running. Will rebuild the BDK wallet later.")
+            return false
+        }
+        return try {
+            if (!scans.isCurrent(generation)) {
+                log("The BDK wallet was torn down. Will not rebuild it.")
+                false
+            } else {
+                reopen()
+            }
+        } finally {
+            scans.endLightSync(claim)
+        }
+    }
+
+    /**
+     * `lightSyncBdkWallet() -> LightSyncOutcome`.
+     *
+     * Stands down while a full scan is running, and while another light sync is. One that
+     * takes over a hung light sync's claim reconnects to Electrum first.
+     */
+    fun lightSync(): LightSyncOutcome {
+        // Stand down while a full scan is running.
+        if (!scans.mayLightSync()) {
+            log("Skipping light sync — a BDK full scan is in progress.")
+            return LightSyncOutcome.SkippedForFullScan
+        }
+
+        // One light sync at a time.
+        val claim = scans.claimLightSync() ?: run {
+            log("Skipping light sync — another one is in progress.")
+            return LightSyncOutcome.SkippedForLightSync
+        }
+        try {
+            // A hung light sync may have left the Electrum connection stuck, so open a new one.
+            if (claim.replacesHungSync) {
+                log("A light sync has hung. Will reconnect to Electrum.")
+                try {
+                    port.reconnectElectrum()
+                } catch (failure: Exception) {
+                    onError(failure, ROW_RECONNECT)
+                    return LightSyncOutcome.Failed
+                }
+            }
+            return when (val outcome = runLightSync()) {
+                is SyncOutcome.Applied -> {
+                    outcome.persistFailure?.let { onError(it, ROW_LIGHT_SYNC_PERSIST) }
+                    LightSyncOutcome.Synced
+                }
+                is SyncOutcome.NotApplied -> {
+                    outcome.cause?.let { onError(it, lightSyncRow(outcome.step)) }
+                    if (outcome.step == SyncStep.FullScanInProgress) {
+                        LightSyncOutcome.SkippedForFullScan
+                    } else {
+                        LightSyncOutcome.Failed
+                    }
+                }
+            }
+        } finally {
+            scans.endLightSync(claim)
+        }
+    }
 
     /**
      * The full-scan sequence itself, with the step that stopped it.
@@ -371,5 +487,34 @@ class OnchainSync<W : Any, F : Any, S : Any, U : Any>(
             batchSize = 25uL,
             fetchPrevTxouts = true,
         )
+
+        /** `didRebuildBdkWallet`'s `Thread.sleep(forTimeInterval: 0.25)`. */
+        const val REBUILD_WAIT_MILLIS: Long = 250L
+
+        /** Its 30-second deadline, in polls. */
+        const val REBUILD_WAIT_ATTEMPTS: Int = 120
+
+        // iOS's `handleError` rows, so a log line can be matched to the iOS step.
+        const val ROW_FULL_SCAN_BUILD = 212
+        const val ROW_FULL_SCAN_FETCH = 236
+        const val ROW_FULL_SCAN_APPLY = 243
+        const val ROW_FULL_SCAN_PERSIST = 250
+        const val ROW_RECONNECT = 565
+        const val ROW_LIGHT_SYNC_BUILD = 570
+        const val ROW_LIGHT_SYNC_FETCH = 582
+        const val ROW_LIGHT_SYNC_APPLY = 594
+        const val ROW_LIGHT_SYNC_PERSIST = 603
+
+        private fun fullScanRow(step: SyncStep): Int = when (step) {
+            SyncStep.BuildRequest -> ROW_FULL_SCAN_BUILD
+            SyncStep.ApplyUpdate -> ROW_FULL_SCAN_APPLY
+            else -> ROW_FULL_SCAN_FETCH
+        }
+
+        private fun lightSyncRow(step: SyncStep): Int = when (step) {
+            SyncStep.BuildRequest -> ROW_LIGHT_SYNC_BUILD
+            SyncStep.ApplyUpdate -> ROW_LIGHT_SYNC_APPLY
+            else -> ROW_LIGHT_SYNC_FETCH
+        }
     }
 }
