@@ -188,7 +188,7 @@ class ConfirmSendViewController: UIViewController {
             self.addressLabel.font = .monospacedSystemFont(ofSize: 15, weight: .bold)
             // An address is shown whole, so it can be checked before sending, and an invoice is shortened to three lines.
             self.addressLabel.numberOfLines = 0
-            self.addressLabel.attributedText = displayedAddress.inGroupsOfFour(width: self.addressLabel.bounds.width, lines: onchainOrLightning == .onchain ? .max : 3, font: self.addressLabel.font, color: self.addressLabel.textColor)
+            self.addressLabel.attributedText = displayedAddress.inGroupsOfFour(width: self.addressLabel.bounds.width, lines: onchainOrLightning == .onchain ? .max : 3, font: self.addressLabel.font, color: self.addressLabel.textColor, trailing: true)
         } else {
             self.addressLabel.text = displayedAddress
         }

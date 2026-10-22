@@ -73,7 +73,7 @@ extension String {
         return grouped
     }
     
-    func inGroupsOfFour(width:CGFloat, lines:Int = .max, font:UIFont, color:UIColor) -> NSAttributedString {
+    func inGroupsOfFour(width:CGFloat, lines:Int = .max, font:UIFont, color:UIColor, trailing:Bool = false) -> NSAttributedString {
         
         // Every character in a monospaced font is as wide as a zero.
         let characterWidth = ("0" as NSString).size(withAttributes: [.font: font]).width
@@ -94,6 +94,13 @@ extension String {
         // Left-aligned, so every line's groups stay in the same columns.
         let paragraphStyle = NSMutableParagraphStyle()
         paragraphStyle.alignment = .left
+        if trailing {
+            // Indented by what the longest line leaves free, less a point so rounding never wraps it.
+            let longestLine = groups.prefix(groupsPerLine).joined(separator: " ")
+            let indent = max(0, width - (longestLine as NSString).size(withAttributes: [.font: font]).width - 1)
+            paragraphStyle.firstLineHeadIndent = indent
+            paragraphStyle.headIndent = indent
+        }
         let attributes:[NSAttributedString.Key:Any] = [.font: font, .foregroundColor: color, .paragraphStyle: paragraphStyle]
         let shortened = NSMutableAttributedString()
         for (index, group) in groups.enumerated() {
