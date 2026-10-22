@@ -168,20 +168,20 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate, UIContextMen
             self.currentType = type
         }
         
-        // Gather
-        let onchainAddress:String = {
+        // Gather. Nil when there is no address, so nothing stands in for one in a code.
+        let onchainAddress:String? = {
             if type == .onchain || type == .bitcoinqr {
                 if newAddress {
                     let nextUnusedAddress = BitcoinManager.shared.bittrWallet.onchainAddresses?.getNextUnusedAddress()
                     if nextUnusedAddress == nil {
                         self.showAlert(title: Language.getWord(withID: "address"), message: Language.getWord(withID: "noaddressavailable"), buttons: [.dismiss(Language.getWord(withID: "okay"))])
                     }
-                    return nextUnusedAddress ?? self.getCachedOnchainAddress() ?? Language.getWord(withID: "unavailable")
+                    return nextUnusedAddress ?? self.getCachedOnchainAddress()
                 } else {
-                    return self.getCachedOnchainAddress() ?? Language.getWord(withID: "unavailable")
+                    return self.getCachedOnchainAddress()
                 }
             } else {
-                return ""
+                return nil
             }
         }()
         
@@ -212,7 +212,7 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate, UIContextMen
             }
         }()
         
-        let lightningInvoice:String = await {
+        let lightningInvoice:String? = await {
             guard !(type == .onchain || type == .lnurl) else {
                 return nil
             }
@@ -221,7 +221,7 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate, UIContextMen
                 return await self.getZeroInvoice(enteredDescription: enteredDescription)
             }
             return await self.getRegularInvoice(amountMsat: UInt64(amountInSatoshis) * 1_000, description: enteredDescription, expirySecs: 3600)
-        }() ?? Language.getWord(withID: "unavailable")
+        }()
         
         var amountText:String = ""
         var bitcoinQRParameters:[String] = []
@@ -243,13 +243,16 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate, UIContextMen
         if enteredDescription != "", let label = enteredDescription.addingPercentEncoding(withAllowedCharacters: unreserved) {
             bitcoinQRParameters.append("label=\(label)")
         }
-        bitcoinQRParameters.append("lightning=\(lightningInvoice)")
         
-        // The first parameter follows a question mark, with or without an amount.
-        let bitcoinQR:String = "bitcoin:\(onchainAddress)?" + bitcoinQRParameters.joined(separator: "&")
+        // The Bitcoin QR needs both halves, so without either it isn't made at all.
+        var bitcoinQR:String?
+        if let onchainAddress, let lightningInvoice {
+            bitcoinQRParameters.append("lightning=\(lightningInvoice)")
+            // The first parameter follows a question mark, with or without an amount.
+            bitcoinQR = "bitcoin:\(onchainAddress)?" + bitcoinQRParameters.joined(separator: "&")
+        }
         
-        let userLightningURL = self.userLNURL()
-        let lnurl = userLightningURL ?? Language.getWord(withID: "unavailable")
+        let lnurl = self.userLNURL()
         
         DispatchQueue.main.async {
             
@@ -266,43 +269,56 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate, UIContextMen
                 self.boltStackWidth.constant = 19
             }
             
-            // Set labels. Optional: an unavailable LNURL has no QR (see .lnurl).
-            let qrCode:UIImage?
+            // Set labels, and the code's content only from data that is there.
+            var qrContent:String?
             switch type {
             case .onchain:
                 self.addressTitle.text = Language.getWord(withID: "address")
-                self.lowerAddressLabel.text = onchainAddress.inGroupsOfFour() + amountText
-                self.lowerAddressLabel.font = .monospacedSystemFont(ofSize: 15, weight: .bold)
-                qrCode = "bitcoin:\(onchainAddress)\(amountText)".uppercased().toBigQRCode()
-                self.currentCopyableText = amountText.isEmpty
-                    ? onchainAddress
-                    : "bitcoin:\(onchainAddress)\(amountText)"
+                if let onchainAddress {
+                    self.lowerAddressLabel.text = onchainAddress.inGroupsOfFour() + amountText
+                    self.lowerAddressLabel.font = .monospacedSystemFont(ofSize: 15, weight: .bold)
+                    qrContent = "bitcoin:\(onchainAddress)\(amountText)".uppercased()
+                    self.currentCopyableText = amountText.isEmpty
+                        ? onchainAddress
+                        : "bitcoin:\(onchainAddress)\(amountText)"
+                }
             case .lightning:
                 self.addressTitle.text = Language.getWord(withID: "invoice")
-                self.lowerAddressLabel.font = .monospacedSystemFont(ofSize: 15, weight: .bold)
-                self.lowerAddressLabel.attributedText = self.shortenedInGroups(lightningInvoice, font: self.lowerAddressLabel.font, color: self.lowerAddressLabel.textColor)
-                qrCode = "lightning:\(lightningInvoice)".uppercased().toBigQRCode()
-                self.currentCopyableText = lightningInvoice
+                if let lightningInvoice {
+                    self.lowerAddressLabel.font = .monospacedSystemFont(ofSize: 15, weight: .bold)
+                    self.lowerAddressLabel.attributedText = self.shortenedInGroups(lightningInvoice, font: self.lowerAddressLabel.font, color: self.lowerAddressLabel.textColor)
+                    qrContent = "lightning:\(lightningInvoice)".uppercased()
+                    self.currentCopyableText = lightningInvoice
+                }
             case .bitcoinqr:
                 self.addressTitle.text = Language.getWord(withID: "bitcoinqr")
-                self.lowerAddressLabel.text = bitcoinQR.replacingOccurrences(of: "?", with: "?\u{2060}")
-                self.lowerAddressLabel.font = UIFont(name: "Gilroy-Bold", size: 16)
-                qrCode = bitcoinQR.toBigQRCode()
-                self.currentCopyableText = bitcoinQR
+                if let bitcoinQR {
+                    self.lowerAddressLabel.text = bitcoinQR.replacingOccurrences(of: "?", with: "?\u{2060}")
+                    self.lowerAddressLabel.font = UIFont(name: "Gilroy-Bold", size: 16)
+                    qrContent = bitcoinQR
+                    self.currentCopyableText = bitcoinQR
+                }
             case .lnurl:
                 self.addressTitle.text = Language.getWord(withID: "url")
-                self.lowerAddressLabel.text = lnurl
-                self.lowerAddressLabel.font = UIFont(name: "Gilroy-Bold", size: 16)
-                // Don't build a QR for an unavailable address — it would encode
-                // the literal word "Unavailable". Leave it empty in that case.
-                qrCode = userLightningURL != nil ? lnurl.toBigQRCode() : nil
-                self.currentCopyableText = lnurl
+                if let lnurl {
+                    self.lowerAddressLabel.text = lnurl
+                    self.lowerAddressLabel.font = UIFont(name: "Gilroy-Bold", size: 16)
+                    qrContent = lnurl
+                    self.currentCopyableText = lnurl
+                }
             }
-
+            
+            if qrContent == nil {
+                self.lowerAddressLabel.text = Language.getWord(withID: "unavailable")
+                self.lowerAddressLabel.font = UIFont(name: "Gilroy-Bold", size: 16)
+                self.currentCopyableText = ""
+            }
+            let qrCode = qrContent?.toBigQRCode()
+            
             self.codeIncludesAmount = amountInSatoshis != nil || !enteredDescription.isEmpty
             
             // Read without the groups' spaces, by VoiceOver and the flows alike.
-            self.lowerAddressLabel.accessibilityLabel = self.currentCopyableText
+            self.lowerAddressLabel.accessibilityLabel = self.currentCopyableText.isEmpty ? nil : self.currentCopyableText
             self.qrImageView.image = qrCode
 
             // Hide the QR view entirely when there's nothing to encode.
@@ -422,6 +438,7 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate, UIContextMen
     }
     
     @IBAction func copyTapped(_ sender: UIButton) {
+        guard !self.currentCopyableText.isEmpty else { return }
         let copyingText = self.currentCopyableText
         UIPasteboard.general.string = copyingText
         self.showAlert(title: Language.getWord(withID: "copied"), message: copyingText, buttons: [.dismiss(Language.getWord(withID: "okay"))])
@@ -747,6 +764,7 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate, UIContextMen
             }
             
             let shareAction = UIAction(title: "Share", image: UIImage(systemName: "square.and.arrow.up")) { _ in
+                guard !self.currentCopyableText.isEmpty else { return }
                 let items: [Any] = [self.currentCopyableText, (self.qrImageView.image as Any)].compactMap { $0 }
                 let vc = UIActivityViewController(activityItems: items, applicationActivities: nil)
                 self.present(vc, animated: true)
