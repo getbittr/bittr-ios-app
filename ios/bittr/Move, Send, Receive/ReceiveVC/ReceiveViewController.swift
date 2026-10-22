@@ -25,14 +25,11 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate, UIContextMen
     @IBOutlet weak var boltStack: UIView!
     @IBOutlet weak var boltStackWidth: NSLayoutConstraint! // 0 or 19
     @IBOutlet weak var addressTitle: UILabel!
-    @IBOutlet weak var addressLabel: UILabel!
     @IBOutlet weak var cardsStack: UIView!
     @IBOutlet weak var iconQuestion: UIImageView!
     @IBOutlet weak var questionButton: UIButton!
     
     // Lower address
-    @IBOutlet weak var lowerAddressStack: UIView!
-    @IBOutlet weak var lowerAddressStackHeight: NSLayoutConstraint!
     @IBOutlet weak var lowerAddressLabel: UILabel!
     
     // Copy
@@ -106,6 +103,7 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate, UIContextMen
     // Type
     var currentType:TransactionType = .onchain
     var currentCopyableText = ""
+    var codeIncludesAmount = false
     
     var keyboardIsActive = false
     var maximumReceivableLNSats:Int?
@@ -132,8 +130,7 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate, UIContextMen
         self.selectCurrency(.satoshis)
         
         self.addressTitle.accessibilityIdentifier = TestID.Receive.addressTitle
-        self.addressLabel.accessibilityIdentifier = TestID.Receive.addressLabel
-        self.lowerAddressLabel.accessibilityIdentifier = TestID.Receive.invoiceLabel
+        self.lowerAddressLabel.accessibilityIdentifier = TestID.Receive.addressLabel
         self.qrImageView.accessibilityIdentifier = TestID.Receive.qrImageView
         self.qrSpinner.accessibilityIdentifier = TestID.Receive.qrSpinner
         self.questionButton.accessibilityIdentifier = TestID.Receive.questionButton
@@ -267,43 +264,42 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate, UIContextMen
             switch type {
             case .onchain:
                 self.addressTitle.text = Language.getWord(withID: "address")
-                self.addressLabel.text = onchainAddress + amountText
-                self.lowerAddressLabel.text = ""
+                self.lowerAddressLabel.text = onchainAddress.inGroupsOfFour() + amountText
+                self.lowerAddressLabel.font = .monospacedSystemFont(ofSize: 15, weight: .bold)
                 qrCode = "bitcoin:\(onchainAddress)\(amountText)".uppercased().toBigQRCode()!
-                self.hideLowerAddress()
                 self.currentCopyableText = amountText.isEmpty
                     ? onchainAddress
                     : "bitcoin:\(onchainAddress)\(amountText)"
             case .lightning:
                 self.addressTitle.text = Language.getWord(withID: "invoice")
-                self.addressLabel.text = ""
-                self.lowerAddressLabel.text = lightningInvoice
+                self.lowerAddressLabel.font = .monospacedSystemFont(ofSize: 15, weight: .bold)
+                self.lowerAddressLabel.attributedText = self.shortenedInGroups(lightningInvoice, font: self.lowerAddressLabel.font, color: self.lowerAddressLabel.textColor)
                 qrCode = "lightning:\(lightningInvoice)".uppercased().toBigQRCode()!
-                self.showLowerAddress()
                 self.currentCopyableText = lightningInvoice
             case .bitcoinqr:
                 self.addressTitle.text = Language.getWord(withID: "bitcoinqr")
-                self.addressLabel.text = ""
                 self.lowerAddressLabel.text = bitcoinQR.replacingOccurrences(of: "?", with: "?\u{2060}")
+                self.lowerAddressLabel.font = UIFont(name: "Gilroy-Bold", size: 16)
                 qrCode = bitcoinQR.toBigQRCode()!
-                self.showLowerAddress()
                 self.currentCopyableText = bitcoinQR
             case .lnurl:
                 self.addressTitle.text = Language.getWord(withID: "url")
-                self.addressLabel.text = lnurl
-                self.lowerAddressLabel.text = ""
+                self.lowerAddressLabel.text = lnurl
+                self.lowerAddressLabel.font = UIFont(name: "Gilroy-Bold", size: 16)
                 // Don't build a QR for an unavailable address — it would encode
                 // the literal word "Unavailable". Leave it empty in that case.
                 qrCode = userLightningURL != nil ? lnurl.toBigQRCode() : nil
-                self.hideLowerAddress()
                 self.currentCopyableText = lnurl
             }
 
+            self.codeIncludesAmount = amountInSatoshis != nil || !enteredDescription.isEmpty
+            
+            // Read without the groups' spaces, by VoiceOver and the flows alike.
+            self.lowerAddressLabel.accessibilityLabel = self.currentCopyableText
             self.qrImageView.image = qrCode
 
             // Hide the QR view entirely when there's nothing to encode.
             self.qrImageView.alpha = qrCode != nil ? 1 : 0
-            self.addressLabel.alpha = 1
             self.lowerAddressLabel.alpha = 1
             self.addressTitle.alpha = 1
             self.iconQuestion.alpha = 1
@@ -438,6 +434,10 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate, UIContextMen
         self.view.endEditing(true)
         if self.amountStack.alpha == 1 {
             self.hideAmountStack()
+            // Closing Add amount drops the amount, so a code made with one is made again without it.
+            if self.codeIncludesAmount {
+                self.alertTapped(for: self.currentType)
+            }
         } else {
             self.showAmountStack()
         }
@@ -455,7 +455,6 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate, UIContextMen
             self.hideAmountStack()
         }
         self.qrImageView.alpha = 0
-        self.addressLabel.alpha = 0
         self.addressTitle.alpha = 0
         self.lowerAddressLabel.alpha = 0
         self.boltStack.alpha = 0
@@ -641,6 +640,46 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate, UIContextMen
         }
     }
     
+    func shortenedInGroups(_ text:String, font:UIFont, color:UIColor) -> NSAttributedString {
+        
+        // The label sits 90 points narrower than the screen, and every character in a monospaced font is as wide as a zero.
+        let labelWidth = UIScreen.main.bounds.width - 90
+        let characterWidth = ("0" as NSString).size(withAttributes: [.font: font]).width
+        let groupsPerLine = max(2, Int((labelWidth + characterWidth) / (5 * characterWidth)))
+        
+        var groups = text.inGroupsOfFour().components(separatedBy: " ")
+        var ellipsisIndex:Int?
+        if groups.count > groupsPerLine * 3 {
+            // The third line keeps groups from both ends, with an ellipsis in the slot of the groups in between.
+            let tailCount = (groupsPerLine - 1) / 2
+            let headCount = groupsPerLine * 3 - 1 - tailCount
+            ellipsisIndex = headCount
+            // The tail is grouped from the end, so its last group is never cut short.
+            let tail = String(text.suffix(tailCount * 4)).inGroupsOfFour().components(separatedBy: " ")
+            groups = Array(groups.prefix(headCount)) + ["\u{2026}"] + tail
+        }
+        
+        let attributes:[NSAttributedString.Key:Any] = [.font: font, .foregroundColor: color]
+        let shortened = NSMutableAttributedString()
+        for (index, group) in groups.enumerated() {
+            if index > 0 {
+                shortened.append(NSAttributedString(string: index % groupsPerLine == 0 ? "\n" : " ", attributes: attributes))
+            }
+            shortened.append(NSAttributedString(string: group, attributes: attributes))
+        }
+        
+        if let ellipsisIndex {
+            // Centre the ellipsis in a four-character slot, so the groups after it stay in their columns.
+            let ellipsisWidth = ("\u{2026}" as NSString).size(withAttributes: [.font: font]).width
+            let padding = (4 * characterWidth - ellipsisWidth) / 2
+            let ellipsisLocation = ellipsisIndex * 5
+            shortened.addAttribute(.kern, value: padding, range: NSRange(location: ellipsisLocation - 1, length: 1))
+            shortened.addAttribute(.kern, value: padding, range: NSRange(location: ellipsisLocation, length: 1))
+        }
+        
+        return shortened
+    }
+    
     func userLNURL() -> String? {
         // Return the first iban entity that actually has a lightning address.
         // Checking only `.first` missed it when the lightning-address iban
@@ -649,22 +688,6 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate, UIContextMen
             return iban.lightningAddressUsername
         }
         return nil
-    }
-    
-    func showLowerAddress() {
-        NSLayoutConstraint.deactivate([self.lowerAddressStackHeight])
-        self.lowerAddressStackHeight = NSLayoutConstraint(item: self.lowerAddressStack, attribute: .height, relatedBy: .greaterThanOrEqual, toItem: nil, attribute: .notAnAttribute, multiplier: 1, constant: 0)
-        NSLayoutConstraint.activate([self.lowerAddressStackHeight])
-        self.lowerAddressStack.alpha = 1
-        self.view.layoutIfNeeded()
-    }
-    
-    func hideLowerAddress() {
-        NSLayoutConstraint.deactivate([self.lowerAddressStackHeight])
-        self.lowerAddressStackHeight = NSLayoutConstraint(item: self.lowerAddressStack, attribute: .height, relatedBy: .equal, toItem: nil, attribute: .notAnAttribute, multiplier: 1, constant: 0)
-        NSLayoutConstraint.activate([self.lowerAddressStackHeight])
-        self.lowerAddressStack.alpha = 0
-        self.view.layoutIfNeeded()
     }
     
     func showAmountStack() {

@@ -60,6 +60,19 @@ extension String {
         }
     }
     
+    func inGroupsOfFour() -> String {
+        
+        // A plain space, so a wrapping label breaks between groups.
+        var grouped = ""
+        for (index, character) in self.enumerated() {
+            if index > 0, index % 4 == 0 {
+                grouped += " "
+            }
+            grouped.append(character)
+        }
+        return grouped
+    }
+    
     func fixDecimals() -> String {
         return self.replacingOccurrences(of: ".", with: Locale.current.decimalSeparator!).replacingOccurrences(of: ",", with: Locale.current.decimalSeparator!)
     }
@@ -228,66 +241,39 @@ extension String {
         guard let outputImage = filter.outputImage else { return nil }
         
         let extent = outputImage.extent.integral
-        let scale = min(targetSize / extent.width, targetSize / extent.height)
+        guard let cgImage = CIContext().createCGImage(outputImage, from: extent) else { return nil }
         
-        let width = extent.width * scale
-        let height = extent.height * scale
+        // Every module gets the same whole number of pixels, so the box below can sit exactly on module edges.
+        let moduleCount = Int(extent.width)
+        let modulePixels = max(1, Int(targetSize) / moduleCount)
+        let size = CGFloat(moduleCount * modulePixels)
         
-        let cs = CGColorSpaceCreateDeviceGray()
+        let format = UIGraphicsImageRendererFormat()
+        format.scale = 1
+        let renderer = UIGraphicsImageRenderer(size: CGSize(width: size, height: size), format: format)
         
-        guard let bitmap = CGContext(
-            data: nil,
-            width: Int(width),
-            height: Int(height),
-            bitsPerComponent: 8,
-            bytesPerRow: 0,
-            space: cs,
-            bitmapInfo: CGImageAlphaInfo.none.rawValue
-        ) else { return nil }
-        
-        let context = CIContext()
-        
-        guard let cgImage = context.createCGImage(outputImage, from: extent) else { return nil }
-        
-        bitmap.interpolationQuality = .none
-        bitmap.scaleBy(x: scale, y: scale)
-        bitmap.draw(cgImage, in: extent)
-        
-        guard let scaledImage = bitmap.makeImage() else { return nil }
-        
-        let qrImage = UIImage(cgImage: scaledImage)
-        
-        guard let logo = UIImage(named: "logoorange32") else { return qrImage }
-        
-        let renderer = UIGraphicsImageRenderer(size: CGSize(width: targetSize, height: targetSize))
-        
-        let finalImage = renderer.image { _ in
+        return renderer.image { context in
             
-            qrImage.draw(in: CGRect(x: 0, y: 0, width: targetSize, height: targetSize))
+            context.cgContext.interpolationQuality = .none
+            UIImage(cgImage: cgImage).draw(in: CGRect(x: 0, y: 0, width: size, height: size))
             
-            let moduleSize = targetSize / extent.width
-            let minimumTargetWidth = targetSize * 0.13
-            let logoModuleCount = Int(ceil(minimumTargetWidth / moduleSize))
-            let boxSize = CGFloat(logoModuleCount) * moduleSize
+            guard let logo = UIImage(named: "logoorange32") else { return }
+            
+            // The box covers whole modules, odd or even like the code itself, so it centres on the grid.
+            var logoModuleCount = Int(ceil(size * 0.13 / CGFloat(modulePixels)))
+            if logoModuleCount % 2 != moduleCount % 2 {
+                logoModuleCount += 1
+            }
+            let boxSize = CGFloat(logoModuleCount * modulePixels)
+            let boxOrigin = CGFloat((moduleCount - logoModuleCount) / 2 * modulePixels)
+            
+            UIColor.white.setFill()
+            UIRectFill(CGRect(x: boxOrigin, y: boxOrigin, width: boxSize, height: boxSize))
             
             let padding:CGFloat = 30
-            let logoSize:CGFloat = boxSize - (2*padding)
-            
-            let boxX = (targetSize - boxSize) / 2
-            let boxY = (targetSize - boxSize) / 2
-            
-            let boxRect = CGRect(x: boxX, y: boxY, width: boxSize, height: boxSize)
-            
-            let boxPath = UIBezierPath(roundedRect: boxRect, cornerRadius: 0)
-            UIColor.white.setFill()
-            boxPath.fill()
-            
-            let logoRect = CGRect(x: boxX + padding, y: boxY + padding, width: logoSize, height: logoSize)
-            
-            logo.draw(in: logoRect)
+            context.cgContext.interpolationQuality = .high
+            logo.draw(in: CGRect(x: boxOrigin + padding, y: boxOrigin + padding, width: boxSize - 2 * padding, height: boxSize - 2 * padding))
         }
-        
-        return finalImage
     }
     
     func bolt12Offer() -> LDKNode.Offer? {

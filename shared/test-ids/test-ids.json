@@ -183,7 +183,6 @@
   "receive": {
     "addressTitle": null,
     "addressLabel": null,
-    "invoiceLabel": null,
     "qrImageView": null,
     "qrSpinner": null,
     "questionButton": null,
