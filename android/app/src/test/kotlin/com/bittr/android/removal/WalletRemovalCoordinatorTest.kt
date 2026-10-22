@@ -128,6 +128,31 @@ class WalletRemovalCoordinatorTest {
     }
 
     @Test
+    fun `a channel opened during the confirmations stops the erase at the last tap`() {
+        removal.removeWalletTapped(RemovalOrigin.Settings)
+        tap(1)
+        node.reading = reading(channels = listOf(openChannel()))
+        tap(1)
+
+        assertEquals(RemovalStrings.RESTORE_WALLET_4, alert?.message)
+        assertTrue(seedIsThere)
+        assertFalse(removal.handOff.value)
+        assertFalse(removal.uiState.value.busy)
+    }
+
+    @Test
+    fun `a node that cannot be read at the last tap never erases`() {
+        removal.removeWalletTapped(RemovalOrigin.Settings)
+        tap(1)
+        node.reading = null
+        tap(1)
+
+        assertEquals(RemovalStrings.REMOVAL_FAILED, alert?.message)
+        assertTrue(seedIsThere)
+        assertFalse(removal.handOff.value)
+    }
+
+    @Test
     fun `settings before the first sync only says the wallet is syncing`() {
         node.synced = false
         removal.removeWalletTapped(RemovalOrigin.Settings)

@@ -98,8 +98,8 @@ interface RemovalFlagStore {
  *
  * ### The three ways in
  *
- * - [removeWalletTapped] with [RemovalOrigin.Settings]: signed in. Confirms twice before erasing,
- *   or walks the user through closing their connection first.
+ * - [removeWalletTapped] with [RemovalOrigin.Settings]: signed in. Confirms twice and checks again
+ *   before erasing, or walks the user through closing their connection first.
  * - [removeWalletTapped] with [RemovalOrigin.ForgotPin]: locked out of the PIN and without the
  *   phrase. Confirms once, starts the node in the background, then decides.
  * - [lockedOut]: ten wrong PINs. Nothing is asked; an open channel is closed cooperatively and
@@ -236,7 +236,11 @@ class WalletRemovalCoordinator(
                 RemovalButton(RemovalStrings.CANCEL),
                 RemovalButton(RemovalStrings.REMOVE, RemovalStep.Reset, destructive = true),
             )
-            RemovalStep.Reset -> scope.launch { performWalletReset() }
+            RemovalStep.Reset -> {
+                // Checked again: a payout can open a channel while the user reads the two alerts.
+                setBusy(true)
+                scope.launch { evaluate(confirmed = true) }
+            }
             RemovalStep.ResumeRemoval -> {
                 resettingPin = true
                 startInBackground()
@@ -262,8 +266,13 @@ class WalletRemovalCoordinator(
         }
     }
 
-    /** The body of `restoreWalletTapped()` once the wallet has synced. */
-    private suspend fun evaluate() {
+    /**
+     * The body of `restoreWalletTapped()` once the wallet has synced.
+     *
+     * [confirmed] is the second confirmation's Remove: erase if it is still safe, and otherwise
+     * fall through to the same close or still-closing alert a fresh tap would get.
+     */
+    private suspend fun evaluate(confirmed: Boolean = false) {
         val reading = if (node.hasNode) withContext(io) { node.read() } else null
         if (node.hasNode && reading == null) {
             cannotVerify("the node could not be read")
@@ -274,7 +283,7 @@ class WalletRemovalCoordinator(
 
         if (safe) {
             closeInFlight = false
-            if (resettingPin || lockout) {
+            if (confirmed || resettingPin || lockout) {
                 performWalletReset()
             } else {
                 setBusy(false)
