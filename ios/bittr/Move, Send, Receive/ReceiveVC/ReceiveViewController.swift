@@ -25,14 +25,11 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate, UIContextMen
     @IBOutlet weak var boltStack: UIView!
     @IBOutlet weak var boltStackWidth: NSLayoutConstraint! // 0 or 19
     @IBOutlet weak var addressTitle: UILabel!
-    @IBOutlet weak var addressLabel: UILabel!
     @IBOutlet weak var cardsStack: UIView!
     @IBOutlet weak var iconQuestion: UIImageView!
     @IBOutlet weak var questionButton: UIButton!
     
     // Lower address
-    @IBOutlet weak var lowerAddressStack: UIView!
-    @IBOutlet weak var lowerAddressStackHeight: NSLayoutConstraint!
     @IBOutlet weak var lowerAddressLabel: UILabel!
     
     // Copy
@@ -132,8 +129,7 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate, UIContextMen
         self.selectCurrency(.satoshis)
         
         self.addressTitle.accessibilityIdentifier = TestID.Receive.addressTitle
-        self.addressLabel.accessibilityIdentifier = TestID.Receive.addressLabel
-        self.lowerAddressLabel.accessibilityIdentifier = TestID.Receive.invoiceLabel
+        self.lowerAddressLabel.accessibilityIdentifier = TestID.Receive.addressLabel
         self.qrImageView.accessibilityIdentifier = TestID.Receive.qrImageView
         self.qrSpinner.accessibilityIdentifier = TestID.Receive.qrSpinner
         self.questionButton.accessibilityIdentifier = TestID.Receive.questionButton
@@ -267,35 +263,27 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate, UIContextMen
             switch type {
             case .onchain:
                 self.addressTitle.text = Language.getWord(withID: "address")
-                self.addressLabel.text = onchainAddress + amountText
-                self.lowerAddressLabel.text = ""
+                self.lowerAddressLabel.text = onchainAddress + amountText
                 qrCode = "bitcoin:\(onchainAddress)\(amountText)".uppercased().toBigQRCode()!
-                self.hideLowerAddress()
                 self.currentCopyableText = amountText.isEmpty
                     ? onchainAddress
                     : "bitcoin:\(onchainAddress)\(amountText)"
             case .lightning:
                 self.addressTitle.text = Language.getWord(withID: "invoice")
-                self.addressLabel.text = ""
                 self.lowerAddressLabel.text = lightningInvoice
                 qrCode = "lightning:\(lightningInvoice)".uppercased().toBigQRCode()!
-                self.showLowerAddress()
                 self.currentCopyableText = lightningInvoice
             case .bitcoinqr:
                 self.addressTitle.text = Language.getWord(withID: "bitcoinqr")
-                self.addressLabel.text = ""
                 self.lowerAddressLabel.text = bitcoinQR.replacingOccurrences(of: "?", with: "?\u{2060}")
                 qrCode = bitcoinQR.toBigQRCode()!
-                self.showLowerAddress()
                 self.currentCopyableText = bitcoinQR
             case .lnurl:
                 self.addressTitle.text = Language.getWord(withID: "url")
-                self.addressLabel.text = lnurl
-                self.lowerAddressLabel.text = ""
+                self.lowerAddressLabel.text = lnurl
                 // Don't build a QR for an unavailable address — it would encode
                 // the literal word "Unavailable". Leave it empty in that case.
                 qrCode = userLightningURL != nil ? lnurl.toBigQRCode() : nil
-                self.hideLowerAddress()
                 self.currentCopyableText = lnurl
             }
 
@@ -303,7 +291,6 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate, UIContextMen
 
             // Hide the QR view entirely when there's nothing to encode.
             self.qrImageView.alpha = qrCode != nil ? 1 : 0
-            self.addressLabel.alpha = 1
             self.lowerAddressLabel.alpha = 1
             self.addressTitle.alpha = 1
             self.iconQuestion.alpha = 1
@@ -455,7 +442,6 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate, UIContextMen
             self.hideAmountStack()
         }
         self.qrImageView.alpha = 0
-        self.addressLabel.alpha = 0
         self.addressTitle.alpha = 0
         self.lowerAddressLabel.alpha = 0
         self.boltStack.alpha = 0
@@ -649,22 +635,6 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate, UIContextMen
             return iban.lightningAddressUsername
         }
         return nil
-    }
-    
-    func showLowerAddress() {
-        NSLayoutConstraint.deactivate([self.lowerAddressStackHeight])
-        self.lowerAddressStackHeight = NSLayoutConstraint(item: self.lowerAddressStack, attribute: .height, relatedBy: .greaterThanOrEqual, toItem: nil, attribute: .notAnAttribute, multiplier: 1, constant: 0)
-        NSLayoutConstraint.activate([self.lowerAddressStackHeight])
-        self.lowerAddressStack.alpha = 1
-        self.view.layoutIfNeeded()
-    }
-    
-    func hideLowerAddress() {
-        NSLayoutConstraint.deactivate([self.lowerAddressStackHeight])
-        self.lowerAddressStackHeight = NSLayoutConstraint(item: self.lowerAddressStack, attribute: .height, relatedBy: .equal, toItem: nil, attribute: .notAnAttribute, multiplier: 1, constant: 0)
-        NSLayoutConstraint.activate([self.lowerAddressStackHeight])
-        self.lowerAddressStack.alpha = 0
-        self.view.layoutIfNeeded()
     }
     
     func showAmountStack() {

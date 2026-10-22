@@ -30,5 +30,5 @@ appId: com.bittr.bittr-regtest
 
 # The lightning invoice is now displayed (regtest invoices start with "lnbcrt").
 - assertVisible:
-    id: "receive.invoiceLabel"
+    id: "receive.addressLabel"
     text: ".*lnbcrt.*"
