@@ -83,13 +83,12 @@ class Wave1ReachabilityTest {
     }
 
     @Test
-    fun `home's entry points are wired to the three routes`() {
+    fun `home's entry points are wired to their routes`() {
         val home = homeRouteBody(navHost.readText())
 
         listOf(
             "onCurrency" to "Routes.VALUE",
             "onMap" to "Routes.MAP",
-            "onAcademy" to "Routes.ACADEMY",
         ).forEach { (parameter, route) ->
             val call = home.substringAfter(parameter, "")
             assertTrue(
@@ -108,9 +107,8 @@ class Wave1ReachabilityTest {
         listOf(
             "Routes.VALUE" to "ValueScreen(",
             "Routes.MAP" to "MapScreen(",
-            "Routes.ACADEMY" to "AcademyScreen(",
         ).forEach { (route, screen) ->
-            val body = routeBody(source, "composable($route)")
+            val body = routeBody(source, "sheet(navController, $route)")
             assertTrue(
                 "The $route destination no longer composes $screen. A destination that " +
                     "registers and draws nothing is the shape a merge conflict resolves " +
@@ -120,17 +118,42 @@ class Wave1ReachabilityTest {
         }
     }
 
+    /**
+     * Academy is not a route: it is the page beside Wallet under the menu bar, as iOS's
+     * `infoContainerView` is beside `homeContainerView`. The menu's `nav.academyButton` slides to
+     * it, which the composed test above shows reaching its callback; this proves the Home
+     * destination actually has an Academy to slide to.
+     */
+    @Test
+    fun `the home destination hosts the academy beside the wallet`() {
+        val home = homeRouteBody(navHost.readText())
+        assertTrue(
+            "The Home destination no longer composes WalletTabs with AcademyScreen, so " +
+                "`nav.academyButton` has nothing to slide to.\n\nHome route:\n$home",
+            "WalletTabs(" in home && "AcademyScreen(" in home,
+        )
+    }
+
     private val navHost: File
         get() = File(
             SourceTree.root,
             "app/src/main/kotlin/com/bittr/android/navigation/BittrNavHost.kt",
         ).also { assertTrue("Expected the navigation graph at $it", it.isFile) }
 
-    private fun homeRouteBody(source: String) = routeBody(source, "composable(Routes.HOME)")
+    // Home's `composable(` spreads its arguments over lines — the stack slide's transitions sit
+    // between the route and the content — so it is found by the route on the line after.
+    private fun homeRouteBody(source: String) =
+        routeBody(source, Regex("""composable\(\s*Routes\.HOME[,)]"""))
 
-    /** The `composable(...) { … }` block at [marker], by brace matching. */
-    private fun routeBody(source: String, marker: String): String {
-        val start = source.indexOf(marker)
+    private fun routeBody(source: String, marker: String): String =
+        routeBody(source, Regex(Regex.escape(marker)))
+
+    /**
+     * The content block of the `composable(...) { … }` at [marker], by brace matching from the
+     * first `) {` after it — past any transition lambdas among the arguments.
+     */
+    private fun routeBody(source: String, marker: Regex): String {
+        val start = marker.find(source)?.range?.first ?: -1
         assertTrue(
             "No `$marker` in the navigation graph. If the destination moved to a nested " +
                 "graph, point this test at it rather than deleting it.",
@@ -138,7 +161,7 @@ class Wave1ReachabilityTest {
         )
 
         var depth = 0
-        var index = source.indexOf('{', start)
+        var index = Regex("""\)\s*\{""").find(source, start)!!.range.last
         val open = index
         while (index < source.length) {
             when (source[index]) {

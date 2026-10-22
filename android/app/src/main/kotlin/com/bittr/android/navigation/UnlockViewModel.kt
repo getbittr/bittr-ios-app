@@ -93,6 +93,8 @@ data class UnlockUiState(
     val step: UnlockStep = UnlockStep.Pin,
     val alert: UnlockAlert? = null,
     val busy: Boolean = false,
+    /** Confirms that did not unlock — the pad empties each time this goes up. */
+    val rejections: Int = 0,
 )
 
 /**
@@ -176,7 +178,10 @@ class UnlockViewModel @Inject constructor(
             }
 
             if (wallet.unlock(pin)) {
-                _uiState.value = _uiState.value.copy(busy = false)
+                // Still busy: the accepted PIN stays on the pad while it slides away to Home, so
+                // Confirm stays live, and a second tap would unlock again behind the slide — a
+                // second Home on the back stack and a second node start. The pad's ViewModel is
+                // cleared with its screen; a later lock builds a new one.
                 onUnlocked()
                 startWalletBehindHome()
                 return@launch
@@ -191,7 +196,11 @@ class UnlockViewModel @Inject constructor(
                 PinLockout.isWarning(failures) -> UnlockAlert.Warning(failures)
                 else -> UnlockAlert.IncorrectPin(failures)
             }
-            _uiState.value = _uiState.value.copy(busy = false, alert = alert)
+            _uiState.value = _uiState.value.copy(
+                busy = false,
+                alert = alert,
+                rejections = _uiState.value.rejections + 1,
+            )
         }
     }
 
@@ -295,6 +304,7 @@ class UnlockViewModel @Inject constructor(
      * never navigates to Home for a wallet that is still locked behind the old PIN.
      */
     fun submitConfirmationPin(pin: String, onDone: () -> Unit) {
+        if (_uiState.value.busy) return
         val expected = firstPin
         val mnemonic = provenSeed
         if (expected == null || mnemonic == null) {
@@ -307,14 +317,16 @@ class UnlockViewModel @Inject constructor(
             showAlert(SignupStrings.INCORRECT_PIN, SignupStrings.REPEAT_NUMBER)
             return
         }
-        if (_uiState.value.busy) return
         _uiState.value = _uiState.value.copy(busy = true)
         viewModelScope.launch {
             try {
                 wallet.resetPin(mnemonic, pin)
                 provenSeed = null
                 firstPin = null
-                _uiState.value = UnlockUiState()
+                // Restore3 stays on as the gate leaves: iOS's `hideSignup` slides it away to Home,
+                // as the unlock pad goes. Stepping back to the pad here would run the gate's own
+                // slide down to it against the slide up to Home, which then sits there already. Still
+                // busy, so a second Confirm during the slide does nothing.
                 onDone()
             } catch (e: WrongSeedException) {
                 // Belt and braces: holdsSeed already said yes. Reaching here means the
@@ -351,7 +363,7 @@ class UnlockViewModel @Inject constructor(
      * leaves for signup when it does.
      */
     private fun lockedOut() {
-        _uiState.value = _uiState.value.copy(busy = false)
+        _uiState.value = _uiState.value.copy(busy = false, rejections = _uiState.value.rejections + 1)
         removal.lockedOut()
     }
 

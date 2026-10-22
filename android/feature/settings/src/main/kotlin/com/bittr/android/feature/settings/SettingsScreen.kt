@@ -1,45 +1,52 @@
 package com.bittr.android.feature.settings
 
-import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.bittr.android.core.common.TestID
-import com.bittr.android.core.designsystem.BittrCanvas
-import com.bittr.android.core.designsystem.BittrFootnote
 import com.bittr.android.core.designsystem.BittrIconPaths
-import com.bittr.android.core.designsystem.BittrListRow
-import com.bittr.android.core.designsystem.BittrModalHeader
+import com.bittr.android.core.designsystem.BittrSheetHeader
 import com.bittr.android.core.designsystem.BittrTheme
-import com.bittr.android.core.designsystem.BittrTokens
 import com.bittr.android.core.designsystem.CanvasSpacer
+import com.bittr.android.core.designsystem.IosCardShape
+import com.bittr.android.core.designsystem.R as DesignR
+import com.bittr.android.core.designsystem.iosShadow
+import com.bittr.android.core.designsystem.rememberFillIcon
 
 /**
- * Settings — `ios/bittr/Settings/SettingsViewController`.
+ * Settings — `ios/bittr/Settings/SettingsViewController` — the content of the pop-up that springs up
+ * over Wallet or Academy (`BittrPopup`, `CoreViewController.showSettings`).
  *
  * Four rows and a version line. The rows are data on iOS (a `settings` array of
  * label / icon / id dictionaries) and data here, for the same reason: the id in each
  * entry is both the segue key and the `settings.row.*` accessibility identifier, and
  * splitting the two apart is how they stop matching.
  *
- * ### It is a destination here and a pop-up there
- *
- * On iOS, Settings is a child view controller that springs up over Home
- * (`CoreViewController.showSettings`) and is dismissed by
- * `UIViewController.dismissVC`. On Android it is a navigation destination and the
- * header's down button pops the back stack.
- *
- * The difference is invisible to `features/settings.yaml`, which only ever taps
- * `nav.settingsButton` to get in and `header.downButton` to get out, and it buys the
- * system Back gesture for free — a pop-up would have had to intercept it. The one
- * thing it costs is the pan-to-dismiss gesture iOS attaches to the container; that is
- * not in any flow and not worth a custom modal to reproduce.
+ * Laid out as the scene is: `addHeader`'s 58 pt header — the settings icon 20 in, "settings" in
+ * Gilroy Bold 18 10 after it, both white (yellow in dark), and the down arrow 20 from the end — then
+ * from 60 down the rows, 55 apart, and the app version 25 under them and 30 above the bottom.
  */
 @Composable
 fun SettingsScreen(
@@ -50,52 +57,95 @@ fun SettingsScreen(
 ) {
     val context = LocalContext.current
     val version = remember(context) { appVersion(context) }
+    val colors = BittrTheme.colors
 
-    BittrCanvas(modifier = modifier, appBar = false) {
-        BittrModalHeader(
+    Column(modifier = modifier.fillMaxWidth()) {
+        BittrSheetHeader(
+            icon = painterResource(DesignR.drawable.menu_settings_white),
             title = SettingsStrings.SETTINGS,
             onDown = onDown,
-            // The Material glyph, drawn filled as the header draws its icons. The mock's own
-            // gear is a stroke path and came out as a blob at 30 dp (Ruben, 2026-09-22).
-            icon = BittrIconPaths.SETTINGS_OUTLINE,
             titleTestTag = TestID.Header.titleLabel,
             downTestTag = TestID.Header.downButton,
         )
+        CanvasSpacer(2.dp)
 
-        Column(
-            verticalArrangement = Arrangement.spacedBy(BittrTokens.Spacing.sm),
-            horizontalAlignment = Alignment.CenterHorizontally,
+        SettingsRow(
+            label = SettingsStrings.GET_SUPPORT,
+            icon = BittrIconPaths.SUPPORT_FILLED,
+            onClick = { onOpenWebsite(WebsitePage.Support) },
+            testTag = TestID.Settings.Row.support,
+        )
+        SettingsRow(
+            label = SettingsStrings.PRIVACY_POLICY,
+            icon = BittrIconPaths.PRIVACY_FILLED,
+            onClick = { onOpenWebsite(WebsitePage.Privacy) },
+            testTag = TestID.Settings.Row.privacy,
+        )
+        SettingsRow(
+            label = SettingsStrings.TERMS_AND_CONDITIONS,
+            icon = BittrIconPaths.TERMS_FILLED,
+            onClick = { onOpenWebsite(WebsitePage.Terms) },
+            testTag = TestID.Settings.Row.terms,
+        )
+        SettingsRow(
+            label = SettingsStrings.DEVICE_DETAILS,
+            icon = BittrIconPaths.DEVICE_FILLED,
+            onClick = onOpenDevice,
+            testTag = TestID.Settings.Row.device,
+        )
+
+        CanvasSpacer(25.dp)
+        Text(
+            text = "${SettingsStrings.APP_VERSION} $version",
+            style = MaterialTheme.typography.bodyLarge.copy(fontSize = 16.sp, lineHeight = 16.sp),
+            // White in both schemes, as the storyboard has `appVersion`.
+            color = Color.White,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.fillMaxWidth(),
+        )
+        CanvasSpacer(30.dp)
+    }
+}
+
+/**
+ * `SettingsTableViewCell` in a 55 pt row: `settingsCardView`, 45 tall and 15 from the sides,
+ * `whiteorblue2` with 13 pt corners and `setShadow()`; the yellow icon 20 pt and 25 in, the label
+ * 12 after it in Gilroy Bold 14. `settingsButton` covers the whole row.
+ */
+@Composable
+private fun SettingsRow(label: String, icon: String, onClick: () -> Unit, testTag: String) {
+    Box(
+        contentAlignment = Alignment.Center,
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(55.dp)
+            .clickable(onClick = onClick)
+            .testTag(testTag),
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier
+                .padding(horizontal = 15.dp)
                 .fillMaxWidth()
-                .padding(horizontal = BittrTokens.Spacing.md),
+                .height(45.dp)
+                .iosShadow(IosCardShape)
+                .background(MaterialTheme.colorScheme.surfaceContainer, IosCardShape)
+                .padding(start = 25.dp, end = 30.dp),
         ) {
-            BittrListRow(
-                label = SettingsStrings.GET_SUPPORT,
-                icon = BittrIconPaths.SUPPORT,
-                onClick = { onOpenWebsite(WebsitePage.Support) },
-                testTag = TestID.Settings.Row.support,
+            Image(
+                imageVector = rememberFillIcon(icon, BittrTheme.colors.brandFixed, evenOdd = true),
+                contentDescription = null,
+                modifier = Modifier.size(20.dp),
             )
-            BittrListRow(
-                label = SettingsStrings.PRIVACY_POLICY,
-                icon = BittrIconPaths.PRIVACY,
-                onClick = { onOpenWebsite(WebsitePage.Privacy) },
-                testTag = TestID.Settings.Row.privacy,
+            Text(
+                text = label,
+                style = MaterialTheme.typography.labelLarge.copy(fontSize = 14.sp, lineHeight = 14.sp),
+                color = MaterialTheme.colorScheme.onSurface,
+                maxLines = 1,
+                modifier = Modifier
+                    .padding(start = 12.dp)
+                    .offset(y = 1.dp),
             )
-            BittrListRow(
-                label = SettingsStrings.TERMS_AND_CONDITIONS,
-                icon = BittrIconPaths.TERMS,
-                onClick = { onOpenWebsite(WebsitePage.Terms) },
-                testTag = TestID.Settings.Row.terms,
-            )
-            BittrListRow(
-                label = SettingsStrings.DEVICE_DETAILS,
-                icon = BittrIconPaths.DEVICE,
-                onClick = onOpenDevice,
-                testTag = TestID.Settings.Row.device,
-            )
-
-            CanvasSpacer(BittrTokens.Spacing.lg)
-            BittrFootnote("${SettingsStrings.APP_VERSION} $version")
         }
     }
 }
@@ -129,6 +179,11 @@ private fun appVersion(context: android.content.Context): String = try {
 @Composable
 private fun SettingsScreenPreview() {
     BittrTheme {
-        SettingsScreen(onDown = {}, onOpenWebsite = {}, onOpenDevice = {})
+        SettingsScreen(
+            onDown = {},
+            onOpenWebsite = {},
+            onOpenDevice = {},
+            modifier = Modifier.background(BittrTheme.colors.canvas),
+        )
     }
 }

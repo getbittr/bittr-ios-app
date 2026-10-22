@@ -50,6 +50,26 @@ interface SwapStore {
     fun saveLatest(swap: Swap?)
 
     fun latest(): Swap?
+
+    /**
+     * Our claim of a lightning-to-onchain swap was broadcast as [txId]. Android's own record, kept
+     * out of the swap file, which stays iOS's key for key: Boltz's statuses cannot tell a claimed
+     * swap from one whose claim was cut off after the preimage went to Boltz — both end on
+     * `invoice.settled` — and only the second needs the refresh's claim.
+     */
+    fun markClaimed(boltzId: String, txId: String) {}
+
+    /** The claim [markClaimed] recorded for [boltzId], or null when none was. */
+    fun claimedTransactionId(boltzId: String): String? = null
+
+    /**
+     * The wallet is gone: forget which transactions were swaps — the swap ids, the suggested
+     * swaps' statuses and the latest swap — so the next wallet's history matches none of them.
+     * The swap files stay (they hold the refund keys Boltz's rescue flow needs) and so does the
+     * key index, which a restored seed must not start again from and reuse keys with. So do the
+     * claims: they are facts about the swaps, like the files.
+     */
+    fun forgetWallet() {}
 }
 
 /**
@@ -107,6 +127,16 @@ class FileSwapStore(private val directory: File) : SwapStore {
 
     override fun latest(): Swap? = (readCache()[KEY_LATEST] as? JsonObject)?.let(SwapJson::fromJson)
 
+    override fun markClaimed(boltzId: String, txId: String) = updateMap(KEY_CLAIMED, boltzId, txId)
+
+    override fun claimedTransactionId(boltzId: String): String? = mapValue(KEY_CLAIMED, boltzId)
+
+    override fun forgetWallet() = synchronized(lock) {
+        val cache = readCache()
+        if (cache.keys.none { it in setOf(KEY_SWAP_IDS, KEY_SUGGESTED, KEY_LATEST) }) return@synchronized
+        writeCache(JsonObject(cache - setOf(KEY_SWAP_IDS, KEY_SUGGESTED, KEY_LATEST)))
+    }
+
     private fun read(stem: String): Swap? {
         val file = File(directory, "$stem.json")
         return if (file.isFile) SwapJson.decode(file.readText()) else null
@@ -148,6 +178,9 @@ class FileSwapStore(private val directory: File) : SwapStore {
         const val KEY_SWAP_IDS = "swapids"
         const val KEY_SUGGESTED = "suggestedswaps"
         const val KEY_LATEST = "ongoingswap"
+
+        /** Android only — see [SwapStore.markClaimed]. */
+        const val KEY_CLAIMED = "claimedswaps"
     }
 }
 

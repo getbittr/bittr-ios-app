@@ -34,6 +34,21 @@ internal object SendMath {
      * take one decimal separator, `.` or `,`. Spaces (this app's own grouping) are ignored.
      * Null when the text is not a number or the fiat price is missing.
      */
+    /**
+     * Android's decimal keyboard offers `-`, `,` and `.`, none of which iOS's decimal pad lets
+     * through more than once: an amount with a minus sign, or with more than one separator of
+     * either kind, is not one. Satoshis are whole, so any separator at all makes a satoshi amount
+     * not one — a paste or a hardware keyboard can bring one the digit pad does not offer, and
+     * refusing it is the only safe reading: dropped, "50000.00" would send 5 000 000. Spaces are
+     * this app's own grouping. Blank is well formed — whether an amount is needed is decided later.
+     */
+    fun isWellFormedAmount(text: String, currency: AmountCurrency): Boolean =
+        if (currency == AmountCurrency.Satoshis) {
+            text.filterNot(Char::isWhitespace).all(Char::isDigit)
+        } else {
+            '-' !in text && text.count { it == '.' || it == ',' } <= 1
+        }
+
     fun parseSats(text: String, currency: AmountCurrency, pricePerBitcoin: Double?): Long? {
         val stripped = text.filterNot { it.isWhitespace() || it == ' ' }
         if (stripped.isEmpty()) return null

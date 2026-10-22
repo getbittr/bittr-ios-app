@@ -14,6 +14,9 @@ import org.junit.Test
  * alert button failed as "element not found" while the alert was plainly on screen —
  * found on the first device run of `send_onchain.yaml`. Robolectric reads the semantics
  * tree directly and passes either way, which is why this is a source guard.
+ *
+ * `BittrSheet`, `BittrPopup` and the alerts' `AlertOverlay` apply `exposeTestTags()` themselves,
+ * so a dialog filled by any of them is covered.
  */
 class DialogTestTagGuardTest {
 
@@ -28,7 +31,9 @@ class DialogTestTagGuardTest {
             .filter { file -> dialogCall.containsMatchIn(file.readText()) }
             .filterNot { file ->
                 val text = file.readText()
-                "exposeTestTags()" in text || Regex("""testTagsAsResourceId\s*=\s*true""").containsMatchIn(text)
+                "exposeTestTags()" in text ||
+                    Regex("""\b(BittrSheet|BittrPopup|AlertOverlay)\s*\(""").containsMatchIn(text) ||
+                    Regex("""testTagsAsResourceId\s*=\s*true""").containsMatchIn(text)
             }
             .map { it.relativeTo(SourceTree.root).path }
             .toList()

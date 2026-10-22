@@ -29,6 +29,9 @@ internal object ReceiveStrings {
     const val COPY = "Copy"
     const val RENEW = "Renew"
     const val ADD_AMOUNT = "Add amount"
+    /** `receiveenteramount` and `receiveenterdescription`, the amount stack's placeholders. */
+    const val ENTER_AMOUNT = "Enter amount"
+    const val ADD_A_NOTE = "Add a note"
     const val MORE = "More"
 
     // The question-mark alerts.
@@ -87,15 +90,6 @@ internal object ReceiveStrings {
     const val SATS_LABEL = "Sats"
     const val BTC_LABEL = "BTC"
 
-    /** `amount`, as the amount field's placeholder. */
-    const val AMOUNT = "Amount"
-
-    /** `description`, as the description field's placeholder. */
-    const val DESCRIPTION = "Description"
-
-    /** The keyboard toolbar's button on iOS (`addDoneButton`); a visible button here. */
-    const val DONE = "Done"
-
     /** `copied`. */
     const val COPIED = "Copied"
 
@@ -104,6 +98,8 @@ internal object ReceiveStrings {
     const val MENU_SHARE = "Share"
 
     const val OKAY = "Okay"
+    const val OOPS = "Oops!"
+    const val ENTER_VALID_AMOUNT = "Please enter a valid amount."
     const val CANCEL = "Cancel"
     const val CONFIRM = "Confirm"
 }

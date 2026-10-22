@@ -88,8 +88,11 @@ interface SwapWallet {
     /** Sync the node and refresh balances. */
     suspend fun sync()
 
-    /** The history id of the payment with [paymentHash], once it has shown up. */
-    suspend fun transactionIdForPayment(paymentHash: String): String?
+    /**
+     * The history id of the payment with [paymentHash], once it has shown up. With [sync] the node and
+     * the on-chain wallet are synced first; without, it reads what the node has already published.
+     */
+    suspend fun transactionIdForPayment(paymentHash: String, sync: Boolean): String?
 }
 
 /** Where swap status updates come from while a swap is watched — Boltz's websocket in the app. */

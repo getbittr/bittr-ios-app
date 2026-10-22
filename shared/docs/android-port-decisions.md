@@ -528,3 +528,215 @@ three faults showed up in the hand-off into the app bar, each hidden by the one 
 The logo also no longer fades out as it rises. It is a *second* copy of the app bar's logo, so fading it
 crossed two lockups over each other; landing it exactly on the real one and taking it away with the cover
 has no seam to show.
+
+## 46. The launcher icon is the iOS app icon's own pixels
+
+**2026-09-28.** Decision 44's icon was redrawn from `BittrLogo`'s paths rather than taken from the iOS icon,
+and it did not match: the mark filled 83 % of the 72 dp a launcher shows (iOS: 57 %), sat off centre, and in
+the legacy rasters ran off the right edge. The yellow was also `canvas` (#FFC502), not the icon's #FFC400.
+
+`android/scripts/render-launcher-icon.swift` now renders every launcher resource from
+`ios/bittr/Assets.xcassets/AppIcon.appiconset`. The legacy square and round rasters are that PNG scaled
+down. For the adaptive icon, the mark is unmixed from the yellow into a transparent foreground: every pixel
+of the source is a blend of the yellow with at most one of the arc or the wedge, so its coverage solves
+exactly, and the script refuses a source where recompositing misses by more than 2/255 (it is within 1).
+The 1024 px square maps onto the central 72 dp of the 108 dp layers, so the mark keeps its iOS size and
+position under any launcher mask. The monochrome layer is the same coverage as one white silhouette.
+The drawable foreground and monochrome vectors are gone; `ic_splash_mark` is unaffected.
+
+When the iOS icon changes, rerun the script from the repo root and update `source` if the file name moved.
+
+## 47. Signup1's piggy and "welcome" are white again, and the piggy is iOS's asset
+
+**2026-09-28.** Tom asked for Signup1 to match iOS: the piggy and "welcome" white in light mode and yellow in
+dark (`Signup1ViewController.changeColors`: `whiteoryellow`, `iconpiggywhite`/`iconpiggyyellow`), where the
+port drew both in ink. That ink was deliberate. White on the card is **1.43 : 1**, below the large-text
+floor, and DEV-47 (founder sign-off, BIT-15) took `whiteoryellow` off all 16 of its call sites for exactly
+that. This decision reverses it on **this screen only**, knowingly: the token is `welcomeHeader`, documented
+as having one call site, and `emphasis` — every other screen title and alert title — stays ink.
+`TokenContrastTest` still asserts that white on the card fails the floor.
+
+The piggy was a hand-drawn path of a different pig. `BittrPiggy` now draws iOS's `iconpiggywhite`
+(1x/2x/3x copied to mdpi/xhdpi/xxhdpi as `bittr_piggy_icon.png`) tinted with a colour it is given, so one
+asset covers iOS's white and yellow variants; the yellow is the brand yellow, 1/255 from iOS's `#FEC401`.
+On Signup1 it is 18 dp with a 10 dp gap to the word, as the storyboard has it. Home's "Your wallet" piggy
+gets the same shape and keeps its colour and 30 dp size; the `addHeader`-style screen headers in
+`Chrome.kt` still draw the old path.
+
+## 48. iOS's card shadow, and why its radius is 17.3 dp
+
+**2026-09-28.** Signup1's card now has the shadow iOS gives it (`centerCard.setShadow()`: black at 10 %,
+7 pt down, `shadowRadius` 10), via `BittrCard(shadow = true)` and `Modifier.iosShadow`.
+
+The radius is 17.3 dp, not 10. Core Animation's `shadowRadius` is the Gaussian's sigma: fitting the edge of
+this card's shadow in an iOS screenshot with the offset and opacity held at iOS's values gives rms 0.45 for
+sigma = 10 pt, against 0.74 for 12 and 2.03 for 5. Compose's `dropShadow` passes its radius to
+`BlurMaskFilter`, where Skia uses sigma = 0.57735 r + 0.5 px, so sigma 10 is r ≈ 17.3.
+
+A shadowed card is filled with the wash pre-composited over the canvas, so the same colour but opaque;
+behind the translucent wash the shadow would show through. Other cards are unchanged. iOS also still
+differs in the card itself: 13 pt corners on a fill equal to the page yellow, where Android's is 28 dp and
+the lighter wash.
+
+## 49. Signup1 laid out from the storyboard, and the logo at iOS's size
+
+**2026-09-28.** Tom compared Signup1 side by side with iOS and asked for iOS's layout. Values are from
+`Signup1ViewController`'s scene and `viewDidLoad`:
+
+- **Card:** 13 pt corners (was 28 dp), 15 pt from the screen edges (was 18), header 20 in from the top
+  and leading edge, body 25 from both sides, 35 / 30 between header, body and button. The bottom
+  padding is 25 less the part of Restore's 48 dp touch target that iOS's 25 pt row does not have, so the
+  label lands where iOS's does while the target stays 48 dp.
+- **"welcome":** Gilroy Bold 18, the piggy's own height (was 22).
+- **Create wallet:** `BittrCompactButton`, iOS's `createWalletView`: 40 pt high, 8 pt corners, sized to
+  17 + label (Gilroy Bold 14) + 10 + the 11 pt `arrowrightwhite` asset + 17, centred. `BittrPrimaryButton`
+  (full-width pill) is unchanged for the other screens. 40 dp is under Android's 48 dp touch-target
+  guideline; it is iOS's size, as asked.
+- **Article card:** `ArticleCard` is iOS's `cardView`, which all five iOS screens that show one lay out the
+  same way: 45 pt high, 8 pt corners, `setShadow()`, a 45 pt image, the title in Gilroy Bold 15 at 60 pt
+  from the edge and 20 from the right. It is as wide as its content, capped by its slot, and centres itself,
+  so every caller gets the change without a layout edit.
+- **Logo:** `BittrAppBarLogoHeight` = 29.6 dp (iOS's 106 pt lockup at the artwork's 3.58 : 1), in the
+  app bar and on Home; it was 19. The app bar is 50 dp, iOS's safe area + 50, so the logo is 10 below
+  the status bar as iOS's `logoTopInset` puts it. The launch animation no longer shrinks the logo as it
+  rises; iOS never did.
+
+Follow-up, same day: Signup1's card is filled with `canvas`, not the wash. iOS fills `centerCard` with
+`yelloworblue1` — yellow in light, `blue1` in dark — which is exactly `canvas` in both schemes, so on iOS
+the card is the page's own colour and only its shadow separates it. `BittrCard(fill = …)`; other cards keep
+the wash.
+
+## 50. One logo during the launch animation's rise
+
+**2026-09-28.** During stage 3 the cover fades (`alpha = 1 − rise`) while its logo travels up, and the
+screen behind it already had its own logo in the app bar. That one showed through the fading cover sitting
+at the top while the cover's was still on its way, so there were two logos (Tom). On iOS the logo that rises
+is the top bar's own, so there is only ever one.
+
+`LocalAppBarLogoVisible`, provided by `MainActivity` as `launched`, keeps the app bar's and Home's logo at
+alpha 0 until `onFinished`. The cover's logo lands exactly on it (same height, 10.2 dp below the status bar
+against Home's 10), and the app's takes over as the cover goes. The hidden logo keeps its space, so nothing
+moves when it appears.
+
+Follow-up, same day: with only one logo on screen, the rise springs again at iOS's damping 0.65 (stiffness
+77, settling in iOS's 0.7 s), overshooting ~25 dp and settling back, as `logoSlidesToTop` does. Decision
+45's two reasons for the tween no longer apply: the logo that hung above the bar was the app's own showing
+through, now hidden; and `onFinished` runs when `animateTo` returns, after the spring has settled, so the
+hand-off and `core.launchComplete` still come with the logo at rest. The cover's fade is clamped to 0…1
+because the spring's value passes 1.
+
+## 51. The lockup's proportions are iOS's, not the SVG's
+
+**2026-09-28.** The mark and the word sat closer together on Android than on iOS (Tom). Measured on a
+side-by-side screenshot, per mark height: the gap is 0.365 on iOS and 0.28 on Android, and iOS's word is
+0.94 of the size the SVG gives it — the storyboard's own 0.94 multiplier on `bittrtext`, and the ratio of
+the two word widths measured against their marks (0.940). The SVG sets the word as tall as the mark; iOS
+does not.
+
+`Logo.kt` now scales the word by 0.94 about its left edge and centre, starts it 0.365 × the mark's height
+after the mark, and centres it 0.5/30 of the height below the mark's (`centerY` constant 0.5). Everything
+downstream — `BittrLogo`, `BittrWordmark`, `LOGO_TAIL_RATIO` — derives from those constants, so the launch
+animation's last frame is still the app bar's logo to the unit. The lockup comes out 3.525 : 1, against
+iOS's 106 × 30 at 3.533, so its height is 30 dp, iOS's 30 pt mark, rather than decision 49's 29.6; the
+app bar logo lands 10 dp below the status bar, exactly `logoTopInset`, and the splash marks are rescaled
+from 0.1984 to 0.2011 so the splash is still the animation's first frame. Earlier decisions quoting 29.6
+describe the lockup before this.
+
+## 52. iOS's card and button are the defaults, not Signup1's options
+
+**2026-09-28.** Decisions 47–49 gave Signup1 iOS's card and button as opt-in arguments, so Signup2 — and
+every other screen — kept the mock's translucent 28 dp card and full-width pill (Tom). They are one design on
+iOS, so they are the components' defaults now:
+
+- **`BittrCard`**: `canvas` fill (iOS's `yelloworblue1`), 13 pt corners (`IosCardShape` — every iOS card
+  has them) and `setShadow()`. Its inner padding is still the mock's 22/28 by default; a screen matched to its
+  storyboard passes its own.
+- **`BittrPrimaryButton`**: iOS's 40 pt plate — 8 pt corners, sized to 17 + label (Gilroy Bold 14, 1 pt below
+  centre) + 10 + `arrowrightwhite` + 17, at least 80 wide, centred. `fullWidth = true` keeps the pill for the
+  buttons iOS does not draw this way: the PIN pad's (Tom), and those in `BittrAlert`, `BittrTextFieldAlert`
+  and Buy's choice dialog, which fill the dialog. `BittrCompactButton` is folded into it.
+
+Every screen with a `BittrCard` or a non-dialog `BittrPrimaryButton` changes with this — the signup and Buy
+signup pages, Swap, Send, Receive, Move, Transaction, Profits, the Question screen and the push overlay — and
+only Signup1 and Signup2 have been checked against their storyboards so far.
+
+Signup2 (`ConfirmScreen`) is laid out from its storyboard: 15 pt gutters, title in Gilroy Bold 16 30 from the
+top and 25 from the sides, the statements in Gilroy Regular 15 20 from the sides with 20 between switch and
+text and between the two, 40 to the button, and **Cancel**, which the port had dropped although
+`fresh_install_unhappy.yaml` taps `signup.create.confirm.cancelButton`. It goes back, as the app bar's arrow
+does.
+
+## 53. The signup pages slide as iOS's do
+
+**2026-09-28.** The signup steps swapped instantly; on iOS they slide (Tom). `SignupViewController` lays every
+signup page side by side in one strip (`embedViewIdentifiers`: Restore3, Restore2, Restore, Signup1 … Signup7,
+Transfer1 …) and `moveToPage` moves the strip to `-width × page` with a 0.7 s spring at damping 0.65. So a
+move from page `from` to page `to` slides both pages `to − from` widths — create goes rightwards from Signup1
+(page 3), restore leftwards (Restore is 2, its PIN pages 1 and 0).
+
+`pageSlide` / `pageSlideIn` / `pageSlideOut` in `PageSlide.kt` are that move (stiffness 77 = 0.7 s at damping
+0.65, as the launch animation's rise). `SignupPage` holds iOS's page numbers. `CreateWalletScreen` and
+`RestoreWalletScreen` put their steps in an `AnimatedContent` with it, and the Signup1 ↔ Restore edge — a
+separate destination here — uses the same slide as its enter and exit transitions. The page leaving recomposes
+with the new state while it slides, so the "data has gone, go back" fallbacks on the phrase and verify steps
+act only on the page arriving.
+
+**The logo stays put.** On iOS it belongs to the top bar above the strip; here each page draws its own app bar.
+While everything on screen is a page with the logo in that place (the signup destinations, Home, PIN) and one
+of them is a signup page, `BittrNavHost` lays `BittrAppBarLogoOverlay` over them and the pages' own logos hide,
+so one logo stays still while the pages move under it. The overlay follows the launch animation's
+`LocalAppBarLogoVisible` like the rest.
+
+Not yet: Signup7 → the bittr signup (Transfer1, page 10) and the Transfer pages among themselves.
+
+## 54. No back arrow in the signup pages' app bar
+
+**2026-09-28.** Signup2, Signup4, Signup6/Restore3 and Restore drew a back arrow top left as well as their own
+Cancel or Back under the main button; Tom found the arrow redundant, and iOS has none. `ConfirmScreen`,
+`VerifyScreen`, `PinScreen`, `RestoreScreen` and `MnemonicScreen` no longer pass `onBack` to `BittrCanvas`.
+
+The arrow was the only back these pages had: nothing handled the system back gesture, so on Signup2 it
+popped the whole signup destination and left the app. Each of them now has a `BackHandler` bound to its own
+Cancel or Back, so the gesture does what the card's button does. Value, Map, Academy and a lesson still draw
+the arrow; they are outside the signup flow and have not been compared with iOS yet.
+
+## 55. Restore laid out as RestoreViewController is
+
+**2026-09-28.** Restore put its twelve words, each in its own white 56 dp field, inside the yellow card, with
+the heading pinned top left; iOS has no yellow card (Tom). From the scene and `viewDidLoad`:
+
+- The heading, Gilroy Bold 16, centred 40 from the screen edges; 30 below it `mnemonicView`, white, 13 pt
+  corners, `setShadow()`, 40 from the edges and 15 inside, two columns of six 35 pt rows (the storyboard's
+  240 pt card). Each row: the number 15 in, 20 wide, Gilroy Bold 16 in the brand yellow; 3 pt; the word in
+  Gilroy Regular 18, black, placeholder `UIColor.gray`; both 2 pt below the row's centre. The white, black and
+  gray are fixed in both schemes, as iOS has them: `phraseCard`, `onPhraseCard`, `phrasePlaceholder`.
+- The button 30 below the card, without an arrow; Cancel; the article card 50 below Cancel's row. The group is
+  centred 40 above the middle, as the scene's centre view is.
+
+**The numbers are the brand yellow on white, 1.59 : 1** — the pairing DEV-40 (founder sign-off, BIT-15)
+darkened for the `DetailRow` labels. Matched to iOS here at Tom's request, on this screen only.
+
+The heading now scrolls with the card, as on iOS, so the keyboard parking changed with it: a focused field
+puts the heading at the top of the visible area rather than the field one row from it. The compact card fits
+heading and all twelve fields above the keyboard, and `forgot_pin.yaml` still finds the heading to tap.
+
+## 56. The article is iOS's page sheet
+
+**2026-09-28.** The article faded in over a yellow page under the modal header's piggy and down arrow (Tom).
+On iOS, `CoreToArticle` is a plain show segue from a view controller outside any navigation stack, so UIKit
+presents it as a page sheet: a card rising from the bottom over the dimmed screen it came from.
+
+- **Presentation.** `Routes.ARTICLE` is a navigation `dialog` destination, full-screen and edge to edge, so
+  the screen underneath stays drawn; `BittrSheet` turns off the window's dim and animation and does its own —
+  the sheet slides up, critically damped (~0.4 s), over a 20 % black scrim, top at the bottom of the status bar,
+  10 dp corners — and slides back down before popping, on the chevron, on Back and on the existing pull-down.
+  The dim and corner radius are estimates off a screenshot; iOS also scales the screen behind, which is not
+  reproduced.
+- **Page.** No app bar, no piggy (that was `BittrModalHeader`, which iOS's `addHeader` screens have and the
+  article does not). One list, as iOS's table: the image full width and 280 tall with iOS's white
+  `downarrow32` 20 in and 15 down in a 40 pt button, then the blocks. White in light mode, blue1 in dark
+  (`articleSurface`), `blackorwhite` text (`onArticleSurface`).
+- **Text.** `OneArticleTableViewCell` renders each block's HTML with `line-height: 1.2`; measured, that is lines
+  at 1.2 × their size, 12 between paragraphs, an empty `<p>&nbsp;</p>` as a ~13.8 line (UIKit's default 12 pt
+  HTML font) — the gap under the byline, which `ArticleMarkup` used to drop — and 12 plus a trailing empty line
+  after each block, whose text sits 20 in from the sides and 20 below the one above.

@@ -236,17 +236,15 @@ class GraphCardFitTest {
         println("GRAPH CARD colours ($scheme): date=$date price=$price")
 
         assertEquals(
-            "$scheme: the date is drawn at full strength, so the card has no " +
-                "caption/value hierarchy — iOS dims it to 0.4 and this port's " +
-                "equivalent is the token.",
-            BittrLightColorsExtended.onChartSurfaceMuted,
+            "$scheme: the date is not iOS's black at 40 %, so the card has lost its " +
+                "caption/value hierarchy.",
+            Color.Black.copy(alpha = 0.4f),
             date,
         )
         assertEquals(
-            "$scheme: the price is the value in this card. It takes the chart card's " +
-                "own ink rather than the canvas's, because the card is a fixed light " +
-                "surface and the canvas's ink is white in dark.",
-            BittrLightColorsExtended.onChartSurface,
+            "$scheme: the price is not black. The card is white in both schemes, as " +
+                "iOS's is, so the canvas's ink — white in dark — would vanish on it.",
+            Color.Black,
             price,
         )
     }
@@ -308,9 +306,9 @@ class GraphCardFitTest {
             inside,
         )
         assertEquals(
-            "The scrub card is not the pinned cream. It is fixed in both schemes; a " +
+            "The scrub card is not white, as iOS's is. It is fixed in both schemes; a " +
                 "scheme-following fill here is `blue3` in dark.",
-            BittrLightColorsExtended.tonalFill.toArgb(),
+            Color.White.toArgb(),
             inside,
         )
 
@@ -319,8 +317,9 @@ class GraphCardFitTest {
     }
 
     /**
-     * The curve is stroked in the chart card's ink, in both schemes, checked on the
-     * pixels.
+     * The curve is stroked white, in both schemes, checked on the pixels — iOS's `GraphView`
+     * line, and Home's value card's, now that the chart sits on the yellow card again
+     * (Tom, 2026-09-29). Before that it was the white card's ink.
      *
      * It has been wrong in two directions. It was a near-black literal, which did not
      * move with the scheme and was 2.43 : 1 on the dark canvas (BIT-156); it then took
@@ -333,13 +332,13 @@ class GraphCardFitTest {
      * layout property.
      */
     @Test
-    fun `the curve is stroked in the chart card's ink in light`() =
-        assertCurveIsStrokedWith(BittrLightColorsExtended.onChartSurface, "light")
+    fun `the curve is stroked white in light`() =
+        assertCurveIsStrokedWith(Color.White, "light")
 
     @Test
     @Config(qualifiers = "w411dp-h891dp-night-420dpi")
-    fun `the curve is stroked in the chart card's ink in dark`() =
-        assertCurveIsStrokedWith(BittrDarkColorsExtended.onChartSurface, "dark")
+    fun `the curve is stroked white in dark`() =
+        assertCurveIsStrokedWith(Color.White, "dark")
 
     /**
      * Counts pixels of exactly [expected] in the chart.
@@ -367,10 +366,8 @@ class GraphCardFitTest {
         println("GRAPH CURVE ($scheme): ${"%,d".format(found)} px of #%08X".format(wanted))
 
         assertTrue(
-            "$scheme: not one pixel of the chart is the chart card's ink " +
-                "(#%08X), so the curve is drawn in something else. `emphasis` is yellow "
-                    .format(wanted) +
-                "in dark, about 1.6 : 1 on the white card.",
+            "$scheme: not one pixel of the chart is white (#%08X), so the curve is drawn " +
+                "in something else.".format(wanted),
             found > 0,
         )
     }

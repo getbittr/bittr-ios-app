@@ -1,86 +1,123 @@
 package com.bittr.android.core.designsystem
 
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.activity.compose.BackHandler
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.AlertDialog
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.draw.drawWithContent
-import androidx.compose.ui.platform.LocalConfiguration
-import androidx.compose.foundation.verticalScroll
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.layout.heightIn
-import androidx.compose.ui.semantics.Role
-import androidx.compose.ui.draw.clip
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.height
-import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.navigationBars
+import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.LocalContentColor
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.unit.dp
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.RememberObserver
+import androidx.compose.runtime.Stable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ColorFilter
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import androidx.compose.ui.window.DialogWindowProvider
+import androidx.compose.runtime.SideEffect
 import com.bittr.android.core.common.TestID
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.launch
 
 /**
  * One button on a [BittrAlert]. Position in the list is what numbers its test ID.
  *
- * [dismissesAlert] is what the back gesture does. Android users expect back to
- * close a dialog, and a dialog that ignores it feels broken — but *which* of the
- * buttons back is equivalent to is a per-alert answer. On the scanner's
- * permanently-denied alert, back means Cancel; it does not mean Settings.
+ * [dismissesAlert] marks a button that only closes the alert — iOS's `AlertButton.dismiss`.
+ * Back and the card's X do what it does, and the X is shown only when there is one.
  */
 data class BittrAlertButton(
     val label: String,
     val dismissesAlert: Boolean = false,
-    /** Cannot be undone — drawn on [BittrColors.destructiveFill] when it is the filled action. */
+    /** Kept for callers; iOS draws a destructive action like any other, and so does this. */
     val destructive: Boolean = false,
     val onClick: () -> Unit,
 )
 
 /**
- * The app's alert, and the Android half of iOS's `AlertManager`.
+ * The app's alert — iOS's `AlertManager.showAlert`, drawn as iOS draws it.
  *
- * Two things here are load-bearing for the Maestro suite and are easy to lose in a
- * refactor:
+ * - **The card:** `yelloworblue2`, 13 corners and the iOS shadow, 10 from the screen's sides,
+ *   its bottom on the safe area. It springs up from below the screen in 0.5 s at damping 0.7
+ *   while the screen dims to 50 % black, and a button slides it back down in 0.3 s before its
+ *   action runs.
+ * - **The header:** the bell, 17 pt at 19 from the top and 20 in, and the title lower-cased in
+ *   Gilroy-Bold 18, 10 after it, both in `whiteoryellow`; the 14 pt X 20 from the right when a
+ *   button only closes the alert.
+ * - **The message** 25 under the bell and 40 in: iOS's `attributed()`, Gilroy-Regular 16 at a
+ *   1.28 line height, centred, `<b>` bold.
+ * - **The buttons** 25 under that, 15 in and 15 from the bottom, 10 apart: side by side for one
+ *   or two whose titles are shorter than 16 characters, stacked otherwise, with the first button
+ *   at the bottom. Each is 40 tall, `white0.7orblue1` at 8 corners with the shadow, its title
+ *   Gilroy-Bold 16.
  *
- * 1. **The button test IDs are applied here, by index.** `alert.button.0`,
- *    `alert.button.1`, … — generated by [TestID.Alert.buttonAt] from the button's
- *    position, exactly as `AlertManager.swift:178` does it on iOS. The flows assert
- *    on the numbered form, so the number has to come from the same rule on both
- *    platforms; `shared/test-ids/README.md` is explicit that hand-interpolating it
- *    at a call site is how one platform ends up 1-based and the other 0-based.
+ * Two things here are load-bearing for the Maestro suite. **The button ids are applied here, by
+ * index** — `alert.button.0`, `alert.button.1`, … from [TestID.Alert.buttonAt], as
+ * `AlertManager.swift` does — and **position 0 is the way out**, Cancel-first, as the shared copy
+ * orders the pairs. A stacked alert draws that first button at the bottom, as iOS does, and the
+ * ids keep the caller's order wherever the button lands.
  *
- * 2. **Order is Cancel-first.** Position 0 is the way out. The approved copy
- *    specifies the pairs that way (*cancel* / *continue*, *cancel* / *settings*)
- *    and `send_onchain.yaml` taps `alert.button.0` to dismiss. Material would
- *    conventionally put the confirming action first; matching the flows matters
- *    more, and a suite that taps the wrong button fails several screens later in a
- *    way that reads like a different bug.
+ * Its own window: a full-screen dialog whose dim and motion are this card's.
  *
- * The alert is intentionally plain Material 3 for now. iOS draws a rounded card
- * with an icon and a shadow (`AlertManager.swift:291-331`); reproducing that is
- * BIT-4's design-system work, and every call site reads through this function, so
- * it lands here without touching a screen.
+ * [identity] is the caller's alert, when it has one: a new one gets its own card even with the same
+ * words, rather than the card of one that is sliding away — see [rememberAlertMotion].
  */
 @Composable
 fun BittrAlert(
@@ -90,65 +127,42 @@ fun BittrAlert(
     modifier: Modifier = Modifier,
     messageIsValue: Boolean = false,
     valueWraps: Boolean = false,
+    identity: Any? = null,
 ) {
     require(buttons.isNotEmpty()) {
         "A BittrAlert with no buttons cannot be dismissed — it would trap the user on " +
             "the screen underneath it."
     }
-
-    AlertDialog(
-        onDismissRequest = {
-            // Back / outside-tap resolves to whichever button says it is the way
-            // out. If none does, the alert is a decision the user has to make and
-            // back does nothing, which is the Material behaviour for that case.
-            buttons.firstOrNull { it.dismissesAlert }?.onClick?.invoke()
-        },
-        properties = DialogProperties(
-            dismissOnBackPress = buttons.any { it.dismissesAlert },
-            dismissOnClickOutside = false,
-        ),
-        // Spelled out rather than left to Material's defaults. AlertDialog reaches
-        // for `surfaceContainerHigh` and `onSurfaceVariant`, and [BittrTheme] does
-        // not set either — so the default M3 baseline shows through and the alert
-        // comes out lavender, in a brand-led app whose theme deliberately avoids
-        // Material You for exactly that reason. These three read from the scheme
-        // BIT-4 owns.
-        containerColor = BittrTheme.colors.dialogContainer,
-        titleContentColor = BittrTheme.colors.onDialogContainer,
-        textContentColor = BittrTheme.colors.onDialogContainer,
-        shape = BittrCanvasShapes.card,
-        title = { BittrDialogTitle(title) },
-        text = { if (messageIsValue) BittrDialogValue(message, wrap = valueWraps) else BittrDialogMessage(message) },
-        // Both buttons go in one full-width stack rather than into AlertDialog's
-        // confirm/dismiss slots. Those slots lay out side by side and truncate, and
-        // the approved labels ("Continue", "Settings") sit next to a body of three
-        // lines — a stack is what iOS draws and what stays readable at large font
-        // sizes.
-        confirmButton = {
-            Column(
-                modifier = Modifier.fillMaxWidth(),
-                verticalArrangement = Arrangement.spacedBy(BittrTokens.Spacing.xs),
-            ) {
-                AlertButtons(buttons)
-            }
-        },
-        // The dialog is its own window and semantics root, so the app root's
-        // testTagsAsResourceId does not reach `alert.button.N` — see exposeTestTags.
-        modifier = modifier.exposeTestTags(),
-    )
+    val motion = rememberAlertMotion(AlertIdentity.of(identity), title, message, buttons.map { it.label })
+    if (motion.gone) return
+    // Out here, in the screen's composition: inside the dialog the focus and keyboard are the
+    // dialog window's, not the field's that has the keyboard up.
+    CloseKeyboardOnShow(motion)
+    Dialog(onDismissRequest = {}, properties = AlertDialogProperties) {
+        AlertWindowSetup()
+        AlertOverlay(
+            motion = motion,
+            onBack = buttons.firstOrNull { it.dismissesAlert }?.onClick,
+            cardModifier = modifier,
+        ) {
+            AlertCardContent(
+                title = title,
+                message = { AlertMessage(message, messageIsValue, valueWraps) },
+                buttons = buttons,
+                motion = motion,
+            )
+        }
+    }
 }
 
 /**
  * [BittrAlert] drawn inside the current window instead of in a dialog window.
  *
- * For the one case a dialog cannot serve: a flow that asserts on the screen *behind* the
- * alert while the alert is up. Maestro reads only the focused window, so with a dialog
- * the screen underneath disappears from the hierarchy — `send_onchain.yaml` checks
- * `scanner.scannerView` and `alert.button.0` together, as iOS allows because its alert
- * lives in the same view hierarchy. Same buttons, same `alert.button.N` ids, same
- * Cancel-first order; a scrim swallows taps meant for the screen beneath.
- *
- * Back is the caller's to handle — there is no dialog to route it through.
+ * For a flow that asserts on the screen *behind* the alert while the alert is up. Maestro reads
+ * only the focused window, so with a dialog the screen underneath disappears from the hierarchy —
+ * `send_onchain.yaml` checks `scanner.scannerView` and `alert.button.0` together, as iOS allows
+ * because its alert lives in the same view hierarchy. The same card, buttons and ids; the dim
+ * swallows taps meant for the screen beneath, and Back does what the closing button does.
  */
 @Composable
 fun BittrInlineAlert(
@@ -158,135 +172,420 @@ fun BittrInlineAlert(
     modifier: Modifier = Modifier,
     // iOS `showAlert(id:)` puts the id on the card — `alert.incomingPayment`, for one.
     cardTestTag: String? = null,
+    messageIsValue: Boolean = false,
+    valueWraps: Boolean = false,
+    // See [BittrAlert].
+    identity: Any? = null,
 ) {
     require(buttons.isNotEmpty()) {
         "A BittrInlineAlert with no buttons cannot be dismissed — it would trap the user on " +
             "the screen underneath it."
     }
+    val motion = rememberAlertMotion(AlertIdentity.of(identity), title, message, buttons.map { it.label })
+    if (motion.gone) return
+    CloseKeyboardOnShow(motion)
+    AlertOverlay(
+        motion = motion,
+        onBack = buttons.firstOrNull { it.dismissesAlert }?.onClick,
+        cardModifier = modifier.then(if (cardTestTag != null) Modifier.testTag(cardTestTag) else Modifier),
+    ) {
+        AlertCardContent(
+            title = title,
+            message = { AlertMessage(message, messageIsValue, valueWraps) },
+            buttons = buttons,
+            motion = motion,
+        )
+    }
+}
+
+/**
+ * iOS's `showLoading(message:)`: the same card on `whiteorblue3`, with the spinner and the
+ * message — Gilroy-Bold 16, `blackorwhite` — side by side, 11 apart and centred, 25 from the
+ * card's top and bottom. Nothing on it to tap and no way to dismiss it: the dim swallows taps and
+ * Back. Drawn in the current window, so the screen underneath stays in Maestro's view.
+ */
+@Composable
+fun BittrLoadingCard(
+    message: String,
+    modifier: Modifier = Modifier,
+    testTag: String? = null,
+) {
+    val motion = rememberAlertMotion()
+    CloseKeyboardOnShow(motion)
+    AlertOverlay(
+        motion = motion,
+        onBack = {},
+        cardColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+        cardModifier = modifier.then(if (testTag != null) Modifier.testTag(testTag) else Modifier),
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(11.dp, Alignment.CenterHorizontally),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 25.dp, vertical = 25.dp),
+        ) {
+            BittrSpinner(
+                strokeWidth = 2.dp,
+                color = MaterialTheme.colorScheme.onSurface,
+                modifier = Modifier.size(20.dp),
+            )
+            Text(
+                text = message,
+                style = AlertMessageStyle.copy(fontWeight = FontWeight.Bold),
+                color = MaterialTheme.colorScheme.onSurface,
+                textAlign = TextAlign.Center,
+            )
+        }
+    }
+}
+
+// ---------------------------------------------------------------------------
+// The chrome every alert shares
+// ---------------------------------------------------------------------------
+
+/**
+ * The card's motion: 0 below the screen, 1 in place. [close] slides it out, then marks it
+ * [gone] — so its window or dim stops catching touches — and only then runs what closed it.
+ *
+ * Only if this is still the card on screen. The slide takes [AlertCloseMs], and a newer alert can
+ * replace this one meanwhile — a push, a status that arrived — which forgets this motion. Run then,
+ * the tap would act on that newer alert instead: clear it, or press its button at the same
+ * position. The tap belonged to an alert that is gone, so it does nothing.
+ */
+@Stable
+internal class AlertMotion(private val scope: CoroutineScope) : RememberObserver {
+    val progress = Animatable(0f)
+    var closing by mutableStateOf(false)
+        private set
+    var gone by mutableStateOf(false)
+        private set
+    private var current = true
+
+    fun close(after: () -> Unit) {
+        if (closing) return
+        closing = true
+        scope.launch {
+            progress.animateTo(0f, tween(AlertCloseMs, easing = FastOutSlowInEasing))
+            gone = true
+            if (current) after()
+        }
+    }
+
+    override fun onRemembered() = Unit
+
+    override fun onForgotten() {
+        current = false
+    }
+
+    override fun onAbandoned() {
+        current = false
+    }
+}
+
+/**
+ * A caller's alert as a key, by reference: two alerts with the same words are still two alerts.
+ * Null without one, which leaves the card to its words.
+ */
+internal class AlertIdentity private constructor(private val alert: Any) {
+    override fun equals(other: Any?) = other is AlertIdentity && other.alert === alert
+
+    override fun hashCode() = System.identityHashCode(alert)
+
+    companion object {
+        fun of(alert: Any?): AlertIdentity? = alert?.let(::AlertIdentity)
+    }
+}
+
+/**
+ * A fresh motion whenever [keys] change: a different alert slides in anew, as iOS rebuilds its card.
+ * Without the caller's alert among them, a new alert with the same words as one sliding away
+ * would take that card — gone, so never drawn — rather than one of its own.
+ */
+@Composable
+internal fun rememberAlertMotion(vararg keys: Any?): AlertMotion {
+    val scope = rememberCoroutineScope()
+    return remember(*keys) { AlertMotion(scope) }
+}
+
+/**
+ * iOS's `view.endEditing(true)` before an alert: the field gives up focus and the keyboard goes
+ * down, once per alert. The card sits on the navigation bar, so with the keyboard up it would slide
+ * in behind the keyboard and never be seen. [BittrTextFieldAlert] does not call this — its own
+ * field wants the keyboard, and its card rides on top of it.
+ */
+@Composable
+internal fun CloseKeyboardOnShow(motion: AlertMotion) {
+    val focus = LocalFocusManager.current
+    val keyboard = LocalSoftwareKeyboardController.current
+    LaunchedEffect(motion) {
+        focus.clearFocus(force = true)
+        keyboard?.hide()
+    }
+}
+
+/** Full screen and edge to edge, with Back and outside taps left to the card. */
+internal val AlertDialogProperties = DialogProperties(
+    usePlatformDefaultWidth = false,
+    decorFitsSystemWindows = false,
+    dismissOnBackPress = false,
+    dismissOnClickOutside = false,
+)
+
+/** Switches off the dialog window's own dim and animation; the card's replace them. */
+@Composable
+internal fun AlertWindowSetup() {
+    val window = (LocalView.current.parent as? DialogWindowProvider)?.window
+    SideEffect {
+        window?.setDimAmount(0f)
+        window?.setWindowAnimations(0)
+    }
+}
+
+/**
+ * The dim and the card sliding up inside it. [onBack] is what Back does, after the card has gone
+ * down; null leaves Back to whatever is underneath. [bottomInsets] is what the card's bottom sits
+ * on — the navigation bar, or the keyboard as well for a text field.
+ */
+@Composable
+internal fun AlertOverlay(
+    motion: AlertMotion,
+    onBack: (() -> Unit)?,
+    cardModifier: Modifier = Modifier,
+    cardColor: Color = BittrTheme.colors.levelCard,
+    bottomInsets: WindowInsets = WindowInsets.navigationBars,
+    content: @Composable ColumnScope.() -> Unit,
+) {
+    LaunchedEffect(motion) {
+        motion.progress.animateTo(1f, spring(dampingRatio = 0.7f, stiffness = AlertStiffness))
+    }
+    if (onBack != null) BackHandler { motion.close(onBack) }
+
+    val shown = motion.progress.value.coerceIn(0f, 1f)
+    // A dialog window is its own semantics root and does not inherit the app's
+    // `testTagsAsResourceId`: without this, Maestro sees none of the ids inside.
+    Box(Modifier.fillMaxSize().exposeTestTags()) {
+        Box(
+            Modifier
+                .fillMaxSize()
+                .background(Color.Black.copy(alpha = 0.5f * shown))
+                // Taps on the dim go nowhere, as on iOS.
+                .pointerInput(Unit) { detectTapGestures { } },
+        )
+        Column(
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .windowInsetsPadding(bottomInsets)
+                .padding(horizontal = 10.dp)
+                .fillMaxWidth()
+                // Below the screen by its own height and the inset it sits on, until the spring
+                // brings it up. The layer's size is known before the first frame is drawn.
+                .graphicsLayer {
+                    translationY = (1f - motion.progress.value) * (size.height + 200.dp.toPx())
+                }
+                .iosShadow(IosCardShape)
+                .background(cardColor, IosCardShape)
+                .clip(IosCardShape)
+                .then(cardModifier),
+            content = content,
+        )
+    }
+}
+
+/** The header, the message, and the buttons, as `showAlert` lays them out. */
+@Composable
+internal fun AlertCardContent(
+    title: String,
+    message: (@Composable () -> Unit)?,
+    buttons: List<BittrAlertButton>,
+    motion: AlertMotion,
+    field: (@Composable () -> Unit)? = null,
+) {
+    val closer = buttons.firstOrNull { it.dismissesAlert }
+    Box(Modifier.fillMaxWidth()) {
+        Column(Modifier.fillMaxWidth()) {
+            Spacer(Modifier.height(19.dp))
+            AlertHeader(title)
+            if (message != null) {
+                Spacer(Modifier.height(25.dp))
+                Box(Modifier.padding(horizontal = 40.dp)) { message() }
+            }
+            if (field != null) {
+                Spacer(Modifier.height(25.dp))
+                Box(Modifier.padding(horizontal = 20.dp)) { field() }
+                Spacer(Modifier.height(20.dp))
+            } else {
+                Spacer(Modifier.height(25.dp))
+            }
+            AlertButtons(buttons, motion, stackable = field == null)
+            Spacer(Modifier.height(15.dp))
+        }
+        if (closer != null && field == null) {
+            // The 14 pt X, 20 from the right and level with the bell, in a 40 pt button.
+            Box(
+                contentAlignment = Alignment.Center,
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .padding(top = 7.5.dp, end = 7.dp)
+                    .size(40.dp)
+                    .clickable(
+                        interactionSource = remember { MutableInteractionSource() },
+                        indication = null,
+                        role = Role.Button,
+                    ) { motion.close(closer.onClick) }
+                    .semantics { contentDescription = "Close" },
+            ) {
+                Image(
+                    painter = painterResource(R.drawable.alert_close),
+                    contentDescription = null,
+                    colorFilter = ColorFilter.tint(BittrTheme.colors.homeCardTitle),
+                    modifier = Modifier.size(14.dp),
+                )
+            }
+        }
+    }
+}
+
+/** `addAlertHeader`: the bell and the lower-cased title. */
+@Composable
+private fun AlertHeader(title: String) {
+    val tint = BittrTheme.colors.homeCardTitle
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier
+            .padding(start = 20.dp, end = 54.dp)
+            .height(17.dp),
+    ) {
+        Image(
+            painter = painterResource(R.drawable.alert_bell),
+            contentDescription = null,
+            colorFilter = ColorFilter.tint(tint),
+            modifier = Modifier.size(17.dp),
+        )
+        Spacer(Modifier.width(10.dp))
+        Text(
+            text = title.lowercase(),
+            style = MaterialTheme.typography.titleMedium.copy(fontSize = 18.sp, lineHeight = 18.sp),
+            color = tint,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.offset(y = 1.dp),
+        )
+    }
+}
+
+/**
+ * The message as iOS's `attributed()` sets it, or a value — a key or an invoice — on one line
+ * that gives way in the middle unless [valueWraps]. Scrolls rather than clips past 45 % of the
+ * screen, faded at the bottom while there is more below.
+ */
+@Composable
+private fun AlertMessage(message: String, isValue: Boolean, valueWraps: Boolean) {
+    val scroll = rememberScrollState()
+    val fadeInto = BittrTheme.colors.levelCard
+    val maxHeight = (LocalConfiguration.current.screenHeightDp * 0.45f).dp
+    Text(
+        text = if (isValue) AnnotatedString(message) else bittrMarkup(message),
+        style = AlertMessageStyle,
+        color = MaterialTheme.colorScheme.onSurface,
+        textAlign = TextAlign.Center,
+        maxLines = if (isValue && !valueWraps) 1 else Int.MAX_VALUE,
+        overflow = if (isValue && !valueWraps) TextOverflow.MiddleEllipsis else TextOverflow.Clip,
+        modifier = Modifier
+            .fillMaxWidth()
+            .heightIn(max = maxHeight)
+            .drawWithContent {
+                drawContent()
+                if (scroll.canScrollForward) {
+                    val fade = 24.dp.toPx()
+                    drawRect(
+                        brush = Brush.verticalGradient(
+                            colors = listOf(fadeInto.copy(alpha = 0f), fadeInto),
+                            startY = size.height - fade,
+                            endY = size.height,
+                        ),
+                        topLeft = Offset(0f, size.height - fade),
+                    )
+                }
+            }
+            .verticalScroll(scroll),
+    )
+}
+
+/** `attributed()`: Gilroy-Regular 16 at a 1.28 line height. */
+internal val AlertMessageStyle = androidx.compose.ui.text.TextStyle(
+    fontFamily = Gilroy,
+    fontWeight = FontWeight.Normal,
+    fontSize = 16.sp,
+    lineHeight = 20.48.sp,
+)
+
+/**
+ * Side by side for one, or two whose titles are shorter than 16 characters; stacked otherwise,
+ * the first button at the bottom as iOS's reversed stack has it. [stackable] false keeps a text
+ * field's Cancel and Save side by side, as iOS always draws them.
+ */
+@Composable
+private fun AlertButtons(buttons: List<BittrAlertButton>, motion: AlertMotion, stackable: Boolean) {
+    val fitSideBySide = buttons.all { it.label.length < 16 }
+    val stacked = stackable && (buttons.size > 2 || (buttons.size == 2 && !fitSideBySide))
+    val indexed = buttons.withIndex().toList()
+    if (stacked) {
+        Column(
+            verticalArrangement = Arrangement.spacedBy(10.dp),
+            modifier = Modifier.padding(horizontal = 15.dp),
+        ) {
+            indexed.reversed().forEach { (position, button) ->
+                AlertButton(button, position, motion, Modifier.fillMaxWidth())
+            }
+        }
+    } else {
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
+            modifier = Modifier.padding(horizontal = 15.dp),
+        ) {
+            indexed.forEach { (position, button) ->
+                AlertButton(button, position, motion, Modifier.weight(1f))
+            }
+        }
+    }
+}
+
+/** `makeAlertButton`: the rounded, shadowed plate with its centred label. */
+@Composable
+private fun AlertButton(button: BittrAlertButton, position: Int, motion: AlertMotion, modifier: Modifier) {
     Box(
         contentAlignment = Alignment.Center,
         modifier = modifier
-            .fillMaxSize()
-            .background(Color.Black.copy(alpha = SCRIM_ALPHA))
-            // Taps on the scrim go nowhere, as they do outside a modal dialog.
-            .pointerInput(Unit) { detectTapGestures { } },
+            .height(40.dp)
+            .iosShadow(AlertButtonShape)
+            .clip(AlertButtonShape)
+            .background(BittrTheme.colors.scrim1)
+            .clickable(role = Role.Button) { motion.close(button.onClick) }
+            .testTag(TestID.Alert.buttonAt(position)),
     ) {
-        Column(
-            verticalArrangement = Arrangement.spacedBy(BittrTokens.Spacing.md),
+        Text(
+            text = button.label,
+            style = MaterialTheme.typography.labelLarge.copy(fontSize = 16.sp, lineHeight = 16.sp),
+            color = MaterialTheme.colorScheme.onSurface,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
             modifier = Modifier
-                .padding(horizontal = BittrTokens.Spacing.xl)
-                .fillMaxWidth()
-                .background(BittrTheme.colors.dialogContainer, BittrCanvasShapes.card)
-                .padding(BittrTokens.Spacing.xl)
-                .then(if (cardTestTag != null) Modifier.testTag(cardTestTag) else Modifier),
-        ) {
-            CompositionLocalProvider(LocalContentColor provides BittrTheme.colors.onDialogContainer) {
-                BittrDialogTitle(title)
-                BittrDialogMessage(message)
-            }
-            Column(
-                modifier = Modifier.fillMaxWidth(),
-                verticalArrangement = Arrangement.spacedBy(BittrTokens.Spacing.xs),
-            ) {
-                AlertButtons(buttons)
-            }
-        }
-    }
-}
-
-private const val SCRIM_ALPHA = 0.45f
-
-/**
- * Position 0 is the way out and is drawn quieter; everything after it is an action.
- *
- * **The quiet one spells out its label colour.** A Material `TextButton` paints its
- * text `primary`, and in light mode `primary` here is the brand yellow — a *surface*,
- * not an accent (see [BittrLightColors]). Yellow label on the `grey1` page is
- * **1.42 : 1**: the way out of the alert was very nearly invisible, for the same
- * reason and by the same mechanism as the dark filled button in BIT-94, one slot over.
- * `onSurfaceVariant` is what "quieter" is supposed to mean on a surface — 5.57 : 1
- * light, 5.28 : 1 dark. A11Y-22, BIT-94.
- */
-/**
- * One filled action per alert (review S20). The actions come first and the way out last, as
- * quiet text; a single action is the ink pill, and two or more are peers, so they are all tonal.
- * An alert with nothing but a way out draws it as the pill. The ids keep the caller's order —
- * `alert.button.0` is still the first button passed, wherever it lands — because the flows,
- * shared with iOS, select by index.
- */
-@Composable
-private fun AlertButtons(buttons: List<BittrAlertButton>) {
-    val indexed = buttons.withIndex().toList()
-    val actions = indexed.filterNot { it.value.dismissesAlert }
-    val exits = indexed.filter { it.value.dismissesAlert }
-    val style = when {
-        actions.isEmpty() -> null
-        actions.size == 1 -> AlertButtonStyle.Filled
-        else -> AlertButtonStyle.Tonal
-    }
-    actions.forEach { (position, button) -> AlertButton(button, position, style ?: AlertButtonStyle.Filled) }
-    exits.forEach { (position, button) ->
-        AlertButton(button, position, if (actions.isEmpty()) AlertButtonStyle.Filled else AlertButtonStyle.Text)
-    }
-}
-
-private enum class AlertButtonStyle { Filled, Tonal, Text }
-
-@Composable
-private fun AlertButton(button: BittrAlertButton, position: Int, style: AlertButtonStyle) {
-    val buttonModifier = Modifier
-        .fillMaxWidth()
-        .padding(vertical = BittrTokens.Spacing.xs)
-        .testTag(TestID.Alert.buttonAt(position))
-
-    if (style == AlertButtonStyle.Tonal) {
-        BittrTonalButton(
-            text = button.label,
-            onClick = button.onClick,
-            modifier = buttonModifier.height(BittrDialogButtonHeight),
-        )
-        return
-    }
-    if (style == AlertButtonStyle.Text) {
-        TextButton(
-            onClick = button.onClick,
-            modifier = buttonModifier,
-            colors = ButtonDefaults.textButtonColors(
-                contentColor = BittrTheme.colors.onDialogContainer,
-            ),
-        ) {
-            Text(button.label, style = MaterialTheme.typography.labelLarge)
-        }
-    } else if (button.destructive) {
-        Box(
-            contentAlignment = Alignment.Center,
-            modifier = buttonModifier
-                .height(BittrDialogButtonHeight)
-                .clip(BittrCanvasShapes.pill)
-                .background(BittrTheme.colors.destructiveFill)
-                .clickable(role = Role.Button, onClick = button.onClick),
-        ) {
-            Text(button.label, style = MaterialTheme.typography.labelLarge, color = BittrTheme.colors.onDestructiveFill)
-        }
-    } else {
-        // **Not a Material `Button`.** It would paint its container `primary`, and in
-        // light mode `primary` is the brand yellow *on the `grey1` page* — 1.42 : 1,
-        // the same container-vs-surface failure as BIT-94's dark button, which the
-        // rendered `scanner-rationale.png` showed as 95 000 pixels of yellow fill.
-        // [BittrLightColors] already states the rule this violated: the primary call to
-        // action in this app is [BittrPrimaryButton] on `actionFill` — 17.35 : 1 light,
-        // 6.38 : 1 dark. `arrow = false` because an alert action is a choice, not a
-        // step forward. A11Y-22, BIT-94.
-        BittrPrimaryButton(
-            text = button.label,
-            onClick = button.onClick,
-            modifier = buttonModifier.height(BittrDialogButtonHeight),
-            arrow = false,
+                .padding(horizontal = 8.dp)
+                .offset(y = 1.dp),
         )
     }
 }
 
-/** The proposal's dialog action height — between the 48 dp compact pill and the 56 dp one. */
+private val AlertButtonShape = RoundedCornerShape(8.dp)
+
+/** `slideIn`'s 0.5 s spring at damping 0.7: (4 / (0.7 × 0.5))², by [PageSlideSpec]'s settle rule. */
+private const val AlertStiffness = 131f
+
+/** `slideOut`'s 0.3 s. */
+private const val AlertCloseMs = 300
+
+/** The proposal's dialog action height, still used by the Buy initiative sheet. */
 val BittrDialogButtonHeight = 52.dp
 
 /**

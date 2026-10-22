@@ -7,50 +7,52 @@ import android.net.Uri
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.bittr.android.core.common.TestID
-import com.bittr.android.core.designsystem.BittrCanvasShapes
-import com.bittr.android.core.designsystem.BittrIconPaths
+import com.bittr.android.core.designsystem.BittrPopup
 import com.bittr.android.core.designsystem.BittrTheme
-import com.bittr.android.core.designsystem.BittrTokens
 import com.bittr.android.core.designsystem.CanvasSpacer
-import com.bittr.android.core.designsystem.dismissOnPullDown
-import com.bittr.android.core.designsystem.exposeTestTags
+import com.bittr.android.core.designsystem.iosShadow
+import com.bittr.android.core.designsystem.rememberFillIcon
 import com.bittr.android.core.designsystem.rememberStrokeIcon
 
 /**
- * One place, over the map. Ported from `OnePlaceViewController`.
+ * One place, over the map. Ported from `OnePlaceViewController`, presented as
+ * `MapVCOnePlace.showOnePlace` does: a panel as tall as its content springing up over the
+ * map, which dims to 50 % black — [BittrPopup], the motion Settings shares with it — with
+ * its top corners at the container's 12.
  *
- * A `Dialog` rather than a sibling composable so it genuinely sits in its own
- * window over the map and takes the system back gesture as a dismissal.
+ * A `Dialog` rather than a sibling composable so it genuinely sits in its own window over
+ * the map and takes the system back gesture as a dismissal.
  *
  * Address, website and opening hours each appear only when the place carries them,
  * matching iOS's three `show*` methods. The website row's absence is not cosmetic:
@@ -58,10 +60,11 @@ import com.bittr.android.core.designsystem.rememberStrokeIcon
  * being visible, so a row that is always present with an empty value would send the
  * flow into an in-app browser with nothing to load.
  *
- * **Closing (review pass 3).** The top-right back arrow became a centred drag handle, and
- * a pull down on the sheet closes it, as iOS's swipe does. The handle's whole 48 dp strip
- * is the tap target and carries `map.onePlace.closeButton`, which the flow taps after its
- * trip to the maps app — so the id kept its tappable control, only the glyph changed.
+ * Sizes are the storyboard's: the name 45 below the top and 20 in, the type's 16 pt glyph
+ * 10 under it, each detail row 15 in with 10 above it and 45 tall, the maps button 40 tall
+ * in a 60 strip and 40 above the safe area, and the close X 15 × 15 at 20 from the corner
+ * in a 40 × 40 button. The rows sit 15 under the type, each
+ * with its own 10 above it.
  */
 @Composable
 internal fun OnePlaceSheet(
@@ -73,121 +76,101 @@ internal fun OnePlaceSheet(
     val context = LocalContext.current
     val colors = BittrTheme.colors
 
-    Dialog(
-        onDismissRequest = onClose,
-        properties = DialogProperties(usePlatformDefaultWidth = false),
-    ) {
-        Box(
-            contentAlignment = Alignment.BottomCenter,
-            // The Dialog is its own window, so the app root's testTagsAsResourceId does
-            // not reach `map.onePlace.*` — see exposeTestTags.
-            modifier = Modifier.fillMaxSize().exposeTestTags(),
-        ) {
-            // The tap-to-dismiss scrim is a *sibling* of the card, not its parent.
-            // `Modifier.clickable` sets `mergeDescendants`, so a clickable wrapper
-            // would collapse the whole sheet into one semantics node carrying only
-            // the wrapper's identity — every id the flow taps here
-            // (`map.onePlace.nameLabel`, `closeButton`, `websiteButton`,
-            // `goToMapsButton`) would stop existing while the sheet looked correct.
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(colors.scrim2)
-                    .clickable(role = Role.Button, onClick = onClose),
-            )
-
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(colors.canvas, BittrCanvasShapes.card)
-                    .dismissOnPullDown(onClose)
-                    .verticalScroll(rememberScrollState())
-                    .padding(start = BittrTokens.Spacing.lg, end = BittrTokens.Spacing.lg, bottom = BittrTokens.Spacing.lg),
-            ) {
-                Box(
-                    contentAlignment = Alignment.Center,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(BittrTokens.Size.minTouchTarget)
-                        .clickable(role = Role.Button, onClick = onClose)
-                        .semantics { contentDescription = MapCopy.CLOSE }
-                        .testTag(TestID.Map.OnePlace.closeButton),
-                ) {
-                    Box(
-                        Modifier
-                            .size(width = 32.dp, height = 4.dp)
-                            .background(colors.onCanvas.copy(alpha = 0.25f), RoundedCornerShape(2.dp)),
+    Dialog(onDismissRequest = onClose, properties = PanelDialog) {
+        BittrPopup(onDismissed = onClose, cornerRadius = 12.dp) { dismiss ->
+            Box(Modifier.fillMaxWidth()) {
+                Column(Modifier.fillMaxWidth()) {
+                    CanvasSpacer(45.dp)
+                    // `placeNameLabel`: Gilroy-Bold 22, `blackoryellow`.
+                    Text(
+                        text = place.name ?: MapCopy.UNAVAILABLE,
+                        style = MaterialTheme.typography.titleLarge.copy(fontSize = 22.sp),
+                        color = colors.emphasis,
+                        modifier = Modifier
+                            .padding(horizontal = 20.dp)
+                            .testTag(TestID.Map.OnePlace.nameLabel),
                     )
-                }
+                    CanvasSpacer(10.dp)
+                    // `iconImage` and `typeLabel`: white in both modes, over the canvas.
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.padding(start = 20.dp, end = 20.dp),
+                    ) {
+                        Image(
+                            imageVector = rememberStrokeIcon(placeGlyph(place.icon).path, Color.White, strokeWidth = 2f),
+                            contentDescription = null,
+                            modifier = Modifier.size(16.dp),
+                        )
+                        Spacer(Modifier.width(7.dp))
+                        Text(
+                            text = categoryDescription(place.icon),
+                            style = MaterialTheme.typography.labelLarge.copy(fontSize = 16.sp),
+                            color = Color.White,
+                            modifier = Modifier.offset(y = 1.dp),
+                        )
+                    }
+                    CanvasSpacer(15.dp)
 
-                // `placeNameLabel` is Gilroy-Bold **22** (`33m-oo-gb6`,
-                // `Main.storyboard:2805`) — the headline of the sheet, not a
-                // section header. `titleLarge` is the slot the scale fills at
-                // 22; it was reading `titleMedium`'s 18. BIT-152.
-                Text(
-                    text = place.name ?: MapCopy.UNAVAILABLE,
-                    style = MaterialTheme.typography.titleLarge,
-                    modifier = Modifier.testTag(TestID.Map.OnePlace.nameLabel),
-                )
-                // `typeLabel` is Gilroy-Bold 16 on iOS (`UqK-Av-YNJ`, wired
-                // at `Main.storyboard:3097`) — the same slot as a row title,
-                // not a caption. BIT-151.
-                Text(
-                    text = categoryDescription(place.icon),
-                    style = MaterialTheme.typography.labelLarge,
-                )
-
-                CanvasSpacer(BittrTokens.Spacing.md)
-
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     place.address?.let { address ->
-                        DetailRow(icon = MapIconPaths.PIN, text = address)
+                        DetailRow(glyph = DetailGlyph.ADDRESS, text = address)
                     }
                     place.website?.let { website ->
                         DetailRow(
-                            icon = BittrIconPaths.LANGUAGE,
+                            glyph = DetailGlyph.WEBSITE,
                             text = displayWebsite(website),
                             onClick = { onOpenWebsite(website) },
                             modifier = Modifier.testTag(TestID.Map.OnePlace.websiteButton),
                         )
                     }
                     place.openingHours?.let { hours ->
-                        DetailRow(icon = MapIconPaths.CLOCK, text = hours)
+                        DetailRow(glyph = DetailGlyph.HOURS, text = hours)
                     }
+
+                    // The hand-off to a maps app. iOS raises a chooser alert because it
+                    // has to ask whether Google Maps is installed; Android's implicit
+                    // `geo:` intent is answered by whatever the user has, and the system
+                    // runs the chooser — so the alert has no counterpart here.
+                    CanvasSpacer(10.dp)
+                    Box(
+                        contentAlignment = Alignment.Center,
+                        modifier = Modifier
+                            .padding(horizontal = 15.dp)
+                            .fillMaxWidth()
+                            .height(40.dp)
+                            .iosShadow(PanelRowShape)
+                            .clip(PanelRowShape)
+                            .background(colors.scrim3)
+                            .clickable(role = Role.Button) {
+                                if (!place.openInMaps(context)) onMapsUnavailable()
+                            }
+                            .testTag(TestID.Map.OnePlace.goToMapsButton),
+                    ) {
+                        Text(
+                            text = MapCopy.OPEN_IN_MAPS,
+                            style = MaterialTheme.typography.labelLarge.copy(fontSize = 15.sp),
+                            color = MaterialTheme.colorScheme.onSurface,
+                            modifier = Modifier.offset(y = 1.dp),
+                        )
+                    }
+                    CanvasSpacer(50.dp)
                 }
 
-                CanvasSpacer(BittrTokens.Spacing.md)
-
-                // The hand-off to a maps app. iOS raises a chooser alert because it
-                // has to ask whether Google Maps is installed; Android's implicit
-                // `geo:` intent is answered by whatever the user has, and the system
-                // runs the chooser — so the alert has no counterpart here.
-                //
-                // A tonal button since review pass 3, not a fourth data row: it is the
-                // one action on the sheet.
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.Center,
+                // `iconclosewhite`, 15 × 15 at 20 from the top and right, in a 40 × 40 button.
+                Box(
+                    contentAlignment = Alignment.Center,
                     modifier = Modifier
-                        .fillMaxWidth()
-                        .height(52.dp)
-                        .clip(TonalButtonShape)
-                        .background(colors.tonalFill)
-                        .clickable(role = Role.Button) {
-                            if (!place.openInMaps(context)) onMapsUnavailable()
-                        }
-                        .testTag(TestID.Map.OnePlace.goToMapsButton),
+                        .align(Alignment.TopEnd)
+                        .padding(top = 7.5.dp, end = 7.5.dp)
+                        .size(40.dp)
+                        .clip(RoundedCornerShape(20.dp))
+                        .clickable(role = Role.Button, onClick = dismiss)
+                        .semantics { contentDescription = MapCopy.CLOSE }
+                        .testTag(TestID.Map.OnePlace.closeButton),
                 ) {
                     Image(
-                        imageVector = rememberStrokeIcon(BittrIconPaths.MAP, colors.onTonalFill, strokeWidth = 2f),
+                        painter = painterResource(R.drawable.place_close),
                         contentDescription = null,
-                        modifier = Modifier.size(20.dp),
-                    )
-                    Spacer(Modifier.width(8.dp))
-                    Text(
-                        text = MapCopy.OPEN_IN_MAPS,
-                        style = MaterialTheme.typography.labelLarge,
-                        color = colors.onTonalFill,
+                        modifier = Modifier.size(15.dp),
                     )
                 }
             }
@@ -195,39 +178,81 @@ internal fun OnePlaceSheet(
     }
 }
 
-private val DetailRowShape = RoundedCornerShape(16.dp)
-private val TonalButtonShape = RoundedCornerShape(26.dp)
+/** Edge to edge, with the window's own dim, animation and Back handling left to [BittrPopup]. */
+private val PanelDialog = DialogProperties(
+    usePlatformDefaultWidth = false,
+    decorFitsSystemWindows = false,
+    dismissOnBackPress = false,
+    dismissOnClickOutside = false,
+)
+
+/** The rows' and the maps button's 8. */
+private val PanelRowShape = RoundedCornerShape(8.dp)
 
 /**
- * A data row: white (the scheme's `surfaceContainer`, as the place list's rows), a gold
- * glyph, and the value. The value is Bold 16, standing in for the review's semibold —
- * Gilroy ships in two weights here, and a synthesised 600 would be neither.
+ * The rows' SF Symbols — `mappin.circle.fill`, `link.circle.fill`, `clock.fill` — as a yellow
+ * disc with the mark cut out of it in the row's own colour. [fill] draws the mark filled,
+ * otherwise it is stroked; [turn] rotates it (the link's two links lie at 45°).
+ */
+private enum class DetailGlyph(val mark: String, val fill: Boolean, val turn: Float = 0f) {
+    ADDRESS("M12 5.6a3.4 3.4 0 110 6.8 3.4 3.4 0 110-6.8z M11.1 11h1.8v7.4h-1.8z", fill = true),
+    WEBSITE(
+        "M8.4 10.2h2.8a1.8 1.8 0 010 3.6H8.4a1.8 1.8 0 010-3.6z M12.8 10.2h2.8a1.8 1.8 0 010 3.6h-2.8a1.8 1.8 0 010-3.6z",
+        fill = false,
+        turn = -45f,
+    ),
+    HOURS("M12 6.5V12l3.5 2.2", fill = false),
+}
+
+private const val DISC = "M12 2a10 10 0 100 20 10 10 0 000-20z"
+
+/**
+ * A detail row: `whiteorblue3` at 8 dp corners, 15 in from the panel's sides with 10 above
+ * it, 45 tall for one line; the 18 dp yellow glyph 15 in and the Gilroy-Bold 16 value 12
+ * after it, 12 from the top and 9 from the bottom as it wraps.
  */
 @Composable
 private fun DetailRow(
-    icon: String,
+    glyph: DetailGlyph,
     text: String,
     modifier: Modifier = Modifier,
     onClick: (() -> Unit)? = null,
 ) {
     val scheme = MaterialTheme.colorScheme
+    val rowColor = scheme.surfaceContainerHigh
     Row(
         verticalAlignment = Alignment.CenterVertically,
         modifier = modifier
+            .padding(start = 15.dp, end = 15.dp, top = 10.dp)
             .fillMaxWidth()
-            .heightIn(min = 56.dp)
-            .clip(DetailRowShape)
-            .background(scheme.surfaceContainer)
+            .heightIn(min = 45.dp)
+            .clip(PanelRowShape)
+            .background(rowColor)
             .then(if (onClick != null) Modifier.clickable(role = Role.Button, onClick = onClick) else Modifier)
-            .padding(horizontal = 16.dp, vertical = BittrTokens.Spacing.sm),
+            .padding(start = 15.dp, end = 15.dp, top = 12.dp, bottom = 9.dp),
     ) {
-        Image(
-            imageVector = rememberStrokeIcon(icon, BittrTheme.colors.rowLabel, strokeWidth = 2f),
-            contentDescription = null,
-            modifier = Modifier.size(20.dp),
-        )
+        Box(Modifier.size(18.dp)) {
+            Image(
+                imageVector = rememberFillIcon(DISC, BittrTheme.colors.brandFixed),
+                contentDescription = null,
+                modifier = Modifier.matchParentSize(),
+            )
+            Image(
+                imageVector = if (glyph.fill) {
+                    rememberFillIcon(glyph.mark, rowColor)
+                } else {
+                    rememberStrokeIcon(glyph.mark, rowColor, strokeWidth = 2f)
+                },
+                contentDescription = null,
+                modifier = Modifier.matchParentSize().rotate(glyph.turn),
+            )
+        }
         Spacer(Modifier.width(12.dp))
-        Text(text = text, style = MaterialTheme.typography.labelLarge, color = scheme.onSurface)
+        Text(
+            text = text,
+            style = MaterialTheme.typography.labelLarge.copy(fontSize = 16.sp),
+            color = scheme.onSurface,
+        )
     }
 }
 

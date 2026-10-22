@@ -5,7 +5,9 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -14,33 +16,48 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.draw.dropShadow
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ColorFilter
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.PathFillType
+import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.StrokeJoin
+import androidx.compose.ui.graphics.compositeOver
+import androidx.compose.ui.graphics.shadow.Shadow
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.graphics.vector.PathParser
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
@@ -69,7 +86,11 @@ private val CardPaddingVertical = 28.dp
 private val ButtonHeight = 56.dp
 private val ButtonHeightCompact = 48.dp
 
-private val AppBarHeight = 56.dp
+/**
+ * iOS's top bar: `topBarHeight` is the safe area plus 50, with the 30 pt lockup 10 below the
+ * safe area — so centred in 50. It was the mock's 56 dp with a 19 dp logo.
+ */
+private val AppBarHeight = 50.dp
 private val AppBarIconBox = 48.dp
 
 /**
@@ -80,33 +101,136 @@ private val AppBarIconBox = 48.dp
  * the *content* is inset. A screen that pads its own background paints a white strip
  * behind the clock.
  *
+ * The app bar is iOS's `topBar`, laid over the content rather than above it: translucent
+ * (`transparentyellow`), from the top of the screen, with `upperYellowCurve` hanging under it
+ * ([BittrAppBarBackground]). What scrolls up under it shows through, as on iOS.
+ *
  * @param onBack draws the back arrow when non-null. The arrow is the only affordance
  *   in the bar that does anything; the overflow dots are drawn because the mock has
  *   them and are deliberately inert until there is a menu behind them.
+ * @param scrollsUnderAppBar lays [content] out from the top of the screen instead of below the
+ *   bar, so a scrolling screen can pass under it. That screen then pads its scrolled content with
+ *   [appBarContentPadding], inside the scroll, so it rests below the bar all the same.
  */
 @Composable
 fun BittrCanvas(
     modifier: Modifier = Modifier,
     onBack: (() -> Unit)? = null,
     appBar: Boolean = true,
+    scrollsUnderAppBar: Boolean = false,
     content: @Composable ColumnScope.() -> Unit,
 ) {
     val colors = BittrTheme.colors
     CompositionLocalProvider(LocalContentColor provides colors.onCanvas) {
-        Column(
+        Box(
             modifier = modifier
                 .fillMaxSize()
-                .background(colors.canvas)
-                .statusBarsPadding()
-                .navigationBarsPadding(),
+                .background(colors.canvas),
         ) {
-            if (appBar) BittrAppBar(onBack = onBack)
-            content()
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .then(
+                        when {
+                            !appBar -> Modifier.statusBarsPadding()
+                            scrollsUnderAppBar -> Modifier
+                            else -> Modifier.appBarContentPadding()
+                        },
+                    )
+                    .navigationBarsPadding(),
+                content = content,
+            )
+            if (appBar) {
+                if (LocalAppBarBackgroundVisible.current) BittrAppBarBackground()
+                BittrAppBar(onBack = onBack, modifier = Modifier.statusBarsPadding())
+            }
         }
     }
 }
 
-/** Back arrow and logo — the mock's 56 dp bar. */
+/**
+ * The room the app bar takes at the top of the screen: the status bar and the bar's 50. For the
+ * content of a [BittrCanvas] with `scrollsUnderAppBar`, applied inside its scroll.
+ */
+fun Modifier.appBarContentPadding(): Modifier = statusBarsPadding().padding(top = AppBarContentInset)
+
+/** [appBarContentPadding] below the status bar: the bar's own height. */
+val AppBarContentInset: Dp = AppBarHeight
+
+/**
+ * Whether [BittrCanvas] draws its app bar's translucent fill and curve. False where one fixed
+ * [BittrAppBarLogoOverlay] draws them over pages that slide beneath it, as iOS's `topBar` stays
+ * put over the signup page strip — otherwise each page's fill would slide with it, and two
+ * translucent fills would stack.
+ */
+val LocalAppBarBackgroundVisible = compositionLocalOf { true }
+
+/**
+ * iOS's `topBar` fill and its `upperYellowCurve`: `transparentyellow` (yellow at 85 %, blue3 at
+ * 85 % in dark mode) from the top of the screen to the bottom of the 50 pt bar, then
+ * `BottomCurveView` under it — as tall as 0.0375 of the width, its sides 0.15 of that down and its
+ * middle sagging towards a control point 1.2 of it down.
+ */
+@Composable
+fun BittrAppBarBackground(modifier: Modifier = Modifier) {
+    val fill = BittrTheme.colors.scrimBrand
+    BoxWithConstraints(modifier.fillMaxWidth()) {
+        val curveHeight = maxWidth * AppBarCurveRatio
+        Spacer(
+            Modifier
+                .fillMaxWidth()
+                .drawBehind {
+                    val curve = curveHeight.toPx()
+                    val barBottom = size.height - curve
+                    val path = Path().apply {
+                        moveTo(0f, 0f)
+                        lineTo(size.width, 0f)
+                        lineTo(size.width, barBottom + curve * 0.15f)
+                        quadraticTo(size.width / 2, barBottom + curve * 1.2f, 0f, barBottom + curve * 0.15f)
+                        close()
+                    }
+                    drawPath(path, fill)
+                }
+                .statusBarsPadding()
+                .height(AppBarHeight + curveHeight),
+        )
+    }
+}
+
+/** `upperYellowCurve`'s height, as a share of the screen's width. */
+private const val AppBarCurveRatio = 0.0375f
+
+/**
+ * The app bar's fill, curve and logo, where [BittrCanvas] draws them, for screens whose pages slide
+ * under a bar that stays put. On iOS the top bar sits above the signup page strip, so it never
+ * moves while the pages do; here each page has its own app bar, so the pages hide theirs
+ * (`LocalAppBarLogoVisible`, [LocalAppBarBackgroundVisible]) and this one is laid over them. The
+ * logo follows `LocalAppBarLogoVisible` as it is where it is composed, so it stays hidden under the
+ * launch animation's cover too.
+ *
+ * @param background false draws the logo alone, for pages that keep their own bar fill — Home,
+ *   whose header is its own and has no translucent bar to hand over to this one.
+ */
+@Composable
+fun BittrAppBarLogoOverlay(modifier: Modifier = Modifier, background: Boolean = true) {
+    Box(modifier.fillMaxWidth()) {
+        if (background) BittrAppBarBackground()
+        Box(
+            contentAlignment = Alignment.Center,
+            modifier = Modifier
+                .fillMaxWidth()
+                .statusBarsPadding()
+                .height(AppBarHeight),
+        ) {
+            BittrLogo(
+                height = BittrAppBarLogoHeight,
+                modifier = Modifier.alpha(if (LocalAppBarLogoVisible.current) 1f else 0f),
+            )
+        }
+    }
+}
+
+/** Back arrow and logo — iOS's 50 dp top bar. */
 @Composable
 fun BittrAppBar(onBack: (() -> Unit)? = null, modifier: Modifier = Modifier) {
     Row(
@@ -128,7 +252,10 @@ fun BittrAppBar(onBack: (() -> Unit)? = null, modifier: Modifier = Modifier) {
             }
         }
         Box(Modifier.weight(1f), contentAlignment = Alignment.Center) {
-            BittrLogo(height = 19.dp)
+            BittrLogo(
+                height = BittrAppBarLogoHeight,
+                modifier = Modifier.alpha(if (LocalAppBarLogoVisible.current) 1f else 0f),
+            )
         }
         // Balances the back arrow so the logo stays centred. The mock drew an overflow
         // `⋮` here; it opened nothing, and the design review asked for it to go from every
@@ -138,31 +265,82 @@ fun BittrAppBar(onBack: (() -> Unit)? = null, modifier: Modifier = Modifier) {
 }
 
 /**
- * The card a step's content sits in — white at 9 % over the canvas, 28 dp radius.
+ * The card a step's content sits in — iOS's `centerCard`: `yelloworblue1` (which is
+ * [BittrColors.canvas] exactly, so the card is the page's own colour), 13 pt corners and
+ * `setShadow()`. Every iOS card in the app has those corners, and the signup screens, Swap and
+ * Value all give it that fill and shadow. It was the mock's translucent white wash at 28 dp, no
+ * shadow; decision 52.
  *
- * Translucent rather than opaque, which is why it is a [Box] with a background and not
- * a `Surface`: `Surface` with a translucent colour still applies tonal elevation
- * underneath and the result is a muddier yellow than the mock's.
+ * A [Box] with a background rather than a `Surface`, because `Surface` applies tonal elevation
+ * and the result is not the canvas colour.
+ *
+ * @param shadow iOS's `setShadow()` under the card — see [iosShadow]. A translucent [fill] is
+ *   filled pre-composited over the canvas, the same pixels made opaque, because a shadow drawn
+ *   behind a translucent card would show through it.
+ * @param shape the card's corners.
+ * @param contentPadding the gutter inside the card; the mock's 22/28 dp by default. A screen
+ *   matched to its storyboard passes that screen's own.
+ * @param fill the card's colour.
  */
 @Composable
 fun BittrCard(
     modifier: Modifier = Modifier,
     horizontalAlignment: Alignment.Horizontal = Alignment.CenterHorizontally,
+    shadow: Boolean = true,
+    shape: Shape = IosCardShape,
+    contentPadding: PaddingValues = PaddingValues(horizontal = CardPaddingHorizontal, vertical = CardPaddingVertical),
+    fill: Color = BittrTheme.colors.canvas,
     content: @Composable ColumnScope.() -> Unit,
 ) {
+    val colors = BittrTheme.colors
     Column(
         horizontalAlignment = horizontalAlignment,
         modifier = modifier
             .fillMaxWidth()
-            .background(BittrTheme.colors.cardWash, BittrCanvasShapes.card)
-            .padding(horizontal = CardPaddingHorizontal, vertical = CardPaddingVertical),
+            .then(
+                if (shadow) {
+                    Modifier
+                        .iosShadow(shape)
+                        .background(fill.compositeOver(colors.canvas), shape)
+                } else {
+                    Modifier.background(fill, shape)
+                },
+            )
+            .padding(contentPadding),
         content = content,
     )
 }
 
 /**
- * The primary action: an ink pill with a white label and a trailing arrow.
+ * iOS's `UIView.setShadow()` (`Extensions/UIView.swift`): black at 10 %, offset 7 pt down,
+ * `shadowRadius` 10 — the shadow under most of the app's cards.
  *
+ * **The radius is not 10 dp.** Core Animation's `shadowRadius` is the Gaussian's sigma;
+ * fitting the edge of Signup1's card shadow in an iOS screenshot gives sigma = 10 pt
+ * (rms 0.45 against 2.03 for sigma = 5). Compose hands its radius to `BlurMaskFilter`,
+ * where Skia turns a radius r into sigma = 0.57735 r + 0.5 px, so sigma 10 is r ≈ 17.3.
+ */
+fun Modifier.iosShadow(shape: Shape): Modifier = dropShadow(
+    shape,
+    Shadow(
+        radius = 17.3.dp,
+        color = Color.Black,
+        offset = DpOffset(0.dp, 7.dp),
+        alpha = 0.10f,
+    ),
+)
+
+/** iOS's card corners: 13 pt on every card in the app. */
+val IosCardShape = RoundedCornerShape(13.dp)
+
+/**
+ * The primary action — iOS's `createWalletView` / `buttonView`: an ink plate 40 pt high with 8 pt
+ * corners, sized to its content (17 pt, the label in Gilroy Bold 14 set 1 pt below centre as the
+ * storyboards' `centerY` constant has it, 10 pt, the 11 pt `arrowrightwhite`, 17 pt) and centred
+ * in the width it is given. At least 80 pt wide, as the storyboards pin it. Decision 52.
+ *
+ * @param fullWidth the mock's full-width pill instead, for the buttons iOS does not draw this way:
+ *   the ones in alerts and dialogs, which fill the dialog's width.
  * @param enabled false draws the disabled pill, [BittrColors.actionFillDisabled] under
  *   [BittrColors.onActionFillDisabled], and stops clicks.
  * @param dimmed the disabled look without the disabled behaviour, for an action whose tap
@@ -180,9 +358,49 @@ fun BittrPrimaryButton(
     compact: Boolean = false,
     dimmed: Boolean = !enabled,
     wrapLabel: Boolean = false,
+    fullWidth: Boolean = false,
     content: (@Composable () -> Unit)? = null,
 ) {
     val colors = BittrTheme.colors
+    if (!fullWidth) {
+        val shape = RoundedCornerShape(8.dp)
+        val labelColor = if (dimmed) colors.onActionFillDisabled else colors.onActionFill
+        Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxWidth()) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(10.dp, Alignment.CenterHorizontally),
+                modifier = modifier
+                    .then(if (wrapLabel) Modifier.heightIn(min = 40.dp) else Modifier.height(40.dp))
+                    .widthIn(min = 80.dp)
+                    .clip(shape)
+                    .background(if (dimmed) colors.actionFillDisabled else colors.actionFill, shape)
+                    .clickable(enabled = enabled, role = Role.Button, onClick = onClick)
+                    .padding(horizontal = 17.dp, vertical = if (wrapLabel) 10.dp else 0.dp),
+            ) {
+                if (content != null) {
+                    content()
+                } else {
+                    Text(
+                        text = text,
+                        style = MaterialTheme.typography.labelLarge.copy(fontSize = 14.sp, lineHeight = 14.sp),
+                        color = labelColor,
+                        textAlign = TextAlign.Center,
+                        // iOS centres the label 1 pt below the plate's centre (`centerY` constant 1).
+                        modifier = Modifier.offset(y = 1.dp),
+                    )
+                    if (arrow) {
+                        Image(
+                            painter = painterResource(R.drawable.bittr_arrow_right),
+                            contentDescription = null,
+                            colorFilter = ColorFilter.tint(labelColor),
+                            modifier = Modifier.size(11.dp),
+                        )
+                    }
+                }
+            }
+        }
+        return
+    }
     Row(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(10.dp, Alignment.CenterHorizontally),
@@ -341,6 +559,9 @@ fun BittrHelpButton(onClick: () -> Unit, modifier: Modifier = Modifier, contentD
  * which the port had dropped, so the user confirmed a partner they could not see (review,
  * `signup7`). bittr is the only partner, so the row is a statement rather than a picker: it
  * is drawn selected and takes no taps.
+ *
+ * iOS's `partnerView`: [BittrPartnerRowWidth] by 40 with 8 pt corners, the yellow
+ * `checkmark.circle.fill` 20 pt and 20 in, the 18 pt lockup centred. Next under it is as wide.
  */
 @Composable
 fun BittrPartnerRow(modifier: Modifier = Modifier) {
@@ -348,28 +569,31 @@ fun BittrPartnerRow(modifier: Modifier = Modifier) {
     Box(
         contentAlignment = Alignment.Center,
         modifier = modifier
-            .fillMaxWidth()
-            .height(56.dp)
-            .background(Color.White, BittrCanvasShapes.field)
-            .padding(horizontal = 16.dp),
+            .size(width = BittrPartnerRowWidth, height = 40.dp)
+            .background(Color.White, RoundedCornerShape(8.dp))
+            .padding(horizontal = 20.dp),
     ) {
+        // `checkmark.circle.fill`: the tick is cut out of the disc, so it shows the white row.
         Box(
             contentAlignment = Alignment.Center,
             modifier = Modifier
                 .align(Alignment.CenterStart)
-                .size(24.dp)
+                .size(20.dp)
                 .background(colors.brandFixed, CircleShape),
         ) {
             Image(
-                imageVector = rememberStrokeIcon(BittrIconPaths.CHECK, Ink, strokeWidth = 3f),
+                imageVector = rememberStrokeIcon(BittrIconPaths.CHECK, Color.White, strokeWidth = 3f),
                 contentDescription = "Selected",
-                modifier = Modifier.size(16.dp),
+                modifier = Modifier.size(13.dp),
             )
         }
         // Ink and brand yellow, fixed: the row is white in both schemes.
-        BittrLogo(height = 24.dp, ink = Ink, arc = colors.brandFixed)
+        BittrLogo(height = 18.dp, ink = Ink, arc = colors.brandFixed)
     }
 }
+
+/** `partnerView`'s width, which `continueView` under it matches. */
+val BittrPartnerRowWidth = 200.dp
 
 /**
  * The app's one indeterminate spinner (review S11): round caps and a faint track in its own
@@ -434,9 +658,17 @@ fun BittrValueRow(
  *
  * Drawn rather than shipped as an asset: it is a circle and two strokes, and the
  * alternative is a PNG that has to exist at four densities.
+ *
+ * @param checkSize the tick's icon box; the tick itself spans 14/24 of it.
+ * @param strokeWidth the tick's stroke, in the icon's 24-unit viewport.
  */
 @Composable
-fun BittrCheckBadge(modifier: Modifier = Modifier, size: Dp = 76.dp) {
+fun BittrCheckBadge(
+    modifier: Modifier = Modifier,
+    size: Dp = 76.dp,
+    checkSize: Dp = size * 0.45f,
+    strokeWidth: Float = 2.6f,
+) {
     val colors = BittrTheme.colors
     Box(
         contentAlignment = Alignment.Center,
@@ -448,10 +680,10 @@ fun BittrCheckBadge(modifier: Modifier = Modifier, size: Dp = 76.dp) {
             imageVector = rememberStrokeIcon(
                 BittrIconPaths.CHECK,
                 colors.onActionFill,
-                strokeWidth = 2.6f,
+                strokeWidth = strokeWidth,
             ),
             contentDescription = null,
-            modifier = Modifier.size(size * 0.45f),
+            modifier = Modifier.size(checkSize),
         )
     }
 }
@@ -487,33 +719,13 @@ fun bittrSwitchColors(): androidx.compose.material3.SwitchColors {
 }
 
 /**
- * The arc's alert — the mock's dialog, which is a warm near-white card with a 28 dp
- * radius and a filled confirm button, not Material's default surface.
+ * The one- or two-button alert: [BittrAlert] with the cancelling button, when there is one, as
+ * `alert.button.0` on the left and the action as `alert.button.1` — iOS's `buttons:` order, which
+ * every flow driving a two-button alert selects by. Back and the X resolve to the cancelling
+ * action, or to the lone button: an alert asking "reset your PIN?" must not be answerable with
+ * "yes" by accident.
  *
- * It takes [tonalFill] rather than a dialog-specific colour: the mock's `#FFFBEF` and
- * the cream differ by about a shade of warmth, and one tonal surface that both the PIN
- * cells and the alerts use is a smaller thing to keep consistent than two.
- *
- * ### Two buttons, and which one is which
- *
- * iOS builds an alert from an ordered `buttons:` array and tags them by position —
- * `alert.button.0`, `alert.button.1` (`AlertManager.swift:178`) — and every flow that
- * drives a two-button alert selects by that index. The dismissing button is always
- * written first, so `alert.button.0` is Cancel/Okay and `alert.button.1` is the action
- * (Reset, Forgot PIN).
- *
- * Material places [dismissButton] to the *left* of [confirmButton], so passing
- * [dismissLabel] puts the same button in the same index and the same position as iOS,
- * and one flow drives both platforms. Callers pass the two ids rather than having them
- * derived here, because a one-button alert's single button is index 0 and a
- * two-button alert's confirm is index 1 — making that implicit is how they get
- * swapped.
- *
- * Back-press and outside-taps resolve to the dismissing action when there is one:
- * an alert asking "reset your PIN?" must not be answerable with "yes" by accident.
- *
- * @param confirmTestTag the alert-button id. `:core:designsystem` does not depend on
- *   `:core:common`, so the id arrives as a string rather than as a `TestID` constant.
+ * @param confirmTestTag, dismissTestTag kept for callers; the ids come from the index rule.
  * @param dismissLabel the left-hand, cancelling button. Null for a one-button alert.
  */
 @Composable
@@ -529,66 +741,19 @@ fun BittrAlertDialog(
     dismissTestTag: String? = null,
     messageIsValue: Boolean = false,
 ) {
-    val colors = BittrTheme.colors
-    androidx.compose.material3.AlertDialog(
-        onDismissRequest = if (dismissLabel != null) onDismiss else onConfirm,
-        shape = BittrCanvasShapes.card,
-        containerColor = colors.dialogContainer,
-        titleContentColor = colors.onDialogContainer,
-        textContentColor = colors.onDialogContainer,
-        title = { BittrDialogTitle(title) },
-        text = { if (messageIsValue) BittrDialogValue(message) else BittrDialogMessage(message) },
-        confirmButton = {
-            AlertButton(
-                label = confirmLabel,
-                onClick = onConfirm,
-                testTag = confirmTestTag,
-                background = colors.actionFill,
-                contentColor = colors.onActionFill,
-            )
-        },
-        dismissButton = dismissLabel?.let {
-            {
-                // The cancelling button is drawn unfilled so the two do not read as
-                // equally weighted — the mock's alerts have one plate, not two.
-                AlertButton(
-                    label = it,
-                    onClick = onDismiss,
-                    testTag = dismissTestTag,
-                    background = Color.Transparent,
-                    contentColor = colors.onDialogContainer,
-                )
-            }
-        },
-        // Its own window, so the app root's testTagsAsResourceId does not reach the
-        // button ids — see exposeTestTags.
-        modifier = modifier.exposeTestTags(),
+    // The ids are the index rule [BittrAlert] applies — `alert.button.0` the way out, the action
+    // after it — which is what every caller passes; the parameters stay for them.
+    BittrAlert(
+        title = title,
+        message = message,
+        buttons = listOfNotNull(
+            dismissLabel?.let { BittrAlertButton(label = it, dismissesAlert = true, onClick = onDismiss) },
+            // A lone button is the way out as well: Back and the X do what it does.
+            BittrAlertButton(label = confirmLabel, dismissesAlert = dismissLabel == null, onClick = onConfirm),
+        ),
+        modifier = modifier,
+        messageIsValue = messageIsValue,
     )
-}
-
-@Composable
-private fun AlertButton(
-    label: String,
-    onClick: () -> Unit,
-    testTag: String?,
-    background: Color,
-    contentColor: Color,
-) {
-    Box(
-        contentAlignment = Alignment.Center,
-        modifier = Modifier
-            .height(BittrDialogButtonHeight)
-            .background(background, BittrCanvasShapes.pill)
-            .clickable(role = Role.Button, onClick = onClick)
-            .padding(horizontal = 22.dp)
-            .then(testTag?.let { Modifier.testTag(it) } ?: Modifier),
-    ) {
-        Text(
-            text = label,
-            style = MaterialTheme.typography.labelLarge,
-            color = contentColor,
-        )
-    }
 }
 
 // ---------------------------------------------------------------------------
@@ -656,6 +821,23 @@ object BittrIconPaths {
     const val WALLET = "M3 7.5A2.5 2.5 0 015.5 5H18a2 2 0 012 2v10a2 2 0 01-2 2H5.5A2.5 2.5 0 013 16.5z M16 12h2"
     const val ACADEMY = "M3 9l9-4.5L21 9l-9 4.5z M6.5 11v4.5c0 1 2.5 2.5 5.5 2.5s5.5-1.5 5.5-2.5V11"
     const val SUPPORT = "M3 7h18v10H3z M3 7l9 6 9-6"
+
+    // Settings' rows, filled as iOS's SF Symbols are, for [rememberFillIcon] with `evenOdd`: each
+    // inner subpath is a hole. `envelope.fill` with its fold, `checkmark.shield.fill` with its
+    // tick, `book.pages.fill` with its lines, `ipad.and.iphone` as a framed tablet and a phone.
+    const val SUPPORT_FILLED =
+        "M4.5 5.5h15a1.5 1.5 0 011.5 1.5v10a1.5 1.5 0 01-1.5 1.5h-15A1.5 1.5 0 013 17V7a1.5 1.5 0 011.5-1.5z " +
+            "M4 7.2L12 13l8-5.8v1.8L12 14.8 4 9z"
+    const val PRIVACY_FILLED =
+        "M12 2.5l8 3.2v5.8c0 4.6-3.3 8.4-8 10-4.7-1.6-8-5.4-8-10V5.7z " +
+            "M8.1 12l1.4-1.4 1.9 1.9 3.9-3.9 1.4 1.4-5.3 5.3z"
+    const val TERMS_FILLED =
+        "M6 2.5h11a2 2 0 012 2v15a2 2 0 01-2 2H6a2 2 0 01-2-2v-15a2 2 0 012-2z " +
+            "M7.5 6.5h8V8h-8z M7.5 10h8v1.5h-8z M7.5 13.5h5.5V15H7.5z"
+    const val DEVICE_FILLED =
+        "M3.5 4h9a1.5 1.5 0 011.5 1.5v13a1.5 1.5 0 01-1.5 1.5h-9A1.5 1.5 0 012 18.5v-13A1.5 1.5 0 013.5 4z " +
+            "M3.6 5.6v12.8h8.8V5.6z " +
+            "M16.5 9h4a1.5 1.5 0 011.5 1.5v8a1.5 1.5 0 01-1.5 1.5h-4a1.5 1.5 0 01-1.5-1.5v-8A1.5 1.5 0 0116.5 9z"
     const val PRIVACY = "M12 3l7 3v5.5c0 4-3 7.2-7 8.5-4-1.3-7-4.5-7-8.5V6z M9 12l2 2 4-4"
     const val TERMS = "M5 4h10a2 2 0 012 2v14H7a2 2 0 01-2-2z M17 8h2v12h-2"
     const val DEVICE =
@@ -691,12 +873,21 @@ object BittrIconPaths {
             "-1.8-1.1zM9 10.6a1 1 0 110-2 1 1 0 010 2z"
 }
 
-/** The piggy bank, in the current content colour. */
+/**
+ * The piggy bank: iOS's own `iconpiggywhite` asset (`res/drawable-*dpi/bittr_piggy_icon.png`,
+ * its 1x/2x/3x at mdpi/xhdpi/xxhdpi), tinted with [tint]. iOS ships the same shape a second
+ * time as `iconpiggyyellow` for dark mode; a tint covers both.
+ */
 @Composable
-fun BittrPiggy(modifier: Modifier = Modifier, size: Dp = 30.dp) {
+fun BittrPiggy(
+    modifier: Modifier = Modifier,
+    size: Dp = 30.dp,
+    tint: Color = LocalContentColor.current,
+) {
     Image(
-        imageVector = rememberFillIcon(BittrIconPaths.PIGGY, LocalContentColor.current),
+        painter = painterResource(R.drawable.bittr_piggy_icon),
         contentDescription = null,
+        colorFilter = ColorFilter.tint(tint),
         modifier = modifier.size(size),
     )
 }
@@ -725,8 +916,8 @@ fun rememberStrokeIcon(
 }
 
 @Composable
-fun rememberFillIcon(pathData: String, tint: Color): ImageVector =
-    remember(pathData, tint) {
+fun rememberFillIcon(pathData: String, tint: Color, evenOdd: Boolean = false): ImageVector =
+    remember(pathData, tint, evenOdd) {
         ImageVector.Builder(
             name = "fill",
             defaultWidth = 24.dp,
@@ -737,6 +928,8 @@ fun rememberFillIcon(pathData: String, tint: Color): ImageVector =
             addPath(
                 pathData = PathParser().parsePathString(normalizeSvgPath(pathData)).toNodes(),
                 fill = SolidColor(tint),
+                // Even-odd for a shape with holes cut in it: an inner subpath clears what it covers.
+                pathFillType = if (evenOdd) PathFillType.EvenOdd else PathFillType.NonZero,
             )
         }.build()
     }

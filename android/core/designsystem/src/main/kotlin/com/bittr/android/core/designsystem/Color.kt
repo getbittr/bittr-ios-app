@@ -6,6 +6,7 @@ import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.compositeOver
 
 /**
  * Colour, from BIT-4 `design-system` §1.1–§1.3, revision 7.
@@ -401,6 +402,54 @@ data class BittrColors(
      */
     val canvasArc: Color,
     /**
+     * iOS's `whiteoryellow`, back on exactly one call site: Signup1's piggy and "welcome"
+     * (`SignupStartScreen`). Light is white, as iOS draws it — **1.43 : 1 on the card**, under
+     * the large-text floor, which is the pairing DEV-47 took off every other title and still
+     * keeps off them. Restored on this screen at Tom's request (2026-09-28) so the first screen
+     * of the app matches iOS; decision 47 in `shared/docs/android-port-decisions.md`. Dark is
+     * the brand yellow, as on iOS and as [emphasis] already is.
+     *
+     * Do not reach for this on another screen without the same explicit call.
+     */
+    val welcomeHeader: Color,
+    /**
+     * Restore's white card of twelve words (`RestoreViewController.mnemonicView`), its typed words
+     * and its "Enter word" placeholder: white, black and `UIColor.gray`, fixed in both schemes as the
+     * storyboard has them. The numbers beside the words are [brandFixed]. Decision 55.
+     */
+    val phraseCard: Color,
+    val onPhraseCard: Color,
+    val phrasePlaceholder: Color,
+    /**
+     * A PIN digit's card (`PinCollectionViewCell.cellCard`): white at 70 % in both schemes, as the
+     * storyboard has it, with a black dot ([onPinCell]) in it.
+     */
+    val pinCell: Color,
+    val onPinCell: Color,
+    /**
+     * Home, as `HomeHeaderTableViewCell` colours it. [homeHeader] is `yelloworblue3` — the yellow
+     * block and its cards; [homeCardTitle] `whiteoryellow`, their titles and the piggy; [homeAction]
+     * `white0.7orblue2`, the Send / Receive / Buy plates; [homeBackground] `grey3orblue1`, the page
+     * under the history and the menu's plates; [menuLabel] the menu's unselected labels;
+     * [noTransactions] `noTransactionsLabel`'s grey, white in dark.
+     */
+    val homeHeader: Color,
+    val homeCardTitle: Color,
+    val homeAction: Color,
+    val homeBackground: Color,
+    val menuLabel: Color,
+    val noTransactions: Color,
+    /** `yelloworblue2` — the Academy's level cards (`LevelTableViewCell.cardView`). */
+    val levelCard: Color,
+    /** `grey1orblue3` — the square behind a map place's icon (`PlaceTableViewCell.imageContainer`). */
+    val placeIconBox: Color,
+    /**
+     * The article sheet (`ArticleViewController`): the storyboard's white in light mode and
+     * `grey3orblue1`'s blue1 in dark, with `blackorwhite` text on it. Decision 56.
+     */
+    val articleSurface: Color,
+    val onArticleSurface: Color,
+    /**
      * Every alert's container — [BittrAlert], [BittrInlineAlert], [BittrAlertDialog],
      * [BittrTextFieldAlert] and [BittrChoiceDialog] share it. Light is the proposal's
      * `#FFFBEF`; before the design review (2026-09-18, S1/S2) half of them sat on the
@@ -425,6 +474,11 @@ data class BittrColors(
     val destructiveFill: Color,
     /** The label on [destructiveFill]. */
     val onDestructiveFill: Color,
+    /**
+     * The forgot-PIN screen's "Remove wallet" label — the storyboard's `removeWalletLabel` red
+     * (sRGB 1, 0.231, 0.188) at the half alpha `RestoreViewController` sets, in both modes.
+     */
+    val removeWalletLabel: Color,
     /** Titles, messages and the cancelling button on [dialogContainer]. */
     val onDialogContainer: Color,
 
@@ -546,7 +600,11 @@ val BittrLightColorsExtended = BittrColors(
     brandFixed = Yellow,
     unconfirmed = Color(0xFFB1B1B1),
     footnote = Color.Black.copy(alpha = 0.25f),
-    balanceDimmed = Color(0xFFB08600), // darkened from iOS #C99A00 (2.59 → 3.36). DEV-24, A11Y-06.
+    // The bitcoin sign beside the balance is iOS's black `gilroybitcoin` at 18 % on the canvas
+    // yellow; the dimmed digits are that same colour, so the two read as one (Tom, 2026-09-29).
+    // It was darkened to #B08600 for 3 : 1 on white under DEV-24 / A11Y-06, which no longer
+    // applies: the balance sits on the yellow card, and dimmed is what it is meant to be.
+    balanceDimmed = Color.Black.copy(alpha = 0.18f).compositeOver(Yellow),
     scrim1 = Color.White.copy(alpha = 0.70f),
     scrim2 = Color.White.copy(alpha = 0.70f),
     scrim3 = Color.White.copy(alpha = 0.70f),
@@ -570,12 +628,29 @@ val BittrLightColorsExtended = BittrColors(
     switchOn = SwitchAccent,
     onSwitchOn = Color.White,
     canvasArc = Color.White,
+    welcomeHeader = Color.White,
+    phraseCard = Color.White,
+    onPhraseCard = Color.Black,
+    phrasePlaceholder = Color(0xFF808080),
+    pinCell = Color.White.copy(alpha = 0.70f),
+    onPinCell = Color.Black,
+    homeHeader = Yellow,
+    homeCardTitle = Color.White,
+    homeAction = Color.White.copy(alpha = 0.70f),
+    homeBackground = Grey3,
+    menuLabel = Color(0xFF535353),
+    noTransactions = Color(0xFFB1B1B1),
+    levelCard = Yellow,
+    placeIconBox = Grey1,
+    articleSurface = Color.White,
+    onArticleSurface = Color.Black,
     dialogContainer = Color(0xFFFFFBEF),
     barTrackWarm = Color(0xFFF1E6C2),
     toggleSelected = Cream,
     onToggleSelected = Ink,
     destructiveFill = Color(0xFFB3261E),
     onDestructiveFill = Color.White,
+    removeWalletLabel = Color(0xFFFF3B30).copy(alpha = 0.5f),
     onDialogContainer = Ink,
     // Fixed in both schemes — see [BittrColors.chartSurface] for the arithmetic that
     // leaves no other option, and `TokenContrastTest` for the assertions. BIT-156.
@@ -611,7 +686,8 @@ val BittrDarkColorsExtended = BittrColors(
     brandFixed = Yellow,
     unconfirmed = Color.White.copy(alpha = 0.50f),
     footnote = Color.White.copy(alpha = 0.50f),
-    balanceDimmed = Color(0xFFAABED9), // sRGB on iOS; unchanged. 3.15 : 1 once A11Y-02 lands.
+    // `gilroybitcoinwhite` at 47 % on blue3, the dark card — as in light, the sign's own colour.
+    balanceDimmed = Color.White.copy(alpha = 0.47f).compositeOver(Blue3),
     scrim1 = Blue1,
     scrim2 = Blue2,
     scrim3 = Blue3,
@@ -644,12 +720,29 @@ val BittrDarkColorsExtended = BittrColors(
     // yellow is the one colour that reads on both, and dark mode keeps exactly seven
     // brand-yellow sites already (see `brandFixed`). This is the eighth.
     canvasArc = Yellow,
+    welcomeHeader = Yellow,
+    phraseCard = Color.White,
+    onPhraseCard = Color.Black,
+    phrasePlaceholder = Color(0xFF808080),
+    pinCell = Color.White.copy(alpha = 0.70f),
+    onPinCell = Color.Black,
+    homeHeader = Blue3,
+    homeCardTitle = Yellow,
+    homeAction = Blue2,
+    homeBackground = Blue1,
+    menuLabel = Color.White,
+    noTransactions = Color.White,
+    levelCard = Blue2,
+    placeIconBox = Blue3,
+    articleSurface = Blue1,
+    onArticleSurface = Color.White,
     dialogContainer = Blue2,
     barTrackWarm = Blue3,
     toggleSelected = Yellow.copy(alpha = 0.20f),
     onToggleSelected = Yellow,
     destructiveFill = Color(0xFFB3261E),
     onDestructiveFill = Color.White,
+    removeWalletLabel = Color(0xFFFF3B30).copy(alpha = 0.5f),
     onDialogContainer = Color.White,
     // Byte-identical to the light values on purpose, and the only group here that is.
     // The dark canvas admits no fill that both has an edge on `blue1` and carries white

@@ -6,13 +6,16 @@ import android.os.SystemClock
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.animation.core.Animatable
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -24,6 +27,7 @@ import androidx.compose.ui.semantics.testTagsAsResourceId
 import androidx.lifecycle.lifecycleScope
 import com.bittr.android.core.common.TestID
 import com.bittr.android.core.designsystem.BittrTheme
+import com.bittr.android.core.designsystem.LocalAppBarLogoVisible
 import com.bittr.android.core.network.DeviceTokenLifecycle
 import com.bittr.android.core.preferences.AppPreferences
 import com.bittr.android.core.preferences.DarkModeSetting
@@ -196,18 +200,25 @@ private fun DarkModeSetting.isDark(): Boolean = when (this) {
 private fun BittrApp(pushCoordinator: PushCoordinator, transactionScreenOpen: kotlinx.coroutines.flow.StateFlow<Boolean>) {
     Surface(modifier = Modifier.fillMaxSize()) {
         var launched by rememberSaveable { mutableStateOf(false) }
+        // The launch logo's rise, which the PIN or signup page rises with. Already up after a
+        // rotation or other recreation, where the animation does not replay.
+        val launchRise = remember { Animatable(if (launched) 1f else 0f) }
         Box(
             modifier = Modifier
                 .fillMaxSize()
                 .semantics { testTagsAsResourceId = true }
                 .then(if (launched) Modifier.testTag(TestID.Core.launchComplete) else Modifier),
         ) {
-            BittrNavHost()
+            // The app's own logo stays hidden under the cover until the cover's logo has landed
+            // on it — see LocalAppBarLogoVisible.
+            CompositionLocalProvider(LocalAppBarLogoVisible provides launched) {
+                BittrNavHost(launchRise = { launchRise.value })
+            }
             // What a push shows, over every screen — see PushOverlayHost.
             PushOverlayHost(pushCoordinator, transactionScreenOpen)
             // Over everything until it is done, and only on a real launch: a rotation or any
             // other recreation keeps `launched`, so the animation does not replay mid-session.
-            if (!launched) LaunchAnimation(onFinished = { launched = true })
+            if (!launched) LaunchAnimation(rise = launchRise, onFinished = { launched = true })
         }
     }
 }

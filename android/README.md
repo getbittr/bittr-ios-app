@@ -358,9 +358,12 @@ window. Set it in `MainActivity.onCreate` and it stays set for the session, so a
 perfectly happy to screenshot a black screen. CI stays green and the artefacts are
 worthless.
 
-Scope it to the screen that needs it — a `DisposableEffect` that adds the flag on
-enter and clears it on dispose. `ScreenshotBlockingGuardTest` fails the build if it
-appears in `MainActivity.kt` or `BittrApplication.kt`.
+Scope it to the screen that needs it: call `ScreenshotProtection()` (core/designsystem)
+from that screen, as the phrase screens — Mnemonic, Verify, Restore — do. It sets the
+flag while the first protected screen is up and clears it when the last one goes,
+counted per window, so two protected pages mid-slide don't clear it under each other.
+`ScreenshotBlockingGuardTest` fails the build if the flag appears in `MainActivity.kt`
+or `BittrApplication.kt`.
 
 ## Stack
 
