@@ -225,7 +225,7 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate, UIContextMen
         }() ?? Language.getWord(withID: "unavailable")
         
         var amountText:String = ""
-        var labelText:String = ""
+        var bitcoinQRParameters:[String] = []
         
         if amountInBTC != nil {
             let formatter = NumberFormatter()
@@ -233,13 +233,17 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate, UIContextMen
             formatter.minimumFractionDigits = 0
             formatter.maximumFractionDigits = 8
             formatter.usesGroupingSeparator = false
-            amountText = "?amount=\(formatter.string(from: amountInBTC! as NSNumber)!)".replacingOccurrences(of: ",", with: ".")
+            let amount = formatter.string(from: amountInBTC! as NSNumber)!.replacingOccurrences(of: ",", with: ".")
+            amountText = "?amount=\(amount)"
+            bitcoinQRParameters.append("amount=\(amount)")
         }
         if enteredDescription != "" {
-            labelText = "&label=\(enteredDescription)"
+            bitcoinQRParameters.append("label=\(enteredDescription)")
         }
+        bitcoinQRParameters.append("lightning=\(lightningInvoice)")
         
-        let bitcoinQR:String = "bitcoin:\(onchainAddress)\(amountText)\(labelText)&lightning=\(lightningInvoice)"
+        // The first parameter follows a question mark, with or without an amount.
+        let bitcoinQR:String = "bitcoin:\(onchainAddress)?" + bitcoinQRParameters.joined(separator: "&")
         
         let userLightningURL = self.userLNURL()
         let lnurl = userLightningURL ?? Language.getWord(withID: "unavailable")
