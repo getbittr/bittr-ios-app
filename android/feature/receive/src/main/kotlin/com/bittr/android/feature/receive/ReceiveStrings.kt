@@ -25,6 +25,9 @@ internal object ReceiveStrings {
     /** `unavailable`. */
     const val UNAVAILABLE = "Unavailable"
 
+    /** `receiveinvalidamount`. */
+    const val INVALID_AMOUNT = "Invalid amount"
+
     // Cards.
     const val COPY = "Copy"
     const val RENEW = "Renew"

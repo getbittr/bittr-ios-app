@@ -47,6 +47,10 @@ class AppReceiveSource(
 
     override val addressesVerified: StateFlow<Boolean> = addressPool?.verified ?: MutableStateFlow(true)
 
+    override fun stopWaitingForAddresses() {
+        addressPool?.stopWaiting()
+    }
+
     override fun currentOnchainAddress(): String? = addressPool?.currentAddress()
 
     override fun nextOnchainAddress(): String? = addressPool?.nextAddress()

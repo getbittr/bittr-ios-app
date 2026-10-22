@@ -25,7 +25,7 @@ class ReceiveModelTest {
 
     @Test
     fun `an on-chain address with no amount copies as the bare address`() {
-        val display = receiveDisplay(ReceiveType.Onchain, address, "", null, amountSats = null, description = "")
+        val display = receiveDisplay(ReceiveType.Onchain, address, null, null, amountSats = null, description = "")
 
         assertEquals(ReceiveStrings.ADDRESS, display.title)
         assertEquals("bcrt 1qyr wfhw sea2 pexm p8qe g3y7 03kn 4ky4 xxk5 e50e", display.label)
@@ -36,7 +36,7 @@ class ReceiveModelTest {
 
     @Test
     fun `an on-chain address with an amount becomes a BIP-21 URI`() {
-        val display = receiveDisplay(ReceiveType.Onchain, address, "", null, amountSats = 5_000, description = "")
+        val display = receiveDisplay(ReceiveType.Onchain, address, null, null, amountSats = 5_000, description = "")
 
         assertEquals("bcrt 1qyr wfhw sea2 pexm p8qe g3y7 03kn 4ky4 xxk5 e50e?amount=0.00005", display.label)
         assertEquals("bitcoin:$address?amount=0.00005", display.copyText)
@@ -44,7 +44,7 @@ class ReceiveModelTest {
 
     @Test
     fun `an invoice shows below the title, with a bolt`() {
-        val display = receiveDisplay(ReceiveType.Lightning, "", invoice, null, amountSats = null, description = "")
+        val display = receiveDisplay(ReceiveType.Lightning, null, invoice, null, amountSats = null, description = "")
 
         assertEquals(ReceiveStrings.INVOICE, display.title)
         assertEquals("lnbc rt1p 42rv e0dq qnp4", display.label)
@@ -54,12 +54,48 @@ class ReceiveModelTest {
     }
 
     @Test
-    fun `the Bitcoin QR is built as iOS builds it, including with no amount`() {
+    fun `the Bitcoin QR's parameters follow one question mark, with or without an amount`() {
         val withAmount = receiveDisplay(ReceiveType.BitcoinQr, address, invoice, null, amountSats = 500, description = "")
         assertEquals("bitcoin:$address?amount=0.000005&lightning=$invoice", withAmount.copyText)
 
         val bare = receiveDisplay(ReceiveType.BitcoinQr, address, invoice, null, amountSats = null, description = "coffee")
-        assertEquals("bitcoin:$address&label=coffee&lightning=$invoice", bare.copyText)
+        assertEquals("bitcoin:$address?label=coffee&lightning=$invoice", bare.copyText)
+
+        val none = receiveDisplay(ReceiveType.BitcoinQr, address, invoice, null, amountSats = null, description = "")
+        assertEquals("bitcoin:$address?lightning=$invoice", none.copyText)
+    }
+
+    @Test
+    fun `the Bitcoin QR's label is percent-encoded, so it can't cut the invoice off or add parameters`() {
+        val display = receiveDisplay(ReceiveType.BitcoinQr, address, invoice, null, amountSats = 500, description = "Order #12 & cake=x?")
+        assertEquals("bitcoin:$address?amount=0.000005&label=Order%20%2312%20%26%20cake%3Dx%3F&lightning=$invoice", display.copyText)
+        assertEquals("Caf%C3%A9%20%E2%98%95", percentEncoded("Café ☕"))
+        assertEquals("a-b.c_d~e", percentEncoded("a-b.c_d~e"))
+    }
+
+    @Test
+    fun `missing data is never encoded`() {
+        val noAddress = receiveDisplay(ReceiveType.Onchain, null, null, null, amountSats = null, description = "")
+        assertEquals(ReceiveStrings.UNAVAILABLE, noAddress.label)
+        assertNull(noAddress.qrPayload)
+        assertNull(noAddress.copyText)
+
+        val noInvoice = receiveDisplay(ReceiveType.Lightning, null, null, null, amountSats = null, description = "")
+        assertEquals(ReceiveStrings.INVOICE, noInvoice.title)
+        assertNull(noInvoice.qrPayload)
+
+        val half = receiveDisplay(ReceiveType.BitcoinQr, address, null, null, amountSats = null, description = "")
+        assertEquals(ReceiveStrings.UNAVAILABLE, half.label)
+        assertNull(half.qrPayload)
+        assertNull(half.copyText)
+    }
+
+    @Test
+    fun `an amount that can't be read gets no code`() {
+        val display = receiveDisplay(ReceiveType.Onchain, address, null, null, amountSats = null, description = "", amountInvalid = true)
+        assertEquals(ReceiveStrings.INVALID_AMOUNT, display.label)
+        assertNull(display.qrPayload)
+        assertNull(display.copyText)
     }
 
     @Test
@@ -67,17 +103,18 @@ class ReceiveModelTest {
         val bitcoinQr = receiveDisplay(ReceiveType.BitcoinQr, address, invoice, null, amountSats = null, description = "")
         assertEquals(false, bitcoinQr.monospaced)
 
-        val lightningAddress = receiveDisplay(ReceiveType.Lnurl, "", "", lightningAddress = "tom@bittr.app", amountSats = null, description = "")
+        val lightningAddress = receiveDisplay(ReceiveType.Lnurl, null, null, lightningAddress = "tom@bittr.app", amountSats = null, description = "")
         assertEquals("tom@bittr.app", lightningAddress.label)
         assertEquals(false, lightningAddress.monospaced)
     }
 
     @Test
     fun `an unavailable lightning address has no QR`() {
-        val display = receiveDisplay(ReceiveType.Lnurl, "", "", lightningAddress = null, amountSats = null, description = "")
+        val display = receiveDisplay(ReceiveType.Lnurl, null, null, lightningAddress = null, amountSats = null, description = "")
 
         assertEquals(ReceiveStrings.UNAVAILABLE, display.label)
         assertEquals(false, display.monospaced)
+        assertNull(display.copyText)
         assertNull(display.qrPayload)
     }
 

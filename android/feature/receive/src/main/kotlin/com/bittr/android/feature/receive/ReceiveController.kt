@@ -35,7 +35,6 @@ data class ReceiveAlert(
  * Everything the Receive screen draws.
  *
  * @property loading `receive.qrSpinner` is on screen; the labels and QR are stale.
- * @property codeIncludesAmount the shown code was made with an amount or a description.
  */
 data class ReceiveUiState(
     val type: ReceiveType = ReceiveType.Onchain,
@@ -50,7 +49,6 @@ data class ReceiveUiState(
     // default is what CurrencyDefaultGuardTest exists to keep out of the port.
     val fiatCode: String,
     val alert: ReceiveAlert? = null,
-    val codeIncludesAmount: Boolean = false,
 ) {
 
     /** `btcLabel` — `receive.currencyLabel`. */
@@ -70,8 +68,8 @@ data class ReceiveUiState(
  *
  * The sequence is iOS's `alertTapped(for:newAddress:)`: reset the labels behind a spinner,
  * wait for the address pool if the type needs an address and the pool is still verifying,
- * then gather the address, amount and invoice and build the labels. A type change cancels
- * a load still in flight, so a slow invoice never overwrites the type the user moved to.
+ * then gather the address, amount and invoice and build the labels. Every load cancels the
+ * one still in flight, so a slow invoice never overwrites what the user moved on to.
  */
 class ReceiveController(
     private val source: ReceiveSource,
@@ -85,6 +83,9 @@ class ReceiveController(
 
     private var loadJob: Job? = null
     private var started = false
+
+    /** What the shown code was made from, so that any change to it makes the code again. */
+    private var codeInputs: ReceiveInputs? = null
 
     /**
      * `viewDidLoad`: open on the default type. Once: the controller outlives the screen's
@@ -111,41 +112,35 @@ class ReceiveController(
                 descriptionText = if (typeChanged) "" else current.descriptionText,
             )
         }
+        // Read once, here, so the code is made from exactly the inputs it is compared with later.
+        val inputs = currentInputs()
+        codeInputs = inputs
         loadJob?.cancel()
         loadJob = scope.launch {
             if (type.usesOnchainAddress && !newAddress && !source.addressesVerified.value) {
                 // iOS waits for `onchainAddressesReady()` and gives up after eight seconds,
-                // showing the best address it has.
-                withTimeoutOrNull(ADDRESS_VERIFICATION_TIMEOUT_MS) { source.addressesVerified.first { it } }
+                // showing the best address it has, and stops waiting for good.
+                val ready = withTimeoutOrNull(ADDRESS_VERIFICATION_TIMEOUT_MS) { source.addressesVerified.first { it } }
+                if (ready == null) source.stopWaitingForAddresses()
             }
-            load(type, newAddress)
+            load(type, newAddress, inputs)
         }
     }
 
-    private suspend fun load(type: ReceiveType, newAddress: Boolean) {
-        val snapshot = _state.value
-
+    private suspend fun load(type: ReceiveType, newAddress: Boolean, inputs: ReceiveInputs) {
         val next = if (type.usesOnchainAddress && newAddress) source.nextOnchainAddress() else null
         val noneLeft = type.usesOnchainAddress && newAddress && next == null
-        val onchainAddress = if (type.usesOnchainAddress) {
-            next ?: source.currentOnchainAddress() ?: ReceiveStrings.UNAVAILABLE
-        } else {
-            ""
-        }
+        val onchainAddress = if (type.usesOnchainAddress) next ?: source.currentOnchainAddress() else null
 
-        val description = snapshot.descriptionText.trim()
-        val price = if (snapshot.currency == ReceiveCurrency.Fiat) source.fiatPricePerBitcoin() else null
-        val amountSats = parseAmountSats(snapshot.amountText, snapshot.currency, price)
+        val description = inputs.description
+        val price = if (inputs.currency == ReceiveCurrency.Fiat) source.fiatPricePerBitcoin() else null
+        val amountSats = inputs.currency?.let { parseAmountSats(inputs.amount, it, price) }
+        val amountInvalid = inputs.currency != null && amountSats == null
 
-        val invoice = if (type.usesInvoice) {
-            val created = if (amountSats != null && amountSats > 0) {
-                source.invoice(amountSats, description)
-            } else {
-                source.zeroAmountInvoice(description)
-            }
-            created ?: ReceiveStrings.UNAVAILABLE
-        } else {
-            ""
+        val invoice = when {
+            !type.usesInvoice || amountInvalid -> null
+            amountSats != null && amountSats > 0 -> source.invoice(amountSats, description)
+            else -> source.zeroAmountInvoice(description)
         }
 
         val display = receiveDisplay(
@@ -155,13 +150,13 @@ class ReceiveController(
             lightningAddress = source.lightningAddress(),
             amountSats = amountSats,
             description = description,
+            amountInvalid = amountInvalid,
         )
 
         _state.update {
             it.copy(
                 loading = false,
                 display = display,
-                codeIncludesAmount = amountSats != null || description.isNotEmpty(),
                 alert = if (noneLeft) okayAlert(ReceiveStrings.ADDRESS, ReceiveStrings.NO_ADDRESS_AVAILABLE) else it.alert,
             )
         }
@@ -196,13 +191,19 @@ class ReceiveController(
     /**
      * `copyTapped`: return what to put on the clipboard — the clipboard itself is the
      * screen's, since it needs a platform object — and say "Copied" where the system does
-     * not ([confirmsCopyInApp]).
+     * not ([confirmsCopyInApp]). Nothing while a new code loads.
      */
     fun onCopy(): String? {
-        val text = _state.value.display?.copyText ?: return null
+        val text = onShare() ?: return null
         if (confirmsCopyInApp) raise(okayAlert(ReceiveStrings.COPIED, text).copy(messageIsValue = true))
         return text
     }
+
+    /**
+     * What the QR's Share hands to the share sheet: the copy text, and nothing while a new code loads
+     * or while the fields hold an edit the code does not have yet.
+     */
+    fun onShare(): String? = _state.value.takeUnless { it.loading || currentInputs() != codeInputs }?.display?.copyText
 
     /** `refreshTapped`: confirm before revealing a new address. */
     fun onRefresh() = raise(
@@ -225,7 +226,7 @@ class ReceiveController(
         _state.update {
             if (closing) it.copy(amountOpen = false, amountText = "", descriptionText = "") else it.copy(amountOpen = true)
         }
-        if (closing && _state.value.codeIncludesAmount) show(_state.value.type)
+        if (closing) makeCodeAgainIfInputsChanged()
     }
 
     /** `btcButtonTapped`: Cancel, the fiat symbol, Satoshis, Bitcoin. */
@@ -248,12 +249,27 @@ class ReceiveController(
      */
     fun onAmountChange(text: String) = _state.update { it.copy(amountText = text.filterNot(Char::isWhitespace)) }
 
-    fun onDescriptionChange(text: String) = _state.update { it.copy(descriptionText = text) }
+    /** Counted in bytes, which is what the description costs in the Bitcoin QR, so that code always fits. */
+    fun onDescriptionChange(text: String) {
+        if (text.toByteArray(Charsets.UTF_8).size <= MAX_DESCRIPTION_BYTES) _state.update { it.copy(descriptionText = text) }
+    }
 
-    /** `doneButtonTapped`: regenerate with what was entered — unless it is not an amount. */
+    /** `doneButtonTapped`: make the code with what was entered, and say so when it is not an amount. */
     fun onDone() {
-        if (!isWellFormedAmount(_state.value.amountText, _state.value.currency)) return raise(okayAlert(ReceiveStrings.OOPS, ReceiveStrings.ENTER_VALID_AMOUNT))
-        show(_state.value.type)
+        if (!isWellFormedAmount(_state.value.amountText, _state.value.currency)) raise(okayAlert(ReceiveStrings.OOPS, ReceiveStrings.ENTER_VALID_AMOUNT))
+        makeCodeAgainIfInputsChanged()
+    }
+
+    /** `textFieldDidEndEditing`: a field let go of the keyboard, however it happened. */
+    fun onEditingEnded() = makeCodeAgainIfInputsChanged()
+
+    private fun currentInputs(): ReceiveInputs = _state.value.let {
+        val amount = it.amountText.trim()
+        ReceiveInputs(amount = amount, description = it.descriptionText.trim(), currency = it.currency.takeIf { amount.isNotEmpty() })
+    }
+
+    private fun makeCodeAgainIfInputsChanged() {
+        if (currentInputs() != codeInputs) show(_state.value.type)
     }
 
     /** A button on the current alert, by position. */
@@ -264,7 +280,11 @@ class ReceiveController(
             ReceiveAction.Dismiss -> Unit
             is ReceiveAction.SelectType -> show(action.type)
             ReceiveAction.ConfirmNewAddress -> show(ReceiveType.Onchain, newAddress = true)
-            is ReceiveAction.SelectCurrency -> _state.update { it.copy(currency = action.currency) }
+            is ReceiveAction.SelectCurrency -> {
+                // The entered number keeps its digits and now counts in the new unit, as on Send.
+                _state.update { it.copy(currency = action.currency) }
+                makeCodeAgainIfInputsChanged()
+            }
         }
     }
 
@@ -276,5 +296,11 @@ class ReceiveController(
     companion object {
         /** `ReceiveViewController.swift:472` — `.now() + 8`. */
         const val ADDRESS_VERIFICATION_TIMEOUT_MS = 8_000L
+
+        /** The description field's limit on iOS. */
+        const val MAX_DESCRIPTION_BYTES = 100
     }
 }
+
+/** The amount, description and, with an amount, currency a code was made from. */
+private data class ReceiveInputs(val amount: String, val description: String, val currency: ReceiveCurrency?)
