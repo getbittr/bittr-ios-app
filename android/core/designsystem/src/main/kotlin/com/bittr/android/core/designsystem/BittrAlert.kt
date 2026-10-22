@@ -212,9 +212,12 @@ fun BittrLoadingCard(
 ) {
     val motion = rememberAlertMotion()
     CloseKeyboardOnShow(motion)
+    // Taken here rather than through `onBack`, which slides the card away and leaves its dim behind
+    // to swallow every tap until loading ends.
+    BackHandler { }
     AlertOverlay(
         motion = motion,
-        onBack = {},
+        onBack = null,
         cardColor = MaterialTheme.colorScheme.surfaceContainerHigh,
         cardModifier = modifier.then(if (testTag != null) Modifier.testTag(testTag) else Modifier),
     ) {
