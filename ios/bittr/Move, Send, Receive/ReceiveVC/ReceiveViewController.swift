@@ -482,6 +482,7 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate, UIContextMen
             self.hideAmountStack()
         }
         self.codeInputs = self.currentInputs()
+        self.currentCopyableText = ""
         self.qrImageView.alpha = 0
         self.addressTitle.alpha = 0
         self.lowerAddressLabel.alpha = 0
