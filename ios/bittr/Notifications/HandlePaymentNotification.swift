@@ -53,11 +53,7 @@ extension CoreViewController {
             }
             self.isHandlingIncomingHTLC = true
             UserDefaults.standard.removeObject(forKey: "pendingSwapResume")
-            if !self.wasNotified {
-                self.showAlert(id: TestID.Alert.incomingPayment, title: Language.getWord(withID: "incomingpayment"), message: Language.getWord(withID: "newbittrpayment"), buttons: [.action(Language.getWord(withID: "okay")) { self.triggerHTLCReady() }])
-            } else {
-                self.triggerHTLCReady()
-            }
+            self.triggerHTLCReady()
         }
     }
     
