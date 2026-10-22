@@ -52,8 +52,8 @@ class ReceiveControllerTest {
 
         controller.onAmountChange("1 500")
         assertEquals("1500", controller.state.value.amountText)
-        // A separator is refused rather than dropped, which would have asked for 100 times as much.
-        for (malformed in listOf("50000.00", "50,000", "15-")) {
+        // A separator that can't be thousands is refused rather than dropped, which would have asked for 100 times as much.
+        for (malformed in listOf("50000.00", "5,00", "15-")) {
             controller.onAmountChange(malformed)
             controller.onDone()
             assertEquals(malformed, ReceiveStrings.ENTER_VALID_AMOUNT, controller.state.value.alert?.message)

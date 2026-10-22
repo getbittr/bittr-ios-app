@@ -1,7 +1,10 @@
 package com.bittr.android.feature.receive
 
+import java.math.BigDecimal
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class ReceiveModelTest {
@@ -134,5 +137,46 @@ class ReceiveModelTest {
         assertEquals(10_000L, parseAmountSats("5", ReceiveCurrency.Fiat, 50_000.0))
         assertNull("Fiat needs a price.", parseAmountSats("5", ReceiveCurrency.Fiat, null))
         assertNull(parseAmountSats("  ", ReceiveCurrency.Satoshis, null))
+    }
+
+    @Test
+    fun `amounts are read as iOS reads them`() {
+        // A lone separator before exactly three digits groups, unless it is the locale's decimal point.
+        assertEquals(BigDecimal("1000"), parsedUserAmount("1,000", decimalSeparator = '.'))
+        assertEquals(BigDecimal("1.000"), parsedUserAmount("1,000", decimalSeparator = ','))
+        assertEquals(BigDecimal("1.5"), parsedUserAmount("1,5", decimalSeparator = '.'))
+        // Both kinds: the last is the decimal point.
+        assertEquals(BigDecimal("1234.56"), parsedUserAmount("1.234,56", decimalSeparator = '.'))
+        assertEquals(BigDecimal("1234.56"), parsedUserAmount("1'234.56", decimalSeparator = '.'))
+        // Satoshis are whole, so their separators only group.
+        assertEquals(50_000L, parseAmountSats("50,000", ReceiveCurrency.Satoshis, null))
+        assertEquals(1_000L, parseAmountSats("1.000", ReceiveCurrency.Satoshis, null))
+        assertNull(parseAmountSats("50000.00", ReceiveCurrency.Satoshis, null))
+        // A sign is a sign, and nothing else but digits and separators is a number.
+        assertEquals(5L, parseAmountSats("+5", ReceiveCurrency.Satoshis, null))
+        assertNull(parseAmountSats("-5", ReceiveCurrency.Satoshis, null))
+        assertNull(parseAmountSats("1e-5", ReceiveCurrency.Bitcoin, null))
+        assertNull(parseAmountSats("1E3", ReceiveCurrency.Bitcoin, null))
+        assertNull(parseAmountSats("0.1.2", ReceiveCurrency.Bitcoin, null))
+    }
+
+    @Test
+    fun `amounts stop at 21 million bitcoin instead of wrapping round`() {
+        assertEquals(2_100_000_000_000_000L, parseAmountSats("21000000", ReceiveCurrency.Bitcoin, null))
+        assertNull(parseAmountSats("21000000.00000001", ReceiveCurrency.Bitcoin, null))
+        assertNull(parseAmountSats("100000000000", ReceiveCurrency.Bitcoin, null))
+        assertNull(parseAmountSats("184467440737.09551617", ReceiveCurrency.Bitcoin, null))
+        assertNull(parseAmountSats("18446744073709552", ReceiveCurrency.Satoshis, null))
+        assertNull(parseAmountSats("99999999999999999999999", ReceiveCurrency.Fiat, 50_000.0))
+    }
+
+    @Test
+    fun `Done refuses what is not a number, and leaves the rest to the label`() {
+        assertTrue(isWellFormedAmount("", ReceiveCurrency.Satoshis))
+        assertTrue(isWellFormedAmount("50,000", ReceiveCurrency.Satoshis))
+        assertTrue("A number, if too large, which the label says.", isWellFormedAmount("100000000000", ReceiveCurrency.Bitcoin))
+        assertFalse(isWellFormedAmount("-0.1", ReceiveCurrency.Bitcoin))
+        assertFalse(isWellFormedAmount("1e-5", ReceiveCurrency.Bitcoin))
+        assertFalse(isWellFormedAmount("50000.00", ReceiveCurrency.Satoshis))
     }
 }
