@@ -12,11 +12,13 @@ import com.bittr.android.core.designsystem.BittrLightColorsExtended
 import com.bittr.android.core.designsystem.BittrTheme
 import java.time.Instant
 import java.time.LocalDate
+import kotlin.math.abs
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.compositeOver
 import com.bittr.android.core.designsystem.BittrDarkColorsExtended
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotEquals
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -77,11 +79,27 @@ class SpanButtonAffordanceTest {
             Color.White.toArgb(),
             selected,
         )
-        assertEquals(
+        assertColorNear(
             "The unselected buttons are not white at 70 % over the card. The card follows " +
                 "the scheme — blue2 here — and the buttons sit on it.",
             Color.White.copy(alpha = 0.7f).compositeOver(BittrDarkColorsExtended.levelCard).toArgb(),
             unselected,
+        )
+    }
+
+    /**
+     * Each channel within one step of [expected].
+     *
+     * Skia stores 0.7 alpha as 179 / 255, a shade over 0.7, so its blend comes out one
+     * step whiter in some channels than `compositeOver` works out in floats.
+     */
+    private fun assertColorNear(message: String, expected: Int, actual: Int) {
+        val near = listOf(24, 16, 8, 0).all { shift ->
+            abs((expected shr shift and 0xFF) - (actual shr shift and 0xFF)) <= 1
+        }
+        assertTrue(
+            "$message expected:<#%08X> but was:<#%08X>".format(expected, actual),
+            near,
         )
     }
 
