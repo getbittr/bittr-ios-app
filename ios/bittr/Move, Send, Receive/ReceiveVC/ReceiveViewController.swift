@@ -211,7 +211,6 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate, UIContextMen
                 return (fiatAmount / rate).satoshisFromBitcoin()
             }
         }()
-        let amountInBTC:CGFloat? = amountInSatoshis.map { $0.inBTC() }
         
         let lightningInvoice:String = await {
             guard !(type == .onchain || type == .lnurl) else {
@@ -227,13 +226,15 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate, UIContextMen
         var amountText:String = ""
         var bitcoinQRParameters:[String] = []
         
-        if amountInBTC != nil {
-            let formatter = NumberFormatter()
-            formatter.numberStyle = .decimal
-            formatter.minimumFractionDigits = 0
-            formatter.maximumFractionDigits = 8
-            formatter.usesGroupingSeparator = false
-            let amount = formatter.string(from: amountInBTC! as NSNumber)!.replacingOccurrences(of: ",", with: ".")
+        if let amountInSatoshis {
+            // Written out from whole satoshis in ASCII digits, so neither rounding nor the phone's locale can change it.
+            var fraction = String(amountInSatoshis % 100_000_000)
+            fraction = String(repeating: "0", count: 8 - fraction.count) + fraction
+            while fraction.hasSuffix("0") {
+                fraction.removeLast()
+            }
+            let wholeBitcoin = String(amountInSatoshis / 100_000_000)
+            let amount = fraction.isEmpty ? wholeBitcoin : wholeBitcoin + "." + fraction
             amountText = "?amount=\(amount)"
             bitcoinQRParameters.append("amount=\(amount)")
         }
