@@ -152,8 +152,6 @@
     "topLabel": null
   },
   "buy": {
-    "headerLabel": null,
-    "downButton": null,
     "continueButton": null,
     "yourCode": null,
     "yourEmail": null,
@@ -178,7 +176,8 @@
     "bittrFeeButton": null,
     "transferFeeButton": null,
     "addNoteButton": null,
-    "labelNote": null
+    "labelNote": null,
+    "descriptionLabel": null
   },
   "receive": {
     "addressTitle": null,
