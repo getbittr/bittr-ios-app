@@ -264,6 +264,7 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate, UIContextMen
             case .onchain:
                 self.addressTitle.text = Language.getWord(withID: "address")
                 self.lowerAddressLabel.text = onchainAddress.inGroupsOfFour() + amountText
+                self.lowerAddressLabel.font = .monospacedSystemFont(ofSize: 15, weight: .bold)
                 qrCode = "bitcoin:\(onchainAddress)\(amountText)".uppercased().toBigQRCode()!
                 self.currentCopyableText = amountText.isEmpty
                     ? onchainAddress
@@ -271,16 +272,19 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate, UIContextMen
             case .lightning:
                 self.addressTitle.text = Language.getWord(withID: "invoice")
                 self.lowerAddressLabel.text = lightningInvoice.inGroupsOfFour()
+                self.lowerAddressLabel.font = .monospacedSystemFont(ofSize: 15, weight: .bold)
                 qrCode = "lightning:\(lightningInvoice)".uppercased().toBigQRCode()!
                 self.currentCopyableText = lightningInvoice
             case .bitcoinqr:
                 self.addressTitle.text = Language.getWord(withID: "bitcoinqr")
                 self.lowerAddressLabel.text = bitcoinQR.replacingOccurrences(of: "?", with: "?\u{2060}")
+                self.lowerAddressLabel.font = UIFont(name: "Gilroy-Bold", size: 16)
                 qrCode = bitcoinQR.toBigQRCode()!
                 self.currentCopyableText = bitcoinQR
             case .lnurl:
                 self.addressTitle.text = Language.getWord(withID: "url")
                 self.lowerAddressLabel.text = lnurl
+                self.lowerAddressLabel.font = UIFont(name: "Gilroy-Bold", size: 16)
                 // Don't build a QR for an unavailable address — it would encode
                 // the literal word "Unavailable". Leave it empty in that case.
                 qrCode = userLightningURL != nil ? lnurl.toBigQRCode() : nil
