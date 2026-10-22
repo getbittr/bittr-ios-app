@@ -105,6 +105,8 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate, UIContextMen
     var currentCopyableText = ""
     // What the shown code was made from, so that any change to it makes the code again.
     var codeInputs:ReceiveInputs?
+    // Counts up with every request for a code, so a request that has been replaced never shows its result.
+    var codeRequest = 0
     
     var keyboardIsActive = false
     var maximumReceivableLNSats:Int?
@@ -163,8 +165,9 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate, UIContextMen
         }
     }
     
-    func setLabels(for type:TransactionType, newAddress:Bool = false) async {
+    func setLabels(for type:TransactionType, newAddress:Bool = false, request:Int) async {
         DispatchQueue.main.async {
+            guard request == self.codeRequest else { return }
             self.updateCards(for: type)
             self.currentType = type
         }
@@ -258,6 +261,8 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate, UIContextMen
         let lnurl = self.userLNURL()
         
         DispatchQueue.main.async {
+            
+            guard request == self.codeRequest else { return }
             
             // Show lightning bolt.
             switch type {
@@ -482,6 +487,8 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate, UIContextMen
             self.hideAmountStack()
         }
         self.codeInputs = self.currentInputs()
+        self.codeRequest += 1
+        let request = self.codeRequest
         self.currentCopyableText = ""
         self.qrImageView.alpha = 0
         self.addressTitle.alpha = 0
@@ -510,7 +517,8 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate, UIContextMen
 
         let delay:Double = withoutAnimation ? 0 : 0.7
         DispatchQueue.main.asyncAfter(deadline: .now() + delay) {
-            Task { await self.setLabels(for: type, newAddress: newAddress) }
+            guard request == self.codeRequest else { return }
+            Task { await self.setLabels(for: type, newAddress: newAddress, request: request) }
         }
     }
     
