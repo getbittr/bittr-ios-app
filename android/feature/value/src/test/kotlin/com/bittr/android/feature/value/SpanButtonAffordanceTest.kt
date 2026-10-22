@@ -98,7 +98,8 @@ class SpanButtonAffordanceTest {
             abs((expected shr shift and 0xFF) - (actual shr shift and 0xFF)) <= 1
         }
         assertTrue(
-            "$message expected:<#%08X> but was:<#%08X>".format(expected, actual),
+            // Only the suffix is a format string: the message has a literal "70 %" in it.
+            message + " expected:<#%08X> but was:<#%08X>".format(expected, actual),
             near,
         )
     }
