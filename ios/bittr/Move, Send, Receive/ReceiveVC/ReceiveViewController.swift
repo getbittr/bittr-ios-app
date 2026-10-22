@@ -103,6 +103,7 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate, UIContextMen
     // Type
     var currentType:TransactionType = .onchain
     var currentCopyableText = ""
+    var codeIncludesAmount = false
     
     var keyboardIsActive = false
     var maximumReceivableLNSats:Int?
@@ -291,6 +292,8 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate, UIContextMen
                 self.currentCopyableText = lnurl
             }
 
+            self.codeIncludesAmount = amountInSatoshis != nil || !enteredDescription.isEmpty
+            
             // Read without the groups' spaces, by VoiceOver and the flows alike.
             self.lowerAddressLabel.accessibilityLabel = self.currentCopyableText
             self.qrImageView.image = qrCode
@@ -431,6 +434,10 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate, UIContextMen
         self.view.endEditing(true)
         if self.amountStack.alpha == 1 {
             self.hideAmountStack()
+            // Closing Add amount drops the amount, so a code made with one is made again without it.
+            if self.codeIncludesAmount {
+                self.alertTapped(for: self.currentType)
+            }
         } else {
             self.showAmountStack()
         }
