@@ -243,10 +243,7 @@ class ReceiveController(
         ),
     )
 
-    /**
-     * Spaces go; anything else stays — a separator in satoshis, which a paste or a hardware
-     * keyboard can bring, a `-` or a second separator — for Done to refuse with an explanation.
-     */
+    /** Spaces go; anything else stays, for [parsedUserAmount] to read or for Done to refuse with an explanation. */
     fun onAmountChange(text: String) = _state.update { it.copy(amountText = text.filterNot(Char::isWhitespace)) }
 
     /** Counted in bytes, which is what the description costs in the Bitcoin QR, so that code always fits. */
