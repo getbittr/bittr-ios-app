@@ -5,6 +5,10 @@ import com.bittr.android.core.network.HttpClient
 import com.bittr.android.core.network.HttpMethod
 import com.bittr.android.core.network.HttpRequest
 import com.bittr.android.core.preferences.Currency
+import kotlinx.coroutines.channels.BufferOverflow
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import org.json.JSONObject
@@ -13,8 +17,8 @@ import org.json.JSONObject
  * The current price of one bitcoin in the display currency — iOS's `didFetchConversionRates()`
  * (`LoadWalletData.swift:288`), `GET /price/btc` read for `btc_eur` or `btc_chf`.
  *
- * Read the same way `HttpPriceRepository` reads the same endpoint for the value chart, so
- * the two cannot disagree about one response.
+ * The value chart's `PriceHistory` reads its current price from here too, so `GET /price/btc`
+ * is fetched once for the whole app and the chart and Home cannot disagree about it.
  */
 class BitcoinPriceSource(
     private val environment: BittrEnvironment,
@@ -23,8 +27,16 @@ class BitcoinPriceSource(
 ) {
 
     private val lock = Mutex()
-    private var body: String? = null
+    private var prices: Map<Currency, Double>? = null
     private var readAtMillis = 0L
+
+    private val _freshReadings = MutableSharedFlow<Unit>(extraBufferCapacity = 1, onBufferOverflow = BufferOverflow.DROP_OLDEST)
+
+    /**
+     * Emits after each new reading from the network — iOS's Value screen setting Home's rates
+     * when it loads. Home reads the price again then; the reading it gets is this one, cached.
+     */
+    val freshReadings: Flow<Unit> = _freshReadings.asSharedFlow()
 
     /**
      * Null when the price could not be fetched or read.
@@ -36,21 +48,33 @@ class BitcoinPriceSource(
      * its conversion rates once per sync and reads the cached value everywhere else.
      */
     suspend fun price(currency: Currency): Double? = runCatching {
-        val json = lock.withLock {
-            val cached = body
+        val read = lock.withLock {
+            val cached = prices
             if (cached != null && nowMillis() - readAtMillis < FRESH_MILLIS) {
                 cached
             } else {
                 val response = http.execute(HttpRequest(HttpMethod.GET, environment.url(PRICE_PATH)))
                 if (!response.isSuccessful) return@runCatching null
-                response.body.also {
-                    body = it
-                    readAtMillis = nowMillis()
+                // Parsed before it is kept: a reply without every currency's price is used
+                // for what it has, but not cached, so the next caller asks again.
+                parse(response.body).also { parsed ->
+                    if (parsed.keys.containsAll(Currency.entries)) {
+                        prices = parsed
+                        readAtMillis = nowMillis()
+                        _freshReadings.tryEmit(Unit)
+                    }
                 }
             }
         }
-        JSONObject(json).optString(field(currency)).toDoubleOrNull()
+        read[currency]
     }.getOrNull()
+
+    private fun parse(body: String): Map<Currency, Double> {
+        val json = JSONObject(body)
+        return Currency.entries.mapNotNull { currency ->
+            json.optString(field(currency)).toDoubleOrNull()?.let { currency to it }
+        }.toMap()
+    }
 
     private fun field(currency: Currency): String = when (currency) {
         Currency.EUR -> "btc_eur"
