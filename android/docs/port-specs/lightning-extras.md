@@ -111,7 +111,7 @@ shows `lnDescription` (channel closure → `channelclosuretransaction`); hidden 
 
 ## F. `receive_invoice.yaml`, `send_lightning.yaml`
 
-Both need an active channel. `receive_invoice`: Receive → More `alert.button.3` → `receive.invoiceLabel` `.*lnbcrt.*`;
+Both need an active channel. `receive_invoice`: Receive → More `alert.button.3` → `receive.addressLabel` `.*lnbcrt.*`;
 copy; Send paste → "Invoice and amount", no amount; edit 2000 → paste → amount "2000"; 1000-sat invoice →
 `submit_invoice.js` → `transaction.yellowCard`. `send_lightning`: Move → `move.channelButton` →
 `question.channelView`; normal invoice via `request_invoice.js` + clipboard bridge (`clipboard_server.js` uses

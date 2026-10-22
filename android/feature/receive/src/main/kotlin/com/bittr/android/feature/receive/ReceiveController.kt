@@ -35,6 +35,7 @@ data class ReceiveAlert(
  * Everything the Receive screen draws.
  *
  * @property loading `receive.qrSpinner` is on screen; the labels and QR are stale.
+ * @property codeIncludesAmount the shown code was made with an amount or a description.
  */
 data class ReceiveUiState(
     val type: ReceiveType = ReceiveType.Onchain,
@@ -49,6 +50,7 @@ data class ReceiveUiState(
     // default is what CurrencyDefaultGuardTest exists to keep out of the port.
     val fiatCode: String,
     val alert: ReceiveAlert? = null,
+    val codeIncludesAmount: Boolean = false,
 ) {
 
     /** `btcLabel` — `receive.currencyLabel`. */
@@ -159,6 +161,7 @@ class ReceiveController(
             it.copy(
                 loading = false,
                 display = display,
+                codeIncludesAmount = amountSats != null || description.isNotEmpty(),
                 alert = if (noneLeft) okayAlert(ReceiveStrings.ADDRESS, ReceiveStrings.NO_ADDRESS_AVAILABLE) else it.alert,
             )
         }
@@ -213,9 +216,16 @@ class ReceiveController(
         ),
     )
 
-    /** `editTapped`: toggle the amount stack. Closing it clears both fields and does not reload. */
-    fun onEdit() = _state.update {
-        if (it.amountOpen) it.copy(amountOpen = false, amountText = "", descriptionText = "") else it.copy(amountOpen = true)
+    /**
+     * `editTapped`: toggle the amount stack. Closing it clears both fields, so a code made with an
+     * amount or a description is made again without them.
+     */
+    fun onEdit() {
+        val closing = _state.value.amountOpen
+        _state.update {
+            if (closing) it.copy(amountOpen = false, amountText = "", descriptionText = "") else it.copy(amountOpen = true)
+        }
+        if (closing && _state.value.codeIncludesAmount) show(_state.value.type)
     }
 
     /** `btcButtonTapped`: Cancel, the fiat symbol, Satoshis, Bitcoin. */

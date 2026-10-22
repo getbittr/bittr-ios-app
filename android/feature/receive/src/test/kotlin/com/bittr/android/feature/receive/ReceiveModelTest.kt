@@ -28,8 +28,8 @@ class ReceiveModelTest {
         val display = receiveDisplay(ReceiveType.Onchain, address, "", null, amountSats = null, description = "")
 
         assertEquals(ReceiveStrings.ADDRESS, display.title)
-        assertEquals(address, display.addressLabel)
-        assertEquals("", display.lowerLabel)
+        assertEquals("bcrt 1qyr wfhw sea2 pexm p8qe g3y7 03kn 4ky4 xxk5 e50e", display.label)
+        assertEquals(true, display.monospaced)
         assertEquals(address, display.copyText)
         assertEquals("BITCOIN:${address.uppercase()}", display.qrPayload)
     }
@@ -38,7 +38,7 @@ class ReceiveModelTest {
     fun `an on-chain address with an amount becomes a BIP-21 URI`() {
         val display = receiveDisplay(ReceiveType.Onchain, address, "", null, amountSats = 5_000, description = "")
 
-        assertEquals("$address?amount=0.00005", display.addressLabel)
+        assertEquals("bcrt 1qyr wfhw sea2 pexm p8qe g3y7 03kn 4ky4 xxk5 e50e?amount=0.00005", display.label)
         assertEquals("bitcoin:$address?amount=0.00005", display.copyText)
     }
 
@@ -47,7 +47,8 @@ class ReceiveModelTest {
         val display = receiveDisplay(ReceiveType.Lightning, "", invoice, null, amountSats = null, description = "")
 
         assertEquals(ReceiveStrings.INVOICE, display.title)
-        assertEquals(invoice, display.lowerLabel)
+        assertEquals("lnbc rt1p 42rv e0dq qnp4", display.label)
+        assertEquals(true, display.monospaced)
         assertEquals(invoice, display.copyText)
         assertEquals(true, display.showBolt)
     }
@@ -62,10 +63,21 @@ class ReceiveModelTest {
     }
 
     @Test
+    fun `a Bitcoin QR and a lightning address are not grouped`() {
+        val bitcoinQr = receiveDisplay(ReceiveType.BitcoinQr, address, invoice, null, amountSats = null, description = "")
+        assertEquals(false, bitcoinQr.monospaced)
+
+        val lightningAddress = receiveDisplay(ReceiveType.Lnurl, "", "", lightningAddress = "tom@bittr.app", amountSats = null, description = "")
+        assertEquals("tom@bittr.app", lightningAddress.label)
+        assertEquals(false, lightningAddress.monospaced)
+    }
+
+    @Test
     fun `an unavailable lightning address has no QR`() {
         val display = receiveDisplay(ReceiveType.Lnurl, "", "", lightningAddress = null, amountSats = null, description = "")
 
-        assertEquals(ReceiveStrings.UNAVAILABLE, display.addressLabel)
+        assertEquals(ReceiveStrings.UNAVAILABLE, display.label)
+        assertEquals(false, display.monospaced)
         assertNull(display.qrPayload)
     }
 

@@ -1,5 +1,6 @@
 package com.bittr.android.feature.receive
 
+import com.bittr.android.core.designsystem.inGroupsOfFour
 import java.math.BigDecimal
 import java.math.RoundingMode
 
@@ -60,16 +61,16 @@ data class ReceiveCards(
 /**
  * What the address box and the QR show — the label half of `setLabels(for:newAddress:)`.
  *
- * @property addressLabel `receive.addressLabel`, beside the title (on-chain, lightning address).
- * @property lowerLabel `receive.invoiceLabel`, the full-width text under the title (invoice, Bitcoin QR).
+ * @property label `receive.addressLabel`, under the title for every type.
+ * @property monospaced [label] is an address or invoice in groups of four, shown monospaced so they line up.
  * @property qrPayload null when there is nothing to encode — an unavailable lightning address.
  * @property showBolt the lightning bolt before the title.
  */
 data class ReceiveDisplay(
     val title: String,
     val showBolt: Boolean,
-    val addressLabel: String,
-    val lowerLabel: String,
+    val label: String,
+    val monospaced: Boolean,
     val qrPayload: String?,
     val copyText: String,
 )
@@ -100,33 +101,33 @@ fun receiveDisplay(
         ReceiveType.Onchain -> ReceiveDisplay(
             title = ReceiveStrings.ADDRESS,
             showBolt = false,
-            addressLabel = onchainAddress + amountText,
-            lowerLabel = "",
+            label = inGroupsOfFour(onchainAddress) + amountText,
+            monospaced = true,
             qrPayload = "bitcoin:$onchainAddress$amountText".uppercase(),
             copyText = if (amountText.isEmpty()) onchainAddress else "bitcoin:$onchainAddress$amountText",
         )
         ReceiveType.Lightning -> ReceiveDisplay(
             title = ReceiveStrings.INVOICE,
             showBolt = true,
-            addressLabel = "",
-            lowerLabel = invoice,
+            label = inGroupsOfFour(invoice),
+            monospaced = true,
             qrPayload = "lightning:$invoice".uppercase(),
             copyText = invoice,
         )
         ReceiveType.BitcoinQr -> ReceiveDisplay(
             title = ReceiveStrings.BITCOIN_QR,
             showBolt = false,
-            addressLabel = "",
             // A word joiner after "?" so the label does not wrap at the query mark.
-            lowerLabel = bitcoinQr.replace("?", "?⁠"),
+            label = bitcoinQr.replace("?", "?⁠"),
+            monospaced = false,
             qrPayload = bitcoinQr,
             copyText = bitcoinQr,
         )
         ReceiveType.Lnurl -> ReceiveDisplay(
             title = ReceiveStrings.ADDRESS,
             showBolt = true,
-            addressLabel = lightningAddress ?: ReceiveStrings.UNAVAILABLE,
-            lowerLabel = "",
+            label = lightningAddress ?: ReceiveStrings.UNAVAILABLE,
+            monospaced = false,
             // No QR for an unavailable address — it would encode the word "Unavailable".
             qrPayload = lightningAddress,
             copyText = lightningAddress ?: ReceiveStrings.UNAVAILABLE,
