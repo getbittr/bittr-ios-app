@@ -131,7 +131,6 @@ enum TestID {
         static let currencyButton = "receive.currencyButton"
         static let currencyLabel = "receive.currencyLabel"
         static let editButton = "receive.editButton"
-        static let invoiceLabel = "receive.invoiceLabel"
         static let moreButton = "receive.moreButton"
         static let qrImageView = "receive.qrImageView"
         static let qrSpinner = "receive.qrSpinner"
