@@ -4,6 +4,7 @@ import android.graphics.Bitmap
 import android.graphics.Color
 import com.google.zxing.BarcodeFormat
 import com.google.zxing.EncodeHintType
+import com.google.zxing.WriterException
 import com.google.zxing.qrcode.QRCodeWriter
 import com.google.zxing.qrcode.decoder.ErrorCorrectionLevel
 import kotlin.math.ceil
@@ -30,20 +31,26 @@ internal class QrCode(val bitmap: Bitmap, val logoBox: Float, val logoMark: Floa
  * width of extra white per module across, so the denser the code, the wider its white edge
  * and the smaller it read on screen. iOS scales its code to the full 1080 (`toBigQRCode`'s
  * `scale`), and the screen scales this bitmap to fill its box the same way.
+ *
+ * Null when [payload] is more than a level-H code holds, which the screen shows as no code.
  */
-internal fun qrCode(payload: String, minSizePx: Int = QR_SIZE_PX): QrCode {
+internal fun qrCode(payload: String, minSizePx: Int = QR_SIZE_PX): QrCode? {
     // Width and height 0: ZXing renders at the code's own size, one pixel per module.
-    val matrix = QRCodeWriter().encode(
-        payload,
-        BarcodeFormat.QR_CODE,
-        0,
-        0,
-        mapOf(
-            EncodeHintType.ERROR_CORRECTION to ErrorCorrectionLevel.H,
-            EncodeHintType.MARGIN to 0,
-            EncodeHintType.CHARACTER_SET to "UTF-8",
-        ),
-    )
+    val matrix = try {
+        QRCodeWriter().encode(
+            payload,
+            BarcodeFormat.QR_CODE,
+            0,
+            0,
+            mapOf(
+                EncodeHintType.ERROR_CORRECTION to ErrorCorrectionLevel.H,
+                EncodeHintType.MARGIN to 0,
+                EncodeHintType.CHARACTER_SET to "UTF-8",
+            ),
+        )
+    } catch (_: WriterException) {
+        return null
+    }
     val modules = matrix.width
     // Whole pixels per module, at least [minSizePx] across, so every module is the same size.
     val scale = (minSizePx + modules - 1) / modules
