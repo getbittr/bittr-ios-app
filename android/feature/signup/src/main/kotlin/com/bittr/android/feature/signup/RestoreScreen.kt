@@ -54,6 +54,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.bittr.android.core.common.TestID
 import com.bittr.android.core.designsystem.ScreenshotProtection
+import com.bittr.android.core.designsystem.NoKeyboardLearning
 import com.bittr.android.core.designsystem.BittrCanvas
 import com.bittr.android.core.designsystem.BittrPrimaryButton
 import com.bittr.android.core.designsystem.BittrTextButton
@@ -374,27 +375,29 @@ private fun WordField(
                     maxLines = 1,
                 )
             }
-            BasicTextField(
-                value = value,
-                onValueChange = onValueChange,
-                singleLine = true,
-                textStyle = wordStyle.copy(color = colors.onPhraseCard),
-                cursorBrush = SolidColor(colors.onPhraseCard),
-                keyboardOptions = KeyboardOptions(
-                    capitalization = KeyboardCapitalization.None,
-                    autoCorrectEnabled = false,
-                    imeAction = if (last) ImeAction.Done else ImeAction.Next,
-                ),
-                keyboardActions = KeyboardActions(
-                    onNext = { onImeAction() },
-                    onDone = { onImeAction() },
-                ),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .focusRequester(focusRequester)
-                    .onFocusChanged { onFocusChange(it.isFocused) }
-                    .testTag(fieldTag),
-            )
+            NoKeyboardLearning {
+                BasicTextField(
+                    value = value,
+                    onValueChange = onValueChange,
+                    singleLine = true,
+                    textStyle = wordStyle.copy(color = colors.onPhraseCard),
+                    cursorBrush = SolidColor(colors.onPhraseCard),
+                    keyboardOptions = KeyboardOptions(
+                        capitalization = KeyboardCapitalization.None,
+                        autoCorrectEnabled = false,
+                        imeAction = if (last) ImeAction.Done else ImeAction.Next,
+                    ),
+                    keyboardActions = KeyboardActions(
+                        onNext = { onImeAction() },
+                        onDone = { onImeAction() },
+                    ),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .focusRequester(focusRequester)
+                        .onFocusChanged { onFocusChange(it.isFocused) }
+                        .testTag(fieldTag),
+                )
+            }
         }
     }
 }
