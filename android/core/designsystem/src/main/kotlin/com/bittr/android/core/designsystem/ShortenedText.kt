@@ -1,12 +1,14 @@
 package com.bittr.android.core.designsystem
 
 import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.width
 import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.text
 import androidx.compose.ui.text.AnnotatedString
@@ -15,13 +17,15 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Constraints
 
 /**
  * Text [shorten]ed to fit its width, measured in the style `Text` draws it in. What the screen shows
  * is shortened; what it says is [readAs], so TalkBack and the flows' text assertions and
  * `copyTextFrom` read the string whole. [modifier] goes on that node, so a test tag there names it.
  *
- * [shorten] is remembered by the measurer, style, [maxLines], width and [keys].
+ * [shorten] is remembered by the measurer, style, [maxLines], width and [keys]. With
+ * [asWideAsLongestLine], the text is only as wide as its longest line.
  */
 @Composable
 internal fun ShortenedText(
@@ -32,6 +36,7 @@ internal fun ShortenedText(
     color: Color,
     vararg keys: Any?,
     textAlign: TextAlign? = null,
+    asWideAsLongestLine: Boolean = false,
     shorten: (measurer: TextMeasurer, style: TextStyle, width: Int) -> AnnotatedString,
 ) {
     BoxWithConstraints(modifier.clearAndSetSemantics { text = AnnotatedString(readAs) }) {
@@ -39,6 +44,9 @@ internal fun ShortenedText(
         val resolved = LocalTextStyle.current.merge(style)
         val width = constraints.maxWidth
         val shown = remember(measurer, resolved, maxLines, width, *keys) { shorten(measurer, resolved, width) }
+        val longestLine = remember(measurer, shown, resolved, width, asWideAsLongestLine) {
+            if (asWideAsLongestLine && width != Constraints.Infinity) longestLine(measurer, shown, resolved, width) else null
+        }
         Text(
             shown,
             style = resolved,
@@ -46,6 +54,7 @@ internal fun ShortenedText(
             textAlign = textAlign,
             maxLines = maxLines,
             overflow = TextOverflow.Clip,
+            modifier = if (longestLine != null) Modifier.width(with(LocalDensity.current) { longestLine.toDp() }) else Modifier,
         )
     }
 }

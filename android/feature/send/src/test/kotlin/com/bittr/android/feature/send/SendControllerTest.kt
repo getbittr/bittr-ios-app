@@ -211,6 +211,18 @@ class SendControllerTest {
     }
 
     @Test
+    fun `a pasted invoice is confirmed as exactly what is paid`() = runTest {
+        val controller = SendController(FakeSource(lightningBalance = 10_000), this)
+        controller.onToChange(invoice150Sats)
+        controller.onNext()
+        advanceUntilIdle()
+
+        val confirm = controller.state.value.confirm!!
+        assertEquals(invoice150Sats, confirm.displayedAddress)
+        assertEquals(invoice150Sats, confirm.addressOrInvoice)
+    }
+
+    @Test
     fun `a withdraw with a range asks for the amount and re-asks when it is out of range`() = runTest {
         val service = "https://lnbits.example.com/withdraw"
         val cb = "https://lnbits.example.com/withdraw/cb"
@@ -301,6 +313,9 @@ class SendControllerTest {
         advanceUntilIdle()
 
         val confirm = assertNotNull(controller.state.value.confirm).let { controller.state.value.confirm!! }
+        // Shown in groups of four only because it is exactly what is paid.
+        assertEquals(address, confirm.displayedAddress)
+        assertEquals(address, confirm.addressOrInvoice)
         assertEquals(5_000L, confirm.amountSats)
         assertEquals("5.00 €", confirm.amountFiat)
         assertEquals(141L, confirm.vsize)
