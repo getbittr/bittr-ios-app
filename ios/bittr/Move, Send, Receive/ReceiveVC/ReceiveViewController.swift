@@ -273,7 +273,7 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate, UIContextMen
                 self.addressTitle.text = Language.getWord(withID: "address")
                 self.lowerAddressLabel.text = onchainAddress.inGroupsOfFour() + amountText
                 self.lowerAddressLabel.font = .monospacedSystemFont(ofSize: 15, weight: .bold)
-                qrCode = "bitcoin:\(onchainAddress)\(amountText)".uppercased().toBigQRCode()!
+                qrCode = "bitcoin:\(onchainAddress)\(amountText)".uppercased().toBigQRCode()
                 self.currentCopyableText = amountText.isEmpty
                     ? onchainAddress
                     : "bitcoin:\(onchainAddress)\(amountText)"
@@ -281,13 +281,13 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate, UIContextMen
                 self.addressTitle.text = Language.getWord(withID: "invoice")
                 self.lowerAddressLabel.font = .monospacedSystemFont(ofSize: 15, weight: .bold)
                 self.lowerAddressLabel.attributedText = self.shortenedInGroups(lightningInvoice, font: self.lowerAddressLabel.font, color: self.lowerAddressLabel.textColor)
-                qrCode = "lightning:\(lightningInvoice)".uppercased().toBigQRCode()!
+                qrCode = "lightning:\(lightningInvoice)".uppercased().toBigQRCode()
                 self.currentCopyableText = lightningInvoice
             case .bitcoinqr:
                 self.addressTitle.text = Language.getWord(withID: "bitcoinqr")
                 self.lowerAddressLabel.text = bitcoinQR.replacingOccurrences(of: "?", with: "?\u{2060}")
                 self.lowerAddressLabel.font = UIFont(name: "Gilroy-Bold", size: 16)
-                qrCode = bitcoinQR.toBigQRCode()!
+                qrCode = bitcoinQR.toBigQRCode()
                 self.currentCopyableText = bitcoinQR
             case .lnurl:
                 self.addressTitle.text = Language.getWord(withID: "url")
@@ -579,6 +579,14 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate, UIContextMen
         self.bothAmountButton.alpha = 1
         self.bothDescriptionButton.alpha = 1
         self.alertTapped(for: self.currentType)
+    }
+    
+    func textField(_ textField: UITextField, shouldChangeCharactersIn range: NSRange, replacementString string: String) -> Bool {
+        
+        guard textField == self.bothDescriptionTextField, let text = textField.text, let textRange = Range(range, in: text) else { return true }
+        
+        // Counted in bytes, which is what the description costs in the Bitcoin QR, so that code always fits.
+        return text.replacingCharacters(in: textRange, with: string).utf8.count <= 100
     }
     
     func textFieldShouldReturn(_ textField: UITextField) -> Bool {
