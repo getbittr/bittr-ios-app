@@ -283,15 +283,11 @@ class PushCoordinatorTest {
     }
 
     @Test
-    fun `an HTLC push while open asks first, then signs and posts htlc ready`() {
+    fun `an HTLC push while open signs and posts htlc ready without asking`() {
         unlockAndSync()
         depositCode = "DEP1"
         coordinator.receive(PushEnvelope.HtlcIncoming)
-        val ask = state.alert!!
-        assertEquals(TestID.Alert.incomingPayment, ask.testTag)
-        assertEquals(PushStrings.NEW_BITTR_PAYMENT, ask.message)
 
-        coordinator.onAlertButton(ask.buttons.single())
         val request = requests.single()
         assertTrue(request.url.endsWith("/htlc-interceptor/ready"))
         val timestamp = now / 1_000
@@ -306,8 +302,23 @@ class PushCoordinatorTest {
         depositCode = "DEP1"
         reply = HttpResponse(200, """{"success":true,"action":"resumed"}""")
         coordinator.receive(PushEnvelope.HtlcIncoming)
-        coordinator.onAlertButton(state.alert!!.buttons.single())
         assertEquals(PushUiState(), state)
+    }
+
+    @Test
+    fun `an HTLC push over another push's alert still posts, and so does the next one`() {
+        unlockAndSync()
+        depositCode = "DEP1"
+        reply = HttpResponse(200, """{"success":true,"action":"resumed"}""")
+        coordinator.receive(PushEnvelope.LightningPayout("n1", 5_000_000), id = "p1")
+        assertEquals(PushStrings.BITTR_PAYOUT, state.alert?.title)
+
+        now += 11_000
+        coordinator.receive(PushEnvelope.HtlcIncoming, id = "h1")
+        now += 11_000
+        coordinator.receive(PushEnvelope.HtlcIncoming, id = "h2")
+
+        assertEquals(2, requests.count { it.url.endsWith("/htlc-interceptor/ready") })
     }
 
     @Test

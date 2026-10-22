@@ -59,6 +59,7 @@ data class PushUiState(
  * started it. Unlocking with a push pending shows `loading.syncingWallet`
  * (`lowerPinView`), and the first finished sync re-dispatches it (`finalizeSync`), which
  * then skips the "you're receiving a payment" alert and goes straight to the payout.
+ * An incoming HTLC never asks, locked or not: it goes straight to `loading.receivingPayment`.
  * Information, expired and unknown pushes open their card at once, locked or not.
  */
 class PushCoordinator(
@@ -454,16 +455,7 @@ class PushCoordinator(
             handlingHtlc -> log("Incoming HTLC already being handled; ignoring duplicate trigger.")
             else -> {
                 handlingHtlc = true
-                if (!wasNotified) {
-                    alert(
-                        TestID.Alert.incomingPayment,
-                        PushStrings.INCOMING_PAYMENT,
-                        PushStrings.NEW_BITTR_PAYMENT,
-                        PushAlertButton(PushStrings.OKAY, dismisses = false) { triggerHtlcReady() },
-                    )
-                } else {
-                    triggerHtlcReady()
-                }
+                triggerHtlcReady()
             }
         }
     }
