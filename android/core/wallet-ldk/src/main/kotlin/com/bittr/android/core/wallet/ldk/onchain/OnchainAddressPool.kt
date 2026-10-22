@@ -91,6 +91,11 @@ class OnchainAddressPool(
     /** `onchainAddressesVerified`. */
     val verified: StateFlow<Boolean> = _verified.asStateFlow()
 
+    /** Receive's timeout, which sets `onchainAddressesVerified = true` on iOS: nothing waits for the check any longer. */
+    fun stopWaiting() {
+        _verified.value = true
+    }
+
     private val managing = Mutex()
 
     /** `getCachedOnchainAddress()` — the address Receive is showing. */

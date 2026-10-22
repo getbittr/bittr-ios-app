@@ -28,6 +28,12 @@ interface ReceiveSource {
      */
     val addressesVerified: StateFlow<Boolean>
 
+    /**
+     * The eight-second wait ran out — iOS sets `onchainAddressesVerified = true` — so neither this
+     * screen nor a later one waits again.
+     */
+    fun stopWaitingForAddresses()
+
     /** `getCachedOnchainAddress()` — the address currently shown, or null. */
     fun currentOnchainAddress(): String?
 
