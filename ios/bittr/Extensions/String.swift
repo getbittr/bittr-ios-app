@@ -60,6 +60,19 @@ extension String {
         }
     }
     
+    func inGroupsOfFour() -> String {
+        
+        // A plain space, so a wrapping label breaks between groups.
+        var grouped = ""
+        for (index, character) in self.enumerated() {
+            if index > 0, index % 4 == 0 {
+                grouped += " "
+            }
+            grouped.append(character)
+        }
+        return grouped
+    }
+    
     func fixDecimals() -> String {
         return self.replacingOccurrences(of: ".", with: Locale.current.decimalSeparator!).replacingOccurrences(of: ",", with: Locale.current.decimalSeparator!)
     }

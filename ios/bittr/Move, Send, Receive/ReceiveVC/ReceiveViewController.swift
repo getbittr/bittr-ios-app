@@ -263,14 +263,14 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate, UIContextMen
             switch type {
             case .onchain:
                 self.addressTitle.text = Language.getWord(withID: "address")
-                self.lowerAddressLabel.text = onchainAddress + amountText
+                self.lowerAddressLabel.text = onchainAddress.inGroupsOfFour() + amountText
                 qrCode = "bitcoin:\(onchainAddress)\(amountText)".uppercased().toBigQRCode()!
                 self.currentCopyableText = amountText.isEmpty
                     ? onchainAddress
                     : "bitcoin:\(onchainAddress)\(amountText)"
             case .lightning:
                 self.addressTitle.text = Language.getWord(withID: "invoice")
-                self.lowerAddressLabel.text = lightningInvoice
+                self.lowerAddressLabel.text = lightningInvoice.inGroupsOfFour()
                 qrCode = "lightning:\(lightningInvoice)".uppercased().toBigQRCode()!
                 self.currentCopyableText = lightningInvoice
             case .bitcoinqr:
@@ -287,6 +287,8 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate, UIContextMen
                 self.currentCopyableText = lnurl
             }
 
+            // Read without the groups' spaces, by VoiceOver and the flows alike.
+            self.lowerAddressLabel.accessibilityLabel = self.currentCopyableText
             self.qrImageView.image = qrCode
 
             // Hide the QR view entirely when there's nothing to encode.
