@@ -103,7 +103,7 @@ fun PinScreen(
     BackHandler(enabled = onBack != null) { onBack?.invoke() }
     // No arrow in the app bar: Back under the pad goes back, as on iOS, and the system back
     // gesture does what that button does.
-    BittrCanvas(modifier = modifier) {
+    BittrCanvas(modifier = modifier, background = BittrTheme.colors.primaryHigh) {
         Column(
             modifier = Modifier
                 .weight(1f)
@@ -151,6 +151,9 @@ fun PinScreen(
                         onSubmit(pin)
                     },
                     enabled = SeedWalletService.isValidPin(pin),
+                    // iOS never dims it; light mode does until the PIN is long enough.
+                    dimmed = !SeedWalletService.isValidPin(pin) && !BittrTheme.isDark,
+                    fill = BittrTheme.colors.pinConfirm,
                     arrow = false,
                     modifier = Modifier
                         .size(width = column * 2 + 22.dp, height = 45.dp)
@@ -316,7 +319,7 @@ private fun RowScope.Key(
             .clickable(
                 enabled = enabled,
                 interactionSource = null,
-                indication = ripple(bounded = false, radius = 28.dp, color = BittrTheme.colors.onCanvas),
+                indication = ripple(bounded = false, radius = 28.dp, color = BittrTheme.colors.pinKeyPress),
                 onClick = onClick,
             )
             .then(

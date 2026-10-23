@@ -355,9 +355,9 @@ private fun DeviceRow(
         ) {
             Image(
                 imageVector = if (iconFilled) {
-                    rememberFillIcon(icon, colors.brandFixed)
+                    rememberFillIcon(icon, colors.settingsIcon)
                 } else {
-                    rememberStrokeIcon(icon, colors.brandFixed, strokeWidth = 2f)
+                    rememberStrokeIcon(icon, colors.settingsIcon, strokeWidth = 2f)
                 },
                 contentDescription = null,
                 modifier = Modifier.size(20.dp),

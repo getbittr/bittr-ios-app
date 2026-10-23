@@ -120,6 +120,7 @@ internal fun GraphView(
     modifier: Modifier = Modifier,
 ) {
     val colors = BittrTheme.colors
+    val curveColor = colors.homeCardTitle
     val density = LocalDensity.current
     var scrubbed by remember(points) { mutableStateOf<ScrubbedPoint?>(null) }
     var chartSize by remember { mutableStateOf(IntSize.Zero) }
@@ -193,7 +194,8 @@ internal fun GraphView(
             }
             drawPath(
                 path = path,
-                color = Color.White,
+                // `whiteoryellow`.
+                color = curveColor,
                 style = Stroke(
                     width = CurveWidth.toPx(),
                     cap = StrokeCap.Round,

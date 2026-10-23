@@ -95,8 +95,8 @@ private val Cream = Color(0xFFF8EEC6)
  * inside a composable is a colour the designer cannot change*, and it is also a colour
  * `TokenContrastTest` cannot measure. It shipped at **1.65 : 1 against the dark canvas
  * and 1.32 : 1 against the card the switch is actually on** for exactly as long as it
- * was invisible to the guard. Both schemes hold the same value today, which is a fact
- * worth being able to see rather than a field worth saving.
+ * was invisible to the guard. Light mode only; dark is UIKit's own green, see
+ * [BittrColors.switchOn].
  */
 private val SwitchAccent = Color(0xFF1F8A5B)
 
@@ -157,27 +157,14 @@ val BittrLightColors: ColorScheme = lightColorScheme(
  * Dark mode on iOS is not a tint of light mode — it swaps the yellow accent for the
  * blue family outright, so it is spelled out rather than derived.
  *
- * **A11Y-02 moved two slots.** iOS uses `blue3` as the dark surface; white on `blue3`
- * is 4.44 : 1, which misses AA for body text. `blue1` (7.15) and `blue2` (5.97) are
- * promoted and `blue3` demoted to `surfaceContainerHigh`, where it still clears
- * AA-large for accents. **This changes the dark-mode look — founder sign-off, BIT-15.**
+ * `surface` is `blue1`, the page most iOS screens use (`yelloworblue1`). The screens iOS
+ * paints `yelloworblue3` — signup, PIN, Academy — pass [BittrColors.primaryHigh] to
+ * `BittrCanvas` instead.
  *
- * **A11Y-22 moved `primary` off `surface`.** A11Y-02 promoted `blue1` into `surface`
- * while `primary` was already `blue1`, so the two slots collided at **1.00 : 1** and
- * every Material control that paints itself `primary` — a filled `Button`, a `Switch`
- * track, a `Slider`, a focused `TextField`'s indicator — became the page it sits on.
- * The label still rendered, so a button read as floating text rather than as a control,
- * which is exactly the failure WCAG 1.4.11 is about. The two schemes are asymmetric
- * here and that is the point: see [BittrLightColors] for why `primary` is a *surface*
- * in light mode and cannot be moved there. BIT-94.
+ * `primary` is no app control's fill: the buttons are [BittrColors.actionFill]. It is what
+ * Material's own text selection and progress bar fall back to.
  */
 val BittrDarkColors: ColorScheme = darkColorScheme(
-    // A11Y-22. Not a new colour and not a new decision: this is the value
-    // [BittrDarkColorsExtended]'s `actionFill` already carries, for the same reason and
-    // with the same numbers (6.38 : 1 on `surface`, and a 17.35 : 1 ink label). The
-    // dark primary action had already inverted to `grey1` on the canvas; this is the
-    // Material slot catching up, so the two cannot drift apart. `TokenContrastTest`
-    // asserts they stay equal. BIT-94.
     primary = Grey1,
     onPrimary = Ink,
     primaryContainer = Blue2,
@@ -191,9 +178,8 @@ val BittrDarkColors: ColorScheme = darkColorScheme(
     surfaceContainerLow = Blue2,
     surfaceContainerHighest = Blue3,
     surfaceBright = Blue3,
-    // A11Y-01: iOS is white @50 % → 2.29 : 1. 70 % only reaches 3.87 on blue2, so 80 %
-    // is the floor rather than a preference — 4.50 on blue2, 5.28 on blue1.
-    onSurfaceVariant = Color.White.copy(alpha = 0.80f),
+    // The field placeholders' `grey2orwhite0.7`.
+    onSurfaceVariant = Color.White.copy(alpha = 0.70f),
     outline = Color.White.copy(alpha = 0.70f), // non-text, 3.87 on blue2 clears 1.4.11
     outlineVariant = Color.White,
     error = Red2,
@@ -367,7 +353,9 @@ data class BittrColors(
     /** Content on [tonalFill]. */
     val onTonalFill: Color,
     /**
-     * The checked consent switch's track — the mock's `switchAccent`.
+     * The checked consent switch's track — the mock's `switchAccent` in light, UIKit's stock
+     * `systemGreen` in dark, where the switch is drawn as iOS draws it: no border, a white thumb
+     * either way and a grey track when off ([switchBorder], [switchOffThumb], [switchOffTrack]).
      *
      * **This fill does not carry the control's boundary, and in dark mode it cannot.**
      * It is 1.65 : 1 on the dark canvas and 1.32 : 1 on the card the switch is really
@@ -395,6 +383,24 @@ data class BittrColors(
      * the pair that says where the thumb is within its travel.
      */
     val onSwitchOn: Color,
+    /** The switch's outline in both states. */
+    val switchBorder: Color,
+    /** The unchecked switch's thumb. */
+    val switchOffThumb: Color,
+    /** The unchecked switch's track. */
+    val switchOffTrack: Color,
+    /**
+     * The quiet "Cancel" under a primary action (Signup2, Restore): iOS's `transparentblack`, white at
+     * 50 % in dark, where the other text buttons are `blackorwhite`.
+     */
+    val cancelLabel: Color,
+    /**
+     * The Settings and Device details row icons: `SettingsViewController` and `DeviceTableViewCell` tint
+     * them with an sRGB `#F8C744`, not the P3 yellow.
+     */
+    val settingsIcon: Color,
+    /** The square behind an Academy lesson's artwork (`LessonCollectionViewCell.cardView`). */
+    val lessonTile: Color,
     /**
      * The open arc of the bittr mark, which is the one part of the logo that is not
      * ink. The shipped SVG draws it `#FDBE10` for a white page; on the brand canvas
@@ -426,6 +432,10 @@ data class BittrColors(
      */
     val pinCell: Color,
     val onPinCell: Color,
+    /** The PIN pad's Confirm plate: `confirmPinView`, `blackorblue1`. */
+    val pinConfirm: Color,
+    /** The circle behind a pressed PIN key — the keys' black at 10 % in dark, as iOS fades them. */
+    val pinKeyPress: Color,
     /**
      * Home, as `HomeHeaderTableViewCell` colours it. [homeHeader] is `yelloworblue3` — the yellow
      * block and its cards; [homeCardTitle] `whiteoryellow`, their titles and the piggy; [homeAction]
@@ -627,6 +637,12 @@ val BittrLightColorsExtended = BittrColors(
     onTonalFill = Ink,
     switchOn = SwitchAccent,
     onSwitchOn = Color.White,
+    switchBorder = Ink.copy(alpha = 0.70f),
+    switchOffThumb = Ink.copy(alpha = 0.70f),
+    switchOffTrack = Color.Transparent,
+    cancelLabel = Ink.copy(alpha = 0.70f),
+    settingsIcon = Yellow,
+    lessonTile = Color.White.copy(alpha = 0.70f),
     canvasArc = Color.White,
     welcomeHeader = Color.White,
     phraseCard = Color.White,
@@ -634,6 +650,8 @@ val BittrLightColorsExtended = BittrColors(
     phrasePlaceholder = Color(0xFF808080),
     pinCell = Color.White.copy(alpha = 0.70f),
     onPinCell = Color.Black,
+    pinConfirm = Ink,
+    pinKeyPress = Ink,
     homeHeader = Yellow,
     homeCardTitle = Color.White,
     homeAction = Color.White.copy(alpha = 0.70f),
@@ -661,18 +679,9 @@ val BittrLightColorsExtended = BittrColors(
 )
 
 /**
- * Dark values.
- *
- * Nothing here changes under DEV-47 or A11Y-04 — both fixes are light-mode-only, which
- * is what makes them cheap.
- *
- * **[scrim3] stays `blue3` — A11Y-22 / DEV-61.** Moving it to `blue2` the way A11Y-02
- * moved `surface` was the obvious reading of the Swap placeholder failure, and it is
- * wrong: the Swap amount field sits *inside* `centerCard`, which is `yelloworblue2` =
- * `blue2`, so a `blue2` fill is **1.00 : 1** against the card it lives in — the field
- * stops being visible at all. The fix is at the call site instead: the Swap field fills
- * with [scrim1] like every other field in the wallet, and `scrim3` keeps `blue3` for the
- * five card surfaces that are large text and clear their floor there.
+ * Dark values: iOS's dark values, every one. Dark mode is to look exactly like iOS dark mode,
+ * whatever the contrast (Tom, 2026-10-23), so a token here is the iOS token or storyboard colour
+ * its call sites have on iOS, and nothing else.
  */
 val BittrDarkColorsExtended = BittrColors(
     profit = Green1,
@@ -682,40 +691,41 @@ val BittrDarkColorsExtended = BittrColors(
     lossBg = Red2.copy(alpha = 0.30f),
     lossBgMuted = Red2.copy(alpha = 0.30f),
     emphasis = Yellow,
-    rowLabel = Color(0xFFFFE28A), // 4.69 : 1 on blue2. DEV-40 — founder sign-off, BIT-15.
+    rowLabel = Yellow,
     brandFixed = Yellow,
     unconfirmed = Color.White.copy(alpha = 0.50f),
     footnote = Color.White.copy(alpha = 0.50f),
-    // `gilroybitcoinwhite` at 47 % on blue3, the dark card — as in light, the sign's own colour.
-    balanceDimmed = Color.White.copy(alpha = 0.47f).compositeOver(Blue3),
+    // `HomeHeaderData`'s dimmed digits and the conversion label: sRGB (170, 190, 217).
+    balanceDimmed = Color(0xFFAABED9),
     scrim1 = Blue1,
     scrim2 = Blue2,
     scrim3 = Blue3,
     scrimBrand = Blue3.copy(alpha = 0.85f),
     primaryHigh = Blue3,
     barTrack = BarTrack,
-    // The mock has no dark artboards. Dark mode on this app is not a tint of light
-    // mode — it swaps the yellow family for the blue one — so the canvas tokens
-    // follow the same swap the schemes already make, rather than being invented.
-    //
-    // [actionFill] is the one that cannot be mechanical: ink-on-blue1 is 2.98 : 1,
-    // under the 3 : 1 floor a button's own edge has to clear (WCAG 1.4.11), so the
-    // pill inverts instead — grey1 on blue1 is 6.12 : 1 and its ink label 16.3 : 1.
+    // Dark mode matches iOS dark mode exactly (Tom, 2026-10-23). The storyboards' buttons are
+    // black with white labels in both modes, dimmed to black at 60 %, and the text buttons are
+    // `blackorwhite`.
     canvas = Blue1,
     onCanvas = Color.White,
-    mutedOnCanvas = Color.White.copy(alpha = 0.85f),
+    mutedOnCanvas = Color.White,
     cardWash = Color.White.copy(alpha = 0.09f),
-    actionFill = Grey1,
-    onActionFill = Ink,
-    actionFillDisabled = Color.White.copy(alpha = 0.30f),
-    onActionFillDisabled = Ink,
-    tonalFill = Blue3,
-    onTonalFill = Color.White,
-    // Not swapped for the blue family, unlike `actionFill`. Green means "yes, I
-    // understand" on a consent control; there is no blue that says that. It is allowed
-    // to stay because it is not what makes the control perceivable — see [switchOn].
-    switchOn = SwitchAccent,
+    actionFill = Color.Black,
+    onActionFill = Color.White,
+    actionFillDisabled = Color.Black.copy(alpha = 0.60f),
+    onActionFillDisabled = Color.White,
+    // The article card is the storyboard's white at 70.4 % in both modes, its title (42, 43, 46).
+    tonalFill = Color.White.copy(alpha = 0.704f),
+    onTonalFill = Color(0xFF2A2B2E),
+    // UIKit's stock switch in dark: `systemGreen`, and `systemFill` (120, 120, 128) at 32 % off.
+    switchOn = Color(0xFF30D158),
     onSwitchOn = Color.White,
+    switchBorder = Color.Transparent,
+    switchOffThumb = Color.White,
+    switchOffTrack = Color(0xFF787880).copy(alpha = 0.32f),
+    cancelLabel = Color.White.copy(alpha = 0.50f),
+    settingsIcon = Color(0xFFF8C744),
+    lessonTile = Color.White,
     // White would vanish into the ink strokes beside it on a blue canvas; the brand
     // yellow is the one colour that reads on both, and dark mode keeps exactly seven
     // brand-yellow sites already (see `brandFixed`). This is the eighth.
@@ -726,6 +736,8 @@ val BittrDarkColorsExtended = BittrColors(
     phrasePlaceholder = Color(0xFF808080),
     pinCell = Color.White.copy(alpha = 0.70f),
     onPinCell = Color.Black,
+    pinConfirm = Blue1,
+    pinKeyPress = Color.Black,
     homeHeader = Blue3,
     homeCardTitle = Yellow,
     homeAction = Blue2,

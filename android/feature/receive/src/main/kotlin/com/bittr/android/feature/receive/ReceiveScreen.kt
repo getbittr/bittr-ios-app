@@ -320,7 +320,8 @@ private fun QrBox(payload: String?, loading: Boolean, onCopy: () -> Unit, onShar
         }
         if (loading) {
             BittrSpinner(
-                color = BittrTheme.colors.emphasis,
+                // The storyboard's black, on the QR's white box in both modes.
+                color = BittrTheme.colors.onChartSurface,
                 modifier = Modifier.testTag(TestID.Receive.qrSpinner),
             )
         }
@@ -711,7 +712,7 @@ private fun EntryField(
             onValueChange = onValueChange,
             singleLine = true,
             textStyle = style.copy(color = MaterialTheme.colorScheme.onSurface),
-            cursorBrush = SolidColor(colors.onTonalFill),
+            cursorBrush = SolidColor(colors.onCanvas),
             keyboardOptions = KeyboardOptions(keyboardType = keyboardType, imeAction = ImeAction.Done),
             keyboardActions = KeyboardActions(onDone = { onDone() }),
             modifier = Modifier

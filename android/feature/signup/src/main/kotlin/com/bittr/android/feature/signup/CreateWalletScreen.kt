@@ -12,6 +12,7 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.bittr.android.core.common.TestID
 import com.bittr.android.core.designsystem.BittrAlertDialog
 import com.bittr.android.core.designsystem.BittrCanvas
+import com.bittr.android.core.designsystem.BittrTheme
 import com.bittr.android.core.designsystem.pageSlide
 
 /**
@@ -88,7 +89,7 @@ fun CreateWalletScreen(
                 if (mnemonic == null) {
                     // Only reachable if the phrase was dropped out from under the step,
                     // which would mean showing an empty backup screen. Go back instead.
-                    if (arriving) LaunchedEffect(Unit) { viewModel.finish() } else BittrCanvas(modifier) {}
+                    if (arriving) LaunchedEffect(Unit) { viewModel.finish() } else BittrCanvas(modifier, background = BittrTheme.colors.primaryHigh) {}
                 } else {
                     MnemonicScreen(
                         mnemonic = mnemonic,
@@ -107,7 +108,7 @@ fun CreateWalletScreen(
                 if (arriving && state.challenge == null) {
                     LaunchedEffect(Unit) { viewModel.backToPhrase() }
                 } else if (challenge == null) {
-                    BittrCanvas(modifier) {}
+                    BittrCanvas(modifier, background = BittrTheme.colors.primaryHigh) {}
                 } else {
                     VerifyScreen(
                         challenge = challenge,

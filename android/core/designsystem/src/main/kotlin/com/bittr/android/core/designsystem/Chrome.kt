@@ -91,6 +91,7 @@ fun BittrModalHeader(
     icon: String = BittrIconPaths.PIGGY,
     titleTestTag: String? = null,
     downTestTag: String? = null,
+    tint: Color = LocalContentColor.current,
 ) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
@@ -100,13 +101,14 @@ fun BittrModalHeader(
             .padding(start = BittrTokens.Spacing.lg, end = BittrTokens.Spacing.xs),
     ) {
         Image(
-            imageVector = rememberFillIcon(icon, LocalContentColor.current),
+            imageVector = rememberFillIcon(icon, tint),
             contentDescription = null,
             modifier = Modifier.size(HeaderIcon),
         )
         Text(
             text = title.lowercase(),
             style = MaterialTheme.typography.titleMedium,
+            color = tint,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
             modifier = Modifier
@@ -127,7 +129,7 @@ fun BittrModalHeader(
             Image(
                 imageVector = rememberStrokeIcon(
                     BittrIconPaths.ARROW_DOWN,
-                    LocalContentColor.current,
+                    tint,
                 ),
                 contentDescription = "Close",
                 modifier = Modifier.size(22.dp),
