@@ -145,15 +145,15 @@ internal fun SignupContainer(
     }
 
     if (onboarding) {
-        BittrCanvas(appBar = true, scrollsUnderAppBar = true) {
+        BittrCanvas(appBar = true, scrollsUnderAppBar = true, background = BittrTheme.colors.primaryHigh) {
             pages(Modifier.weight(1f).fillMaxWidth())
         }
     } else {
-        // `RegisterIbanViewController`: `addHeader` with the piggy, over the pages.
+        // `RegisterIbanViewController`: `addHeader` with the piggy, over the pages, on `yelloworblue3`.
         Box(
             Modifier
                 .fillMaxSize()
-                .background(BittrTheme.colors.canvas)
+                .background(BittrTheme.colors.primaryHigh)
                 .dismissOnPullDown(controller::onCloseSignup),
         ) {
             pages(Modifier.fillMaxSize())

@@ -162,7 +162,7 @@ fun RestoreScreen(
     BackHandler(onBack = onCancel)
     // No arrow in the app bar: Cancel goes back, as on iOS, and the system back
     // gesture does what that button does. The fields scroll up under the translucent top bar.
-    BittrCanvas(modifier = modifier, scrollsUnderAppBar = true) {
+    BittrCanvas(modifier = modifier, background = BittrTheme.colors.primaryHigh, scrollsUnderAppBar = true) {
         // RestoreViewController's scene: no yellow card. The heading, the white card of twelve
         // words 30 below it, the button 30 below that, Cancel, and the article card — one group,
         // centred 40 above the middle of the screen.
@@ -254,11 +254,13 @@ fun RestoreScreen(
                 text = submitLabel,
                 onClick = ::submit,
                 enabled = !busy,
+                // iOS keeps the plate black while it is busy; light mode dims it.
+                dimmed = busy && !BittrTheme.isDark,
                 arrow = false,
                 modifier = Modifier.testTag(TestID.Signup.Restore.nextButton),
             )
             // iOS leaves 10 pt and a 25 pt row for Cancel; its 48 dp touch target spends the 10.
-            BittrTextButton(text = SignupStrings.CANCEL, onClick = onCancel)
+            BittrTextButton(text = SignupStrings.CANCEL, onClick = onCancel, color = BittrTheme.colors.cancelLabel)
             if (onOpenArticle != null) {
                 // 50 below Cancel's 25 pt row on iOS, less the rest of the 48 dp target.
                 CanvasSpacer(38.dp)

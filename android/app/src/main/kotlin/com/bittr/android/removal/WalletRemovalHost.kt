@@ -49,7 +49,7 @@ fun WalletRemovalHost(
                 contentAlignment = Alignment.Center,
                 modifier = Modifier
                     .fillMaxSize()
-                    .background(BittrTheme.colors.canvas.copy(alpha = COVER_ALPHA))
+                    .background(BittrTheme.colors.primaryHigh.copy(alpha = COVER_ALPHA))
                     // The cover swallows taps, as iOS's does.
                     .pointerInput(Unit) { detectTapGestures { } },
             ) {

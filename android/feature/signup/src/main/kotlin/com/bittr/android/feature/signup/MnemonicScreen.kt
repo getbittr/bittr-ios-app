@@ -70,7 +70,7 @@ fun MnemonicScreen(
     BackHandler(enabled = onBack != null) { onBack?.invoke() }
     // No arrow in the app bar, as on iOS; the system back gesture goes back when there is a back.
     // The words scroll up under the translucent top bar, as they do on iOS.
-    BittrCanvas(modifier = modifier, scrollsUnderAppBar = true) {
+    BittrCanvas(modifier = modifier, background = BittrTheme.colors.primaryHigh, scrollsUnderAppBar = true) {
         // The storyboard's centre view: 30 above the first label, 40 below the article card.
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
