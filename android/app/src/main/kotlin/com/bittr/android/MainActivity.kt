@@ -1,5 +1,7 @@
 package com.bittr.android
 
+import android.app.ActivityManager
+import android.os.Build
 import android.os.Bundle
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import android.os.SystemClock
@@ -13,11 +15,13 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -124,6 +128,15 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    /**
+     * The colour of the card Recents shows in place of a picture of the app: iOS's privacy cover's,
+     * `yelloworblue3`. Android draws that card itself, so it has the cover's colour but not its logo.
+     */
+    private fun showInRecentsAs(color: Int) {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) return
+        setTaskDescription(ActivityManager.TaskDescription.Builder().setBackgroundColor(color).build())
+    }
+
     override fun onStop() {
         appForeground.setActive(false)
         backgroundedAt = SystemClock.elapsedRealtime()
@@ -152,10 +165,14 @@ class MainActivity : ComponentActivity() {
         // `restore_wallet.yaml` could not reach field 7 on an API 34 emulator.
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
+        // Recents takes no picture of the wallet, which iOS hides from its app switcher behind the privacy cover.
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) setRecentsScreenshotEnabled(false)
         removedWalletReset.start()
         setContent {
             val setting by preferences.darkMode.collectAsState()
             BittrTheme(darkTheme = setting.isDark()) {
+                val recentsColor = BittrTheme.colors.primaryHigh.toArgb()
+                SideEffect { showInRecentsAs(recentsColor) }
                 BittrApp(pushCoordinator, transactionConfirmations.transactionScreenOpen)
             }
         }
