@@ -257,141 +257,135 @@ fun TransactionScreen(
                 .dismissOnPullDown(onDown),
         ) {
             val sheetHeight = maxHeight
-            // The hearts fall behind the cards, not over the figures (review, `buy_more/05`).
-            Box(modifier = Modifier.fillMaxSize()) {
-                if (detail?.confetti == true) {
-                    HeartsConfetti(modifier = Modifier.matchParentSize())
+            Column(
+                verticalArrangement = Arrangement.Center,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .verticalScroll(rememberScrollState())
+                    .heightIn(min = sheetHeight)
+                    // The header's 58 above, and as much below so the block centres on the sheet,
+                    // clear of the gesture bar.
+                    .padding(horizontal = 15.dp, vertical = 58.dp)
+                    .navigationBarsPadding(),
+            ) {
+                val shown = detail ?: return@Column
+                fun copy(text: String) {
+                    clipboard.copy(text)
+                    // Android 13 and up show their own clipboard confirmation; below it,
+                    // this alert is the only feedback there is. See SYSTEM_CONFIRMS_COPY.
+                    if (!SYSTEM_CONFIRMS_COPY) copied = text
                 }
-                Column(
-                    verticalArrangement = Arrangement.Center,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .verticalScroll(rememberScrollState())
-                        .heightIn(min = sheetHeight)
-                        // The header's 58 above, and as much below so the block centres on the sheet,
-                        // clear of the gesture bar.
-                        .padding(horizontal = 15.dp, vertical = 58.dp)
-                        .navigationBarsPadding(),
+                if (shown.confetti) {
+                    PayoutHeader()
+                }
+                // `yellowCard`: the date, then the rows 10 in and 10 apart. The date's band and, at the
+                // bottom, "Add a note"'s are both 55 from the card's edge to the nearest row, as on
+                // iOS, with each label centred in its band — iOS sets the date 8 from its band's
+                // bottom and "Add a note" 6 below its row's middle, both off-centre (Tom, 2026-10-06).
+                val addNoteLast = !shown.confetti && shown.note == null
+                BittrCard(
+                    fill = BittrTheme.colors.levelCard,
+                    // "Add a note" is 45 tall and the column's 10 above it make its 55.
+                    contentPadding = PaddingValues(start = 10.dp, end = 10.dp, bottom = if (addNoteLast) 0.dp else 10.dp),
+                    modifier = Modifier.testTag(TestID.Transaction.yellowCard),
                 ) {
-                    val shown = detail ?: return@Column
-                    fun copy(text: String) {
-                        clipboard.copy(text)
-                        // Android 13 and up show their own clipboard confirmation; below it,
-                        // this alert is the only feedback there is. See SYSTEM_CONFIRMS_COPY.
-                        if (!SYSTEM_CONFIRMS_COPY) copied = text
-                    }
-                    if (shown.confetti) {
-                        PayoutHeader()
-                    }
-                    // `yellowCard`: the date, then the rows 10 in and 10 apart. The date's band and, at the
-                    // bottom, "Add a note"'s are both 55 from the card's edge to the nearest row, as on
-                    // iOS, with each label centred in its band — iOS sets the date 8 from its band's
-                    // bottom and "Add a note" 6 below its row's middle, both off-centre (Tom, 2026-10-06).
-                    val addNoteLast = !shown.confetti && shown.note == null
-                    BittrCard(
-                        fill = BittrTheme.colors.levelCard,
-                        // "Add a note" is 45 tall and the column's 10 above it make its 55.
-                        contentPadding = PaddingValues(start = 10.dp, end = 10.dp, bottom = if (addNoteLast) 0.dp else 10.dp),
-                        modifier = Modifier.testTag(TestID.Transaction.yellowCard),
-                    ) {
-                        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                            // 45 here and the column's 10 make the 55 band; the offset centres the date on it.
-                            Box(
-                                contentAlignment = Alignment.Center,
+                    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                        // 45 here and the column's 10 make the 55 band; the offset centres the date on it.
+                        Box(
+                            contentAlignment = Alignment.Center,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(45.dp)
+                                .offset(y = 5.dp),
+                        ) {
+                            Text(
+                                text = shown.date,
+                                style = MaterialTheme.typography.bodyLarge.copy(lineHeight = 16.sp),
+                                color = MaterialTheme.colorScheme.onSurface,
+                                textAlign = TextAlign.Center,
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .height(45.dp)
-                                    .offset(y = 5.dp),
-                            ) {
-                                Text(
-                                    text = shown.date,
-                                    style = MaterialTheme.typography.bodyLarge.copy(lineHeight = 16.sp),
-                                    color = MaterialTheme.colorScheme.onSurface,
-                                    textAlign = TextAlign.Center,
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .testTag(TestID.Transaction.labelDate),
-                                )
-                            }
-                            DetailRow(HomeStrings.AMOUNT, shown.amount, valueTag = TestID.Transaction.labelAmount)
-                            if (!shown.confetti) {
-                                DetailRow(HomeStrings.TYPE, shown.type, bolt = shown.typeBolt)
-                            }
-                            // `swapStack` comes before the fees in the storyboard, as one card.
-                            shown.swap?.let { swap ->
-                                SwapCard(
-                                    swapId = swap.swapIdLabel,
-                                    status = swap.status,
-                                    onClick = swap.boltzId?.let { boltzId -> { onOpenSwapStatus(boltzId) } },
-                                )
-                            }
-                            shown.fees?.let { DetailRow(HomeStrings.FEES_PAID, it) }
-                            shown.confirmations?.let { DetailRow(HomeStrings.CONFIRMATIONS, it) }
-                            // `descriptionStack` sits between Confirmations and the ids in the card (Main.storyboard).
-                            shown.description?.let { description ->
-                                DescriptionRow(
-                                    description = description,
-                                    singleLine = shown.bittr != null,
-                                    onClick = { copy(description) },
-                                )
-                            }
-                            if (!shown.confetti) {
-                                val swap = shown.swap
-                                val bottomId = swap?.bottomId.orEmpty()
-                                IdCard(
-                                    top = IdLine(
-                                        title = shown.idTitle,
-                                        id = shown.id,
-                                        onCopy = { copy(shown.id) },
-                                        copyTag = TestID.Transaction.copyIdButton,
-                                        onExplorer = shown.explorerId?.let { explorerId -> { onOpenExplorer(explorerId) } },
-                                        explorerTag = TestID.Transaction.urlIdButton,
-                                    ),
-                                    bottom = swap?.bottomIdTitle?.let { title ->
-                                        IdLine(
-                                            title = title,
-                                            id = bottomId,
-                                            onCopy = if (swap.bottomIdCopyable) ({ copy(bottomId) }) else null,
-                                            copyTag = TestID.Transaction.copyBottomIdButton,
-                                            onExplorer = swap.bottomExplorerId?.let { explorerId -> { onOpenExplorer(explorerId) } },
-                                            explorerTag = null,
-                                        )
-                                    },
-                                )
-                            }
-                            shown.currentValue?.let { DetailRow(HomeStrings.CURRENT_VALUE, it) }
-                            shown.bittr?.let { bittr ->
-                                BittrSection(bittr = bittr, onExplain = { title, body -> feeExplanation = title to body })
-                            }
-                            // `noteStack` / `addANoteStack`, the card's last rows. The payout summary
-                            // offers no note (`addANoteStack` hidden under `showConfetti`).
-                            if (!shown.confetti) {
-                                val note = shown.note
-                                if (note != null) {
-                                    Box(modifier = Modifier.bringIntoViewRequester(noteRequester)) {
-                                        TextRow(
-                                            title = HomeStrings.NOTE,
-                                            text = note,
-                                            textTag = TestID.Transaction.labelNote,
-                                            buttonTag = null,
-                                            onClick = { editingNote = true },
-                                        )
-                                    }
-                                    LaunchedEffect(note, revealNote) {
-                                        if (revealNote) {
-                                            noteRequester.bringIntoView()
-                                            revealNote = false
-                                        }
-                                    }
-                                } else {
-                                    AddNoteRow(onClick = { editingNote = true })
+                                    .testTag(TestID.Transaction.labelDate),
+                            )
+                        }
+                        DetailRow(HomeStrings.AMOUNT, shown.amount, valueTag = TestID.Transaction.labelAmount)
+                        if (!shown.confetti) {
+                            DetailRow(HomeStrings.TYPE, shown.type, bolt = shown.typeBolt)
+                        }
+                        // `swapStack` comes before the fees in the storyboard, as one card.
+                        shown.swap?.let { swap ->
+                            SwapCard(
+                                swapId = swap.swapIdLabel,
+                                status = swap.status,
+                                onClick = swap.boltzId?.let { boltzId -> { onOpenSwapStatus(boltzId) } },
+                            )
+                        }
+                        shown.fees?.let { DetailRow(HomeStrings.FEES_PAID, it) }
+                        shown.confirmations?.let { DetailRow(HomeStrings.CONFIRMATIONS, it) }
+                        // `descriptionStack` sits between Confirmations and the ids in the card (Main.storyboard).
+                        shown.description?.let { description ->
+                            DescriptionRow(
+                                description = description,
+                                singleLine = shown.bittr != null,
+                                onClick = { copy(description) },
+                            )
+                        }
+                        if (!shown.confetti) {
+                            val swap = shown.swap
+                            val bottomId = swap?.bottomId.orEmpty()
+                            IdCard(
+                                top = IdLine(
+                                    title = shown.idTitle,
+                                    id = shown.id,
+                                    onCopy = { copy(shown.id) },
+                                    copyTag = TestID.Transaction.copyIdButton,
+                                    onExplorer = shown.explorerId?.let { explorerId -> { onOpenExplorer(explorerId) } },
+                                    explorerTag = TestID.Transaction.urlIdButton,
+                                ),
+                                bottom = swap?.bottomIdTitle?.let { title ->
+                                    IdLine(
+                                        title = title,
+                                        id = bottomId,
+                                        onCopy = if (swap.bottomIdCopyable) ({ copy(bottomId) }) else null,
+                                        copyTag = TestID.Transaction.copyBottomIdButton,
+                                        onExplorer = swap.bottomExplorerId?.let { explorerId -> { onOpenExplorer(explorerId) } },
+                                        explorerTag = null,
+                                    )
+                                },
+                            )
+                        }
+                        shown.currentValue?.let { DetailRow(HomeStrings.CURRENT_VALUE, it) }
+                        shown.bittr?.let { bittr ->
+                            BittrSection(bittr = bittr, onExplain = { title, body -> feeExplanation = title to body })
+                        }
+                        // `noteStack` / `addANoteStack`, the card's last rows. The payout summary
+                        // offers no note (`addANoteStack` hidden under `showConfetti`).
+                        if (!shown.confetti) {
+                            val note = shown.note
+                            if (note != null) {
+                                Box(modifier = Modifier.bringIntoViewRequester(noteRequester)) {
+                                    TextRow(
+                                        title = HomeStrings.NOTE,
+                                        text = note,
+                                        textTag = TestID.Transaction.labelNote,
+                                        buttonTag = null,
+                                        onClick = { editingNote = true },
+                                    )
                                 }
+                                LaunchedEffect(note, revealNote) {
+                                    if (revealNote) {
+                                        noteRequester.bringIntoView()
+                                        revealNote = false
+                                    }
+                                }
+                            } else {
+                                AddNoteRow(onClick = { editingNote = true })
                             }
                         }
                     }
-                    if (shown.confetti) {
-                        ReminderCard()
-                    }
+                }
+                if (shown.confetti) {
+                    ReminderCard()
                 }
             }
         }
@@ -403,6 +397,10 @@ fun TransactionScreen(
             titleTestTag = TestID.Header.titleLabel,
             downTestTag = TestID.Header.downButton,
         )
+        // Over everything, header included, as `SPConfetti` draws over the whole window.
+        if (detail?.confetti == true) {
+            HeartsConfetti(modifier = Modifier.matchParentSize())
+        }
     }
 }
 
