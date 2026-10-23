@@ -4,7 +4,6 @@ import androidx.annotation.DrawableRes
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.AnimationVector1D
 import androidx.compose.animation.core.FastOutSlowInEasing
-import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -32,6 +31,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.lerp
 import com.bittr.android.core.designsystem.BittrTheme
+import com.bittr.android.core.designsystem.iosSpring
 import kotlinx.coroutines.delay
 
 /**
@@ -85,9 +85,9 @@ fun LaunchAnimation(
     LaunchedEffect(Unit) {
         delay(COIN_DELAY_MS)
         slide.animateTo(1f, tween(durationMillis = COIN_MS, easing = FastOutSlowInEasing))
-        widen.animateTo(1f, spring(dampingRatio = DAMPING, stiffness = WIDEN_STIFFNESS))
+        widen.animateTo(1f, iosSpring(WIDEN_SECONDS, DAMPING))
         delay(RISE_DELAY_MS)
-        rise.animateTo(1f, spring(dampingRatio = DAMPING, stiffness = RISE_STIFFNESS))
+        rise.animateTo(1f, iosSpring(RISE_SECONDS, DAMPING))
         onFinished()
     }
 
@@ -219,10 +219,6 @@ private const val COIN_MS = 600
 private const val RISE_DELAY_MS = 300L
 private const val DAMPING = 0.65f
 
-/**
- * iOS gives its springs a duration — 0.6 s to widen, 0.7 s to rise — and Compose's take theirs
- * from stiffness. A spring settles in about `4 / (damping × √stiffness)` seconds: (4 / (0.65 ×
- * 0.6))² is 105, and (4 / (0.65 × 0.7))² is 77.
- */
-private const val WIDEN_STIFFNESS = 105f
-private const val RISE_STIFFNESS = 77f
+/** iOS's spring durations: 0.6 s to widen, 0.7 s to rise. */
+private const val WIDEN_SECONDS = 0.6f
+private const val RISE_SECONDS = 0.7f
