@@ -1017,9 +1017,9 @@ class TokenContrastTest {
             // `grey2orwhite0.7`.
             "onSurfaceVariant" to (BittrDarkColors.onSurfaceVariant to Color.White.copy(alpha = 0.70f)),
             // `HomeHeaderData`'s sRGB (170, 190, 217).
-            "balanceDimmed" to (dark.balanceDimmed to Color(0xFFAABED9)),
+            "balanceDimmed" to (dark.balanceDimmed to Color(red = 170, green = 190, blue = 217)),
             // UIKit's stock switch.
-            "switchOn" to (dark.switchOn to Color(0xFF30D158)),
+            "switchOn" to (dark.switchOn to Color(red = 48, green = 209, blue = 88)),
             "switchBorder" to (dark.switchBorder to Color.Transparent),
             "switchOffThumb" to (dark.switchOffThumb to Color.White),
         )
