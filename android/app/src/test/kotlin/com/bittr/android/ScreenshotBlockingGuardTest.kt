@@ -25,11 +25,14 @@ import org.junit.Test
  * out — a `DisposableEffect` that adds it on enter and clears it on dispose — never
  * set app-wide. This test enforces the "never app-wide" half; the scoped use is
  * allowed anywhere else.
+ *
+ * `setRecentsScreenshotEnabled(false)` is not in it: it only stops the Recents picture and leaves
+ * `adb screencap` alone, and `MainActivity` sets it for the whole session on purpose.
  */
 class ScreenshotBlockingGuardTest {
 
     private companion object {
-        val SECURE_FLAG_SYMBOLS = listOf("FLAG_SECURE", "setRecentsScreenshotEnabled")
+        val SECURE_FLAG_SYMBOLS = listOf("FLAG_SECURE")
 
         /** Files whose scope is the whole app session, so a flag set here never comes off. */
         val APP_WIDE_FILES = setOf("MainActivity.kt", "BittrApplication.kt")
