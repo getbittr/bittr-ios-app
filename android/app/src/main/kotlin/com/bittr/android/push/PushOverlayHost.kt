@@ -19,6 +19,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -103,13 +104,16 @@ private fun PushQuestionCard(question: PushQuestion, onDown: () -> Unit) {
             onDown = onDown,
             titleTestTag = TestID.Header.titleLabel,
             downTestTag = TestID.Header.downButton,
+            // iOS's `iconpiggyyellow` and `downarrow32yellow` in dark.
+            tint = if (BittrTheme.isDark) BittrTheme.colors.homeCardTitle else LocalContentColor.current,
         )
         Column(
             modifier = Modifier
                 .verticalScroll(rememberScrollState())
                 .padding(BittrTokens.Spacing.md),
         ) {
-            BittrCard(modifier = Modifier.testTag(TestID.Question.yellowCard)) {
+            // `yelloworblue2`.
+            BittrCard(modifier = Modifier.testTag(TestID.Question.yellowCard), fill = BittrTheme.colors.levelCard) {
                 BittrBody(
                     text = question.answer,
                     textAlign = TextAlign.Start,

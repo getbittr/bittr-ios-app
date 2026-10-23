@@ -59,6 +59,7 @@ import com.bittr.android.core.designsystem.BittrIconPaths
 import com.bittr.android.core.designsystem.BittrTextFieldAlert
 import com.bittr.android.core.designsystem.BittrTheme
 import com.bittr.android.core.designsystem.BittrTokens
+import com.bittr.android.core.designsystem.rememberFillIcon
 import com.bittr.android.core.designsystem.rememberStrokeIcon
 import com.bittr.android.core.wallet.BittrPurchaseSource
 import com.bittr.android.core.wallet.FiatPrice
@@ -646,7 +647,12 @@ private fun DetailRow(
         RowTitle(title, modifier = Modifier.weight(1f))
         if (bolt) {
             Image(
-                imageVector = rememberStrokeIcon(BittrIconPaths.BOLT, BittrTheme.colors.emphasis, strokeWidth = 2f),
+                // Dark is iOS's `bolt.fill` in `blackorwhite` at 80 %.
+                imageVector = if (BittrTheme.isDark) {
+                    rememberFillIcon(BittrIconPaths.BOLT, MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f))
+                } else {
+                    rememberStrokeIcon(BittrIconPaths.BOLT, BittrTheme.colors.emphasis, strokeWidth = 2f)
+                },
                 contentDescription = null,
                 modifier = Modifier
                     .padding(end = BittrTokens.Spacing.xs)

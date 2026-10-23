@@ -111,6 +111,8 @@ private val AppBarIconBox = 48.dp
  * @param scrollsUnderAppBar lays [content] out from the top of the screen instead of below the
  *   bar, so a scrolling screen can pass under it. That screen then pads its scrolled content with
  *   [appBarContentPadding], inside the scroll, so it rests below the bar all the same.
+ * @param background the page colour. iOS pages are `yelloworblue1` ([BittrColors.canvas]) or
+ *   `yelloworblue3` ([BittrColors.primaryHigh]), the same yellow in light and blue1 or blue3 in dark.
  */
 @Composable
 fun BittrCanvas(
@@ -118,14 +120,18 @@ fun BittrCanvas(
     onBack: (() -> Unit)? = null,
     appBar: Boolean = true,
     scrollsUnderAppBar: Boolean = false,
+    background: Color = BittrTheme.colors.canvas,
     content: @Composable ColumnScope.() -> Unit,
 ) {
     val colors = BittrTheme.colors
-    CompositionLocalProvider(LocalContentColor provides colors.onCanvas) {
+    CompositionLocalProvider(
+        LocalContentColor provides colors.onCanvas,
+        LocalPageColor provides background,
+    ) {
         Box(
             modifier = modifier
                 .fillMaxSize()
-                .background(colors.canvas),
+                .background(background),
         ) {
             Column(
                 modifier = Modifier
@@ -153,6 +159,16 @@ fun BittrCanvas(
  * content of a [BittrCanvas] with `scrollsUnderAppBar`, applied inside its scroll.
  */
 fun Modifier.appBarContentPadding(): Modifier = statusBarsPadding().padding(top = AppBarContentInset)
+
+/**
+ * The colour of the page [BittrCanvas] is drawing, for what composites over it or cuts through to it.
+ * Null outside a canvas; read it with [pageColor].
+ */
+val LocalPageColor = compositionLocalOf<Color?> { null }
+
+/** The page under the caller: [LocalPageColor], or [BittrColors.canvas] outside a [BittrCanvas]. */
+@Composable
+fun pageColor(): Color = LocalPageColor.current ?: BittrTheme.colors.canvas
 
 /** [appBarContentPadding] below the status bar: the bar's own height. */
 val AppBarContentInset: Dp = AppBarHeight
@@ -275,7 +291,7 @@ fun BittrAppBar(onBack: (() -> Unit)? = null, modifier: Modifier = Modifier) {
  * and the result is not the canvas colour.
  *
  * @param shadow iOS's `setShadow()` under the card — see [iosShadow]. A translucent [fill] is
- *   filled pre-composited over the canvas, the same pixels made opaque, because a shadow drawn
+ *   filled pre-composited over the page, the same pixels made opaque, because a shadow drawn
  *   behind a translucent card would show through it.
  * @param shape the card's corners.
  * @param contentPadding the gutter inside the card; the mock's 22/28 dp by default. A screen
@@ -292,7 +308,7 @@ fun BittrCard(
     fill: Color = BittrTheme.colors.canvas,
     content: @Composable ColumnScope.() -> Unit,
 ) {
-    val colors = BittrTheme.colors
+    val page = pageColor()
     Column(
         horizontalAlignment = horizontalAlignment,
         modifier = modifier
@@ -301,7 +317,7 @@ fun BittrCard(
                 if (shadow) {
                     Modifier
                         .iosShadow(shape)
-                        .background(fill.compositeOver(colors.canvas), shape)
+                        .background(fill.compositeOver(page), shape)
                 } else {
                     Modifier.background(fill, shape)
                 },
@@ -347,6 +363,8 @@ val IosCardShape = RoundedCornerShape(13.dp)
  *   explains what is missing (Buy signup's "please fill in" alert). Follows [enabled].
  * @param arrow the forward chevron. Present on every "carry on" action in the mock and
  *   absent on the ones that complete something in place (`Confirm` on the PIN pad).
+ * @param fill the plate when it is not dimmed; [BittrColors.actionFill] unless iOS colours this
+ *   button otherwise.
  */
 @Composable
 fun BittrPrimaryButton(
@@ -359,6 +377,7 @@ fun BittrPrimaryButton(
     dimmed: Boolean = !enabled,
     wrapLabel: Boolean = false,
     fullWidth: Boolean = false,
+    fill: Color = BittrTheme.colors.actionFill,
     content: (@Composable () -> Unit)? = null,
 ) {
     val colors = BittrTheme.colors
@@ -373,7 +392,7 @@ fun BittrPrimaryButton(
                     .then(if (wrapLabel) Modifier.heightIn(min = 40.dp) else Modifier.height(40.dp))
                     .widthIn(min = 80.dp)
                     .clip(shape)
-                    .background(if (dimmed) colors.actionFillDisabled else colors.actionFill, shape)
+                    .background(if (dimmed) colors.actionFillDisabled else fill, shape)
                     .clickable(enabled = enabled, role = Role.Button, onClick = onClick)
                     .padding(horizontal = 17.dp, vertical = if (wrapLabel) 10.dp else 0.dp),
             ) {
@@ -420,7 +439,7 @@ fun BittrPrimaryButton(
             // instead of drawing a rectangle around it.
             .clip(BittrCanvasShapes.pill)
             .background(
-                if (dimmed) colors.actionFillDisabled else colors.actionFill,
+                if (dimmed) colors.actionFillDisabled else fill,
                 BittrCanvasShapes.pill,
             )
             .clickable(enabled = enabled, role = Role.Button, onClick = onClick),
@@ -483,6 +502,7 @@ fun BittrTextButton(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
+    color: Color = BittrTheme.colors.mutedOnCanvas,
 ) {
     Box(
         contentAlignment = Alignment.Center,
@@ -494,7 +514,7 @@ fun BittrTextButton(
         Text(
             text = text,
             style = MaterialTheme.typography.labelLarge,
-            color = BittrTheme.colors.mutedOnCanvas,
+            color = color,
             textAlign = TextAlign.Center,
         )
     }
@@ -704,6 +724,9 @@ fun BittrCheckBadge(
  * why darkening or swapping the green cannot fix that and a border can.
  *
  * The unchecked state was always fine and is unchanged; it is the one this borrows from.
+ *
+ * Dark mode draws UIKit's stock switch instead, as iOS does: no border, a white thumb and a grey
+ * track when off ([BittrColors.switchBorder] and its neighbours).
  */
 @Composable
 fun bittrSwitchColors(): androidx.compose.material3.SwitchColors {
@@ -711,10 +734,10 @@ fun bittrSwitchColors(): androidx.compose.material3.SwitchColors {
     return androidx.compose.material3.SwitchDefaults.colors(
         checkedThumbColor = colors.onSwitchOn,
         checkedTrackColor = colors.switchOn,
-        checkedBorderColor = colors.mutedOnCanvas,
-        uncheckedThumbColor = colors.mutedOnCanvas,
-        uncheckedTrackColor = Color.Transparent,
-        uncheckedBorderColor = colors.mutedOnCanvas,
+        checkedBorderColor = colors.switchBorder,
+        uncheckedThumbColor = colors.switchOffThumb,
+        uncheckedTrackColor = colors.switchOffTrack,
+        uncheckedBorderColor = colors.switchBorder,
     )
 }
 
@@ -934,7 +957,7 @@ fun rememberFillIcon(pathData: String, tint: Color, evenOdd: Boolean = false): I
         }.build()
     }
 
-/** The keypad's delete key: a filled arrow with the canvas colour cut through it. */
+/** The keypad's delete key: a filled arrow with the page colour cut through it. */
 @Composable
 fun BittrBackspaceIcon(modifier: Modifier = Modifier, size: Dp = 28.dp) {
     val colors = BittrTheme.colors
@@ -947,7 +970,7 @@ fun BittrBackspaceIcon(modifier: Modifier = Modifier, size: Dp = 28.dp) {
         Image(
             imageVector = rememberStrokeIcon(
                 BittrIconPaths.BACKSPACE_CROSS,
-                colors.canvas,
+                pageColor(),
                 strokeWidth = 2f,
             ),
             contentDescription = null,

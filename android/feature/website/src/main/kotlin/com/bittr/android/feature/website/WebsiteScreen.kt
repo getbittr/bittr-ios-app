@@ -27,6 +27,7 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
@@ -112,7 +113,7 @@ fun WebsiteScreen(
     Column(
         modifier = modifier
             .fillMaxSize()
-            .background(MaterialTheme.colorScheme.surfaceContainerHigh)
+            .background(MaterialTheme.colorScheme.surfaceContainer)
             // After the background, so the bar colour runs under the status bar while
             // the top bar itself sits below it — the app is edge-to-edge on every API
             // level (see MainActivity).
@@ -210,11 +211,11 @@ private fun WebsiteTopBar(
                 // renameable without editing shared/test-ids/test-ids.json.
                 .testTag(TestID.Website.downButton),
         ) {
-            // iOS's `downarrow32`, the chevron every sheet header closes with.
+            // iOS's `downarrow32`, the chevron every sheet header closes with — white in both modes here.
             Icon(
                 painter = painterResource(DesignR.drawable.bittr_down_chevron),
                 contentDescription = stringResource(R.string.website_close),
-                tint = BittrTheme.colors.homeCardTitle,
+                tint = Color.White,
                 modifier = Modifier.size(20.dp),
             )
         }
@@ -232,7 +233,8 @@ private fun WebsiteTopBar(
             Icon(
                 painter = painterResource(R.drawable.ic_website_open_external),
                 contentDescription = stringResource(R.string.website_open_externally),
-                tint = BittrTheme.colors.homeCardTitle,
+                // The storyboard's white `safari` tint.
+                tint = Color.White,
                 modifier = Modifier.size(26.dp),
             )
         }

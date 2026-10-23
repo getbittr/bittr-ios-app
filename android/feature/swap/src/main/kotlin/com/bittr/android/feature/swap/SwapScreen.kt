@@ -37,6 +37,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.testTag
@@ -401,7 +402,8 @@ private fun StatusCard(status: SwapStatusState, controller: SwapController) {
             // `confirmStatus`: the spinner 8 after the title; at the end the 12 pt reset icon, the
             // status 8 after it and the question mark 8 after that, 15 from the end.
             InfoRow(SwapCopy.STATUS, endPadding = 7.dp, titleTrailing = {
-                if (status.spinning) Spinner(Modifier.padding(start = 8.dp))
+                // `confirmStatusSpinner` is the storyboard's yellow; light mode keeps its black.
+                if (status.spinning) Spinner(Modifier.padding(start = 8.dp), color = if (BittrTheme.isDark) BittrTheme.colors.brandFixed else MaterialTheme.colorScheme.onSurface)
             }) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Box(
@@ -544,8 +546,8 @@ private fun AmountField(value: String, onValueChange: (String) -> Unit, onDone: 
 }
 
 @Composable
-private fun Spinner(modifier: Modifier = Modifier) {
-    BittrSpinner(strokeWidth = 2.dp, color = MaterialTheme.colorScheme.onSurface, modifier = modifier.size(16.dp))
+private fun Spinner(modifier: Modifier = Modifier, color: Color = MaterialTheme.colorScheme.onSurface) {
+    BittrSpinner(strokeWidth = 2.dp, color = color, modifier = modifier.size(16.dp))
 }
 
 @Composable

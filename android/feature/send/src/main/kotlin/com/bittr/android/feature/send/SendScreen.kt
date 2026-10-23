@@ -864,7 +864,7 @@ private fun Entry(
             textStyle = style.copy(
                 color = if (idleText) Color.Transparent else MaterialTheme.colorScheme.onSurface,
             ),
-            cursorBrush = SolidColor(colors.onTonalFill),
+            cursorBrush = SolidColor(colors.onCanvas),
             keyboardOptions = KeyboardOptions(keyboardType = keyboardType, imeAction = imeAction, autoCorrectEnabled = false),
             keyboardActions = KeyboardActions(onNext = { onIme() }, onDone = { onIme() }),
             modifier = Modifier

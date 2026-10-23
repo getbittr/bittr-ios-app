@@ -311,7 +311,8 @@ private fun ChartFrame(state: ValueUiState, axis: PriceAxis?) {
                         Text(
                             text = ValueCopy.NO_DATA,
                             style = MaterialTheme.typography.bodyLarge.copy(fontSize = 16.sp),
-                            color = ChartColors.ink,
+                            // The storyboard's black, in both modes.
+                            color = BittrTheme.colors.onChartSurface,
                             textAlign = TextAlign.Center,
                             modifier = Modifier.align(Alignment.Center),
                         )

@@ -132,7 +132,7 @@ fun VerifyScreen(
     BackHandler(onBack = onBack)
     // No arrow in the app bar: the card's own button goes back, as on iOS, and the system back
     // gesture does what that button does.
-    BittrCanvas(modifier = modifier) {
+    BittrCanvas(modifier = modifier, background = BittrTheme.colors.primaryHigh) {
         // Signup4's scene: `centerCard` 15 from the screen edges, centred 40 above the middle.
         Column(
             verticalArrangement = Arrangement.Center,
@@ -190,6 +190,8 @@ fun VerifyScreen(
                 BittrPrimaryButton(
                     text = SignupStrings.CONFIRM,
                     onClick = ::submit,
+                    // iOS dims it to black at 60 % until the words are right, and still takes the tap.
+                    dimmed = BittrTheme.isDark && challenge.check(answers.toList()) != SeedCheck.Correct,
                     modifier = Modifier.testTag(TestID.Signup.Create.Verify.nextButton),
                 )
                 // iOS leaves 10 pt and a 25 pt row for Back; its 48 dp touch target spends the 10.

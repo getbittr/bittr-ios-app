@@ -403,11 +403,11 @@ fun BittrNavHost(
     }
     // The canvas behind every destination. The signup pages' slide overshoots — iOS's spring at
     // damping 0.65 — and for that moment the edge the page has pulled away from shows whatever is
-    // behind it; on iOS that is SignupViewController's own yellow, here it was the white window.
+    // behind it; on iOS that is SignupViewController's own `yelloworblue3`, here it was the white window.
     Box(
         Modifier
             .fillMaxSize()
-            .background(BittrTheme.colors.canvas),
+            .background(BittrTheme.colors.primaryHigh),
     ) {
         CompositionLocalProvider(
             LocalAppBarLogoVisible provides (launchLogoVisible && !logoPinned),

@@ -22,6 +22,10 @@ import kotlin.math.pow
  * Runs on the JVM. `androidx.compose.ui.graphics.Color` is pure Kotlin for the sRGB
  * path, so no emulator and no Robolectric.
  *
+ * **Dark mode is out of scope for the contrast floors.** It matches iOS dark mode exactly, whatever
+ * the contrast (Tom, 2026-10-23), so the dark values are pinned to iOS's at the end of this file
+ * and the floors here are held in light mode only, except where the iOS value clears them anyway.
+ *
  * **What this cannot check:** whether a call site uses the right token. A screen that
  * hard-codes `Color.White` on `primary` passes every test here. That is caught by the
  * per-screen specs and review, not by arithmetic.
@@ -105,19 +109,6 @@ class TokenContrastTest {
         assertAtLeast(aa, fg, BittrLightColors.primary, "secondary text on brand yellow")
     }
 
-    @Test
-    fun `A11Y-01 dark secondary text clears AA, and 70 percent would not`() {
-        val fg = BittrDarkColors.onSurfaceVariant
-        assertAtLeast(aa, fg, BittrDarkColors.surface, "secondary text on blue1")
-        assertAtLeast(aa, fg, BittrDarkColors.surfaceContainer, "secondary text on blue2")
-        // The reason 80 % is the floor rather than a preference: 70 % reaches only 3.87
-        // on blue2. If someone softens this token, this is the line that explains why.
-        assertTrue(
-            "white @70 % would regress dark secondary text below AA",
-            contrast(Color.White.copy(alpha = 0.70f), BittrDarkColors.surfaceContainer) < aa,
-        )
-    }
-
     // -----------------------------------------------------------------------
     // A11Y-02 — the dark surface
     // -----------------------------------------------------------------------
@@ -174,23 +165,17 @@ class TokenContrastTest {
             aa, BittrLightColorsExtended.rowLabel, BittrLightColors.surfaceContainer,
             "the row label on white",
         )
-        assertAtLeast(
-            aa, BittrDarkColorsExtended.rowLabel, BittrDarkColors.surfaceContainer,
-            "the row label on blue2",
-        )
     }
 
     @Test
-    fun `DEV-40 the row label is not the brand yellow in either mode`() {
+    fun `DEV-40 the row label is not the brand yellow in light mode`() {
         // This is the regression the token exists to prevent: the yellow is 1.59 : 1 on
         // white, the app's worst failure. A porter reaching for `brandFixed` here — or
         // anyone "restoring" the iOS look — trips this rather than shipping it.
         assertNotEquals(0xFFFFC502.toInt(), BittrLightColorsExtended.rowLabel.toArgbInt())
-        assertNotEquals(0xFFFFC502.toInt(), BittrDarkColorsExtended.rowLabel.toArgbInt())
         // And it stays in the brand family rather than becoming a generic grey: the
         // light value is the yellow darkened at constant hue, 46.2° → 46.1°.
         assertEquals(0xFF8A6A00.toInt(), BittrLightColorsExtended.rowLabel.toArgbInt())
-        assertEquals(0xFFFFE28A.toInt(), BittrDarkColorsExtended.rowLabel.toArgbInt())
     }
 
     // -----------------------------------------------------------------------
@@ -225,14 +210,10 @@ class TokenContrastTest {
     fun `the dimmed balance digits are the colour of the bitcoin sign beside them`() {
         // A11Y-06 held these to 3 : 1 on white. The balance sits on the yellow card, not on
         // white, and the leading zeros are meant to recede: at Tom's request (2026-09-29) they
-        // match iOS's sign image as drawn — black at 18 % on the yellow, white at 47 % on blue3.
+        // match iOS's sign image as drawn — black at 18 % on the yellow. Dark is pinned below.
         assertEquals(
             Color.Black.copy(alpha = 0.18f).compositeOver(BittrLightColorsExtended.brandFixed),
             BittrLightColorsExtended.balanceDimmed,
-        )
-        assertEquals(
-            Color.White.copy(alpha = 0.47f).compositeOver(BittrDarkColorsExtended.homeHeader),
-            BittrDarkColorsExtended.balanceDimmed,
         )
     }
 
@@ -297,12 +278,6 @@ class TokenContrastTest {
         // this is body text: the floor is 4.5, not the 3.0 that applies to the border.
         // iOS uses `grey2` here and lands at 2.23 : 1. DEV-58 moves them to onSurfaceVariant.
         assertAtLeast(aa, BittrLightColors.onSurfaceVariant, lightFieldFill, "placeholder on the light field fill")
-        // Dark: every field fills with scrim1 = blue1 — the two Send fields always did, and
-        // A11Y-22 moved the Swap field onto it too.
-        assertAtLeast(
-            aa, BittrDarkColors.onSurfaceVariant, BittrDarkColorsExtended.scrim1,
-            "placeholder on the dark field fill",
-        )
     }
 
     @Test
@@ -337,22 +312,6 @@ class TokenContrastTest {
      */
     private val swapDarkFieldFill: Color
         get() = BittrDarkColorsExtended.scrim1
-
-    @Test
-    fun `A11Y-22 the Swap field's dark fill carries both its placeholder and its typed value`() {
-        // The typed amount matters as much as the placeholder and is the part the original
-        // A11Y-21 sweep missed: `blackorwhite` is pure white in dark, 4.44 on blue3 — a fail
-        // at the ceiling. On scrim1 the placeholder reaches 5.28 and the value 7.15, both
-        // with margin rather than the hairline 4.50 that moving scrim3 to blue2 would give.
-        assertAtLeast(
-            aa, BittrDarkColors.onSurfaceVariant, swapDarkFieldFill,
-            "the Swap placeholder on its dark fill",
-        )
-        assertAtLeast(
-            aa, BittrDarkColors.onSurface, swapDarkFieldFill,
-            "the typed Swap amount on its dark fill",
-        )
-    }
 
     @Test
     fun `A11Y-22 moving scrim3 to blue2 was the wrong fix — it erases the field`() {
@@ -663,7 +622,7 @@ class TokenContrastTest {
 
     @Test
     fun `the primary pill is visible on the canvas and carries its own label`() {
-        for ((name, c) in schemes) {
+        for ((name, c) in listOf("light" to BittrLightColorsExtended)) {
             assertAtLeast(aaLarge, c.actionFill, c.canvas, "$name pill against the canvas")
             assertAtLeast(
                 aa,
@@ -782,7 +741,6 @@ class TokenContrastTest {
     fun `A11Y-22 a TextButton label owes AA, so it cannot be primary in light mode`() {
         for ((scheme, colors) in listOf(
             "light" to BittrLightColors,
-            "dark" to BittrDarkColors,
         )) {
             assertAtLeast(
                 aa, colors.onSurfaceVariant, colors.surface,
@@ -814,7 +772,6 @@ class TokenContrastTest {
     fun `A11Y-22 the alert's action button is visible on the surface it sits on`() {
         for ((scheme, colors, base) in listOf(
             Triple("light", BittrLightColorsExtended, BittrLightColors),
-            Triple("dark", BittrDarkColorsExtended, BittrDarkColors),
         )) {
             assertAtLeast(
                 aaLarge, colors.actionFill, base.surface,
@@ -847,23 +804,6 @@ class TokenContrastTest {
             "the dialog container now has AA-text headroom — BittrAlert's containerColor " +
                 "override can be reconsidered",
             contrast(BittrDarkColors.primary, BittrDarkColors.surfaceContainerHigh) < aa,
-        )
-    }
-
-    @Test
-    fun `A11Y-22 the dark Material slot and the dark canvas pill are one decision`() {
-        // `actionFill` had already inverted to grey1 for the onboarding pill, with the
-        // reasoning written down; BIT-94 is the Material slot catching up to it rather
-        // than a second answer to the same question. Drift between these two is a dark
-        // mode where the arc's button and every other screen's button are different
-        // colours, which no screenshot of either one on its own would show.
-        assertEquals(
-            BittrDarkColorsExtended.actionFill.toArgbInt(),
-            BittrDarkColors.primary.toArgbInt(),
-        )
-        assertEquals(
-            BittrDarkColorsExtended.onActionFill.toArgbInt(),
-            BittrDarkColors.onPrimary.toArgbInt(),
         )
     }
 
@@ -902,10 +842,6 @@ class TokenContrastTest {
             Triple(
                 "light tonal fill on the canvas",
                 BittrLightColorsExtended.tonalFill, BittrLightColorsExtended.canvas,
-            ),
-            Triple(
-                "dark tonal fill on the canvas",
-                BittrDarkColorsExtended.tonalFill, BittrDarkColorsExtended.canvas,
             ),
             Triple(
                 "dark primaryContainer on the page",
@@ -948,9 +884,12 @@ class TokenContrastTest {
      */
     private fun checkedBorder(c: BittrColors): Color = composite(c.mutedOnCanvas, c.switchOn)
 
+    /** The switch draws the mock's bordered control in light mode only; dark is UIKit's. */
+    private val switchSchemes = listOf("light" to BittrLightColorsExtended)
+
     @Test
     fun `BIT-95 a checked consent switch has a boundary on every background it lands on`() {
-        for ((name, c) in schemes) {
+        for ((name, c) in switchSchemes) {
             for ((where, bg) in switchBackgrounds(c)) {
                 assertAtLeast(aaLarge, checkedBorder(c), bg, "$name checked switch border on $where")
             }
@@ -963,7 +902,7 @@ class TokenContrastTest {
         // background directly. This state was never broken — it is asserted because the
         // fix is "both states use the same border", and that claim is only worth
         // anything while this half still holds.
-        for ((name, c) in schemes) {
+        for ((name, c) in switchSchemes) {
             for ((where, bg) in switchBackgrounds(c)) {
                 assertAtLeast(aaLarge, c.mutedOnCanvas, bg, "$name unchecked switch border on $where")
             }
@@ -989,7 +928,7 @@ class TokenContrastTest {
      */
     @Test
     fun `BIT-95 the thumb and the border are each visible against the track between them`() {
-        for ((name, c) in schemes) {
+        for ((name, c) in switchSchemes) {
             // White on the green. 4.33 : 1 — held to the 3 : 1 non-text floor.
             assertAtLeast(aaLarge, c.onSwitchOn, c.switchOn, "$name checked thumb on its track")
             assertAtLeast(
@@ -1034,12 +973,6 @@ class TokenContrastTest {
                     .format(floorToClearTheCard, ceilingToKeepAWhiteThumb),
             floorToClearTheCard > ceilingToKeepAWhiteThumb,
         )
-        // The mock's green is nowhere near either end of that, for the record: it is
-        // *below* the floor, which is why it loses to the card rather than to the thumb.
-        assertTrue(
-            "switchAccent now clears the dark card on its own — re-read BittrColors.switchOn",
-            luminance(BittrDarkColorsExtended.switchOn) < floorToClearTheCard,
-        )
     }
 
     @Test
@@ -1047,7 +980,7 @@ class TokenContrastTest {
         // The value, pinned: this is a mock-specified colour and the fix deliberately did
         // not touch it. Someone "fixing the contrast" by moving the green instead of the
         // border trips this and reads the note.
-        for ((name, c) in schemes) {
+        for ((name, c) in switchSchemes) {
             assertEquals("$name switchAccent", 0xFF1F8A5B.toInt(), c.switchOn.toArgbInt())
             // The failure this issue is about, kept as a measurement so that the track
             // can never be mistaken for the thing that makes the control perceivable.
@@ -1061,6 +994,38 @@ class TokenContrastTest {
         // SwitchOn`, a control whose border is its own fill — and nothing in this file can
         // see a call site. That half is `CanvasComponentColorsTest`, which needs a
         // composition and is therefore the only test in this module that does.
+    }
+
+    // -----------------------------------------------------------------------
+    // Dark mode is iOS dark mode
+    // -----------------------------------------------------------------------
+
+    @Test
+    fun `dark mode takes iOS's dark values where the contrast decisions used to differ`() {
+        val dark = BittrDarkColorsExtended
+        val pinned = listOf(
+            // The storyboards' black plates and white labels, dimmed to black at 60 %.
+            "actionFill" to (dark.actionFill to Color.Black),
+            "onActionFill" to (dark.onActionFill to Color.White),
+            "actionFillDisabled" to (dark.actionFillDisabled to Color.Black.copy(alpha = 0.60f)),
+            "onActionFillDisabled" to (dark.onActionFillDisabled to Color.White),
+            // `blackorwhite` text buttons, and `transparentblack` Cancels.
+            "mutedOnCanvas" to (dark.mutedOnCanvas to Color.White),
+            "cancelLabel" to (dark.cancelLabel to Color.White.copy(alpha = 0.50f)),
+            // The storyboard's static yellow row titles.
+            "rowLabel" to (dark.rowLabel to dark.brandFixed),
+            // `grey2orwhite0.7`.
+            "onSurfaceVariant" to (BittrDarkColors.onSurfaceVariant to Color.White.copy(alpha = 0.70f)),
+            // `HomeHeaderData`'s sRGB (170, 190, 217).
+            "balanceDimmed" to (dark.balanceDimmed to Color(red = 170, green = 190, blue = 217)),
+            // UIKit's stock switch.
+            "switchOn" to (dark.switchOn to Color(red = 48, green = 209, blue = 88)),
+            "switchBorder" to (dark.switchBorder to Color.Transparent),
+            "switchOffThumb" to (dark.switchOffThumb to Color.White),
+        )
+        for ((name, pair) in pinned) {
+            assertEquals("dark $name is not iOS's", pair.second.toArgbInt(), pair.first.toArgbInt())
+        }
     }
 
     // -----------------------------------------------------------------------
