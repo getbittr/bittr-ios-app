@@ -5,7 +5,6 @@ import androidx.compose.ui.platform.LocalFocusManager
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.FastOutSlowInEasing
-import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -357,7 +356,8 @@ internal fun AlertOverlay(
     content: @Composable ColumnScope.() -> Unit,
 ) {
     LaunchedEffect(motion) {
-        motion.progress.animateTo(1f, spring(dampingRatio = 0.7f, stiffness = AlertStiffness))
+        // `slideIn`'s 0.5 s spring at damping 0.7.
+        motion.progress.animateTo(1f, iosSpring(0.5f, 0.7f))
     }
     if (onBack != null) BackHandler { motion.close(onBack) }
 
@@ -578,9 +578,6 @@ private fun AlertButton(button: BittrAlertButton, position: Int, motion: AlertMo
 }
 
 private val AlertButtonShape = RoundedCornerShape(8.dp)
-
-/** `slideIn`'s 0.5 s spring at damping 0.7: (4 / (0.7 × 0.5))², by [PageSlideSpec]'s settle rule. */
-private const val AlertStiffness = 131f
 
 /** `slideOut`'s 0.3 s. */
 private const val AlertCloseMs = 300
