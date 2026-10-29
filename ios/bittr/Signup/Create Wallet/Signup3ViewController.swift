@@ -72,6 +72,7 @@ class Signup3ViewController: UIViewController {
         self.changeColors()
         self.setWords()
         self.setMnemonic()
+        self.registerForTraitChanges([UITraitSceneCaptureState.self], action: #selector(updateMnemonicVisibility))
         self.pageArticle1 = self.setSignupArticle(articleSlug: self.pageArticle1Slug, coreVC: self.signupVC!.coreVC!, articleButton: self.articleButton, articleTitle: self.articleTitle, articleImage: self.articleImage, articleSpinner: self.spinner1) ?? Article()
     }
     
@@ -130,12 +131,27 @@ class Signup3ViewController: UIViewController {
         self.mnemonicIsShown = true
     }
     
+    @objc func updateMnemonicVisibility() {
+        // Hide the mnemonic while the screen is being recorded or mirrored.
+        let isCaptured = self.traitCollection.sceneCaptureState == .active
+        guard self.mnemonicStack.isHidden != isCaptured else { return }
+        self.mnemonicStack.isHidden = isCaptured
+        if isCaptured {
+            self.showAlert(title: Language.getWord(withID: "becareful"), message: Language.getWord(withID: "mnemonichidden"), buttons: [.dismiss(Language.getWord(withID: "okay"))])
+        }
+    }
+    
     @IBAction func nextButtonTapped(_ sender: UIButton) {
         guard self.mnemonicIsShown else {
             self.setMnemonic()
             return
         }
         self.signupVC?.moveToPage(6)
+    }
+    
+    override func viewWillAppear(_ animated: Bool) {
+        super.viewWillAppear(animated)
+        self.updateMnemonicVisibility()
     }
     
     override func viewDidAppear(_ animated: Bool) {
