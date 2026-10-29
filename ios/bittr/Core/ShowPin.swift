@@ -113,7 +113,6 @@ extension CoreViewController {
     
     func lockForReauthentication() {
         guard self.userHasSignedIn, self.currentPage == .home else { return }
-        guard CacheManager.hasPin() else { return }
         guard !self.resettingPin, !self.removingWalletForIncorrectPin, !self.isRemovalInFlight else { return }
         Log.info("App was backgrounded for longer than 120s. Asking for the PIN again.")
         
