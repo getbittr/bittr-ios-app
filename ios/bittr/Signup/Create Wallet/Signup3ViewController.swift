@@ -45,6 +45,8 @@ class Signup3ViewController: UIViewController {
     var coreVC:CoreViewController?
     weak var signupVC:SignupViewController?
     
+    var mnemonicIsShown = false
+    
     override func viewDidLoad() {
         super.viewDidLoad()
 
@@ -74,62 +76,65 @@ class Signup3ViewController: UIViewController {
     }
     
     func setMnemonic() {
+        guard let actualMnemonic = self.signupVC?.newMnemonicWords(retry: { self.setMnemonic() }) else { return }
         
-        // Step 8.
-        if let actualMnemonic = CacheManager.getMnemonic()?.components(separatedBy: " ") {
-            for (index, eachWord) in actualMnemonic.enumerated() {
-                
-                let whiteCard = UIView()
-                whiteCard.translatesAutoresizingMaskIntoConstraints = false
-                whiteCard.layer.cornerRadius = 8
-                whiteCard.backgroundColor = Colors.getColor("whiteorblue3")
-                self.mnemonicStack.addSubview(whiteCard)
-                
-                let whiteCardTop = NSLayoutConstraint(item: whiteCard, attribute: .top, relatedBy: .equal, toItem: self.mnemonicStack, attribute: .top, multiplier: 1, constant: CGFloat(index)*50)
-                let whiteCardLeft = NSLayoutConstraint(item: whiteCard, attribute: .leading, relatedBy: .equal, toItem: self.mnemonicStack, attribute: .leading, multiplier: 1, constant: 10)
-                let whiteCardRight = NSLayoutConstraint(item: whiteCard, attribute: .trailing, relatedBy: .equal, toItem: self.mnemonicStack, attribute: .trailing, multiplier: 1, constant: -10)
-                let whiteCardHeight = NSLayoutConstraint(item: whiteCard, attribute: .height, relatedBy: .equal, toItem: nil, attribute: .notAnAttribute, multiplier: 1, constant: 40)
-                whiteCard.addConstraint(whiteCardHeight)
-                self.mnemonicStack.addConstraints([whiteCardTop, whiteCardLeft, whiteCardRight])
-                if index == 11 {
-                    let whiteCardBottom = NSLayoutConstraint(item: whiteCard, attribute: .bottom, relatedBy: .equal, toItem: self.mnemonicStack, attribute: .bottom, multiplier: 1, constant: 0)
-                    self.mnemonicStack.addConstraint(whiteCardBottom)
-                }
-                
-                let numberLabel = UILabel()
-                numberLabel.font = UIFont(name: "Gilroy-Bold", size: 16)
-                numberLabel.textColor = Colors.getColor("yellow")
-                numberLabel.translatesAutoresizingMaskIntoConstraints = false
-                numberLabel.text = "\(index+1)"
-                whiteCard.addSubview(numberLabel)
-                
-                let numberLeft = NSLayoutConstraint(item: numberLabel, attribute: .leading, relatedBy: .equal, toItem: whiteCard, attribute: .leading, multiplier: 1, constant: 20)
-                let numberCenterY = NSLayoutConstraint(item: numberLabel, attribute: .centerY, relatedBy: .equal, toItem: whiteCard, attribute: .centerY, multiplier: 1, constant: 1.5)
-                let numberWidth = NSLayoutConstraint(item: numberLabel, attribute: .width, relatedBy: .greaterThanOrEqual, toItem: nil, attribute: .notAnAttribute, multiplier: 1, constant: 0)
-                let numberHeight = NSLayoutConstraint(item: numberLabel, attribute: .height, relatedBy: .greaterThanOrEqual, toItem: nil, attribute: .notAnAttribute, multiplier: 1, constant: 0)
-                numberLabel.addConstraints([numberWidth, numberHeight])
-                whiteCard.addConstraints([numberLeft, numberCenterY])
-                
-                let wordLabel = UILabel()
-                wordLabel.font = UIFont(name: "Gilroy-Bold", size: 16)
-                wordLabel.textColor = Colors.getColor("blackorwhite")
-                wordLabel.translatesAutoresizingMaskIntoConstraints = false
-                wordLabel.text = eachWord
-                wordLabel.accessibilityIdentifier = "\(TestID.Signup.Create.Mnemonic.word)\(index + 1)"
-                whiteCard.addSubview(wordLabel)
-                
-                let wordCenterX = NSLayoutConstraint(item: wordLabel, attribute: .centerX, relatedBy: .equal, toItem: whiteCard, attribute: .centerX, multiplier: 1, constant: 0)
-                let wordCenterY = NSLayoutConstraint(item: wordLabel, attribute: .centerY, relatedBy: .equal, toItem: whiteCard, attribute: .centerY, multiplier: 1, constant: 1.5)
-                let wordWidth = NSLayoutConstraint(item: wordLabel, attribute: .width, relatedBy: .greaterThanOrEqual, toItem: nil, attribute: .notAnAttribute, multiplier: 1, constant: 0)
-                let wordHeight = NSLayoutConstraint(item: wordLabel, attribute: .height, relatedBy: .greaterThanOrEqual, toItem: nil, attribute: .notAnAttribute, multiplier: 1, constant: 0)
-                wordLabel.addConstraints([wordWidth, wordHeight])
-                whiteCard.addConstraints([wordCenterX, wordCenterY])
+        for (index, eachWord) in actualMnemonic.enumerated() {
+            
+            let whiteCard = UIView()
+            whiteCard.translatesAutoresizingMaskIntoConstraints = false
+            whiteCard.layer.cornerRadius = 8
+            whiteCard.backgroundColor = Colors.getColor("whiteorblue3")
+            self.mnemonicStack.addSubview(whiteCard)
+            
+            let whiteCardTop = NSLayoutConstraint(item: whiteCard, attribute: .top, relatedBy: .equal, toItem: self.mnemonicStack, attribute: .top, multiplier: 1, constant: CGFloat(index)*50)
+            let whiteCardLeft = NSLayoutConstraint(item: whiteCard, attribute: .leading, relatedBy: .equal, toItem: self.mnemonicStack, attribute: .leading, multiplier: 1, constant: 10)
+            let whiteCardRight = NSLayoutConstraint(item: whiteCard, attribute: .trailing, relatedBy: .equal, toItem: self.mnemonicStack, attribute: .trailing, multiplier: 1, constant: -10)
+            let whiteCardHeight = NSLayoutConstraint(item: whiteCard, attribute: .height, relatedBy: .equal, toItem: nil, attribute: .notAnAttribute, multiplier: 1, constant: 40)
+            whiteCard.addConstraint(whiteCardHeight)
+            self.mnemonicStack.addConstraints([whiteCardTop, whiteCardLeft, whiteCardRight])
+            if index == 11 {
+                let whiteCardBottom = NSLayoutConstraint(item: whiteCard, attribute: .bottom, relatedBy: .equal, toItem: self.mnemonicStack, attribute: .bottom, multiplier: 1, constant: 0)
+                self.mnemonicStack.addConstraint(whiteCardBottom)
             }
-            self.view.layoutIfNeeded()
+            
+            let numberLabel = UILabel()
+            numberLabel.font = UIFont(name: "Gilroy-Bold", size: 16)
+            numberLabel.textColor = Colors.getColor("yellow")
+            numberLabel.translatesAutoresizingMaskIntoConstraints = false
+            numberLabel.text = "\(index+1)"
+            whiteCard.addSubview(numberLabel)
+            
+            let numberLeft = NSLayoutConstraint(item: numberLabel, attribute: .leading, relatedBy: .equal, toItem: whiteCard, attribute: .leading, multiplier: 1, constant: 20)
+            let numberCenterY = NSLayoutConstraint(item: numberLabel, attribute: .centerY, relatedBy: .equal, toItem: whiteCard, attribute: .centerY, multiplier: 1, constant: 1.5)
+            let numberWidth = NSLayoutConstraint(item: numberLabel, attribute: .width, relatedBy: .greaterThanOrEqual, toItem: nil, attribute: .notAnAttribute, multiplier: 1, constant: 0)
+            let numberHeight = NSLayoutConstraint(item: numberLabel, attribute: .height, relatedBy: .greaterThanOrEqual, toItem: nil, attribute: .notAnAttribute, multiplier: 1, constant: 0)
+            numberLabel.addConstraints([numberWidth, numberHeight])
+            whiteCard.addConstraints([numberLeft, numberCenterY])
+            
+            let wordLabel = UILabel()
+            wordLabel.font = UIFont(name: "Gilroy-Bold", size: 16)
+            wordLabel.textColor = Colors.getColor("blackorwhite")
+            wordLabel.translatesAutoresizingMaskIntoConstraints = false
+            wordLabel.text = eachWord
+            wordLabel.accessibilityIdentifier = "\(TestID.Signup.Create.Mnemonic.word)\(index + 1)"
+            whiteCard.addSubview(wordLabel)
+            
+            let wordCenterX = NSLayoutConstraint(item: wordLabel, attribute: .centerX, relatedBy: .equal, toItem: whiteCard, attribute: .centerX, multiplier: 1, constant: 0)
+            let wordCenterY = NSLayoutConstraint(item: wordLabel, attribute: .centerY, relatedBy: .equal, toItem: whiteCard, attribute: .centerY, multiplier: 1, constant: 1.5)
+            let wordWidth = NSLayoutConstraint(item: wordLabel, attribute: .width, relatedBy: .greaterThanOrEqual, toItem: nil, attribute: .notAnAttribute, multiplier: 1, constant: 0)
+            let wordHeight = NSLayoutConstraint(item: wordLabel, attribute: .height, relatedBy: .greaterThanOrEqual, toItem: nil, attribute: .notAnAttribute, multiplier: 1, constant: 0)
+            wordLabel.addConstraints([wordWidth, wordHeight])
+            whiteCard.addConstraints([wordCenterX, wordCenterY])
         }
+        self.view.layoutIfNeeded()
+        self.mnemonicIsShown = true
     }
     
     @IBAction func nextButtonTapped(_ sender: UIButton) {
+        guard self.mnemonicIsShown else {
+            self.setMnemonic()
+            return
+        }
         self.signupVC?.moveToPage(6)
     }
     
