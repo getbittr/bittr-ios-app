@@ -19,6 +19,7 @@ class CacheManager: NSObject {
         CacheStore.remove(CacheKeys.onchainAddresses)
         CacheStore.remove(CacheKeys.channelFundingOutpoint)
         CacheStore.remove(CacheKeys.channelClosureTxIDs)
+        CacheStore.remove(CacheKeys.walletRemovalInProgress)
         
         // Old keys no longer in use.
         for retired in ["cache", "bittraddress", "pin", "mnemonic"] {
