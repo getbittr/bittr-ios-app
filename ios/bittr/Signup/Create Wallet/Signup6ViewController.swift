@@ -40,14 +40,20 @@ class Signup6ViewController: UIViewController, UITextFieldDelegate {
         if let actualPreviousPin = self.previousPIN {
             if actualPreviousPin == enteredPin {
                 // Pin is correct.
+                
+                // Store pin in cache.
+                do {
+                    try CacheManager.storePin(pin: actualPreviousPin)
+                } catch {
+                    self.showAlert(title: Language.getWord(withID: "error"), message: Language.getWord(withID: "pinsavefail"), buttons: [.dismiss(Language.getWord(withID: "okay"))])
+                    return
+                }
+                
                 self.signupVC?.coreVC?.userHasSignedIn = true
                 self.signupVC?.enteredPin = ""
                 
                 // Move to next page.
                 self.signupVC?.moveToPage(9)
-                
-                // Store pin in cache.
-                CacheManager.storePin(pin: actualPreviousPin)
                 
                 // Count successful wallet creation.
                 SentryManager.countMetric("app.launch.newwallet.success")

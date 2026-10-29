@@ -28,6 +28,7 @@ class CacheManager: NSObject {
         // Remove the secrets from the Keychain.
         SecureStore.remove(account: EnvironmentConfig.cacheKey(for: "mnemonic"))
         SecureStore.remove(account: EnvironmentConfig.cacheKey(for: "pin"))
+        SecureStore.remove(account: pendingCreationAccount)
         
         // Clear the ongoing-swap record and sweep the per-swap refund keys out of the Keychain.
         CacheStore.remove(CacheKeys.ongoingSwap)
@@ -382,6 +383,26 @@ class CacheManager: NSObject {
         readSecret(account: EnvironmentConfig.cacheKey(for: "mnemonic"))
     }
     
+    // MARK: - Pending wallet creation
+    
+    // Holds a fingerprint of a newly created mnemonic until its PIN is stored.
+    private static var pendingCreationAccount: String {
+        EnvironmentConfig.cacheKey(for: "pendingcreation")
+    }
+    
+    static func storeNewMnemonic(_ mnemonic:String) throws {
+        try persistSecret(fingerprint(of: mnemonic), account: pendingCreationAccount, label: "pending creation", accessibility: .afterFirstUnlockThisDeviceOnly)
+        try storeMnemonic(mnemonic)
+    }
+    
+    private static func isPendingCreation(_ mnemonic:String) throws -> Bool {
+        try SecureStore.getString(account: pendingCreationAccount) == fingerprint(of: mnemonic)
+    }
+    
+    private static func fingerprint(of mnemonic:String) -> String {
+        SHA256.hash(data: Data(mnemonic.utf8)).map { String(format: "%02x", $0) }.joined()
+    }
+    
     // MARK: - Pin
 
     // The PIN is stored as a salted SHA-256 record ("v1$<salt>$<digest>",
@@ -393,8 +414,9 @@ class CacheManager: NSObject {
     // Legacy raw values (UserDefaults, or early Keychain builds) are
     // re-hashed by the launch migration; verifyPin also upgrades any
     // straggler on its next successful entry.
-    static func storePin(pin:String) {
-        writeSecret(hashedPinRecord(for: pin), account: EnvironmentConfig.cacheKey(for: "pin"), label: "pin", accessibility: .whenUnlockedThisDeviceOnly)
+    static func storePin(pin:String) throws {
+        try persistSecret(hashedPinRecord(for: pin), account: EnvironmentConfig.cacheKey(for: "pin"), label: "pin", accessibility: .whenUnlockedThisDeviceOnly)
+        SecureStore.remove(account: pendingCreationAccount)
     }
 
     /// Whether a PIN is stored (hashed or legacy raw).
@@ -411,7 +433,7 @@ class CacheManager: NSObject {
         // Legacy raw value — compare directly, and upgrade to the hashed form
         // now that the correct PIN is known.
         guard stored == entered else { return false }
-        storePin(pin: entered)
+        try? storePin(pin: entered)
         return true
     }
 
@@ -440,22 +462,46 @@ class CacheManager: NSObject {
     // Check whether PIN and mnemonic are available.
     enum WalletSecretsPresence {
         case present
+        case pinMissing
         case absent
         case unavailable
     }
     
     static func walletSecretsPresence() -> WalletSecretsPresence {
-        // While the device is locked the WhenUnlockedThisDeviceOnly items are
-        // unreadable, so we can't decide anything.
-        guard UIApplication.shared.isProtectedDataAvailable else { return .unavailable }
+        // Check whether Keychain can be read, and contains a mnemonic and PIN.
+        
+        guard UIApplication.shared.isProtectedDataAvailable else {
+            // Keychain cannot be read at this time.
+            return .unavailable
+        }
+        
         do {
-            let mnemonic = try readSecretOrThrow(account: EnvironmentConfig.cacheKey(for: "mnemonic"))
-            let pin = try readSecretOrThrow(account: EnvironmentConfig.cacheKey(for: "pin"))
-            return (mnemonic != nil && pin != nil) ? .present : .absent
+            // Check mnemonic availability.
+            guard let mnemonic = try readSecretOrThrow(account: EnvironmentConfig.cacheKey(for: "mnemonic")) else {
+                // There is no mnemonic saved to this device.
+                return .absent
+            }
+            // A mnemonic is available.
+            
+            // Check PIN availability.
+            guard try readSecretOrThrow(account: EnvironmentConfig.cacheKey(for: "pin")) == nil else {
+                // A PIN is available.
+                return .present
+            }
+            // No PIN is available.
+            
+            // Check whether wallet creation was completed for this mnemonic.
+            if try isPendingCreation(mnemonic), !LightningStorage.hasLightningState() {
+                // Wallet creation was not completed for this mnemonic. Wallet cannot hold funds.
+                return .absent
+            }
+            
+            // Wallet creation was completed, but somehow the PIN is missing.
+            return .pinMissing
+            
         } catch {
-            // A Keychain read failed (not a genuine absence). Report it and treat
-            // as unavailable so nothing destructive happens.
-            SentryManager.capture(error, context: "reading wallet secrets for presence check")
+            // Keychain could not be read.
+            SentryManager.capture(error, context: "CacheManager:509")
             return .unavailable
         }
     }
@@ -477,7 +523,7 @@ class CacheManager: NSObject {
         // Re-hash a legacy raw PIN (from UserDefaults, or an early Keychain
         // build that stored the raw value).
         if let storedPin = (try? SecureStore.getString(account: EnvironmentConfig.cacheKey(for: "pin"))) ?? nil, parseHashedPinRecord(storedPin) == nil {
-            storePin(pin: storedPin)
+            try? storePin(pin: storedPin)
         }
     }
 
@@ -536,12 +582,6 @@ class CacheManager: NSObject {
             SentryManager.capture(error, context: "storing \(label) in keychain")
             throw error
         }
-    }
-
-    /// Non-throwing convenience for secrets where a failed write is recoverable
-    /// (e.g. the PIN, which can be reset via the mnemonic). Failures are logged.
-    private static func writeSecret(_ value: String, account: String, label: String, accessibility: SecureStore.Accessibility) {
-        try? persistSecret(value, account: account, label: label, accessibility: accessibility)
     }
 
     /// Non-throwing read used by getMnemonic()/getPin(). A Keychain read failure
