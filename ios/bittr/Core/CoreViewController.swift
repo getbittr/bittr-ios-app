@@ -17,15 +17,17 @@ class CoreViewController: UIViewController {
     var deferredPresentation:(() -> Void)? // A screen someone asked for while the PIN was up.
     var privacyCover:UIView? // Hides the wallet from the app switcher snapshot.
     
-    // True while checkWalletAvailability is waiting for the Keychain to become
-    // readable (device locked / transient read error) before it decides.
+    // True while checkWalletAvailability is waiting for the Keychain to become readable.
     private var isAwaitingProtectedData = false
+    
+    // True once checkWalletAvailability has found a wallet on this device.
+    private var walletIsOnDevice = false
     
     // Pin reset
     var resettingPin = false
     var removingWalletForIncorrectPin = false
     var isRemovalInFlight = false
-
+    
     // True while continueStartWallet's post-start work is running. Several
     // startWallet callers can be attached to a single node start, and they all
     // get told when it finishes — but that work is global, not per-caller.
@@ -187,6 +189,7 @@ class CoreViewController: UIViewController {
         case .present:
             Log.info("Wallet is available.")
             self.finishAwaitingProtectedDataIfNeeded()
+            self.walletIsOnDevice = true
             self.signupContainerView.alpha = 0
             self.pinContainerView.alpha = 1
             self.currentPage = .pin
@@ -194,6 +197,7 @@ class CoreViewController: UIViewController {
         case .pinMissing:
             Log.info("Wallet is available, but its PIN is missing.")
             self.finishAwaitingProtectedDataIfNeeded()
+            self.walletIsOnDevice = true
             self.signupContainerView.alpha = 1
             self.pinContainerView.alpha = 0
             // Setting a new PIN requires the wallet's recovery phrase.
@@ -216,6 +220,11 @@ class CoreViewController: UIViewController {
         case .unavailable:
             Log.info("The Keychain could not be read.")
             self.presentKeychainUnavailable()
+        }
+        
+        // Re-check ongoing wallet removal.
+        if self.walletIsOnDevice, self.logoHasMovedUp {
+            self.checkWalletRemoval()
         }
     }
     
@@ -246,6 +255,7 @@ class CoreViewController: UIViewController {
     func checkWalletRemoval() {
         // Upon app launch, check whether the user is locked out.
         // Or whether the user has previously tried removing the wallet.
+        guard self.walletIsOnDevice else { return }
         if CacheManager.getFailedPinAttempts() >= 10, !self.removingWalletForIncorrectPin {
             Log.info("Wallet is locked out after 10 failed PIN attempts — resuming removal on launch.")
             self.removingWalletForIncorrectPin = true
