@@ -163,6 +163,20 @@ class SignupViewController: UIViewController {
         
     }
     
+    // The new wallet's mnemonic words, or nil after telling the user why they can't be shown.
+    func newMnemonicWords(retry: @escaping () -> Void) -> [String]? {
+        do {
+            if let words = try CacheManager.readMnemonic()?.components(separatedBy: " "), words.count == 12 {
+                return words
+            }
+            // Without a mnemonic, wallet creation has to start over.
+            self.showAlert(title: Language.getWord(withID: "error"), message: Language.getWord(withID: "mnemonicsavefail"), buttons: [.action(Language.getWord(withID: "okay")) { self.moveToPage(3, checkConnection: false) }])
+        } catch {
+            self.showAlert(title: Language.getWord(withID: "keychainunavailabletitle"), message: Language.getWord(withID: "keychainunavailable"), buttons: [.action(Language.getWord(withID: "tryagain")) { retry() }])
+        }
+        return nil
+    }
+    
     @objc func screenshotTaken() {
         // User shouldn't screenshot their mnemonic.
         if self.currentPage == 5 {
