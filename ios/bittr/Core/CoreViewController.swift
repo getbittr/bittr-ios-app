@@ -209,6 +209,7 @@ class CoreViewController: UIViewController {
             self.pinContainerView.alpha = 0
             // Clear any stale cached client data and show the create-wallet flow.
             CacheManager.deleteClientInfo()
+            BitcoinManager.shared.bittrWallet = BittrWallet()
             self.launchSignup(onPage: 3)
             self.currentPage = .signup
             

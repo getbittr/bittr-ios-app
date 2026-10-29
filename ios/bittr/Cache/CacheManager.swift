@@ -35,6 +35,9 @@ class CacheManager: NSObject {
         SecureStore.removeAll(accountPrefix: "swapkey_")
         
         self.resetFailedPinAttempts()
+        
+        // Take the old wallet's lightning address off the widget.
+        self.publishToWidget()
     }
     
     
