@@ -394,7 +394,21 @@ class CacheManager: NSObject {
         EnvironmentConfig.cacheKey(for: "pendingcreation")
     }
     
+    enum WalletCreationError: Error {
+        case walletExists
+    }
+    
     static func storeNewMnemonic(_ mnemonic:String) throws {
+        
+        // Make sure no mnemonic already exists.
+        if let existing = try readSecretOrThrow(account: EnvironmentConfig.cacheKey(for: "mnemonic")) {
+            // A mnemonic already exists. This is okay only if it's from an incomplete signup.
+            guard try readSecretOrThrow(account: EnvironmentConfig.cacheKey(for: "pin")) == nil, try isPendingCreation(existing), !LightningStorage.hasLightningState() else {
+                // A wallet with mnemonic, PIN, and/or Lightning channel is already present on this device.
+                throw WalletCreationError.walletExists
+            }
+        }
+        
         try persistSecret(fingerprint(of: mnemonic), account: pendingCreationAccount, label: "pending creation", accessibility: .afterFirstUnlockThisDeviceOnly)
         try storeMnemonic(mnemonic)
     }
