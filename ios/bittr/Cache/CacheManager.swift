@@ -393,8 +393,8 @@ class CacheManager: NSObject {
     // Legacy raw values (UserDefaults, or early Keychain builds) are
     // re-hashed by the launch migration; verifyPin also upgrades any
     // straggler on its next successful entry.
-    static func storePin(pin:String) {
-        writeSecret(hashedPinRecord(for: pin), account: EnvironmentConfig.cacheKey(for: "pin"), label: "pin", accessibility: .whenUnlockedThisDeviceOnly)
+    static func storePin(pin:String) throws {
+        try persistSecret(hashedPinRecord(for: pin), account: EnvironmentConfig.cacheKey(for: "pin"), label: "pin", accessibility: .whenUnlockedThisDeviceOnly)
     }
 
     /// Whether a PIN is stored (hashed or legacy raw).
@@ -411,7 +411,7 @@ class CacheManager: NSObject {
         // Legacy raw value — compare directly, and upgrade to the hashed form
         // now that the correct PIN is known.
         guard stored == entered else { return false }
-        storePin(pin: entered)
+        try? storePin(pin: entered)
         return true
     }
 
@@ -477,7 +477,7 @@ class CacheManager: NSObject {
         // Re-hash a legacy raw PIN (from UserDefaults, or an early Keychain
         // build that stored the raw value).
         if let storedPin = (try? SecureStore.getString(account: EnvironmentConfig.cacheKey(for: "pin"))) ?? nil, parseHashedPinRecord(storedPin) == nil {
-            storePin(pin: storedPin)
+            try? storePin(pin: storedPin)
         }
     }
 
@@ -536,12 +536,6 @@ class CacheManager: NSObject {
             SentryManager.capture(error, context: "storing \(label) in keychain")
             throw error
         }
-    }
-
-    /// Non-throwing convenience for secrets where a failed write is recoverable
-    /// (e.g. the PIN, which can be reset via the mnemonic). Failures are logged.
-    private static func writeSecret(_ value: String, account: String, label: String, accessibility: SecureStore.Accessibility) {
-        try? persistSecret(value, account: account, label: label, accessibility: accessibility)
     }
 
     /// Non-throwing read used by getMnemonic()/getPin(). A Keychain read failure

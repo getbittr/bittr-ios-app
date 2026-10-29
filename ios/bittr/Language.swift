@@ -236,6 +236,7 @@ class Language: NSObject {
             "keychainunavailabletitle": "Couldn't access your wallet",
             "keychainunavailable": "We couldn't securely read your wallet just now. This can happen right after unlocking your device or when the phone is busy — your wallet and funds are safe.\n\nPlease tap Try again. Do not delete the app from your phone.",
             "mnemonicsavefail": "Something went wrong securely saving your wallet. Please try again.",
+            "pinsavefail": "Something went wrong securely saving your PIN. Please try again.",
             "incorrectpin2": "Please enter your correct PIN. If you've forgotten it, please restore your wallet.",
             "pinattemptsleft": "You have <attempts> attempts left.",
             "pinattemptleft": "You have 1 attempt left.",
