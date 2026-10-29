@@ -112,7 +112,7 @@ extension CoreViewController {
     }
     
     func lockForReauthentication() {
-        guard self.userHasSignedIn, self.currentPage == .home else { return }
+        guard self.userHasSignedIn, self.currentPage != .pin else { return }
         guard !self.resettingPin, !self.removingWalletForIncorrectPin, !self.isRemovalInFlight else { return }
         Log.info("App was backgrounded for longer than 120s. Asking for the PIN again.")
         
@@ -128,10 +128,11 @@ extension CoreViewController {
         // Prepare and show PinVC.
         self.pinVC?.clearPinField()
         self.userHasSignedIn = false
-        UIView.performWithoutAnimation { self.showPin() }
+        self.lockedDuringSignup = self.currentPage == .signup
+        UIView.performWithoutAnimation { self.showPin(keepingSignup: self.lockedDuringSignup) }
     }
     
-    func showPin(completion: (() -> Void)? = nil) {
+    func showPin(keepingSignup:Bool = false, completion: (() -> Void)? = nil) {
         guard self.currentPage != .pin else {
             completion?()
             return
@@ -162,7 +163,9 @@ extension CoreViewController {
                 self.view.layoutIfNeeded()
                 
                 self.currentPage = .pin
-                self.hideSignup()
+                if !keepingSignup {
+                    self.hideSignup()
+                }
                 completion?()
             }
         } else {
@@ -265,7 +268,7 @@ extension CoreViewController {
             eachSubview.removeFromSuperview()
         }
         
-        if self.walletHasSynced {
+        if self.walletHasSynced, self.userHasSignedIn {
             // Check for pending URIs after user signs in
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
                 self.checkForPendingURIs()

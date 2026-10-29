@@ -159,6 +159,14 @@ class PinViewController: UIViewController, UITextFieldDelegate, UICollectionView
                 // Hide pin and sync wallet.
                 self.clearPinField()
                 self.coreVC?.userHasSignedIn = true
+                
+                if self.coreVC?.lockedDuringSignup == true {
+                    // Return to the signup page the lock interrupted.
+                    self.coreVC?.lockedDuringSignup = false
+                    self.coreVC?.showSignup()
+                    return
+                }
+                
                 self.coreVC?.fromPinToHome()
                 
                 if self.coreVC?.walletHasSynced == true {
