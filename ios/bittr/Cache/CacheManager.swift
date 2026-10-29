@@ -387,6 +387,10 @@ class CacheManager: NSObject {
         readSecret(account: EnvironmentConfig.cacheKey(for: "mnemonic"))
     }
     
+    static func readMnemonic() throws -> String? {
+        try readSecretOrThrow(account: EnvironmentConfig.cacheKey(for: "mnemonic"))
+    }
+    
     // MARK: - Pending wallet creation
     
     // Holds a fingerprint of a newly created mnemonic until its PIN is stored.
@@ -394,9 +398,30 @@ class CacheManager: NSObject {
         EnvironmentConfig.cacheKey(for: "pendingcreation")
     }
     
+    enum WalletCreationError: Error {
+        case walletExists
+    }
+    
     static func storeNewMnemonic(_ mnemonic:String) throws {
-        try persistSecret(fingerprint(of: mnemonic), account: pendingCreationAccount, label: "pending creation", accessibility: .afterFirstUnlockThisDeviceOnly)
-        try storeMnemonic(mnemonic)
+        
+        // Make sure no mnemonic already exists.
+        if let existing = try readSecretOrThrow(account: EnvironmentConfig.cacheKey(for: "mnemonic")) {
+            // A mnemonic already exists. This is okay only if it's from an incomplete signup.
+            guard try readSecretOrThrow(account: EnvironmentConfig.cacheKey(for: "pin")) == nil, try isPendingCreation(existing), !LightningStorage.hasLightningState() else {
+                // A wallet with mnemonic, PIN, and/or Lightning channel is already present on this device.
+                throw WalletCreationError.walletExists
+            }
+        }
+        
+        do {
+            try persistSecret(fingerprint(of: mnemonic), account: pendingCreationAccount, label: "pending creation", accessibility: .afterFirstUnlockThisDeviceOnly)
+            try storeMnemonic(mnemonic)
+        } catch {
+            // Remove both halves of the failed creation, so the next launch finds no wallet.
+            SecureStore.remove(account: pendingCreationAccount)
+            SecureStore.remove(account: EnvironmentConfig.cacheKey(for: "mnemonic"))
+            throw error
+        }
     }
     
     private static func isPendingCreation(_ mnemonic:String) throws -> Bool {

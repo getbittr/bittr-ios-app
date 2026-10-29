@@ -150,17 +150,30 @@ class SignupViewController: UIViewController {
             self.view.layoutIfNeeded()
         } completion: { _ in
             
-            // Remove previous view from its container.
-            for (index, eachContainer) in self.allContainerViews.enumerated() {
-                if index != thisPage, eachContainer.subviews.count > 0 {
-                    for eachSubview in eachContainer.subviews {
-                        eachSubview.removeFromSuperview()
-                    }
-                }
+            // Remove previous pages.
+            let currentContainer = self.allContainerViews[self.currentPage]
+            for eachChild in self.children where eachChild.viewIfLoaded?.superview != currentContainer {
+                eachChild.willMove(toParent: nil)
+                eachChild.view.removeFromSuperview()
+                eachChild.removeFromParent()
             }
             self.animateTransition = true
         }
         
+    }
+    
+    // The new wallet's mnemonic words, or nil after telling the user why they can't be shown.
+    func newMnemonicWords(retry: @escaping () -> Void) -> [String]? {
+        do {
+            if let words = try CacheManager.readMnemonic()?.components(separatedBy: " "), words.count == 12 {
+                return words
+            }
+            // Without a mnemonic, wallet creation has to start over.
+            self.showAlert(title: Language.getWord(withID: "error"), message: Language.getWord(withID: "mnemonicsavefail"), buttons: [.action(Language.getWord(withID: "okay")) { self.moveToPage(3, checkConnection: false) }])
+        } catch {
+            self.showAlert(title: Language.getWord(withID: "keychainunavailabletitle"), message: Language.getWord(withID: "keychainunavailable"), buttons: [.action(Language.getWord(withID: "tryagain")) { retry() }])
+        }
+        return nil
     }
     
     @objc func screenshotTaken() {
