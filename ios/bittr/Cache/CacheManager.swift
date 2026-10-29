@@ -387,6 +387,10 @@ class CacheManager: NSObject {
         readSecret(account: EnvironmentConfig.cacheKey(for: "mnemonic"))
     }
     
+    static func readMnemonic() throws -> String? {
+        try readSecretOrThrow(account: EnvironmentConfig.cacheKey(for: "mnemonic"))
+    }
+    
     // MARK: - Pending wallet creation
     
     // Holds a fingerprint of a newly created mnemonic until its PIN is stored.
