@@ -191,6 +191,17 @@ class CoreViewController: UIViewController {
             self.pinContainerView.alpha = 1
             self.currentPage = .pin
             
+        case .pinMissing:
+            Log.info("Wallet is available, but its PIN is missing.")
+            self.finishAwaitingProtectedDataIfNeeded()
+            self.signupContainerView.alpha = 1
+            self.pinContainerView.alpha = 0
+            // Setting a new PIN requires the wallet's recovery phrase.
+            self.resettingPin = true
+            self.launchSignup(onPage: 2, checkConnection: false)
+            self.currentPage = .signup
+            self.showAlert(title: Language.getWord(withID: "pinmissing"), message: Language.getWord(withID: "pinmissing2"), buttons: [.dismiss(Language.getWord(withID: "okay"))])
+            
         case .absent:
             Log.info("No wallet on this device.")
             self.finishAwaitingProtectedDataIfNeeded()

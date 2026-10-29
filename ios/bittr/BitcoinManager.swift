@@ -268,7 +268,7 @@ class BitcoinManager {
         // New mnemonic.
         Log.info("Creating a new mnemonic.")
         let newMnemonic:String = LDKNode.generateEntropyMnemonic(wordCount: .words12).description
-        try CacheManager.storeMnemonic(newMnemonic)
+        try CacheManager.storeNewMnemonic(newMnemonic)
         return newMnemonic
     }
     
