@@ -413,8 +413,15 @@ class CacheManager: NSObject {
             }
         }
         
-        try persistSecret(fingerprint(of: mnemonic), account: pendingCreationAccount, label: "pending creation", accessibility: .afterFirstUnlockThisDeviceOnly)
-        try storeMnemonic(mnemonic)
+        do {
+            try persistSecret(fingerprint(of: mnemonic), account: pendingCreationAccount, label: "pending creation", accessibility: .afterFirstUnlockThisDeviceOnly)
+            try storeMnemonic(mnemonic)
+        } catch {
+            // Remove both halves of the failed creation, so the next launch finds no wallet.
+            SecureStore.remove(account: pendingCreationAccount)
+            SecureStore.remove(account: EnvironmentConfig.cacheKey(for: "mnemonic"))
+            throw error
+        }
     }
     
     private static func isPendingCreation(_ mnemonic:String) throws -> Bool {
