@@ -11,17 +11,16 @@ import LDKNode
 class CoreViewController: UIViewController {
     
     // App start booleans
+    private var isAwaitingProtectedData = false
+    private var walletIsOnDevice = false
     var userHasSignedIn = false
     var walletHasSynced = false
+    
+    // Backgrounded app
     var backgroundedAt:Date?
     var deferredPresentation:(() -> Void)? // A screen someone asked for while the PIN was up.
     var privacyCover:UIView? // Hides the wallet from the app switcher snapshot.
-    
-    // True while checkWalletAvailability is waiting for the Keychain to become readable.
-    private var isAwaitingProtectedData = false
-    
-    // True once checkWalletAvailability has found a wallet on this device.
-    private var walletIsOnDevice = false
+    var lockedDuringSignup = false
     
     // Pin reset
     var resettingPin = false
