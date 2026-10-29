@@ -126,19 +126,32 @@ class PinViewController: UIViewController, UITextFieldDelegate, UICollectionView
         switch self.embeddingView {
         case .core:
             guard (self.coreVC ?? self).checkInternetConnection() else { return }
-            guard CacheManager.hasPin() else {
-                Log.info("No pin found in storage.")
+            
+            let pinIsCorrect:Bool
+            do {
+                guard try CacheManager.hasPin() else {
+                    Log.info("No pin found in storage.")
+                    self.clearPinField()
+                    self.showAlert(title: Language.getWord(withID: "pinmissing"), message: Language.getWord(withID: "pinmissing2"), buttons: [.action(Language.getWord(withID: "okay")) { self.coreVC?.startPinReset() }])
+                    return
+                }
+                
+                if CacheManager.getFailedPinAttempts() >= 10 {
+                    Log.info("Wallet is locked out after 10 failed PIN attempts.")
+                    self.clearPinField()
+                    self.removeWallet()
+                    return
+                }
+                
+                pinIsCorrect = try CacheManager.verifyPin(self.pinTextField.text ?? "")
+            } catch {
+                // A PIN that can't be read is not a wrong PIN.
+                SentryManager.capture(error, context: "PinViewController row 149")
+                self.showAlert(title: Language.getWord(withID: "keychainunavailabletitle"), message: Language.getWord(withID: "keychainunavailable"), buttons: [.dismiss(Language.getWord(withID: "tryagain"))])
                 return
             }
             
-            if CacheManager.getFailedPinAttempts() >= 10 {
-                Log.info("Wallet is locked out after 10 failed PIN attempts.")
-                self.clearPinField()
-                self.removeWallet()
-                return
-            }
-            
-            if CacheManager.verifyPin(self.pinTextField.text ?? "") {
+            if pinIsCorrect {
                 // Correct pin.
                 CacheManager.resetFailedPinAttempts()
                 
@@ -163,23 +176,19 @@ class PinViewController: UIViewController, UITextFieldDelegate, UICollectionView
                     self.removeWallet()
                     return
                 }
-
-                // Tell the user how many tries remain before the 10-attempt
-                // wipe (singular wording for the final attempt).
+                
+                // Tell the user how many tries remain before the 10-attempt wipe.
                 let attemptsLeft = 10 - CacheManager.getFailedPinAttempts()
                 let attemptsMessage = attemptsLeft == 1
                     ? Language.getWord(withID: "pinattemptleft")
                     : Language.getWord(withID: "pinattemptsleft").replacingOccurrences(of: "<attempts>", with: "\(attemptsLeft)")
-
-                // Warn well before the 10-attempt wipe and steer anyone who
-                // still has their recovery phrase to the non-destructive
-                // Forgot PIN flow — the wipe can cost them their Lightning
-                // funds, so we want them recovering by mnemonic instead.
+                
+                // Warn well before the 10-attempt wipe, and steer to Forgot PIN flow.
                 if CacheManager.getFailedPinAttempts() == 3 {
                     self.showAlert(title: Language.getWord(withID: "pinwarning"), message: Language.getWord(withID: "pinwarning2") + "\n\n" + attemptsMessage, buttons: [.dismiss(Language.getWord(withID: "okay")), .action(Language.getWord(withID: "forgotpin")) { self.coreVC!.startPinReset() }])
                     return
                 }
-
+                
                 self.showAlert(title: Language.getWord(withID: "incorrectpin"), message: Language.getWord(withID: "incorrectpin2") + "\n\n" + attemptsMessage, buttons: [.action(Language.getWord(withID: "okay")) { self.clearPinField() }])
             }
         case .signup5:
