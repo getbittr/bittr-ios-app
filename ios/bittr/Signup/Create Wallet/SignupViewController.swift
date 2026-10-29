@@ -150,13 +150,12 @@ class SignupViewController: UIViewController {
             self.view.layoutIfNeeded()
         } completion: { _ in
             
-            // Remove previous view from its container.
-            for (index, eachContainer) in self.allContainerViews.enumerated() {
-                if index != thisPage, eachContainer.subviews.count > 0 {
-                    for eachSubview in eachContainer.subviews {
-                        eachSubview.removeFromSuperview()
-                    }
-                }
+            // Remove previous pages.
+            let currentContainer = self.allContainerViews[self.currentPage]
+            for eachChild in self.children where eachChild.viewIfLoaded?.superview != currentContainer {
+                eachChild.willMove(toParent: nil)
+                eachChild.view.removeFromSuperview()
+                eachChild.removeFromParent()
             }
             self.animateTransition = true
         }
