@@ -22,8 +22,9 @@ extension SendViewController {
             let enteredText = (textField.text ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
             
             // Check whether this is an invoice or LNURL.
-            let lightningInvoice = enteredText.extractLightningInvoice()
-            let lnurl = enteredText.extractLNURL()
+            let paymentCode = enteredText.parsedPaymentCode()
+            let lightningInvoice = paymentCode.lightningInvoice
+            let lnurl = paymentCode.lnurl
             if lightningInvoice != nil || lnurl != nil {
                 self.view.endEditing(true)
                 self.onchainOrLightning = .lightning
