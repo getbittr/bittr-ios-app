@@ -530,16 +530,6 @@ extension BitcoinManager {
         return details
     }
     
-    func isValidMnemonic(_ thisMnemonic:String) -> Bool {
-        do {
-            _ = try BitcoinDevKit.Mnemonic.fromString(mnemonic: thisMnemonic)
-            return true
-        } catch {
-            // Could not generate mnemonic.
-            return false
-        }
-    }
-    
     // Look for the transaction that closed a channel and remember it.
     func storeChannelClosureTxIDIfFound() {
         
@@ -600,5 +590,18 @@ extension BitcoinManager {
         }
         let thisAddress = bdkWallet.peekAddress(keychain: .external, index: UInt32(atIndex)).address.description
         return thisAddress
+    }
+}
+
+extension String {
+    
+    func isValidMnemonic() -> Bool {
+        do {
+            _ = try BitcoinDevKit.Mnemonic.fromString(mnemonic: self)
+            return true
+        } catch {
+            // Could not generate mnemonic.
+            return false
+        }
     }
 }
