@@ -57,9 +57,26 @@ extension CoreViewController {
             case .ldk:
                 self.spinnerLDK.startAnimating()
                 self.checkmarkLDK.alpha = 0
+            case .wallet:
+                self.spinnerSync.startAnimating()
+                self.checkmarkSync.alpha = 0
+                self.problemSync.alpha = 0
             case .final:
                 self.spinnerFinal.startAnimating()
                 self.checkmarkFinal.alpha = 0
+            }
+        }
+    }
+    
+    func failSync(_ type:SyncType) {
+        DispatchQueue.main.async {
+            switch type {
+            case .wallet:
+                self.spinnerSync.stopAnimating()
+                self.problemSync.alpha = 1
+            default:
+                // Only the wallet sync shows a failure.
+                break
             }
         }
     }
@@ -73,6 +90,9 @@ extension CoreViewController {
             case .ldk:
                 self.spinnerLDK.stopAnimating()
                 self.checkmarkLDK.alpha = 1
+            case .wallet:
+                self.spinnerSync.stopAnimating()
+                self.checkmarkSync.alpha = 1
             case .final:
                 self.spinnerFinal.stopAnimating()
                 self.checkmarkFinal.alpha = 1
@@ -88,6 +108,7 @@ extension CoreViewController {
 enum SyncType {
     case conversion
     case ldk
+    case wallet
     case final
 }
 
