@@ -86,7 +86,7 @@ extension CoreViewController {
         
         // Node was successfully started.
         self.completeSync(.ldk)
-        self.startSync(.final)
+        self.startSync(.wallet)
         
         if BitcoinManager.shared.didQuarantineForeignState {
             Log.info("User has restored a backup on a new device. Their channel will not be available.")
@@ -117,6 +117,12 @@ extension CoreViewController {
                 SentryManager.capture(error, context: "StartLightning syncWallets")
                 didSyncWallet = false
             }
+            if didSyncWallet {
+                self.completeSync(.wallet)
+            } else {
+                self.failSync(.wallet)
+            }
+            self.startSync(.final)
             
             // Load wallet data.
             DispatchQueue.main.async {
