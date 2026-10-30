@@ -99,6 +99,7 @@ extension SendViewController {
     }
     
     func clearPendingLnurlState() {
+        self.pendingLNURLSource = nil
         self.pendingLNURLCallback = nil
         self.pendingLNURLDescription = nil
         self.pendingLNURLMinAmount = nil
@@ -118,6 +119,7 @@ extension UIViewController {
     func handleLNURL(code:String) {
         
         let sendVC = self as? SendViewController
+        sendVC?.pendingLNURLSource = code
         
         sendVC?.startLNURLSpinner()
         
@@ -165,6 +167,11 @@ extension UIViewController {
             await CallsManager.makeApiCall(url: url, parameters: nil, getOrPost: .get, reportDecodeFailures: false) { result in
                 
                 DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
+                    // Drop the response if the recipient changed while it loaded.
+                    if let sendVC, sendVC.pendingLNURLSource != code {
+                        sendVC.stopLNURLSpinner()
+                        return
+                    }
                     switch result {
                     case .success(let actualDataDict):
                         SentryManager.countMetric("lnurl.api.success")
@@ -312,6 +319,7 @@ extension UIViewController {
         Log.info("Will send payRequest.")
         
         let sendVC = self as? SendViewController
+        let source = sendVC?.pendingLNURLSource
         
         sendVC?.startLNURLSpinner()
         
@@ -321,6 +329,11 @@ extension UIViewController {
             await CallsManager.makeApiCall(url: actualUrl, parameters: nil, getOrPost: .get, reportDecodeFailures: false) { result in
                 DispatchQueue.main.async {
                     sendVC?.stopLNURLSpinner()
+                    
+                    // Drop the invoice if the recipient changed while it loaded.
+                    if let sendVC, sendVC.pendingLNURLSource != source {
+                        return
+                    }
                     
                     switch result {
                     case .success(let actualDataDict):

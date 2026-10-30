@@ -15,6 +15,9 @@ extension SendViewController {
     func handleScannedOrPastedString(_ code:String) {
         Log.debug("Code: " + code)
         
+        // A new code replaces any LNURL that was still pending.
+        self.clearPendingLnurlState()
+        
         // Parse code components.
         let bitcoinAddress = code.extractBitcoinAddress()
         let lightningInvoice = code.lowercased().extractLightningInvoice()
