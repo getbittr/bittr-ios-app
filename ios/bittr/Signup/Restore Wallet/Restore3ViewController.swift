@@ -54,6 +54,11 @@ class Restore3ViewController: UIViewController, UITextFieldDelegate {
         self.coreVC!.buyVC?.registerIbanVC?.dismiss(animated: true)
         self.coreVC!.buyVC?.parseIbanEntities(uponPageLaunch: false)
         self.coreVC!.fromSignupToHome()
+        
+        // Handle the work that waited for the PIN.
+        if self.coreVC!.walletHasSynced {
+            self.coreVC!.handlePendingWork()
+        }
     }
     
     override func prepare(for segue: UIStoryboardSegue, sender: Any?) {
