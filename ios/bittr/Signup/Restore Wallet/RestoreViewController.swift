@@ -237,7 +237,8 @@ class RestoreViewController: UIViewController, UITextFieldDelegate {
         for eachWord in enteredWords {
             guard let actualWord = eachWord?
                 .trimmingCharacters(in: .whitespacesAndNewlines)
-                .replacingOccurrences(of: " ", with: "") as? String,
+                .replacingOccurrences(of: " ", with: "")
+                .lowercased() as? String,
                 !actualWord.isEmpty
             else {
                 self.resetWithError(Language.getWord(withID: "incompletephrase2"))
