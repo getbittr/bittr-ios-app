@@ -374,7 +374,7 @@ class CacheManager: NSObject {
     
     // MARK: - Mnemonic
     
-    static func storeMnemonic(_ mnemonic:String) throws {
+    private static func storeMnemonic(_ mnemonic:String) throws {
         
         // Make sure no foreign LDK Node data remains available when creating or restoring a wallet.
         // Foreign LDK Node data can never restore a channel, and may lead to loss of funds.
@@ -425,13 +425,7 @@ class CacheManager: NSObject {
     
     static func storeNewMnemonic(_ mnemonic:String) throws {
         
-        // Only an unfinished creation may be replaced.
-        switch try storedWallet() {
-        case .none, .unfinishedCreation:
-            break
-        case .complete, .pinMissing:
-            throw WalletCreationError.walletExists
-        }
+        try ensureNoWalletExists()
         
         do {
             try persistSecret(fingerprint(of: mnemonic), account: pendingCreationAccount, label: "pending creation", accessibility: .afterFirstUnlockThisDeviceOnly)
@@ -452,6 +446,26 @@ class CacheManager: NSObject {
         } catch {
             // Nothing is removed while the Keychain can't be read.
             SentryManager.capture(error, context: "CacheManager:459")
+        }
+    }
+    
+    static func storeRestoredMnemonic(_ mnemonic:String) throws {
+        
+        try ensureNoWalletExists()
+        try storeMnemonic(mnemonic)
+        
+        // The restored mnemonic replaces any unfinished creation.
+        SecureStore.remove(account: pendingCreationAccount)
+    }
+    
+    private static func ensureNoWalletExists() throws {
+        
+        // Only an unfinished creation may be replaced.
+        switch try storedWallet() {
+        case .none, .unfinishedCreation:
+            break
+        case .complete, .pinMissing:
+            throw WalletCreationError.walletExists
         }
     }
     
