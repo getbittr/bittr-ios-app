@@ -90,6 +90,7 @@ class SendViewController: UIViewController, UITextFieldDelegate, OnchainSyncFail
     var pendingLightningURI: String?
     
     // Pending LNURL data
+    var pendingLNURLSource: String? // The LNURL or lightning address the pending data belongs to.
     var pendingLNURLCallback: String?
     var pendingLNURLDescription: String?
     var pendingLNURLMinAmount: Int?
@@ -301,6 +302,12 @@ class SendViewController: UIViewController, UITextFieldDelegate, OnchainSyncFail
     @IBAction func nextButtonTapped(_ sender: UIButton) {
         self.view.endEditing(true)
         
+        // Pending LNURL data only belongs to the LNURL it came from.
+        let enteredCode = (self.toTextField.text ?? "").trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        if self.pendingLNURLSource != enteredCode {
+            self.clearPendingLnurlState()
+        }
+        
         // Check if we have pending LNURL data FIRST (for when Next button shows "Done")
         if self.pendingLNURLCallback != nil, self.pendingLNURLMinAmount != nil, self.pendingLNURLMaxAmount != nil {
             self.handleLNURLAmountCompletion()
@@ -358,6 +365,8 @@ class SendViewController: UIViewController, UITextFieldDelegate, OnchainSyncFail
     
     
     @IBAction func switchTapped(_ sender: UIButton) {
+        
+        self.clearPendingLnurlState()
 
         if (sender.boundString ?? "") == "onchain", self.bitcoinQR != "" {
             self.toTextField.text = self.bitcoinQR

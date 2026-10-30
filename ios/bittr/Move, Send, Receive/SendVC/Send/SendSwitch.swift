@@ -16,6 +16,7 @@ extension SendViewController {
         self.pendingLightningInvoice = ""
         self.pendingOnchainAddress = ""
         self.pendingOnchainAmount = 0
+        self.clearPendingLnurlState()
     }
     
     func updateLabels() {
