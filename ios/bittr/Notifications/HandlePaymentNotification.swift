@@ -587,6 +587,7 @@ extension CoreViewController {
                     
                     // Reset balance and transactions.
                     DispatchQueue.main.async {
+                        self.homeVC?.couldNotSyncWallet = false
                         BitcoinManager.shared.bittrWallet.lightningChannels = channels
                         Log.info("Will reload wallet data.")
                         self.homeVC!.loadWalletData()

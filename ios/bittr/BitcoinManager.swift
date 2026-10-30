@@ -163,9 +163,7 @@ class BitcoinManager {
         let nodeBuilder = Builder.fromConfig(config: config)
         nodeBuilder.setEntropyBip39Mnemonic(mnemonic: mnemonicString, passphrase: "")
         
-        // Configure LSP2 liquidity source to allow channels to be used up to 100% capacity
-        // rather than the default 10% limit imposed by LDK. This enables better channel utilization
-        // for receiving payments, though we're not yet using the full LSP2 specification.
+        // Configure LSP2 liquidity source to allow channels to be used up to 100% capacity.
         nodeBuilder.setLiquiditySourceLsps2(
             nodeId: PublicKey(EnvironmentConfig.lightningNodeId),
             address: EnvironmentConfig.lightningNodeAddress,
@@ -185,16 +183,6 @@ class BitcoinManager {
             nodeBuilder.setGossipSourceRgs(rgsServerUrl: EnvironmentConfig.RGSServerURLs.testnet)
             nodeBuilder.setChainSourceEsplora(serverUrl: EnvironmentConfig.EsploraURLs.testnet, config: esploraSyncConfig)
         }
-        
-//        let logDirectory = storageManager.getDocumentsDirectory() + "/logs"
-//        try? FileManager.default.createDirectory(
-//                   atPath: logDirectory,
-//                   withIntermediateDirectories: true
-//               )
-//        
-//        let logPath = logDirectory + "/ruben.log"
-//        
-//        nodeBuilder.setFilesystemLogger(logFilePath: logPath, maxLogLevel: LDKNode.LogLevel.trace)
         
         // Build new node.
         let newLdkNode: Node
