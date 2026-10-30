@@ -133,13 +133,27 @@ class RestoreViewController: UIViewController, UITextFieldDelegate {
         self.changeColors()
         self.setWords()
         self.pageArticle1 = self.setSignupArticle(articleSlug: self.pageArticle1Slug, coreVC: self.signupVC!.coreVC!, articleButton: self.articleButton, articleTitle: self.articleTitle, articleImage: self.articleImage, articleSpinner: self.spinner1) ?? Article()
+        self.registerForTraitChanges([UITraitSceneCaptureState.self], action: #selector(updateMnemonicVisibility))
     }
     
     override func viewWillAppear(_ animated: Bool) {
         
+        self.updateMnemonicVisibility()
+        
         NotificationCenter.default.addObserver(self, selector: #selector(keyboardWillDisappear), name: UIResponder.keyboardWillHideNotification, object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(keyboardWillAppear), name: UIResponder.keyboardWillShowNotification, object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(changeColors), name: NSNotification.Name(rawValue: "changecolors"), object: nil)
+    }
+    
+    @objc func updateMnemonicVisibility() {
+        // Hide the entered words while the screen is being recorded or mirrored.
+        let isCaptured = self.traitCollection.sceneCaptureState == .active
+        guard self.mnemonicView.isHidden != isCaptured else { return }
+        self.mnemonicView.isHidden = isCaptured
+        if isCaptured {
+            self.view.endEditing(true)
+            self.showAlert(title: Language.getWord(withID: "becareful"), message: Language.getWord(withID: "mnemonichidden"), buttons: [.dismiss(Language.getWord(withID: "okay"))])
+        }
     }
     
     @objc func keyboardWillDisappear() {
