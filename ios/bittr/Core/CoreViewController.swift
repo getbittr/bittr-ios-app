@@ -128,6 +128,7 @@ class CoreViewController: UIViewController {
     // Syncing status
     @IBOutlet weak var statusConversion: UILabel!
     @IBOutlet weak var statusLightning: UILabel!
+    @IBOutlet weak var statusSync: UILabel!
     @IBOutlet weak var statusFinal: UILabel!
     @IBOutlet weak var syncStack: UIView!
     @IBOutlet weak var syncViewBottom: NSLayoutConstraint!
@@ -137,9 +138,12 @@ class CoreViewController: UIViewController {
     @IBOutlet weak var statusView: UIView!
     @IBOutlet weak var spinnerConversion: UIActivityIndicatorView!
     @IBOutlet weak var spinnerLDK: UIActivityIndicatorView!
+    @IBOutlet weak var spinnerSync: UIActivityIndicatorView!
     @IBOutlet weak var spinnerFinal: UIActivityIndicatorView!
     @IBOutlet weak var checkmarkConversion: UIImageView!
     @IBOutlet weak var checkmarkLDK: UIImageView!
+    @IBOutlet weak var checkmarkSync: UIImageView!
+    @IBOutlet weak var problemSync: UIImageView!
     @IBOutlet weak var checkmarkFinal: UIImageView!
     
     // Generic spinner
@@ -151,8 +155,6 @@ class CoreViewController: UIViewController {
     @IBOutlet weak var settingsBackgroundButton: UIButton!
     @IBOutlet weak var settingsContainer: UIView!
     @IBOutlet weak var settingsContainerTop: NSLayoutConstraint!
-    // Open-position constant of settingsContainerTop, set by showSettings and
-    // used by the swipe-to-dismiss handler (handleSettingsPan).
     var settingsOpenConstant: CGFloat = 0
 
     override func viewDidLoad() {

@@ -154,7 +154,7 @@ extension BitcoinManager {
         
         // Check mnemonic.
         guard let cachedMnemonic = CacheManager.getMnemonic() else {
-            Log.info("No mnemonic in cache; wallet is being torn down. Aborting BDK start.")
+            Log.info("Mnemonic is unavailable. Aborting BDK start.")
             return false
         }
 

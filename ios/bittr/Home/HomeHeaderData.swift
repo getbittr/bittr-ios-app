@@ -116,7 +116,7 @@ extension HomeHeaderTableViewCell {
         self.headerSpinner.stopAnimating()
         
         guard let homeVC = self.homeVC else { return }
-        self.headerProblemImage.alpha = homeVC.couldNotFetchConversion ? 1 : 0
+        self.headerProblemImage.alpha = (homeVC.couldNotSyncWallet || homeVC.couldNotFetchConversion) ? 1 : 0
     }
     
     func hideLabels() {

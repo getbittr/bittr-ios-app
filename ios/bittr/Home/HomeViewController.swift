@@ -31,6 +31,7 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
     var didStartReset = false
     var didFetchConversion = false
     var couldNotFetchConversion = false
+    var couldNotSyncWallet = false
     
     // Other VCs
     var coreVC:CoreViewController?
@@ -295,7 +296,9 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
     @IBAction func syncingStatusTapped(_ sender: UIButton) {
         
         if self.coreVC!.walletHasSynced {
-            if self.couldNotFetchConversion {
+            if self.couldNotSyncWallet {
+                self.showAlert(title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "syncfail"), buttons: [.dismiss(Language.getWord(withID: "okay"))])
+            } else if self.couldNotFetchConversion {
                 self.showAlert(title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "conversionfail"), buttons: [.dismiss(Language.getWord(withID: "okay"))])
             } else {
                 self.balanceDetailsButtonTapped(UIButton())

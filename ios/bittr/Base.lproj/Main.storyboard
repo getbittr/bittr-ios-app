@@ -451,7 +451,7 @@
                                 <rect key="frame" x="0.0" y="0.0" width="393" height="852"/>
                                 <subviews>
                                     <view contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="YFi-PA-AqV" userLabel="Syncing Status View">
-                                        <rect key="frame" x="10" y="728" width="373" height="124"/>
+                                        <rect key="frame" x="10" y="703" width="373" height="149"/>
                                         <subviews>
                                             <imageView clipsSubviews="YES" userInteractionEnabled="NO" contentMode="scaleAspectFit" horizontalHuggingPriority="251" verticalHuggingPriority="251" image="iconcloseblack" translatesAutoresizingMaskIntoConstraints="NO" id="rD8-oN-CWV">
                                                 <rect key="frame" x="343" y="22" width="12" height="12"/>
@@ -540,8 +540,58 @@
                                                     <constraint firstAttribute="height" relation="greaterThanOrEqual" constant="10" id="mXf-gu-yLa"/>
                                                 </constraints>
                                             </view>
+                                            <view contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="KxN-Hy-IUH" userLabel="Sync View">
+                                                <rect key="frame" x="24" y="80" width="158.66666666666666" height="14"/>
+                                                <subviews>
+                                                    <activityIndicatorView hidden="YES" opaque="NO" contentMode="scaleToFill" horizontalHuggingPriority="750" verticalHuggingPriority="750" hidesWhenStopped="YES" style="medium" translatesAutoresizingMaskIntoConstraints="NO" id="ZOQ-3i-xNU" userLabel="Spinner Sync">
+                                                        <rect key="frame" x="0.0" y="-3" width="20" height="20"/>
+                                                        <color key="color" red="0.96470588239999999" green="0.78039215689999997" blue="0.2666666667" alpha="1" colorSpace="custom" customColorSpace="displayP3"/>
+                                                    </activityIndicatorView>
+                                                    <imageView clipsSubviews="YES" userInteractionEnabled="NO" alpha="0.0" contentMode="scaleAspectFit" horizontalHuggingPriority="251" verticalHuggingPriority="251" image="iconcheck" translatesAutoresizingMaskIntoConstraints="NO" id="ksA-lz-Yio" userLabel="Checkmark Sync">
+                                                        <rect key="frame" x="3" y="-1" width="14" height="14"/>
+                                                        <color key="tintColor" systemColor="systemGreenColor"/>
+                                                        <constraints>
+                                                            <constraint firstAttribute="height" constant="14" id="7tO-r6-yel"/>
+                                                            <constraint firstAttribute="width" constant="14" id="PcW-gb-ezW"/>
+                                                        </constraints>
+                                                    </imageView>
+                                                    <imageView clipsSubviews="YES" userInteractionEnabled="NO" alpha="0.0" contentMode="scaleAspectFit" horizontalHuggingPriority="251" verticalHuggingPriority="251" image="exclamationmark.circle" catalog="system" translatesAutoresizingMaskIntoConstraints="NO" id="GN2-DW-qUZ" userLabel="Problem Sync">
+                                                        <rect key="frame" x="3" y="-1" width="14" height="14"/>
+                                                        <color key="tintColor" red="1" green="0.23137254901960785" blue="0.18823529411764706" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
+                                                        <constraints>
+                                                            <constraint firstAttribute="height" constant="14" id="ASK-0Z-TI9"/>
+                                                            <constraint firstAttribute="width" constant="14" id="NEU-DF-QA9"/>
+                                                        </constraints>
+                                                    </imageView>
+                                                    <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="sync wallet" textAlignment="center" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="3Pl-93-vnk">
+                                                        <rect key="frame" x="30" y="0.0" width="128.66666666666666" height="14"/>
+                                                        <constraints>
+                                                            <constraint firstAttribute="width" relation="greaterThanOrEqual" constant="2" id="tgL-cK-W3A"/>
+                                                            <constraint firstAttribute="height" relation="greaterThanOrEqual" constant="2" id="Ku6-aZ-I3n"/>
+                                                        </constraints>
+                                                        <fontDescription key="fontDescription" name="Gilroy-Bold" family="Gilroy-Bold" pointSize="14"/>
+                                                        <color key="textColor" white="0.0" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
+                                                        <nil key="highlightedColor"/>
+                                                    </label>
+                                                </subviews>
+                                                <color key="backgroundColor" white="0.0" alpha="0.0" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
+                                                <constraints>
+                                                    <constraint firstItem="3Pl-93-vnk" firstAttribute="leading" secondItem="ZOQ-3i-xNU" secondAttribute="trailing" constant="10" id="aEh-OE-RTg"/>
+                                                    <constraint firstItem="ZOQ-3i-xNU" firstAttribute="centerY" secondItem="3Pl-93-vnk" secondAttribute="centerY" id="zgq-MY-xjA"/>
+                                                    <constraint firstAttribute="bottom" secondItem="3Pl-93-vnk" secondAttribute="bottom" id="Yuh-x6-H3u"/>
+                                                    <constraint firstItem="ZOQ-3i-xNU" firstAttribute="leading" secondItem="KxN-Hy-IUH" secondAttribute="leading" id="tAD-To-Xq4"/>
+                                                    <constraint firstAttribute="width" relation="greaterThanOrEqual" constant="20" id="Qwz-Ss-raV"/>
+                                                    <constraint firstAttribute="trailing" secondItem="3Pl-93-vnk" secondAttribute="trailing" id="vil-IZ-pgA"/>
+                                                    <constraint firstItem="ksA-lz-Yio" firstAttribute="centerX" secondItem="ZOQ-3i-xNU" secondAttribute="centerX" id="SEA-qX-QJT"/>
+                                                    <constraint firstItem="3Pl-93-vnk" firstAttribute="top" secondItem="KxN-Hy-IUH" secondAttribute="top" id="Osq-Yi-SO6"/>
+                                                    <constraint firstItem="ksA-lz-Yio" firstAttribute="centerY" secondItem="ZOQ-3i-xNU" secondAttribute="centerY" constant="-1" id="wxX-3T-ob5"/>
+                                                    <constraint firstAttribute="height" relation="greaterThanOrEqual" constant="10" id="hkY-Qz-I8q"/>
+                                                    <constraint firstItem="GN2-DW-qUZ" firstAttribute="centerX" secondItem="ZOQ-3i-xNU" secondAttribute="centerX" id="Fxs-ti-7eM"/>
+                                                    <constraint firstItem="GN2-DW-qUZ" firstAttribute="centerY" secondItem="ZOQ-3i-xNU" secondAttribute="centerY" constant="-1" id="zRU-ig-04Y"/>
+                                                </constraints>
+                                            </view>
                                             <view contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="yzm-sS-sRH" userLabel="Final View">
-                                                <rect key="frame" x="24" y="80" width="140.66666666666666" height="14"/>
+                                                <rect key="frame" x="24" y="105" width="140.66666666666666" height="14"/>
                                                 <subviews>
                                                     <activityIndicatorView hidden="YES" opaque="NO" contentMode="scaleToFill" horizontalHuggingPriority="750" verticalHuggingPriority="750" hidesWhenStopped="YES" style="medium" translatesAutoresizingMaskIntoConstraints="NO" id="lgz-o2-UPv" userLabel="Spinner Final">
                                                         <rect key="frame" x="0.0" y="-3" width="20" height="20"/>
@@ -590,7 +640,9 @@
                                             <constraint firstItem="aRw-c8-cW6" firstAttribute="top" secondItem="YFi-PA-AqV" secondAttribute="top" constant="30" id="LvH-3i-b9w"/>
                                             <constraint firstItem="vWd-DR-ogj" firstAttribute="leading" secondItem="YFi-PA-AqV" secondAttribute="leading" constant="24" id="Yw2-HC-wBr"/>
                                             <constraint firstAttribute="height" relation="greaterThanOrEqual" id="auw-Iz-O5Q"/>
-                                            <constraint firstItem="yzm-sS-sRH" firstAttribute="top" secondItem="vWd-DR-ogj" secondAttribute="bottom" constant="11" id="d8U-VG-Nhc"/>
+                                            <constraint firstItem="yzm-sS-sRH" firstAttribute="top" secondItem="KxN-Hy-IUH" secondAttribute="bottom" constant="11" id="d8U-VG-Nhc"/>
+                                            <constraint firstItem="KxN-Hy-IUH" firstAttribute="top" secondItem="vWd-DR-ogj" secondAttribute="bottom" constant="11" id="Xjo-3z-9HQ"/>
+                                            <constraint firstItem="KxN-Hy-IUH" firstAttribute="leading" secondItem="YFi-PA-AqV" secondAttribute="leading" constant="24" id="fwc-NH-bbw"/>
                                             <constraint firstItem="aRw-c8-cW6" firstAttribute="leading" secondItem="YFi-PA-AqV" secondAttribute="leading" constant="24" id="njv-11-usp"/>
                                             <constraint firstItem="rD8-oN-CWV" firstAttribute="trailing" secondItem="YFi-PA-AqV" secondAttribute="trailing" constant="-18" id="uLr-8s-WtF"/>
                                         </constraints>
@@ -753,6 +805,10 @@
                         <outlet property="spinnerConversion" destination="wLN-F6-6r7" id="lTg-p1-v4l"/>
                         <outlet property="spinnerFinal" destination="lgz-o2-UPv" id="dBr-MP-7Yh"/>
                         <outlet property="spinnerLDK" destination="19W-kF-Ob2" id="iRU-Vv-wdP"/>
+                        <outlet property="spinnerSync" destination="ZOQ-3i-xNU" id="kW6-J1-Tlg"/>
+                        <outlet property="checkmarkSync" destination="ksA-lz-Yio" id="DXJ-aV-WSI"/>
+                        <outlet property="problemSync" destination="GN2-DW-qUZ" id="ANa-Ea-RhI"/>
+                        <outlet property="statusSync" destination="3Pl-93-vnk" id="xkd-Zu-t3c"/>
                         <outlet property="statusConversion" destination="MMy-9P-SqI" id="wF3-V1-ZTg"/>
                         <outlet property="statusFinal" destination="Q6h-cc-V1w" id="KkI-Pc-HmT"/>
                         <outlet property="statusLightning" destination="0rS-GJ-ypl" id="hGF-Pe-kGq"/>
