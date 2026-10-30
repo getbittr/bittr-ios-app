@@ -102,31 +102,17 @@ class RestoreViewController: UIViewController, UITextFieldDelegate {
         self.articleButton.setTitle("", for: .normal)
         self.removeWalletButton.setTitle("", for: .normal)
         
-        // Text fields.
-        self.mnemonic1.delegate = self
-        self.mnemonic2.delegate = self
-        self.mnemonic3.delegate = self
-        self.mnemonic4.delegate = self
-        self.mnemonic5.delegate = self
-        self.mnemonic6.delegate = self
-        self.mnemonic7.delegate = self
-        self.mnemonic8.delegate = self
-        self.mnemonic9.delegate = self
-        self.mnemonic10.delegate = self
-        self.mnemonic11.delegate = self
-        self.mnemonic12.delegate = self
-        
         // Configure MnemonicTextField properties
-        let textFields = [self.mnemonic1, self.mnemonic2, self.mnemonic3, self.mnemonic4, self.mnemonic5, self.mnemonic6, self.mnemonic7, self.mnemonic8, self.mnemonic9, self.mnemonic10, self.mnemonic11, self.mnemonic12]
+        let textFields:[MnemonicTextField] = [self.mnemonic1, self.mnemonic2, self.mnemonic3, self.mnemonic4, self.mnemonic5, self.mnemonic6, self.mnemonic7, self.mnemonic8, self.mnemonic9, self.mnemonic10, self.mnemonic11, self.mnemonic12]
         
         for (index, textField) in textFields.enumerated() {
-            textField?.tag = index + 1
-            textField?.delegate = self
-            textField?.attributedPlaceholder = NSAttributedString(
+            textField.tag = index + 1
+            textField.delegate = self
+            textField.attributedPlaceholder = NSAttributedString(
                 string: Language.getWord(withID: "enterword"),
                 attributes: [NSAttributedString.Key.foregroundColor: UIColor.gray]
             )
-            textField?.returnKeyType = .next
+            textField.returnKeyType = .next
         }
         
         if self.coreVC != nil, self.coreVC!.resettingPin {
@@ -221,52 +207,47 @@ class RestoreViewController: UIViewController, UITextFieldDelegate {
     
     @IBAction func restoreButtonTapped(_ sender: UIButton) {
         self.view.endEditing(true)
-        guard self.coreVC != nil else {
-            Log.info("coreVC is nil - stopping spinner and showing error")
-            self.restoreButtonSpinner.stopAnimating()
-            self.restoreButtonText.alpha = 1
-            self.showAlert(title: Language.getWord(withID: "error"), message: Language.getWord(withID: "restorewalleterror"), buttons: [.dismiss(Language.getWord(withID: "okay"))])
+        guard let coreVC = self.coreVC else {
+            Log.info("CoreVC is nil.")
+            self.resetWithError(Language.getWord(withID: "restorewalleterror"))
             return
         }
         
+        // Start spinner.
         self.restoreButtonText.alpha = 0
         self.restoreButtonSpinner.startAnimating()
         
+        // Construct mnemonic.
         let enteredWords = [self.mnemonic1.text, self.mnemonic2.text, self.mnemonic3.text, self.mnemonic4.text, self.mnemonic5.text, self.mnemonic6.text, self.mnemonic7.text, self.mnemonic8.text, self.mnemonic9.text, self.mnemonic10.text, self.mnemonic11.text, self.mnemonic12.text]
-        var enteredMnemonic = ""
-        
+        var enteredMnemonic = String()
         for eachWord in enteredWords {
-            guard let actualWord = eachWord?.trimmingCharacters(in: .whitespacesAndNewlines).replacingOccurrences(of: " ", with: "") as? String, actualWord != "" else {
-                self.restoreButtonSpinner.stopAnimating()
-                self.restoreButtonText.alpha = 1
-                self.showAlert(
-                    title: Language.getWord(withID: "incompletephrase"),
-                    message: Language.getWord(withID: "incompletephrase2"),
-                    buttons: [.dismiss(Language.getWord(withID: "okay"))])
+            guard let actualWord = eachWord?
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+                .replacingOccurrences(of: " ", with: "") as? String,
+                !actualWord.isEmpty
+            else {
+                self.resetWithError(Language.getWord(withID: "incompletephrase2"))
                 return
             }
             
-            if enteredMnemonic == "" {
-                enteredMnemonic = actualWord
-            } else {
-                enteredMnemonic += " \(actualWord)"
-            }
+            enteredMnemonic += (enteredMnemonic.isEmpty ? actualWord : " \(actualWord)")
         }
         
-        if self.coreVC!.resettingPin {
+        // Check whether this is a PIN reset or wallet restoration.
+        if coreVC.resettingPin {
             Log.info("PIN reset mode detected.")
             
             // Get current mnemonic.
             guard let currentMnemonic = CacheManager.getMnemonic() else {
                 // No existing mnenonic is available.
-                self.showAlert(title: Language.getWord(withID: "forgotpin"), message: "\(Language.getWord(withID: "forgotpin3")) 2", buttons: [.dismiss(Language.getWord(withID: "okay"))])
+                self.resetWithError(Language.getWord(withID: "forgotpin3"))
                 return
             }
             
             // Check whether entered mnemonic is correct.
             guard currentMnemonic == enteredMnemonic else {
                 // Entered mnemonic is incorrect.
-                self.showAlert(title: Language.getWord(withID: "forgotpin"), message: Language.getWord(withID: "forgotpin3"), buttons: [.dismiss(Language.getWord(withID: "okay"))])
+                self.resetWithError(Language.getWord(withID: "forgotpin3"))
                 return
             }
             Log.info("Correct mnemonic has been entered.")
@@ -275,28 +256,18 @@ class RestoreViewController: UIViewController, UITextFieldDelegate {
             Log.info("Wallet restore mode detected.")
             
             // Validate mnemonic before storing.
-            guard BitcoinManager.shared.isValidMnemonic(enteredMnemonic) else {
+            guard enteredMnemonic.isValidMnemonic() else {
                 Log.info("Mnemonic validation failed.")
-                DispatchQueue.main.async {
-                    self.restoreButtonSpinner.stopAnimating()
-                    self.restoreButtonText.alpha = 1
-                    self.showAlert(
-                        title: Language.getWord(withID: "invalidphrase"),
-                        message: Language.getWord(withID: "invalidphrase2"),
-                        buttons: [.dismiss(Language.getWord(withID: "okay"))])
-                }
+                self.resetWithError(Language.getWord(withID: "invalidphrase2"))
                 return
             }
             Log.info("Mnemonic validation successful")
-
-            // Store restorable mnemonic in cache. Abort loudly if it can't be
-            // securely persisted rather than proceeding with an unsaved seed.
+            
+            // Store mnemonic in cache.
             do {
-                try CacheManager.storeMnemonic(enteredMnemonic)
+                try CacheManager.storeRestoredMnemonic(enteredMnemonic)
             } catch {
-                self.restoreButtonSpinner.stopAnimating()
-                self.restoreButtonText.alpha = 1
-                self.showAlert(title: Language.getWord(withID: "error"), message: Language.getWord(withID: "mnemonicsavefail"), buttons: [.dismiss(Language.getWord(withID: "okay"))])
+                self.resetWithError(Language.getWord(withID: "mnemonicsavefail"))
                 return
             }
         }
@@ -309,7 +280,13 @@ class RestoreViewController: UIViewController, UITextFieldDelegate {
         self.signupVC?.moveToPage(1)
         
         // Start wallet.
-        self.coreVC!.startWallet()
+        coreVC.startWallet()
+    }
+    
+    func resetWithError(_ message:String) {
+        self.restoreButtonSpinner.stopAnimating()
+        self.restoreButtonText.alpha = 1
+        self.showAlert(title: Language.getWord(withID: "oops"), message: message, buttons: [.dismiss(Language.getWord(withID: "okay"))])
     }
     
     @IBAction func backButtonTapped(_ sender: UIButton) {
@@ -379,7 +356,5 @@ class RestoreViewController: UIViewController, UITextFieldDelegate {
             mnemonicField.clearSuggestion()
         }
     }
-    
-
     
 }

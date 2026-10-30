@@ -353,7 +353,7 @@ class CacheManager: NSObject {
     
     // MARK: - Mnemonic
     
-    static func storeMnemonic(_ mnemonic:String) throws {
+    private static func storeMnemonic(_ mnemonic:String) throws {
         
         // Make sure no foreign LDK Node data remains available when creating or restoring a wallet.
         // Foreign LDK Node data can never restore a channel, and may lead to loss of funds.
@@ -404,14 +404,7 @@ class CacheManager: NSObject {
     
     static func storeNewMnemonic(_ mnemonic:String) throws {
         
-        // Make sure no mnemonic already exists.
-        if let existing = try readSecretOrThrow(account: EnvironmentConfig.cacheKey(for: "mnemonic")) {
-            // A mnemonic already exists. This is okay only if it's from an incomplete signup.
-            guard try readSecretOrThrow(account: EnvironmentConfig.cacheKey(for: "pin")) == nil, try isPendingCreation(existing), !LightningStorage.hasLightningState() else {
-                // A wallet with mnemonic, PIN, and/or Lightning channel is already present on this device.
-                throw WalletCreationError.walletExists
-            }
-        }
+        try ensureNoWalletExists()
         
         do {
             try persistSecret(fingerprint(of: mnemonic), account: pendingCreationAccount, label: "pending creation", accessibility: .afterFirstUnlockThisDeviceOnly)
@@ -421,6 +414,27 @@ class CacheManager: NSObject {
             SecureStore.remove(account: pendingCreationAccount)
             SecureStore.remove(account: EnvironmentConfig.cacheKey(for: "mnemonic"))
             throw error
+        }
+    }
+    
+    static func storeRestoredMnemonic(_ mnemonic:String) throws {
+        
+        try ensureNoWalletExists()
+        try storeMnemonic(mnemonic)
+        
+        // The restored mnemonic replaces any unfinished creation.
+        SecureStore.remove(account: pendingCreationAccount)
+    }
+    
+    private static func ensureNoWalletExists() throws {
+        
+        // Make sure no mnemonic already exists.
+        if let existing = try readSecretOrThrow(account: EnvironmentConfig.cacheKey(for: "mnemonic")) {
+            // A mnemonic already exists. This is okay only if it's from an incomplete signup.
+            guard try readSecretOrThrow(account: EnvironmentConfig.cacheKey(for: "pin")) == nil, try isPendingCreation(existing), !LightningStorage.hasLightningState() else {
+                // A wallet with mnemonic, PIN, and/or Lightning channel is already present on this device.
+                throw WalletCreationError.walletExists
+            }
         }
     }
     
