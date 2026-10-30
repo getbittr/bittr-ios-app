@@ -238,15 +238,23 @@ class RestoreViewController: UIViewController, UITextFieldDelegate {
             Log.info("PIN reset mode detected.")
             
             // Get current mnemonic.
-            guard let currentMnemonic = CacheManager.getMnemonic() else {
-                // No existing mnenonic is available.
-                self.resetWithError(Language.getWord(withID: "forgotpin3"))
+            let currentMnemonic:String?
+            do {
+                currentMnemonic = try CacheManager.readMnemonic()
+            } catch {
+                Log.info("Keychain cannot be read.")
+                self.resetWithError(Language.getWord(withID: "keychainunavailable"))
+                return
+            }
+            guard let currentMnemonic else {
+                Log.info("No existing mnemonic is available.")
+                self.resetWithError(Language.getWord(withID: "nowalletondevice"))
                 return
             }
             
             // Check whether entered mnemonic is correct.
             guard currentMnemonic == enteredMnemonic else {
-                // Entered mnemonic is incorrect.
+                Log.info("Entered mnemonic is incorrect.")
                 self.resetWithError(Language.getWord(withID: "forgotpin3"))
                 return
             }
