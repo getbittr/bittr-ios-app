@@ -55,9 +55,12 @@ class Restore3ViewController: UIViewController, UITextFieldDelegate {
         self.coreVC!.buyVC?.parseIbanEntities(uponPageLaunch: false)
         self.coreVC!.fromSignupToHome()
         
-        // Handle the work that waited for the PIN.
         if self.coreVC!.walletHasSynced {
+            // Handle the work that waited for the PIN.
             self.coreVC!.handlePendingWork()
+        } else {
+            // Start the wallet now that its PIN is set.
+            self.coreVC!.startWallet()
         }
     }
     

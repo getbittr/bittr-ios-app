@@ -300,9 +300,6 @@ class RestoreViewController: UIViewController, UITextFieldDelegate {
         
         // Proceed to next page.
         self.signupVC?.moveToPage(1)
-        
-        // Start wallet.
-        coreVC.startWallet()
     }
     
     func resetWithError(_ message:String) {
