@@ -88,8 +88,18 @@ extension CoreViewController {
     }
     
     func retryOnchainScanIfNeeded() {
-        guard BitcoinManager.shared.bdkWallet != nil,
-                !BitcoinManager.shared.bdkWalletHasBeenScanned else { return }
+        
+        // Retry failed BDK start.
+        if BitcoinManager.shared.bdkWallet == nil, BitcoinManager.shared.ldkNode != nil, self.walletHasSynced {
+            Log.info("BDK hasn't started yet. Retrying it on foreground.")
+            DispatchQueue.global(qos: .userInitiated).async {
+                self.startBDK()
+            }
+            return
+        }
+        
+        // Retry failed BDK scan.
+        guard BitcoinManager.shared.bdkWallet != nil, !BitcoinManager.shared.bdkWalletHasBeenScanned else { return }
         Log.info("No BDK full scan has succeeded yet. Retrying it on foreground.")
         
         // A scan cut off by the background is likely hung, so start a fresh one.
