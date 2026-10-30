@@ -19,10 +19,11 @@ extension SendViewController {
         self.clearPendingLnurlState()
         
         // Parse code components.
-        let bitcoinAddress = code.extractBitcoinAddress()
-        let lightningInvoice = code.lowercased().extractLightningInvoice()
-        let lnurl = code.lowercased().extractLNURL()
-        let amount = code.lowercased().extractAmount()
+        let paymentCode = code.parsedPaymentCode()
+        let bitcoinAddress = paymentCode.bitcoinAddress
+        let lightningInvoice = paymentCode.lightningInvoice
+        let lnurl = paymentCode.lnurl
+        let amount = paymentCode.amountSats
         
         // Check and handle parsed code components.
         if lnurl != nil {
@@ -84,40 +85,61 @@ extension SendViewController {
     }
 }
 
+// What a scanned, pasted or typed code can pay to.
+struct PaymentCode {
+    var bitcoinAddress:String?
+    var lightningInvoice:String?
+    var lnurl:String?
+    var amountSats:Int?
+}
+
 extension String {
     
-    func extractBitcoinAddress() -> String? {
-        let components = self.components(separatedBy: CharacterSet(charactersIn: "&:?="))
-        for eachComponent in components {
-            if let address = eachComponent.asBitcoinAddress() {
-                return address
+    func parsedPaymentCode() -> PaymentCode {
+        var paymentCode = PaymentCode()
+        let code = self.trimmingCharacters(in: .whitespacesAndNewlines)
+        
+        if code.lowercased().hasPrefix("bitcoin:") {
+            // A BIP21 link: the address is its path, and only the amount and lightning parameters are read.
+            guard let components = URLComponents(string: code) else { return paymentCode }
+            
+            // Extract bitcoin address.
+            // A "bitcoin://" link puts the address in the host instead.
+            let address = components.path.isEmpty ? (components.host ?? "") : components.path
+            paymentCode.bitcoinAddress = address.asBitcoinAddress()
+            
+            // Extract lightning invoice and amount.
+            for item in components.queryItems ?? [] {
+                guard let value = item.value?.trimmingCharacters(in: .whitespacesAndNewlines), !value.isEmpty else { continue }
+                switch item.name.lowercased() {
+                case "amount":
+                    paymentCode.amountSats = value.parsedNumber()?.satoshisFromBitcoin()
+                case "lightning":
+                    let lightning = value.lowercased()
+                    if lightning.isValidInvoice() {
+                        paymentCode.lightningInvoice = lightning
+                    } else if lightning.hasPrefix("lnurl") {
+                        paymentCode.lnurl = lightning
+                    }
+                default: break
+                }
             }
+            return paymentCode
         }
-        return nil
-    }
-    
-    func extractLightningInvoice() -> String? {
-        let components = self.components(separatedBy: CharacterSet(charactersIn: "&:?="))
-        for eachComponent in components where eachComponent.isValidInvoice() {
-            return eachComponent
+        
+        // Anything else is one code on its own.
+        var single = code.lowercased()
+        if single.hasPrefix("lightning:") {
+            single = String(single.dropFirst("lightning:".count))
         }
-        return nil
-    }
-    
-    func extractLNURL() -> String? {
-        let components = self.components(separatedBy: CharacterSet(charactersIn: "&:?="))
-        for eachComponent in components where (eachComponent.isValidEmail() || eachComponent.hasPrefix("lnurl")) {
-            return eachComponent
+        if single.isValidInvoice() {
+            paymentCode.lightningInvoice = single
+        } else if single.isValidEmail() || single.hasPrefix("lnurl") {
+            paymentCode.lnurl = single
+        } else {
+            paymentCode.bitcoinAddress = code.asBitcoinAddress()
         }
-        return nil
-    }
-    
-    func extractAmount() -> Int? {
-        let components = self.components(separatedBy: CharacterSet(charactersIn: "&:?"))
-        for eachComponent in components where eachComponent.contains("amount=") {
-            return eachComponent.replacingOccurrences(of: "amount=", with: "").toNumber().inSatoshis()
-        }
-        return nil
+        return paymentCode
     }
     
     func asBitcoinAddress() -> String? {
