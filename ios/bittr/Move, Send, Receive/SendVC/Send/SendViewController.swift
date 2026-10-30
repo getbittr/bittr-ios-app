@@ -93,6 +93,7 @@ class SendViewController: UIViewController, UITextFieldDelegate, OnchainSyncFail
     var pendingLNURLSource: String? // The LNURL or lightning address the pending data belongs to.
     var pendingLNURLCallback: String?
     var pendingLNURLDescription: String?
+    var pendingLNURLMetadata: String?
     var pendingLNURLMinAmount: Int?
     var pendingLNURLMaxAmount: Int?
     
