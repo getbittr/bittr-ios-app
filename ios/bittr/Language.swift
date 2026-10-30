@@ -273,6 +273,7 @@ class Language: NSObject {
             "syncingwallet2": "Please wait a moment while we're syncing your wallet.",
             "resendcode2": "Please wait 30 seconds before requesting another verification code.",
             "changeemail": "Change email",
+            "syncfail": "We couldn't sync your wallet, so the balance and transactions shown may be outdated.\n\nPull down on the home screen to try again.",
             "conversionfail": "We're experiencing an issue fetching the latest conversion rates. Temporarily, our calculations - if available - won't reflect bitcoin's current value.",
             "unconfirmed": "Unconfirmed",
             "save": "Save",
