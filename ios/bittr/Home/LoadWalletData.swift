@@ -9,14 +9,10 @@ import UIKit
 import LDKNode
 
 extension HomeViewController {
-
+    
     func loadWalletData() {
-
-        // Take the node handle up front — everything below reads through it, and
-        // bailing halfway (after caching a txo ID, before any of the balances)
-        // leaves the cache describing a snapshot we never applied.
         guard let node = BitcoinManager.shared.ldkNode else { return }
-
+        
         // Get channels, balance, and funding transaction ID.
         var satoshisLightning = 0
         let lightningChannels = BitcoinManager.shared.listChannels()
@@ -61,11 +57,11 @@ extension HomeViewController {
             BitcoinManager.shared.bittrWallet.allTransactions = allTransactions
             BitcoinManager.shared.bittrWallet.satoshisOnchain = satoshisOnchain
             BitcoinManager.shared.bittrWallet.satoshisOnchainSpendable = satoshisOnchainSpendable
-
+            
             Task {
                 // Check whether transactions were Bittr purchases.
                 _ = await self.getBittrTransactionDetails()
-
+                
                 DispatchQueue.main.async {
                     self.updateTransactionHistory()
                 }
@@ -131,23 +127,20 @@ extension HomeViewController {
         
         // Store transactions in cache.
         CacheManager.cachedHomeTransactions = self.newTransactions
-        
-        // Update balance label.
-        self.setTotalSats()
-        
-        // Update table.
         self.visibleTransactions = self.newTransactions
-        self.reloadTransactionsTable()
         
-        // Calculate profits.
-        self.calculateProfit()
-        
+        // Finalize sync.
         if (self.coreVC != nil && !self.coreVC!.walletHasSynced) {
             // Finalize sync.
             self.finalizeSync()
-        } else if self.coreVC != nil, (self.coreVC!.resettingPin || self.coreVC!.removingWalletForIncorrectPin), self.coreVC!.genericSpinner.isAnimating {
-            // User is locked out and is retrying removing their wallet.
-            self.coreVC!.restoreWalletTapped()
+        } else if self.coreVC != nil {
+            // Already synced.
+            self.reloadTransactionsTable()
+            
+            if (self.coreVC!.resettingPin || self.coreVC!.removingWalletForIncorrectPin), self.coreVC!.genericSpinner.isAnimating {
+                // User is locked out and is retrying removing their wallet.
+                self.coreVC!.restoreWalletTapped()
+            }
         }
     }
     
@@ -228,94 +221,6 @@ extension HomeViewController {
         return true
     }
     
-    
-    func setTotalSats() {
-        // Calculate total balance
-        let totalBalanceSats = BitcoinManager.shared.bittrWallet.satoshisOnchain + BitcoinManager.shared.bittrWallet.satoshisLightning + BitcoinManager.shared.bittrWallet.pendingBalancesFromChannelClosures
-        let totalBalanceSatsString = "\(totalBalanceSats)"
-        
-        // Load balance label.
-        CacheManager.cachedSatsBalance = totalBalanceSatsString
-        self.loadBalanceLabel(amount: totalBalanceSatsString)
-        
-        // Convert balance to EUR / CHF.
-        self.setConversion()
-    }
-    
-    func loadBalanceLabel(amount:String) {
-        
-        let satoshis = Int(amount) ?? 0
-        let isWholeBitcoin = satoshis >= Bitcoin.satoshisPerBitcoin
-        
-        // Get the bitcoin amount with spaces (i.e. A.BC DEF GHI).
-        let whole = satoshis / Bitcoin.satoshisPerBitcoin
-        let decimals = String(format: "%08ld", satoshis % Bitcoin.satoshisPerBitcoin)
-        let group1 = decimals.prefix(2)
-        let group2 = decimals.dropFirst(2).prefix(3)
-        let group3 = decimals.dropFirst(5)
-        let grouped = "\(whole).\(group1) \(group2) \(group3)"
-        
-        // Distinguish dimmed and filled pieces of text.
-        let dimmed:String
-        let filled:String
-        if isWholeBitcoin {
-            // Entire text is filled.
-            dimmed = ""
-            filled = grouped
-        } else {
-            // Text is partially dimmed.
-            let firstSignificant = grouped.firstIndex { $0.isNumber && $0 != "0" } ?? grouped.index(before: grouped.endIndex)
-            dimmed = String(grouped[..<firstSignificant])
-            filled = grouped[firstSignificant...] + " sats"
-        }
-        
-        // Cap the label's width.
-        let maximumWidth = UIScreen.main.bounds.width - 150
-        self.balanceLabelWidth.constant = maximumWidth
-        
-        // Calculate font size.
-        let text = dimmed + filled
-        let fullSize:CGFloat = 40
-        let fullFont = UIFont(name: "Gilroy-Bold", size: fullSize) ?? .boldSystemFont(ofSize: fullSize)
-        let fullWidth = (text as NSString).size(withAttributes: [.font: fullFont]).width
-        let scale = fullWidth > 0 ? min(1, maximumWidth / fullWidth) : 1
-        let pointSize = max(16, (fullSize * scale).rounded(.down))
-        
-        // Create the attributed text.
-        let font = UIFont(name: "Gilroy-Bold", size: pointSize) ?? .boldSystemFont(ofSize: pointSize)
-        let balance = NSMutableAttributedString(string: text, attributes: [.font: font, .foregroundColor: Colors.getColor("blackorwhite")])
-        
-        // Add the dimmed color.
-        let dimmedColor = CacheManager.darkModeIsOn() ? UIColor(red: 170/255, green: 190/255, blue: 217/255, alpha: 1) : UIColor(red: 201/255, green: 154/255, blue: 0, alpha: 1)
-        balance.addAttribute(.foregroundColor, value: dimmedColor, range: NSRange(location: 0, length: (dimmed as NSString).length))
-        
-        // Set the text.
-        self.balanceLabel.adjustsFontSizeToFitWidth = true
-        self.balanceLabel.minimumScaleFactor = 16.0 / pointSize
-        self.balanceLabel.attributedText = balance
-        
-        // Hug the text vertically.
-        self.balanceLabel.setContentHuggingPriority(.required, for: .vertical)
-        self.bitcoinSign.setContentCompressionResistancePriority(.defaultLow, for: .vertical)
-        
-        // Make label and bitcoin sign visible.
-        self.balanceLabel.alpha = 1
-        self.bitcoinSign.alpha = isWholeBitcoin ? 1 : (CacheManager.darkModeIsOn() ? 0.47 : 0.18)
-    }
-    
-    
-    func setConversion() {
-        
-        // Set, cache, and show conversion label.
-        let cachedBtcBalance = (CacheManager.cachedSatsBalance ?? "0").toNumber().inBTC()
-        let conversionLabelText = self.updateConversionLabel(btcValue: cachedBtcBalance)
-        CacheManager.cachedConversion = conversionLabelText
-        
-        // Only reveal the conversion once the balance is known.
-        self.conversionLabel.alpha = self.balanceLabel.alpha
-    }
-    
-    
     func didFetchConversionRates() async -> Bool {
         Log.info("Will download conversion rates.")
         
@@ -362,120 +267,10 @@ extension HomeViewController {
         return true
     }
     
-    
-    func updateConversionLabel(btcValue:CGFloat) -> String {
-        
-        // Use preferred currency.
-        let bitcoinValue = BitcoinManager.shared.bittrWallet.getCorrectBitcoinValue()
-        
-        // Converted balance string.
-        let balanceValue = String(Int((btcValue*bitcoinValue.currentValue).rounded())).addSpaces()
-        
-        // Set conversion label.
-        self.conversionLabel.text = bitcoinValue.chosenCurrency + " " + balanceValue
-        
-        return self.conversionLabel.text ?? ""
-    }
-    
-    
     func reloadTransactionsTable() {
         
         self.homeTableView.reloadData()
         self.homeTableView.alpha = 1
-        
-        if self.visibleTransactions.count == 0 {
-            self.setNoTransactionsLabel()
-        } else {
-            self.noTransactionsLabel.alpha = 0
-        }
-    }
-    
-    func setNoTransactionsLabel() {
-        
-        let textColor = CacheManager.darkModeIsOn() ? "255, 255, 255" : "177, 177, 177"
-        
-        let noTransactionsHTML = "<center><span style=\"font-family: \'Gilroy-Regular\', \'-apple-system\'; font-size: 16; color: rgb(\(textColor)); line-height: 1.2\">\(Language.getWord(withID: "notransactions1"))</span><span style=\"font-family: \'Gilroy-Bold\', \'-apple-system\'; font-size: 16; color: rgb(\(textColor)); line-height: 1.2\">\(Language.getWord(withID: "buy"))</span><span style=\"font-family: \'Gilroy-Regular\', \'-apple-system\'; font-size: 16; color: rgb(\(textColor)); line-height: 1.2\">\(Language.getWord(withID:"notransactions2"))</span></center>"
-        
-        if let htmlData = noTransactionsHTML.data(using: .unicode) {
-            do {
-                let attributedText = try NSAttributedString(data: htmlData, options: [NSAttributedString.DocumentReadingOptionKey.documentType : NSAttributedString.DocumentType.html], documentAttributes: nil)
-                self.noTransactionsLabel.attributedText = attributedText
-                self.noTransactionsLabel.alpha = 1
-            } catch {
-                Log.info("Couldn't fetch text: \(error.localizedDescription)")
-                SentryManager.capture(error, context: "LoadWalletData row 489")
-            }
-        }
-    }
-    
-    
-    func calculateProfit() {
-        
-        self.didStartReset = false
-        
-        // Hide profit label while calculating.
-        self.balanceCardGainLabel.alpha = 0
-        self.balanceCardProfitView.alpha = 0
-        
-        // Variables.
-        var accumulatedProfit = 0
-        var accumulatedInvestments = 0
-        var accumulatedCurrentValue = 0
-        
-        // Get preferred currency.
-        let bitcoinValue = BitcoinManager.shared.bittrWallet.getCorrectBitcoinValue()
-        
-        for eachTransaction in self.visibleTransactions where eachTransaction.isBittr {
-            let transactionValue = eachTransaction.received.inBTC()
-            var correctConversion = bitcoinValue.currentValue
-
-            let transactionCurrency = eachTransaction.currency == "EUR" ? "€" : "CHF"
-            if transactionCurrency != bitcoinValue.chosenCurrency {
-                correctConversion = transactionCurrency == "€" ? (BitcoinManager.shared.bittrWallet.valueInEUR ?? 0) : (BitcoinManager.shared.bittrWallet.valueInCHF ?? 0)
-            }
-
-            var transactionProfit = (transactionValue*correctConversion) - eachTransaction.fiatNetAmount
-            var transactionInvestment = eachTransaction.fiatNetAmount
-
-            if transactionCurrency != bitcoinValue.chosenCurrency {
-                transactionProfit = (transactionProfit/correctConversion)*bitcoinValue.currentValue
-                transactionInvestment = (eachTransaction.fiatNetAmount/correctConversion)*bitcoinValue.currentValue
-            }
-
-            accumulatedProfit += Int(transactionProfit.rounded())
-            accumulatedInvestments += Int(transactionInvestment.rounded())
-            accumulatedCurrentValue += Int((transactionValue*bitcoinValue.currentValue).rounded())
-        }
-
-        self.showProfitLabel(currencySymbol: bitcoinValue.chosenCurrency, accumulatedProfit: accumulatedProfit, accumulatedInvestments: accumulatedInvestments, accumulatedCurrentValue: accumulatedCurrentValue)
-    }
-    
-    
-    func showProfitLabel(currencySymbol:String, accumulatedProfit:Int, accumulatedInvestments:Int, accumulatedCurrentValue:Int) {
-        
-        self.balanceCardGainLabel.text = (accumulatedInvestments == 0) ? "0 %" : "\(Int(((CGFloat(accumulatedProfit)/CGFloat(accumulatedInvestments))*100).rounded())) %".replacingOccurrences(of: "-", with: "")
-
-        // Only reveal the profit once the balance is known.
-        self.balanceCardGainLabel.alpha = self.balanceLabel.alpha
-        self.balanceCardProfitView.alpha = self.balanceLabel.alpha
-        
-        if accumulatedProfit < 0 {
-            // Loss
-            self.balanceCardGainLabel.textColor = Colors.getColor("losstext")
-            self.balanceCardProfitView.backgroundColor = Colors.getColor("lossbackground0.8")
-            self.balanceCardArrowImage.tintColor = Colors.getColor("losstext")
-            self.balanceCardArrowImage.image = UIImage(systemName: "arrow.down")
-        } else {
-            // Profit
-            self.balanceCardGainLabel.textColor = Colors.getColor("profittext")
-            self.balanceCardProfitView.backgroundColor = Colors.getColor("profitbackground0.8")
-            self.balanceCardArrowImage.tintColor = Colors.getColor("profittext")
-            self.balanceCardArrowImage.image = UIImage(systemName: "arrow.up")
-        }
-        
-        self.calculatedProfit = accumulatedProfit
-        self.calculatedInvestments = accumulatedInvestments
-        self.calculatedCurrentValue = accumulatedCurrentValue
     }
     
     // Warm the price caches ValueVC reads (the historical series + the current
@@ -519,16 +314,11 @@ extension HomeViewController {
 
     func finalizeSync() {
         
-        // Check if conversion rates have been fetched successfully.
-        if self.couldNotFetchConversion {
-            self.headerProblemImage.alpha = 1
-        }
-        
-        // Stop sync status spinner.
-        self.headerSpinner.stopAnimating()
+        self.didStartReset = false
         self.coreVC!.walletHasSynced = true
         self.coreVC!.completeSync(.final)
-
+        self.reloadTransactionsTable()
+        
         // App is fully ready — warm the Value-screen price caches in the
         // background so opening that screen is instant. Off the startup path.
         self.prefetchPriceData()

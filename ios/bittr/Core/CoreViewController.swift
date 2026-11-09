@@ -82,6 +82,7 @@ class CoreViewController: UIViewController {
     @IBOutlet weak var logoViewWidth: NSLayoutConstraint!
     @IBOutlet weak var finalLogo: UIImageView!
     var logoHasMovedUp = false
+    var currentPage:CurrentPage = .signup
     
     // Year view
     @IBOutlet weak var yearView: UIView!
@@ -91,10 +92,12 @@ class CoreViewController: UIViewController {
     @IBOutlet weak var homeContainerView: UIView!
     @IBOutlet weak var homeContainerViewLeading: NSLayoutConstraint!
     @IBOutlet weak var homeContainerViewTrailing: NSLayoutConstraint!
+    @IBOutlet weak var homeContainerTop: NSLayoutConstraint!
     @IBOutlet weak var infoContainerView: UIView!
     
     // Menu bar elements
     @IBOutlet weak var menuBarContainer: UIView!
+    @IBOutlet weak var menuBarBottom: NSLayoutConstraint!
     @IBOutlet weak var selectedView: UIView!
     @IBOutlet weak var selectedViewLeading: NSLayoutConstraint!
     @IBOutlet weak var selectedViewTrailing: NSLayoutConstraint!
@@ -114,7 +117,6 @@ class CoreViewController: UIViewController {
     @IBOutlet weak var pinContainerView: UIView!
     @IBOutlet weak var signupContainerView: UIView!
     @IBOutlet weak var signupBottom: NSLayoutConstraint!
-    @IBOutlet weak var blackSignupBackground: UIView!
     @IBOutlet weak var pinBottom: NSLayoutConstraint!
     
     // Syncing status
@@ -176,6 +178,7 @@ class CoreViewController: UIViewController {
             self.finishAwaitingProtectedDataIfNeeded()
             self.signupContainerView.alpha = 0
             self.pinContainerView.alpha = 1
+            self.currentPage = .pin
             
         case .absent:
             Log.info("No wallet on this device.")
@@ -185,6 +188,7 @@ class CoreViewController: UIViewController {
             // Clear any stale cached client data and show the create-wallet flow.
             CacheManager.deleteClientInfo()
             self.launchSignup(onPage: 3)
+            self.currentPage = .signup
             
         case .unavailable:
             Log.info("The Keychain could not be read.")
@@ -198,6 +202,7 @@ class CoreViewController: UIViewController {
         self.pinContainerView.alpha = 1
         self.fullViewCover.alpha = 0.8
         self.genericSpinner.startAnimating()
+        self.currentPage = .pin
         
         if !self.isAwaitingProtectedData {
             self.isAwaitingProtectedData = true
