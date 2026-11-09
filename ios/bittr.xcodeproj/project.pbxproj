@@ -124,6 +124,7 @@
 		05A965C22A6FBE1F00265BE6 /* LDKNodeError.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05A965C12A6FBE1F00265BE6 /* LDKNodeError.swift */; };
 		05AF89742D436920009D629C /* SwapManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05AF89732D436920009D629C /* SwapManager.swift */; };
 		05AF89762D437073009D629C /* SwapViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05AF89752D437073009D629C /* SwapViewController.swift */; };
+		05B2AD67306380C2001BF2DD /* UILabel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05B2AD66306380C0001BF2DD /* UILabel.swift */; };
 		05B30E2E2E26281200CF10EC /* Swap.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05B30E2D2E26281200CF10EC /* Swap.swift */; };
 		05BE46192BB9A83100555B9B /* SPConfetti in Frameworks */ = {isa = PBXBuildFile; productRef = 05BE46182BB9A83100555B9B /* SPConfetti */; };
 		05BFCEB72A3B113E00565E2A /* Transfer2ViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05BFCEB62A3B113E00565E2A /* Transfer2ViewController.swift */; };
@@ -346,6 +347,7 @@
 		05A965C12A6FBE1F00265BE6 /* LDKNodeError.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LDKNodeError.swift; sourceTree = "<group>"; };
 		05AF89732D436920009D629C /* SwapManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SwapManager.swift; sourceTree = "<group>"; };
 		05AF89752D437073009D629C /* SwapViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SwapViewController.swift; sourceTree = "<group>"; };
+		05B2AD66306380C0001BF2DD /* UILabel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UILabel.swift; sourceTree = "<group>"; };
 		05B30E2D2E26281200CF10EC /* Swap.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Swap.swift; sourceTree = "<group>"; };
 		05BFCEB62A3B113E00565E2A /* Transfer2ViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Transfer2ViewController.swift; sourceTree = "<group>"; };
 		05BFCEB82A3B1A1100565E2A /* RegisterIbanViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RegisterIbanViewController.swift; sourceTree = "<group>"; };
@@ -571,6 +573,7 @@
 		052E98C02F1638F2000035A8 /* Extensions */ = {
 			isa = PBXGroup;
 			children = (
+				05B2AD66306380C0001BF2DD /* UILabel.swift */,
 				0514BC543010A17B00BC05A2 /* PaymentKind.swift */,
 				0514BC5230109C3B00BC05A2 /* PaymentDetails.swift */,
 				37FC16D12FAD1B05002578B2 /* UIView+AppTag.swift */,
@@ -1324,6 +1327,7 @@
 				05C3C08729CCB55600C1E695 /* SceneDelegate.swift in Sources */,
 				053021AE2E701EDA00B23226 /* HandleLightningAddressNotification.swift in Sources */,
 				05906EA22C43C54A0053F7DB /* ReceiveLightning.swift in Sources */,
+				05B2AD67306380C2001BF2DD /* UILabel.swift in Sources */,
 				057E6E8B2A14DDBC00B37026 /* Article.swift in Sources */,
 				053C37542FD28E8E00A510DF /* BittrArticles.swift in Sources */,
 				05117ADE2EA7337F00A5E4E6 /* Level.swift in Sources */,

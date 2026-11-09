@@ -22,7 +22,7 @@ extension CoreViewController {
         self.showSignup()
     }
     
-    func launchSignup(onPage:Int) {
+    func launchSignup(onPage:Int, checkConnection:Bool = true) {
         if self.signupContainerView.subviews.count == 0 {
             // Add signup view to container.
             let storyboard = UIStoryboard(name: "Main", bundle: Bundle.main)
@@ -34,7 +34,7 @@ extension CoreViewController {
             newChild.didMove(toParent: self)
             
             (newChild as! SignupViewController).animateTransition = false
-            (newChild as! SignupViewController).moveToPage(onPage)
+            (newChild as! SignupViewController).moveToPage(onPage, checkConnection: checkConnection)
         }
     }
     
@@ -369,16 +369,22 @@ extension CoreViewController {
                 self.userHasSignedIn = false
                 
                 // Hide signup view and launch create wallet flow.
-                self.showPin {
-                    Log.info("ResetApp - Launching signup after cleanup")
-                    self.launchSignup(onPage: 3) // Page 3 is create wallet
+                Log.info("ResetApp - Launching signup after cleanup")
+                // The wallet is gone, so reach create-wallet even when offline.
+                if self.currentPage == .signup, let signupVC = self.signupViewController() {
+                    // We're already on Signup (the Restore screen).
+                    signupVC.animateTransition = true
+                    signupVC.moveToPage(3, checkConnection: false) // Page 3 is create wallet
+                } else {
+                    // Build Signup, and slide it in when coming from Home or Pin.
+                    self.launchSignup(onPage: 3, checkConnection: false) // Page 3 is create wallet
                     self.showSignup()
-                    
-                    // Show HomeVC.
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
-                        self.genericSpinner.stopAnimating()
-                        self.fullViewCover.alpha = 0
-                    }
+                }
+                
+                // Hide spinner.
+                DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
+                    self.genericSpinner.stopAnimating()
+                    self.fullViewCover.alpha = 0
                 }
             }
         }
@@ -417,6 +423,11 @@ extension CoreViewController {
                 Log.info("Wallet data reloaded after channel closure")
             }
         }
+    }
+    
+    // The signup controller currently in the container, if there is one.
+    func signupViewController() -> SignupViewController? {
+        return self.children.compactMap { $0 as? SignupViewController }.first
     }
 
 }

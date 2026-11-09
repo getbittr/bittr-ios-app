@@ -11,14 +11,10 @@ import UserNotifications
 class BuyViewController: UIViewController, UITextFieldDelegate, UICollectionViewDelegate, UICollectionViewDataSource, UICollectionViewDelegateFlowLayout {
 
     // General
-    @IBOutlet weak var downIcon: UIImageView!
-    @IBOutlet weak var downButton: UIButton!
     @IBOutlet weak var scrollView: UIScrollView!
     @IBOutlet weak var contentView: UIView!
     @IBOutlet weak var contentViewBottom: NSLayoutConstraint!
     @IBOutlet weak var centerView: UIView!
-    @IBOutlet weak var headerIcon: UIImageView!
-    @IBOutlet weak var headerLabel: UILabel!
     @IBOutlet weak var ibanCollectionView: UICollectionView!
     
     // Update data
@@ -45,20 +41,19 @@ class BuyViewController: UIViewController, UITextFieldDelegate, UICollectionView
         // Corner radii and button titles.
         self.continueView.layer.cornerRadius = 13
         self.continueButton.setTitle("", for: .normal)
-        self.downButton.setTitle("", for: .normal)
         
         // Collection view.
         self.ibanCollectionView.delegate = self
         self.ibanCollectionView.dataSource = self
         self.ibanCollectionView.contentInset = UIEdgeInsets(top: 0, left: 15, bottom: 0, right: 15)
         
-        self.headerLabel.accessibilityIdentifier = TestID.Buy.headerLabel
-        self.downButton.accessibilityIdentifier = TestID.Buy.downButton
+        // Accessibility identifiers.
         self.continueButton.accessibilityIdentifier = TestID.Buy.continueButton
-
+        
         // Set colors and language.
         self.changeColors()
         self.setWords()
+        self.addHeader(iconLight: "iconpiggywhite", iconDark: "iconpiggyyellow", title: Language.getWord(withID: "buybitcoin"))
         
         // Parse IBAN entities.
         self.parseIbanEntities(uponPageLaunch: true)
@@ -78,10 +73,6 @@ class BuyViewController: UIViewController, UITextFieldDelegate, UICollectionView
         if self.allIbanEntities.count > 0, uponPageLaunch {
             self.getDepositCodeData()
         }
-    }
-    
-    @IBAction func downButtonTapped(_ sender: UIButton) {
-        self.dismiss(animated: true, completion: nil)
     }
     
     @IBAction func saveButtonTapped(_ sender: UIButton) {
@@ -439,19 +430,11 @@ class BuyViewController: UIViewController, UITextFieldDelegate, UICollectionView
         self.view.backgroundColor = Colors.getColor("yelloworblue1")
         self.subtitleLabel.textColor = Colors.getColor("blackorwhite")
         self.emptyLabel.textColor = Colors.getColor("blackorwhite")
-        self.headerLabel.textColor = Colors.getColor("whiteoryellow")
         self.updateDataSpinner.color = Colors.getColor("whiteoryellow")
-        
-        if CacheManager.darkModeIsOn() {
-            self.headerIcon.image = UIImage(named: "iconpiggyyellow")
-            self.downIcon.image = UIImage(named: "downarrow32yellow")
-        }
     }
     
     func setWords() {
-        
-        self.headerLabel.text = Language.getWord(withID: "buybitcoin")
-        self.subtitleLabel.text = Language.getWord(withID: "buysubtitle")
+        self.subtitleLabel.setText(Language.getWord(withID: "buysubtitle"))
         self.emptyLabel.text = Language.getWord(withID: "buyempty")
     }
 }
