@@ -21,16 +21,6 @@ extension HomeViewController {
             BitcoinManager.shared.bittrWallet.valueInCHF = cachedChfValue
         }
         
-        // Set conversion.
-        if let actualCachedBalance = CacheManager.cachedSatsBalance {
-            
-            // Show cached balance.
-            self.loadBalanceLabel(amount: actualCachedBalance)
-            
-            // Set conversion label.
-            self.setConversion()
-        }
-        
         // Set cached transactions.
         if let cachedTransactions = CacheManager.cachedHomeTransactions {
             
@@ -43,44 +33,40 @@ extension HomeViewController {
                     self.bittrTransactions.updateValue(eachTransaction.toBittrTransaction(), forKey: eachTransaction.id)
                 }
             }
-            
-            // Reload table.
-            self.reloadTransactionsTable()
-            
-            // Calculate profits.
-            self.calculateProfit()
         }
+        
+        // Reload table.
+        self.reloadTransactionsTable()
     }
     
     func downloadConversionAndBlockHeight() {
         
         Task {
-            // Download conversion rates.
-            self.coreVC?.startSync(.conversion)
-            self.didFetchConversion = await self.didFetchConversionRates()
-            if !self.didFetchConversion {
-                self.couldNotFetchConversion = true
-            } else {
-                self.coreVC?.completeSync(.conversion)
-            }
-            
-            // Download current block height.
-            if BitcoinManager.shared.coreVC == nil {
-                BitcoinManager.shared.coreVC = self.coreVC!
-            }
-            _ = await BitcoinManager.shared.didGetLatestBlockHeight()
+            await self.fetchConversionAndBlockHeight()
             
             DispatchQueue.main.async {
-                // Update conversion label.
-                self.setConversion()
-                
                 // Update table.
                 self.reloadTransactionsTable()
-                
-                // Calculate profits.
-                self.calculateProfit()
             }
         }
+    }
+    
+    func fetchConversionAndBlockHeight() async {
+        
+        // Download conversion rates.
+        self.coreVC?.startSync(.conversion)
+        self.didFetchConversion = await self.didFetchConversionRates()
+        if !self.didFetchConversion {
+            self.couldNotFetchConversion = true
+        } else {
+            self.coreVC?.completeSync(.conversion)
+        }
+        
+        // Download current block height.
+        if BitcoinManager.shared.coreVC == nil {
+            BitcoinManager.shared.coreVC = self.coreVC!
+        }
+        _ = await BitcoinManager.shared.didGetLatestBlockHeight()
     }
 
 }

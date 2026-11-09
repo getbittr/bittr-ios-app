@@ -13,8 +13,20 @@ final class BottomCurveView: UIView {
     
     public var fillColor: UIColor = .clear {
         didSet {
-            shapeLayer.fillColor = fillColor.cgColor
+            Self.withoutImplicitAnimation {
+                shapeLayer.fillColor = fillColor.cgColor
+            }
         }
+    }
+
+    // shapeLayer isn't a view's backing layer, so writes to it pick up whatever
+    // animation the current transaction carries — including the one a
+    // UIView.animate block is running when layoutSubviews lands inside it.
+    private static func withoutImplicitAnimation(_ changes: () -> Void) {
+        CATransaction.begin()
+        CATransaction.setDisableActions(true)
+        changes()
+        CATransaction.commit()
     }
     
     override init(frame: CGRect) {
@@ -64,7 +76,12 @@ final class BottomCurveView: UIView {
         // Left side back up
         path.close()
 
-        shapeLayer.frame = bounds
-        shapeLayer.path = path.cgPath
+        // Applied straight away: animating a path from nil draws nothing until
+        // the animation ends, which is why the curve only turned up once the
+        // container had finished sliding.
+        Self.withoutImplicitAnimation {
+            shapeLayer.frame = bounds
+            shapeLayer.path = path.cgPath
+        }
     }
 }

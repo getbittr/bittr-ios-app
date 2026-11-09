@@ -9,19 +9,187 @@ import UIKit
 
 extension CoreViewController {
     
-    func lowerPinView(spinner:UIActivityIndicatorView) {
+    @objc func appWillResignActive() {
+        self.showPrivacyCover()
+    }
+    
+    @objc func appDidBecomeActive() {
+        self.hidePrivacyCover()
+    }
+    
+    func showPrivacyCover() {
+        guard self.privacyCover == nil, let window = self.view.window else { return }
         
-        UIView.animate(withDuration: 0.4, delay: 0, options: .curveEaseInOut) {
-            NSLayoutConstraint.deactivate([self.pinBottom])
-            self.pinBottom = NSLayoutConstraint(item: self.pinContainerView, attribute: .top, relatedBy: .equal, toItem: self.view, attribute: .bottom, multiplier: 1, constant: 0)
-            NSLayoutConstraint.activate([self.pinBottom])
-            self.blackSignupBackground.alpha = 0
-            self.view.layoutIfNeeded()
-        } completion: { finished in
-            self.pinContainerView.alpha = 0
-            spinner.stopAnimating()
+        let cover = UIView(frame: window.bounds)
+        cover.autoresizingMask = [.flexibleWidth, .flexibleHeight]
+        cover.backgroundColor = Colors.getColor("yelloworblue3")
+        
+        let logoView = UIView()
+        logoView.translatesAutoresizingMaskIntoConstraints = false
+        cover.addSubview(logoView)
+        
+        let isDarkMode = CacheManager.darkModeIsOn()
+        let logo = UIImageView(image: UIImage(named: isDarkMode ? "logodarkmode80" : "logo80"))
+        logo.contentMode = .scaleAspectFit
+        logo.translatesAutoresizingMaskIntoConstraints = false
+        logoView.addSubview(logo)
+        
+        let text = UIImageView(image: UIImage(named: isDarkMode ? "bittrtextwhite" : "bittrtext"))
+        text.contentMode = .scaleAspectFit
+        text.translatesAutoresizingMaskIntoConstraints = false
+        logoView.addSubview(text)
+        
+        NSLayoutConstraint.activate([
+            logoView.widthAnchor.constraint(equalToConstant: 106),
+            logoView.heightAnchor.constraint(equalToConstant: 30),
+            logoView.centerXAnchor.constraint(equalTo: cover.centerXAnchor),
+            logoView.centerYAnchor.constraint(equalTo: cover.centerYAnchor),
             
-            if self.lightningNotification != nil || self.needsToHandleURI() {
+            // Square, filling the icon slot at the leading edge.
+            logo.leadingAnchor.constraint(equalTo: logoView.leadingAnchor),
+            logo.centerYAnchor.constraint(equalTo: logoView.centerYAnchor),
+            logo.widthAnchor.constraint(equalTo: logoView.heightAnchor),
+            logo.heightAnchor.constraint(equalTo: logoView.heightAnchor),
+            
+            text.trailingAnchor.constraint(equalTo: logoView.trailingAnchor),
+            text.centerYAnchor.constraint(equalTo: logoView.centerYAnchor, constant: 0.5),
+            text.widthAnchor.constraint(equalTo: logoView.heightAnchor, multiplier: 2.17971),
+            text.heightAnchor.constraint(equalTo: logoView.heightAnchor, multiplier: 0.94)
+        ])
+        
+        window.addSubview(cover)
+        self.privacyCover = cover
+    }
+    
+    func hidePrivacyCover() {
+        self.privacyCover?.removeFromSuperview()
+        self.privacyCover = nil
+    }
+    
+    @objc func appDidEnterBackground() {
+        // Make sure the cover is up for the app switcher snapshot.
+        self.showPrivacyCover()
+        
+        // Keep track of when the app was backgrounded.
+        self.backgroundedAt = self.userHasSignedIn ? Date() : nil
+        // Interrupt BDK scan if ongoing.
+        BitcoinManager.shared.markBdkScanInterrupted()
+    }
+    
+    @objc func appWillEnterForeground() {
+        self.retryOnchainScanIfNeeded()
+        self.homeVC?.refreshValueCard()
+        guard let wentAway = self.backgroundedAt else { return }
+        self.backgroundedAt = nil
+        
+        // If app was backgrounded for more than 120s, user needs to reauthenticate.
+        guard Date().timeIntervalSince(wentAway) >= 120 else { return }
+        self.lockForReauthentication()
+    }
+    
+    func retryOnchainScanIfNeeded() {
+        guard BitcoinManager.shared.bdkWallet != nil,
+                !BitcoinManager.shared.bdkWalletHasBeenScanned else { return }
+        Log.info("No BDK full scan has succeeded yet. Retrying it on foreground.")
+        
+        // A scan cut off by the background is likely hung, so start a fresh one.
+        BitcoinManager.shared.abandonInterruptedBdkScan()
+        
+        BitcoinManager.shared.didSyncBdkWallet { hasBeenSynced in
+            guard hasBeenSynced else { return }
+            Log.info("Retried BDK full scan succeeded.")
+            
+            // Restart background syncs.
+            if self.walletSync == nil {
+                self.walletSync = BackgroundSync()
+                self.walletSync!.start()
+            }
+            
+            // Update labels.
+            self.homeVC?.sendVC?.setSendAllLabel()
+            self.homeVC?.moveVC?.swapVC?.calculateSendableAmount()
+        }
+    }
+    
+    func lockForReauthentication() {
+        guard self.userHasSignedIn, self.currentPage == .home else { return }
+        guard CacheManager.hasPin() else { return }
+        guard !self.resettingPin, !self.removingWalletForIncorrectPin, !self.isRemovalInFlight else { return }
+        Log.info("App was backgrounded for longer than 120s. Asking for the PIN again.")
+        
+        self.view.endEditing(true)
+        
+        // Close any active segues.
+        if self.presentedViewController != nil { self.dismiss(animated: false) }
+        self.hideSettings()
+        
+        // Remove any loading overlay, because it would block the PIN pad.
+        self.hideLoading()
+        
+        // Prepare and show PinVC.
+        self.pinVC?.clearPinField()
+        self.userHasSignedIn = false
+        UIView.performWithoutAnimation { self.showPin() }
+    }
+    
+    func showPin(completion: (() -> Void)? = nil) {
+        guard self.currentPage != .pin else {
+            completion?()
+            return
+        }
+        
+        if self.currentPage == .signup {
+            // Place PinVC above SignupVC.
+            NSLayoutConstraint.deactivate([self.pinBottom])
+            self.pinBottom = NSLayoutConstraint(item: self.pinContainerView, attribute: .bottom, relatedBy: .equal, toItem: self.view, attribute: .top, multiplier: 1, constant: 0)
+            NSLayoutConstraint.activate([self.pinBottom])
+            self.view.layoutIfNeeded()
+            self.pinContainerView.alpha = 1
+            
+            // Lower SignupVC out of view, and PinVC into view.
+            UIView.animate(withDuration: 0.8, delay: 0, usingSpringWithDamping: 0.75, initialSpringVelocity: 0, options: .curveEaseInOut) {
+                NSLayoutConstraint.deactivate([self.signupBottom, self.pinBottom])
+                self.pinBottom = NSLayoutConstraint(item: self.pinContainerView, attribute: .bottom, relatedBy: .equal, toItem: self.view, attribute: .bottom, multiplier: 1, constant: 0)
+                self.signupBottom = NSLayoutConstraint(item: self.signupContainerView, attribute: .top, relatedBy: .equal, toItem: self.view, attribute: .bottom, multiplier: 1, constant: 0)
+                NSLayoutConstraint.activate([self.signupBottom, self.pinBottom])
+                self.view.layoutIfNeeded()
+            } completion: { finished in
+                
+                // Reset signup positioning.
+                self.signupContainerView.alpha = 0
+                NSLayoutConstraint.deactivate([self.signupBottom])
+                self.signupBottom = NSLayoutConstraint(item: self.signupContainerView, attribute: .bottom, relatedBy: .equal, toItem: self.view, attribute: .bottom, multiplier: 1, constant: 0)
+                NSLayoutConstraint.activate([self.signupBottom])
+                self.view.layoutIfNeeded()
+                
+                self.currentPage = .pin
+                self.hideSignup()
+                completion?()
+            }
+        } else {
+            // Slide from Home back to Pin.
+            self.pinContainerView.alpha = 1
+            UIView.animate(withDuration: 0.8, delay: 0, usingSpringWithDamping: 0.75, initialSpringVelocity: 0, options: .curveEaseInOut) {
+                NSLayoutConstraint.deactivate([self.signupBottom, self.pinBottom, self.homeContainerTop, self.menuBarBottom])
+                self.pinBottom = NSLayoutConstraint(item: self.pinContainerView, attribute: .bottom, relatedBy: .equal, toItem: self.view, attribute: .bottom, multiplier: 1, constant: 0)
+                self.signupBottom = NSLayoutConstraint(item: self.signupContainerView, attribute: .bottom, relatedBy: .equal, toItem: self.view, attribute: .bottom, multiplier: 1, constant: 0)
+                self.homeContainerTop = NSLayoutConstraint(item: self.homeContainerView, attribute: .top, relatedBy: .equal, toItem: self.view, attribute: .bottom, multiplier: 1, constant: 0)
+                self.menuBarBottom = NSLayoutConstraint(item: self.menuBarContainer, attribute: .bottom, relatedBy: .equal, toItem: self.homeContainerView, attribute: .bottom, multiplier: 1, constant: -30)
+                NSLayoutConstraint.activate([self.signupBottom, self.pinBottom, self.homeContainerTop, self.menuBarBottom])
+                self.view.layoutIfNeeded()
+            } completion: { finished in
+                self.userHasSignedIn = false
+                self.currentPage = .pin
+                completion?()
+            }
+        }
+    }
+    
+    func fromPinToHome() {
+        self.hidePinAndSignup {
+            self.pinContainerView.alpha = 0
+            
+            if !self.walletHasSynced, self.lightningNotification != nil || self.needsToHandleURI() {
                 // A notification will be handled after syncing the wallet.
                 self.showLoading(message: Language.getWord(withID: "syncingwallet3"))
             }
@@ -30,47 +198,101 @@ extension CoreViewController {
     
     
     func showSignup() {
+        // Slide from HomeVC or PinVC to SignupVC.
         
         // Show SignupVC.
         self.signupContainerView.alpha = 1
         
-        // Raise Signup view back into view.
-        UIView.animate(withDuration: 0.4, delay: 0, options: .curveEaseInOut) {
+        if self.currentPage == .home {
+            // We're navigating from Home to Signup.
+            
+            UIView.animate(withDuration: 0.8, delay: 0, usingSpringWithDamping: 0.75, initialSpringVelocity: 0, options: .curveEaseInOut) {
+                NSLayoutConstraint.deactivate([self.signupBottom, self.pinBottom, self.homeContainerTop, self.menuBarBottom])
+                self.pinBottom = NSLayoutConstraint(item: self.pinContainerView, attribute: .bottom, relatedBy: .equal, toItem: self.view, attribute: .bottom, multiplier: 1, constant: 0)
+                self.signupBottom = NSLayoutConstraint(item: self.signupContainerView, attribute: .bottom, relatedBy: .equal, toItem: self.view, attribute: .bottom, multiplier: 1, constant: 0)
+                self.homeContainerTop = NSLayoutConstraint(item: self.homeContainerView, attribute: .top, relatedBy: .equal, toItem: self.view, attribute: .bottom, multiplier: 1, constant: 0)
+                self.menuBarBottom = NSLayoutConstraint(item: self.menuBarContainer, attribute: .bottom, relatedBy: .equal, toItem: self.homeContainerView, attribute: .bottom, multiplier: 1, constant: -30)
+                NSLayoutConstraint.activate([self.signupBottom, self.pinBottom, self.homeContainerTop, self.menuBarBottom])
+                self.view.layoutIfNeeded()
+            }
+            self.currentPage = .signup
+        } else if self.currentPage == .pin {
+            // We're navigating from PIN to Signup.
+            
+            // Place SignupVC underneath the PinVC.
             NSLayoutConstraint.deactivate([self.signupBottom])
-            self.signupBottom = NSLayoutConstraint(item: self.signupContainerView, attribute: .bottom, relatedBy: .equal, toItem: self.view, attribute: .bottom, multiplier: 1, constant: 0)
+            self.signupBottom = NSLayoutConstraint(item: self.signupContainerView, attribute: .top, relatedBy: .equal, toItem: self.view, attribute: .bottom, multiplier: 1, constant: 0)
             NSLayoutConstraint.activate([self.signupBottom])
-            self.blackSignupBackground.alpha = 1
             self.view.layoutIfNeeded()
-        } completion: { finished in
-            // Hide PinVC.
-            self.pinContainerView.alpha = 0
+            
+            // Raise PinVC out of view, and SignupVC into view.
+            UIView.animate(withDuration: 0.8, delay: 0, usingSpringWithDamping: 0.75, initialSpringVelocity: 0, options: .curveEaseInOut) {
+                NSLayoutConstraint.deactivate([self.signupBottom, self.pinBottom])
+                self.pinBottom = NSLayoutConstraint(item: self.pinContainerView, attribute: .bottom, relatedBy: .equal, toItem: self.view, attribute: .top, multiplier: 1, constant: 0)
+                self.signupBottom = NSLayoutConstraint(item: self.signupContainerView, attribute: .bottom, relatedBy: .equal, toItem: self.view, attribute: .bottom, multiplier: 1, constant: 0)
+                NSLayoutConstraint.activate([self.signupBottom, self.pinBottom])
+                self.view.layoutIfNeeded()
+            } completion: { finished in
+                
+                // Reset pin positioning.
+                self.pinContainerView.alpha = 0
+                NSLayoutConstraint.deactivate([self.pinBottom])
+                self.pinBottom = NSLayoutConstraint(item: self.pinContainerView, attribute: .bottom, relatedBy: .equal, toItem: self.view, attribute: .bottom, multiplier: 1, constant: 0)
+                NSLayoutConstraint.activate([self.pinBottom])
+                self.view.layoutIfNeeded()
+            }
+            self.currentPage = .signup
+        }
+    }
+    
+    func fromSignupToHome() {
+        // Move from Signup to Home.
+        self.hidePinAndSignup {
+            self.hideSignup()
         }
     }
     
     
     func hideSignup() {
         
-        // Hide SignupVC.
-        UIView.animate(withDuration: 0.4, delay: 0, options: .curveEaseInOut) {
-            NSLayoutConstraint.deactivate([self.signupBottom])
-            self.signupBottom = NSLayoutConstraint(item: self.signupContainerView, attribute: .top, relatedBy: .equal, toItem: self.view, attribute: .bottom, multiplier: 1, constant: 0)
-            NSLayoutConstraint.activate([self.signupBottom])
-            self.blackSignupBackground.alpha = 0
-            self.view.layoutIfNeeded()
-        } completion: { finished in
-            // Remove signup view from container.
-            self.signupContainerView.alpha = 0
-            if self.signupContainerView.subviews.count == 1 {
-                self.signupContainerView.subviews[0].removeFromSuperview()
-            }
-            
-            if self.walletHasSynced {
-                // Check for pending URIs after user signs in
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                    self.checkForPendingURIs()
-                }
+        // Remove signup view from container.
+        self.signupContainerView.alpha = 0
+        for eachChild in self.children where eachChild.viewIfLoaded?.superview == self.signupContainerView {
+            eachChild.willMove(toParent: nil)
+            eachChild.view.removeFromSuperview()
+            eachChild.removeFromParent()
+        }
+        for eachSubview in self.signupContainerView.subviews {
+            eachSubview.removeFromSuperview()
+        }
+        
+        if self.walletHasSynced {
+            // Check for pending URIs after user signs in
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                self.checkForPendingURIs()
             }
         }
     }
     
+    func hidePinAndSignup(completion: (() -> Void)? = nil) {
+        self.currentPage = .home
+        UIView.animate(withDuration: 0.8, delay: 0, usingSpringWithDamping: 0.75, initialSpringVelocity: 0, options: .curveEaseInOut) {
+            NSLayoutConstraint.deactivate([self.signupBottom, self.pinBottom, self.homeContainerTop, self.menuBarBottom])
+            self.pinBottom = NSLayoutConstraint(item: self.pinContainerView, attribute: .bottom, relatedBy: .equal, toItem: self.view, attribute: .top, multiplier: 1, constant: 0)
+            self.signupBottom = NSLayoutConstraint(item: self.signupContainerView, attribute: .bottom, relatedBy: .equal, toItem: self.view, attribute: .top, multiplier: 1, constant: 0)
+            self.homeContainerTop = NSLayoutConstraint(item: self.homeContainerView, attribute: .top, relatedBy: .equal, toItem: self.view, attribute: .top, multiplier: 1, constant: 0)
+            self.menuBarBottom = NSLayoutConstraint(item: self.menuBarContainer, attribute: .bottom, relatedBy: .equal, toItem: self.view.safeAreaLayoutGuide, attribute: .bottom, multiplier: 1, constant: 10)
+            NSLayoutConstraint.activate([self.signupBottom, self.pinBottom, self.homeContainerTop, self.menuBarBottom])
+            self.view.layoutIfNeeded()
+        } completion: { finished in
+            completion?()
+        }
+    }
+    
+}
+
+enum CurrentPage {
+    case home
+    case pin
+    case signup
 }

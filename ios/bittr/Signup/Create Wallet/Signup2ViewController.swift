@@ -42,7 +42,7 @@ class Signup2ViewController: UIViewController {
     
     // Variables
     var coreVC:CoreViewController?
-    var signupVC:SignupViewController?
+    weak var signupVC:SignupViewController?
     
     override func viewDidLoad() {
         super.viewDidLoad()

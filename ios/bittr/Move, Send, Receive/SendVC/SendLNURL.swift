@@ -162,7 +162,7 @@ extension UIViewController {
         }
         
         Task {
-            await CallsManager.makeApiCall(url: url, parameters: nil, getOrPost: .get) { result in
+            await CallsManager.makeApiCall(url: url, parameters: nil, getOrPost: .get, reportDecodeFailures: false) { result in
                 
                 DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
                     switch result {
@@ -208,10 +208,15 @@ extension UIViewController {
                         }
                     case .failure(let error):
                         sendVC?.stopLNURLSpinner()
-                        SentryManager.capture(error, context: "SendLNURL row 239")
                         SentryManager.countMetric("lnurl.api.failure.1")
                         Log.info("Error 111: \(error.localizedDescription)")
-                        self.showAlert(title: Language.getWord(withID: "lnurl"), message: Language.getWord(withID: "lnurlfail3"), buttons: [.dismiss(Language.getWord(withID: "okay"))])
+                        self.showAlert(
+                            title: Language.getWord(withID: "lnurl"),
+                            message: Language.getWord(withID: "lnurlfail3"),
+                            buttons: [
+                                .dismiss(Language.getWord(withID: "cancel")),
+                                .action(Language.getWord(withID: "tryagain")) { self.handleLNURL(code: code) }
+                            ])
                     }
                 }
             }
@@ -313,7 +318,7 @@ extension UIViewController {
         let actualUrl = "\(callbackURL)?amount=\(amount)"
         
         Task {
-            await CallsManager.makeApiCall(url: actualUrl, parameters: nil, getOrPost: .get) { result in
+            await CallsManager.makeApiCall(url: actualUrl, parameters: nil, getOrPost: .get, reportDecodeFailures: false) { result in
                 DispatchQueue.main.async {
                     sendVC?.stopLNURLSpinner()
                     
@@ -338,7 +343,13 @@ extension UIViewController {
                     case .failure(let error):
                         SentryManager.countMetric("lnurl.pay.failure.1")
                         Log.info("Error: \(error.localizedDescription)")
-                        self.showAlert(title: Language.getWord(withID: "lnurl"), message: Language.getWord(withID: "lnurlfail3"), buttons: [.dismiss(Language.getWord(withID: "okay"))])
+                        self.showAlert(
+                            title: Language.getWord(withID: "lnurl"),
+                            message: Language.getWord(withID: "lnurlfail3"),
+                            buttons: [
+                                .dismiss(Language.getWord(withID: "cancel")),
+                                .action(Language.getWord(withID: "tryagain")) { self.sendPayRequest(callbackURL: callbackURL, amount: amount, receivedDescription: receivedDescription) }
+                            ])
                     }
                 }
             }
@@ -377,7 +388,7 @@ extension UIViewController {
             let actualUrl = "\(callbackURL)?k1=\(k1)&pr=\(invoice)"
             Log.debug("Actual URL: \(actualUrl)")
             
-            await CallsManager.makeApiCall(url: actualUrl, parameters: nil, getOrPost: .get) { result in
+            await CallsManager.makeApiCall(url: actualUrl, parameters: nil, getOrPost: .get, reportDecodeFailures: false) { result in
                 DispatchQueue.main.async {
                     sendVC?.stopLNURLSpinner()
                     
@@ -393,9 +404,14 @@ extension UIViewController {
                         SentryManager.countMetric("lnurl.withdraw.success")
                     case .failure(let error):
                         Log.info("Error: \(error.localizedDescription)")
-                        SentryManager.capture(error, context: "SendLNURL row 342")
                         SentryManager.countMetric("lnurl.withdraw.failure.3")
-                        self.showAlert(title: Language.getWord(withID: "lnurl"), message: Language.getWord(withID: "lnurlfail3"), buttons: [.dismiss(Language.getWord(withID: "okay"))])
+                        self.showAlert(
+                            title: Language.getWord(withID: "lnurl"),
+                            message: Language.getWord(withID: "lnurlfail3"),
+                            buttons: [
+                                .dismiss(Language.getWord(withID: "cancel")),
+                                .action(Language.getWord(withID: "tryagain")) { self.sendWithdrawRequest(callbackURL: callbackURL, amount: amount, k1: k1) }
+                            ])
                     }
                 }
             }

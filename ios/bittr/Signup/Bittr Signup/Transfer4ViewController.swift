@@ -37,7 +37,7 @@ class Transfer4ViewController: UIViewController {
     @IBOutlet weak var dcaLabel: UILabel!
     
     var coreVC:CoreViewController?
-    var signupVC:SignupViewController?
+    weak var signupVC:SignupViewController?
     var ibanVC:RegisterIbanViewController?
     
     override func viewDidLoad() {
@@ -106,7 +106,7 @@ class Transfer4ViewController: UIViewController {
         // Hide signup
         self.coreVC!.buyVC?.registerIbanVC?.dismiss(animated: true)
         self.coreVC!.buyVC?.parseIbanEntities(uponPageLaunch: false)
-        self.coreVC!.hideSignup()
+        self.coreVC!.fromSignupToHome()
     }
     
     @IBAction func backButtonTapped(_ sender: UIButton) {
