@@ -369,7 +369,7 @@ extension CoreViewController {
                 self.userHasSignedIn = false
                 
                 // Hide signup view and launch create wallet flow.
-                self.fromSignupToPin {
+                self.showPin {
                     Log.info("ResetApp - Launching signup after cleanup")
                     self.launchSignup(onPage: 3) // Page 3 is create wallet
                     self.showSignup()
