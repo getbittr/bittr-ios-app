@@ -201,6 +201,8 @@ enum CacheKeys {
     static let channelFundingOutpoint = CacheKey<ChannelOutpoint>("channelfundingoutpoint")
     static let channelClosureTxIDs = CacheKey<[String]>("channelclosuretxids")
     static let onchainAddresses = CacheKey<[OnchainAddress]>("onchainaddresses")
+    static let lastBdkFullScan = CacheKey<Int>("lastbdkfullscan")
+    static let bdkRebuildRequested = CacheKey<Bool>("bdkrebuildrequested")
     
     // MARK: Swaps
     

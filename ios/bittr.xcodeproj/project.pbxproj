@@ -150,6 +150,7 @@
 		05D5D0EC2A66843B00A1E771 /* FileManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05D5D0EB2A66843B00A1E771 /* FileManager.swift */; };
 		05D80DFF2BA4170800E2F093 /* CodeScanner in Frameworks */ = {isa = PBXBuildFile; productRef = 05D80DFE2BA4170800E2F093 /* CodeScanner */; };
 		05D80E022BA4174E00E2F093 /* BitcoinDevKit in Frameworks */ = {isa = PBXBuildFile; productRef = 05D80E012BA4174E00E2F093 /* BitcoinDevKit */; };
+		05DA11AC0000000000002101 /* BitcoinDevKit in Frameworks */ = {isa = PBXBuildFile; productRef = 05DA11AC0000000000002001 /* BitcoinDevKit */; };
 		05D80E082BA4203600E2F093 /* LightningDevKit in Frameworks */ = {isa = PBXBuildFile; productRef = 05D80E072BA4203600E2F093 /* LightningDevKit */; };
 		05DA11AC0000000000000B01 /* SwapActivityAttributes.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05DA11AC0000000000000A01 /* SwapActivityAttributes.swift */; };
 		05DA11AC0000000000000D01 /* SwapLiveActivityController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05DA11AC0000000000000C01 /* SwapLiveActivityController.swift */; };
@@ -462,6 +463,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				05A21FBB2BE0BB5B000F32A2 /* (null) in Frameworks */,
+				05DA11AC0000000000002101 /* BitcoinDevKit in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1051,6 +1053,9 @@
 			);
 			name = bittrTests;
 			productName = bittrTests;
+			packageProductDependencies = (
+				05DA11AC0000000000002001 /* BitcoinDevKit */,
+			);
 			productReference = 05C3C09729CCB55800C1E695 /* bittrTests.xctest */;
 			productType = "com.apple.product-type.bundle.unit-test";
 		};
@@ -2112,6 +2117,11 @@
 			productName = CodeScanner;
 		};
 		05D80E012BA4174E00E2F093 /* BitcoinDevKit */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 05D80E002BA4174E00E2F093 /* XCRemoteSwiftPackageReference "bdk-swift" */;
+			productName = BitcoinDevKit;
+		};
+		05DA11AC0000000000002001 /* BitcoinDevKit */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = 05D80E002BA4174E00E2F093 /* XCRemoteSwiftPackageReference "bdk-swift" */;
 			productName = BitcoinDevKit;

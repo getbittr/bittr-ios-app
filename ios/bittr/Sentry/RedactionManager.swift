@@ -21,6 +21,12 @@ private enum Redaction {
         // derive, so it matters more than any single one of them.
         #"(?<![A-Za-z0-9])[xyztuv]pub[1-9A-HJ-NP-Za-km-z]{50,}"#,
         
+        // Extended private key, which hands over the funds rather than just the
+        // addresses. Nothing should ever put one in a message, but a descriptor
+        // built from a DescriptorSecretKey carries one, and library error text
+        // is free-form — so this is the net under that.
+        #"(?<![A-Za-z0-9])[xyztuv]prv[1-9A-HJ-NP-Za-km-z]{50,}"#,
+        
         // Bech32 onchain address.
         #"(?i)(?<![a-z0-9])(?:bcrt|bc|tb)1[02-9ac-hj-np-z]{25,71}"#,
         
