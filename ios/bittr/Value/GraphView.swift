@@ -169,14 +169,6 @@ class GraphView: UIView, UIGestureRecognizerDelegate {
         }
     }
 
-    func coordYFor(index: Int) -> CGFloat {
-        let differenceValueAndMin = data[index] - (data.min() ?? 0)
-        let differenceMaxAndMin = (data.max() ?? 0) - (data.min() ?? 0)
-        let plotHeight = bounds.height - self.topInset - self.bottomInset
-        guard differenceMaxAndMin > 0 else { return (bounds.height - self.bottomInset) - (plotHeight / 2) }
-        return (bounds.height - self.bottomInset) - (plotHeight * ((differenceValueAndMin) / (differenceMaxAndMin)))
-    }
-
     override func draw(_ rect: CGRect) {
         
         if data.count == 0 {return}
@@ -200,93 +192,27 @@ class GraphView: UIView, UIGestureRecognizerDelegate {
     func quadCurvedPath() -> UIBezierPath {
         
         let path = UIBezierPath()
+        let curve = GraphCurve(values: self.data, size: self.bounds.size, horizontalInset: self.horizontalInset, topInset: self.topInset, bottomInset: self.bottomInset)
         
-        guard data.count > 1 else {
-            if data.count == 1 { drawPoint(point: CGPoint(x: self.horizontalInset, y: coordYFor(index: 0)), color: self.strokeColor, radius: self.pointRadius) }
-            return path
+        for eachDot in curve.dots {
+            drawPoint(point: eachDot, color: self.strokeColor, radius: self.pointRadius)
         }
         
-        let step = (bounds.width - (self.horizontalInset * 2)) / CGFloat(data.count - 1)
+        guard let start = curve.start else { return path }
+        path.move(to: start)
         
-        var p1 = CGPoint(x: self.horizontalInset, y: coordYFor(index: 0))
-        path.move(to: p1)
-        
-        drawPoint(point: p1, color: self.strokeColor, radius: self.pointRadius)
-        
-        if (data.count == 2) {
-            path.addLine(to: CGPoint(x: step + self.horizontalInset, y: coordYFor(index: 1)))
-            return path
-        }
-        
-        var oldControlP:CGPoint?
-        
-        for i in 1..<data.count {
-            
-            let p2 = CGPoint(x: step * CGFloat(i) + self.horizontalInset, y: coordYFor(index: i))
-            drawPoint(point: p2, color: self.strokeColor, radius: self.pointRadius)
-            var p3: CGPoint?
-            if i < data.count - 1 {
-                p3 = CGPoint(x: step * CGFloat(i + 1) + self.horizontalInset, y: coordYFor(index: i + 1))
+        for eachSegment in curve.segments {
+            switch eachSegment {
+            case .line(let to):
+                path.addLine(to: to)
+            case .curve(let to, let control1, let control2):
+                path.addCurve(to: to, controlPoint1: control1, controlPoint2: control2)
             }
-            
-            let newControlP = controlPointForPoints(p1: p1, p2: p2, next: p3)
-            
-            path.addCurve(to: p2, controlPoint1: oldControlP ?? p1, controlPoint2: newControlP ?? p2)
-            
-            p1 = p2
-            oldControlP = antipodalFor(point: newControlP, center: p2)
         }
         
-        return path;
+        return path
     }
     
-    func antipodalFor(point: CGPoint?, center: CGPoint?) -> CGPoint? {
-        guard let p1 = point, let center = center else {
-            return nil
-        }
-        let newX = 2 * center.x - p1.x
-        let diffY = abs(p1.y - center.y)
-        let newY = center.y + diffY * (p1.y < center.y ? 1 : -1)
-
-        return CGPoint(x: newX, y: newY)
-    }
-
-    func midPointForPoints(p1: CGPoint, p2: CGPoint) -> CGPoint {
-        return CGPoint(x: (p1.x + p2.x) / 2, y: (p1.y + p2.y) / 2);
-    }
-
-    func controlPointForPoints(p1: CGPoint, p2: CGPoint, next p3: CGPoint?) -> CGPoint? {
-        guard let p3 = p3 else {
-            return nil
-        }
-
-        let leftMidPoint  = midPointForPoints(p1: p1, p2: p2)
-        let rightMidPoint = midPointForPoints(p1: p2, p2: p3)
-
-        var controlPoint = midPointForPoints(p1: leftMidPoint, p2: antipodalFor(point: rightMidPoint, center: p2)!)
-
-        if p1.y.between(a: p2.y, b: controlPoint.y) {
-            controlPoint.y = p1.y
-        } else if p2.y.between(a: p1.y, b: controlPoint.y) {
-            controlPoint.y = p2.y
-        }
-
-
-        let imaginContol = antipodalFor(point: controlPoint, center: p2)!
-        if p2.y.between(a: p3.y, b: imaginContol.y) {
-            controlPoint.y = p2.y
-        }
-        if p3.y.between(a: p2.y, b: imaginContol.y) {
-            let diffY = abs(p2.y - p3.y)
-            controlPoint.y = p2.y + diffY * (p3.y < p2.y ? 1 : -1)
-        }
-
-        // make lines easier
-        controlPoint.x += (p2.x - p1.x) * 0.1
-
-        return controlPoint
-    }
-
     func drawPoint(point: CGPoint, color: UIColor, radius: CGFloat) {
         guard radius > 0 else { return }
         let ovalPath = UIBezierPath(ovalIn: CGRect(x: point.x - radius, y: point.y - radius, width: radius * 2, height: radius * 2))

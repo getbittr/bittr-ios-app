@@ -42,26 +42,31 @@ extension HomeViewController {
     func downloadConversionAndBlockHeight() {
         
         Task {
-            // Download conversion rates.
-            self.coreVC?.startSync(.conversion)
-            self.didFetchConversion = await self.didFetchConversionRates()
-            if !self.didFetchConversion {
-                self.couldNotFetchConversion = true
-            } else {
-                self.coreVC?.completeSync(.conversion)
-            }
-            
-            // Download current block height.
-            if BitcoinManager.shared.coreVC == nil {
-                BitcoinManager.shared.coreVC = self.coreVC!
-            }
-            _ = await BitcoinManager.shared.didGetLatestBlockHeight()
+            await self.fetchConversionAndBlockHeight()
             
             DispatchQueue.main.async {
                 // Update table.
                 self.reloadTransactionsTable()
             }
         }
+    }
+    
+    func fetchConversionAndBlockHeight() async {
+        
+        // Download conversion rates.
+        self.coreVC?.startSync(.conversion)
+        self.didFetchConversion = await self.didFetchConversionRates()
+        if !self.didFetchConversion {
+            self.couldNotFetchConversion = true
+        } else {
+            self.coreVC?.completeSync(.conversion)
+        }
+        
+        // Download current block height.
+        if BitcoinManager.shared.coreVC == nil {
+            BitcoinManager.shared.coreVC = self.coreVC!
+        }
+        _ = await BitcoinManager.shared.didGetLatestBlockHeight()
     }
 
 }

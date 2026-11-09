@@ -291,8 +291,7 @@ extension HomeViewController {
             // Historical series for the currently selected currency.
             let historyFetched = (isChf ? self.chfDataFetched : self.eurDataFetched) ?? .distantPast
             if historyFetched <= freshCutoff,
-               let url = URL(string: bitcoinValue.apiUrl),
-               let (data, _) = try? await URLSession.shared.data(from: url) {
+               let data = try? await PriceHistory.fetch(bitcoinValue.apiUrl) {
                 await MainActor.run {
                     if isChf { self.chfData = data; self.chfDataFetched = Date() }
                     else { self.eurData = data; self.eurDataFetched = Date() }
@@ -302,8 +301,7 @@ extension HomeViewController {
             // Current value.
             let currentFetched = self.currentValueFetched ?? .distantPast
             if currentFetched <= freshCutoff,
-               let url = URL(string: "https://getbittr.com/api/price/btc"),
-               let (data, _) = try? await URLSession.shared.data(from: url) {
+               let data = try? await PriceHistory.fetch("https://getbittr.com/api/price/btc") {
                 await MainActor.run {
                     self.currentValue = data
                     self.currentValueFetched = Date()

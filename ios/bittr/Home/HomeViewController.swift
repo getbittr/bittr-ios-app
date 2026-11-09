@@ -53,6 +53,7 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
     var graphPointsFetched:Date?
     var isLoadingGraph = false
     var graphLoadID = 0
+    var graphLoadFailedAt:Date? // When the last attempt failed.
     
     override func viewDidLoad() {
         super.viewDidLoad()
