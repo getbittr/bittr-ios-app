@@ -41,7 +41,14 @@ class CallsManager: NSObject {
         return URLSession(configuration: configuration)
     }()
     
-    static func makeApiCall(url:String, parameters:[String:Any]?, getOrPost:CallType, timeout:TimeInterval = defaultTimeout, completion: @escaping (Result<NSDictionary, APIError>) -> Void) async {
+    static func makeApiCall(
+        url:String,
+        parameters:[String:Any]?,
+        getOrPost:CallType,
+        timeout:TimeInterval = defaultTimeout,
+        reportDecodeFailures:Bool = true,
+        completion: @escaping (Result<NSDictionary, APIError>) -> Void
+    ) async {
         
         var request = URLRequest(url: URL(string: url.replacingOccurrences(of: "\0", with: "").trimmingCharacters(in: .controlCharacters))!,timeoutInterval: timeout)
         request.addValue("application/json", forHTTPHeaderField: "Content-Type")
@@ -96,7 +103,9 @@ class CallsManager: NSObject {
                             completion(.failure(.requestFailed("HTTP \(statusCode)")))
                             return
                         }
-                        SentryManager.capture(error, context: "CallsManager row 60")
+                        if reportDecodeFailures {
+                            SentryManager.capture(error, context: "CallsManager row 60")
+                        }
                         completion(.failure(.decodingFailed))
                         return
                     }
