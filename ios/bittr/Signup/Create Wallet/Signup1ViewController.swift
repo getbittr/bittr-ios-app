@@ -40,7 +40,7 @@ class Signup1ViewController: UIViewController {
     
     // Variables
     var coreVC:CoreViewController?
-    var signupVC:SignupViewController?
+    weak var signupVC:SignupViewController?
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -137,7 +137,7 @@ class Signup1ViewController: UIViewController {
     func setWords() {
         
         self.headerLabel.text = Language.getWord(withID: "welcome")
-        self.topLabel.text = Language.getWord(withID: "createyourownwallet")
+        self.topLabel.setText(Language.getWord(withID: "createyourownwallet"))
         self.createWalletLabel.text = Language.getWord(withID: "createwallet")
         self.restoreLabel.text = Language.getWord(withID: "restorewallet")
     }

@@ -52,7 +52,8 @@ appId: com.bittr.bittr-regtest
 - tapOn:
     id: "home.buyButton"
 - assertVisible:
-    id: "buy.headerLabel"
+    id: "header.titleLabel"
+    text: "buy bitcoin"
 - waitForAnimationToEnd:
     timeout: 30000
 
@@ -71,7 +72,8 @@ appId: com.bittr.bittr-regtest
       - tapOn:
           id: "home.buyButton"
       - assertVisible:
-          id: "buy.headerLabel"
+          id: "header.titleLabel"
+          text: "buy bitcoin"
       - waitForAnimationToEnd:
           timeout: 30000
 
@@ -119,7 +121,7 @@ appId: com.bittr.bittr-regtest
 
 # 7) Close Buy -> Home.
 - tapOn:
-    id: "buy.downButton"
+    id: "header.downButton"
 - assertVisible:
     id: "home.headerLabel"
 - takeScreenshot: shared/docs/screenshots/payment_mode/04_home

@@ -13,6 +13,10 @@ class CoreViewController: UIViewController {
     // App start booleans
     var userHasSignedIn = false
     var walletHasSynced = false
+    var backgroundedAt:Date?
+    var deferredPresentation:(() -> Void)? // A screen someone asked for while the PIN was up.
+    var privacyCover:UIView? // Hides the wallet from the app switcher snapshot.
+    
     // True while checkWalletAvailability is waiting for the Keychain to become
     // readable (device locked / transient read error) before it decides.
     private var isAwaitingProtectedData = false
@@ -45,6 +49,7 @@ class CoreViewController: UIViewController {
     
     // Other VCs
     var homeVC:HomeViewController?
+    var pinVC:PinViewController?
     var settingsVC:SettingsViewController?
     var signupVC:SignupViewController?
     var buyVC:BuyViewController?
@@ -82,6 +87,7 @@ class CoreViewController: UIViewController {
     @IBOutlet weak var logoViewWidth: NSLayoutConstraint!
     @IBOutlet weak var finalLogo: UIImageView!
     var logoHasMovedUp = false
+    var currentPage:CurrentPage = .signup
     
     // Year view
     @IBOutlet weak var yearView: UIView!
@@ -91,10 +97,12 @@ class CoreViewController: UIViewController {
     @IBOutlet weak var homeContainerView: UIView!
     @IBOutlet weak var homeContainerViewLeading: NSLayoutConstraint!
     @IBOutlet weak var homeContainerViewTrailing: NSLayoutConstraint!
+    @IBOutlet weak var homeContainerTop: NSLayoutConstraint!
     @IBOutlet weak var infoContainerView: UIView!
     
     // Menu bar elements
     @IBOutlet weak var menuBarContainer: UIView!
+    @IBOutlet weak var menuBarBottom: NSLayoutConstraint!
     @IBOutlet weak var selectedView: UIView!
     @IBOutlet weak var selectedViewLeading: NSLayoutConstraint!
     @IBOutlet weak var selectedViewTrailing: NSLayoutConstraint!
@@ -114,7 +122,6 @@ class CoreViewController: UIViewController {
     @IBOutlet weak var pinContainerView: UIView!
     @IBOutlet weak var signupContainerView: UIView!
     @IBOutlet weak var signupBottom: NSLayoutConstraint!
-    @IBOutlet weak var blackSignupBackground: UIView!
     @IBOutlet weak var pinBottom: NSLayoutConstraint!
     
     // Syncing status
@@ -165,6 +172,12 @@ class CoreViewController: UIViewController {
 
         // Check wallet.
         self.checkWalletAvailability()
+        
+        // Watch for the app being backgrounded.
+        NotificationCenter.default.addObserver(self, selector: #selector(self.appDidEnterBackground), name: UIApplication.didEnterBackgroundNotification, object: nil)
+        NotificationCenter.default.addObserver(self, selector: #selector(self.appWillEnterForeground), name: UIApplication.willEnterForegroundNotification, object: nil)
+        NotificationCenter.default.addObserver(self, selector: #selector(self.appWillResignActive), name: UIApplication.willResignActiveNotification, object: nil)
+        NotificationCenter.default.addObserver(self, selector: #selector(self.appDidBecomeActive), name: UIApplication.didBecomeActiveNotification, object: nil)
     }
     
     @objc func checkWalletAvailability() {
@@ -176,6 +189,7 @@ class CoreViewController: UIViewController {
             self.finishAwaitingProtectedDataIfNeeded()
             self.signupContainerView.alpha = 0
             self.pinContainerView.alpha = 1
+            self.currentPage = .pin
             
         case .absent:
             Log.info("No wallet on this device.")
@@ -185,6 +199,7 @@ class CoreViewController: UIViewController {
             // Clear any stale cached client data and show the create-wallet flow.
             CacheManager.deleteClientInfo()
             self.launchSignup(onPage: 3)
+            self.currentPage = .signup
             
         case .unavailable:
             Log.info("The Keychain could not be read.")
@@ -198,6 +213,7 @@ class CoreViewController: UIViewController {
         self.pinContainerView.alpha = 1
         self.fullViewCover.alpha = 0.8
         self.genericSpinner.startAnimating()
+        self.currentPage = .pin
         
         if !self.isAwaitingProtectedData {
             self.isAwaitingProtectedData = true

@@ -11,7 +11,7 @@ class Signup5ViewController: UIViewController, UITextFieldDelegate {
 
     // View for user to set their new pin.
     var coreVC:CoreViewController?
-    var signupVC:SignupViewController?
+    weak var signupVC:SignupViewController?
     
     override func viewDidLoad() {
         super.viewDidLoad()

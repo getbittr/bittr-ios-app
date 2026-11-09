@@ -96,7 +96,6 @@ extension CoreViewController {
             self.lowerTopBar.alpha = 1
             self.homeContainerView.alpha = 1
             self.menuBarContainer.alpha = 1
-            self.blackSignupBackground.alpha = 1
             self.upperYellowCurve.alpha = 1
             self.coreVCBackground.alpha = 0
             self.changeColors()
