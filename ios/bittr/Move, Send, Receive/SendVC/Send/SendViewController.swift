@@ -262,10 +262,23 @@ class SendViewController: UIViewController, UITextFieldDelegate, OnchainSyncFail
         case .bitcoin: self.btcLabel.text = "BTC"
         case .satoshis: self.btcLabel.text = "Sats"
         case .currency:
+            guard self.hasCurrentConversionRate() else {
+                self.showConversionRateUnavailable()
+                return
+            }
             let currency = CacheStore.value(for: CacheKeys.currency) ?? "EUR"
             self.btcLabel.text = currency
         }
         self.selectedCurrency = type
+    }
+    
+    // A fiat amount is only converted with a rate fetched in this session.
+    func hasCurrentConversionRate() -> Bool {
+        self.homeVC?.didFetchConversion == true && BitcoinManager.shared.bittrWallet.getCorrectBitcoinValue().currentValue > 0
+    }
+    
+    func showConversionRateUnavailable() {
+        self.showAlert(title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "conversionfailsend"), buttons: [.dismiss(Language.getWord(withID: "okay"))])
     }
     
     @IBAction func availableButtonTapped(_ sender: UIButton) {
@@ -301,6 +314,13 @@ class SendViewController: UIViewController, UITextFieldDelegate, OnchainSyncFail
     
     @IBAction func nextButtonTapped(_ sender: UIButton) {
         self.view.endEditing(true)
+        
+        // The rates can fail to refresh after a fiat amount was entered.
+        let enteredAmount = (self.amountTextField.text ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+        if self.selectedCurrency == .currency, !enteredAmount.isEmpty, !self.hasCurrentConversionRate() {
+            self.showConversionRateUnavailable()
+            return
+        }
         
         // Pending LNURL data only belongs to the LNURL it came from.
         let enteredCode = (self.toTextField.text ?? "").trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
