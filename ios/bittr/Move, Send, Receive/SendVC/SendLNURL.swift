@@ -799,14 +799,21 @@ func upsertQueryItem(name: String, value: String, in queryItems: inout [URLQuery
 func lnurlCallbackURL(_ callback: String, adding parameters: KeyValuePairs<String, String>) -> String {
     guard var components = URLComponents(string: callback) else { return callback }
     
-    // The callback's own parameters keep their encoding, and the added values never need any.
+    // The callback's own parameters keep their encoding, and the added values are encoded because k1 comes from the service.
     var queryItems = components.percentEncodedQueryItems ?? []
     for (name, value) in parameters {
-        upsertQueryItem(name: name, value: value, in: &queryItems)
+        guard let encodedValue = value.addingPercentEncoding(withAllowedCharacters: .urlUnreserved) else { return callback }
+        upsertQueryItem(name: name, value: encodedValue, in: &queryItems)
     }
     components.percentEncodedQueryItems = queryItems
     
     return components.string ?? callback
+}
+
+extension CharacterSet {
+    
+    // RFC 3986's unreserved characters, which never need encoding anywhere in a URL.
+    static let urlUnreserved = CharacterSet(charactersIn: "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~")
 }
 
 func compressedPublicKeyHex(from keyData: Data) throws -> String {
