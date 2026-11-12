@@ -328,6 +328,7 @@ class Language: NSObject {
             "lnurlfail2": "We could not complete your pay request. Error:",
             "lnurl": "LNURL status",
             "lnurlinsecure": "This service doesn't use a secure (https) connection, so bittr won't use it.",
+            "lnurlinvalidamounts": "This service sent amounts that aren't valid, so bittr won't use it.",
             "lnurlinvoicemismatch": "The invoice this service returned doesn't match your payment request, so it wasn't paid.",
             "lnurlfail3": "We've received an error while handling this request. Please try again.",
             "lnurlfail4": "We currently only support lightning pay and withdraw requests.",
