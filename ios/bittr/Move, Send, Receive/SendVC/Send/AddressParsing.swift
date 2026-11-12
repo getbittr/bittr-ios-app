@@ -18,6 +18,10 @@ extension SendViewController {
         // A new code replaces any LNURL that was still pending.
         self.clearPendingLnurlState()
         
+        // Drain only for onchain addresses without amount.
+        let didTapAvailable = self.didTapAvailable
+        self.didTapAvailable = false
+        
         // Parse code components.
         let paymentCode = code.parsedPaymentCode()
         
@@ -80,6 +84,8 @@ extension SendViewController {
                 self.amountTextField.text = "\(amount)"
                 self.btcLabel.text = "Sats"
                 self.selectedCurrency = .satoshis
+            } else {
+                self.didTapAvailable = didTapAvailable
             }
         } else {
             Log.info("Did not find a valid address or invoice.")
