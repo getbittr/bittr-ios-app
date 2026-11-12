@@ -338,8 +338,10 @@ extension UIViewController {
         let envUrl = "\(EnvironmentConfig.bittrAPIBaseURL)/verify/email"
         await CallsManager.makeApiCall(url: envUrl, parameters: parameters, getOrPost: .post) { result in
             
-            switch result {
-            case .success(let json):
+            // The API call completes on URLSession's queue, and the alerts below need the main thread.
+            DispatchQueue.main.async {
+                switch result {
+                case .success(let json):
                     // Check if the response contains an error message
                     if let success = json["success"] as? Bool,
                        success == false,
@@ -351,10 +353,11 @@ extension UIViewController {
                     } else {
                         completion(true)
                     }
-            case .failure(let error):
-                self.showAlert(title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "bittrsignupfail4"), buttons: [.dismiss(Language.getWord(withID: "okay"))])
-                SentryManager.capture(error, context: "Transfer1ViewController row 194")
-                completion(false)
+                case .failure(let error):
+                    self.showAlert(title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "bittrsignupfail4"), buttons: [.dismiss(Language.getWord(withID: "okay"))])
+                    SentryManager.capture(error, context: "Transfer1ViewController row 194")
+                    completion(false)
+                }
             }
         }
     }
