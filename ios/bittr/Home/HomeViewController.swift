@@ -40,8 +40,7 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
     var swapStatusVC:SwapStatusViewController?
     
     // Pending URI data for seamless segue
-    var pendingBitcoinURI: (address: String, amount: String, label: String)?
-    var pendingLightningURI: String?
+    var pendingPaymentURI: String?
     
     // Bitcoin historical data
     var eurData:Data?
@@ -186,14 +185,9 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
                 self.sendVC = sendVC
                 
                 // Pass pending URI data if available
-                if let bitcoinURI = self.pendingBitcoinURI {
-                    sendVC.pendingBitcoinURI = bitcoinURI
-                    self.pendingBitcoinURI = nil // Clear after passing
-                }
-                
-                if let lightningURI = self.pendingLightningURI {
-                    sendVC.pendingLightningURI = lightningURI
-                    self.pendingLightningURI = nil // Clear after passing
+                if let paymentURI = self.pendingPaymentURI {
+                    sendVC.pendingPaymentURI = paymentURI
+                    self.pendingPaymentURI = nil // Clear after passing
                 }
             }
         } else if segue.identifier == "HomeToReceive" {
