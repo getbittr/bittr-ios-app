@@ -585,7 +585,7 @@ extension UIViewController {
         Task {
             let (data, urlResponse):(Data, URLResponse)
             do {
-                (data, urlResponse) = try await URLSession.shared.data(from: callbackURL)
+                (data, urlResponse) = try await CallsManager.session.data(from: callbackURL)
             } catch {
                 Log.info("Could not get data.")
                 self.failedLnUrlAuth(reason: "Network request failed.")
