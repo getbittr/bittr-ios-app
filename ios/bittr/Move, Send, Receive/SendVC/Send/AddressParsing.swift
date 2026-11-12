@@ -34,6 +34,15 @@ extension SendViewController {
             return
         }
         
+        // A link with a malformed or repeated parameter can't be trusted for any part of the payment.
+        if paymentCode.isInvalidLink {
+            Log.info("Payment link has a malformed or repeated parameter.")
+            self.toTextField.text = nil
+            self.amountTextField.text = nil
+            self.showAlert(title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "invalidpaymentlink"), buttons: [.dismiss(Language.getWord(withID: "okay"))])
+            return
+        }
+        
         let bitcoinAddress = paymentCode.bitcoinAddress
         let lightningInvoice = paymentCode.lightningInvoice
         let lnurl = paymentCode.lnurl
@@ -107,6 +116,7 @@ struct PaymentCode {
     var lnurl:String?
     var amountSats:Int?
     var unsupportedRequirement:String?
+    var isInvalidLink = false
 }
 
 extension String {
@@ -125,15 +135,24 @@ extension String {
             paymentCode.bitcoinAddress = address.asBitcoinAddress()
             
             // Extract lightning invoice and amount.
+            var readParameters = Set<String>()
             for item in components.queryItems ?? [] {
                 // BIP21 makes the whole link invalid when it has a req- parameter the wallet doesn't understand, and bittr understands none.
                 if item.name.lowercased().hasPrefix("req-") {
                     return PaymentCode(unsupportedRequirement: item.name)
                 }
                 guard let value = item.value?.trimmingCharacters(in: .whitespacesAndNewlines), !value.isEmpty else { continue }
-                switch item.name.lowercased() {
+                
+                // A link that gives its amount or lightning code twice is ambiguous.
+                let name = item.name.lowercased()
+                if name == "amount" || name == "lightning" {
+                    guard readParameters.insert(name).inserted else { return PaymentCode(isInvalidLink: true) }
+                }
+                
+                switch name {
                 case "amount":
-                    paymentCode.amountSats = value.parsedNumber()?.satoshisFromBitcoin()
+                    guard let amountSats = value.bip21Satoshis() else { return PaymentCode(isInvalidLink: true) }
+                    paymentCode.amountSats = amountSats
                 case "lightning":
                     let lightning = value.lowercased()
                     if lightning.isValidInvoice() {
@@ -160,6 +179,21 @@ extension String {
             paymentCode.bitcoinAddress = code.asBitcoinAddress()
         }
         return paymentCode
+    }
+    
+    // A BIP21 amount is bitcoin in ASCII digits with an optional "." and at most 8 decimals.
+    func bip21Satoshis() -> Int? {
+        let parts = self.split(separator: ".", maxSplits: 1, omittingEmptySubsequences: false)
+        let whole = parts[0]
+        let fraction = parts.count == 2 ? parts[1] : ""
+        guard !(whole.isEmpty && fraction.isEmpty),
+              (whole + fraction).allSatisfy({ $0.isASCII && $0.isWholeNumber }),
+              fraction.count <= 8,
+              let bitcoin = Decimal(string: self, locale: Locale(identifier: "en_US_POSIX"))
+        else { return nil }
+        
+        // Above 21 million bitcoin, this returns nil.
+        return bitcoin.satoshisFromBitcoin()
     }
     
     func asBitcoinAddress() -> String? {
