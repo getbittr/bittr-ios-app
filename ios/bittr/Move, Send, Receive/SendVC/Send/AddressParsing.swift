@@ -26,34 +26,33 @@ extension SendViewController {
         let amount = paymentCode.amountSats
         
         // Check and handle parsed code components.
-        if lnurl != nil {
+        if let lnurl {
             Log.info("Did find LNURL.")
             
-            self.toTextField.text = lnurl!
-            self.handleLNURL(code: lnurl!)
+            self.toTextField.text = lnurl
+            self.handleLNURL(code: lnurl)
             self.onchainOrLightning = .lightning
-        } else if lightningInvoice != nil {
+        } else if let lightningInvoice {
             Log.info("Did find invoice.")
             
-            self.toTextField.text = lightningInvoice!
+            self.toTextField.text = lightningInvoice
             self.onchainOrLightning = .lightning
             
             // Display the invoice amount if it carries one.
-            if let invoiceAmountMilli = lightningInvoice!.bolt11Invoice()?.amountMilliSatoshis() {
+            if let invoiceAmountMilli = lightningInvoice.bolt11Invoice()?.amountMilliSatoshis() {
                 // Regular invoice
                 let invoiceAmount = Int(invoiceAmountMilli)/1000
                 
                 let availableLightningBalance = (BitcoinManager.shared.bittrWallet.lightningChannels.getActiveChannel()?.outboundCapacityMsat ?? 0)/1000
-                if invoiceAmount > availableLightningBalance, bitcoinAddress != nil {
+                if invoiceAmount > availableLightningBalance, let bitcoinAddress {
                     // We can't send this much in Lightning, but the unified QR
                     // carries an onchain address. Send onchain instead.
-                    self.handleScannedOrPastedString(bitcoinAddress!)
+                    let bitcoinAmount = Decimal(amount ?? invoiceAmount) / Decimal(Bitcoin.satoshisPerBitcoin)
+                    self.handleScannedOrPastedString("bitcoin:\(bitcoinAddress)?amount=\(bitcoinAmount)")
                     return
                 }
                 
-                // Show the parsed amount regardless of channel capacity. If it
-                // exceeds the lightning balance (e.g. no channel), the swap
-                // suggestion on Next handles the insufficient-balance case.
+                // Show the parsed amount.
                 self.amountTextField.text = "\(invoiceAmount)"
                 self.btcLabel.text = "Sats"
                 self.selectedCurrency = .satoshis
@@ -63,9 +62,9 @@ extension SendViewController {
                 Log.info("Did also find onchain address.")
                 self.bitcoinQR = bitcoinAddress!
             }
-        } else if bitcoinAddress != nil {
+        } else if let bitcoinAddress {
             Log.info("Did find onchain address.")
-            self.toTextField.text = bitcoinAddress!
+            self.toTextField.text = bitcoinAddress
             self.onchainOrLightning = .onchain
             if let amount, amount != 0 {
                 self.amountTextField.text = "\(amount)"
