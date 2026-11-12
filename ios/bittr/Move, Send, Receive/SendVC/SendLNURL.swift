@@ -345,7 +345,7 @@ extension UIViewController {
         
         sendVC?.startLNURLSpinner()
         
-        let actualUrl = "\(callbackURL)?amount=\(amount)"
+        let actualUrl = lnurlCallbackURL(callbackURL, adding: ["amount": "\(amount)"])
         
         Task {
             await CallsManager.makeApiCall(url: actualUrl, parameters: nil, getOrPost: .get, reportDecodeFailures: false) { result in
@@ -428,7 +428,7 @@ extension UIViewController {
                 }
             }
             
-            let actualUrl = "\(callbackURL)?k1=\(k1)&pr=\(invoice)"
+            let actualUrl = lnurlCallbackURL(callbackURL, adding: ["k1": k1, "pr": "\(invoice)"])
             Log.debug("Actual URL: \(actualUrl)")
             
             await CallsManager.makeApiCall(url: actualUrl, parameters: nil, getOrPost: .get, reportDecodeFailures: false) { result in
@@ -793,6 +793,20 @@ func buildLNURLAuthCallbackURL(
 func upsertQueryItem(name: String, value: String, in queryItems: inout [URLQueryItem]) {
     queryItems.removeAll(where: { $0.name == name })
     queryItems.append(URLQueryItem(name: name, value: value))
+}
+
+// Adds parameters to an LNURL callback, which may already have a query string of its own.
+func lnurlCallbackURL(_ callback: String, adding parameters: KeyValuePairs<String, String>) -> String {
+    guard var components = URLComponents(string: callback) else { return callback }
+    
+    // The callback's own parameters keep their encoding, and the added values never need any.
+    var queryItems = components.percentEncodedQueryItems ?? []
+    for (name, value) in parameters {
+        upsertQueryItem(name: name, value: value, in: &queryItems)
+    }
+    components.percentEncodedQueryItems = queryItems
+    
+    return components.string ?? callback
 }
 
 func compressedPublicKeyHex(from keyData: Data) throws -> String {
