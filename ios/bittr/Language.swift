@@ -275,6 +275,7 @@ class Language: NSObject {
             "changeemail": "Change email",
             "syncfail": "We couldn't sync your wallet, so the balance and transactions shown may be outdated.\n\nPull down on the home screen to try again.",
             "conversionfail": "We're experiencing an issue fetching the latest conversion rates. Temporarily, our calculations - if available - won't reflect bitcoin's current value.",
+            "conversionfailsend": "We couldn't fetch the latest conversion rates. Please enter the amount in bitcoin or satoshis.",
             "unconfirmed": "Unconfirmed",
             "save": "Save",
             "lightningchannelfees": "lightning connection fees",
