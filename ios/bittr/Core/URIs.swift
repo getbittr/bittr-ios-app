@@ -9,17 +9,40 @@ import UIKit
 
 extension CoreViewController {
     
+    // How long a payment URI that arrived before sign-in is kept.
+    private static let pendingPaymentURILifetime:TimeInterval = 10 * 60
+    
     func needsToHandleURI() -> Bool {
-        UserDefaults.standard.string(forKey: "pendingPaymentURI") != nil
+        self.pendingPaymentURI() != nil
     }
     
     func checkForPendingURIs() {
         
         // Check for a payment URI that arrived before sign-in.
-        if let code = UserDefaults.standard.string(forKey: "pendingPaymentURI") {
-            UserDefaults.standard.removeObject(forKey: "pendingPaymentURI")
+        if let code = self.pendingPaymentURI() {
+            self.removePendingPaymentURI()
             self.navigateToSendScreen(withPaymentURI: code)
         }
+    }
+    
+    // The payment URI that arrived before sign-in, if it's recent enough to still be meant.
+    private func pendingPaymentURI() -> String? {
+        guard let code = UserDefaults.standard.string(forKey: "pendingPaymentURI") else { return nil }
+        let storedAt = UserDefaults.standard.double(forKey: "pendingPaymentURIDate")
+        guard Date().timeIntervalSince1970 - storedAt < Self.pendingPaymentURILifetime else {
+            self.removePendingPaymentURI()
+            return nil
+        }
+        return code
+    }
+    
+    private func removePendingPaymentURI() {
+        UserDefaults.standard.removeObject(forKey: "pendingPaymentURI")
+        UserDefaults.standard.removeObject(forKey: "pendingPaymentURIDate")
+        
+        // Keys an earlier version used for the same purpose.
+        UserDefaults.standard.removeObject(forKey: "pendingBitcoinURI")
+        UserDefaults.standard.removeObject(forKey: "pendingLightningURI")
     }
     
     private func navigateToSendScreen(withPaymentURI code: String) {
@@ -66,6 +89,7 @@ extension CoreViewController {
             } else {
                 // User hasn't signed in yet, store the URI for later
                 UserDefaults.standard.set(code, forKey: "pendingPaymentURI")
+                UserDefaults.standard.set(Date().timeIntervalSince1970, forKey: "pendingPaymentURIDate")
                 self.showAlert(title: Language.getWord(withID: "sendbitcoin"), message: Language.getWord(withID: "pleasesignintosend"), buttons: [.dismiss(Language.getWord(withID: "okay"))])
             }
         }
