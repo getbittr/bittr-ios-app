@@ -13,7 +13,7 @@ extension SendViewController {
         
         if let code = self.pendingPaymentURI {
             self.pendingPaymentURI = nil // Clear after handling
-            self.handleScannedOrPastedString(code)
+            self.handleScannedOrPastedString(code, fromOtherApp: true)
         }
     }
 }

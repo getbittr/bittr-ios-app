@@ -12,7 +12,7 @@ import LDKNode
 
 extension SendViewController {
     
-    func handleScannedOrPastedString(_ code:String) {
+    func handleScannedOrPastedString(_ code:String, fromOtherApp:Bool = false) {
         Log.debug("Code: " + code)
         
         // A new code replaces any LNURL that was still pending.
@@ -59,8 +59,12 @@ extension SendViewController {
             Log.info("Did find LNURL.")
             
             self.toTextField.text = lnurl
-            self.handleLNURL(code: lnurl)
             self.onchainOrLightning = .lightning
+            
+            // A link from another app only fills in the field, so no server is contacted until the user taps Next.
+            if !fromOtherApp {
+                self.handleLNURL(code: lnurl)
+            }
         } else if let lightningInvoice {
             Log.info("Did find invoice.")
             
