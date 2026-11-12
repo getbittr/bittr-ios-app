@@ -23,7 +23,7 @@ extension SendViewController {
         }
         
         // Check for any lightning address.
-        if enteredAddress.lowercased().contains("lnurl") || enteredAddress.lowercased().isValidEmail()
+        if enteredAddress.lowercased().hasPrefix("lnurl") || enteredAddress.lowercased().isValidEmail()
             || enteredAddress.bolt11Invoice() != nil || enteredAddress.bolt12Offer() != nil {
             self.onchainOrLightning = .lightning
             self.updateLabels()
