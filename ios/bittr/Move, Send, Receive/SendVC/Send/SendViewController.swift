@@ -86,8 +86,7 @@ class SendViewController: UIViewController, UITextFieldDelegate, OnchainSyncFail
     var pendingOnchainAmount:Int = 0
     
     // Pending URI data from segue
-    var pendingBitcoinURI: (address: String, amount: String, label: String)?
-    var pendingLightningURI: String?
+    var pendingPaymentURI: String?
     
     // Pending LNURL data
     var pendingLNURLSource: String? // The LNURL or lightning address the pending data belongs to.
