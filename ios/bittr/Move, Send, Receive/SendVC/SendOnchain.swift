@@ -103,10 +103,21 @@ extension SendViewController {
             // Check whether the user intends to empty their onchain funds.
             var isSendingMaximum = false
             var drainTotalSats:Int? = nil
-            if let drain, self.didTapAvailable || enteredSatoshis >= Int(drain.sendableSats) {
+            if let drain, self.didTapAvailable || enteredSatoshis == Int(drain.sendableSats) {
+                // User tapped Send All, or manually entered the exact Send All amount.
                 enteredSatoshis = Int(drain.sendableSats)
                 drainTotalSats = Int(drain.sendableSats + drain.feeSats)
                 isSendingMaximum = true
+            } else if let drain, enteredSatoshis > Int(drain.sendableSats) {
+                // User manually entered an amount higher than Send All.
+                let shortfall = enteredSatoshis - Int(drain.sendableSats)
+                DispatchQueue.main.async {
+                    self.nextLabel.alpha = 1
+                    self.arrowIcon.alpha = 1
+                    self.nextSpinner.stopAnimating()
+                    self.showAlert(title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "InsufficientFunds").replacingOccurrences(of: "<less>", with: "\(shortfall)".addSpaces()), buttons: [.dismiss(Language.getWord(withID: "okay"))])
+                }
+                return
             }
             
             // Get transaction size.
