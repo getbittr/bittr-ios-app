@@ -22,6 +22,12 @@ extension SendViewController {
         let didTapAvailable = self.didTapAvailable
         self.didTapAvailable = false
         
+        // An amount the app filled in for an earlier code or tap doesn't belong to the new code, unlike one the user typed.
+        let earlierAmount = self.amountTextField.text
+        if let earlierAmount, !earlierAmount.isEmpty, earlierAmount == self.filledInAmount {
+            self.amountTextField.text = nil
+        }
+        
         // Parse code components.
         let paymentCode = code.parsedPaymentCode()
         
@@ -76,7 +82,7 @@ extension SendViewController {
                 }
                 
                 // Show the parsed amount.
-                self.amountTextField.text = "\(invoiceAmount)"
+                self.fillInAmount("\(invoiceAmount)")
                 self.btcLabel.text = "Sats"
                 self.selectedCurrency = .satoshis
             }
@@ -90,11 +96,12 @@ extension SendViewController {
             self.toTextField.text = bitcoinAddress
             self.onchainOrLightning = .onchain
             if let amount, amount != 0 {
-                self.amountTextField.text = "\(amount)"
+                self.fillInAmount("\(amount)")
                 self.btcLabel.text = "Sats"
                 self.selectedCurrency = .satoshis
             } else {
                 self.didTapAvailable = didTapAvailable
+                if didTapAvailable { self.amountTextField.text = earlierAmount }
             }
         } else {
             Log.info("Did not find a valid address or invoice.")

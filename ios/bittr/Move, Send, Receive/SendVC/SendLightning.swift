@@ -123,7 +123,7 @@ extension SendViewController {
         }
         
         // Set fields
-        self.amountTextField.text = "\(satoshisAmount)"
+        self.fillInAmount("\(satoshisAmount)")
         self.btcLabel.text = "Sats"
         self.selectedCurrency = .satoshis
         

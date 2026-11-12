@@ -79,6 +79,7 @@ class SendViewController: UIViewController, UITextFieldDelegate, OnchainSyncFail
     var homeVC:HomeViewController?
     var maximumSendableOnchainSats:Int?
     var didTapAvailable = false
+    var filledInAmount:String? // The amount the app itself last put in the amount field.
     var completedTransaction:Transaction?
     var bitcoinQR = ""
     var pendingLightningInvoice = ""
@@ -287,13 +288,18 @@ class SendViewController: UIViewController, UITextFieldDelegate, OnchainSyncFail
         if self.onchainOrLightning == .onchain {
             // Regular - use satoshis for onchain too
             let sendableInSatoshis:Int = self.maximumSendableOnchainSats ?? max(BitcoinManager.shared.bittrWallet.satoshisOnchainSpendable ?? 0, 0)
-            self.amountTextField.text = "\(sendableInSatoshis)"
+            self.fillInAmount("\(sendableInSatoshis)")
             self.didTapAvailable = true
         } else {
             // Instant
             let sendableInSatoshis:Int = Int((BitcoinManager.shared.bittrWallet.lightningChannels.getActiveChannel()?.outboundCapacityMsat ?? 0)/1000)
-            self.amountTextField.text = "\(sendableInSatoshis)"
+            self.fillInAmount("\(sendableInSatoshis)")
         }
+    }
+    
+    func fillInAmount(_ amount:String) {
+        self.amountTextField.text = amount
+        self.filledInAmount = amount
     }
     
     @IBAction func toPasteButtonTapped(_ sender: UIButton) {
