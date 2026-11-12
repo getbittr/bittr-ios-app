@@ -254,6 +254,12 @@ extension UIViewController {
             self.rejectInsecureLNURL()
             return
         }
+        
+        // LUD-06 requires 1 <= minSendable <= maxSendable.
+        guard minSendable >= 1, minSendable <= maxSendable else {
+            self.rejectInvalidLNURLAmounts()
+            return
+        }
 
         // Check if this LNURL contains a description.
         var receivedDescription:String?
@@ -299,6 +305,12 @@ extension UIViewController {
         let callbackURL = callback.replacingOccurrences(of: "\0", with: "").trimmingCharacters(in: .controlCharacters)
         guard callbackURL.isSecureLNURL() else {
             self.rejectInsecureLNURL()
+            return
+        }
+        
+        // LUD-03 allows a minWithdrawable of 0, but something must be on offer.
+        guard minWithdrawable >= 0, minWithdrawable <= maxWithdrawable, maxWithdrawable > 0 else {
+            self.rejectInvalidLNURLAmounts()
             return
         }
         
@@ -642,6 +654,12 @@ extension UIViewController {
         (self as? SendViewController)?.stopLNURLSpinner()
         self.showAlert(title: Language.getWord(withID: "lnurl"), message: Language.getWord(withID: "lnurlinsecure"), buttons: [.dismiss(Language.getWord(withID: "okay"))])
     }
+    
+    func rejectInvalidLNURLAmounts() {
+        Log.info("Rejected an LNURL with an invalid amount range.")
+        (self as? SendViewController)?.stopLNURLSpinner()
+        self.showAlert(title: Language.getWord(withID: "lnurl"), message: Language.getWord(withID: "lnurlinvalidamounts"), buttons: [.dismiss(Language.getWord(withID: "okay"))])
+    }
 }
 
 extension String {
@@ -654,7 +672,8 @@ extension String {
     
     func matchesLNURLPayRequest(amountMsat:Int, metadata:String?) -> Bool {
         guard let invoice = self.bolt11Invoice(),
-              invoice.amountMilliSatoshis() == UInt64(amountMsat),
+              let requestedMsat = UInt64(exactly: amountMsat),
+              invoice.amountMilliSatoshis() == requestedMsat,
               let metadata,
               case .hash(let descriptionHash) = invoice.invoiceDescription()
         else { return false }
