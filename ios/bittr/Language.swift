@@ -117,6 +117,7 @@ class Language: NSObject {
             "noaddressfound": "No address found.",
             "pleasescan": "Please scan a bitcoin or lightning address QR code or input the address manually.",
             "nobitcoinaddressfound": "No bitcoin address found.",
+            "unsupportedpaymentlink": "This payment link requires something bittr doesn't support yet. Please ask the recipient for a regular bitcoin address or lightning invoice.",
             "pleasescan2": "Please scan a bitcoin address QR code or input the address manually.",
             "spendablebalance": "Make sure the amount of BTC you wish to send is within your spendable balance.",
             "cannotproceed": "We couldn't proceed to the next step",

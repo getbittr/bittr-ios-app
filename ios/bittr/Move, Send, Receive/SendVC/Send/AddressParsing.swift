@@ -20,6 +20,16 @@ extension SendViewController {
         
         // Parse code components.
         let paymentCode = code.parsedPaymentCode()
+        
+        // A link that needs a parameter bittr doesn't understand can't be paid as it is.
+        if let requirement = paymentCode.unsupportedRequirement {
+            Log.info("Payment link requires an unsupported parameter: \(requirement)")
+            self.toTextField.text = nil
+            self.amountTextField.text = nil
+            self.showAlert(title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "unsupportedpaymentlink"), buttons: [.dismiss(Language.getWord(withID: "okay"))])
+            return
+        }
+        
         let bitcoinAddress = paymentCode.bitcoinAddress
         let lightningInvoice = paymentCode.lightningInvoice
         let lnurl = paymentCode.lnurl
@@ -90,6 +100,7 @@ struct PaymentCode {
     var lightningInvoice:String?
     var lnurl:String?
     var amountSats:Int?
+    var unsupportedRequirement:String?
 }
 
 extension String {
@@ -109,6 +120,10 @@ extension String {
             
             // Extract lightning invoice and amount.
             for item in components.queryItems ?? [] {
+                // BIP21 makes the whole link invalid when it has a req- parameter the wallet doesn't understand, and bittr understands none.
+                if item.name.lowercased().hasPrefix("req-") {
+                    return PaymentCode(unsupportedRequirement: item.name)
+                }
                 guard let value = item.value?.trimmingCharacters(in: .whitespacesAndNewlines), !value.isEmpty else { continue }
                 switch item.name.lowercased() {
                 case "amount":
