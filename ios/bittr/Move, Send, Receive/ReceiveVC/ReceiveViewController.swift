@@ -642,8 +642,9 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate, UIContextMen
     
     func shortenedInGroups(_ text:String, font:UIFont, color:UIColor) -> NSAttributedString {
         
-        // The label sits 90 points narrower than the screen, and every character in a monospaced font is as wide as a zero.
-        let labelWidth = UIScreen.main.bounds.width - 90
+        self.view.layoutIfNeeded()
+        let labelWidth = self.lowerAddressLabel.bounds.width
+        // Every character in a monospaced font is as wide as a zero.
         let characterWidth = ("0" as NSString).size(withAttributes: [.font: font]).width
         let groupsPerLine = max(2, Int((labelWidth + characterWidth) / (5 * characterWidth)))
         
