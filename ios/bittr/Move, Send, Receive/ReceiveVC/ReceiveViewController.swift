@@ -102,6 +102,7 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate, UIContextMen
     
     // Type
     var currentType:TransactionType = .onchain
+    var copyWhenCodeIsReady = false
     var currentCopyableText = ""
     // What the shown code was made from, so that any change to it makes the code again.
     var codeInputs:ReceiveInputs?
@@ -338,6 +339,11 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate, UIContextMen
             self.addressTitle.alpha = 1
             self.iconQuestion.alpha = 1
             self.qrSpinner.stopAnimating()
+            
+            if self.copyWhenCodeIsReady {
+                self.copyWhenCodeIsReady = false
+                self.copyCode()
+            }
         }
     }
     
@@ -449,9 +455,17 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate, UIContextMen
     }
     
     @IBAction func copyTapped(_ sender: UIButton) {
-        // An edit that isn't in the code yet makes the code again, instead of copying the old one.
+        // An edit that isn't in the code yet makes the code again, and the new code is copied once it's ready.
         self.view.endEditing(true)
-        guard self.currentInputs() == self.codeInputs, !self.currentCopyableText.isEmpty else { return }
+        guard self.currentInputs() == self.codeInputs, !self.currentCopyableText.isEmpty else {
+            self.copyWhenCodeIsReady = true
+            return
+        }
+        self.copyCode()
+    }
+    
+    func copyCode() {
+        guard !self.currentCopyableText.isEmpty else { return }
         let copyingText = self.currentCopyableText
         UIPasteboard.general.string = copyingText
         self.showAlert(title: Language.getWord(withID: "copied"), message: copyingText, buttons: [.dismiss(Language.getWord(withID: "okay"))])
@@ -487,6 +501,7 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate, UIContextMen
         
         if type != self.currentType {
             self.hideAmountStack()
+            self.copyWhenCodeIsReady = false
         }
         self.currentType = type
         // Read once, here, so the code is made from exactly the inputs Copy compares with later.
