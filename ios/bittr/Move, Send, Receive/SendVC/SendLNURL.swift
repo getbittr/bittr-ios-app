@@ -49,16 +49,18 @@ extension SendViewController {
         
         // Store description before clearing
         let description = self.pendingLNURLDescription
+        let metadata = self.pendingLNURLMetadata
         
         // Clear pending data
         self.pendingLNURLCallback = nil
         self.pendingLNURLDescription = nil
+        self.pendingLNURLMetadata = nil
         self.pendingLNURLMinAmount = nil
         self.pendingLNURLMaxAmount = nil
         
         // Send the LNURL payment request
         self.amountTextField.resignFirstResponder()
-        self.sendPayRequest(callbackURL: callback, amount: enteredAmount, receivedDescription: description)
+        self.sendPayRequest(callbackURL: callback, amount: enteredAmount, receivedDescription: description, metadata: metadata)
     }
     
     func handleWithdrawAmountCompletion() {
@@ -99,8 +101,10 @@ extension SendViewController {
     }
     
     func clearPendingLnurlState() {
+        self.pendingLNURLSource = nil
         self.pendingLNURLCallback = nil
         self.pendingLNURLDescription = nil
+        self.pendingLNURLMetadata = nil
         self.pendingLNURLMinAmount = nil
         self.pendingLNURLMaxAmount = nil
         self.pendingWithdrawCallback = nil
@@ -118,6 +122,7 @@ extension UIViewController {
     func handleLNURL(code:String) {
         
         let sendVC = self as? SendViewController
+        sendVC?.pendingLNURLSource = code
         
         sendVC?.startLNURLSpinner()
         
@@ -147,6 +152,11 @@ extension UIViewController {
         let url = sanitizeLNURLString(decodedOrConstructedURL)
         Log.debug("Decoded url: \(url)")
         
+        guard url.isSecureLNURL() else {
+            self.rejectInsecureLNURL()
+            return
+        }
+        
         if let urlComponents = URLComponents(string: url), let queryItems = urlComponents.queryItems, let tag = queryItems.first(where: { $0.name == "tag" })?.value, tag == "login", let k1 = queryItems.first(where: { $0.name == "k1" })?.value, let k1Data = Data(hexString: k1), k1Data.count == 32, let callbackURL = URL(string: url) {
             
             let action = queryItems.first(where: { $0.name == "action" })?.value
@@ -165,6 +175,11 @@ extension UIViewController {
             await CallsManager.makeApiCall(url: url, parameters: nil, getOrPost: .get, reportDecodeFailures: false) { result in
                 
                 DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
+                    // Drop the response if the recipient changed while it loaded.
+                    if let sendVC, sendVC.pendingLNURLSource != code {
+                        sendVC.stopLNURLSpinner()
+                        return
+                    }
                     switch result {
                     case .success(let actualDataDict):
                         SentryManager.countMetric("lnurl.api.success")
@@ -193,6 +208,10 @@ extension UIViewController {
                             let receivedAction = actualDataDict["action"] as? String
                             sendVC?.stopLNURLSpinner()
 
+                            guard receivedCallback.isSecureLNURL() else {
+                                self.rejectInsecureLNURL()
+                                return
+                            }
                             guard let callbackURL = URL(string: receivedCallback), let k1Data = Data(hexString: receivedK1) else { return }
 
                             let request = LNURLAuthRequest(
@@ -230,6 +249,17 @@ extension UIViewController {
     func handlePayRequest(callback:String, minSendable:Int, maxSendable:Int, metadata:String?) {
         let sendVC = self as? SendViewController
         let receivedCallback = callback
+        
+        guard receivedCallback.isSecureLNURL() else {
+            self.rejectInsecureLNURL()
+            return
+        }
+        
+        // LUD-06 requires 1 <= minSendable <= maxSendable.
+        guard minSendable >= 1, minSendable <= maxSendable else {
+            self.rejectInvalidLNURLAmounts()
+            return
+        }
 
         // Check if this LNURL contains a description.
         var receivedDescription:String?
@@ -245,11 +275,12 @@ extension UIViewController {
         
         if minSendable == maxSendable {
             // Min and max are the same.
-            self.sendPayRequest(callbackURL: receivedCallback.replacingOccurrences(of: "\0", with: "").trimmingCharacters(in: .controlCharacters), amount: minSendable, receivedDescription: receivedDescription)
+            self.sendPayRequest(callbackURL: receivedCallback.replacingOccurrences(of: "\0", with: "").trimmingCharacters(in: .controlCharacters), amount: minSendable, receivedDescription: receivedDescription, metadata: metadata)
         } else {
             // Min and max are different.
             sendVC?.pendingLNURLCallback = receivedCallback.replacingOccurrences(of: "\0", with: "").trimmingCharacters(in: .controlCharacters)
             sendVC?.pendingLNURLDescription = receivedDescription
+            sendVC?.pendingLNURLMetadata = metadata
             sendVC?.pendingLNURLMinAmount = minSendable
             sendVC?.pendingLNURLMaxAmount = maxSendable
             
@@ -270,57 +301,73 @@ extension UIViewController {
     func handleWithdrawRequest(callback:String, k1:String, minWithdrawable:Int, maxWithdrawable:Int) {
         let sendVC = self as? SendViewController
         sendVC?.stopLNURLSpinner()
-
+        
         let callbackURL = callback.replacingOccurrences(of: "\0", with: "").trimmingCharacters(in: .controlCharacters)
-
+        guard callbackURL.isSecureLNURL() else {
+            self.rejectInsecureLNURL()
+            return
+        }
+        
+        // LUD-03 allows a minWithdrawable of 0, but something must be on offer.
+        guard minWithdrawable >= 0, minWithdrawable <= maxWithdrawable, maxWithdrawable > 0 else {
+            self.rejectInvalidLNURLAmounts()
+            return
+        }
+        
         guard minWithdrawable != maxWithdrawable else {
             // One amount on offer, so there is nothing to enter — just confirm it.
             self.showAlert(title: Language.getWord(withID: "withdrawrequest"), message: Language.getWord(withID: "withdrawrequest3").replacingOccurrences(of: "<withdrawable>", with: "\(minWithdrawable/1000)"), buttons: [.dismiss(Language.getWord(withID: "cancel")), .action(Language.getWord(withID: "confirm")) { self.sendWithdrawRequest(callbackURL: callbackURL, amount: minWithdrawable, k1: k1) }])
             return
         }
-
+        
         self.askForWithdrawAmount(callbackURL: callbackURL, k1: k1, minWithdrawable: minWithdrawable, maxWithdrawable: maxWithdrawable)
     }
-
+    
     func askForWithdrawAmount(callbackURL:String, k1:String, minWithdrawable:Int, maxWithdrawable:Int, note:String? = nil) {
-
+        
         let payableRange = Language.getWord(withID: "withdrawrequest1")
             .replacingOccurrences(of: "<minwithdrawable>", with: "\(minWithdrawable/1000)")
             .replacingOccurrences(of: "<maxwithdrawable>", with: "\(maxWithdrawable/1000)")
         // On a re-prompt after an invalid entry, lead with why we're asking again.
         let message = note.map { "\($0)\n\n\(payableRange)" } ?? payableRange
-
+        
         self.showTextFieldAlert(title: Language.getWord(withID: "withdrawrequest"), message: message, initialText: "", placeholder: Language.getWord(withID: "amountinsatoshis"), keyboardType: .numberPad, cancelTitle: Language.getWord(withID: "cancel"), saveTitle: Language.getWord(withID: "confirm")) { enteredText in
-
+            
             // Re-prompt (explaining why) if the entry isn't a positive amount within range.
             guard let enteredSatoshis = enteredText.parsedUserAmount(allowingFraction: false)?.satoshis(), enteredSatoshis > 0 else {
                 self.askForWithdrawAmount(callbackURL: callbackURL, k1: k1, minWithdrawable: minWithdrawable, maxWithdrawable: maxWithdrawable, note: Language.getWord(withID: "withdrawoutofrange"))
                 return
             }
-
+            
             let amountMsat = enteredSatoshis * 1000
             guard amountMsat >= minWithdrawable, amountMsat <= maxWithdrawable else {
                 self.askForWithdrawAmount(callbackURL: callbackURL, k1: k1, minWithdrawable: minWithdrawable, maxWithdrawable: maxWithdrawable, note: Language.getWord(withID: "withdrawoutofrange"))
                 return
             }
-
+            
             self.sendWithdrawRequest(callbackURL: callbackURL, amount: amountMsat, k1: k1)
         }
     }
     
-    func sendPayRequest(callbackURL:String, amount:Int, receivedDescription:String?) {
+    func sendPayRequest(callbackURL:String, amount:Int, receivedDescription:String?, metadata:String?) {
         Log.info("Will send payRequest.")
         
         let sendVC = self as? SendViewController
+        let source = sendVC?.pendingLNURLSource
         
         sendVC?.startLNURLSpinner()
         
-        let actualUrl = "\(callbackURL)?amount=\(amount)"
+        let actualUrl = lnurlCallbackURL(callbackURL, adding: ["amount": "\(amount)"])
         
         Task {
             await CallsManager.makeApiCall(url: actualUrl, parameters: nil, getOrPost: .get, reportDecodeFailures: false) { result in
                 DispatchQueue.main.async {
                     sendVC?.stopLNURLSpinner()
+                    
+                    // Drop the invoice if the recipient changed while it loaded.
+                    if let sendVC, sendVC.pendingLNURLSource != source {
+                        return
+                    }
                     
                     switch result {
                     case .success(let actualDataDict):
@@ -333,6 +380,14 @@ extension UIViewController {
                         }
                         // Invoice received.
                         Log.debug("Invoice: \(receivedInvoice)")
+                        
+                        // The invoice must be for the requested amount and this service's metadata.
+                        guard receivedInvoice.matchesLNURLPayRequest(amountMsat: amount, metadata: metadata) else {
+                            Log.info("LNURL invoice doesn't match the pay request.")
+                            SentryManager.countMetric("lnurl.pay.failure.3")
+                            self.showAlert(title: Language.getWord(withID: "payrequest"), message: Language.getWord(withID: "lnurlinvoicemismatch"), buttons: [.dismiss(Language.getWord(withID: "okay"))])
+                            return
+                        }
                         SentryManager.countMetric("lnurl.pay.success")
                         
                         // Pay invoice.
@@ -348,7 +403,7 @@ extension UIViewController {
                             message: Language.getWord(withID: "lnurlfail3"),
                             buttons: [
                                 .dismiss(Language.getWord(withID: "cancel")),
-                                .action(Language.getWord(withID: "tryagain")) { self.sendPayRequest(callbackURL: callbackURL, amount: amount, receivedDescription: receivedDescription) }
+                                .action(Language.getWord(withID: "tryagain")) { self.sendPayRequest(callbackURL: callbackURL, amount: amount, receivedDescription: receivedDescription, metadata: metadata) }
                             ])
                     }
                 }
@@ -385,7 +440,7 @@ extension UIViewController {
                 }
             }
             
-            let actualUrl = "\(callbackURL)?k1=\(k1)&pr=\(invoice)"
+            let actualUrl = lnurlCallbackURL(callbackURL, adding: ["k1": k1, "pr": "\(invoice)"])
             Log.debug("Actual URL: \(actualUrl)")
             
             await CallsManager.makeApiCall(url: actualUrl, parameters: nil, getOrPost: .get, reportDecodeFailures: false) { result in
@@ -530,7 +585,7 @@ extension UIViewController {
         Task {
             let (data, urlResponse):(Data, URLResponse)
             do {
-                (data, urlResponse) = try await URLSession.shared.data(from: callbackURL)
+                (data, urlResponse) = try await CallsManager.session.data(from: callbackURL)
             } catch {
                 Log.info("Could not get data.")
                 self.failedLnUrlAuth(reason: "Network request failed.")
@@ -589,6 +644,41 @@ extension UIViewController {
         )
         
         return try P256K.Signing.PrivateKey(dataRepresentation: Data(keyMaterial))
+    }
+}
+
+extension UIViewController {
+    
+    func rejectInsecureLNURL() {
+        Log.info("Rejected an LNURL without https.")
+        (self as? SendViewController)?.stopLNURLSpinner()
+        self.showAlert(title: Language.getWord(withID: "lnurl"), message: Language.getWord(withID: "lnurlinsecure"), buttons: [.dismiss(Language.getWord(withID: "okay"))])
+    }
+    
+    func rejectInvalidLNURLAmounts() {
+        Log.info("Rejected an LNURL with an invalid amount range.")
+        (self as? SendViewController)?.stopLNURLSpinner()
+        self.showAlert(title: Language.getWord(withID: "lnurl"), message: Language.getWord(withID: "lnurlinvalidamounts"), buttons: [.dismiss(Language.getWord(withID: "okay"))])
+    }
+}
+
+extension String {
+    
+    // LNURL services must use https, except on Tor.
+    func isSecureLNURL() -> Bool {
+        guard let components = URLComponents(string: self), let scheme = components.scheme?.lowercased(), let host = components.host?.lowercased() else { return false }
+        return scheme == "https" || (scheme == "http" && host.hasSuffix(".onion"))
+    }
+    
+    func matchesLNURLPayRequest(amountMsat:Int, metadata:String?) -> Bool {
+        guard let invoice = self.bolt11Invoice(),
+              let requestedMsat = UInt64(exactly: amountMsat),
+              invoice.amountMilliSatoshis() == requestedMsat,
+              let metadata,
+              case .hash(let descriptionHash) = invoice.invoiceDescription()
+        else { return false }
+        let metadataHash = SHA256.hash(data: Data(metadata.utf8)).map { String(format: "%02x", $0) }.joined()
+        return descriptionHash.lowercased() == metadataHash
     }
 }
 
@@ -722,6 +812,27 @@ func buildLNURLAuthCallbackURL(
 func upsertQueryItem(name: String, value: String, in queryItems: inout [URLQueryItem]) {
     queryItems.removeAll(where: { $0.name == name })
     queryItems.append(URLQueryItem(name: name, value: value))
+}
+
+// Adds parameters to an LNURL callback, which may already have a query string of its own.
+func lnurlCallbackURL(_ callback: String, adding parameters: KeyValuePairs<String, String>) -> String {
+    guard var components = URLComponents(string: callback) else { return callback }
+    
+    // The callback's own parameters keep their encoding, and the added values are encoded because k1 comes from the service.
+    var queryItems = components.percentEncodedQueryItems ?? []
+    for (name, value) in parameters {
+        guard let encodedValue = value.addingPercentEncoding(withAllowedCharacters: .urlUnreserved) else { return callback }
+        upsertQueryItem(name: name, value: encodedValue, in: &queryItems)
+    }
+    components.percentEncodedQueryItems = queryItems
+    
+    return components.string ?? callback
+}
+
+extension CharacterSet {
+    
+    // RFC 3986's unreserved characters, which never need encoding anywhere in a URL.
+    static let urlUnreserved = CharacterSet(charactersIn: "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~")
 }
 
 func compressedPublicKeyHex(from keyData: Data) throws -> String {

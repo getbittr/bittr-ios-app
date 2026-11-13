@@ -257,7 +257,7 @@ class ConfirmSendViewController: UIViewController {
         self.satoshisAmount = max((BitcoinManager.shared.bittrWallet.satoshisOnchainSpendable ?? 0) - self.selectedFeeInSats, 0)
         
         // Update SendVC amount text field.
-        self.sendVC?.amountTextField.text = self.satoshisAmount!.inBTC().formattedBitcoin()
+        self.sendVC?.fillInAmount(self.satoshisAmount!.inBTC().formattedBitcoin())
         self.sendVC?.selectCurrency(.bitcoin)
         
         // Update confirmation labels.

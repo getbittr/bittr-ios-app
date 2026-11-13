@@ -33,12 +33,12 @@ class CallsManager: NSObject {
     static let defaultTimeout:TimeInterval = 30
     // Ceiling on a whole request, however steadily data trickles in.
     private static let resourceTimeout:TimeInterval = 60
-    // Our own session.
-    private static let session:URLSession = {
+    // Our own session, which never follows a redirect from https to plain http.
+    static let session:URLSession = {
         let configuration = URLSessionConfiguration.default
         configuration.timeoutIntervalForRequest = defaultTimeout
         configuration.timeoutIntervalForResource = resourceTimeout
-        return URLSession(configuration: configuration)
+        return URLSession(configuration: configuration, delegate: SecureRedirects(), delegateQueue: nil)
     }()
     
     static func makeApiCall(
@@ -125,6 +125,25 @@ class CallsManager: NSObject {
                 }
             }()
             completion(.failure(.requestFailed(errorMessage)))
+        }
+    }
+}
+
+// A redirect may not leave https, except to a Tor (.onion) address, which LNURL allows over http.
+final class SecureRedirects: NSObject, URLSessionTaskDelegate {
+    
+    func urlSession(_ session: URLSession, task: URLSessionTask, willPerformHTTPRedirection response: HTTPURLResponse, newRequest request: URLRequest, completionHandler: @escaping (URLRequest?) -> Void) {
+        let fromScheme = response.url?.scheme?.lowercased()
+        let toScheme = request.url?.scheme?.lowercased()
+        let toOnion = request.url?.host?.lowercased().hasSuffix(".onion") ?? false
+        
+        if toScheme == "https" || (toScheme == "http" && (fromScheme == "http" || toOnion)) {
+            completionHandler(request)
+        } else {
+            // Cancelling makes the request fail with an error, rather than finish with the 3xx response's body.
+            Log.info("Refused a redirect from \(fromScheme ?? "?") to \(toScheme ?? "?").")
+            task.cancel()
+            completionHandler(nil)
         }
     }
 }
