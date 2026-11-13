@@ -257,6 +257,7 @@ class CoreViewController: UIViewController {
         NotificationCenter.default.removeObserver(self, name: UIApplication.protectedDataDidBecomeAvailableNotification, object: nil)
         self.fullViewCover.alpha = 0
         self.genericSpinner.stopAnimating()
+        self.hideAlert()
     }
     
     func checkWalletRemoval() {
