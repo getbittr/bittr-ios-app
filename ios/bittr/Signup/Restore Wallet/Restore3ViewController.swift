@@ -41,7 +41,12 @@ class Restore3ViewController: UIViewController, UITextFieldDelegate {
             return
         }
         
-        CacheManager.storePin(pin: previousPIN)
+        do {
+            try CacheManager.storePin(pin: previousPIN)
+        } catch {
+            self.showAlert(title: Language.getWord(withID: "error"), message: Language.getWord(withID: "pinsavefail"), buttons: [.dismiss(Language.getWord(withID: "okay"))])
+            return
+        }
         CacheManager.resetFailedPinAttempts()
         
         self.coreVC!.userHasSignedIn = true
