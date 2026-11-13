@@ -84,6 +84,7 @@ extension String {
     
     func inGroupsOfFour(width:CGFloat, lines:Int = .max, font:UIFont, color:UIColor, trailing:Bool = false) -> NSAttributedString {
         
+        let lines = max(1, lines)
         // Every character in a monospaced font is as wide as a zero.
         let characterWidth = ("0" as NSString).size(withAttributes: [.font: font]).width
         let groupsPerLine = max(2, Int((width + characterWidth) / (5 * characterWidth)))
@@ -126,8 +127,11 @@ extension String {
             let ellipsisWidth = ("\u{2026}" as NSString).size(withAttributes: [.font: font]).width
             let padding = (4 * characterWidth - ellipsisWidth) / 2
             let ellipsisLocation = ellipsisIndex * 5
-            shortened.addAttribute(.kern, value: padding, range: NSRange(location: ellipsisLocation - 1, length: 1))
-            shortened.addAttribute(.kern, value: padding, range: NSRange(location: ellipsisLocation, length: 1))
+            // An ellipsis that starts the text has no space before it, so all its padding goes after it.
+            if ellipsisLocation > 0 {
+                shortened.addAttribute(.kern, value: padding, range: NSRange(location: ellipsisLocation - 1, length: 1))
+            }
+            shortened.addAttribute(.kern, value: ellipsisLocation > 0 ? padding : 2 * padding, range: NSRange(location: ellipsisLocation, length: 1))
         }
         
         return shortened
