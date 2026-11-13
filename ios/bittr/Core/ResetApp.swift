@@ -360,15 +360,11 @@ extension CoreViewController {
                 return
             }
             
-            // Node stopped and files removed — now it's safe to delete the seed
-            // (last), and the removal is fully complete.
-            CacheManager.deleteClientInfo()
-            CacheManager.setWalletRemovalInProgress(false)
-            
             // Relaunch the create-wallet flow on main.
             DispatchQueue.main.async {
-                // Clear the in-memory account entity.
-                BitcoinManager.shared.bittrWallet = BittrWallet()
+                // Node stopped and files removed, so the seed can go now, last, which completes the removal.
+                self.forgetWallet()
+                CacheManager.setWalletRemovalInProgress(false)
                 self.userHasSignedIn = false
                 
                 // Hide signup view and launch create wallet flow.
