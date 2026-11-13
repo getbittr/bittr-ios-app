@@ -303,7 +303,8 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate, UIContextMen
             case .bitcoinqr:
                 self.addressTitle.text = Language.getWord(withID: "bitcoinqr")
                 if let bitcoinQR {
-                    self.lowerAddressLabel.text = bitcoinQR.replacingOccurrences(of: "?", with: "?\u{2060}")
+                    // Decoded only on screen.
+                    self.lowerAddressLabel.text = (bitcoinQR.removingPercentEncoding ?? bitcoinQR).replacingOccurrences(of: "?", with: "?\u{2060}")
                     self.lowerAddressLabel.font = UIFont(name: "Gilroy-Bold", size: 16)
                     qrContent = bitcoinQR
                     self.currentCopyableText = bitcoinQR
