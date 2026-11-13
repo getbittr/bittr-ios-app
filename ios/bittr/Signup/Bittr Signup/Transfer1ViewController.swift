@@ -203,10 +203,6 @@ class Transfer1ViewController: UIViewController, UITextFieldDelegate {
                     }
                     BitcoinManager.shared.bittrWallet.ibanEntities[index] = eachIbanEntity
                     CacheManager.addIban(iban: eachIbanEntity)
-                    // addIban only updates the IBAN and email of a stored entity, so the confirmation is stored separately.
-                    if let initiativeConfirmedAt {
-                        CacheManager.setInitiativeConfirmedAt(ibanID: eachIbanEntity.id, timestamp: initiativeConfirmedAt)
-                    }
                 }
             }
         } else {

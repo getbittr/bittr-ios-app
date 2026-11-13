@@ -108,9 +108,12 @@ class CacheManager: NSObject {
         var ibans = storedIbans()
         
         if let existing = ibans.first(where: { $0.id == iban.id }) {
-            // Known IBAN: the caller only supplies these two.
+            // Known IBAN: the caller only supplies these, and the initiative confirmation once there is one.
             existing.yourIbanNumber = iban.yourIbanNumber
             existing.yourEmail = iban.yourEmail
+            if let initiativeConfirmedAt = iban.initiativeConfirmedAt, initiativeConfirmedAt != "" {
+                existing.initiativeConfirmedAt = initiativeConfirmedAt
+            }
         } else {
             ibans += [iban]
         }
@@ -141,10 +144,6 @@ class CacheManager: NSObject {
     
     static func setPaymentMode(ibanID:String, paymentMode:String) {
         updateIban(id: ibanID) { $0.paymentMode = paymentMode }
-    }
-    
-    static func setInitiativeConfirmedAt(ibanID:String, timestamp:String) {
-        updateIban(id: ibanID) { $0.initiativeConfirmedAt = timestamp }
     }
     
     static func addBittrIban(ibanID:String, ourIban:String, ourSwift:String, yourCode:String, lightningAddressUsername:String?) {
