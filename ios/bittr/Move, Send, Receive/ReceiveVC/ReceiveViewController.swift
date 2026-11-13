@@ -275,8 +275,8 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate, UIContextMen
             case .lightning:
                 self.addressTitle.text = Language.getWord(withID: "invoice")
                 self.lowerAddressLabel.font = .monospacedSystemFont(ofSize: 15, weight: .bold)
-                // The label sits 90 points narrower than the screen.
-                self.lowerAddressLabel.attributedText = lightningInvoice.inGroupsOfFour(width: UIScreen.main.bounds.width - 90, lines: 3, font: self.lowerAddressLabel.font, color: self.lowerAddressLabel.textColor)
+                self.view.layoutIfNeeded()
+                self.lowerAddressLabel.attributedText = lightningInvoice.inGroupsOfFour(width: self.lowerAddressLabel.bounds.width, lines: 3, font: self.lowerAddressLabel.font, color: self.lowerAddressLabel.textColor)
                 qrCode = "lightning:\(lightningInvoice)".uppercased().toBigQRCode()!
                 self.currentCopyableText = lightningInvoice
             case .bitcoinqr:
