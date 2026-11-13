@@ -650,7 +650,7 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate, UIContextMen
         let characterWidth = ("0" as NSString).size(withAttributes: [.font: font]).width
         let groupsPerLine = max(2, Int((labelWidth + characterWidth) / (5 * characterWidth)))
         
-        var groups = text.inGroupsOfFour().components(separatedBy: " ")
+        var groups = text.chunked(by: 4)
         var ellipsisIndex:Int?
         if groups.count > groupsPerLine * 3 {
             // The third line keeps groups from both ends, with an ellipsis in the slot of the groups in between.
@@ -658,7 +658,7 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate, UIContextMen
             let headCount = groupsPerLine * 3 - 1 - tailCount
             ellipsisIndex = headCount
             // The tail is grouped from the end, so its last group is never cut short.
-            let tail = String(text.suffix(tailCount * 4)).inGroupsOfFour().components(separatedBy: " ")
+            let tail = String(text.suffix(tailCount * 4)).chunked(by: 4)
             groups = Array(groups.prefix(headCount)) + ["\u{2026}"] + tail
         }
         

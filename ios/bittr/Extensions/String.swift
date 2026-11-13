@@ -63,14 +63,23 @@ extension String {
     func inGroupsOfFour() -> String {
         
         // A plain space, so a wrapping label breaks between groups.
-        var grouped = ""
-        for (index, character) in self.enumerated() {
-            if index > 0, index % 4 == 0 {
-                grouped += " "
+        return self.chunked(by: 4).joined(separator: " ")
+    }
+    
+    func chunked(by size:Int) -> [String] {
+        var chunks = [String]()
+        var chunk = ""
+        for character in self {
+            chunk.append(character)
+            if chunk.count == size {
+                chunks.append(chunk)
+                chunk = ""
             }
-            grouped.append(character)
         }
-        return grouped
+        if !chunk.isEmpty {
+            chunks.append(chunk)
+        }
+        return chunks
     }
     
     func fixDecimals() -> String {
