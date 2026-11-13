@@ -23,6 +23,13 @@ extension CoreViewController {
     }
     
     func launchSignup(onPage:Int, checkConnection:Bool = true) {
+        
+        // A signup kept behind the PIN screen makes way for the new one.
+        if self.lockedDuringSignup {
+            self.lockedDuringSignup = false
+            self.hideSignup()
+        }
+        
         if self.signupContainerView.subviews.count == 0 {
             // Add signup view to container.
             let storyboard = UIStoryboard(name: "Main", bundle: Bundle.main)

@@ -408,6 +408,10 @@ class CacheManager: NSObject {
         readSecret(account: EnvironmentConfig.cacheKey(for: "mnemonic"))
     }
     
+    static func readMnemonic() throws -> String? {
+        try readSecretOrThrow(account: EnvironmentConfig.cacheKey(for: "mnemonic"))
+    }
+    
     // MARK: - Pending wallet creation
     
     // Holds a fingerprint of a newly created mnemonic until its PIN is stored.
@@ -415,9 +419,56 @@ class CacheManager: NSObject {
         EnvironmentConfig.cacheKey(for: "pendingcreation")
     }
     
+    enum WalletCreationError: Error {
+        case walletExists
+    }
+    
     static func storeNewMnemonic(_ mnemonic:String) throws {
-        try persistSecret(fingerprint(of: mnemonic), account: pendingCreationAccount, label: "pending creation", accessibility: .afterFirstUnlockThisDeviceOnly)
-        try storeMnemonic(mnemonic)
+        
+        // Only an unfinished creation may be replaced.
+        switch try storedWallet() {
+        case .none, .unfinishedCreation:
+            break
+        case .complete, .pinMissing:
+            throw WalletCreationError.walletExists
+        }
+        
+        do {
+            try persistSecret(fingerprint(of: mnemonic), account: pendingCreationAccount, label: "pending creation", accessibility: .afterFirstUnlockThisDeviceOnly)
+            try storeMnemonic(mnemonic)
+        } catch {
+            // Remove both halves of the failed creation, so the next launch finds no wallet.
+            SecureStore.remove(account: pendingCreationAccount)
+            SecureStore.remove(account: EnvironmentConfig.cacheKey(for: "mnemonic"))
+            throw error
+        }
+    }
+    
+    // Removes a restored mnemonic that never got its PIN, when the user leaves the restore flow.
+    static func discardUnfinishedRestore() {
+        do {
+            guard try storedWallet() == .pinMissing, !LightningStorage.hasLightningState() else { return }
+            SecureStore.remove(account: EnvironmentConfig.cacheKey(for: "mnemonic"))
+        } catch {
+            // Nothing is removed while the Keychain can't be read.
+            SentryManager.capture(error, context: "CacheManager:459")
+        }
+    }
+    
+    private enum StoredWallet {
+        case none
+        case complete
+        case unfinishedCreation
+        case pinMissing
+    }
+    
+    // What the Keychain holds, from one read of each secret.
+    private static func storedWallet() throws -> StoredWallet {
+        guard let mnemonic = try readSecretOrThrow(account: EnvironmentConfig.cacheKey(for: "mnemonic")) else { return .none }
+        guard try readSecretOrThrow(account: EnvironmentConfig.cacheKey(for: "pin")) == nil else { return .complete }
+        // A creation without its PIN can't hold funds, unless Lightning state says otherwise.
+        if try isPendingCreation(mnemonic), !LightningStorage.hasLightningState() { return .unfinishedCreation }
+        return .pinMissing
     }
     
     private static func isPendingCreation(_ mnemonic:String) throws -> Bool {
@@ -507,30 +558,16 @@ class CacheManager: NSObject {
         }
         
         do {
-            // Check mnemonic availability.
-            guard let mnemonic = try readSecretOrThrow(account: EnvironmentConfig.cacheKey(for: "mnemonic")) else {
-                // There is no mnemonic saved to this device.
+            switch try storedWallet() {
+            case .none, .unfinishedCreation:
                 return .absent
-            }
-            // A mnemonic is available.
-            
-            // Check PIN availability.
-            guard try readSecretOrThrow(account: EnvironmentConfig.cacheKey(for: "pin")) == nil else {
-                // A PIN is available, so any fingerprint still left from creation goes.
+            case .complete:
+                // Any fingerprint still left from creation goes.
                 SecureStore.remove(account: pendingCreationAccount)
                 return .present
+            case .pinMissing:
+                return .pinMissing
             }
-            // No PIN is available.
-            
-            // Check whether wallet creation was completed for this mnemonic.
-            if try isPendingCreation(mnemonic), !LightningStorage.hasLightningState() {
-                // Wallet creation was not completed for this mnemonic. Wallet cannot hold funds.
-                return .absent
-            }
-            
-            // Wallet creation was completed, but somehow the PIN is missing.
-            return .pinMissing
-            
         } catch {
             // Keychain could not be read.
             SentryManager.capture(error, context: "CacheManager:509")
