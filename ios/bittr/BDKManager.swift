@@ -750,16 +750,6 @@ extension BitcoinManager {
         return details
     }
     
-    func isValidMnemonic(_ thisMnemonic:String) -> Bool {
-        do {
-            _ = try BitcoinDevKit.Mnemonic.fromString(mnemonic: thisMnemonic)
-            return true
-        } catch {
-            // Could not generate mnemonic.
-            return false
-        }
-    }
-    
     // Look for the transaction that closed a channel and remember it.
     func storeChannelClosureTxIDIfFound() {
         
@@ -834,5 +824,18 @@ extension Error {
         default: return false
         }
         return message.contains("database disk image is malformed") || message.contains("file is not a database")
+    }
+}
+
+extension String {
+    
+    func isValidMnemonic() -> Bool {
+        do {
+            _ = try BitcoinDevKit.Mnemonic.fromString(mnemonic: self)
+            return true
+        } catch {
+            // Could not generate mnemonic.
+            return false
+        }
     }
 }
