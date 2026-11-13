@@ -435,7 +435,12 @@ class CacheManager: NSObject {
     // straggler on its next successful entry.
     static func storePin(pin:String) throws {
         try persistSecret(hashedPinRecord(for: pin), account: EnvironmentConfig.cacheKey(for: "pin"), label: "pin", accessibility: .whenUnlockedThisDeviceOnly)
-        SecureStore.remove(account: pendingCreationAccount)
+        // A leftover fingerprint would let launch take this wallet for an abandoned creation.
+        guard SecureStore.remove(account: pendingCreationAccount) else {
+            let error = SecureStore.SecureStoreError.writeVerificationFailed
+            SentryManager.capture(error, context: "removing pending creation from keychain")
+            throw error
+        }
     }
 
     /// Whether a PIN is stored (hashed or legacy raw).
@@ -504,7 +509,8 @@ class CacheManager: NSObject {
             
             // Check PIN availability.
             guard try readSecretOrThrow(account: EnvironmentConfig.cacheKey(for: "pin")) == nil else {
-                // A PIN is available.
+                // A PIN is available, so any fingerprint still left from creation goes.
+                SecureStore.remove(account: pendingCreationAccount)
                 return .present
             }
             // No PIN is available.
