@@ -185,7 +185,12 @@ class CoreViewController: UIViewController {
         // Decide which screen the launch ends on based on whether a wallet exists.
         
         self.pinIsMissing = false
-        switch CacheManager.walletSecretsPresence() {
+        var presence = CacheManager.walletSecretsPresence()
+        if presence == .pinMissing, CacheManager.getFailedPinAttempts() >= 10 {
+            // A locked-out wallet is removed on launch, so there is no PIN to set.
+            presence = .present
+        }
+        switch presence {
         case .present:
             Log.info("Wallet is available.")
             self.finishAwaitingProtectedDataIfNeeded()
