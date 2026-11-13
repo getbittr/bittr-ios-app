@@ -82,6 +82,61 @@ extension String {
         return chunks
     }
     
+    func inGroupsOfFour(width:CGFloat, lines:Int = .max, font:UIFont, color:UIColor, trailing:Bool = false) -> NSAttributedString {
+        
+        let lines = max(1, lines)
+        // Every character in a monospaced font is as wide as a zero.
+        let characterWidth = ("0" as NSString).size(withAttributes: [.font: font]).width
+        let groupsPerLine = max(2, Int((width + characterWidth) / (5 * characterWidth)))
+        
+        var groups = self.chunked(by: 4)
+        var ellipsisIndex:Int?
+        if (groups.count - 1) / groupsPerLine >= lines {
+            // The last line keeps groups from both ends, with an ellipsis in the slot of the groups in between.
+            let tailCount = max(1, (groupsPerLine - 1) / 2)
+            let headCount = groupsPerLine * lines - 1 - tailCount
+            ellipsisIndex = headCount
+            // The tail is grouped from the end, so its last group is never cut short.
+            let tail = String(self.suffix(tailCount * 4)).chunked(by: 4)
+            groups = Array(groups.prefix(headCount)) + ["\u{2026}"] + tail
+        }
+        
+        // Left-aligned, so every line's groups stay in the same columns.
+        let paragraphStyle = NSMutableParagraphStyle()
+        paragraphStyle.alignment = .left
+        if trailing {
+            // Indented by what the longest line leaves free, less a point so rounding never wraps it.
+            // The ellipsis fills a four-character slot.
+            let longestLine = groups.prefix(groupsPerLine)
+            let longestLineCharacters = longestLine.reduce(longestLine.count - 1) { $0 + ($1 == "\u{2026}" ? 4 : $1.count) }
+            let indent = max(0, width - CGFloat(longestLineCharacters) * characterWidth - 1)
+            paragraphStyle.firstLineHeadIndent = indent
+            paragraphStyle.headIndent = indent
+        }
+        let attributes:[NSAttributedString.Key:Any] = [.font: font, .foregroundColor: color, .paragraphStyle: paragraphStyle]
+        let shortened = NSMutableAttributedString()
+        for (index, group) in groups.enumerated() {
+            if index > 0 {
+                shortened.append(NSAttributedString(string: index % groupsPerLine == 0 ? "\n" : " ", attributes: attributes))
+            }
+            shortened.append(NSAttributedString(string: group, attributes: attributes))
+        }
+        
+        if let ellipsisIndex {
+            // Centre the ellipsis in a four-character slot, so the groups after it stay in their columns.
+            let ellipsisWidth = ("\u{2026}" as NSString).size(withAttributes: [.font: font]).width
+            let padding = (4 * characterWidth - ellipsisWidth) / 2
+            let ellipsisLocation = ellipsisIndex * 5
+            // An ellipsis that starts the text has no space before it, so all its padding goes after it.
+            if ellipsisLocation > 0 {
+                shortened.addAttribute(.kern, value: padding, range: NSRange(location: ellipsisLocation - 1, length: 1))
+            }
+            shortened.addAttribute(.kern, value: ellipsisLocation > 0 ? padding : 2 * padding, range: NSRange(location: ellipsisLocation, length: 1))
+        }
+        
+        return shortened
+    }
+    
     func fixDecimals() -> String {
         return self.replacingOccurrences(of: ".", with: Locale.current.decimalSeparator!).replacingOccurrences(of: ",", with: Locale.current.decimalSeparator!)
     }
