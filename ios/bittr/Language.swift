@@ -551,6 +551,7 @@ class Language: NSObject {
             "bitcoinqr": "Bitcoin QR",
             "unavailable": "Unavailable",
             "receiveinvalidamount": "Invalid amount",
+            "receivenorate": "Conversion rate unavailable",
             "refresh": "Renew",
             "more": "More",
             "getaddress": "Address",

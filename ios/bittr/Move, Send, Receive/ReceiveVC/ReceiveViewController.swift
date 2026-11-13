@@ -217,6 +217,7 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate, UIContextMen
         }()
         // An amount that can't be read, or comes to 0 satoshis, gets no code, rather than one without the amount.
         let amountIsInvalid = !enteredAmount.isEmpty && (amountInSatoshis ?? 0) == 0
+        let rateIsMissing = inputs.currency == .currency && BitcoinManager.shared.bittrWallet.getCorrectBitcoinValue().currentValue <= 0
         
         let lightningInvoice:String? = await {
             guard !(type == .onchain || type == .lnurl), !amountIsInvalid else {
@@ -322,7 +323,7 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate, UIContextMen
                 qrContent = nil
             }
             if qrContent == nil {
-                self.lowerAddressLabel.text = Language.getWord(withID: amountIsInvalid ? "receiveinvalidamount" : "unavailable")
+                self.lowerAddressLabel.text = Language.getWord(withID: rateIsMissing ? "receivenorate" : amountIsInvalid ? "receiveinvalidamount" : "unavailable")
                 self.lowerAddressLabel.font = UIFont(name: "Gilroy-Bold", size: 16)
                 self.currentCopyableText = ""
             }
