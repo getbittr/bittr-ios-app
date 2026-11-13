@@ -449,22 +449,23 @@ class CacheManager: NSObject {
         }
     }
 
-    /// Whether a PIN is stored (hashed or legacy raw).
-    static func hasPin() throws -> Bool {
-        try readSecretOrThrow(account: EnvironmentConfig.cacheKey(for: "pin")) != nil
+    enum PinCheck {
+        case correct
+        case incorrect
+        case missing
     }
 
-    /// Check an entered PIN against the stored record.
-    static func verifyPin(_ entered: String) throws -> Bool {
-        guard let stored = try readSecretOrThrow(account: EnvironmentConfig.cacheKey(for: "pin")) else { return false }
+    /// Check an entered PIN against the stored record, in a single Keychain read.
+    static func verifyPin(_ entered: String) throws -> PinCheck {
+        guard let stored = try readSecretOrThrow(account: EnvironmentConfig.cacheKey(for: "pin")) else { return .missing }
         if let record = parseHashedPinRecord(stored) {
-            return pinDigest(entered, salt: record.salt) == record.digest
+            return pinDigest(entered, salt: record.salt) == record.digest ? .correct : .incorrect
         }
         // Legacy raw value — compare directly, and upgrade to the hashed form
         // now that the correct PIN is known.
-        guard stored == entered else { return false }
+        guard stored == entered else { return .incorrect }
         try? storePin(pin: entered)
-        return true
+        return .correct
     }
 
     private static func hashedPinRecord(for pin: String) -> String {

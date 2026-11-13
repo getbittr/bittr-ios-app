@@ -127,24 +127,16 @@ class PinViewController: UIViewController, UITextFieldDelegate, UICollectionView
         case .core:
             guard (self.coreVC ?? self).checkInternetConnection() else { return }
             
-            let pinIsCorrect:Bool
+            if CacheManager.getFailedPinAttempts() >= 10 {
+                Log.info("Wallet is locked out after 10 failed PIN attempts.")
+                self.clearPinField()
+                self.removeWallet()
+                return
+            }
+            
+            let pinCheck:CacheManager.PinCheck
             do {
-                guard try CacheManager.hasPin() else {
-                    Log.info("No pin found in storage.")
-                    self.clearPinField()
-                    self.coreVC?.pinIsMissing = true
-                    self.showAlert(title: Language.getWord(withID: "pinmissing"), message: Language.getWord(withID: "pinmissing2"), buttons: [.action(Language.getWord(withID: "okay")) { self.coreVC?.startPinReset() }])
-                    return
-                }
-                
-                if CacheManager.getFailedPinAttempts() >= 10 {
-                    Log.info("Wallet is locked out after 10 failed PIN attempts.")
-                    self.clearPinField()
-                    self.removeWallet()
-                    return
-                }
-                
-                pinIsCorrect = try CacheManager.verifyPin(self.pinTextField.text ?? "")
+                pinCheck = try CacheManager.verifyPin(self.pinTextField.text ?? "")
             } catch {
                 // A PIN that can't be read is not a wrong PIN.
                 SentryManager.capture(error, context: "PinViewController row 149")
@@ -152,7 +144,15 @@ class PinViewController: UIViewController, UITextFieldDelegate, UICollectionView
                 return
             }
             
-            if pinIsCorrect {
+            guard pinCheck != .missing else {
+                Log.info("No pin found in storage.")
+                self.clearPinField()
+                self.coreVC?.pinIsMissing = true
+                self.showAlert(title: Language.getWord(withID: "pinmissing"), message: Language.getWord(withID: "pinmissing2"), buttons: [.action(Language.getWord(withID: "okay")) { self.coreVC?.startPinReset() }])
+                return
+            }
+            
+            if pinCheck == .correct {
                 // Correct pin.
                 CacheManager.resetFailedPinAttempts()
                 
