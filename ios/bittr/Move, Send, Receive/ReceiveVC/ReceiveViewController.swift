@@ -627,7 +627,16 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate, UIContextMen
     func textFieldDidEndEditing(_ textField: UITextField) {
         // Checked on the next turn, so a button that ends editing and then clears the fields makes one code, not two.
         DispatchQueue.main.async {
-            self.makeCodeAgainIfInputsChanged()
+            // A screen that is going away needs no new code, unless the user cancels the swipe down.
+            if self.isBeingDismissed, let coordinator = self.transitionCoordinator {
+                coordinator.animate(alongsideTransition: nil) { context in
+                    if context.isCancelled {
+                        self.makeCodeAgainIfInputsChanged()
+                    }
+                }
+            } else if self.view.window != nil {
+                self.makeCodeAgainIfInputsChanged()
+            }
         }
     }
     
