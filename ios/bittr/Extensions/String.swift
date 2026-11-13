@@ -214,13 +214,15 @@ extension String {
         return attributedText
     }
     
+    // Setting up a CIContext is expensive, so the QR codes share one.
+    private static let qrContext = CIContext()
+    
     func toQRCode() -> (image:UIImage, width:Int)? {
-        let context = CIContext()
         let filter = CIFilter.qrCodeGenerator()
         let data = Data(self.utf8)
         filter.setValue(data, forKey: "inputMessage")
         
-        guard let outputImage = filter.outputImage, let cgimg = context.createCGImage(outputImage, from: outputImage.extent) else {
+        guard let outputImage = filter.outputImage, let cgimg = String.qrContext.createCGImage(outputImage, from: outputImage.extent) else {
             return nil
         }
         
@@ -241,7 +243,7 @@ extension String {
         guard let outputImage = filter.outputImage else { return nil }
         
         let extent = outputImage.extent.integral
-        guard let cgImage = CIContext().createCGImage(outputImage, from: extent) else { return nil }
+        guard let cgImage = String.qrContext.createCGImage(outputImage, from: extent) else { return nil }
         
         // Every module gets the same whole number of pixels, so the box below can sit exactly on module edges.
         let moduleCount = Int(extent.width)
