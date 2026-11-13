@@ -261,10 +261,12 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate, UIContextMen
             
             // Set labels. Optional: an unavailable LNURL has no QR (see .lnurl).
             let qrCode:UIImage?
+            // Never truncate an onchain address.
+            self.lowerAddressLabel.numberOfLines = type == .onchain ? 0 : 3
             switch type {
             case .onchain:
                 self.addressTitle.text = Language.getWord(withID: "address")
-                self.lowerAddressLabel.text = onchainAddress.inGroupsOfFour() + amountText
+                self.lowerAddressLabel.text = onchainAddress.inGroupsOfFour() + (amountText.isEmpty ? "" : "\n" + amountText)
                 self.lowerAddressLabel.font = .monospacedSystemFont(ofSize: 15, weight: .bold)
                 qrCode = "bitcoin:\(onchainAddress)\(amountText)".uppercased().toBigQRCode()!
                 self.currentCopyableText = amountText.isEmpty
