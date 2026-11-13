@@ -269,9 +269,9 @@ extension CoreViewController {
         }
         
         if self.walletHasSynced, self.userHasSignedIn {
-            // Check for pending URIs after user signs in
+            // Handle what arrived while signup or the PIN was up.
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                self.checkForPendingURIs()
+                self.handlePendingWork()
             }
         }
     }
