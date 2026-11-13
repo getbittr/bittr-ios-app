@@ -185,6 +185,7 @@ class Language: NSObject {
             "createwallet": "Create wallet",
             "becareful": "Be careful!",
             "noscreenshot": "We'd highly recommend against screenshotting your recovery phrase.\n\nScreenshots can easily be accessed by others, who will have full access to your wallet.",
+            "mnemonichidden": "Your recovery phrase is hidden while your screen is being recorded or shared.\n\nStop the recording or sharing to see it.",
             "enterrecoveryphrase": "Enter your 12-word recovery phrase.",
             "accessdetails": "Access your device details in case you need our support.",
             "darkmode": "Dark mode",
