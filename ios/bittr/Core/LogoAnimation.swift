@@ -60,7 +60,8 @@ extension CoreViewController {
             self.logoViewWidth.constant = 106
             self.view.layoutIfNeeded()
         } completion: { finished in
-            self.checkWalletRemoval()
+            self.launchAnimationHasPlayed = true
+            self.checkWalletRemovalIfReady()
             self.logoSlidesToTop()
         }
     }

@@ -22,6 +22,8 @@ class CoreViewController: UIViewController {
     
     // True once checkWalletAvailability has found a wallet on this device.
     private var walletIsOnDevice = false
+    var launchAnimationHasPlayed = false
+    private var didCheckWalletRemoval = false
     
     // Pin reset
     var resettingPin = false
@@ -229,10 +231,7 @@ class CoreViewController: UIViewController {
             self.presentKeychainUnavailable()
         }
         
-        // Re-check ongoing wallet removal.
-        if self.walletIsOnDevice, self.logoHasMovedUp {
-            self.checkWalletRemoval()
-        }
+        self.checkWalletRemovalIfReady()
     }
     
     private func presentKeychainUnavailable() {
@@ -258,6 +257,13 @@ class CoreViewController: UIViewController {
         self.fullViewCover.alpha = 0
         self.genericSpinner.stopAnimating()
         self.hideAlert()
+    }
+    
+    // Runs checkWalletRemoval once per launch, as soon as a wallet is known to be on the device and the launch animation has played.
+    func checkWalletRemovalIfReady() {
+        guard self.walletIsOnDevice, self.launchAnimationHasPlayed, !self.didCheckWalletRemoval else { return }
+        self.didCheckWalletRemoval = true
+        self.checkWalletRemoval()
     }
     
     func checkWalletRemoval() {
