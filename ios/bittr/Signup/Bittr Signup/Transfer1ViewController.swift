@@ -178,7 +178,6 @@ class Transfer1ViewController: UIViewController, UITextFieldDelegate {
         self.showAlert(title: Language.getWord(withID: "initiativetitle"), message: Language.getWord(withID: "initiativemessage"), buttons: [.dismiss(Language.getWord(withID: "cancel")), .action(Language.getWord(withID: "initiativeconfirm")) {
             // Stored in UTC, so the time is unambiguous wherever the user was.
             let formatter = ISO8601DateFormatter()
-            formatter.timeZone = TimeZone(secondsFromGMT: 0)
             self.initiativeConfirmedAt = formatter.string(from: Date())
             proceed()
         }])
