@@ -105,8 +105,10 @@ extension String {
         paragraphStyle.alignment = .left
         if trailing {
             // Indented by what the longest line leaves free, less a point so rounding never wraps it.
-            let longestLine = groups.prefix(groupsPerLine).joined(separator: " ")
-            let indent = max(0, width - (longestLine as NSString).size(withAttributes: [.font: font]).width - 1)
+            // The ellipsis fills a four-character slot.
+            let longestLine = groups.prefix(groupsPerLine)
+            let longestLineCharacters = longestLine.reduce(longestLine.count - 1) { $0 + ($1 == "\u{2026}" ? 4 : $1.count) }
+            let indent = max(0, width - CGFloat(longestLineCharacters) * characterWidth - 1)
             paragraphStyle.firstLineHeadIndent = indent
             paragraphStyle.headIndent = indent
         }
