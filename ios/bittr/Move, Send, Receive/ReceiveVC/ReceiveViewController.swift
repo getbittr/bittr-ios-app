@@ -178,7 +178,10 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate, UIContextMen
                 if newAddress {
                     let nextUnusedAddress = BitcoinManager.shared.bittrWallet.onchainAddresses?.getNextUnusedAddress()
                     if nextUnusedAddress == nil {
-                        self.showAlert(title: Language.getWord(withID: "address"), message: Language.getWord(withID: "noaddressavailable"), buttons: [.dismiss(Language.getWord(withID: "okay"))])
+                        DispatchQueue.main.async {
+                            guard request == self.codeRequest else { return }
+                            self.showAlert(title: Language.getWord(withID: "address"), message: Language.getWord(withID: "noaddressavailable"), buttons: [.dismiss(Language.getWord(withID: "okay"))])
+                        }
                     }
                     return nextUnusedAddress ?? self.getCachedOnchainAddress()
                 } else {
