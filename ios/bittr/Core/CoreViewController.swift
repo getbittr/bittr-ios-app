@@ -87,6 +87,7 @@ class CoreViewController: UIViewController {
     @IBOutlet weak var logoViewWidth: NSLayoutConstraint!
     @IBOutlet weak var finalLogo: UIImageView!
     var logoHasMovedUp = false
+    var pinIsMissing = false
     var currentPage:CurrentPage = .signup
     
     // Year view
@@ -183,6 +184,7 @@ class CoreViewController: UIViewController {
     @objc func checkWalletAvailability() {
         // Decide which screen the launch ends on based on whether a wallet exists.
         
+        self.pinIsMissing = false
         switch CacheManager.walletSecretsPresence() {
         case .present:
             Log.info("Wallet is available.")
@@ -200,7 +202,11 @@ class CoreViewController: UIViewController {
             self.resettingPin = true
             self.launchSignup(onPage: 2, checkConnection: false)
             self.currentPage = .signup
-            self.showAlert(title: Language.getWord(withID: "pinmissing"), message: Language.getWord(withID: "pinmissing2"), buttons: [.dismiss(Language.getWord(withID: "okay"))])
+            // Explained by checkWalletRemoval, so it doesn't compete with a removal alert.
+            self.pinIsMissing = true
+            if self.logoHasMovedUp {
+                self.checkWalletRemoval()
+            }
             
         case .absent:
             Log.info("No wallet on this device.")
@@ -257,7 +263,13 @@ class CoreViewController: UIViewController {
         } else if CacheManager.walletRemovalIsInProgress() {
             Log.info("A wallet removal was left in progress — offering to resume it on launch.")
             self.showAlert(title: Language.getWord(withID: "removewalletfromdevice"), message: Language.getWord(withID: "removalinprogress"), buttons: [.action(Language.getWord(withID: "cancel")) { self.cancelWalletRemoval() }, .action(Language.getWord(withID: "removewalletfromdevice")) { self.resumeWalletRemoval() }])
+        } else if self.pinIsMissing {
+            self.showPinMissingAlert()
         }
+    }
+    
+    func showPinMissingAlert() {
+        self.showAlert(title: Language.getWord(withID: "pinmissing"), message: Language.getWord(withID: "pinmissing2"), buttons: [.dismiss(Language.getWord(withID: "okay"))])
     }
     
     override func viewWillDisappear(_ animated: Bool) {

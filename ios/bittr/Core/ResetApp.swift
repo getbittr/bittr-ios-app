@@ -140,6 +140,9 @@ extension CoreViewController {
     func cancelWalletRemoval() {
         Log.info("Cancel wallet removal.")
         CacheManager.setWalletRemovalInProgress(false)
+        if self.pinIsMissing {
+            self.showPinMissingAlert()
+        }
     }
 
     func walletRestoreAlert() {
