@@ -118,6 +118,13 @@ class SignupViewController: UIViewController {
         (newChild as? Transfer4ViewController)?.signupVC = self
         (newChild as? Transfer4ViewController)?.coreVC = self.coreVC
         
+        // A page entered again replaces its earlier copy.
+        for eachChild in self.children where eachChild.viewIfLoaded?.superview == self.allContainerViews[thisPage] {
+            eachChild.willMove(toParent: nil)
+            eachChild.view.removeFromSuperview()
+            eachChild.removeFromParent()
+        }
+        
         // Add new view controller to correct container view.
         self.addChild(newChild)
         newChild.view.frame.size = self.allContainerViews[thisPage].frame.size
