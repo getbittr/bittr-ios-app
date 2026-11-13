@@ -625,6 +625,9 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate, UIContextMen
     }
     
     func textFieldDidEndEditing(_ textField: UITextField) {
+        if textField == self.bothDescriptionTextField, let text = textField.text, text.utf8.count > 100 {
+            textField.text = text.prefix(utf8Bytes: 100)
+        }
         // Checked on the next turn, so a button that ends editing and then clears the fields makes one code, not two.
         DispatchQueue.main.async {
             // A screen that is going away needs no new code, unless the user cancels the swipe down.
@@ -654,10 +657,20 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate, UIContextMen
     
     func textField(_ textField: UITextField, shouldChangeCharactersIn range: NSRange, replacementString string: String) -> Bool {
         
-        guard textField == self.bothDescriptionTextField, let text = textField.text, let textRange = Range(range, in: text) else { return true }
+        guard textField == self.bothDescriptionTextField, textField.markedTextRange == nil else { return true }
+        guard let text = textField.text, let textRange = Range(range, in: text) else { return false }
         
         // Counted in bytes, which is what the description costs in the Bitcoin QR, so that code always fits.
-        return text.replacingCharacters(in: textRange, with: string).utf8.count <= 100
+        let remainingBytes = 100 - text.replacingCharacters(in: textRange, with: "").utf8.count
+        guard string.utf8.count > remainingBytes else { return true }
+        
+        // A paste that doesn't fit is cut to what does, rather than ignored.
+        let fitting = string.prefix(utf8Bytes: remainingBytes)
+        textField.text = text.replacingCharacters(in: textRange, with: fitting)
+        if let cursor = textField.position(from: textField.beginningOfDocument, offset: range.location + (fitting as NSString).length) {
+            textField.selectedTextRange = textField.textRange(from: cursor, to: cursor)
+        }
+        return false
     }
     
     func textFieldShouldReturn(_ textField: UITextField) -> Bool {
@@ -842,4 +855,16 @@ struct ReceiveInputs: Equatable {
     let amount:String
     let description:String
     let currency:SelectedCurrency?
+}
+
+private extension String {
+    
+    func prefix(utf8Bytes limit:Int) -> String {
+        var prefix = ""
+        for character in self {
+            guard prefix.utf8.count + String(character).utf8.count <= limit else { break }
+            prefix.append(character)
+        }
+        return prefix
+    }
 }
