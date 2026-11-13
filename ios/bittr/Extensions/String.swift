@@ -92,7 +92,7 @@ extension String {
         var ellipsisIndex:Int?
         if (groups.count - 1) / groupsPerLine >= lines {
             // The last line keeps groups from both ends, with an ellipsis in the slot of the groups in between.
-            let tailCount = (groupsPerLine - 1) / 2
+            let tailCount = max(1, (groupsPerLine - 1) / 2)
             let headCount = groupsPerLine * lines - 1 - tailCount
             ellipsisIndex = headCount
             // The tail is grouped from the end, so its last group is never cut short.
