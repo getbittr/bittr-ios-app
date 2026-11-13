@@ -246,7 +246,7 @@ class CoreViewController: UIViewController {
             NotificationCenter.default.addObserver(self, selector: #selector(self.checkWalletAvailability), name: UIApplication.protectedDataDidBecomeAvailableNotification, object: nil)
         }
         
-        self.showAlert(title: Language.getWord(withID: "keychainunavailabletitle"), message: Language.getWord(withID: "keychainunavailable"), buttons: [.action(Language.getWord(withID: "tryagain")) { self.checkWalletAvailability() }])
+        self.showKeychainUnavailableAlert { self.checkWalletAvailability() }
     }
     
     private func finishAwaitingProtectedDataIfNeeded() {
@@ -292,8 +292,14 @@ class CoreViewController: UIViewController {
         BitcoinManager.shared.bittrWallet = CacheManager.parseDevice()
     }
     
-    func showPinMissingAlert() {
-        self.showAlert(title: Language.getWord(withID: "pinmissing"), message: Language.getWord(withID: "pinmissing2"), buttons: [.dismiss(Language.getWord(withID: "okay"))])
+    func showPinMissingAlert(then followUp: (() -> Void)? = nil) {
+        let okay = Language.getWord(withID: "okay")
+        let button = followUp.map { AlertButton.action(okay, $0) } ?? AlertButton.dismiss(okay)
+        self.showAlert(title: Language.getWord(withID: "pinmissing"), message: Language.getWord(withID: "pinmissing2"), buttons: [button])
+    }
+    
+    func showKeychainUnavailableAlert(retry: @escaping () -> Void) {
+        self.showAlert(title: Language.getWord(withID: "keychainunavailabletitle"), message: Language.getWord(withID: "keychainunavailable"), buttons: [.action(Language.getWord(withID: "tryagain"), retry)])
     }
     
     override func viewWillDisappear(_ animated: Bool) {
