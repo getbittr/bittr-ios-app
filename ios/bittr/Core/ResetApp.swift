@@ -364,7 +364,6 @@ extension CoreViewController {
             DispatchQueue.main.async {
                 // Node stopped and files removed, so the seed can go now, last, which completes the removal.
                 self.forgetWallet()
-                CacheManager.setWalletRemovalInProgress(false)
                 self.userHasSignedIn = false
                 
                 // Hide signup view and launch create wallet flow.

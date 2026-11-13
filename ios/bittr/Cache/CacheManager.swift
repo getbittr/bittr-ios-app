@@ -22,7 +22,6 @@ class CacheManager: NSObject {
         CacheStore.remove(CacheKeys.bdkRebuildRequested)
         CacheStore.remove(CacheKeys.channelFundingOutpoint)
         CacheStore.remove(CacheKeys.channelClosureTxIDs)
-        CacheStore.remove(CacheKeys.walletRemovalInProgress)
         
         // Old keys no longer in use.
         for retired in ["cache", "bittraddress", "pin", "mnemonic"] {
@@ -37,6 +36,9 @@ class CacheManager: NSObject {
         // Clear the ongoing-swap record and sweep the per-swap refund keys out of the Keychain.
         CacheStore.remove(CacheKeys.ongoingSwap)
         SecureStore.removeAll(accountPrefix: "swapkey_")
+        
+        // Only once the secrets are gone, so an interrupted removal resumes at the next launch.
+        CacheStore.remove(CacheKeys.walletRemovalInProgress)
         
         self.resetFailedPinAttempts()
         
