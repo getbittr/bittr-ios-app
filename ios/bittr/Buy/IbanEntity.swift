@@ -22,6 +22,7 @@ class IbanEntity: NSObject, Codable {
     // Payout mode for this deposit code: "lightning" or "onchain".
     // Empty until the backend reports it (registration / deposit_code / payment-mode endpoints).
     var paymentMode = ""
+    var initiativeConfirmedAt:String?
 }
 
 extension IbanEntity {
