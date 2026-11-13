@@ -140,7 +140,7 @@ class PinViewController: UIViewController, UITextFieldDelegate, UICollectionView
             } catch {
                 // A PIN that can't be read is not a wrong PIN.
                 SentryManager.capture(error, context: "PinViewController row 149")
-                self.showAlert(title: Language.getWord(withID: "keychainunavailabletitle"), message: Language.getWord(withID: "keychainunavailable"), buttons: [.dismiss(Language.getWord(withID: "tryagain"))])
+                self.showAlert(title: Language.getWord(withID: "keychainunavailabletitle"), message: Language.getWord(withID: "keychainunavailable"), buttons: [.action(Language.getWord(withID: "tryagain")) { self.confirmPinButtonTapped(sender) }])
                 return
             }
             
