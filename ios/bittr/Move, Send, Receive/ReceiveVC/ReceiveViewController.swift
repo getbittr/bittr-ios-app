@@ -169,7 +169,6 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate, UIContextMen
         DispatchQueue.main.async {
             guard request == self.codeRequest else { return }
             self.updateCards(for: type)
-            self.currentType = type
         }
         
         // Gather. Nil when there is no address, so nothing stands in for one in a code.
@@ -489,6 +488,7 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate, UIContextMen
         if type != self.currentType {
             self.hideAmountStack()
         }
+        self.currentType = type
         // Read once, here, so the code is made from exactly the inputs Copy compares with later.
         let inputs = self.currentInputs()
         self.codeInputs = inputs
@@ -506,7 +506,6 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate, UIContextMen
         // address — manageOnchainAddresses() calls onchainAddressesReady() when it
         // sets onchainAddressesVerified, which re-enters this method.
         if (type == .onchain || type == .bitcoinqr) && !newAddress && BitcoinManager.shared.bittrWallet.onchainAddressesVerified == false {
-            self.currentType = type
             self.updateCards(for: type)
             
             DispatchQueue.main.asyncAfter(deadline: .now() + 8) { [weak self] in
