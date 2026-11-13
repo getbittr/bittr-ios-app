@@ -86,6 +86,8 @@ appId: com.bittr.bittr-regtest
     visible:
       id: "alert.button.1"
     timeout: 10000
+- waitForAnimationToEnd:
+    timeout: 3000
 - takeScreenshot: shared/docs/screenshots/buy_signup/05a_exclusive_initiative
 - tapOn:
     id: "alert.button.1"
