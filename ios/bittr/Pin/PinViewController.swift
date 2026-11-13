@@ -140,7 +140,7 @@ class PinViewController: UIViewController, UITextFieldDelegate, UICollectionView
             } catch {
                 // A PIN that can't be read is not a wrong PIN.
                 SentryManager.capture(error, context: "PinViewController row 149")
-                self.showAlert(title: Language.getWord(withID: "keychainunavailabletitle"), message: Language.getWord(withID: "keychainunavailable"), buttons: [.action(Language.getWord(withID: "tryagain")) { self.confirmPinButtonTapped(sender) }])
+                self.coreVC?.showKeychainUnavailableAlert { self.confirmPinButtonTapped(sender) }
                 return
             }
             
@@ -148,7 +148,7 @@ class PinViewController: UIViewController, UITextFieldDelegate, UICollectionView
                 Log.info("No pin found in storage.")
                 self.clearPinField()
                 self.coreVC?.pinIsMissing = true
-                self.showAlert(title: Language.getWord(withID: "pinmissing"), message: Language.getWord(withID: "pinmissing2"), buttons: [.action(Language.getWord(withID: "okay")) { self.coreVC?.startPinReset() }])
+                self.coreVC?.showPinMissingAlert { self.coreVC?.startPinReset() }
                 return
             }
             
