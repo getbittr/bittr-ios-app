@@ -37,6 +37,9 @@ class CacheManager: NSObject {
         CacheStore.remove(CacheKeys.ongoingSwap)
         SecureStore.removeAll(accountPrefix: "swapkey_")
         
+        // Only once the secrets are gone, so an interrupted removal resumes at the next launch.
+        CacheStore.remove(CacheKeys.walletRemovalInProgress)
+        
         self.resetFailedPinAttempts()
         
         // Take the old wallet's lightning address off the widget.

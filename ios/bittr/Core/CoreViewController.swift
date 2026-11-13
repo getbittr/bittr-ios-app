@@ -17,15 +17,19 @@ class CoreViewController: UIViewController {
     var deferredPresentation:(() -> Void)? // A screen someone asked for while the PIN was up.
     var privacyCover:UIView? // Hides the wallet from the app switcher snapshot.
     
-    // True while checkWalletAvailability is waiting for the Keychain to become
-    // readable (device locked / transient read error) before it decides.
+    // True while checkWalletAvailability is waiting for the Keychain to become readable.
     private var isAwaitingProtectedData = false
+    
+    // Whether the last checkWalletAvailability found a wallet on this device.
+    private var walletIsOnDevice = false
+    var launchAnimationHasPlayed = false
+    private var didCheckWalletRemoval = false
     
     // Pin reset
     var resettingPin = false
     var removingWalletForIncorrectPin = false
     var isRemovalInFlight = false
-
+    
     // True while continueStartWallet's post-start work is running. Several
     // startWallet callers can be attached to a single node start, and they all
     // get told when it finishes — but that work is global, not per-caller.
@@ -209,9 +213,6 @@ class CoreViewController: UIViewController {
             self.currentPage = .signup
             // Explained by checkWalletRemoval, so it doesn't compete with a removal alert.
             self.pinIsMissing = true
-            if self.logoHasMovedUp {
-                self.checkWalletRemoval()
-            }
             
         case .absent:
             Log.info("No wallet on this device.")
@@ -227,6 +228,9 @@ class CoreViewController: UIViewController {
             Log.info("The Keychain could not be read.")
             self.presentKeychainUnavailable()
         }
+        
+        self.walletIsOnDevice = presence == .present || presence == .pinMissing
+        self.checkWalletRemovalIfReady()
     }
     
     private func presentKeychainUnavailable() {
@@ -251,6 +255,14 @@ class CoreViewController: UIViewController {
         NotificationCenter.default.removeObserver(self, name: UIApplication.protectedDataDidBecomeAvailableNotification, object: nil)
         self.fullViewCover.alpha = 0
         self.genericSpinner.stopAnimating()
+        self.hideAlert()
+    }
+    
+    // Runs checkWalletRemoval once per launch, as soon as a wallet is known to be on the device and the launch animation has played.
+    func checkWalletRemovalIfReady() {
+        guard self.walletIsOnDevice, self.launchAnimationHasPlayed, !self.didCheckWalletRemoval else { return }
+        self.didCheckWalletRemoval = true
+        self.checkWalletRemoval()
     }
     
     func checkWalletRemoval() {
