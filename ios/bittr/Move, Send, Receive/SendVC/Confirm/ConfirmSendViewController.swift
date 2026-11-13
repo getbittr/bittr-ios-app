@@ -116,7 +116,7 @@ class ConfirmSendViewController: UIViewController {
         self.lightningFeesLabel.text = "1 - " + "\(lightningFees)".addSpaces() + " sats"
         
         // Show the typed lightning address rather than the invoice it resolved to.
-        self.setSharedLabels(onchainOrLightning: .lightning, addressOrInvoice: invoice, satoshisAmount: satoshisAmount, displayedAddress: lnurlEmail ?? invoice)
+        self.setSharedLabels(onchainOrLightning: .lightning, addressOrInvoice: invoice, satoshisAmount: satoshisAmount, lightningAddress: lnurlEmail)
     }
     
     func setOnchainLabels(
@@ -135,7 +135,7 @@ class ConfirmSendViewController: UIViewController {
         self.isSendingMaximum = isSendingMaximum
         self.drainTotalSats = drainTotalSats
         
-        self.setSharedLabels(onchainOrLightning: .onchain, addressOrInvoice: address, satoshisAmount: satoshisAmount, displayedAddress: address)
+        self.setSharedLabels(onchainOrLightning: .onchain, addressOrInvoice: address, satoshisAmount: satoshisAmount, lightningAddress: nil)
         
         // Check fee availability
         let lowestSats = feeEstimates.economy.feeSats(forVsize: onchainTxSize)
@@ -172,7 +172,7 @@ class ConfirmSendViewController: UIViewController {
         onchainOrLightning:OnchainOrLightning,
         addressOrInvoice:String,
         satoshisAmount:Int,
-        displayedAddress:String)
+        lightningAddress:String?)
     {
         
         // Confirming values
@@ -182,16 +182,16 @@ class ConfirmSendViewController: UIViewController {
         
         // Address
         self.addressTitle.text = Language.getWord(withID: onchainOrLightning == .onchain ? "address" : "invoice")
-        if displayedAddress == addressOrInvoice {
+        if let lightningAddress {
+            self.addressLabel.text = lightningAddress
+        } else {
             self.addressLabel.font = .monospacedSystemFont(ofSize: 15, weight: .bold)
             // An address is shown whole, so it can be checked before sending, and an invoice is shortened to three lines.
             self.addressLabel.numberOfLines = 0
-            self.addressLabel.setGroupedText(displayedAddress, lines: onchainOrLightning == .onchain ? .max : 3, trailing: true)
-        } else {
-            self.addressLabel.text = displayedAddress
+            self.addressLabel.setGroupedText(addressOrInvoice, lines: onchainOrLightning == .onchain ? .max : 3, trailing: true)
         }
         // Read without the groups' spaces, by VoiceOver and the flows alike.
-        self.addressLabel.accessibilityLabel = displayedAddress
+        self.addressLabel.accessibilityLabel = lightningAddress ?? addressOrInvoice
         
         // Amount
         self.amountLabel.text = satoshisAmount.formattedAmount()
