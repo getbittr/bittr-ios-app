@@ -26,6 +26,7 @@ extension SendViewController {
             let lightningInvoice = paymentCode.lightningInvoice
             let lnurl = paymentCode.lnurl
             if lightningInvoice != nil || lnurl != nil {
+                self.toTextField.text = lnurl ?? lightningInvoice
                 self.view.endEditing(true)
                 self.onchainOrLightning = .lightning
                 self.updateLabels()
