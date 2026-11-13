@@ -616,17 +616,12 @@ class CacheManager: NSObject {
         }
     }
 
-    /// Non-throwing read used by getMnemonic()/getPin(). A Keychain read failure
-    /// yields nil here (existing callers guard on nil and handle it gracefully);
-    /// it never drives a destructive decision — the launch presence check uses
-    /// walletSecretsPresence() instead, which separates failure from absence.
-    /// The intended accessibility class for a secret, by account. The
-    /// mnemonic (and swap keys) must be readable in background wakes; the PIN
-    /// is foreground-only. See SecureStore's header.
+    /// The mnemonic and swap keys are read in background wakes, the PIN only in the foreground.
     private static func accessibilityForAccount(_ account: String) -> SecureStore.Accessibility {
         return account == EnvironmentConfig.cacheKey(for: "pin") ? .whenUnlockedThisDeviceOnly : .afterFirstUnlockThisDeviceOnly
     }
 
+    /// Also nil on a read failure, so it never decides whether a wallet exists.
     private static func readSecret(account: String) -> String? {
         do {
             return try readSecretOrThrow(account: account)
