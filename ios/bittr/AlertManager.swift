@@ -187,8 +187,7 @@ private extension UIViewController {
         buttonLabel.textColor = Colors.getColor("blackorwhite")
         buttonLabel.textAlignment = .center
         buttonLabel.isAccessibilityElement = false
-        // A wrapped title keeps all its lines when the card runs out of room.
-        buttonLabel.setContentCompressionResistancePriority(.required, for: .vertical)
+        buttonLabel.setContentCompressionResistancePriority(.defaultHigh, for: .vertical)
         button.addSubview(buttonLabel)
         
         // A one-line title keeps the 40pt plate, and a wrapped one grows it.
