@@ -26,7 +26,8 @@ shared/flows/
                           to happy_path_wallet. Top-level entry.
     happy_path_wallet.yaml  Reusable subflow: wallet creation, Signup1 →
                           the wallet-ready screen (Signup7).
-    happy_path_signup.yaml  Reusable subflow: bittr signup, Signup7 → Home.
+    happy_path_signup.yaml  Reusable subflow: bittr signup, Signup7 → Home,
+                          confirming the exclusive-initiative alert.
     restore_wallet.yaml   Wipes state and runs the "Restore wallet" path
                           from Signup1 with a fixed test mnemonic, PIN 1234.
     smoke.yaml            Bare-minimum check that the test-ID pipeline reaches Maestro.
@@ -129,11 +130,15 @@ shared/flows/
                           the MNEMONIC env var (see Running below).
     buy_signup.yaml       Bittr signup from inside the Buy page — assumes a
                           wallet without a bittr account (run
-                          onboarding/restore_wallet.yaml first).
+                          onboarding/restore_wallet.yaml first). Confirms the
+                          exclusive-initiative alert on the first Transfer1
+                          submit.
     buy_signup_no_notifications.yaml
                           The unhappy-path counterpart to buy_signup: walks
                           the "I don't have an IBAN" alert, the invalid-IBAN
-                          and invalid-email validation alerts, the OTP resend
+                          and invalid-email validation alerts, the
+                          exclusive-initiative alert on the first valid Verify,
+                          the OTP resend
                           flow (resend → "email resent" alert; a second tap in
                           cooldown → "wait 30 seconds" alert → "Change email"
                           back to Transfer1, then re-verify), a wrong OTP
