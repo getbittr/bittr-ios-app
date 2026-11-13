@@ -215,8 +215,8 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate, UIContextMen
                 return (fiatAmount / rate).satoshisFromBitcoin()
             }
         }()
-        // An amount that can't be read gets no code, rather than one without the amount.
-        let amountIsInvalid = !enteredAmount.isEmpty && amountInSatoshis == nil
+        // An amount that can't be read, or comes to 0 satoshis, gets no code, rather than one without the amount.
+        let amountIsInvalid = !enteredAmount.isEmpty && (amountInSatoshis ?? 0) == 0
         
         let lightningInvoice:String? = await {
             guard !(type == .onchain || type == .lnurl), !amountIsInvalid else {
