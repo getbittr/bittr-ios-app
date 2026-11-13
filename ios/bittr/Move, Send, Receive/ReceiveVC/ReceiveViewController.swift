@@ -233,21 +233,17 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate, UIContextMen
             return await self.getRegularInvoice(amountMsat: UInt64(amountInSatoshis) * 1_000, description: enteredDescription, expirySecs: 3600)
         }()
         
-        var amountText:String = ""
-        var bitcoinQRParameters:[String] = []
-        
-        if let amountInSatoshis {
-            // Written out from whole satoshis in ASCII digits, so neither rounding nor the phone's locale can change it.
-            var fraction = String(amountInSatoshis % 100_000_000)
-            fraction = String(repeating: "0", count: 8 - fraction.count) + fraction
+        // Written out from whole satoshis in ASCII digits, so neither rounding nor the phone's locale can change it.
+        let amount:String? = amountInSatoshis.map { satoshis in
+            var fraction = String(format: "%08ld", satoshis % Bitcoin.satoshisPerBitcoin)
             while fraction.hasSuffix("0") {
                 fraction.removeLast()
             }
-            let wholeBitcoin = String(amountInSatoshis / 100_000_000)
-            let amount = fraction.isEmpty ? wholeBitcoin : wholeBitcoin + "." + fraction
-            amountText = "?amount=\(amount)"
-            bitcoinQRParameters.append("amount=\(amount)")
+            let wholeBitcoin = String(satoshis / Bitcoin.satoshisPerBitcoin)
+            return fraction.isEmpty ? wholeBitcoin : wholeBitcoin + "." + fraction
         }
+        let amountText = amount.map { "?amount=\($0)" } ?? ""
+        var bitcoinQRParameters = amount.map { ["amount=\($0)"] } ?? []
         // Only unreserved characters stay as typed, so no label can end its parameter or the URI early.
         let unreserved = CharacterSet(charactersIn: "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~")
         if enteredDescription != "", let label = enteredDescription.addingPercentEncoding(withAllowedCharacters: unreserved) {
