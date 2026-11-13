@@ -61,7 +61,6 @@ extension ReceiveViewController {
         self.view.backgroundColor = Colors.getColor("yelloworblue1")
         self.yellowCard.backgroundColor = Colors.getColor("yelloworblue2")
         self.addressView.backgroundColor = Colors.getColor("whiteorblue3")
-        self.addressLabel.textColor = Colors.getColor("blackorwhite")
         self.lowerAddressLabel.textColor = Colors.getColor("blackorwhite")
         self.btcView.backgroundColor = Colors.getColor("whiteorblue3")
         self.btcLabel.textColor = Colors.getColor("blackorwhite")

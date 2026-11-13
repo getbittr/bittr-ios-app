@@ -326,7 +326,7 @@ appId: com.bittr.bittr-regtest
             id: "receive.qrSpinner"
           timeout: 30000
       - assertVisible:
-          id: "receive.invoiceLabel"
+          id: "receive.addressLabel"
           text: ".*amount=.*"
       - takeScreenshot: shared/docs/screenshots/receive_onchain/07b_bitcoinqr_amount
 
