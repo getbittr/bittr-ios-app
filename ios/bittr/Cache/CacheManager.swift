@@ -109,9 +109,12 @@ class CacheManager: NSObject {
         var ibans = storedIbans()
         
         if let existing = ibans.first(where: { $0.id == iban.id }) {
-            // Known IBAN: the caller only supplies these two.
+            // Known IBAN: the caller only supplies these, and the initiative confirmation once there is one.
             existing.yourIbanNumber = iban.yourIbanNumber
             existing.yourEmail = iban.yourEmail
+            if let initiativeConfirmedAt = iban.initiativeConfirmedAt {
+                existing.initiativeConfirmedAt = initiativeConfirmedAt
+            }
         } else {
             ibans += [iban]
         }

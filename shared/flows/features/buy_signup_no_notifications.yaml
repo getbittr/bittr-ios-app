@@ -24,11 +24,13 @@
 #      its last digit + the correct email → Verify → invalid-IBAN alert.
 #   5. Fix the IBAN, then drop ".com" from the email → Verify → the
 #      "enter your IBAN and email" alert (invalid email).
-#   6. Fix the email → Verify → advance to the OTP screen. Before entering any
+#   6. Fix the email → Verify → confirm the exclusive-initiative alert →
+#      advance to the OTP screen. Before entering any
 #      code, exercise resend: tap "Resend code" (resends → "email resent" alert
 #      → Okay), wait 5s, tap it again (now in cooldown → "wait 30 seconds"
 #      alert), and tap "Change email" → back to Transfer1; re-enter the same
-#      IBAN + email and Verify to return to the OTP screen.
+#      IBAN + email and Verify (no second initiative alert) to return to the
+#      OTP screen.
 #   7. Enter a WRONG code first (111111). At the first notification gate the
 #      app shows EITHER the in-app prompt (Alert A) → Okay → iOS system dialog
 #      (auto-denied) → the denied gate (Alert B) when permission was still
@@ -152,6 +154,20 @@ appId: com.bittr.bittr-regtest
     id: "signup.bittr.start.topLabelOne"
 - tapOn:
     id: "signup.bittr.start.nextButton"
+
+# The exclusive-initiative alert. Confirm is alert.button.1, stacked above Cancel.
+# It's asked once per registration, so the later Verify taps below go straight through.
+- extendedWaitUntil:
+    visible:
+      id: "alert.button.1"
+    timeout: 10000
+- tapOn:
+    id: "alert.button.1"
+# Let it slide out, so a following alert.button.0 is the next alert's, not its Cancel.
+- extendedWaitUntil:
+    notVisible:
+      id: "alert.button.1"
+    timeout: 5000
 
 # Async IBAN check → "Oops" invalid-IBAN alert.
 - extendedWaitUntil:
