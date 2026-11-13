@@ -132,6 +132,7 @@ class PinViewController: UIViewController, UITextFieldDelegate, UICollectionView
                 guard try CacheManager.hasPin() else {
                     Log.info("No pin found in storage.")
                     self.clearPinField()
+                    self.coreVC?.pinIsMissing = true
                     self.showAlert(title: Language.getWord(withID: "pinmissing"), message: Language.getWord(withID: "pinmissing2"), buttons: [.action(Language.getWord(withID: "okay")) { self.coreVC?.startPinReset() }])
                     return
                 }

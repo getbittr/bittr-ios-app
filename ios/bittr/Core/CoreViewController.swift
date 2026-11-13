@@ -209,10 +209,10 @@ class CoreViewController: UIViewController {
             self.pinContainerView.alpha = 0
             // Setting a new PIN requires the wallet's recovery phrase.
             self.resettingPin = true
-            self.launchSignup(onPage: 2, checkConnection: false)
-            self.currentPage = .signup
             // Explained by checkWalletRemoval, so it doesn't compete with a removal alert.
             self.pinIsMissing = true
+            self.launchSignup(onPage: 2, checkConnection: false)
+            self.currentPage = .signup
             
         case .absent:
             Log.info("No wallet on this device.")

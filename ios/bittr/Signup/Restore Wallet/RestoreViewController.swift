@@ -135,7 +135,7 @@ class RestoreViewController: UIViewController, UITextFieldDelegate {
             self.removeWalletLabel.alpha = 0.5
             
             // Without a PIN there's no PIN screen to go back to.
-            if (try? CacheManager.hasPin()) == false {
+            if self.coreVC!.pinIsMissing {
                 self.backButton.alpha = 0
                 self.cancelLabel.alpha = 0
             }
