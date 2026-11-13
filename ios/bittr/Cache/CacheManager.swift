@@ -445,6 +445,21 @@ class CacheManager: NSObject {
         }
     }
     
+    // Removes a restored mnemonic that never got its PIN, when the user leaves the restore flow.
+    static func discardUnfinishedRestore() {
+        do {
+            guard let mnemonic = try readSecretOrThrow(account: EnvironmentConfig.cacheKey(for: "mnemonic")),
+                  try readSecretOrThrow(account: EnvironmentConfig.cacheKey(for: "pin")) == nil,
+                  !(try isPendingCreation(mnemonic)),
+                  !LightningStorage.hasLightningState()
+            else { return }
+            SecureStore.remove(account: EnvironmentConfig.cacheKey(for: "mnemonic"))
+        } catch {
+            // Nothing is removed while the Keychain can't be read.
+            SentryManager.capture(error, context: "CacheManager:459")
+        }
+    }
+    
     private static func isPendingCreation(_ mnemonic:String) throws -> Bool {
         try SecureStore.getString(account: pendingCreationAccount) == fingerprint(of: mnemonic)
     }
