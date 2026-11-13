@@ -370,7 +370,7 @@ class Transfer2ViewController: UIViewController, UITextFieldDelegate, UNUserNoti
 
             // When the user confirmed they're requesting the service on their own exclusive initiative.
             // A registration from before the app asked has none, so the field is left out rather than invented.
-            if let initiativeConfirmedAt = ibanEntity.initiativeConfirmedAt, initiativeConfirmedAt != "" {
+            if let initiativeConfirmedAt = ibanEntity.initiativeConfirmedAt {
                 parameters["exclusive_initiative_confirmed_at"] = initiativeConfirmedAt
             }
             

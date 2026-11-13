@@ -160,8 +160,7 @@ class Transfer1ViewController: UIViewController, UITextFieldDelegate {
         // The confirmation already stored on the IBAN entity being registered, or the one given on this screen.
         let currentIbanID = self.signupVC?.currentIbanID ?? self.ibanVC?.currentIbanID ?? ""
         if currentIbanID != "",
-           let storedConfirmation = BitcoinManager.shared.bittrWallet.ibanEntities.first(where: { $0.id == currentIbanID })?.initiativeConfirmedAt,
-           storedConfirmation != "" {
+           let storedConfirmation = BitcoinManager.shared.bittrWallet.ibanEntities.first(where: { $0.id == currentIbanID })?.initiativeConfirmedAt {
             return storedConfirmation
         }
         return self.initiativeConfirmedAt
