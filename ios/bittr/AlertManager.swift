@@ -470,8 +470,8 @@ extension UIViewController {
             if let messageLabel {
                 NSLayoutConstraint.activate([
                     messageLabel.topAnchor.constraint(equalTo: alertIcon.bottomAnchor, constant: 25),
-                    messageLabel.leadingAnchor.constraint(equalTo: card.leadingAnchor, constant: 40),
-                    messageLabel.trailingAnchor.constraint(equalTo: card.trailingAnchor, constant: -40)
+                    messageLabel.leadingAnchor.constraint(equalTo: card.leadingAnchor, constant: 20),
+                    messageLabel.trailingAnchor.constraint(equalTo: card.trailingAnchor, constant: -20)
                 ])
             }
             
