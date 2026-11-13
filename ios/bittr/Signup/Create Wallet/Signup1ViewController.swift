@@ -86,6 +86,10 @@ class Signup1ViewController: UIViewController {
         // Check internet connection.
         guard (self.signupVC?.coreVC ?? self.signupVC ?? self).checkInternetConnection() else { return }
         
+        // A second tap would create a second mnemonic.
+        self.createWalletButton.isEnabled = false
+        self.restoreButton.isEnabled = false
+        
         // Start spinner.
         self.createWalletLabel.alpha = 0
         self.createWalletArrow.alpha = 0
@@ -105,11 +109,13 @@ class Signup1ViewController: UIViewController {
             do {
                 _ = try BitcoinManager.shared.getNewMnemonic()
             } catch {
+                self.createWalletButton.isEnabled = true
+                self.restoreButton.isEnabled = true
                 self.showAlert(title: Language.getWord(withID: "error"), message: Language.getWord(withID: "mnemonicsavefail"), buttons: [.dismiss(Language.getWord(withID: "okay"))])
                 return
             }
 
-            self.signupVC?.moveToPage(4)
+            self.signupVC?.moveToPage(4, checkConnection: false)
         }
     }
     

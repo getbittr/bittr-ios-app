@@ -327,6 +327,7 @@ class RestoreViewController: UIViewController, UITextFieldDelegate {
             self.signupVC!.coreVC!.showPin()
         } else {
             // We're restoring an existing wallet.
+            CacheManager.discardUnfinishedRestore()
             self.signupVC!.moveToPage(3)
         }
     }
