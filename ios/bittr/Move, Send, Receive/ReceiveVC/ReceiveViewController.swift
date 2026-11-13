@@ -30,7 +30,7 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate, UIContextMen
     @IBOutlet weak var questionButton: UIButton!
     
     // Lower address
-    @IBOutlet weak var lowerAddressLabel: UILabel!
+    @IBOutlet weak var lowerAddressLabel: GroupedLabel!
     
     // Copy
     @IBOutlet weak var copyIcon: UIImageView!
@@ -275,8 +275,7 @@ class ReceiveViewController: UIViewController, UITextFieldDelegate, UIContextMen
             case .lightning:
                 self.addressTitle.text = Language.getWord(withID: "invoice")
                 self.lowerAddressLabel.font = .monospacedSystemFont(ofSize: 15, weight: .bold)
-                self.view.layoutIfNeeded()
-                self.lowerAddressLabel.attributedText = lightningInvoice.inGroupsOfFour(width: self.lowerAddressLabel.bounds.width, lines: 3, font: self.lowerAddressLabel.font, color: self.lowerAddressLabel.textColor)
+                self.lowerAddressLabel.setGroupedText(lightningInvoice, lines: 3)
                 qrCode = "lightning:\(lightningInvoice)".uppercased().toBigQRCode()!
                 self.currentCopyableText = lightningInvoice
             case .bitcoinqr:

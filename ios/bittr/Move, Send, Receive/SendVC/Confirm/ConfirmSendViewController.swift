@@ -16,7 +16,7 @@ class ConfirmSendViewController: UIViewController {
     // Address
     @IBOutlet weak var addressView: UIView!
     @IBOutlet weak var addressTitle: UILabel!
-    @IBOutlet weak var addressLabel: UILabel!
+    @IBOutlet weak var addressLabel: GroupedLabel!
     
     // Amount
     @IBOutlet weak var amountView: UIView!
@@ -183,12 +183,10 @@ class ConfirmSendViewController: UIViewController {
         // Address
         self.addressTitle.text = Language.getWord(withID: onchainOrLightning == .onchain ? "address" : "invoice")
         if displayedAddress == addressOrInvoice {
-            // Laid out first, so the line breaks use the label's final width.
-            self.view.layoutIfNeeded()
             self.addressLabel.font = .monospacedSystemFont(ofSize: 15, weight: .bold)
             // An address is shown whole, so it can be checked before sending, and an invoice is shortened to three lines.
             self.addressLabel.numberOfLines = 0
-            self.addressLabel.attributedText = displayedAddress.inGroupsOfFour(width: self.addressLabel.bounds.width, lines: onchainOrLightning == .onchain ? .max : 3, font: self.addressLabel.font, color: self.addressLabel.textColor, trailing: true)
+            self.addressLabel.setGroupedText(displayedAddress, lines: onchainOrLightning == .onchain ? .max : 3, trailing: true)
         } else {
             self.addressLabel.text = displayedAddress
         }
