@@ -108,25 +108,22 @@ class Signup4ViewController: UIViewController, UITextFieldDelegate {
     }
     
     func setMnemonic() {
+        guard let actualMnemonic = self.signupVC?.newMnemonicWords(retry: { self.setMnemonic() }) else { return }
         
-        if self.signupVC?.coreVC == nil { Log.info("CoreVC nil in Signup4.") }
-        if let actualMnemonic = CacheManager.getMnemonic()?.components(separatedBy: " ") {
-            
-            var indicesSet = Set<Int>()
-            while indicesSet.count < 3 {
-                indicesSet.insert(Int.random(in: 0...11))
-            }
-            var indicesToCheck:[Int] = Array(indicesSet)
-            indicesToCheck.sort { int1, int2 in
-                int1 < int2
-            }
-            
-            self.label1.text = "\(indicesToCheck[0]+1)"
-            self.label2.text = "\(indicesToCheck[1]+1)"
-            self.label3.text = "\(indicesToCheck[2]+1)"
-            
-            self.checkWords = [actualMnemonic[indicesToCheck[0]], actualMnemonic[indicesToCheck[1]], actualMnemonic[indicesToCheck[2]]]
+        var indicesSet = Set<Int>()
+        while indicesSet.count < 3 {
+            indicesSet.insert(Int.random(in: 0...11))
         }
+        var indicesToCheck:[Int] = Array(indicesSet)
+        indicesToCheck.sort { int1, int2 in
+            int1 < int2
+        }
+        
+        self.label1.text = "\(indicesToCheck[0]+1)"
+        self.label2.text = "\(indicesToCheck[1]+1)"
+        self.label3.text = "\(indicesToCheck[2]+1)"
+        
+        self.checkWords = [actualMnemonic[indicesToCheck[0]], actualMnemonic[indicesToCheck[1]], actualMnemonic[indicesToCheck[2]]]
     }
     
     @objc func keyboardWillDisappear() {
@@ -180,10 +177,11 @@ class Signup4ViewController: UIViewController, UITextFieldDelegate {
     
     func textFieldDidEndEditing(_ textField: UITextField) {
         // Check if this is the 3rd field and all fields are filled
-        if textField.tag == 3 {
-            let allFieldsHaveText = mnemonicField1.text?.trimmingCharacters(in: .whitespacesAndNewlines) == checkWords[0] && 
-                                   mnemonicField2.text?.trimmingCharacters(in: .whitespacesAndNewlines) == checkWords[1] && 
-                                   mnemonicField3.text?.trimmingCharacters(in: .whitespacesAndNewlines) == checkWords[2]
+        if textField.tag == 3, self.checkWords.count == 3 {
+            let allFieldsHaveText =
+                mnemonicField1.text?.trimmingCharacters(in: .whitespacesAndNewlines) == checkWords[0] &&
+                mnemonicField2.text?.trimmingCharacters(in: .whitespacesAndNewlines) == checkWords[1] &&
+                mnemonicField3.text?.trimmingCharacters(in: .whitespacesAndNewlines) == checkWords[2]
             
             if allFieldsHaveText {
                 // Auto-trigger next button
@@ -218,6 +216,7 @@ class Signup4ViewController: UIViewController, UITextFieldDelegate {
     
     private func updateButtonState() {
         // Make Next button clickable or unclickable.
+        guard self.checkWords.count == 3 else { return }
         if self.mnemonicField1.text?.trimmingCharacters(in: .whitespacesAndNewlines) == self.checkWords[0] && self.mnemonicField2.text?.trimmingCharacters(in: .whitespacesAndNewlines) == self.checkWords[1] && self.mnemonicField3.text?.trimmingCharacters(in: .whitespacesAndNewlines) == self.checkWords[2] {
             self.saveView.backgroundColor = UIColor(red: 0, green: 0, blue: 0, alpha: 1)
         } else {
@@ -228,6 +227,11 @@ class Signup4ViewController: UIViewController, UITextFieldDelegate {
     @IBAction func nextButtonTapped(_ sender: UIButton) {
         
         self.view.endEditing(true)
+        
+        guard self.checkWords.count == 3 else {
+            self.setMnemonic()
+            return
+        }
         
         // Validate that all fields are filled
         let field1Text = self.mnemonicField1.text?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""

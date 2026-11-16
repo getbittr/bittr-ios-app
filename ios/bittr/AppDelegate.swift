@@ -63,6 +63,11 @@ class AppDelegate: UIResponder, UIApplicationDelegate, UNUserNotificationCenterD
         }
     }
     
+    func application(_ application: UIApplication, shouldAllowExtensionPointIdentifier extensionPointIdentifier: UIApplication.ExtensionPointIdentifier) -> Bool {
+        // Third-party keyboards could read the recovery phrase, so only the system keyboard is allowed.
+        return extensionPointIdentifier != .keyboard
+    }
+    
     func application(_ application: UIApplication, didRegisterForRemoteNotificationsWithDeviceToken deviceToken: Data) {
         
         let tokenParts = deviceToken.map { data in String(format: "%02.2hhx", data) }
