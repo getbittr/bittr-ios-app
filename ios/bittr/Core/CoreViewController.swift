@@ -11,19 +11,18 @@ import LDKNode
 class CoreViewController: UIViewController {
     
     // App start booleans
-    var userHasSignedIn = false
-    var walletHasSynced = false
-    var backgroundedAt:Date?
-    var deferredPresentation:(() -> Void)? // A screen someone asked for while the PIN was up.
-    var privacyCover:UIView? // Hides the wallet from the app switcher snapshot.
-    
-    // True while checkWalletAvailability is waiting for the Keychain to become readable.
     private var isAwaitingProtectedData = false
-    
-    // Whether the last checkWalletAvailability found a wallet on this device.
     private var walletIsOnDevice = false
     var launchAnimationHasPlayed = false
     private var didCheckWalletRemoval = false
+    var userHasSignedIn = false
+    var walletHasSynced = false
+    
+    // Backgrounded app
+    var backgroundedAt:Date?
+    var deferredPresentation:(() -> Void)? // A screen someone asked for while the PIN was up.
+    var privacyCover:UIView? // Hides the wallet from the app switcher snapshot.
+    var lockedDuringSignup = false
     
     // Pin reset
     var resettingPin = false
@@ -209,10 +208,10 @@ class CoreViewController: UIViewController {
             self.pinContainerView.alpha = 0
             // Setting a new PIN requires the wallet's recovery phrase.
             self.resettingPin = true
-            self.launchSignup(onPage: 2, checkConnection: false)
-            self.currentPage = .signup
             // Explained by checkWalletRemoval, so it doesn't compete with a removal alert.
             self.pinIsMissing = true
+            self.launchSignup(onPage: 2, checkConnection: false)
+            self.currentPage = .signup
             
         case .absent:
             Log.info("No wallet on this device.")
@@ -246,7 +245,7 @@ class CoreViewController: UIViewController {
             NotificationCenter.default.addObserver(self, selector: #selector(self.checkWalletAvailability), name: UIApplication.protectedDataDidBecomeAvailableNotification, object: nil)
         }
         
-        self.showAlert(title: Language.getWord(withID: "keychainunavailabletitle"), message: Language.getWord(withID: "keychainunavailable"), buttons: [.action(Language.getWord(withID: "tryagain")) { self.checkWalletAvailability() }])
+        self.showKeychainUnavailableAlert { self.checkWalletAvailability() }
     }
     
     private func finishAwaitingProtectedDataIfNeeded() {
@@ -292,8 +291,14 @@ class CoreViewController: UIViewController {
         BitcoinManager.shared.bittrWallet = CacheManager.parseDevice()
     }
     
-    func showPinMissingAlert() {
-        self.showAlert(title: Language.getWord(withID: "pinmissing"), message: Language.getWord(withID: "pinmissing2"), buttons: [.dismiss(Language.getWord(withID: "okay"))])
+    func showPinMissingAlert(then followUp: (() -> Void)? = nil) {
+        let okay = Language.getWord(withID: "okay")
+        let button = followUp.map { AlertButton.action(okay, $0) } ?? AlertButton.dismiss(okay)
+        self.showAlert(title: Language.getWord(withID: "pinmissing"), message: Language.getWord(withID: "pinmissing2"), buttons: [button])
+    }
+    
+    func showKeychainUnavailableAlert(retry: @escaping () -> Void) {
+        self.showAlert(title: Language.getWord(withID: "keychainunavailabletitle"), message: Language.getWord(withID: "keychainunavailable"), buttons: [.action(Language.getWord(withID: "tryagain"), retry)])
     }
     
     override func viewWillDisappear(_ animated: Bool) {

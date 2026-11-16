@@ -51,6 +51,7 @@ class Restore3ViewController: UIViewController, UITextFieldDelegate {
         
         self.coreVC!.userHasSignedIn = true
         self.signupVC?.coreVC?.resettingPin = false
+        self.signupVC?.coreVC?.pinIsMissing = false
         self.coreVC!.buyVC?.registerIbanVC?.dismiss(animated: true)
         self.coreVC!.buyVC?.parseIbanEntities(uponPageLaunch: false)
         self.coreVC!.fromSignupToHome()
