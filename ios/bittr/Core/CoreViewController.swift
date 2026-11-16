@@ -219,7 +219,7 @@ class CoreViewController: UIViewController {
             self.signupContainerView.alpha = 1
             self.pinContainerView.alpha = 0
             // Clear any stale cached client data and show the create-wallet flow.
-            CacheManager.deleteClientInfo()
+            self.forgetWallet()
             self.launchSignup(onPage: 3)
             self.currentPage = .signup
             
@@ -271,6 +271,13 @@ class CoreViewController: UIViewController {
         } else if self.pinIsMissing {
             self.showPinMissingAlert()
         }
+    }
+    
+    // Deletes the wallet's stored details and secrets, and the in-memory details read from them.
+    // Main thread only, since the UI reads the in-memory details.
+    func forgetWallet() {
+        CacheManager.deleteClientInfo()
+        BitcoinManager.shared.bittrWallet = CacheManager.parseDevice()
     }
     
     func showPinMissingAlert() {
