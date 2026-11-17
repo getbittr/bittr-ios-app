@@ -163,8 +163,9 @@ onlyIban, receiveNotificationsPrompt, receiveNotificationsDenied, resendCode}`.
 
 - `buy_signup.yaml`: unlock, `home.buyButton`, `buy.headerLabel`, `buy.continueButton`,
   `signup.create.ready.continueButton`, IBAN `NL27ABNA0451135725` (field focused), `…emailButton`, email
-  `e2ebittr@getbittr.com`, `pressKey: Enter`, `alert.button.1` (initiative), code `123456` (auto-submit), optional
-  `alert.button.0` + "Allow", `success.topLabelOne` (90 s), next, `transferInfo.amountTitle`, scroll to next, tap,
+  `e2ebittr@getbittr.com`, `…topLabelOne` (keyboard down), Verify `…nextButton`, `alert.button.1` (initiative), code
+  `123456` (auto-submit), optional `alert.button.0` + "Allow", `success.topLabelOne` (90 s), next,
+  `transferInfo.amountTitle`, scroll to next, tap,
   `alert.button.0`, `buy.yourCode` (20 s), `buy.yourEmail`, `buy.yourIban`, `buy.downButton`, `home.headerLabel`.
 - `buy_signup_no_notifications.yaml` (notifications denied): skip → `alert.onlyIban` Go to wallet; short IBAN →
   initiative cancel/confirm → invalid IBAN alert; bad email alert; resend + cooldown `alert.resendCode` → Change
