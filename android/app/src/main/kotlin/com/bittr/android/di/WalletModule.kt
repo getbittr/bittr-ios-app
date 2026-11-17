@@ -384,6 +384,8 @@ object WalletModule {
             databaseCreatedAt = { BdkStore.creationEpochSeconds(paths.bdkDatabaseFile) },
             onFailure = { failure -> Log.w(TAG, "Could not store the BDK scan record", failure) },
         )
+        // The cached on-chain address pool, read by the BDK wallet's open and kept by the receive pool.
+        val onchainAddresses = CachedOnchainAddressStore(cache)
         val onchainWallet = BdkOnchainWalletHolder(
             // Re-read per open, never captured: the seed can be erased while the
             // app runs, and iOS's `guard let cachedMnemonic` treats that as a
@@ -396,7 +398,7 @@ object WalletModule {
             electrumUrl = environment.electrumUrl,
             record = scanRecord,
             // `CacheManager.getOnchainAddresses().map(\.addressIndex).max()`.
-            topPoolIndex = { CachedOnchainAddressStore(cache).addresses().maxOfOrNull { it.index } },
+            topPoolIndex = { onchainAddresses.addresses().maxOfOrNull { it.index } },
             log = { message -> Log.i(TAG, "BDK: $message") },
             onError = { failure, row -> Log.w(TAG, "BDK error (row $row)", failure) },
             onOpenFailure = { failure ->
@@ -526,7 +528,7 @@ object WalletModule {
          */
         val onchainPort = nodeOnchainPort(lifecycle)
         val addressPool = OnchainAddressPool(
-            store = CachedOnchainAddressStore(cache),
+            store = onchainAddresses,
             derivation = object : AddressDerivation {
                 override fun peek(index: Int): String? = onchainWallet.peekAddress(index)
                 override fun revealTo(index: Int) = onchainWallet.revealAddressesTo(index)
