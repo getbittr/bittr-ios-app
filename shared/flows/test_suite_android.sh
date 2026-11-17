@@ -45,8 +45,9 @@
 #   BITTR_LOG_DIR     keep this run's logs here instead of a throwaway /tmp dir
 #
 # Screenshots: maestro writes a flow's takeScreenshot images under its --test-output-dir.
-# After each flow they are copied to shared/docs/screenshots/android/<flow_name>/, so they
-# outlive the /tmp log dir and never overwrite the iOS set in shared/docs/screenshots/.
+# After each flow, those meant for shared/docs/screenshots/ are copied to
+# shared/docs/screenshots/android/<flow_name>/, so they outlive the /tmp log dir and never
+# overwrite the iOS set in shared/docs/screenshots/.
 #
 # Exit code: 0 if everything passed, 1 if any flow failed, 2 on preflight errors.
 
@@ -376,11 +377,15 @@ ensure_server "clipboard_server" "${CLIPBOARD_PORT}" "${SCRIPTS_DIR}/clipboard_s
 
 # ── Run the flows ────────────────────────────────────────────────────────────
 
-# Copies a flow's takeScreenshot images out of its maestro output dir into ${SHOTS_DIR},
+# Copies a flow's shared/docs/screenshots frames out of its maestro output dir into ${SHOTS_DIR},
 # keeping the flow's own <flow_name>/<step>.png layout. Runs after failures too, so the
 # steps that passed still leave their screenshots.
 copy_screenshots() {
-    local taken="$1/screenshots/shared/docs/screenshots"
+    local all="$1/screenshots"
+    local taken="${all}/shared/docs/screenshots"
+    local others
+    others=$(find "${all}" -name '*.png' -not -path "${taken}/*" 2>/dev/null)
+    [[ -n "${others}" ]] && warn "not copied, outside shared/docs/screenshots (still in ${all}):"$'\n'"${others}"
     [[ -d "${taken}" ]] || return 0
     mkdir -p "${SHOTS_DIR}" && cp -Rp "${taken}/." "${SHOTS_DIR}/" \
         && info "  screenshots: ${SHOTS_DIR}" \
