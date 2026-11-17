@@ -97,6 +97,9 @@ class ScanCoordinator(
     private var lightSync: LightSyncClaim? = null
     private var lightSyncClaims: Long = 0
 
+    /** Light syncs taken over as hung that have not returned: each still blocks a thread in Electrum. */
+    private var abandonedLightSyncs = 0
+
     /** `bdkWalletIsScanning`. A full scan is running right now. */
     val isScanning: Boolean get() = synchronized(lock) { inFlight != null }
 
@@ -194,12 +197,17 @@ class ScanCoordinator(
     /**
      * `claimLightSync()`: claim the right to run a light sync, taking over from one that
      * has hung. Null while another light sync holds a claim younger than
-     * [LIGHT_SYNC_CLAIM_LIMIT_MILLIS].
+     * [LIGHT_SYNC_CLAIM_LIMIT_MILLIS], and while one taken over earlier has not returned:
+     * Electrum calls have no timeout, so each takeover would block one more thread for good.
      */
     fun claimLightSync(): LightSyncClaim? = synchronized(lock) {
         val current = lightSync
         if (current != null && nowMillis() - current.startedAtMillis < LIGHT_SYNC_CLAIM_LIMIT_MILLIS) {
             return null
+        }
+        if (current != null) {
+            if (abandonedLightSyncs > 0) return null
+            abandonedLightSyncs += 1
         }
         lightSyncClaims += 1
         LightSyncClaim(
@@ -211,7 +219,14 @@ class ScanCoordinator(
 
     /** `endLightSync(_:)`: release the claim, unless a newer light sync has taken it over. */
     fun endLightSync(claim: LightSyncClaim) {
-        synchronized(lock) { if (lightSync?.id == claim.id) lightSync = null }
+        synchronized(lock) {
+            if (lightSync?.id == claim.id) {
+                lightSync = null
+            } else if (abandonedLightSyncs > 0) {
+                // A taken-over light sync has returned at last.
+                abandonedLightSyncs -= 1
+            }
+        }
     }
 
     /** `markPreviouslyScanned()`: a stored full scan was brought up to date by a light sync. */

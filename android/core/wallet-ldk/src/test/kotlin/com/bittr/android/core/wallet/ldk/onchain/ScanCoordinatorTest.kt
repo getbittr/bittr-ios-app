@@ -216,6 +216,26 @@ class ScanCoordinatorTest {
     }
 
     @Test
+    fun `a hung light sync is taken over only while no earlier taken-over one is still stuck`() = runTest {
+        var now = 0L
+        val scans = ScanCoordinator(this, nowMillis = { now })
+        val first = scans.claimLightSync()!!
+
+        now += ScanCoordinator.LIGHT_SYNC_CLAIM_LIMIT_MILLIS
+        val second = scans.claimLightSync()!!
+
+        now += ScanCoordinator.LIGHT_SYNC_CLAIM_LIMIT_MILLIS
+        assertEquals("the first still blocks a thread", null, scans.claimLightSync())
+
+        scans.endLightSync(first)
+        val third = scans.claimLightSync()!!
+        assertTrue(third.replacesHungSync)
+        scans.endLightSync(second)
+        scans.endLightSync(third)
+        assertTrue(scans.claimLightSync() != null)
+    }
+
+    @Test
     fun `a stored scan brought up to date counts as scanned, and a rescan request undoes it`() = runTest {
         val scans = ScanCoordinator(this)
 
