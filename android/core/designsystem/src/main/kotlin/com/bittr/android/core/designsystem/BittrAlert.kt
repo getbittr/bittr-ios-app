@@ -43,6 +43,9 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.foundation.focusable
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.runtime.RememberObserver
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.getValue
@@ -191,10 +194,16 @@ fun BittrInlineAlert(
     val motion = rememberAlertMotion(AlertIdentity.of(identity), title, message, buttons.map { it.label })
     if (motion.gone) return
     CloseKeyboardOnShow(motion)
+    // A field behind it would take focus back after a hardware Enter, its keyboard over the buttons.
+    val cardFocus = remember { FocusRequester() }
+    LaunchedEffect(motion) { runCatching { cardFocus.requestFocus() } }
     AlertOverlay(
         motion = motion,
         onBack = buttons.firstOrNull { it.dismissesAlert }?.onClick,
-        cardModifier = modifier.then(if (cardTestTag != null) Modifier.testTag(cardTestTag) else Modifier),
+        cardModifier = modifier
+            .then(if (cardTestTag != null) Modifier.testTag(cardTestTag) else Modifier)
+            .focusRequester(cardFocus)
+            .focusable(),
     ) {
         AlertCardContent(
             title = title,
