@@ -26,7 +26,6 @@ import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -50,14 +49,10 @@ import com.bittr.android.core.common.TestID
 import com.bittr.android.core.designsystem.BittrSpinner
 import androidx.compose.foundation.layout.height
 import androidx.compose.runtime.CompositionLocalProvider
-import com.bittr.android.core.designsystem.BittrDialogTitle
 import com.bittr.android.core.designsystem.BittrAlertButton
 import com.bittr.android.core.designsystem.BittrInlineAlert
-import com.bittr.android.core.designsystem.BittrDialogMessage
-import com.bittr.android.core.designsystem.BittrCanvasShapes
 import com.bittr.android.core.designsystem.dismissOnPullDown
 import com.bittr.android.core.designsystem.BittrCard
-import com.bittr.android.core.designsystem.BittrPrimaryButton
 import com.bittr.android.core.designsystem.BittrTheme
 import com.bittr.android.core.designsystem.BittrTokens
 import com.bittr.android.core.designsystem.CanvasSpacer
@@ -65,10 +60,6 @@ import com.bittr.android.core.designsystem.bittrMarkup
 import com.bittr.android.core.designsystem.bittrSwitchColors
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.offset
-import androidx.compose.foundation.focusable
-import androidx.compose.ui.focus.FocusRequester
-import androidx.compose.ui.focus.focusRequester
-import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.semantics.Role
@@ -215,9 +206,6 @@ private fun SignupLayers(
         onOpenArticle = onOpenArticle,
         onboarding = onboarding,
     )
-    if (signup.showInitiative) {
-        InitiativeSheet(onConfirm = controller::onInitiativeConfirm, onCancel = controller::onInitiativeCancel)
-    }
 }
 
 /** Edge to edge, with the window's own dim, animation and Back handling left to [BittrSheet]. */
@@ -541,75 +529,6 @@ internal fun BuyAlertCard(alert: BuyAlert, onAction: (BuyAction) -> Unit) {
         messageIsValue = alert.id == TestID.Alert.copied,
         identity = alert,
     )
-}
-
-/** `showConfirmationSheet` for the exclusive-initiative confirmation (`Transfer1ViewController:175`). */
-@Composable
-private fun InitiativeSheet(onConfirm: () -> Unit, onCancel: () -> Unit) {
-    // iOS's `nextButtonTapped` ends editing before the sheet goes up. Verify's clearFocus()
-    // is not enough here: after a hardware Enter the window is in non-touch mode, and
-    // Android hands focus straight back to the IBAN field, whose keyboard then covers the
-    // confirm button. The sheet takes focus itself, so no field behind it holds it.
-    val sheetFocus = remember { FocusRequester() }
-    val keyboard = LocalSoftwareKeyboardController.current
-    LaunchedEffect(Unit) {
-        runCatching { sheetFocus.requestFocus() }
-        keyboard?.hide()
-    }
-    Box(
-        contentAlignment = Alignment.Center,
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Color.Black.copy(alpha = 0.45f))
-            .pointerInput(Unit) { detectTapGestures { } }
-            .focusRequester(sheetFocus)
-            .focusable(),
-    ) {
-        // An opaque dialog, like every other alert. It painted the card wash — white at 9 % —
-        // over the signup page, so the page read straight through the sentence the user is
-        // being asked to confirm (Ruben, 2026-09-22).
-        Column(
-            modifier = Modifier
-                .padding(horizontal = BittrTokens.Spacing.lg, vertical = BittrTokens.Spacing.xxl)
-                .fillMaxWidth()
-                .background(BittrTheme.colors.dialogContainer, BittrCanvasShapes.card)
-                .testTag(TestID.Alert.exclusiveInitiative)
-                .padding(24.dp),
-        ) {
-            CompositionLocalProvider(LocalContentColor provides BittrTheme.colors.onDialogContainer) {
-                BittrDialogTitle(BuyStrings.INITIATIVE_TITLE)
-                CanvasSpacer(BittrTokens.Spacing.md)
-                Column(
-                    Modifier
-                        .weight(1f, fill = false)
-                        .verticalScroll(rememberScrollState()),
-                ) {
-                    BittrDialogMessage(BuyStrings.INITIATIVE_MESSAGE)
-                }
-                CanvasSpacer(BittrTokens.Spacing.lg)
-                BittrPrimaryButton(
-                    text = BuyStrings.INITIATIVE_CONFIRM,
-                    onClick = onConfirm,
-                    arrow = false,
-                    // A sentence, not a label: the pill grows to hold it.
-                    wrapLabel = true,
-                    modifier = Modifier.testTag(TestID.Signup.Bittr.Initiative.confirmButton),
-                )
-                TextButton(
-                    onClick = onCancel,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .testTag(TestID.Signup.Bittr.Initiative.cancelButton),
-                ) {
-                    Text(
-                        BuyStrings.CANCEL,
-                        style = MaterialTheme.typography.labelLarge,
-                        color = BittrTheme.colors.onDialogContainer,
-                    )
-                }
-            }
-        }
-    }
 }
 
 /** Clears focus when tapped — iOS's `backgroundButtonTapped`, which the flows use to drop the keyboard. */
