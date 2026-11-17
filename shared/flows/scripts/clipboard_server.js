@@ -41,7 +41,7 @@ function run(command, args, input) {
 async function setIos(text) {
     // The Mac's clipboard reaches the simulator through Simulator's pasteboard sync.
     const mac = run('pbcopy', [], text);
-    if (!mac.ok) return { ok: false, step: 'pbcopy', status: mac.status, stderr: mac.stderr };
+    if (!mac.ok) console.warn('pbcopy failed, relying on simctl pbcopy:', mac.stderr);
 
     // `xcrun simctl pbcopy booted` reads the clipboard contents from stdin.
     // It covers setups with the pasteboard sync turned off.
@@ -54,7 +54,7 @@ async function setIos(text) {
         const current = getIos();
         if (!current.ok) return { ok: false, step: 'simctl pbpaste', status: current.status, stderr: current.stderr };
         if (current.text === text) return { ok: true, stderr: simulator.stderr };
-        if (Date.now() >= deadline) return { ok: false, step: 'verify', found: current.text.slice(0, 80), stderr: simulator.stderr };
+        if (Date.now() >= deadline) return { ok: false, step: 'verify', found: current.text.slice(0, 80), stderr: simulator.stderr, macStderr: mac.ok ? undefined : mac.stderr };
         await new Promise((resolve) => setTimeout(resolve, VERIFY_INTERVAL_MS));
     }
 }
@@ -82,7 +82,7 @@ http.createServer((req, res) => {
             const result = await setIos(body);
             if (!result.ok) {
                 const detail = result.step === 'verify'
-                    ? `clipboard doesn't hold the text after ${VERIFY_TIMEOUT_MS}ms; found: ${JSON.stringify(result.found)}`
+                    ? `clipboard doesn't hold the text after ${VERIFY_TIMEOUT_MS}ms; found: ${JSON.stringify(result.found)}${result.macStderr === undefined ? '' : `; pbcopy failed: ${result.macStderr}`}`
                     : result.stderr;
                 console.error(`setting the iOS clipboard failed at ${result.step}:`, detail);
                 respond(res, 500, result);
