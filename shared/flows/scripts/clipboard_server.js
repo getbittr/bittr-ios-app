@@ -11,7 +11,8 @@
 // The text goes on the Mac's clipboard too. With Simulator's "Automatically
 // Sync Pasteboard" on, the simulator mirrors the Mac's clipboard, and on
 // Xcode 27 `xcrun simctl pbcopy` alone leaves it unchanged. So during a run,
-// the Mac clipboard holds whatever the flows paste.
+// the Mac clipboard holds whatever the flows paste. When the helper stops, the
+// Mac clipboard gets back the text it held before, unless it was copied over.
 //
 // Run once before testing:
 //   node shared/flows/scripts/clipboard_server.js
@@ -28,6 +29,9 @@ const PORT = 8889;
 const VERIFY_TIMEOUT_MS = 2000;
 const VERIFY_INTERVAL_MS = 100;
 
+let savedMacClipboard = null;
+let lastCopiedText = null;
+
 function run(command, args, input) {
     const result = spawnSync(command, args, { input });
     return {
@@ -39,9 +43,15 @@ function run(command, args, input) {
 }
 
 async function setIos(text) {
+    if (savedMacClipboard === null) {
+        const before = run('pbpaste', []);
+        if (before.ok) savedMacClipboard = before.stdout;
+    }
+
     // The Mac's clipboard reaches the simulator through Simulator's pasteboard sync.
     const mac = run('pbcopy', [], text);
-    if (!mac.ok) console.warn('pbcopy failed, relying on simctl pbcopy:', mac.stderr);
+    if (mac.ok) lastCopiedText = text;
+    else console.warn('pbcopy failed, relying on simctl pbcopy:', mac.stderr);
 
     // `xcrun simctl pbcopy booted` reads the clipboard contents from stdin.
     // It covers setups with the pasteboard sync turned off.
@@ -62,6 +72,19 @@ async function setIos(text) {
 function getIos() {
     const result = run('xcrun', ['simctl', 'pbpaste', 'booted']);
     return { ok: result.ok, status: result.status, text: result.stdout, stderr: result.stderr };
+}
+
+function restoreMacClipboard() {
+    if (savedMacClipboard === null || run('pbpaste', []).stdout !== lastCopiedText) return;
+    run('pbcopy', [], savedMacClipboard);
+    console.log('gave the Mac clipboard back its earlier text');
+}
+
+for (const signal of ['SIGINT', 'SIGTERM']) {
+    process.on(signal, () => {
+        restoreMacClipboard();
+        process.exit(0);
+    });
 }
 
 function respond(res, status, body) {
