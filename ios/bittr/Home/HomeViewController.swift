@@ -296,12 +296,17 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
     @IBAction func syncingStatusTapped(_ sender: UIButton) {
         
         if self.coreVC!.walletHasSynced {
+            var problems = [String]()
+            if self.couldNotFetchConversion {
+                problems.append(Language.getWord(withID: "conversionfail"))
+            }
             if BitcoinManager.shared.lastWalletSyncFailed {
-                self.showAlert(title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "syncfail"), buttons: [.dismiss(Language.getWord(withID: "okay"))])
-            } else if self.couldNotFetchConversion {
-                self.showAlert(title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "conversionfail"), buttons: [.dismiss(Language.getWord(withID: "okay"))])
-            } else {
+                problems.append(Language.getWord(withID: "syncfail"))
+            }
+            if problems.isEmpty {
                 self.balanceDetailsButtonTapped(UIButton())
+            } else {
+                self.showAlert(title: Language.getWord(withID: "oops"), message: problems.joined(separator: "\n\n"), buttons: [.dismiss(Language.getWord(withID: "okay"))])
             }
         } else {
             self.coreVC?.showSyncView()
