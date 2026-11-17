@@ -128,7 +128,6 @@ extension CoreViewController {
             
             // Load wallet data.
             DispatchQueue.main.async {
-                self.homeVC?.couldNotSyncWallet = !didSyncWallet
                 self.homeVC?.loadWalletData()
                 // BDK's start has its own lock, so a pull-to-refresh need not wait for it.
                 self.isContinuingStartWallet = false

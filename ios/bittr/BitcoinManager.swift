@@ -15,6 +15,7 @@ class BitcoinManager {
     // LDK Node
     public var ldkNode: LDKNode.Node?
     private var network: LDKNode.Network
+    private(set) var lastWalletSyncFailed = false
     
     // LDK Node single-flight startup guard.
     private let nodeStartLock = NSLock()
@@ -554,7 +555,13 @@ class BitcoinManager {
     
     func syncWallets() throws {
         guard let node = self.ldkNode else { throw WalletError.walletNotInitiated }
-        try node.syncWallets()
+        do {
+            try node.syncWallets()
+            self.lastWalletSyncFailed = false
+        } catch {
+            self.lastWalletSyncFailed = true
+            throw error
+        }
     }
     
     func getInvoice(amountMsat: UInt64, description:String, expirySecs:UInt32) async -> Bolt11Invoice? {

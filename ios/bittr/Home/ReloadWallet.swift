@@ -57,7 +57,6 @@ extension HomeViewController {
         BitcoinManager.shared.bittrWallet.satoshisLightning = 0
         
         self.couldNotFetchConversion = false
-        self.couldNotSyncWallet = false
         self.didFetchConversion = false
         self.graphLoadFailedAt = nil
         self.coreVC?.walletHasSynced = false
