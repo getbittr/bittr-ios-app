@@ -288,7 +288,7 @@ class RestoreViewController: UIViewController, UITextFieldDelegate {
             
             // Store mnemonic in cache.
             do {
-                try CacheManager.storeRestoredMnemonic(enteredMnemonic)
+                try CacheManager.storeMnemonicAwaitingPin(enteredMnemonic)
             } catch {
                 self.resetWithError(Language.getWord(withID: "mnemonicsavefail"))
                 return
