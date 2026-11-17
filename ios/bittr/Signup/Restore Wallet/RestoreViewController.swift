@@ -221,6 +221,10 @@ class RestoreViewController: UIViewController, UITextFieldDelegate {
     
     @IBAction func restoreButtonTapped(_ sender: UIButton) {
         self.view.endEditing(true)
+        guard !self.mnemonicView.isHidden else {
+            self.showAlert(title: Language.getWord(withID: "becareful"), message: Language.getWord(withID: "mnemonichidden"), buttons: [.dismiss(Language.getWord(withID: "okay"))])
+            return
+        }
         guard let coreVC = self.coreVC else {
             Log.info("CoreVC is nil.")
             self.resetWithError(Language.getWord(withID: "restorewalleterror"))
