@@ -160,6 +160,8 @@ appId: ${APP_ID}
 
 # Decline first: Cancel is alert.button.0. Declining has to leave the customer
 # where they were, with nothing sent and nothing recorded.
+- waitForAnimationToEnd:
+    timeout: 3000
 - tapOn:
     id: "alert.button.0"
 - extendedWaitUntil:

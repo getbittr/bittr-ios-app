@@ -45,6 +45,8 @@ appId: ${APP_ID}
     visible:
       id: "alert.button.1"
     timeout: 10000
+- waitForAnimationToEnd:
+    timeout: 3000
 - tapOn:
     id: "alert.button.1"
 # Let it slide out, so a following alert.button.0 is the next alert's, not its Cancel.
