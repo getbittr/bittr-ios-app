@@ -38,19 +38,30 @@ function run(command, args, input) {
     };
 }
 
-function readSimulatorClipboard() {
-    return run('xcrun', ['simctl', 'pbpaste', 'booted']).stdout;
-}
+async function setIos(text) {
+    // The Mac's clipboard reaches the simulator through Simulator's pasteboard sync.
+    const mac = run('pbcopy', [], text);
+    if (!mac.ok) return { ok: false, step: 'pbcopy', status: mac.status, stderr: mac.stderr };
 
-async function waitForSimulatorClipboard(text) {
-    // Polls until the simulator's clipboard holds the text, or the timeout passes.
+    // `xcrun simctl pbcopy booted` reads the clipboard contents from stdin.
+    // It covers setups with the pasteboard sync turned off.
+    const simulator = run('xcrun', ['simctl', 'pbcopy', 'booted'], text);
+    if (!simulator.ok) return { ok: false, step: 'simctl pbcopy', status: simulator.status, stderr: simulator.stderr };
+
+    // Confirm the app will actually paste this text, so a failed copy fails here.
     const deadline = Date.now() + VERIFY_TIMEOUT_MS;
     while (true) {
-        const current = readSimulatorClipboard();
-        if (current === text) return { ok: true, current };
-        if (Date.now() >= deadline) return { ok: false, current };
+        const current = getIos();
+        if (!current.ok) return { ok: false, step: 'simctl pbpaste', status: current.status, stderr: current.stderr };
+        if (current.text === text) return { ok: true, stderr: simulator.stderr };
+        if (Date.now() >= deadline) return { ok: false, step: 'verify', found: current.text.slice(0, 80), stderr: simulator.stderr };
         await new Promise((resolve) => setTimeout(resolve, VERIFY_INTERVAL_MS));
     }
+}
+
+function getIos() {
+    const result = run('xcrun', ['simctl', 'pbpaste', 'booted']);
+    return { ok: result.ok, status: result.status, text: result.stdout, stderr: result.stderr };
 }
 
 function respond(res, status, body) {
@@ -68,34 +79,17 @@ http.createServer((req, res) => {
     req.on('data', (chunk) => { body += chunk; });
     req.on('end', async () => {
         try {
-            // The Mac's clipboard reaches the simulator through Simulator's pasteboard sync.
-            const mac = run('pbcopy', [], body);
-            if (!mac.ok) {
-                console.error('pbcopy failed:', mac.stderr);
-                respond(res, 500, { ok: false, step: 'pbcopy', status: mac.status, stderr: mac.stderr });
+            const result = await setIos(body);
+            if (!result.ok) {
+                const detail = result.step === 'verify'
+                    ? `clipboard doesn't hold the text after ${VERIFY_TIMEOUT_MS}ms; found: ${JSON.stringify(result.found)}`
+                    : result.stderr;
+                console.error(`setting the iOS clipboard failed at ${result.step}:`, detail);
+                respond(res, 500, result);
                 return;
             }
-
-            // `xcrun simctl pbcopy booted` reads the clipboard contents from stdin.
-            // It covers setups with the pasteboard sync turned off.
-            const simulator = run('xcrun', ['simctl', 'pbcopy', 'booted'], body);
-            if (!simulator.ok) {
-                console.error('xcrun simctl pbcopy failed:', simulator.stderr);
-                respond(res, 500, { ok: false, step: 'simctl pbcopy', status: simulator.status, stderr: simulator.stderr });
-                return;
-            }
-
-            // Confirm the app will actually paste this text, so a failed copy fails here.
-            const verified = await waitForSimulatorClipboard(body);
-            if (!verified.ok) {
-                const found = verified.current.slice(0, 80);
-                console.error(`simulator clipboard doesn't hold the text after ${VERIFY_TIMEOUT_MS}ms; found: ${JSON.stringify(found)}`);
-                respond(res, 500, { ok: false, step: 'verify', found, stderr: simulator.stderr });
-                return;
-            }
-
             console.log(`copied ${body.length}-byte string to the Mac and booted simulator clipboards`);
-            respond(res, 200, { ok: true, stderr: simulator.stderr });
+            respond(res, 200, { ok: true, stderr: result.stderr });
         } catch (err) {
             console.error('handler error:', err);
             res.writeHead(500);
