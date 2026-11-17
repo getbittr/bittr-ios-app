@@ -34,7 +34,7 @@ function run(command, args, input) {
         ok: result.status === 0,
         status: result.status,
         stdout: result.stdout?.toString() ?? '',
-        stderr: result.stderr?.toString() ?? ''
+        stderr: result.error?.message ?? result.stderr?.toString() ?? ''
     };
 }
 
