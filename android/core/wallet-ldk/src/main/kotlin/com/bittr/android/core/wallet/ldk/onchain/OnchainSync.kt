@@ -262,10 +262,21 @@ class OnchainSync<W : Any, F : Any, S : Any, U : Any>(
      * seconds is told `false` while the scan runs on. Both are
      * [ScanCoordinator]'s behaviour and its tests.
      */
-    suspend fun fullScan(): Boolean = scans.fullScan { generation ->
+    suspend fun fullScan(): Boolean {
+        var ran = false
+        val scanned = scans.fullScan { generation ->
+            ran = true
+            scanOnce(generation)
+        }
+        // A rebuild asked for while another caller's scan ran has only waited on it, so run it now.
+        if (ran || record?.rebuildRequested != true) return scanned
+        return scans.fullScan { generation -> scanOnce(generation) }
+    }
+
+    private suspend fun scanOnce(generation: Long): Boolean {
         // Rebuild first when the user asked for it, and reopen when a failed start left no wallet.
         val reopen = record?.rebuildRequested == true || port.currentWallet() == null
-        if (reopen && !rebuildWallet(generation)) return@fullScan false
+        if (reopen && !rebuildWallet(generation)) return false
 
         val outcome = runFullScan()
         when (outcome) {
@@ -281,7 +292,7 @@ class OnchainSync<W : Any, F : Any, S : Any, U : Any>(
             }
             is SyncOutcome.NotApplied -> outcome.cause?.let { onError(it, fullScanRow(outcome.step)) }
         }
-        outcome.applied
+        return outcome.applied
     }
 
     /**
