@@ -184,13 +184,14 @@ class OnchainSyncLoopTest {
     }
 
     /**
-     * A refresh whose rebuild fails keeps the loop and the wallet. Each tick after it tries the
-     * full scan again, as iOS's Send and Swap screens do, until one succeeds.
+     * A refresh whose rebuild fails keeps the loop and the wallet. As iOS's timer stays stopped,
+     * nothing syncs on the timer then, and the scan is tried again when the app returns.
      */
     @Test
-    fun `a failed rebuild keeps the loop, and the ticks after it scan again`() = runTest {
+    fun `a failed rebuild keeps the loop, and scans again when the app returns`() = runTest {
         val fixture = Fixture(this)
-        val loop = fixture.loop()
+        val returns = kotlinx.coroutines.flow.MutableSharedFlow<Unit>()
+        val loop = fixture.loop(foregroundReturns = returns)
         val runner = launch { loop.run() }
         runCurrent()
 
@@ -205,12 +206,17 @@ class OnchainSyncLoopTest {
         assertFalse("the runner keeps going", runner.isCompleted)
         assertTrue("and the wallet stays open", fixture.wallet.isOpen)
 
+        val fullScans = fixture.port.fullScans
+        advanceTimeBy(OnchainSyncLoop.LIGHT_SYNC_INTERVAL_MILLIS * 3)
+        runCurrent()
+        assertEquals("no scan on the timer", fullScans, fixture.port.fullScans)
+        assertEquals("and no light sync", 0, fixture.port.lightSyncs)
+
         fixture.port.applies = true
-        advanceTimeBy(OnchainSyncLoop.LIGHT_SYNC_INTERVAL_MILLIS)
+        returns.emit(Unit)
         runCurrent()
         assertEquals(OnchainLoopEvent.FullScanApplied, fixture.events.last())
         assertTrue(fixture.scans.hasBeenScanned)
-        assertEquals("no light sync on the unscanned wallet", 0, fixture.port.lightSyncs)
 
         // Then light syncs again.
         advanceTimeBy(OnchainSyncLoop.LIGHT_SYNC_INTERVAL_MILLIS)

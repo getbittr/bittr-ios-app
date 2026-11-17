@@ -185,8 +185,8 @@ enum class OnchainLoopEvent {
  * and [rebuildNow] then runs a full scan, which first builds the wallet again
  * from an empty database. The timer is paused from the moment of the pull
  * ([pauseLightSyncs]), as iOS stops `BackgroundSync`, and starts again once the
- * scan has run. A rebuild or scan that fails keeps the loop and the wallet, and
- * each tick after it tries the full scan again until one succeeds.
+ * scan has succeeded. A rebuild or scan that fails keeps the loop and the wallet,
+ * and, as at the start, is tried again on each return to the foreground.
  *
  * ## What a failed full scan costs, and what revives it
  *
@@ -358,12 +358,20 @@ class OnchainSyncLoop(
                     continue
                 }
 
-                // The timer stays paused for the rebuild. A rebuild that fails keeps the
-                // loop and the wallet: the ticks after it try the full scan again.
+                // The timer stays paused for the rebuild. A rebuild that fails keeps the loop
+                // and the wallet, and, as iOS's timer stays stopped, scans again only when the
+                // app returns to the foreground or the user pulls again.
                 val scanned = sync.fullScan()
                 report(if (scanned) OnchainLoopEvent.FullScanApplied else OnchainLoopEvent.FullScanFailed)
-                lightSyncsPaused = false
-                rebuild.complete(if (scanned) readBalances() else false)
+                if (scanned) {
+                    lightSyncsPaused = false
+                    rebuild.complete(readBalances())
+                    continue
+                }
+                rebuild.complete(false)
+                val retried = retryUntilScanned(ticks) ?: return
+                val read = readBalances()
+                retried.rebuild?.complete(read)
             }
         } finally {
             // Non-suspending, all of them, which is what makes this correct on
@@ -417,8 +425,8 @@ class OnchainSyncLoop(
     private class Retried(val rebuild: CompletableDeferred<Boolean>?)
 
     /**
-     * After a failed start, the scan again on each return to the foreground — or at once
-     * for a pull to refresh — until one succeeds.
+     * After a failed start or refresh, the scan again on each return to the foreground — or
+     * at once for a pull to refresh — until one succeeds.
      *
      * @return once the wallet counts as scanned; null, ending the runner, when there is no
      *   foreground signal to wait for.
@@ -456,13 +464,9 @@ class OnchainSyncLoop(
     }
 
     /**
-     * One timer tick, launched beside the loop: a sync, then the balance read.
-     *
-     * The sync is a light sync while the wallet counts as scanned. After a refresh whose
-     * rebuild or scan failed it does not, and the tick tries the full scan again — what
-     * iOS's Send and Swap screens do when they find the wallet unscanned. That attaches to
-     * a scan still running rather than starting a second one, and runs a rebuild still
-     * requested.
+     * One timer tick, launched beside the loop: a light sync, then the balance read. As
+     * iOS's `BackgroundSync`, a tick never runs a full scan; a failed one is retried on the
+     * next return to the foreground (see [retryUntilScanned]).
      *
      * The read is after the sync, and after the closure scan inside it — see the class
      * comment. Unconditional on whether the sync applied, because this reads the *node*
@@ -473,16 +477,10 @@ class OnchainSyncLoop(
         if (lightSyncsPaused) return
         lightSyncScope.launch(ticks) {
             val event = try {
-                if (scans.hasBeenScanned) {
-                    if (sync.lightSync() == LightSyncOutcome.Synced) {
-                        OnchainLoopEvent.LightSyncApplied
-                    } else {
-                        OnchainLoopEvent.LightSyncSkipped
-                    }
-                } else if (sync.fullScan()) {
-                    OnchainLoopEvent.FullScanApplied
+                if (sync.lightSync() == LightSyncOutcome.Synced) {
+                    OnchainLoopEvent.LightSyncApplied
                 } else {
-                    OnchainLoopEvent.FullScanFailed
+                    OnchainLoopEvent.LightSyncSkipped
                 }
             } catch (cancellation: CancellationException) {
                 throw cancellation
