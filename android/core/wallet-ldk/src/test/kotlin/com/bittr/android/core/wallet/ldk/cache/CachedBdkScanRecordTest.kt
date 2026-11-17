@@ -41,13 +41,34 @@ class CachedBdkScanRecordTest {
     }
 
     @Test
-    fun `a full scan older than the database is distrusted`() {
+    fun `a full scan made in another database is distrusted`() {
         val record = record()
         record.storeFullScanCompletion()
 
         databaseCreated = now + 1
 
         assertFalse(record.hasStoredFullScan)
+    }
+
+    /** A clock that ran ahead when the database was created, and was corrected before the scan. */
+    @Test
+    fun `a full scan made in this database counts, whatever the clock did in between`() {
+        val record = record()
+        now = 500L
+        record.storeFullScanCompletion()
+
+        assertTrue(record.hasStoredFullScan)
+    }
+
+    /** Stored before scans recorded their database: the times are compared, as iOS does. */
+    @Test
+    fun `a full scan stored without its database is compared by time`() {
+        val cache = FileWalletCache(temporaryFolder.newFolder())
+        cache.put(CachedBdkScanRecord.KEY_LAST_FULL_SCAN, listOf("2000"))
+
+        assertTrue(record(cache).hasStoredFullScan)
+        databaseCreated = 2_001L
+        assertFalse(record(cache).hasStoredFullScan)
     }
 
     @Test

@@ -23,15 +23,21 @@ class CachedBdkScanRecord(
 
     override val hasStoredFullScan: Boolean
         get() {
-            // Check when the BDK wallet was last scanned.
-            val scannedAt = cache.strings(KEY_LAST_FULL_SCAN).firstOrNull()?.toLongOrNull() ?: return false
-
-            // Make sure the most recent scan is not older than this database.
+            // Check when, and in which database, the BDK wallet was last scanned.
+            val stored = cache.strings(KEY_LAST_FULL_SCAN)
             val databaseCreated = databaseCreatedAt() ?: return false
+
+            // Matched to the database it was made in, so a clock corrected in between doesn't matter.
+            stored.getOrNull(1)?.toLongOrNull()?.let { scannedDatabase -> return scannedDatabase == databaseCreated }
+
+            // A scan stored without its database: make sure it is not older than this database.
+            val scannedAt = stored.firstOrNull()?.toLongOrNull() ?: return false
             return databaseCreated <= scannedAt
         }
 
-    override fun storeFullScanCompletion() = write { cache.put(KEY_LAST_FULL_SCAN, listOf(now().toString())) }
+    override fun storeFullScanCompletion() = write {
+        cache.put(KEY_LAST_FULL_SCAN, listOfNotNull(now().toString(), databaseCreatedAt()?.toString()))
+    }
 
     override fun clearFullScanCompletion() = write { cache.remove(KEY_LAST_FULL_SCAN) }
 
