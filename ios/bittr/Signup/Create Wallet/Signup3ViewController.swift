@@ -142,6 +142,10 @@ class Signup3ViewController: UIViewController {
     }
     
     @IBAction func nextButtonTapped(_ sender: UIButton) {
+        guard !self.mnemonicStack.isHidden else {
+            self.showAlert(title: Language.getWord(withID: "becareful"), message: Language.getWord(withID: "mnemonichidden"), buttons: [.dismiss(Language.getWord(withID: "okay"))])
+            return
+        }
         guard self.mnemonicIsShown else {
             self.setMnemonic()
             return

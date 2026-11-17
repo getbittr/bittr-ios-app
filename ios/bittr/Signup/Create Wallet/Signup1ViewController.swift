@@ -111,7 +111,8 @@ class Signup1ViewController: UIViewController {
             } catch {
                 self.createWalletButton.isEnabled = true
                 self.restoreButton.isEnabled = true
-                self.showAlert(title: Language.getWord(withID: "error"), message: Language.getWord(withID: "mnemonicsavefail"), buttons: [.dismiss(Language.getWord(withID: "okay"))])
+                let message = error as? CacheManager.WalletCreationError == .walletExists ? "walletexists" : "mnemonicsavefail"
+                self.showAlert(title: Language.getWord(withID: "error"), message: Language.getWord(withID: message), buttons: [.dismiss(Language.getWord(withID: "okay"))])
                 return
             }
 

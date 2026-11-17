@@ -381,6 +381,8 @@ class Language: NSObject {
             "forgotpin": "Forgot PIN",
             "forgotpin2": "Please enter your 12-word recovery phrase to reset your PIN.",
             "forgotpin3": "The recovery phrase is incorrect.",
+            "nowalletondevice": "There's no wallet on this device anymore. Please close and reopen the app to restore it with your recovery phrase.",
+            "walletexists": "There's already a wallet on this device. Please close and reopen the app to open it.",
             "reset": "Reset",
             "resetpin": "Reset PIN",
             "newaddress": "new address",

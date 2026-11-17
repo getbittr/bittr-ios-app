@@ -49,7 +49,7 @@ class Restore3ViewController: UIViewController, UITextFieldDelegate {
         }
         CacheManager.resetFailedPinAttempts()
         
-        self.coreVC!.userHasSignedIn = true
+        self.coreVC!.didSignIn()
         self.signupVC?.coreVC?.resettingPin = false
         self.signupVC?.coreVC?.pinIsMissing = false
         self.coreVC!.buyVC?.registerIbanVC?.dismiss(animated: true)

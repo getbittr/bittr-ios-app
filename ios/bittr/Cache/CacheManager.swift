@@ -377,7 +377,7 @@ class CacheManager: NSObject {
     
     // MARK: - Mnemonic
     
-    static func storeMnemonic(_ mnemonic:String) throws {
+    private static func storeMnemonic(_ mnemonic:String) throws {
         
         // Make sure no foreign LDK Node data remains available when creating or restoring a wallet.
         // Foreign LDK Node data can never restore a channel, and may lead to loss of funds.
@@ -417,7 +417,7 @@ class CacheManager: NSObject {
     
     // MARK: - Pending wallet creation
     
-    // Holds a fingerprint of a newly created mnemonic until its PIN is stored.
+    // Holds a fingerprint of a new or restored mnemonic until its PIN is stored.
     private static var pendingCreationAccount: String {
         EnvironmentConfig.cacheKey(for: "pendingcreation")
     }
@@ -426,15 +426,9 @@ class CacheManager: NSObject {
         case walletExists
     }
     
-    static func storeNewMnemonic(_ mnemonic:String) throws {
+    static func storeMnemonicAwaitingPin(_ mnemonic:String) throws {
         
-        // Only an unfinished creation may be replaced.
-        switch try storedWallet() {
-        case .none, .unfinishedCreation:
-            break
-        case .complete, .pinMissing:
-            throw WalletCreationError.walletExists
-        }
+        try ensureNoWalletExists()
         
         do {
             try persistSecret(fingerprint(of: mnemonic), account: pendingCreationAccount, label: "pending creation", accessibility: .afterFirstUnlockThisDeviceOnly)
@@ -450,11 +444,23 @@ class CacheManager: NSObject {
     // Removes a restored mnemonic that never got its PIN, when the user leaves the restore flow.
     static func discardUnfinishedRestore() {
         do {
-            guard try storedWallet() == .pinMissing, !LightningStorage.hasLightningState() else { return }
+            guard try storedWallet() == .unfinishedCreation else { return }
             SecureStore.remove(account: EnvironmentConfig.cacheKey(for: "mnemonic"))
+            SecureStore.remove(account: pendingCreationAccount)
         } catch {
             // Nothing is removed while the Keychain can't be read.
             SentryManager.capture(error, context: "CacheManager:459")
+        }
+    }
+    
+    private static func ensureNoWalletExists() throws {
+        
+        // Only an unfinished creation may be replaced.
+        switch try storedWallet() {
+        case .none, .unfinishedCreation:
+            break
+        case .complete, .pinMissing:
+            throw WalletCreationError.walletExists
         }
     }
     
@@ -469,7 +475,7 @@ class CacheManager: NSObject {
     private static func storedWallet() throws -> StoredWallet {
         guard let mnemonic = try readSecretOrThrow(account: EnvironmentConfig.cacheKey(for: "mnemonic")) else { return .none }
         guard try readSecretOrThrow(account: EnvironmentConfig.cacheKey(for: "pin")) == nil else { return .complete }
-        // A creation without its PIN can't hold funds, unless Lightning state says otherwise.
+        // A mnemonic still awaiting its PIN may be replaced, unless Lightning state says otherwise.
         if try isPendingCreation(mnemonic), !LightningStorage.hasLightningState() { return .unfinishedCreation }
         return .pinMissing
     }

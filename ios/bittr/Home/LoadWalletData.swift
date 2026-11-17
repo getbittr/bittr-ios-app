@@ -337,7 +337,17 @@ extension HomeViewController {
 
 extension CoreViewController {
     
+    func didSignIn() {
+        self.userHasSignedIn = true
+        if !self.walletHasSynced {
+            self.startWallet()
+        }
+    }
+    
     func handlePendingWork() {
+        
+        // Pending work waits until the PIN has been entered.
+        guard self.userHasSignedIn else { return }
         
         // Check whether swap Dynamic Island tap is waiting to present.
         if let deferred = self.deferredPresentation {

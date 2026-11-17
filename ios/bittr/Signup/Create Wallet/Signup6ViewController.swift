@@ -49,7 +49,7 @@ class Signup6ViewController: UIViewController, UITextFieldDelegate {
                     return
                 }
                 
-                self.signupVC?.coreVC?.userHasSignedIn = true
+                self.signupVC?.coreVC?.didSignIn()
                 self.signupVC?.enteredPin = ""
                 
                 // Move to next page.
@@ -57,9 +57,6 @@ class Signup6ViewController: UIViewController, UITextFieldDelegate {
                 
                 // Count successful wallet creation.
                 SentryManager.countMetric("app.launch.newwallet.success")
-                
-                // Start wallet.
-                self.signupVC?.coreVC?.startWallet()
             } else {
                 // Pin is incorrect.
                 self.showAlert(title: Language.getWord(withID: "incorrectpin"), message: Language.getWord(withID: "repeatnumber"), buttons: [.dismiss(Language.getWord(withID: "okay"))])

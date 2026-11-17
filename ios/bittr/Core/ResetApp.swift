@@ -372,6 +372,7 @@ extension CoreViewController {
                 // Node stopped and files removed, so the seed can go now, last, which completes the removal.
                 self.forgetWallet()
                 self.userHasSignedIn = false
+                self.walletHasSynced = false
                 
                 // Hide signup view and launch create wallet flow.
                 Log.info("ResetApp - Launching signup after cleanup")

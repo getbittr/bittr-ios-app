@@ -267,17 +267,12 @@ extension CoreViewController {
         for eachSubview in self.signupContainerView.subviews {
             eachSubview.removeFromSuperview()
         }
-        
-        if self.walletHasSynced, self.userHasSignedIn {
-            // Handle what arrived while signup or the PIN was up.
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                self.handlePendingWork()
-            }
-        }
     }
     
     func hidePinAndSignup(completion: (() -> Void)? = nil) {
         self.currentPage = .home
+        // A running sync hands off the pending work when it finishes.
+        let walletHadSynced = self.walletHasSynced
         UIView.animate(withDuration: 0.8, delay: 0, usingSpringWithDamping: 0.75, initialSpringVelocity: 0, options: .curveEaseInOut) {
             NSLayoutConstraint.deactivate([self.signupBottom, self.pinBottom, self.homeContainerTop, self.menuBarBottom])
             self.pinBottom = NSLayoutConstraint(item: self.pinContainerView, attribute: .bottom, relatedBy: .equal, toItem: self.view, attribute: .top, multiplier: 1, constant: 0)
@@ -288,6 +283,13 @@ extension CoreViewController {
             self.view.layoutIfNeeded()
         } completion: { finished in
             completion?()
+            
+            if walletHadSynced, self.userHasSignedIn {
+                // Handle what arrived while signup or the PIN was up.
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                    self.handlePendingWork()
+                }
+            }
         }
     }
     
