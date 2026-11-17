@@ -15,6 +15,7 @@ class BitcoinManager {
     // LDK Node
     public var ldkNode: LDKNode.Node?
     private var network: LDKNode.Network
+    private(set) var lastWalletSyncFailed = false
     
     // LDK Node single-flight startup guard.
     private let nodeStartLock = NSLock()
@@ -163,9 +164,7 @@ class BitcoinManager {
         let nodeBuilder = Builder.fromConfig(config: config)
         nodeBuilder.setEntropyBip39Mnemonic(mnemonic: mnemonicString, passphrase: "")
         
-        // Configure LSP2 liquidity source to allow channels to be used up to 100% capacity
-        // rather than the default 10% limit imposed by LDK. This enables better channel utilization
-        // for receiving payments, though we're not yet using the full LSP2 specification.
+        // Configure LSP2 liquidity source to allow channels to be used up to 100% capacity.
         nodeBuilder.setLiquiditySourceLsps2(
             nodeId: PublicKey(EnvironmentConfig.lightningNodeId),
             address: EnvironmentConfig.lightningNodeAddress,
@@ -185,16 +184,6 @@ class BitcoinManager {
             nodeBuilder.setGossipSourceRgs(rgsServerUrl: EnvironmentConfig.RGSServerURLs.testnet)
             nodeBuilder.setChainSourceEsplora(serverUrl: EnvironmentConfig.EsploraURLs.testnet, config: esploraSyncConfig)
         }
-        
-//        let logDirectory = storageManager.getDocumentsDirectory() + "/logs"
-//        try? FileManager.default.createDirectory(
-//                   atPath: logDirectory,
-//                   withIntermediateDirectories: true
-//               )
-//        
-//        let logPath = logDirectory + "/ruben.log"
-//        
-//        nodeBuilder.setFilesystemLogger(logFilePath: logPath, maxLogLevel: LDKNode.LogLevel.trace)
         
         // Build new node.
         let newLdkNode: Node
@@ -566,7 +555,13 @@ class BitcoinManager {
     
     func syncWallets() throws {
         guard let node = self.ldkNode else { throw WalletError.walletNotInitiated }
-        try node.syncWallets()
+        do {
+            try node.syncWallets()
+            self.lastWalletSyncFailed = false
+        } catch {
+            self.lastWalletSyncFailed = true
+            throw error
+        }
     }
     
     func getInvoice(amountMsat: UInt64, description:String, expirySecs:UInt32) async -> Bolt11Invoice? {
