@@ -236,21 +236,14 @@ class RestoreViewController: UIViewController, UITextFieldDelegate {
         self.restoreButtonSpinner.startAnimating()
         
         // Construct mnemonic.
-        let enteredWords = [self.mnemonic1.text, self.mnemonic2.text, self.mnemonic3.text, self.mnemonic4.text, self.mnemonic5.text, self.mnemonic6.text, self.mnemonic7.text, self.mnemonic8.text, self.mnemonic9.text, self.mnemonic10.text, self.mnemonic11.text, self.mnemonic12.text]
-        var enteredMnemonic = String()
-        for eachWord in enteredWords {
-            guard let actualWord = eachWord?
-                .trimmingCharacters(in: .whitespacesAndNewlines)
-                .replacingOccurrences(of: " ", with: "")
-                .lowercased() as? String,
-                !actualWord.isEmpty
-            else {
-                self.resetWithError(Language.getWord(withID: "incompletephrase2"))
-                return
-            }
-            
-            enteredMnemonic += (enteredMnemonic.isEmpty ? actualWord : " \(actualWord)")
+        let enteredWords = [self.mnemonic1.text, self.mnemonic2.text, self.mnemonic3.text, self.mnemonic4.text, self.mnemonic5.text, self.mnemonic6.text, self.mnemonic7.text, self.mnemonic8.text, self.mnemonic9.text, self.mnemonic10.text, self.mnemonic11.text, self.mnemonic12.text].map {
+            ($0 ?? "").trimmingCharacters(in: .whitespacesAndNewlines).replacingOccurrences(of: " ", with: "").lowercased()
         }
+        guard !enteredWords.contains(where: \.isEmpty) else {
+            self.resetWithError(Language.getWord(withID: "incompletephrase2"))
+            return
+        }
+        let enteredMnemonic = enteredWords.joined(separator: " ")
         
         // Check whether this is a PIN reset or wallet restoration.
         if coreVC.resettingPin {
