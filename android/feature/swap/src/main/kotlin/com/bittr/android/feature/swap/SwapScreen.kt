@@ -528,13 +528,11 @@ private fun AmountField(value: String, onValueChange: (String) -> Unit, onDone: 
         }
         BasicTextField(
             value = value,
-            onValueChange = onValueChange,
+            onValueChange = { onValueChange(it.filter(Char::isDigit)) },
             singleLine = true,
             textStyle = style.copy(color = MaterialTheme.colorScheme.onSurface),
             cursorBrush = SolidColor(MaterialTheme.colorScheme.onSurface),
-            // Satoshis, so digits only: `Number` still offers `,` `.` and `-` on Gboard and Samsung's
-            // keyboard; `NumberPassword` is the digit pad, unmasked in a BasicTextField.
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.NumberPassword, imeAction = ImeAction.Done),
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number, imeAction = ImeAction.Done),
             keyboardActions = KeyboardActions(onDone = { onDone() }),
             modifier = Modifier
                 .fillMaxWidth()

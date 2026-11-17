@@ -629,10 +629,10 @@ private fun AmountStack(
             EntryField(
                 value = state.amountText,
                 placeholder = ReceiveStrings.ENTER_AMOUNT,
-                onValueChange = onAmountChange,
-                // Digits only for satoshis: `Number` still offers `,` `.` and `-` on Gboard and
-                // Samsung's keyboard; `NumberPassword` is the digit pad, unmasked in a BasicTextField.
-                keyboardType = if (state.currency == ReceiveCurrency.Satoshis) KeyboardType.NumberPassword else KeyboardType.Decimal,
+                onValueChange = { text ->
+                    onAmountChange(if (state.currency == ReceiveCurrency.Satoshis) text.filter(Char::isDigit) else text)
+                },
+                keyboardType = if (state.currency == ReceiveCurrency.Satoshis) KeyboardType.Number else KeyboardType.Decimal,
                 onDone = onDone,
                 testTag = TestID.Receive.amountTextField,
                 modifier = Modifier.weight(1f),

@@ -402,12 +402,10 @@ private fun ColumnScope.SendPage(
         Entry(
             value = state.amountText,
             placeholder = SendStrings.ENTER_AMOUNT,
-            onValueChange = controller::onAmountChange,
-            // Whole satoshis take digits only. `Number` is not that: Gboard and Samsung's keyboard
-            // still offer `,` `.` and `-` on it. `NumberPassword` is the digit-only pad, and a
-            // BasicTextField has no visual transformation, so nothing is masked. Bitcoin and
-            // fiat amounts keep the decimal separator.
-            keyboardType = if (state.currency == AmountCurrency.Satoshis) KeyboardType.NumberPassword else KeyboardType.Decimal,
+            onValueChange = { text ->
+                controller.onAmountChange(if (state.currency == AmountCurrency.Satoshis) text.filter(Char::isDigit) else text)
+            },
+            keyboardType = if (state.currency == AmountCurrency.Satoshis) KeyboardType.Number else KeyboardType.Decimal,
             imeAction = ImeAction.Done,
             onIme = {
                 clearFocus()
