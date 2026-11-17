@@ -155,8 +155,8 @@ results of your savings so far."; `totalinvestment` "Total investment"; `current
 
 All present in `TestIDs.kt`: `Buy.*` (`headerLabel, downButton, continueButton, yourCode, yourEmail, yourIban,
 paymentModeSwitch, paymentModeButton`), `Profits.*`, `Home.buyButton/profitButton/profitLabel`,
-`Signup.Create.Ready.*`, `Signup.Bittr.Initiative.*`, `Signup.Bittr.Start.*`, `Signup.Bittr.Otp.*`,
-`Signup.Bittr.Success.*`, `Signup.Bittr.TransferInfo.*`, `Alert.{copied, exclusiveInitiative, lightningExplanation,
+`Signup.Create.Ready.*`, `Signup.Bittr.Start.*`, `Signup.Bittr.Otp.*`,
+`Signup.Bittr.Success.*`, `Signup.Bittr.TransferInfo.*`, `Alert.{copied, lightningExplanation,
 onlyIban, receiveNotificationsPrompt, receiveNotificationsDenied, resendCode}`.
 
 ## 6. Flows

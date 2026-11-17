@@ -162,8 +162,8 @@ only `greaterThanOrEqualTo` 40, so the plate grows to the text instead of cuttin
 
 **The Maestro flows do not depend on the wording.** All three flows
 (`shared/flows/onboarding/happy_path_signup.yaml`, `features/buy_signup.yaml`,
-`features/buy_signup_no_notifications.yaml`) tap `signup.bittr.initiative.confirmButton` and
-`…cancelButton` by `id`, never by text, so the copy can be revised without touching a test.
+`features/buy_signup_no_notifications.yaml`) tap Confirm as `alert.button.1` and Cancel as
+`alert.button.0`, never by text, so the copy can be revised without touching a test.
 
 Asked **once per registration**, not once per tap: `recordedInitiativeConfirmation:157` reads
 back a confirmation already stored against the IBAN entity, so a customer correcting a typo in
