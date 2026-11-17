@@ -249,12 +249,6 @@ class BuyController(
         ),
     )
 
-    private fun onInitiativeConfirm() {
-        // Stored in UTC, so the time is unambiguous wherever the user was.
-        sessionInitiativeAt = source.nowIsoUtc()
-        gatherIbanDetails()
-    }
-
     /** "I don't have an IBAN". */
     fun onSkip() = showAlert(
         BuyAlert(
@@ -510,7 +504,11 @@ class BuyController(
                 updateSignup { it.copy(busy = true) }
                 checkPushNotificationStatus()
             }
-            BuyAction.ConfirmInitiative -> onInitiativeConfirm()
+            BuyAction.ConfirmInitiative -> {
+                // Stored in UTC, so the time is unambiguous wherever the user was.
+                sessionInitiativeAt = source.nowIsoUtc()
+                gatherIbanDetails()
+            }
         }
     }
 
