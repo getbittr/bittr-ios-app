@@ -543,8 +543,8 @@ class BdkOnchainWalletHolder(
             },
             // iOS's `if self.electrumClient == nil` inside `didSyncBdkWallet`
             // (`BDKManager.swift:232–239`): rebuilt on demand when a teardown
-            // cleared it, rather than failing the sync.
-            electrum = { electrum ?: ElectrumClient(electrumUrl).also { electrum = it } },
+            // cleared it, rather than failing the sync. Under the lock, as reconnect replaces it.
+            electrum = { synchronized(lock) { electrum ?: ElectrumClient(electrumUrl).also { electrum = it } } },
             // A hung light sync may have left the Electrum connection stuck, so open a new one.
             reconnect = {
                 synchronized(lock) {
