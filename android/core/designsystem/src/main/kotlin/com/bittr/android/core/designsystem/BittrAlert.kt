@@ -496,7 +496,7 @@ private fun AlertHeader(title: String) {
  * out of screen, faded at the bottom while there is more below.
  */
 @Composable
-private fun AlertMessage(message: String, isValue: Boolean, valueWraps: Boolean) {
+internal fun AlertMessage(message: String, isValue: Boolean, valueWraps: Boolean) {
     val scroll = rememberScrollState()
     val fadeInto = BittrTheme.colors.levelCard
     Text(

@@ -93,15 +93,7 @@ fun BittrTextFieldAlert(
             AlertCardContent(
                 title = title,
                 message = if (message.isNullOrEmpty()) null else {
-                    {
-                        Text(
-                            text = bittrMarkup(message),
-                            style = AlertMessageStyle,
-                            color = androidx.compose.material3.MaterialTheme.colorScheme.onSurface,
-                            textAlign = androidx.compose.ui.text.style.TextAlign.Center,
-                            modifier = Modifier.fillMaxWidth(),
-                        )
-                    }
+                    { AlertMessage(message, isValue = false, valueWraps = false) }
                 },
                 buttons = buttons,
                 motion = motion,
