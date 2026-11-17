@@ -423,6 +423,10 @@ class BdkOnchainWalletHolder(
     @Volatile
     private var electrum: ElectrumClient? = null
 
+    /** Set by [close], the teardown, and cleared by [open], so a failed open is not taken for one. */
+    @Volatile
+    private var released = true
+
     private val _opened = MutableStateFlow(false)
 
     /**
@@ -450,6 +454,7 @@ class BdkOnchainWalletHolder(
     val transactions: WalletTransactions = BdkWalletTransactions { current?.wallet }
 
     override fun open(): Boolean = synchronized(lock) {
+        released = false
         // `guard self.bdkWallet == nil else { return true }`. Idempotent, and the
         // loop relies on it: a node restart within one process re-runs `open`.
         if (current != null) return true
@@ -480,18 +485,22 @@ class BdkOnchainWalletHolder(
         }
     }
 
-    override fun close() = synchronized(lock) { closeLocked() }
+    override fun close() = synchronized(lock) {
+        released = true
+        closeLocked()
+    }
 
     /**
      * Release the open wallet and open it again — `didRebuildBdkWallet()`'s
      * `bdkWallet = nil; connection = nil; didStartBDK()`. With a rebuild requested in
      * [record], the open builds the wallet from an empty database.
      *
-     * False, opening nothing, when no wallet is open: the holder has been closed by a
-     * teardown, and a rebuild that outlived it must not open a wallet nobody owns.
+     * False, opening nothing, when the holder has been closed by a teardown: a rebuild
+     * that outlived it must not open a wallet nobody owns. After a failed open it tries
+     * again, so the next rebuild recovers once Electrum can be reached.
      */
     fun reopen(): Boolean = synchronized(lock) {
-        if (current == null) return false
+        if (released) return false
         closeLocked()
         open()
     }

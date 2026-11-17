@@ -263,8 +263,9 @@ class OnchainSync<W : Any, F : Any, S : Any, U : Any>(
      * [ScanCoordinator]'s behaviour and its tests.
      */
     suspend fun fullScan(): Boolean = scans.fullScan { generation ->
-        // Rebuild the wallet first when the user asked for it.
-        if (record?.rebuildRequested == true && !rebuildWallet(generation)) return@fullScan false
+        // Rebuild first when the user asked for it, and reopen when a failed start left no wallet.
+        val reopen = record?.rebuildRequested == true || port.currentWallet() == null
+        if (reopen && !rebuildWallet(generation)) return@fullScan false
 
         val outcome = runFullScan()
         when (outcome) {
