@@ -48,54 +48,40 @@ extension CoreViewController {
         }
     }
     
+    private func syncIcons(_ type:SyncType) -> (spinner: UIActivityIndicatorView, checkmark: UIImageView, problem: UIImageView?) {
+        switch type {
+        case .conversion: return (self.spinnerConversion, self.checkmarkConversion, self.problemConversion)
+        case .ldk: return (self.spinnerLDK, self.checkmarkLDK, self.problemLDK)
+        case .wallet: return (self.spinnerSync, self.checkmarkSync, self.problemSync)
+        case .final: return (self.spinnerFinal, self.checkmarkFinal, nil)
+        }
+    }
+    
     func startSync(_ type:SyncType) {
         DispatchQueue.main.async {
-            switch type {
-            case .conversion:
-                self.spinnerConversion.startAnimating()
-                self.checkmarkConversion.alpha = 0
-            case .ldk:
-                self.spinnerLDK.startAnimating()
-                self.checkmarkLDK.alpha = 0
-            case .wallet:
-                self.spinnerSync.startAnimating()
-                self.checkmarkSync.alpha = 0
-                self.problemSync.alpha = 0
-            case .final:
-                self.spinnerFinal.startAnimating()
-                self.checkmarkFinal.alpha = 0
-            }
+            let icons = self.syncIcons(type)
+            icons.spinner.startAnimating()
+            icons.checkmark.alpha = 0
+            icons.problem?.alpha = 0
         }
     }
     
     func failSync(_ type:SyncType) {
         DispatchQueue.main.async {
-            switch type {
-            case .wallet:
-                self.spinnerSync.stopAnimating()
-                self.problemSync.alpha = 1
-            default:
-                // Only the wallet sync shows a failure.
-                break
-            }
+            let icons = self.syncIcons(type)
+            icons.spinner.stopAnimating()
+            icons.problem?.alpha = 1
         }
     }
     
     func completeSync(_ type:SyncType) {
         DispatchQueue.main.async {
-            switch type {
-            case .conversion:
-                self.spinnerConversion.stopAnimating()
-                self.checkmarkConversion.alpha = 1
-            case .ldk:
-                self.spinnerLDK.stopAnimating()
-                self.checkmarkLDK.alpha = 1
-            case .wallet:
-                self.spinnerSync.stopAnimating()
-                self.checkmarkSync.alpha = 1
-            case .final:
-                self.spinnerFinal.stopAnimating()
-                self.checkmarkFinal.alpha = 1
+            let icons = self.syncIcons(type)
+            icons.spinner.stopAnimating()
+            icons.checkmark.alpha = 1
+            icons.problem?.alpha = 0
+            
+            if type == .final {
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
                     self.hideSyncView()
                 }

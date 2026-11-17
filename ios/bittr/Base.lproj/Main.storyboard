@@ -475,6 +475,14 @@
                                                             <constraint firstAttribute="height" constant="14" id="yOL-Tz-5U6"/>
                                                         </constraints>
                                                     </imageView>
+                                                    <imageView clipsSubviews="YES" userInteractionEnabled="NO" alpha="0.0" contentMode="scaleAspectFit" horizontalHuggingPriority="251" verticalHuggingPriority="251" image="exclamationmark.circle" catalog="system" translatesAutoresizingMaskIntoConstraints="NO" id="Pc1-Cv-Qx7" userLabel="Problem Conversion">
+                                                        <rect key="frame" x="3" y="-1" width="14" height="14"/>
+                                                        <color key="tintColor" red="1" green="0.23137254901960785" blue="0.18823529411764706" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
+                                                        <constraints>
+                                                            <constraint firstAttribute="height" constant="14" id="Pc2-Cv-Hh8"/>
+                                                            <constraint firstAttribute="width" constant="14" id="Pc3-Cv-Ww9"/>
+                                                        </constraints>
+                                                    </imageView>
                                                     <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="fetch conversion rates" textAlignment="center" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="MMy-9P-SqI">
                                                         <rect key="frame" x="30" y="0.0" width="143" height="14"/>
                                                         <constraints>
@@ -498,6 +506,8 @@
                                                     <constraint firstAttribute="height" relation="greaterThanOrEqual" constant="10" id="rnQ-rn-Mmg"/>
                                                     <constraint firstItem="W3M-5h-aEW" firstAttribute="centerX" secondItem="wLN-F6-6r7" secondAttribute="centerX" id="wMT-DL-IbS"/>
                                                     <constraint firstItem="W3M-5h-aEW" firstAttribute="centerY" secondItem="wLN-F6-6r7" secondAttribute="centerY" constant="-1" id="wi6-7Q-GD9"/>
+                                                    <constraint firstItem="Pc1-Cv-Qx7" firstAttribute="centerX" secondItem="wLN-F6-6r7" secondAttribute="centerX" id="Pc4-Cv-Xx1"/>
+                                                    <constraint firstItem="Pc1-Cv-Qx7" firstAttribute="centerY" secondItem="wLN-F6-6r7" secondAttribute="centerY" constant="-1" id="Pc5-Cv-Yy2"/>
                                                 </constraints>
                                             </view>
                                             <view contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="vWd-DR-ogj" userLabel="LDK View">
@@ -513,6 +523,14 @@
                                                         <constraints>
                                                             <constraint firstAttribute="height" constant="14" id="c2y-et-Na1"/>
                                                             <constraint firstAttribute="width" constant="14" id="nd1-LU-sNm"/>
+                                                        </constraints>
+                                                    </imageView>
+                                                    <imageView clipsSubviews="YES" userInteractionEnabled="NO" alpha="0.0" contentMode="scaleAspectFit" horizontalHuggingPriority="251" verticalHuggingPriority="251" image="exclamationmark.circle" catalog="system" translatesAutoresizingMaskIntoConstraints="NO" id="Pl1-Lk-Qx7" userLabel="Problem LDK">
+                                                        <rect key="frame" x="3" y="-1" width="14" height="14"/>
+                                                        <color key="tintColor" red="1" green="0.23137254901960785" blue="0.18823529411764706" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
+                                                        <constraints>
+                                                            <constraint firstAttribute="height" constant="14" id="Pl2-Lk-Hh8"/>
+                                                            <constraint firstAttribute="width" constant="14" id="Pl3-Lk-Ww9"/>
                                                         </constraints>
                                                     </imageView>
                                                     <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="start lightning node" textAlignment="center" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="0rS-GJ-ypl">
@@ -538,6 +556,8 @@
                                                     <constraint firstItem="0rS-GJ-ypl" firstAttribute="top" secondItem="vWd-DR-ogj" secondAttribute="top" id="kax-15-euy"/>
                                                     <constraint firstItem="N4s-bd-yW5" firstAttribute="centerY" secondItem="19W-kF-Ob2" secondAttribute="centerY" constant="-1" id="lfK-Uz-a4g"/>
                                                     <constraint firstAttribute="height" relation="greaterThanOrEqual" constant="10" id="mXf-gu-yLa"/>
+                                                    <constraint firstItem="Pl1-Lk-Qx7" firstAttribute="centerX" secondItem="19W-kF-Ob2" secondAttribute="centerX" id="Pl4-Lk-Xx1"/>
+                                                    <constraint firstItem="Pl1-Lk-Qx7" firstAttribute="centerY" secondItem="19W-kF-Ob2" secondAttribute="centerY" constant="-1" id="Pl5-Lk-Yy2"/>
                                                 </constraints>
                                             </view>
                                             <view contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="KxN-Hy-IUH" userLabel="Sync View">
@@ -808,6 +828,8 @@
                         <outlet property="spinnerSync" destination="ZOQ-3i-xNU" id="kW6-J1-Tlg"/>
                         <outlet property="checkmarkSync" destination="ksA-lz-Yio" id="DXJ-aV-WSI"/>
                         <outlet property="problemSync" destination="GN2-DW-qUZ" id="ANa-Ea-RhI"/>
+                        <outlet property="problemConversion" destination="Pc1-Cv-Qx7" id="Po1-Ot-Cv3"/>
+                        <outlet property="problemLDK" destination="Pl1-Lk-Qx7" id="Po2-Ot-Lk4"/>
                         <outlet property="statusSync" destination="3Pl-93-vnk" id="xkd-Zu-t3c"/>
                         <outlet property="statusConversion" destination="MMy-9P-SqI" id="wF3-V1-ZTg"/>
                         <outlet property="statusFinal" destination="Q6h-cc-V1w" id="KkI-Pc-HmT"/>

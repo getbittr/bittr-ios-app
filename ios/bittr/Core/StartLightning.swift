@@ -18,6 +18,7 @@ extension CoreViewController {
         // Retry alert in case node start takes too long.
         let showRetryAlert = { [weak self] in
             guard let self else { return }
+            self.failSync(.ldk)
             self.showAlert(title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "walletconnectfail"), buttons: [.action(Language.getWord(withID: "tryagain")) { self.startWallet() }])
         }
         

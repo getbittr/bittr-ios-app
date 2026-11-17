@@ -58,6 +58,7 @@ extension HomeViewController {
         self.didFetchConversion = await self.didFetchConversionRates()
         if !self.didFetchConversion {
             self.couldNotFetchConversion = true
+            self.coreVC?.failSync(.conversion)
         } else {
             self.coreVC?.completeSync(.conversion)
         }

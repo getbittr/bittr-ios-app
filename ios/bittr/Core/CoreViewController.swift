@@ -146,6 +146,8 @@ class CoreViewController: UIViewController {
     @IBOutlet weak var checkmarkConversion: UIImageView!
     @IBOutlet weak var checkmarkLDK: UIImageView!
     @IBOutlet weak var checkmarkSync: UIImageView!
+    @IBOutlet weak var problemConversion: UIImageView!
+    @IBOutlet weak var problemLDK: UIImageView!
     @IBOutlet weak var problemSync: UIImageView!
     @IBOutlet weak var checkmarkFinal: UIImageView!
     
