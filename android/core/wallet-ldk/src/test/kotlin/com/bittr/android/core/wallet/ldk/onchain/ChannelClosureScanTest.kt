@@ -77,8 +77,8 @@ class ChannelClosureScanTest {
 
     @Test
     fun `an empty candidate list is not an error`() {
-        // Reachable: BDK's store is wiped on every start (BdkStore), so between
-        // start and the first completed full scan `transactions()` is empty.
+        // Reachable: a new or rebuilt BDK store is empty, so between its creation
+        // and the first completed full scan `transactions()` is empty.
         assertNull(ChannelClosureScan.findClosingTxId(funding, emptyList()))
     }
 }

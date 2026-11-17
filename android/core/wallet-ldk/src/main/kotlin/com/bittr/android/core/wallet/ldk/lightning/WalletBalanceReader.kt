@@ -89,6 +89,9 @@ class WalletBalanceReader(
     private val onReading: (WalletNodeReading, WalletBalanceSnapshot) -> Unit = { _, _ -> },
 ) {
 
+    // One reading at a time, as iOS's loadWalletData on the main queue, since callers overlap.
+    private val readLock = Any()
+
     /**
      * Take one reading and perform the cache writes it names.
      *
@@ -97,11 +100,13 @@ class WalletBalanceReader(
      *   caller today wants the same thing from both, which is to try again on
      *   the next tick — and [onFailure] is what tells them apart in a log.
      */
-    fun read(): WalletBalanceSnapshot? = try {
-        readOrThrow()
-    } catch (failure: Exception) {
-        onFailure(failure)
-        null
+    fun read(): WalletBalanceSnapshot? = synchronized(readLock) {
+        try {
+            readOrThrow()
+        } catch (failure: Exception) {
+            onFailure(failure)
+            null
+        }
     }
 
     private fun readOrThrow(): WalletBalanceSnapshot? {

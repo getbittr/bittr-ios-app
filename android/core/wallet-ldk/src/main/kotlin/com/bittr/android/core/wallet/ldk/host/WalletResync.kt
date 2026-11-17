@@ -18,8 +18,8 @@ import kotlinx.coroutines.withTimeoutOrNull
  *  1. **Reset at once.** [markResyncing] reports the wallet as not synced, so Home hides the
  *     balance and history and spins `home.headerSpinner`.
  *  2. **One second later**, sync the node ([syncNode] — `startWallet()`'s `syncWallets()`),
- *     then the on-chain wallet ([syncOnchain] — `didSyncBdkWallet`), which ends with a fresh
- *     balance reading published to Home (`finalizeSync()`).
+ *     then rebuild and scan the on-chain wallet ([syncOnchain] — `didSyncBdkWallet`), which
+ *     ends with a fresh balance reading published to Home (`finalizeSync()`).
  *  3. If the on-chain sync did not produce a reading — it timed out, or the node could not be
  *     read — take one directly ([readNow]).
  *  4. [endResync] always runs last. It is a no-op when a reading landed, and otherwise puts the
@@ -80,7 +80,11 @@ class WalletResync(
         /** iOS's `asyncAfter(deadline: .now() + 1)` between the reset and the sync. */
         const val SETTLE_MILLIS: Long = 1_000L
 
-        /** How long the on-chain sync may take before Home reads the wallet directly. */
-        const val ONCHAIN_TIMEOUT_MILLIS: Long = 90_000L
+        /**
+         * How long the on-chain rebuild may take before Home reads the wallet directly: up to
+         * 30 s waiting for a running light sync, then the full scan's 180 s watchdog, and a
+         * margin. `didSyncBdkWallet` on iOS is bounded by the same two.
+         */
+        const val ONCHAIN_TIMEOUT_MILLIS: Long = 215_000L
     }
 }
