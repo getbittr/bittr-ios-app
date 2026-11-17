@@ -601,7 +601,7 @@ fun BittrNavHost(
                     arguments = listOf(navArgument(Routes.ARTICLE_ARG) { type = NavType.StringType }),
                     dialogProperties = OverlayDialog,
                 ) { entry ->
-                    BittrSheet(onDismissed = { navController.popBackStack() }) { dismiss ->
+                    BittrSheet(onDismissed = popOnceOnTop(navController, entry)) { dismiss ->
                         ArticleScreen(
                             slug = entry.arguments?.getString(Routes.ARTICLE_ARG).orEmpty(),
                             onDown = dismiss,
@@ -845,7 +845,7 @@ internal fun NavGraphBuilder.settingsArea(
     // controller outside any navigation stack — so closing one comes back to the pop-up, as on iOS.
     dialog(Routes.SETTINGS, dialogProperties = OverlayDialog) { entry ->
         CoveredByLaterSheets(navController, entry) {
-            BittrPopup(onDismissed = { navController.popBackStack() }) { dismiss ->
+            BittrPopup(onDismissed = popOnceOnTop(navController, entry)) { dismiss ->
                 SettingsScreen(
                     onDown = dismiss,
                     onOpenWebsite = { navController.navigate(Routes.website(it)) },
@@ -873,7 +873,7 @@ internal fun NavGraphBuilder.settingsArea(
         // here are three URLs; everything else about showing a URL — the R-11
         // hardening baseline, the navigation policy, the trust derivation — is
         // the in-app browser's job and belongs in one module (BIT-112).
-        BittrSheet(onDismissed = { navController.popBackStack() }) { dismiss ->
+        BittrSheet(onDismissed = popOnceOnTop(navController, entry)) { dismiss ->
             WebsiteScreen(url = page.url, onClose = dismiss, onLnurl = onWebsiteLnurl)
         }
     }
@@ -881,7 +881,7 @@ internal fun NavGraphBuilder.settingsArea(
     dialog(Routes.DEVICE, dialogProperties = OverlayDialog) { entry ->
         val device = deviceViewModel()
         CoveredByLaterSheets(navController, entry) {
-            BittrSheet(onDismissed = { navController.popBackStack() }) { dismiss ->
+            BittrSheet(onDismissed = popOnceOnTop(navController, entry)) { dismiss ->
                 DeviceScreen(
                     onDown = dismiss,
                     onOpenLightningQuestion = {
@@ -894,8 +894,8 @@ internal fun NavGraphBuilder.settingsArea(
         }
     }
 
-    dialog(Routes.LIGHTNING_QUESTION, dialogProperties = OverlayDialog) {
-        BittrSheet(onDismissed = { navController.popBackStack() }) { dismiss ->
+    dialog(Routes.LIGHTNING_QUESTION, dialogProperties = OverlayDialog) { entry ->
+        BittrSheet(onDismissed = popOnceOnTop(navController, entry)) { dismiss ->
             LightningQuestionScreen(onDown = dismiss, channel = lightningChannel())
         }
     }
@@ -918,6 +918,17 @@ private fun CoveredByLaterSheets(
     Box(if (covered) Modifier.clearAndSetSemantics {} else Modifier) { content() }
 }
 
+/** Pops [entry] once its sheet has slid away and it is on top, not a sheet opened meanwhile. */
+@Composable
+private fun popOnceOnTop(navController: NavHostController, entry: NavBackStackEntry): () -> Unit {
+    var dismissed by remember { mutableStateOf(false) }
+    val top by navController.currentBackStackEntryAsState()
+    LaunchedEffect(dismissed, top) {
+        if (dismissed && top?.id == entry.id) navController.popBackStack()
+    }
+    return { dismissed = true }
+}
+
 /**
  * A destination presented as iOS's page sheet: a dialog destination, so the screen it opened over
  * stays drawn underneath, with [BittrSheet] sliding it up and, on [content]'s `dismiss`, back down
@@ -932,7 +943,7 @@ internal fun NavGraphBuilder.sheet(
 ) {
     dialog(route = route, arguments = arguments, dialogProperties = OverlayDialog) { entry ->
         CoveredByLaterSheets(navController, entry) {
-            BittrSheet(onDismissed = { navController.popBackStack() }) { dismiss -> content(entry, dismiss) }
+            BittrSheet(onDismissed = popOnceOnTop(navController, entry)) { dismiss -> content(entry, dismiss) }
         }
     }
 }
