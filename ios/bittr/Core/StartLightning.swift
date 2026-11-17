@@ -107,6 +107,7 @@ extension CoreViewController {
         
         DispatchQueue.global(qos: .userInitiated).async {
             guard BitcoinManager.shared.ldkNode != nil else {
+                self.failSync(.wallet)
                 DispatchQueue.main.async { self.isContinuingStartWallet = false }
                 return
             }
