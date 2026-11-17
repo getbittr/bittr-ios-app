@@ -382,7 +382,7 @@ ensure_server "clipboard_server" "${CLIPBOARD_PORT}" "${SCRIPTS_DIR}/clipboard_s
 copy_screenshots() {
     local taken="$1/screenshots/shared/docs/screenshots"
     [[ -d "${taken}" ]] || return 0
-    mkdir -p "${SHOTS_DIR}" && cp -R "${taken}/." "${SHOTS_DIR}/" \
+    mkdir -p "${SHOTS_DIR}" && cp -Rp "${taken}/." "${SHOTS_DIR}/" \
         && info "  screenshots: ${SHOTS_DIR}" \
         || warn "could not copy screenshots from ${taken}"
 }
@@ -426,6 +426,8 @@ for flow in "${FLOWS_TO_RUN[@]}"; do
     # remove-task"), leaving a blank screen past wait_for_launch's 15 s.
     dev shell am force-stop "${APP_ID}" >/dev/null 2>&1 || true
     sleep 2
+    # A reused BITTR_LOG_DIR still holds the last run's frames, which would be copied as this run's.
+    rm -rf "${OUT_DIR}/screenshots"
     START_TS=$(date +%s)
     # A watchdog, because maestro can stop without exiting: when a runScript throws (a 429 from
     # the e2e endpoints does it), its JS engine dies with "API object must not be garbage
