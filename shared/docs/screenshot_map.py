@@ -14,6 +14,7 @@ checks the real files against it (missing / orphaned / size consistency).
 Usage:
     python3 screenshot_map.py --repo <repo-root> --out-dir <dir>
     python3 screenshot_map.py --repo <repo-root> --verify shared/docs/screenshots
+    python3 screenshot_map.py --repo <repo-root> --verify shared/docs/screenshots/android --platform android
 
 Outputs (in --out-dir):
     reference-set.json   machine-readable index (one record per screenshot)
@@ -434,11 +435,25 @@ def png_size(path):
         return None
 
 
-def verify(repo, records, shots_dir):
+# The canonical set, and the folder in it where test_suite_android.sh copies Android's captures.
+CANONICAL_DIR = "shared/docs/screenshots/"
+ANDROID_DIR = "android"
+
+
+def verify(repo, records, shots_dir, platform="ios"):
     root = shots_dir if os.path.isabs(shots_dir) else os.path.join(repo, shots_dir)
     all_declared = {r["screenshot"] for r in records}
+    if platform == "android":
+        # Android keeps each flow's frames under android/, so a declared step lands there.
+        all_declared = {
+            CANONICAL_DIR + ANDROID_DIR + "/" + d[len(CANONICAL_DIR):] if d.startswith(CANONICAL_DIR) else d
+            for d in all_declared
+        }
     on_disk = set()
-    for dirpath, _dirs, files in os.walk(root):
+    for dirpath, dirs, files in os.walk(root):
+        # Android's frames are checked with --platform android, not as part of the iOS set.
+        if platform == "ios" and dirpath == root and ANDROID_DIR in dirs:
+            dirs.remove(ANDROID_DIR)
         for f in files:
             if f.endswith(".png"):
                 p = os.path.join(dirpath, f)
@@ -807,11 +822,13 @@ def main():
     ap.add_argument("--out-dir", default=".")
     ap.add_argument("--verify", default=None,
                     help="path to a captured screenshots dir to check the map against")
+    ap.add_argument("--platform", choices=["ios", "android"], default="ios",
+                    help="whose capture --verify checks; android's lives in shared/docs/screenshots/android")
     args = ap.parse_args()
 
     repo = os.path.abspath(args.repo)
     records, per_flow, edges, suite = build(repo)
-    v = verify(repo, records, args.verify) if args.verify else None
+    v = verify(repo, records, args.verify, args.platform) if args.verify else None
     registry = load_registry(repo)
     pin = git_pin(repo)
     screens_md = load_screens_md(repo)
