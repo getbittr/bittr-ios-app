@@ -172,9 +172,8 @@ class BdkWalletOpenerTest {
 
         val opened = opener().open()
 
-        assertEquals("created-in-store-2", opened.wallet)
-        assertEquals("openStore", port.calls.first())
-        assertEquals("recreateStore", port.calls[1])
+        assertEquals("created-in-store-1", opened.wallet)
+        assertEquals(listOf("openStore", "recreateStore", "create(store-1)"), port.calls)
         assertFalse(record.fullScanStored)
     }
 
@@ -195,7 +194,7 @@ class BdkWalletOpenerTest {
 
         val opened = opener().open()
 
-        assertEquals("recreateStore", port.calls.first())
+        assertEquals(listOf("recreateStore", "create(store-1)"), port.calls)
         assertFalse(opened.loaded)
         assertFalse(record.rebuildRequested)
     }
@@ -209,7 +208,7 @@ class BdkWalletOpenerTest {
         assertThrows(Failure::class.java) { opener().open() }
 
         assertTrue(record.rebuildRequested)
-        assertEquals("closeStore(store-2)", port.calls.last())
+        assertEquals("closeStore(store-1)", port.calls.last())
     }
 
     /** A new wallet has revealed nothing, so the cached pool is revealed again, and five beyond. */

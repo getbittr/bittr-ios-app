@@ -84,8 +84,9 @@ class BdkWalletOpener<C : Any, W : Any>(
      */
     fun open(): Opened<C, W> {
         // Open the stored wallet database, or an empty one when the user asked for a rebuild.
+        var empty = record.rebuildRequested
         val opened = try {
-            if (record.rebuildRequested) {
+            if (empty) {
                 log("A BDK rebuild was requested. Will start from an empty database.")
                 port.recreateStore()
             } else {
@@ -101,6 +102,7 @@ class BdkWalletOpener<C : Any, W : Any>(
 
             // A corrupt database holds nothing worth keeping, so start an empty one.
             record.clearFullScanCompletion()
+            empty = true
             try {
                 port.recreateStore()
             } catch (recreateFailure: Exception) {
@@ -108,6 +110,9 @@ class BdkWalletOpener<C : Any, W : Any>(
                 throw recreateFailure
             }
         }
+
+        // An empty database holds no wallet to load, so build one straight away.
+        if (empty) return buildNew(opened)
 
         return try {
             loadStored(opened)
@@ -156,17 +161,25 @@ class BdkWalletOpener<C : Any, W : Any>(
         port.closeStore(store)
         record.clearFullScanCompletion()
 
-        var recreated: C? = null
+        val fresh = try {
+            port.recreateStore()
+        } catch (recreateFailure: Exception) {
+            onError(recreateFailure, ROW_CREATE_FAILED)
+            throw recreateFailure
+        }
+        return buildNew(fresh)
+    }
+
+    /** A new wallet in an empty [store]. */
+    private fun buildNew(store: C): Opened<C, W> {
         try {
-            val fresh = port.recreateStore()
-            recreated = fresh
-            val wallet = port.create(fresh)
+            val wallet = port.create(store)
 
             // A new wallet has revealed nothing, so reveal the cached address pool again for syncs to watch.
             topPoolIndex()?.let { topIndex ->
                 // Reveal a little beyond the pool too, like manageOnchainAddresses does for channel closures.
                 try {
-                    port.revealTo(wallet, fresh, topIndex + REVEAL_BEYOND_POOL)
+                    port.revealTo(wallet, store, topIndex + REVEAL_BEYOND_POOL)
                 } catch (revealFailure: Exception) {
                     // As iOS's `revealAddresses`: reported, and the wallet still opens.
                     onError(revealFailure, ROW_REVEAL_FAILED)
@@ -175,10 +188,10 @@ class BdkWalletOpener<C : Any, W : Any>(
 
             // The wallet has been built from scratch, so a requested rebuild is done.
             record.clearRebuildRequest()
-            return Opened(fresh, wallet, loaded = false)
+            return Opened(store, wallet, loaded = false)
         } catch (createFailure: Exception) {
             onError(createFailure, ROW_CREATE_FAILED)
-            recreated?.let(port::closeStore)
+            port.closeStore(store)
             throw createFailure
         }
     }
