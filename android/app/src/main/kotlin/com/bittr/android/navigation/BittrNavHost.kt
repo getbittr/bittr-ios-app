@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.statusBars
 import androidx.compose.ui.platform.LocalDensity
 import com.bittr.android.risingWithLaunchLogo
+import android.annotation.SuppressLint
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Modifier
 import androidx.navigation.NamedNavArgument
@@ -346,11 +347,14 @@ fun BittrNavHost(
     // slide would play out in front of the user as they come back to it. [lockJump] holds until
     // the PIN pad is alone on screen.
     var lockJump by remember { mutableStateOf(false) }
+    // The whole back stack is only exposed through a library-internal API.
+    @SuppressLint("RestrictedApi")
     val backStack by navController.currentBackStack.collectAsState()
     LaunchedEffect(walletState, backStack) {
         // Decided on the live values, not this composition's: unlocking sets Ready and then pushes
         // Home, and a frame that saw the new back stack before the new state must not send the
         // user back to the pad they have just passed.
+        @SuppressLint("RestrictedApi")
         val routes = navController.currentBackStack.value.map { it.destination }.filter { it !is NavGraph }.map { it.route }
         if (needsPin(viewModel.walletState.value, routes)) {
             lockJump = true
