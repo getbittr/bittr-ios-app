@@ -241,9 +241,11 @@ shared/flows/
     push_notification.js        POSTs an APNS payload to push_server.js.
     push_server.js              Local helper bridging Maestro → `xcrun simctl push`.
     set_clipboard.js            POSTs output.clipboardText to clipboard_server.js.
-    clipboard_server.js         Local helper bridging Maestro → `xcrun simctl
-                                pbcopy` so flows can seed the OS clipboard for
-                                the in-app Paste button (send_lightning.yaml).
+    clipboard_server.js         Local helper that seeds the simulator clipboard
+                                for the in-app Paste button (send_lightning.yaml).
+                                Copies on the Mac too (pasteboard sync carries
+                                it over; `simctl pbcopy` alone doesn't on
+                                Xcode 27), then verifies with `simctl pbpaste`.
     parse_mnemonic.js           Splits the MNEMONIC env var into
                                 output.words[1..12] for forgot_pin.yaml.
     resolve_lnurl.js            GETs a Lightning Address's /.well-known/lnurlp
@@ -359,7 +361,7 @@ Two other things worth knowing:
 
 ### Lightning send
 
-`features/send_lightning.yaml` pays a normal invoice, a zero-amount invoice and a Lightning Address. All three targets are server-side now — the two invoices are generated per run via the e2e endpoint (`scripts/request_invoice.js`, always fresh) and the address is the fixed e2e `e2ebittr@staging.getbittr.com` — so no env vars are needed. The flow also exercises the in-app **Paste** button, and Maestro can't write the OS clipboard itself (`copyTextFrom` only fills Maestro's own variable), so a bridge — the same pattern as `push_server.js` — pipes text to `xcrun simctl pbcopy`:
+`features/send_lightning.yaml` pays a normal invoice, a zero-amount invoice and a Lightning Address. All three targets are server-side now — the two invoices are generated per run via the e2e endpoint (`scripts/request_invoice.js`, always fresh) and the address is the fixed e2e `e2ebittr@staging.getbittr.com` — so no env vars are needed. The flow also exercises the in-app **Paste** button, and Maestro can't write the OS clipboard itself (`copyTextFrom` only fills Maestro's own variable), so a bridge — the same pattern as `push_server.js` — puts the text on the simulator's clipboard:
 
 ```sh
 # In a separate terminal, before running the flow:
@@ -368,7 +370,7 @@ node shared/flows/scripts/clipboard_server.js
 maestro test shared/flows/features/send_lightning.yaml
 ```
 
-The flow sets `output.clipboardText` before each paste; `set_clipboard.js` POSTs it to the helper, which `pbcopy`'s it onto the booted simulator. iOS may show a one-off "Allow Paste" prompt — the flow accepts it automatically.
+The flow sets `output.clipboardText` before each paste; `set_clipboard.js` POSTs it to the helper, which copies it on the Mac and on the booted simulator, then checks that the simulator holds it. During a run, the Mac clipboard holds the pasted text; the helper puts back its earlier text when it stops. iOS may show a one-off "Allow Paste" prompt — the flow accepts it automatically.
 
 ## CI
 

@@ -128,14 +128,23 @@ appId: com.bittr.bittr-regtest
 # bar, above the sheet) so the tap lands on the backdrop and closes the sheet.
 - tapOn:
     text: "Share"
-# Wait for the share sheet's slide-up animation to finish before tapping the
-# backdrop — otherwise the point tap can fire while the sheet is still
-# presenting and miss the dimmed backdrop.
+# The sheet can take over a second to start presenting, and waitForAnimationToEnd
+# can't wait for an animation that hasn't begun. So wait for "Save Image", which
+# only the share sheet shows ("Copy" is also in the context menu). Then let its
+# slide-up finish, so the point tap lands on the dimmed backdrop.
+- extendedWaitUntil:
+    visible: "Save Image"
+    timeout: 10000
 - waitForAnimationToEnd:
     timeout: 5000
 - takeScreenshot: shared/docs/screenshots/receive_onchain/03b_share_sheet
 - tapOn:
     point: "50%,20%"
+# While the sheet is up, the Receive view underneath is out of the accessibility
+# tree, so the QR long-press below can't find it until the sheet has closed.
+- extendedWaitUntil:
+    notVisible: "Save Image"
+    timeout: 5000
 
 # Long-press the QR again and tap Copy → the same "Copied" alert the Copy button
 # shows (puts "bitcoin:<address>" on the clipboard). Close it.
