@@ -26,7 +26,7 @@ import org.junit.rules.TemporaryFolder
  * stayed green and the failure surfaced on an emulator, in
  * `InstalledBackupConfigurationTest`'s `@Before`, three tests at a time and
  * seven minutes into a CI run. The production path is not affected —
- * `BdkStore.prepare` makes its own directory — which is exactly why this went
+ * `BdkStore.open` makes its own directory — which is exactly why this went
  * unnoticed: the contract was broken for everyone *except* the one caller that
  * did not depend on it.
  *

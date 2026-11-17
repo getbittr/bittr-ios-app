@@ -298,7 +298,7 @@ shared/flows/
 
 - **Filename**: `<state>.yaml` within the appropriate subdir. Reusable subflows live in `helpers/`.
 - **Test IDs only** for selectors — text-based selectors are too brittle across platforms.
-- **Screenshots**: each `takeScreenshot` path is `shared/docs/screenshots/<flow_name>/<step>` — Maestro resolves it against the CWD where `maestro test` is run (the repo root), so the prefix must be the full repo-relative path.
+- **Screenshots**: each `takeScreenshot` path is `shared/docs/screenshots/<flow_name>/<step>` — Maestro resolves it against the CWD where `maestro test` is run (the repo root), so the prefix must be the full repo-relative path. With `--test-output-dir` it resolves against that dir instead: `test_suite_android.sh` uses one per flow and copies the frames to `shared/docs/screenshots/android/<flow_name>/` (see `shared/docs/screenshots/README.md`).
 - **Mocks**: backend calls stubbed via Maestro Mocks. Fixtures for on-chain / lightning state come from the regtest environment (see `../docs/regtest.md`).
 - **Setup/teardown**: use `runScript` to reset wallet state and seed fixtures.
 

@@ -105,6 +105,11 @@ internal class BasemapController(context: Context, private val colors: MarkerCol
             map = ready
             ready.uiSettings.isRotateGesturesEnabled = false
             ready.uiSettings.isTiltGesturesEnabled = false
+            // The map screen draws its own ⓘ, which shows the basemap's credit in full
+            // (`MapCopy.BASEMAP_ATTRIBUTION`); MapLibre's would sit beside it listing only the
+            // style's links, and its logo is not a licence requirement.
+            ready.uiSettings.isAttributionEnabled = false
+            ready.uiSettings.isLogoEnabled = false
             ready.setStyle(styleBuilder()) { style ->
                 restyle(style)
                 addPlaceLayers(style)

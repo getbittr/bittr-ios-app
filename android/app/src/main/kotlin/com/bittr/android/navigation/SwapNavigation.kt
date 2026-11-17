@@ -10,7 +10,6 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
-import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
 import com.bittr.android.feature.swap.SwapLaunch
 import com.bittr.android.feature.swap.SwapRoute
@@ -70,7 +69,8 @@ object SwapRoutes {
 }
 
 internal fun NavGraphBuilder.swapArea(navController: NavHostController) {
-    composable(route = SwapRoutes.SWAP, arguments = SwapRoutes.arguments) { entry ->
+    // A page sheet, as the screens that open it are — see [sheet].
+    sheet(navController, SwapRoutes.SWAP, arguments = SwapRoutes.arguments) { entry, dismiss ->
         val swap: SwapViewModel = hiltViewModel()
         val launches = hiltViewModel<SwapLaunchViewModel>().requests
         val context = LocalContext.current
@@ -84,7 +84,7 @@ internal fun NavGraphBuilder.swapArea(navController: NavHostController) {
             coordinator = swap.coordinator,
             fiat = swap.fiat,
             launch = launch,
-            onDown = { navController.popBackStack() },
+            onDown = dismiss,
             onOpenTransaction = { id -> navController.openTransaction(id) },
             onRequestNotifications = { openNotificationSettings(context) },
             onShareFile = { file -> shareSwapFile(context, file) },

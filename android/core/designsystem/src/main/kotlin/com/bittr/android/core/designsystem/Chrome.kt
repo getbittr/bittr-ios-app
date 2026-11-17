@@ -1,6 +1,24 @@
 package com.bittr.android.core.designsystem
 
 import androidx.compose.foundation.Image
+import androidx.compose.ui.graphics.painter.Painter
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.AnimationSpec
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.runtime.getValue
+import androidx.compose.foundation.layout.wrapContentWidth
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.ui.unit.sp
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.graphics.ColorFilter
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -41,7 +59,8 @@ import androidx.compose.ui.unit.dp
 private val HeaderHeight = 58.dp
 private val HeaderIcon = 18.dp
 private val RowHeight = 64.dp
-private val NavBarHeight = 56.dp
+/** The menu plates: 45 pt, and the Settings plate as wide as it is tall. */
+private val NavBarHeight = 45.dp
 
 /**
  * The header on a screen presented over another one — iOS's
@@ -205,14 +224,80 @@ fun BittrRowValue(text: String, modifier: Modifier = Modifier) {
 }
 
 /**
- * The bottom bar — Wallet / Academy / Settings, three equal labelled pills.
+ * iOS's `addHeader(iconLight:iconDark:title:)` — the header of the pop-ups and sheets over the
+ * canvas (Settings, a lesson): 58 tall, the 18 pt icon 20 in, the title lower-cased in Gilroy
+ * Bold 18 10 after it, and `downarrow32`, 20 pt, 20 from the end — all white, yellow in dark
+ * (`whiteoryellow`).
  *
- * It is drawn by each screen that has one rather than hoisted into a `Scaffold` at
- * the nav host. On iOS the bar belongs to `CoreViewController` and Home is a child of
- * it, which is the `Scaffold` arrangement — but the bar is on exactly one Android
- * destination today (Home), and a scaffold that exists to host one bar for one screen
- * is a layer to reason about for no benefit. When Academy lands and there are two,
- * hoisting it is a small change and this comment is the note that it is the right one.
+ * @param icon the header's icon as drawn; it is tinted to the header's colour.
+ */
+@Composable
+fun BittrSheetHeader(
+    icon: Painter,
+    title: String,
+    onDown: () -> Unit,
+    modifier: Modifier = Modifier,
+    titleTestTag: String? = null,
+    downTestTag: String? = null,
+) {
+    val tint = BittrTheme.colors.homeCardTitle
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = modifier
+            .fillMaxWidth()
+            .height(58.dp)
+            .padding(start = 20.dp),
+    ) {
+        Image(
+            painter = icon,
+            contentDescription = null,
+            colorFilter = ColorFilter.tint(tint),
+            modifier = Modifier.size(18.dp),
+        )
+        Text(
+            text = title.lowercase(),
+            style = MaterialTheme.typography.titleMedium.copy(fontSize = 18.sp, lineHeight = 18.sp),
+            color = tint,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier
+                .weight(1f)
+                .padding(start = 10.dp)
+                .offset(y = 1.dp)
+                .then(titleTestTag?.let { Modifier.testTag(it) } ?: Modifier),
+        )
+        // The 20 pt chevron 20 from the end, in a 48 dp target.
+        Box(
+            contentAlignment = Alignment.Center,
+            modifier = Modifier
+                .padding(end = 6.dp)
+                .size(48.dp)
+                .clickable(role = Role.Button, onClick = onDown)
+                .then(downTestTag?.let { Modifier.testTag(it) } ?: Modifier),
+        ) {
+            Image(
+                painter = painterResource(R.drawable.bittr_down_chevron),
+                contentDescription = "Close",
+                colorFilter = ColorFilter.tint(tint),
+                modifier = Modifier.size(20.dp),
+            )
+        }
+    }
+}
+
+/**
+ * The bottom bar — `CoreViewController`'s menu bar: Wallet and Academy as two labelled plates
+ * sharing the width, and Settings as a square plate with its icon alone.
+ *
+ * As the storyboard has it: 15 from the screen's sides, the plates 45 tall, 10 apart and ending at
+ * the bottom of the safe area; each `grey3orblue1` with 8 pt corners and `setShadow()`, with iOS's
+ * black-or-white icons (`menuwalletblack` …) and a dark grey label, white in dark. Labels in Gilroy
+ * Bold 14, 8 after the icon — wallet 13 pt, academy 16, settings 15.
+ *
+ * The selection is `selectedView`: one brand-yellow plate that slides between Wallet and Academy
+ * in 0.3 s ease-in-out as [selected] changes, in step with the pages sliding above it. It reveals
+ * the plates' white icons and labels as it passes over them, which is how iOS masks its white
+ * copies with it. Settings opens a pop-up rather than a page, so it is never the one selected.
  */
 @Composable
 fun BittrBottomNavBar(
@@ -225,104 +310,152 @@ fun BittrBottomNavBar(
     academyTestTag: String? = null,
     settingsTestTag: String? = null,
 ) {
+    val colors = BittrTheme.colors
+    val dark = BittrTheme.isDark
+    val walletIcon = if (dark) R.drawable.menu_wallet_white else R.drawable.menu_wallet_black
+    val academyIcon = if (dark) R.drawable.menu_academy_white else R.drawable.menu_academy_black
+    val progress by animateFloatAsState(
+        targetValue = if (selected == BittrNavTab.Academy) 1f else 0f,
+        animationSpec = MenuSlideSpec,
+        label = "menuSelection",
+    )
     Row(
-        horizontalArrangement = Arrangement.spacedBy(BittrTokens.Spacing.sm),
+        horizontalArrangement = Arrangement.spacedBy(MenuGap),
         modifier = modifier
             .fillMaxWidth()
-            .padding(
-                horizontal = BittrTokens.Spacing.md,
-                vertical = BittrTokens.Spacing.sm,
-            ),
+            .padding(start = 15.dp, end = 15.dp, top = 10.dp),
     ) {
-        NavTab(
-            label = "Wallet",
-            icon = BittrIconPaths.WALLET,
-            active = selected == BittrNavTab.Wallet,
-            onClick = onWallet,
-            testTag = walletTestTag,
-            modifier = Modifier.weight(1f),
-        )
-        NavTab(
-            label = "Academy",
-            icon = BittrIconPaths.ACADEMY,
-            active = selected == BittrNavTab.Academy,
-            onClick = onAcademy,
-            testTag = academyTestTag,
-            modifier = Modifier.weight(1f),
-        )
-        // Labelled like the other two, with Material's outlined `settings` glyph. It was an
-        // unlabelled square with the mock's own gear, which the design review read as an
-        // unrecognisable third destination (2026-09-18, S9).
-        NavTab(
-            label = "Settings",
-            icon = BittrIconPaths.SETTINGS_OUTLINE,
-            iconFilled = true,
-            active = selected == BittrNavTab.Settings,
+        BoxWithConstraints(
+            modifier = Modifier
+                .weight(1f)
+                .height(NavBarHeight),
+        ) {
+            val rowWidth = maxWidth
+            val plateWidth = (rowWidth - MenuGap) / 2
+            val selectionX = (plateWidth + MenuGap) * progress
+            Row(horizontalArrangement = Arrangement.spacedBy(MenuGap), modifier = Modifier.fillMaxSize()) {
+                NavPlate(onClick = onWallet, testTag = walletTestTag, modifier = Modifier.weight(1f)) {
+                    NavTabContent("Wallet", walletIcon, 13.dp, iconTint = null, labelColor = colors.menuLabel)
+                }
+                NavPlate(onClick = onAcademy, testTag = academyTestTag, modifier = Modifier.weight(1f)) {
+                    NavTabContent("Academy", academyIcon, 16.dp, iconTint = null, labelColor = colors.menuLabel)
+                }
+            }
+            // `selectedView`, over the plates: the white copies are laid out exactly as the plates
+            // are and shifted against the selection, so only what lies under it shows.
+            Box(
+                modifier = Modifier
+                    .offset(x = selectionX)
+                    .width(plateWidth)
+                    .fillMaxHeight()
+                    .clip(NavTabShape)
+                    .background(colors.brandFixed)
+                    .clearAndSetSemantics {},
+            ) {
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(MenuGap),
+                    modifier = Modifier
+                        .wrapContentWidth(Alignment.Start, unbounded = true)
+                        .width(rowWidth)
+                        .fillMaxHeight()
+                        .offset(x = -selectionX),
+                ) {
+                    NavTabContent("Wallet", walletIcon, 13.dp, iconTint = Color.White, labelColor = Color.White, Modifier.weight(1f))
+                    NavTabContent("Academy", academyIcon, 16.dp, iconTint = Color.White, labelColor = Color.White, Modifier.weight(1f))
+                }
+            }
+        }
+        NavPlate(
             onClick = onSettings,
             testTag = settingsTestTag,
-            modifier = Modifier.weight(1f),
-        )
+            modifier = Modifier
+                .width(NavBarHeight)
+                .height(NavBarHeight),
+        ) {
+            Image(
+                painter = painterResource(if (dark) R.drawable.menu_settings_white else R.drawable.menu_settings_black),
+                contentDescription = "Settings",
+                modifier = Modifier.size(15.dp),
+            )
+        }
     }
 }
 
 /** Which bottom-bar tab is lit. */
 enum class BittrNavTab { Wallet, Academy, Settings }
 
+/**
+ * The selection's slide between Wallet and Academy, and the pages' above it — shared so the two
+ * move as one. iOS's `menuButtonTapped` is a plain 0.3 s ease-in-out; this is a spring with a
+ * little bounce, as the other page slides in the app have (Tom, 2026-09-29): damping 0.75,
+ * settling in about 0.5 s by [PageSlideSpec]'s rule.
+ */
+val MenuSlideSpec: AnimationSpec<Float> = spring(dampingRatio = 0.75f, stiffness = 110f)
+
+private val MenuGap = 10.dp
+
+/** One menu plate: `grey3orblue1`, 8 pt corners, `setShadow()`, its content centred. */
 @Composable
-private fun NavTab(
-    label: String?,
-    icon: String,
-    active: Boolean,
+private fun NavPlate(
     onClick: () -> Unit,
     testTag: String?,
     modifier: Modifier = Modifier,
-    contentDescription: String? = null,
-    iconFilled: Boolean = false,
+    content: @Composable () -> Unit,
 ) {
-    val colors = BittrTheme.colors
-    val content = if (active) colors.onCanvas else MaterialTheme.colorScheme.onSurface
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(BittrTokens.Spacing.sm, Alignment.CenterHorizontally),
+    Box(
+        contentAlignment = Alignment.Center,
         modifier = modifier
-            .height(NavBarHeight)
-            // Clipped before `clickable`, or the press layer is a square behind the pill —
+            .fillMaxHeight()
+            .iosShadow(NavTabShape)
+            // Clipped before `clickable`, or the press layer is a square behind the plate —
             // the same rule BittrPrimaryButton states.
-            .clip(BittrCanvasShapes.field)
-            .background(if (active) colors.canvas else MaterialTheme.colorScheme.surfaceContainer)
+            .clip(NavTabShape)
+            .background(BittrTheme.colors.homeBackground)
             .clickable(role = Role.Button, onClick = onClick)
             .then(testTag?.let { Modifier.testTag(it) } ?: Modifier),
     ) {
-        Image(
-            imageVector = if (iconFilled) rememberFillIcon(icon, content) else rememberStrokeIcon(icon, content, strokeWidth = 2f),
-            contentDescription = contentDescription,
-            modifier = Modifier.size(21.dp),
-        )
-        if (label != null) {
-            Text(
-                text = label,
-                style = MaterialTheme.typography.labelLarge,
-                color = content,
-            )
-        }
+        content()
     }
 }
 
+/** A plate's icon and label, centred: the icon, 8, the label 1 pt below the icon's centre. */
+@Composable
+private fun NavTabContent(
+    label: String,
+    icon: Int,
+    iconSize: Dp,
+    iconTint: Color?,
+    labelColor: Color,
+    modifier: Modifier = Modifier,
+) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally),
+        modifier = modifier.fillMaxHeight(),
+    ) {
+        Image(
+            painter = painterResource(icon),
+            contentDescription = null,
+            colorFilter = iconTint?.let { ColorFilter.tint(it) },
+            modifier = Modifier.size(iconSize),
+        )
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelLarge.copy(fontSize = 14.sp, lineHeight = 14.sp),
+            color = labelColor,
+            modifier = Modifier.offset(y = 1.dp),
+        )
+    }
+}
+
+private val NavTabShape = RoundedCornerShape(8.dp)
+
 /**
- * The picker behind the language and currency rows — iOS's `UIAlertController`
- * action sheet, which [BittrAlertDialog] cannot be because it has three choices
- * rather than two.
- *
- * **Ordering is the opposite of the iOS sheet's and that is deliberate.** iOS puts
- * Cancel first in the `buttons:` array and UIKit floats it to the bottom of the
- * sheet; Compose has no such convention, so Cancel is drawn last, where the user
- * looking for it will be. `features/settings.yaml` selects these by *text*
- * (`tapOn: text: "CHF"`, `text: "Cancel"`) rather than by index, so the order is
- * free — unlike the two-button alerts, where `alert.button.0` pins it.
- *
- * The options carry no test ids for the same reason: on iOS they are a native alert
- * with none, and giving the Android ones ids the flow cannot use on iOS would put
- * the two platforms on different selectors for the same tap.
+ * The picker behind the language and currency rows — `DeviceViewController`'s `showAlert` with
+ * Cancel first and a button per choice, so [BittrAlert]'s card: Cancel and one choice side by
+ * side, or stacked with Cancel at the bottom once there are more. Cancel is `alert.button.0` and
+ * the choices follow it; `features/settings.yaml` selects them by text, which is the same on both
+ * platforms.
  */
 @Composable
 fun BittrChoiceDialog(
@@ -334,65 +467,13 @@ fun BittrChoiceDialog(
     cancelLabel: String,
     modifier: Modifier = Modifier,
 ) {
-    val colors = BittrTheme.colors
-    androidx.compose.material3.AlertDialog(
-        onDismissRequest = onCancel,
-        shape = BittrCanvasShapes.card,
-        containerColor = colors.dialogContainer,
-        titleContentColor = colors.onDialogContainer,
-        textContentColor = colors.onDialogContainer,
-        title = { BittrDialogTitle(title) },
-        text = {
-            Column {
-                BittrDialogMessage(message)
-                CanvasSpacer(BittrTokens.Spacing.md)
-                options.forEachIndexed { index, option ->
-                    ChoiceRow(
-                        label = option,
-                        onClick = { onSelect(index) },
-                        background = colors.actionFill,
-                        contentColor = colors.onActionFill,
-                    )
-                    CanvasSpacer(BittrTokens.Spacing.xs)
-                }
-                ChoiceRow(
-                    label = cancelLabel,
-                    onClick = onCancel,
-                    background = Color.Transparent,
-                    contentColor = colors.onDialogContainer,
-                )
-            }
-        },
-        // Material insists on a confirm slot; the choices are the buttons here, so
-        // there is nothing to put in it.
-        confirmButton = {},
-        // Its own window, so the app root's testTagsAsResourceId does not reach the
-        // choices' ids — see exposeTestTags.
-        modifier = modifier.exposeTestTags(),
+    BittrAlert(
+        title = title,
+        message = message,
+        buttons = listOf(BittrAlertButton(label = cancelLabel, dismissesAlert = true, onClick = onCancel)) +
+            options.mapIndexed { index, option -> BittrAlertButton(label = option, onClick = { onSelect(index) }) },
+        modifier = modifier,
     )
-}
-
-@Composable
-private fun ChoiceRow(
-    label: String,
-    onClick: () -> Unit,
-    background: Color,
-    contentColor: Color,
-) {
-    Box(
-        contentAlignment = Alignment.Center,
-        modifier = Modifier
-            .fillMaxWidth()
-            .heightIn(min = BittrTokens.Size.minTouchTarget)
-            .background(background, BittrCanvasShapes.pill)
-            .clickable(onClick = onClick),
-    ) {
-        Text(
-            text = label,
-            style = MaterialTheme.typography.labelLarge,
-            color = contentColor,
-        )
-    }
 }
 
 /**

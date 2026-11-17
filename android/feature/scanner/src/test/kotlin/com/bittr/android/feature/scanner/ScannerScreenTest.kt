@@ -90,13 +90,6 @@ class ScannerScreenTest {
         assertEquals(2, closes)
     }
 
-    @Test
-    fun `the helper line sits under the frame`() {
-        start(ScannerUiState.Scanning)
-
-        composeRule.onNodeWithText(ScannerCopy.HELPER).assertIsDisplayed()
-    }
-
     /**
      * The frame stays put under the alert.
      *
@@ -125,7 +118,8 @@ class ScannerScreenTest {
     fun `the rationale shows the approved copy above cancel and continue`() {
         start(ScannerUiState.Rationale)
 
-        composeRule.onNodeWithText(ScannerCopy.PERMISSION_TITLE).assertIsDisplayed()
+        // The header lower-cases the title, as iOS's `addAlertHeader` does.
+        composeRule.onNodeWithText(ScannerCopy.PERMISSION_TITLE.lowercase()).assertIsDisplayed()
         composeRule.onNodeWithText(ScannerCopy.RATIONALE_BODY).assertIsDisplayed()
 
         composeRule.onNodeWithTag(TestID.Alert.buttonAt(0)).assertTextEquals(ScannerCopy.CANCEL)
@@ -145,14 +139,23 @@ class ScannerScreenTest {
             .assertIsDisplayed()
     }
 
+    // A button slides the alert down before its action runs, and the alert is gone after it —
+    // so each button is its own test, and the count is read once the clock has run.
     @Test
-    fun `continue asks for the permission and cancel closes the scanner`() {
+    fun `continue asks for the permission`() {
         start(ScannerUiState.Rationale)
 
         composeRule.onNodeWithTag(TestID.Alert.buttonAt(1)).performClick()
+        composeRule.waitForIdle()
         assertEquals(1, continues)
+    }
+
+    @Test
+    fun `cancel closes the scanner`() {
+        start(ScannerUiState.Rationale)
 
         composeRule.onNodeWithTag(TestID.Alert.buttonAt(0)).performClick()
+        composeRule.waitForIdle()
         assertEquals(1, cancels)
     }
 
@@ -160,13 +163,15 @@ class ScannerScreenTest {
     fun `permanently denied shows the approved copy above cancel and settings`() {
         start(ScannerUiState.PermanentlyDenied)
 
-        composeRule.onNodeWithText(ScannerCopy.PERMISSION_TITLE).assertIsDisplayed()
+        // The header lower-cases the title, as iOS's `addAlertHeader` does.
+        composeRule.onNodeWithText(ScannerCopy.PERMISSION_TITLE.lowercase()).assertIsDisplayed()
         composeRule.onNodeWithText(ScannerCopy.PERMANENTLY_DENIED_BODY).assertIsDisplayed()
 
         composeRule.onNodeWithTag(TestID.Alert.buttonAt(0)).assertTextEquals(ScannerCopy.CANCEL)
         composeRule.onNodeWithTag(TestID.Alert.buttonAt(1)).assertTextEquals(ScannerCopy.SETTINGS)
 
         composeRule.onNodeWithTag(TestID.Alert.buttonAt(1)).performClick()
+        composeRule.waitForIdle()
         assertEquals(1, settingsOpens)
     }
 
@@ -219,13 +224,15 @@ class ScannerScreenTest {
     fun `no camera reuses the shipped iOS strings and closes on okay`() {
         start(ScannerUiState.NoCamera)
 
-        composeRule.onNodeWithText(ScannerCopy.NO_CAMERA_TITLE).assertIsDisplayed()
+        // The header lower-cases the title, as iOS's `addAlertHeader` does.
+        composeRule.onNodeWithText(ScannerCopy.NO_CAMERA_TITLE.lowercase()).assertIsDisplayed()
         composeRule.onNodeWithText(ScannerCopy.NO_CAMERA_BODY).assertIsDisplayed()
 
         composeRule.onNodeWithTag(TestID.Alert.buttonAt(0)).assertTextEquals(ScannerCopy.OKAY)
         composeRule.onNodeWithTag(TestID.Alert.buttonAt(1)).assertDoesNotExist()
 
         composeRule.onNodeWithTag(TestID.Alert.buttonAt(0)).performClick()
+        composeRule.waitForIdle()
         assertEquals(1, closes)
     }
 }

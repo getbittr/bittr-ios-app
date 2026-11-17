@@ -103,3 +103,17 @@ internal class HttpPriceRepository(
         return response.body
     }
 }
+
+/**
+ * The week's prices, oldest first and ending on the current one — what Home's value card draws.
+ * iOS's `loadGraph` reads `PriceHistory.load(...).series[.week]` for it, the same fetch the value
+ * screen makes.
+ */
+suspend fun loadWeekPrices(
+    environment: BittrEnvironment,
+    http: HttpClient,
+    currency: PriceCurrency = PriceCurrency.EUR,
+): List<Double> {
+    val snapshot = HttpPriceRepository(environment, http).load(currency, LocalDate.now())
+    return snapshot.series[GraphSpan.WEEK].orEmpty().map { it.price } + snapshot.currentPrice
+}

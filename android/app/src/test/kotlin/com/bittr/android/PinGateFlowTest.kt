@@ -185,6 +185,25 @@ class PinGateFlowTest {
         nodeUp.complete(Unit)
     }
 
+    /**
+     * The accepted PIN stays on the pad while it slides away, so Confirm is still there to tap. A
+     * second tap must not unlock again behind the slide: that pushed a second Home and started the
+     * node twice. Here the pad stays put after unlocking, as it does for the length of the slide.
+     */
+    @Test
+    fun `a second Confirm on an accepted PIN does not unlock again`() {
+        aWalletWithPin1234()
+        var unlocks = 0
+        gate(onUnlocked = { unlocks += 1 })
+
+        enterPin(CORRECT_PIN)
+        composeRule.waitUntil(TIMEOUT_MS) { unlocks == 1 }
+        composeRule.onNodeWithTag(TestID.Pin.confirmButton).performClick()
+        composeRule.waitForIdle()
+
+        assertEquals(1, unlocks)
+    }
+
     // -----------------------------------------------------------------------
     // features/pin_warning.yaml
     // -----------------------------------------------------------------------

@@ -36,8 +36,7 @@ appId: ${APP_ID}
 - tapOn:
     id: "swap.amountTextField"
 - inputText: "75000"
-- tapOn:
-    text: "Done"
+- runFlow: amount_done.yaml
 - takeScreenshot: shared/docs/screenshots/swap/04_swap_amount_entered
 
 # Tap Next. The app now checks for an APNs token: it shows EITHER the fees alert

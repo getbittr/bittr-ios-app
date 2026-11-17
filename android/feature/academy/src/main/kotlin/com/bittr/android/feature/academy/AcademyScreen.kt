@@ -9,15 +9,18 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -35,18 +38,25 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import com.bittr.android.core.common.TestID
+import com.bittr.android.core.designsystem.AppBarContentInset
 import com.bittr.android.core.designsystem.BittrCanvas
-import com.bittr.android.core.designsystem.BittrCanvasShapes
-import com.bittr.android.core.designsystem.BittrIconPaths
+import com.bittr.android.core.designsystem.BittrSheet
+import com.bittr.android.core.designsystem.exposeTestTags
 import com.bittr.android.core.designsystem.BittrTheme
 import com.bittr.android.core.designsystem.BittrTokens
 import com.bittr.android.core.designsystem.CanvasSpacer
-import com.bittr.android.core.designsystem.rememberStrokeIcon
+import com.bittr.android.core.designsystem.IosCardShape
+import com.bittr.android.core.designsystem.iosShadow
 
 /**
  * The Academy — the lesson list and, over it, the open lesson.
@@ -64,9 +74,12 @@ import com.bittr.android.core.designsystem.rememberStrokeIcon
  */
 @Composable
 fun AcademyScreen(
-    onBack: () -> Unit,
+    // Null where Academy is a page beside Wallet under the menu bar, as on iOS, with no back arrow.
+    onBack: (() -> Unit)?,
     modifier: Modifier = Modifier,
     progressStore: LessonProgressStore? = null,
+    /** Room left at the end of the list for a menu bar drawn over it by the host. */
+    contentBottomPadding: Dp = 0.dp,
 ) {
     val context = LocalContext.current
     val store = remember(progressStore) {
@@ -77,59 +90,77 @@ fun AcademyScreen(
     var openLesson by remember { mutableStateOf<Lesson?>(null) }
 
     val lesson = openLesson
-    if (lesson != null) {
-        OneLessonScreen(
-            lesson = lesson,
-            onCompleted = {
-                store.markCompleted(lesson.id)
-                state = state.completing(lesson.id)
-                openLesson = null
-            },
-            onClose = { openLesson = null },
-            modifier = modifier,
-        )
-        return
-    }
-
+    // Covered by the lesson's sheet, the list is still drawn but out of the semantics tree, as the
+    // screens under the app's other sheets are.
     AcademyList(
         state = state,
         onOpenLesson = { openLesson = it },
         onBack = onBack,
-        modifier = modifier,
+        modifier = modifier.then(if (lesson != null) Modifier.clearAndSetSemantics {} else Modifier),
+        contentBottomPadding = contentBottomPadding,
     )
+
+    // The lesson is a page sheet over the Academy, as iOS presents `OneLessonViewController`, the
+    // same way the signup pages' articles open: the Academy stays underneath, dimmed.
+    if (lesson != null) {
+        Dialog(onDismissRequest = {}, properties = SheetDialog) {
+            // Its own window, so its own `testTagsAsResourceId` — `academy.nextPageButton` and the
+            // rest are inside it. BittrSheet sets it as well; this keeps the rule visible here.
+            Box(Modifier.exposeTestTags()) {
+                BittrSheet(onDismissed = { openLesson = null }) { dismiss ->
+                    OneLessonScreen(
+                        lesson = lesson,
+                        // `nextPage` on the last page: the lesson is recorded as completed, and the
+                        // sheet goes down with the next lesson already unlocked under it.
+                        onCompleted = {
+                            store.markCompleted(lesson.id)
+                            state = state.completing(lesson.id)
+                            dismiss()
+                        },
+                        onClose = dismiss,
+                    )
+                }
+            }
+        }
+    }
 }
 
 @Composable
 internal fun AcademyList(
     state: AcademyUiState,
     onOpenLesson: (Lesson) -> Unit,
-    onBack: () -> Unit,
+    onBack: (() -> Unit)?,
     modifier: Modifier = Modifier,
+    contentBottomPadding: Dp = 0.dp,
 ) {
-    BittrCanvas(modifier = modifier, onBack = onBack) {
+    // `AcademyViewController`, as its scene is: no title, the intro 30 below the top bar in Gilroy
+    // Regular 16, 30 from the sides with 30 under it, then the level cards 13.5 apart — iOS's cell
+    // is the card's height plus 13.5 (`cellHeight = collection + 100` against a card of
+    // collection + 86.5).
+    //
+    // The list runs up under the translucent top bar, as iOS's table does (`contentInset.top`
+    // under CoreViewController's top bar), and starts below it.
+    val underBar = WindowInsets.statusBars.asPaddingValues().calculateTopPadding() + AppBarContentInset
+    BittrCanvas(modifier = modifier, onBack = onBack, scrollsUnderAppBar = true) {
         LazyColumn(
-            verticalArrangement = Arrangement.spacedBy(BittrTokens.Spacing.md),
+            verticalArrangement = Arrangement.spacedBy(13.5.dp),
             contentPadding = PaddingValues(
-                start = AcademyLayout.contentPadding,
-                end = AcademyLayout.contentPadding,
-                top = AcademyLayout.contentPadding,
-                bottom = BittrTokens.Spacing.section,
+                top = underBar + 30.dp,
+                bottom = BittrTokens.Spacing.section + contentBottomPadding,
             ),
             modifier = Modifier.fillMaxWidth(),
         ) {
             item {
-                Column {
-                    AcademyHeading(AcademyCopy.TITLE)
-                    Text(
-                        text = AcademyCopy.HEADER,
-                        style = AcademyType.intro,
-                        color = BittrTheme.colors.onCanvas.copy(alpha = 0.8f),
-                        textAlign = TextAlign.Center,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .testTag(TestID.Academy.headerLabel),
-                    )
-                }
+                Text(
+                    text = AcademyCopy.HEADER,
+                    style = MaterialTheme.typography.bodyLarge.copy(fontSize = 16.sp, lineHeight = 19.sp),
+                    color = BittrTheme.colors.onCanvas,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(start = 30.dp, end = 30.dp, bottom = 30.dp - 13.5.dp)
+                        .testTag(TestID.Academy.headerLabel),
+                )
             }
 
             items(state.sections, key = { it.order }) { section ->
@@ -140,51 +171,56 @@ internal fun AcademyList(
 }
 
 /**
- * One level: its header over a three-column grid of lesson tiles, as iOS's
- * `LevelTableViewCell` holds a `UICollectionView` of `LessonCollectionViewCell`s.
+ * One level — `LevelTableViewCell`: `cardView` 15 from the screen's sides, `yelloworblue2` with
+ * 13 pt corners and `setShadow()`. The academy icon 20 in and 18.5 down, "level N" in Gilroy Bold
+ * 18 10 after it and the count 20 from the end, both white (yellow in dark); the lessons 25 below
+ * the icon, 20 from the card's sides and 25 above its bottom, three to a row, 5 apart across and
+ * 20 down.
  *
  * The grid is rows of three in plain [Row]s, not a `LazyVerticalGrid`: the card is
  * already an item of the screen's `LazyColumn`, and a lazy grid cannot be measured
  * inside another lazy list in the same direction. Six lessons a level is not a list
  * that needs recycling.
- *
- * Not `BittrCard`: the review puts the grid 16 dp inside the card on every side, where
- * `BittrCard`'s gutter is 22 × 28 and leaves the tiles too small for three across.
  */
 @Composable
 private fun LevelCard(section: LevelSection, onOpenLesson: (Lesson) -> Unit) {
     val colors = BittrTheme.colors
+    val titleStyle = MaterialTheme.typography.titleMedium.copy(fontSize = 18.sp, lineHeight = 18.sp)
     Column(
         modifier = Modifier
+            .padding(horizontal = 15.dp)
             .fillMaxWidth()
-            .background(colors.cardWash, BittrCanvasShapes.card)
-            .padding(LevelCardPadding),
+            .iosShadow(IosCardShape)
+            .background(colors.levelCard, IosCardShape)
+            .padding(start = 20.dp, end = 20.dp, top = 18.5.dp, bottom = 25.dp),
     ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            modifier = Modifier.fillMaxWidth(),
-        ) {
+        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
             Image(
-                imageVector = rememberStrokeIcon(BittrIconPaths.ACADEMY, colors.onCanvas),
+                painter = painterResource(
+                    if (BittrTheme.isDark) R.drawable.academy_level_icon_yellow else R.drawable.academy_level_icon,
+                ),
                 contentDescription = null,
-                modifier = Modifier.size(20.dp),
+                modifier = Modifier.size(18.dp),
             )
             Text(
                 text = section.title,
-                style = AcademyType.levelTitle,
-                color = colors.onCanvas,
-                modifier = Modifier.weight(1f),
+                style = titleStyle,
+                color = colors.homeCardTitle,
+                modifier = Modifier
+                    .weight(1f)
+                    .padding(start = 10.dp)
+                    .offset(y = 1.dp),
             )
             Text(
                 text = section.countLabel,
-                style = AcademyType.levelCount,
-                color = colors.onCanvas.copy(alpha = 0.6f),
+                style = titleStyle,
+                color = colors.homeCardTitle,
+                modifier = Modifier.offset(y = 1.dp),
             )
         }
-        CanvasSpacer(16.dp)
+        CanvasSpacer(25.dp)
 
-        Column(verticalArrangement = Arrangement.spacedBy(TileGap)) {
+        Column(verticalArrangement = Arrangement.spacedBy(TileRowGap)) {
             section.cells.chunked(TILE_COLUMNS).forEach { row ->
                 Row(
                     horizontalArrangement = Arrangement.spacedBy(TileGap),
@@ -203,7 +239,8 @@ private fun LevelCard(section: LevelSection, onOpenLesson: (Lesson) -> Unit) {
 }
 
 /**
- * One lesson tile: the artwork, square, with the title under it.
+ * One lesson — `LessonCollectionViewCell`: the artwork 60 pt square with 8 pt corners, centred, the
+ * completed tick 18 pt across its bottom edge, and the title 13 below it in Gilroy Bold 15, centred.
  *
  * The three states are iOS's, including the one that matters to the suite: only
  * [LessonAvailability.NEXT] carries `academy.nextLessonButton`. A completed lesson
@@ -225,7 +262,6 @@ private fun LessonTile(cell: LessonCell, onOpenLesson: (Lesson) -> Unit, modifie
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         modifier = modifier
-            .clip(TileShape)
             .then(
                 if (locked) {
                     Modifier
@@ -242,43 +278,39 @@ private fun LessonTile(cell: LessonCell, onOpenLesson: (Lesson) -> Unit, modifie
             )
             .then(if (locked) Modifier.blur(6.dp).alpha(0.6f) else Modifier),
     ) {
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .aspectRatio(1f)
-                .clip(TileShape)
-                .background(BittrTheme.colors.scrim1),
-        ) {
-            if (artwork != null) {
-                Image(
-                    painter = painterResource(artwork),
-                    contentDescription = null,
-                    contentScale = ContentScale.Crop,
-                    modifier = Modifier.fillMaxSize(),
-                )
+        Box(contentAlignment = Alignment.BottomCenter) {
+            Box(
+                modifier = Modifier
+                    .size(LessonImageSize)
+                    .clip(TileShape)
+                    .background(BittrTheme.colors.scrim1),
+            ) {
+                if (artwork != null) {
+                    Image(
+                        painter = painterResource(artwork),
+                        contentDescription = null,
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier.fillMaxSize(),
+                    )
+                }
             }
             if (completed) {
-                CompletedBadge(
-                    Modifier
-                        .align(Alignment.BottomStart)
-                        .padding(4.dp),
+                // `iconCheck`, centred on the artwork's bottom edge and 7 below it.
+                Image(
+                    painter = painterResource(R.drawable.academy_check),
+                    contentDescription = "Completed",
+                    modifier = Modifier
+                        .offset(y = 7.dp)
+                        .size(18.dp),
                 )
             }
         }
-        CanvasSpacer(8.dp)
-        // A two-line block whatever the title's length (design review pass 3): a
-        // one-line title left its tile short, so rows came out at different heights
-        // and the grid read as ragged. `minLines` reserves the second line at the
-        // style's 17 sp leading. Three stays the ceiling rather than two because the
-        // longest authored titles ("Can the 21 million limit be changed?") need a
-        // third line on a ~113 dp tile, and an ellipsis in a lesson's name hides what
-        // the lesson is; those rows are one line taller, which is the rare case.
+        CanvasSpacer(13.dp)
         Text(
             text = cell.lesson.title,
-            style = AcademyType.tileTitle,
+            style = MaterialTheme.typography.titleMedium.copy(fontSize = 15.sp, lineHeight = 17.sp),
             color = BittrTheme.colors.onCanvas,
             textAlign = TextAlign.Center,
-            minLines = 2,
             maxLines = 3,
             overflow = TextOverflow.Ellipsis,
             modifier = Modifier.fillMaxWidth(),
@@ -286,34 +318,12 @@ private fun LessonTile(cell: LessonCell, onOpenLesson: (Lesson) -> Unit, modifie
     }
 }
 
-/**
- * The completed tick on a tile. Not `BittrCheckBadge`, which is the ink disc of the
- * success screens: on the artwork the review wants green, as iOS's `iconCheck` is
- * (`LessonCollectionViewCell.swift:31`), and the ink disc would read as a control.
- * The green is fixed in both schemes because it sits on the artwork, not the canvas.
- */
-@Composable
-private fun CompletedBadge(modifier: Modifier = Modifier) {
-    Box(
-        contentAlignment = Alignment.Center,
-        modifier = modifier
-            .size(22.dp)
-            // The consent switch's green, the one green token with white measured on it
-            // (`switchOn` / `onSwitchOn`); the review's `#1F8A4C` is a shade off it.
-            .background(BittrTheme.colors.switchOn, CircleShape),
-    ) {
-        Image(
-            imageVector = rememberStrokeIcon(BittrIconPaths.CHECK, BittrTheme.colors.onSwitchOn, strokeWidth = 2.6f),
-            contentDescription = "Completed",
-            modifier = Modifier.size(12.dp),
-        )
-    }
-}
-
 private const val TILE_COLUMNS = 3
-private val TileGap = 12.dp
-private val LevelCardPadding = 16.dp
-private val TileShape = RoundedCornerShape(14.dp)
+/** The compositional layout's `interItemSpacing` and `interGroupSpacing`. */
+private val TileGap = 5.dp
+private val TileRowGap = 20.dp
+private val LessonImageSize = 60.dp
+private val TileShape = RoundedCornerShape(8.dp)
 
 @Preview(showBackground = true, widthDp = 412, heightDp = 892)
 @Composable
@@ -326,3 +336,11 @@ private fun AcademyListPreview() {
         )
     }
 }
+
+/** A full-screen, edge-to-edge window for [BittrSheet], which draws its own dim and motion. */
+private val SheetDialog = DialogProperties(
+    usePlatformDefaultWidth = false,
+    decorFitsSystemWindows = false,
+    dismissOnBackPress = false,
+    dismissOnClickOutside = false,
+)

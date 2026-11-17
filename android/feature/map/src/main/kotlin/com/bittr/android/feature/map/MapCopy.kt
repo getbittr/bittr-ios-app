@@ -62,6 +62,13 @@ internal object MapCopy {
     const val BASEMAP_ATTRIBUTION: String =
         "Map data \u00A9\u00A0OpenStreetMap contributors, design \u00A9\u00A0OpenMapTiles.org, tiles by OpenFreeMap"
 
+    /**
+     * The title of the alert the map's ⓘ opens with [BASEMAP_ATTRIBUTION] — where the credit sits
+     * instead of a line under the map, as iOS's map has only Apple's small "Legal" (Tom,
+     * 2026-09-29). Android only, for the same reason as the credit.
+     */
+    const val MAP_CREDITS: String = "Map credits"
+
     /** `shared/strings/en.json`. Do not edit — see the class doc. */
     const val POWERED_BY_ALERT: String =
         "<b>BTCMap.org</b> uses OpenStreetMap to tag places that accept bitcoin, and " +

@@ -1,6 +1,7 @@
 package com.bittr.android.di
 
 import com.bittr.android.core.wallet.WalletRefresher
+import com.bittr.android.AppForeground
 import com.bittr.android.core.wallet.ldk.host.WalletResync
 
 import android.content.Context
@@ -22,6 +23,7 @@ import com.bittr.android.core.wallet.ldk.adapter.lightningNodePort
 import com.bittr.android.core.wallet.ldk.bip.Bip84Account
 import com.bittr.android.core.wallet.ldk.bip.RegistrationSigner
 import com.bittr.android.core.wallet.ldk.adapter.nodeOnchainPort
+import com.bittr.android.core.wallet.ldk.cache.CachedBdkScanRecord
 import com.bittr.android.core.wallet.ldk.cache.CachedChannelClosureStore
 import com.bittr.android.core.wallet.ldk.cache.CachedOnchainAddressStore
 import com.bittr.android.core.wallet.ldk.cache.FileWalletCache
@@ -42,6 +44,7 @@ import com.bittr.android.core.wallet.ldk.node.LdkEnvironment
 import com.bittr.android.core.wallet.ldk.node.NodeConfigPlan
 import com.bittr.android.core.wallet.ldk.node.NodeLifecycle
 import com.bittr.android.core.wallet.ldk.onchain.AddressDerivation
+import com.bittr.android.core.wallet.ldk.onchain.BdkStore
 import com.bittr.android.core.wallet.ldk.onchain.ChannelClosureRecorder
 import com.bittr.android.core.wallet.ldk.onchain.OnchainAddressPool
 import com.bittr.android.core.wallet.ldk.onchain.OnchainSendSupport
@@ -64,7 +67,10 @@ import javax.inject.Singleton
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.flow.drop
+import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.map
 
 /**
  * The one place the app names a wallet implementation.
@@ -188,6 +194,7 @@ object WalletModule {
         @ApplicationContext context: Context,
         store: SecureStore,
         http: HttpClient,
+        foreground: AppForeground,
     ): WalletComposition {
         val seed = SeedWalletService(store)
 
@@ -365,6 +372,20 @@ object WalletModule {
          * call sites read to decide whether the user may open the send screen.
          */
         val scans = ScanCoordinator(scope)
+
+        /*
+         * The stored full scan and rebuild request — iOS's `lastBdkFullScan` and
+         * `bdkRebuildRequested`. A launch that loads the stored wallet light syncs it
+         * instead of scanning it again while a full scan is stored, newer than the
+         * database it describes.
+         */
+        val scanRecord = CachedBdkScanRecord(
+            cache = cache,
+            databaseCreatedAt = { BdkStore.creationEpochSeconds(paths.bdkDatabaseFile) },
+            onFailure = { failure -> Log.w(TAG, "Could not store the BDK scan record", failure) },
+        )
+        // The cached on-chain address pool, read by the BDK wallet's open and kept by the receive pool.
+        val onchainAddresses = CachedOnchainAddressStore(cache)
         val onchainWallet = BdkOnchainWalletHolder(
             // Re-read per open, never captured: the seed can be erased while the
             // app runs, and iOS's `guard let cachedMnemonic` treats that as a
@@ -375,6 +396,11 @@ object WalletModule {
             // Not `environment.chainSourceUrl` — LdkEnvironment.electrumUrl says
             // why those are two fields.
             electrumUrl = environment.electrumUrl,
+            record = scanRecord,
+            // `CacheManager.getOnchainAddresses().map(\.addressIndex).max()`.
+            topPoolIndex = { onchainAddresses.addresses().maxOfOrNull { it.index } },
+            log = { message -> Log.i(TAG, "BDK: $message") },
+            onError = { failure, row -> Log.w(TAG, "BDK error (row $row)", failure) },
             onOpenFailure = { failure ->
                 // iOS's `handleError(error:row:)`. The wallet still opens, shows
                 // a zero on-chain balance and refuses to build a drain; what it
@@ -502,7 +528,7 @@ object WalletModule {
          */
         val onchainPort = nodeOnchainPort(lifecycle)
         val addressPool = OnchainAddressPool(
-            store = CachedOnchainAddressStore(cache),
+            store = onchainAddresses,
             derivation = object : AddressDerivation {
                 override fun peek(index: Int): String? = onchainWallet.peekAddress(index)
                 override fun revealTo(index: Int) = onchainWallet.revealAddressesTo(index)
@@ -516,17 +542,22 @@ object WalletModule {
 
         /*
          * The on-chain scan loop, named rather than written inline in the runner list
-         * because Home's pull-to-refresh asks it for a sync (`syncNow`), which then runs on the
-         * loop's own coroutine instead of racing its light-sync timer.
+         * because Home's pull-to-refresh asks it for a rebuild (`rebuildNow`), which then runs
+         * on the loop's own coroutine with its light-sync timer paused.
          */
         val onchainLoop = OnchainSyncLoop(
             wallet = onchainWallet,
             sync = onchainWallet.sync(scans = scans, closures = closures),
             scans = scans,
+            record = scanRecord,
             // The tick the balance read borrows. Named rather than
             // defaulted, because a loop wired without one is exactly
             // the silent failure BIT-144 was about.
             balances = { balances.read() != null },
+            // iOS's `appWillEnterForeground`: a start whose scan failed tries again on each return.
+            foregroundReturns = foreground.isActive.drop(1).filter { it }.map { },
+            // Process-lifetime, so a hung light sync never holds up the loop or outlives its scope.
+            lightSyncScope = scope,
             report = { event -> Log.i(TAG, "On-chain sync: $event") },
         )
 
@@ -640,15 +671,36 @@ object WalletModule {
                         Log.e(TAG, "Runner $name failed", failure)
                     }
                 },
+                onNodeUp = overview::nodeUp,
             ),
-            // `wipeNodeState` deliberately left as the no-op default. Removing a
-            // wallet erases the seed and nothing else, which is
-            // `WalletService.removeWallet`'s stated contract; the LDK state
-            // directory is left where it is, and that is the safe direction
-            // rather than an omission. The next create or restore runs
-            // `prepareNodeState` below, which finds state whose discriminator
-            // does not match the new seed and *quarantines* it — BIT-20's design —
-            // instead of deleting force-close sweep material.
+            // `performWalletReset`: iOS deletes the node's storage (`deleteDocuments()`) and
+            // `deleteClientInfo()` the address, funding and closure caches, so the next wallet —
+            // the same phrase restored included — starts with no Lightning history, only what
+            // the chain gives back. The node state is *quarantined* rather than deleted, as
+            // BIT-20 has it: out of the next node's way, and still on the device as force-close
+            // sweep material. A quarantine that fails throws, and the removal stops with the
+            // seed still there, as iOS's does when its teardown fails.
+            wipeNodeState = {
+                // iOS deletes the BDK database with the rest of `Documents`, so the removed
+                // wallet's history doesn't outlive its seed. First, because it is the step
+                // most likely to fail and the cheapest to redo: a failure stops the removal
+                // before the node state has been quarantined.
+                BdkStore.delete(paths.bdkDatabaseFile)
+                LdkStateStore(paths).quarantineLightningState()?.let { directory ->
+                    Log.i(TAG, "Quarantined the removed wallet's node state in ${directory.name}")
+                }
+                listOf(
+                    CachedOnchainAddressStore.KEY_ADDRESSES,
+                    CachedOnchainAddressStore.KEY_LAST_ADDRESS,
+                    CachedBdkScanRecord.KEY_LAST_FULL_SCAN,
+                    CachedBdkScanRecord.KEY_REBUILD_REQUESTED,
+                    CachedChannelClosureStore.KEY_FUNDING_OUTPOINT,
+                    CachedChannelClosureStore.KEY_CLOSURE_TX_IDS,
+                ).forEach(cache::remove)
+            },
+            // The next create or restore runs `prepareNodeState` below. After a removal there is
+            // no state left to judge; otherwise state whose discriminator does not match the new
+            // seed is quarantined — BIT-20's design — instead of deleting force-close sweep material.
             prepareNodeState = { mnemonic ->
                 val guard = SeedImportGuard(
                     vault = vault,
@@ -740,15 +792,22 @@ object WalletModule {
             },
             nodeEvents = nodeEvents,
             channelFundingTxId = { closureCache.channelFundingOutpoint()?.txId },
-            // Home's pull-to-refresh — `ReloadWallet.swift`: hide the wallet, sync the node, then
-            // the on-chain wallet through its loop, and publish a fresh reading.
+            // Home's pull-to-refresh — `ReloadWallet.swift`: hide the wallet, prepare to rebuild
+            // the on-chain wallet from scratch, sync the node, then rebuild and scan the on-chain
+            // wallet through its loop, and publish a fresh reading.
             refresher = WalletResync(
                 scope = scope,
                 canResync = { overview.overview.value.hasSynced },
-                markResyncing = overview::markResyncing,
+                markResyncing = {
+                    overview.markResyncing()
+                    // `markBdkNeedsRebuild()` and `walletSync.stop()`. The request itself is
+                    // stored by `rebuildNow`, off the thread that handled the pull.
+                    scans.markNeedsFullScan()
+                    onchainLoop.pauseLightSyncs()
+                },
                 endResync = overview::endResync,
                 syncNode = lightning::syncWallets,
-                syncOnchain = onchainLoop::syncNow,
+                syncOnchain = onchainLoop::rebuildNow,
                 readNow = { balances.read() != null },
                 onFailure = { failure -> Log.w(TAG, "Wallet refresh step failed", failure) },
             ),

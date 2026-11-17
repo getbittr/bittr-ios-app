@@ -260,6 +260,8 @@ class SettingsFlowTest {
         // - tapOn: text: ".*EUR.*"
         composeRule.onNodeWithTag(TestID.Device.Row.currency).performClick()
         composeRule.onNodeWithText(Currency.EUR.label).performClick()
+        // The alert slides down before the choice is applied.
+        composeRule.waitForIdle()
         assertEquals(Currency.EUR, preferences.currency.value)
     }
 

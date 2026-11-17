@@ -19,10 +19,17 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.unit.sp
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.StrokeJoin
+import androidx.compose.ui.graphics.asAndroidPath
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
+import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.layout
 import androidx.compose.ui.layout.onSizeChanged
@@ -67,8 +74,18 @@ private val CardWidth: Dp = 80.dp
  */
 private val CardGap: Dp = 5.dp
 
-/** The curve's stroke — the design review's 3 dp. */
-private val CurveWidth: Dp = 3.dp
+/** The scrub card's height, as iOS pins it. */
+private val CardHeight: Dp = 40.dp
+
+/** The scrub card's labels: black at 40 % for the date, black for the price, as iOS's are. */
+private val CardPrice: Color = Color.Black
+private val CardDate: Color = Color.Black.copy(alpha = 0.4f)
+
+/** The curve's stroke: `GraphView.lineWidth`, 4 pt. */
+private val CurveWidth: Dp = 4.dp
+
+/** The curve's shadow, as Home's value card draws it: black at a quarter, 9 down, blurred. */
+private const val CurveShadowAlpha = 0.25f
 
 /**
  * The price line, and the card that follows a finger across it.
@@ -156,22 +173,27 @@ internal fun GraphView(
                 lineTo(last.x, last.y)
             }
 
-            // Ink on the chart card, in both schemes. iOS strokes the curve with
-            // `whiteoryellow` (`GraphView.swift:175`) — the token DEV-47 merged into
-            // `emphasis` — because on iOS the curve sits on the canvas. It does not any
-            // more: the design review put the chart in a fixed white card, and
-            // `emphasis` is yellow in dark, which on white is about 1.6 : 1 — under the
-            // 3 : 1 WCAG 1.4.11 floor for a graphical object, the failure BIT-156 took
-            // this stroke off a literal to fix. The review's own spec was a white line
-            // with a shadow, drawn for a line on yellow; on white that is invisible.
-            // `onChartSurface` is the card's ink, 19.44 : 1. (The third review asked
-            // for the white line again; the card is still white, so the answer is too.)
-            //
-            // 3 dp with round caps and joins, from the review. It was 4 *px*, which is
-            // 1.5 dp at 420 dpi.
+            // White with its shadow, as iOS's `GraphView` draws it — the line Home's value card
+            // shows too (Tom, 2026-09-29) — now that the chart sits on the yellow card again.
+            drawIntoCanvas { canvas ->
+                val shadow = android.graphics.Paint().apply {
+                    isAntiAlias = true
+                    style = android.graphics.Paint.Style.STROKE
+                    strokeWidth = CurveWidth.toPx()
+                    strokeCap = android.graphics.Paint.Cap.ROUND
+                    strokeJoin = android.graphics.Paint.Join.ROUND
+                    color = android.graphics.Color.BLACK
+                    alpha = (CurveShadowAlpha * 255).toInt()
+                    maskFilter = android.graphics.BlurMaskFilter(12.dp.toPx(), android.graphics.BlurMaskFilter.Blur.NORMAL)
+                }
+                canvas.save()
+                canvas.translate(0f, 9.dp.toPx())
+                canvas.nativeCanvas.drawPath(path.asAndroidPath(), shadow)
+                canvas.restore()
+            }
             drawPath(
                 path = path,
-                color = colors.onChartSurface,
+                color = Color.White,
                 style = Stroke(
                     width = CurveWidth.toPx(),
                     cap = StrokeCap.Round,
@@ -216,64 +238,31 @@ internal fun GraphView(
                             placeable.place(left.roundToInt(), top.roundToInt())
                         }
                     }
-                    .width(CardWidth)
-                    // A fixed light surface in both schemes, for the reason BIT-156
-                    // gave: no fill on the dark canvas both has an edge and carries
-                    // white text, so this is a light card with ink on it or no card.
-                    //
-                    // But not white any more. iOS's card is `.white`
-                    // (`GraphView.swift:112`) because it floats on the canvas; since the
-                    // design review it floats on the white chart card, and white on
-                    // white is the 1.00 : 1 BIT-156 was about, reached from the other
-                    // side. The cream tonal fill — pinned to its light value, because
-                    // `tonalFill` is `blue3` in dark and this card does not follow the
-                    // scheme — plus the chart's own hairline gives it an edge, and
-                    // keeps both labels' ink: 16.7 : 1 for the price, 6.8 : 1 for the
-                    // 70 % date. The same fill is the range selector's track, so
-                    // "cream on this card" means one thing: a raised surface.
-                    .background(ChartColors.raised, BittrCanvasShapes.wordRow)
-                    .border(1.dp, ChartColors.hairline, BittrCanvasShapes.wordRow)
-                    .padding(vertical = 6.dp),
+                    // iOS's `thisCard`: white, 80 by 40 with 8 pt corners, the date 9 from its top.
+                    // White in both schemes, as iOS's is; it floats on the yellow (or blue2) card.
+                    .size(width = CardWidth, height = CardHeight)
+                    .background(Color.White, RoundedCornerShape(8.dp))
+                    .padding(top = 9.dp),
             ) {
-                // The scale's floor, and the one BIT-151 call site where iOS is not
-                // simply reproducible: `dateLabel` is Gilroy-Regular
-                // **10** (`GraphView.swift:128`), and `Type.kt` defines nothing below
-                // `labelMedium`'s 13. That floor is the port's, from DEV-06 and the
-                // A11Y line the shrink-to-fit balance also respects, so the date
-                // takes it rather than reintroducing a 10 sp one-off.
-                //
-                // The de-emphasis is a token, not iOS's `alpha = 0.4`
-                // (`GraphView.swift:131`). Copying that number gives black at 40 % on
-                // this card — **2.85 : 1** — which misses AA for a 13 sp regular label
-                // and misses the 3 : 1 large-text floor as well, so it is not readable
-                // under any reading of the rule. Same call BIT-94 made.
-                //
-                // It was `mutedOnCanvas` until BIT-156, which is right for a label on
-                // the canvas and wrong on this card: the card stopped following the
-                // canvas, and `mutedOnCanvas` is white in dark. `onChartSurfaceMuted`
-                // is that token's light value pinned — the same ink at 70 %, 7.39 : 1
-                // here. Measured in `TokenContrastTest`.
+                // `dateLabel`: Gilroy Regular 10, black at 40 %.
                 Text(
                     text = CardDateFormat.format(scrub.point.at.atZone(ZoneId.systemDefault())),
-                    style = MaterialTheme.typography.labelMedium,
-                    color = colors.onChartSurfaceMuted,
+                    style = MaterialTheme.typography.bodyMedium.copy(fontSize = 10.sp, lineHeight = 12.sp),
+                    color = CardDate,
+                    maxLines = 1,
+                    softWrap = false,
                 )
-                // `priceLabel` is Gilroy-**Bold** 12 (`GraphView.swift:144`), and 13 is
-                // the scale's floor, so this is `labelMedium` with the weight the
-                // storyboard asks for — the `copy` convention `Type.kt` spells out for
-                // a slot that carries one weight. It was reading `labelLarge`'s Bold
-                // 16, four sp over iOS, which does not fit: `CHF 120,000` wrapped onto
-                // two lines inside the 80 dp card, measured, not guessed. BIT-152.
-                //
-                // The colour is spelled rather than inherited, and that is load-bearing
-                // now: `BittrCanvas` provides `onCanvas` as the content colour and this
-                // card no longer is the canvas — in dark that inherited white would be
-                // the fill. `GraphCardFitTest` asserts both call sites. BIT-156.
+                // `priceLabel`: Gilroy Bold 12, black.
                 Text(
                     text = "$currencySymbol ${formatPrice(scrub.point.price)}",
-                    style = MaterialTheme.typography.labelMedium
-                        .copy(fontWeight = FontWeight.Bold),
-                    color = colors.onChartSurface,
+                    style = MaterialTheme.typography.bodyMedium.copy(
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 12.sp,
+                        lineHeight = 14.sp,
+                    ),
+                    color = CardPrice,
+                    maxLines = 1,
+                    softWrap = false,
                     modifier = Modifier.testTag(TestID.Value.graphValueLabel),
                 )
             }
@@ -285,7 +274,7 @@ internal fun GraphView(
  * The x-range the curve's sample points span inside a plot [width] px wide.
  *
  * A round cap draws half the stroke past the path's end point. The plot this draws in
- * already stops `PlotInsetEnd` (8 dp) short of the card's content edge, but a
+ * already stops `PlotInsetHorizontal` short of the gridlines' ends, but a
  * path running to `width` put its cap 1.5 dp into that inset, and the third review
  * (`bitcoin_value/06`–`07`) still saw the closing point meeting the edge. Pulling both
  * ends in by half the stroke keeps the whole drawn line, caps included, inside the

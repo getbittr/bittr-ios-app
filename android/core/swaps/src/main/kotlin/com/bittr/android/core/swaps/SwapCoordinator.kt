@@ -63,6 +63,8 @@ data class SwapStatusState(
     val spinning: Boolean,
     val lastStatus: String?,
     val complete: Boolean,
+    /** `showLoading(message: "gatheringdetails")`: the completed swap's transaction is being put together. */
+    val gathering: Boolean = false,
 )
 
 sealed interface SwapEvent {
@@ -229,6 +231,21 @@ class SwapCoordinator(
     fun refresh(boltzId: String) {
         val tracker = trackers[boltzId] ?: return
         scope.launch { tracker.checkNow(fromRefresh = true) }
+    }
+
+    /**
+     * `.paymentReceived` for a swap's own leg (iOS: `isSwapPayment` → `openCompletedSwapTransaction`):
+     * the Lightning payment of an onchain-to-lightning swap has come in, so the swap is done — no need
+     * to wait for Boltz to say so. False when the payment is no tracked swap's.
+     */
+    fun onPaymentReceived(paymentHash: String): Boolean {
+        val tracker = trackers.values.firstOrNull { tracker ->
+            val swap = tracker.swap
+            swap.direction == SwapDirection.OnchainToLightning &&
+                swap.createdInvoice?.let { invoices.inspect(it)?.paymentHashHex }?.equals(paymentHash, ignoreCase = true) == true
+        } ?: return false
+        tracker.paymentReceived()
+        return true
     }
 
     /** The swap file, for "Download details". */
@@ -487,16 +504,31 @@ class SwapCoordinator(
         return api.broadcast(Transaction.write(signed).toHex()).also { wallet.recordDescription(it, swap.dateId) }
     }
 
-    /** `openCompletedSwapTransaction`: up to four looks, five seconds apart, for the swap's Lightning leg. */
-    private suspend fun openCompleted(swap: Swap) {
+    /**
+     * `openCompletedSwapTransaction`: the completed swap's row, opened as soon as both legs are in the
+     * history. First a look at what the node has already published, without a sync — an
+     * onchain-to-lightning swap's payment is usually there the moment Boltz reports it, as iOS opens
+     * it from `.paymentReceived`. Failing that, "Gathering details" on the status card while the
+     * wallet syncs and looks again, up to four times five seconds apart, as iOS does.
+     */
+    private suspend fun openCompleted(swap: Swap, tracker: Tracker) {
         val invoice = if (swap.direction == SwapDirection.OnchainToLightning) swap.createdInvoice else swap.boltzInvoice
         val hash = invoice?.let { invoices.inspect(it)?.paymentHashHex } ?: return
-        repeat(4) { attempt ->
-            wallet.transactionIdForPayment(hash)?.let {
-                _events.tryEmit(SwapEvent.OpenTransaction(it))
-                return
+        wallet.transactionIdForPayment(hash, sync = false)?.let {
+            _events.tryEmit(SwapEvent.OpenTransaction(it))
+            return
+        }
+        tracker.update { it.copy(gathering = true) }
+        try {
+            repeat(4) { attempt ->
+                wallet.transactionIdForPayment(hash, sync = true)?.let {
+                    _events.tryEmit(SwapEvent.OpenTransaction(it))
+                    return
+                }
+                if (attempt < 3) pause(5_000)
             }
-            if (attempt < 3) pause(5_000)
+        } finally {
+            tracker.update { it.copy(gathering = false) }
         }
     }
 
@@ -519,6 +551,9 @@ class SwapCoordinator(
         private val claiming = AtomicBoolean(false)
         private val refunding = AtomicBoolean(false)
         private val completionHandled = AtomicBoolean(false)
+
+        /** Whether a status has come in yet. */
+        private var sawStatus = false
 
         fun update(block: (SwapStatusState) -> SwapStatusState) = _state.update(block)
 
@@ -547,6 +582,13 @@ class SwapCoordinator(
             BoltzStatus.suggestedMarker(update.status)?.let { marker ->
                 if (current.isSuggested && current.dateId.isNotEmpty()) store.setSuggestedStatus(current.dateId, marker)
             }
+            // A swap whose very first status is complete finished before this card was watching it —
+            // its transaction screen is where it was opened from, or was already shown. Its completion
+            // does not run again. A refresh's claim still can — see below.
+            if (!sawStatus) {
+                sawStatus = true
+                if (BoltzStatus.phase(update.status) == SwapPhase.Complete) completionHandled.set(true)
+            }
             showStatus(update.status)
 
             val lightningToOnchain = current.direction == SwapDirection.LightningToOnchain
@@ -556,7 +598,13 @@ class SwapCoordinator(
                     if (current.direction == SwapDirection.OnchainToLightning) refund()
                 }
                 lightningToOnchain && update.status == "transaction.mempool" && update.transactionHex != null -> claim(update.transactionHex)
-                lightningToOnchain && fromRefresh && (update.status == "transaction.confirmed" || update.status == "invoice.settled") ->
+                // Skipped only for a swap whose claim is known to have been broadcast. `invoice.settled`
+                // is no such proof: claimTransaction hands Boltz the preimage before it broadcasts, so
+                // a claim cut off between the two ends on that status too, with Boltz paid and the
+                // lockup still ours to take until its timelock lets Boltz take it back. Retrying a
+                // claim that did go out only fails: its lockup is spent, to our own address.
+                lightningToOnchain && fromRefresh && store.claimedTransactionId(id) == null &&
+                    (update.status == "transaction.confirmed" || update.status == "invoice.settled") ->
                     (update.transactionHex ?: store.load(id)?.lockupTx)?.let { claim(it) }
                 update.status == "transaction.claimed" -> {
                     update { it.copy(spinning = false) }
@@ -567,11 +615,15 @@ class SwapCoordinator(
             if (current.direction == SwapDirection.OnchainToLightning && BoltzStatus.phase(update.status) == SwapPhase.Complete &&
                 completionHandled.compareAndSet(false, true)
             ) {
-                scope.launch {
-                    pause(3_000)
-                    runCatching { wallet.sync() }
-                    if (!current.isSuggested) openCompleted(current)
-                }
+                if (!current.isSuggested) scope.launch { openCompleted(current, this@Tracker) }
+            }
+        }
+
+        /** The swap's Lightning payment came in: complete, and its transaction opens. */
+        fun paymentReceived() {
+            update { it.copy(statusText = SwapCopy.STATUS_COMPLETE, complete = true, spinning = false) }
+            if (completionHandled.compareAndSet(false, true) && !swap.isSuggested) {
+                scope.launch { openCompleted(swap, this@Tracker) }
             }
         }
 
@@ -596,6 +648,8 @@ class SwapCoordinator(
             store.save(withLockup)
             runCatching { claimTransaction(withLockup) }
                 .onSuccess { txId ->
+                    // First: what tells a later refresh this claim needs no retry.
+                    withLockup.boltzId?.let { store.markClaimed(it, txId) }
                     update { it.copy(statusText = SwapCopy.STATUS_COMPLETE, complete = true, spinning = false) }
                     unsubscribe()
                     // `addOnchainTransactionToUI`.
@@ -605,11 +659,7 @@ class SwapCoordinator(
                         store.save(withLockup.copy(sentOnchainTransactionId = txId))
                         store.setSuggestedStatus(withLockup.dateId, SuggestedSwapStatus.Succeeded)
                     }
-                    scope.launch {
-                        pause(3_000)
-                        runCatching { wallet.sync() }
-                        if (!withLockup.isSuggested) openCompleted(withLockup)
-                    }
+                    if (!withLockup.isSuggested) scope.launch { openCompleted(withLockup, this@Tracker) }
                 }
                 .onFailure {
                     update { state -> state.copy(statusText = SwapCopy.STATUS_FAILED, spinning = false) }

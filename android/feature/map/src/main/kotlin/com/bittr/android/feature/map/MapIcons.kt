@@ -15,6 +15,9 @@ internal object MapIconPaths {
     const val PIN = "M12 21s-6-5.6-6-11a6 6 0 0112 0c0 5.4-6 11-6 11z M12 7.5a2.5 2.5 0 100 5 2.5 2.5 0 000-5z"
     const val CLOCK = "M12 3a9 9 0 100 18 9 9 0 000-18z M12 7v5l3 2"
 
+    /** The map's ⓘ: a disc with the "i" cut out, for `rememberFillIcon(..., evenOdd = true)`. */
+    const val INFO = "M12 2a10 10 0 100 20 10 10 0 000-20z M11 10.5h2V17h-2z M11 7h2v2h-2z"
+
     /**
      * The mark inside every pin: a B on a spine, with the two ticks above and below.
      * A path rather than the `₿` character, because U+20BF is missing from older system

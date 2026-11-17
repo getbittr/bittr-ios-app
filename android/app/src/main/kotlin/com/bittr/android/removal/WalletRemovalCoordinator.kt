@@ -210,8 +210,14 @@ class WalletRemovalCoordinator(
         }
     }
 
-    /** A button on the current alert. */
-    fun press(button: RemovalButton) {
+    /**
+     * [button] on [alert]. Ignored when [alert] is no longer the one up: a card runs its button
+     * once it has slid away, and the removal can have put up the next alert meanwhile — the
+     * lockout's Okay, tapped as the close lands with "still closing", cleared that alert and left
+     * the lockout with no way on. The newer alert's own button is that way.
+     */
+    fun press(alert: RemovalAlert, button: RemovalButton) {
+        if (_uiState.value.alert !== alert) return
         _uiState.value = _uiState.value.copy(alert = null)
         when (button.step) {
             null -> Unit
