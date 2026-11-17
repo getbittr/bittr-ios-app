@@ -105,8 +105,10 @@ extension CoreViewController {
         }
         
         DispatchQueue.global(qos: .userInitiated).async {
-            defer { DispatchQueue.main.async { self.isContinuingStartWallet = false } }
-            guard BitcoinManager.shared.ldkNode != nil else { return }
+            guard BitcoinManager.shared.ldkNode != nil else {
+                DispatchQueue.main.async { self.isContinuingStartWallet = false }
+                return
+            }
             
             // Sync wallet.
             var didSyncWallet = true
@@ -128,6 +130,8 @@ extension CoreViewController {
             DispatchQueue.main.async {
                 self.homeVC?.couldNotSyncWallet = !didSyncWallet
                 self.homeVC?.loadWalletData()
+                // BDK's start has its own lock, so a pull-to-refresh need not wait for it.
+                self.isContinuingStartWallet = false
             }
             
             // Start BDK.
