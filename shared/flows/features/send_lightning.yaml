@@ -121,8 +121,8 @@ appId: com.bittr.bittr-regtest
 
 # Request a fresh invoice WITH an amount (1000 sats) from the e2e endpoint and
 # put it on the simulator clipboard (Maestro can't set the OS pasteboard itself
-# — clipboard_server.js bridges to `xcrun simctl pbcopy`; request_invoice.js
-# sets output.clipboardText). Then tap the in-app Paste button. Because the
+# — clipboard_server.js bridges that; request_invoice.js sets
+# output.clipboardText). Then tap the in-app Paste button. Because the
 # clipboard was written by another process, iOS shows an "Allow Paste" system
 # prompt; it renders a beat after the tap, so wait for it explicitly, then tap.
 - evalScript: ${output.invoiceAmountSats = 1000}
