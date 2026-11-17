@@ -38,6 +38,9 @@ data class CachedHome(
 
     fun price(symbol: String?): FiatPrice? = symbol?.let { s -> prices[s]?.let { FiatPrice(it, s) } }
 
+    /** The cached rate for a currency code, `EUR` or `CHF`, as a bittr purchase records it. */
+    fun priceForCode(code: String): FiatPrice? = price(if (code == "EUR") "€" else code)
+
     companion object {
         /** The reading half of a synced [WalletOverview]; prices and profit are kept from [previous]. */
         fun of(overview: WalletOverview, previous: CachedHome?): CachedHome = CachedHome(

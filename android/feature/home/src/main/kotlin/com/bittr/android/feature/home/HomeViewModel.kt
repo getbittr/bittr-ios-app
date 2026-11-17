@@ -113,12 +113,14 @@ class HomeViewModel @Inject constructor(
                 purchases.purchases.map { bought -> bought.values.mapNotNull { it.currency }.toSet() }.distinctUntilChanged(),
                 price.map { purchases.purchases.value.values.mapNotNull { it.currency }.toSet() },
             ).collect { codes ->
-                purchasePrices.value = codes.associateWith { code ->
-                    cache.cached.value?.price(if (code == "EUR") "€" else code)?.pricePerBitcoin
-                }.filterValues { it != null }.mapValues { it.value!! }
-                purchasePrices.value = codes.associateWith { code ->
-                    purchases.pricePerBitcoin(code) ?: purchasePrices.value[code]
-                }.filterValues { it != null }.mapValues { it.value!! }
+                // Known rates stay until the live ones land, so a tick never steps back to the cache.
+                val known = codes.mapNotNull { code ->
+                    (purchasePrices.value[code] ?: cache.cached.value?.priceForCode(code)?.pricePerBitcoin)?.let { code to it }
+                }.toMap()
+                purchasePrices.value = known
+                purchasePrices.value = codes.mapNotNull { code ->
+                    (purchases.pricePerBitcoin(code) ?: known[code])?.let { code to it }
+                }.toMap()
             }
         }
         // iOS fetches conversion rates first thing at start (`SyncType.conversion`), before the
