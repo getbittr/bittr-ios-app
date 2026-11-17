@@ -113,17 +113,12 @@ extension CoreViewController {
             }
             
             // Sync wallet.
-            var didSyncWallet = true
             do {
                 try BitcoinManager.shared.syncWallets()
+                self.completeSync(.wallet)
             } catch {
                 Log.info("startWallet syncWallets failed: \(error.localizedDescription)")
                 SentryManager.capture(error, context: "StartLightning syncWallets")
-                didSyncWallet = false
-            }
-            if didSyncWallet {
-                self.completeSync(.wallet)
-            } else {
                 self.failSync(.wallet)
             }
             self.startSync(.final)
