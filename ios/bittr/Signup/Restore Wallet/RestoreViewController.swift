@@ -289,6 +289,9 @@ class RestoreViewController: UIViewController, UITextFieldDelegate {
             // Store mnemonic in cache.
             do {
                 try CacheManager.storeMnemonicAwaitingPin(enteredMnemonic)
+            } catch CacheManager.WalletCreationError.walletExists {
+                self.resetWithError(Language.getWord(withID: "walletexists"))
+                return
             } catch {
                 self.resetWithError(Language.getWord(withID: "mnemonicsavefail"))
                 return
