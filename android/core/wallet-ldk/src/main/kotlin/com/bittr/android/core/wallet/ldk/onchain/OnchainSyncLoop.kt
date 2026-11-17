@@ -4,6 +4,7 @@ import com.bittr.android.core.wallet.ldk.host.NodeRunner
 import kotlin.coroutines.cancellation.CancellationException
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.async
@@ -14,8 +15,8 @@ import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.selects.onTimeout
 import kotlinx.coroutines.selects.select
-import kotlinx.coroutines.withTimeoutOrNull
 
 /**
  * The BDK wallet's own lifetime, as the two calls a loop needs from it.
@@ -317,6 +318,7 @@ class OnchainSyncLoop(
         return answer.await()
     }
 
+    @OptIn(ExperimentalCoroutinesApi::class)
     override suspend fun run() {
         // The timer's light syncs belong to this run, and are cancelled on the way out, so
         // none acts on the wallet after the run has let it go.
@@ -345,8 +347,12 @@ class OnchainSyncLoop(
             while (true) {
                 // Before the first sync, not after: iOS schedules the timer at
                 // `.now() + 30`, and the start immediately above has just read the
-                // chain. A rebuild request interrupts the wait.
-                val rebuild = withTimeoutOrNull(lightSyncIntervalMillis) { rebuildRequests.receive() }
+                // chain. A rebuild request interrupts the wait. A select, as a received
+                // request can't then be lost to the timeout.
+                val rebuild = select<CompletableDeferred<Boolean>?> {
+                    rebuildRequests.onReceive { it }
+                    onTimeout(lightSyncIntervalMillis) { null }
+                }
                 if (rebuild == null) {
                     launchTick(ticks)
                     continue
