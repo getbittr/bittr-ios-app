@@ -447,15 +447,15 @@ for flow in "${FLOWS_TO_RUN[@]}"; do
         pkill -P $$ -f "maestro" 2>/dev/null || true
     ) &
     WATCHDOG_PID=$!
-    if maestro --device "${SERIAL}" test --env APP_ID="${APP_ID}" --env MNEMONIC="${MNEMONIC}" \
-            --env SLOW_SYNC=0 --test-output-dir "${OUT_DIR}" \
-            "${FLOW_PATH}" 2>&1 | tee "${FLOW_LOG}"; then
-        kill "${WATCHDOG_PID}" 2>/dev/null || true
-        copy_screenshots "${OUT_DIR}"
+    maestro --device "${SERIAL}" test --env APP_ID="${APP_ID}" --env MNEMONIC="${MNEMONIC}" \
+        --env SLOW_SYNC=0 --test-output-dir "${OUT_DIR}" \
+        "${FLOW_PATH}" 2>&1 | tee "${FLOW_LOG}"
+    maestro_status=$?
+    kill "${WATCHDOG_PID}" 2>/dev/null || true
+    copy_screenshots "${OUT_DIR}"
+    if [[ ${maestro_status} -eq 0 ]]; then
         RESULTS+=("${GREEN}✔${RESET} ${flow} ($(($(date +%s) - START_TS))s)")
     else
-        kill "${WATCHDOG_PID}" 2>/dev/null || true
-        copy_screenshots "${OUT_DIR}"
         RESULTS+=("${RED}✖${RESET} ${flow} ($(($(date +%s) - START_TS))s) — log: ${FLOW_LOG}")
         FAILURES=$((FAILURES + 1))
         fail "${flow} failed — full output: ${FLOW_LOG}"
