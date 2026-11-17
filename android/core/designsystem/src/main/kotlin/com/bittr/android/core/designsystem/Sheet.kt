@@ -167,6 +167,9 @@ fun BittrPopup(
     var panelHeight by remember { mutableFloatStateOf(0f) }
     val overshootPx = with(density) { PopupOvershoot.toPx() }
     var closing by remember { mutableStateOf(false) }
+    // The finger's pull on the panel, in px, handed to [offset] when the drag ends.
+    var drag by remember { mutableFloatStateOf(0f) }
+    val position = { (offset.value + drag).coerceAtLeast(0f) }
 
     LaunchedEffect(panelHeight > 0f) {
         if (panelHeight <= 0f) return@LaunchedEffect
@@ -181,6 +184,8 @@ fun BittrPopup(
         if (!closing) {
             closing = true
             scope.launch {
+                offset.snapTo(position())
+                drag = 0f
                 offset.animateTo(panelHeight, tween(PopupCloseMs, easing = FastOutSlowInEasing))
                 onDismissedLatest()
             }
@@ -188,7 +193,7 @@ fun BittrPopup(
     }
     BackHandler(onBack = dismiss)
 
-    val shown = if (panelHeight > 0f) (1f - offset.value / panelHeight).coerceIn(0f, 1f) else 0f
+    val shown = if (panelHeight > 0f) (1f - position() / panelHeight).coerceIn(0f, 1f) else 0f
     // A dialog window is its own semantics root and does not inherit the app's
     // `testTagsAsResourceId`: without this, Maestro sees none of the ids inside.
     Box(Modifier.fillMaxSize().exposeTestTags()) {
@@ -208,7 +213,7 @@ fun BittrPopup(
                 .fillMaxWidth()
                 // Off screen until measured, so the first frame is not the panel at the top of its travel.
                 .offset {
-                    IntOffset(0, if (panelHeight <= 0f) OffScreen else (offset.value + overshootPx).roundToInt())
+                    IntOffset(0, if (panelHeight <= 0f) OffScreen else (position() + overshootPx).roundToInt())
                 }
                 .onSizeChanged { panelHeight = it.height - overshootPx }
                 .clip(RoundedCornerShape(topStart = cornerRadius, topEnd = cornerRadius))
@@ -216,9 +221,12 @@ fun BittrPopup(
                 .draggable(
                     orientation = Orientation.Vertical,
                     state = rememberDraggableState { delta ->
-                        if (!closing) scope.launch { offset.snapTo((offset.value + delta).coerceAtLeast(0f)) }
+                        if (!closing) drag = (drag + delta).coerceAtLeast(-offset.value)
                     },
                     onDragStopped = { velocity ->
+                        if (closing) return@draggable
+                        offset.snapTo(position())
+                        drag = 0f
                         val fast = velocity > with(density) { PopupFlingVelocity.dp.toPx() }
                         if (offset.value > panelHeight / 3 || fast) {
                             dismiss()
