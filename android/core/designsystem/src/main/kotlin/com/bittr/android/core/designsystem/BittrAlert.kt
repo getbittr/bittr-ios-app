@@ -219,6 +219,8 @@ fun BittrInlineAlert(
  * message — Gilroy-Bold 16, `blackorwhite` — side by side, 11 apart and centred, 25 from the
  * card's top and bottom. Nothing on it to tap and no way to dismiss it: the dim swallows taps and
  * Back. Drawn in the current window, so the screen underneath stays in Maestro's view.
+ *
+ * Back goes to the newest handler, so one composed while the card is up still takes it first.
  */
 @Composable
 fun BittrLoadingCard(
