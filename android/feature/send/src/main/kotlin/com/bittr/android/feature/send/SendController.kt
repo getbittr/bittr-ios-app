@@ -1010,15 +1010,20 @@ class SendController(
                 setLnurlLoading(false)
                 return@launch raise(okay(SendStrings.UNEXPECTED_ERROR, SendStrings.INVOICE_CREATE_FAIL))
             }
-            val reply = source.lnurlGet(LnurlService.withQuery(withdraw.callback, "k1" to withdraw.k1, "pr" to invoice))
-            val body = reply.getOrNull()
-            setLnurlLoading(false)
-            // A retry asks for a new invoice, as iOS's `sendWithdrawRequest` does.
-            if (body == null) return@launch raise(lnurlRequestFailed(reply.exceptionOrNull()) { sendWithdrawRequest(withdraw, amountMsat) })
-            val status = LnurlService.parseStatus(body)
-            if (!status.ok) {
-                raise(okay(SendStrings.WITHDRAW_REQUEST, "${SendStrings.LNURL_FAIL_1} ${status.reason ?: SendStrings.UNEXPECTED_ERROR}"))
-            }
+            withdrawTo(withdraw, invoice)
+        }
+    }
+
+    /** A retry hands the service the same [invoice], so one k1 is never given two. */
+    private suspend fun withdrawTo(withdraw: LnurlServiceResponse.Withdraw, invoice: String) {
+        setLnurlLoading(true)
+        val reply = source.lnurlGet(LnurlService.withQuery(withdraw.callback, "k1" to withdraw.k1, "pr" to invoice))
+        val body = reply.getOrNull()
+        setLnurlLoading(false)
+        if (body == null) return raise(lnurlRequestFailed(reply.exceptionOrNull()) { scope.launch { withdrawTo(withdraw, invoice) } })
+        val status = LnurlService.parseStatus(body)
+        if (!status.ok) {
+            raise(okay(SendStrings.WITHDRAW_REQUEST, "${SendStrings.LNURL_FAIL_1} ${status.reason ?: SendStrings.UNEXPECTED_ERROR}"))
         }
     }
 

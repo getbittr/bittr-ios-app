@@ -42,7 +42,11 @@ class SendControllerTest {
             if (url in notFound) return Result.failure(LnurlHttpException(404))
             return responses[url]?.let { Result.success(it) } ?: Result.failure(IllegalStateException("404"))
         }
-        override suspend fun createInvoice(amountMsat: Long, description: String) = Result.success("lnbcrt-withdraw-$amountMsat")
+        var invoicesCreated = 0
+        override suspend fun createInvoice(amountMsat: Long, description: String): Result<String> {
+            invoicesCreated++
+            return Result.success("lnbcrt-withdraw-$amountMsat")
+        }
         override fun storeTransactionNote(transactionId: String, note: String) {
             notes[transactionId] = note
         }
@@ -302,7 +306,7 @@ class SendControllerTest {
     }
 
     @Test
-    fun `a failed withdraw callback offers try again, which hands the service a new invoice`() = runTest {
+    fun `a failed withdraw callback offers try again, which hands the service the same invoice`() = runTest {
         val service = "https://lnbits.example.com/withdraw"
         val cb = "https://lnbits.example.com/withdraw/cb"
         val withdrawCall = "$cb?k1=abc&pr=lnbcrt-withdraw-20000"
@@ -327,6 +331,7 @@ class SendControllerTest {
 
         assertEquals(null, controller.state.value.alert)
         assertEquals(2, source.fetched.count { it == withdrawCall })
+        assertEquals(1, source.invoicesCreated)
     }
 
     @Test
