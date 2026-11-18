@@ -206,7 +206,7 @@ class ReceiveController(
      */
     fun onCopy(): String? {
         makeCodeAgainIfInputsChanged()
-        val text = onShare()
+        val text = codeText()
         if (text == null) {
             if (_state.value.loading) copyWhenReady = true
             return null
@@ -215,11 +215,11 @@ class ReceiveController(
         return text
     }
 
-    /**
-     * What the QR's Share hands to the share sheet: the copy text, and nothing while a new code loads
-     * or while the fields hold an edit the code does not have yet.
-     */
-    fun onShare(): String? = _state.value.takeUnless { it.loading || currentInputs() != codeInputs }?.display?.copyText
+    /** What the QR's Share hands to the share sheet. */
+    fun onShare(): String? = codeText()
+
+    /** The code's copy text, and nothing while a new code loads or while the fields hold an edit the code does not have yet. */
+    private fun codeText(): String? = _state.value.takeUnless { it.loading || currentInputs() != codeInputs }?.display?.copyText
 
     /** The screen has put [ReceiveUiState.copyRequest] on the clipboard. */
     fun onCopyRequestHandled() = _state.update { it.copy(copyRequest = null) }
