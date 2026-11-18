@@ -14,6 +14,8 @@ import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performTouchInput
+import androidx.compose.ui.test.swipeDown
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import org.junit.Assert.assertEquals
 import org.junit.Rule
@@ -24,6 +26,7 @@ import org.robolectric.annotation.Config
 /**
  * The loading card cannot be dismissed, as on iOS. Back once slid it away and left its dim
  * behind, which swallowed every tap until loading ended: a frozen app with nothing on it.
+ * Neither Back nor a pull-down reaches the screen under a card.
  */
 @RunWith(AndroidJUnit4::class)
 @Config(sdk = [34])
@@ -34,14 +37,18 @@ class LoadingCardBackTest {
 
     private var screenBacks = 0
     private var screenTaps = 0
+    private var screenPulls = 0
 
     private fun showOverScreen(overlay: @Composable () -> Unit) {
         composeRule.mainClock.autoAdvance = false
         composeRule.setContent {
             BittrTheme {
                 BackHandler { screenBacks++ }
-                Box(Modifier.fillMaxSize().testTag(SCREEN).clickable { screenTaps++ })
-                overlay()
+                // The sheet: a pull-down anywhere on it closes it, as on Send and Swap.
+                Box(Modifier.fillMaxSize().testTag(SHEET).dismissOnPullDown({ screenPulls++ })) {
+                    Box(Modifier.fillMaxSize().testTag(SCREEN).clickable { screenTaps++ })
+                    overlay()
+                }
             }
         }
         composeRule.mainClock.advanceTimeBy(2_000)
@@ -77,7 +84,30 @@ class LoadingCardBackTest {
         assertEquals(1, screenTaps)
     }
 
+    @Test
+    fun `an alert with nothing that dismisses it keeps Back from the screen underneath`() {
+        showOverScreen {
+            BittrInlineAlert(title = "payout", message = "received", buttons = listOf(BittrAlertButton("Okay") {}))
+        }
+
+        pressBack()
+
+        composeRule.onNodeWithText("received").assertIsDisplayed()
+        assertEquals(0, screenBacks)
+    }
+
+    @Test
+    fun `a pull down on the loading card's dim does not close the sheet underneath`() {
+        showOverScreen { BittrLoadingCard(message = "gathering details") }
+
+        composeRule.onNodeWithTag(SHEET).performTouchInput { swipeDown() }
+        composeRule.mainClock.advanceTimeBy(2_000)
+
+        assertEquals(0, screenPulls)
+    }
+
     private companion object {
+        const val SHEET = "sheet"
         const val SCREEN = "screen"
         const val CARD = "card"
     }

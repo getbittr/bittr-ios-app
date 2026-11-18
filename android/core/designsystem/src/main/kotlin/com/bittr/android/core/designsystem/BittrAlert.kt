@@ -10,7 +10,7 @@ import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -233,7 +233,6 @@ fun BittrLoadingCard(
     AlertOverlay(
         motion = motion,
         onBack = null,
-        swallowBack = true,
         cardColor = MaterialTheme.colorScheme.surfaceContainerHigh,
         cardModifier = modifier.then(if (testTag != null) Modifier.testTag(testTag) else Modifier),
     ) {
@@ -363,15 +362,13 @@ internal fun AlertWindowSetup() {
 
 /**
  * The dim and the card sliding up inside it, drawn until the card is [AlertMotion.gone]. [onBack]
- * is what Back does, after the card has gone down; null leaves Back to whatever is underneath,
- * unless [swallowBack]. [bottomInsets] is what the card's bottom sits on — the navigation bar, or
- * the keyboard as well for a text field.
+ * is what Back does, after the card has gone down; null swallows it. [bottomInsets] is what the
+ * card's bottom sits on — the navigation bar, or the keyboard as well for a text field.
  */
 @Composable
 internal fun AlertOverlay(
     motion: AlertMotion,
     onBack: (() -> Unit)?,
-    swallowBack: Boolean = false,
     cardModifier: Modifier = Modifier,
     cardColor: Color = BittrTheme.colors.levelCard,
     bottomInsets: WindowInsets = WindowInsets.navigationBars,
@@ -381,7 +378,7 @@ internal fun AlertOverlay(
     LaunchedEffect(motion) {
         motion.progress.animateTo(1f, spring(dampingRatio = 0.7f, stiffness = AlertStiffness))
     }
-    if (onBack != null) BackHandler { motion.close(onBack) } else if (swallowBack) BackHandler { }
+    BackHandler { onBack?.let(motion::close) }
 
     val shown = motion.progress.value.coerceIn(0f, 1f)
     // A dialog window is its own semantics root and does not inherit the app's
@@ -391,8 +388,15 @@ internal fun AlertOverlay(
             Modifier
                 .fillMaxSize()
                 .background(Color.Black.copy(alpha = 0.5f * shown))
-                // Taps on the dim go nowhere, as on iOS.
-                .pointerInput(Unit) { detectTapGestures { } },
+                // Taps and drags on the dim go nowhere: a pull-down would close the sheet behind.
+                .pointerInput(Unit) {
+                    awaitEachGesture {
+                        do {
+                            val event = awaitPointerEvent()
+                            event.changes.forEach { it.consume() }
+                        } while (event.changes.any { it.pressed })
+                    }
+                },
         )
         Column(
             modifier = Modifier
