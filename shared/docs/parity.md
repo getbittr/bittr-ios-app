@@ -84,7 +84,7 @@ Android Maestro runner is not stood up yet:
 | Feature | iOS | Android | Maestro flow | Notes |
 |---|---|---|---|---|
 | Settings (all items + device details) | done | not started | `features/settings.yaml` | Exercises every Settings item and Device-details row, the website pages, dark-mode toggle and currency switch. Needs a synced wallet (unlocks with PIN). |
-| Remove wallet (from Settings) | done | not started | `features/remove_wallet.yaml` | Settings → Device details → Remove wallet; covers both the no-channel (direct reset) and active-channel (close on-chain, mine, then reset) branches. Preserves state until the wipe. Destructive. |
+| Remove wallet (from Settings) | done | screens built | `features/remove_wallet.yaml` | Settings → Device details → Remove wallet; covers both the no-channel (direct reset) and active-channel (close on-chain, mine, then reset) branches. Preserves state until the wipe. Destructive. On Android the channel arc and the reset tail pass under Maestro locally (`test_suite_android.sh suite_remove_wallet_channel.yaml`); not in CI yet. |
 
 ## PIN: unlock, recovery & lockout
 
