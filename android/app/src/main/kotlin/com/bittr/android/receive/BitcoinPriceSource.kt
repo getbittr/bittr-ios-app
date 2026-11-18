@@ -55,10 +55,8 @@ class BitcoinPriceSource(
             } else {
                 val response = http.execute(HttpRequest(HttpMethod.GET, environment.url(PRICE_PATH)))
                 if (!response.isSuccessful) return@runCatching null
-                // Parsed before it is kept: a reply without every currency's price is used
-                // for what it has, but not cached, so the next caller asks again.
                 parse(response.body).also { parsed ->
-                    if (parsed.keys.containsAll(Currency.entries)) {
+                    if (parsed.isNotEmpty()) {
                         prices = parsed
                         readAtMillis = nowMillis()
                         _freshReadings.tryEmit(Unit)

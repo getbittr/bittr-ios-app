@@ -80,7 +80,7 @@ class BitcoinPriceSourceTest {
     }
 
     @Test
-    fun `a reply missing a currency is used but not cached`() = runTest {
+    fun `a reply missing a currency is used and cached`() = runTest {
         val source = BitcoinPriceSource(BittrEnvironment.DEVELOPMENT, object : HttpClient {
             override suspend fun execute(request: HttpRequest): HttpResponse {
                 calls++
@@ -90,7 +90,7 @@ class BitcoinPriceSourceTest {
 
         assertEquals(60000.0, source.price(Currency.EUR))
         assertEquals(null, source.price(Currency.CHF))
-        assertEquals(2, calls)
+        assertEquals(1, calls)
     }
 
     /** What lets Home pick up a price the Value screen fetched. */
