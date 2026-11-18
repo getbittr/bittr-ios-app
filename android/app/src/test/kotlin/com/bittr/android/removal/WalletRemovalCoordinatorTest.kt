@@ -188,6 +188,20 @@ class WalletRemovalCoordinatorTest {
         assertEquals(RemovalStrings.REMOVAL_FAILED, alert?.message)
         assertTrue(seedIsThere)
         assertFalse(removal.handOff.value)
+        assertFalse(removal.uiState.value.busy)
+    }
+
+    @Test
+    fun `funds still settling at the last tap block the erase and resume next launch`() {
+        removal.removeWalletTapped(RemovalOrigin.Settings)
+        tap(1)
+        node.reading = reading(pending = listOf(PendingSweepView.AwaitingThresholdConfirmations(5_000uL, "tx")))
+        tap(1)
+
+        assertEquals(RemovalStrings.STILL_CLOSING, alert?.message)
+        assertTrue(flag.inProgress)
+        assertTrue(seedIsThere)
+        assertFalse(removal.uiState.value.busy)
     }
 
     @Test
