@@ -34,6 +34,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -66,6 +67,7 @@ import com.bittr.android.core.designsystem.BittrAlertButton
 import com.bittr.android.core.designsystem.BittrIconPaths
 import com.bittr.android.core.designsystem.BittrTheme
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.gestures.detectTapGestures
@@ -129,6 +131,10 @@ internal fun ReceiveScreen(
     val clipboard = rememberTextClipboard()
     val context = LocalContext.current
     val focusManager = LocalFocusManager.current
+    // `textFieldDidEndEditing`: checked on the next turn, and not at all once the screen has gone, so a
+    // field that loses focus as the sheet closes makes no code.
+    val scope = rememberCoroutineScope()
+    val editingEnded = { scope.launch { controller.onEditingEnded() }; Unit }
 
     fun copy() {
         focusManager.clearFocus()
@@ -234,7 +240,7 @@ internal fun ReceiveScreen(
                             focusManager.clearFocus()
                             controller.onDone()
                         },
-                        onEditingEnded = controller::onEditingEnded,
+                        onEditingEnded = editingEnded,
                     )
                 }
             }
