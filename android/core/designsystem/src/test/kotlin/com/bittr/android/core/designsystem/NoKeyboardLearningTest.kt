@@ -13,6 +13,7 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -38,7 +39,8 @@ class NoKeyboardLearningTest {
         composeRule.onNodeWithTag(FIELD).performClick()
         composeRule.waitForIdle()
         val info = EditorInfo()
-        composeRule.runOnUiThread { view.onCreateInputConnection(info) }
+        val connection = composeRule.runOnUiThread { view.onCreateInputConnection(info) }
+        assertNotNull("no input session started", connection)
         return info
     }
 
