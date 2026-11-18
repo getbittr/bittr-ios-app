@@ -11,7 +11,6 @@ import java.time.temporal.ChronoUnit
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -113,7 +112,8 @@ class PriceHistoryTest {
     @Test
     fun `a failed fetch is not kept`() = runTest {
         historyCode = 429
-        assertThrows(IllegalStateException::class.java) { kotlinx.coroutines.runBlocking { history.week(PriceCurrency.EUR) } }
+        val failure = runCatching { history.week(PriceCurrency.EUR) }.exceptionOrNull()
+        assertTrue(failure is IllegalStateException)
 
         historyCode = 200
         history.week(PriceCurrency.EUR)
