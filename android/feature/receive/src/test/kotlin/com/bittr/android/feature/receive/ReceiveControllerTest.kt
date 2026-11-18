@@ -1,5 +1,6 @@
 package com.bittr.android.feature.receive
 
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -7,6 +8,7 @@ import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.advanceUntilIdle
+import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -26,6 +28,7 @@ class ReceiveControllerTest {
     ) : ReceiveSource {
         var current: String? = pool.removeFirst()
         val invoiceAmounts = mutableListOf<Long?>()
+        var invoiceGate = CompletableDeferred(Unit)
         override val addressesVerified = MutableStateFlow(verified)
         override fun stopWaitingForAddresses() {
             addressesVerified.value = true
@@ -35,7 +38,10 @@ class ReceiveControllerTest {
         override fun currentOnchainAddress() = current
         override fun nextOnchainAddress(): String? = pool.removeFirstOrNull()?.also { current = it }
         override suspend fun zeroAmountInvoice(description: String) = "lnbcrt-zero".takeIf { invoicesWork }.also { invoiceAmounts += null }
-        override suspend fun invoice(amountSats: Long, description: String) = "lnbcrt-$amountSats".takeIf { invoicesWork }.also { invoiceAmounts += amountSats }
+        override suspend fun invoice(amountSats: Long, description: String): String? {
+            invoiceGate.await()
+            return "lnbcrt-$amountSats".takeIf { invoicesWork }.also { invoiceAmounts += amountSats }
+        }
         override fun fiatCurrency() = FiatCurrency("EUR", "€")
         override suspend fun fiatPricePerBitcoin() = 50_000.0
     }
@@ -306,6 +312,27 @@ class ReceiveControllerTest {
         controller.onDescriptionChange("😀".repeat(25))
         controller.onDescriptionChange("😀".repeat(26))
         assertEquals("😀".repeat(25), controller.state.value.descriptionText)
+    }
+
+    @Test
+    fun `closing Add amount while a code with an amount loads makes it again without`() = runTest {
+        val source = FakeSource(channel = true)
+        val controller = controller(source)
+        controller.start()
+        controller.onMore()
+        controller.onAlertButton(3)
+        advanceUntilIdle()
+
+        source.invoiceGate = CompletableDeferred()
+        controller.onEdit()
+        controller.onAmountChange("5000")
+        controller.onDone()
+        runCurrent()
+        controller.onEdit()
+        source.invoiceGate.complete(Unit)
+        advanceUntilIdle()
+
+        assertEquals("lnbcrt-zero", controller.state.value.display?.copyText)
     }
 
     @Test
