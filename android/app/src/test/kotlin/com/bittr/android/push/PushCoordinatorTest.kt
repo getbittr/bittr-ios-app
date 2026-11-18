@@ -393,6 +393,24 @@ class PushCoordinatorTest {
     }
 
     @Test
+    fun `a duplicate HTLC push while one is handled is not replayed after the next unlock`() {
+        unlockAndSync()
+        depositCode = "DEP1"
+        reply = HttpResponse(200, """{"success":true,"action":"resumed"}""")
+        val held = CompletableDeferred<Unit>()
+        replyHeld = held
+        coordinator.receive(PushEnvelope.HtlcIncoming, id = "h1")
+        now += 11_000
+        coordinator.receive(PushEnvelope.HtlcIncoming, id = "h2")
+        held.complete(Unit)
+
+        walletState.value = WalletState.Locked
+        walletState.value = WalletState.Ready
+
+        assertEquals(1, requests.count { it.url.endsWith("/htlc-interceptor/ready") })
+    }
+
+    @Test
     fun `a payout and an HTLC that both arrived while locked are both handled after the sync`() {
         depositCode = "DEP1"
         reply = HttpResponse(200, """{"success":true,"action":"resumed"}""")
