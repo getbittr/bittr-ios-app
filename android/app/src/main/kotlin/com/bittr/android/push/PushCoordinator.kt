@@ -112,9 +112,9 @@ class PushCoordinator(
 
     /** iOS `isHandlingIncomingHTLC`. */
     private var handlingHtlc = false
-    
+
     private var handlingPayout = false
-    
+
     private var loading: PushLoading? = null
 
     private val signedIn: Boolean get() = walletState.value == WalletState.Ready
@@ -268,7 +268,7 @@ class PushCoordinator(
             facilitatePayout()
         }
     }
-    
+
     private fun launchPayout(block: suspend () -> Unit) {
         handlingPayout = true
         scope.launch {
@@ -554,7 +554,7 @@ class PushCoordinator(
         loading = null
         publishLoading()
     }
-    
+
     private fun publishLoading() {
         _uiState.update { it.copy(loading = loading.takeIf { signedIn }) }
     }

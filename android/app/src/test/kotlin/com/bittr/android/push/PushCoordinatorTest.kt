@@ -13,6 +13,7 @@ import com.bittr.android.core.wallet.ldk.lightning.BittrPeerConnection
 import com.bittr.android.core.wallet.ldk.lightning.LightningNodePort
 import com.bittr.android.core.wallet.ldk.lightning.PeerView
 import java.lang.reflect.Proxy
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -36,6 +37,7 @@ class PushCoordinatorTest {
     private val loadingWhileConnecting = mutableListOf<PushLoading?>()
     private val requests = mutableListOf<HttpRequest>()
     private var reply = HttpResponse(200, """{"success":false,"error":"no_held_htlc"}""")
+    private var replyHeld: CompletableDeferred<Unit>? = null
 
     private val signer = object : BittrRequestSigner {
         override suspend fun pubkey(): String? = "02pub"
@@ -79,6 +81,7 @@ class PushCoordinatorTest {
     private val http = object : HttpClient {
         override suspend fun execute(request: HttpRequest): HttpResponse {
             requests += request
+            replyHeld?.await()
             return reply
         }
     }
@@ -283,11 +286,31 @@ class PushCoordinatorTest {
     }
 
     @Test
+    fun `unlocking while a payout's request runs neither repeats it nor loses its card`() {
+        unlockAndSync()
+        val held = CompletableDeferred<Unit>()
+        replyHeld = held
+        reply = HttpResponse(200, """{"success":true,"pre_image":"pre"}""")
+        coordinator.handlePendingPayout("n1", 1_000)
+        assertEquals(1, requests.size)
+
+        walletState.value = WalletState.Locked
+        assertNull(state.loading)
+
+        walletState.value = WalletState.Ready
+        assertEquals(TestID.Loading.receivingPayment, state.loading?.testTag)
+
+        held.complete(Unit)
+        assertEquals(1, requests.size)
+        assertEquals(PushUiState(), state)
+    }
+
+    @Test
     fun `locking closes the Question card`() {
         unlockAndSync()
         coordinator.receive(PushEnvelope.Information(headerText = "Hello", bodyText = "World"))
         assertEquals("hello", state.question?.title)
-        
+
         walletState.value = WalletState.Locked
         assertNull(state.question)
     }
