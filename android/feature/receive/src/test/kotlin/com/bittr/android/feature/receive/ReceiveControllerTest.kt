@@ -62,8 +62,8 @@ class ReceiveControllerTest {
         for (malformed in listOf("50000.00", "5,00", "15-")) {
             controller.onAmountChange(malformed)
             controller.onDone()
-            assertEquals(malformed, ReceiveStrings.ENTER_VALID_AMOUNT, controller.state.value.alert?.message)
-            controller.onAlertButton(0)
+            advanceUntilIdle()
+            assertInvalid(controller, malformed)
         }
 
         controller.onCurrencyButton()
@@ -74,10 +74,16 @@ class ReceiveControllerTest {
         for (malformed in listOf("-0.1", "0.1.2", "0,1.2", "1,,2")) {
             controller.onAmountChange(malformed)
             controller.onDone()
-            assertEquals(malformed, ReceiveStrings.ENTER_VALID_AMOUNT, controller.state.value.alert?.message)
-            controller.onAlertButton(0)
+            advanceUntilIdle()
+            assertInvalid(controller, malformed)
         }
-        advanceUntilIdle()
+    }
+
+    /** As iOS says it: in the label, with no code and no alert. */
+    private fun assertInvalid(controller: ReceiveController, amount: String) {
+        assertEquals(amount, ReceiveStrings.INVALID_AMOUNT, controller.state.value.display?.label)
+        assertNull(amount, controller.state.value.display?.qrPayload)
+        assertNull(amount, controller.state.value.alert)
     }
 
     @Test

@@ -191,14 +191,6 @@ fun bitcoinAmount(satoshis: Long): String =
     BigDecimal.valueOf(satoshis).movePointLeft(8).stripTrailingZeros().toPlainString()
 
 /**
- * Whether Done should accept the text: blank, which means no amount, or a number that is not
- * negative, read as [parsedUserAmount] reads it. Too large, or fiat without a price, still shows
- * Invalid amount, but is a number.
- */
-fun isWellFormedAmount(text: String, currency: ReceiveCurrency): Boolean =
-    text.isBlank() || (parsedUserAmount(text, allowingFraction = currency != ReceiveCurrency.Satoshis)?.signum() ?: -1) >= 0
-
-/**
  * The entered amount as whole satoshis, or null when nothing (or nothing readable) was
  * entered — `setLabels`' `amountInSatoshis`.
  *

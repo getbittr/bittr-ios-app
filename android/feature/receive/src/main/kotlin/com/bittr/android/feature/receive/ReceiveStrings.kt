@@ -101,8 +101,6 @@ internal object ReceiveStrings {
     const val MENU_SHARE = "Share"
 
     const val OKAY = "Okay"
-    const val OOPS = "Oops!"
-    const val ENTER_VALID_AMOUNT = "Please enter a valid amount."
     const val CANCEL = "Cancel"
     const val CONFIRM = "Confirm"
 }

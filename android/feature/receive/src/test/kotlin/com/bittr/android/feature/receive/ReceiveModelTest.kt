@@ -164,14 +164,4 @@ class ReceiveModelTest {
         assertNull(parseAmountSats("18446744073709552", ReceiveCurrency.Satoshis, null))
         assertNull(parseAmountSats("99999999999999999999999", ReceiveCurrency.Fiat, 50_000.0))
     }
-
-    @Test
-    fun `Done refuses what is not a number, and leaves the rest to the label`() {
-        assertTrue(isWellFormedAmount("", ReceiveCurrency.Satoshis))
-        assertTrue(isWellFormedAmount("50,000", ReceiveCurrency.Satoshis))
-        assertTrue("A number, if too large, which the label says.", isWellFormedAmount("100000000000", ReceiveCurrency.Bitcoin))
-        assertFalse(isWellFormedAmount("-0.1", ReceiveCurrency.Bitcoin))
-        assertFalse(isWellFormedAmount("1e-5", ReceiveCurrency.Bitcoin))
-        assertFalse(isWellFormedAmount("50000.00", ReceiveCurrency.Satoshis))
-    }
 }

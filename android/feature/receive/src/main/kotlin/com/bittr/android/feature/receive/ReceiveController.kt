@@ -262,7 +262,7 @@ class ReceiveController(
         ),
     )
 
-    /** Spaces go; anything else stays, for [parsedUserAmount] to read or for Done to refuse with an explanation. */
+    /** Spaces go; anything else stays, for [parsedUserAmount] to read or the label to call invalid. */
     fun onAmountChange(text: String) = _state.update { it.copy(amountText = text.filterNot(Char::isWhitespace)) }
 
     /** Counted in bytes, which is what the description costs in the Bitcoin QR, so that code always fits. */
@@ -270,9 +270,8 @@ class ReceiveController(
         if (text.toByteArray(Charsets.UTF_8).size <= MAX_DESCRIPTION_BYTES) _state.update { it.copy(descriptionText = text) }
     }
 
-    /** `doneButtonTapped`: make the code with what was entered, and say so when it is not an amount. */
+    /** `doneButtonTapped`: make the code with what was entered; the label says when it is not an amount. */
     fun onDone() {
-        if (!isWellFormedAmount(_state.value.amountText, _state.value.currency)) raise(okayAlert(ReceiveStrings.OOPS, ReceiveStrings.ENTER_VALID_AMOUNT))
         makeCodeAgainIfInputsChanged()
     }
 
