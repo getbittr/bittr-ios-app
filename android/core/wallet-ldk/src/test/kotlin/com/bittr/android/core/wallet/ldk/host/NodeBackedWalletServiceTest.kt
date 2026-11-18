@@ -175,6 +175,28 @@ class NodeBackedWalletServiceTest {
             assertEquals(1, seed.removals)
         }
 
+    /** A channel opened after the coordinator's own check still stops the erase. */
+    @Test
+    fun `an unsafe wipe erases nothing and leaves the node running`() =
+        runTest(UnconfinedTestDispatcher()) {
+            val log = mutableListOf<String>()
+            val seed = RecordingSeed(log)
+            val host = hostOf(this, log)
+            val wallet = NodeBackedWalletService(
+                seed = seed,
+                host = host,
+                wipeNodeState = { log += "node state erased" },
+                wipeIsSafe = { false },
+            )
+
+            wallet.start()
+            val failure = runCatching { wallet.removeWallet() }.exceptionOrNull()
+
+            assertTrue(failure is IllegalStateException)
+            assertEquals(listOf("node started"), log)
+            assertTrue(host.isRunning)
+        }
+
     /**
      * **A new seed never meets a running node's state.** The node goes down,
      * the seed is written, and the state is fitted to it — in that order, so

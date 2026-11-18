@@ -163,6 +163,8 @@ interface WalletService {
      *
      * @throws WalletStorageException if key material could not be removed. The caller
      *   must not tell the user the wallet is gone when it is not.
+     * @throws IllegalStateException if a node-backed wallet still has a channel open or
+     *   settling, with nothing erased.
      */
     suspend fun removeWallet()
 
