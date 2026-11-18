@@ -228,12 +228,10 @@ fun BittrLoadingCard(
 ) {
     val motion = rememberAlertMotion()
     CloseKeyboardOnShow(motion)
-    // Taken here rather than through `onBack`, which slides the card away and leaves its dim behind
-    // to swallow every tap until loading ends.
-    BackHandler { }
     AlertOverlay(
         motion = motion,
         onBack = null,
+        swallowBack = true,
         cardColor = MaterialTheme.colorScheme.surfaceContainerHigh,
         cardModifier = modifier.then(if (testTag != null) Modifier.testTag(testTag) else Modifier),
     ) {
@@ -362,23 +360,26 @@ internal fun AlertWindowSetup() {
 }
 
 /**
- * The dim and the card sliding up inside it. [onBack] is what Back does, after the card has gone
- * down; null leaves Back to whatever is underneath. [bottomInsets] is what the card's bottom sits
- * on — the navigation bar, or the keyboard as well for a text field.
+ * The dim and the card sliding up inside it, drawn until the card is [AlertMotion.gone]. [onBack]
+ * is what Back does, after the card has gone down; null leaves Back to whatever is underneath,
+ * unless [swallowBack]. [bottomInsets] is what the card's bottom sits on — the navigation bar, or
+ * the keyboard as well for a text field.
  */
 @Composable
 internal fun AlertOverlay(
     motion: AlertMotion,
     onBack: (() -> Unit)?,
+    swallowBack: Boolean = false,
     cardModifier: Modifier = Modifier,
     cardColor: Color = BittrTheme.colors.levelCard,
     bottomInsets: WindowInsets = WindowInsets.navigationBars,
     content: @Composable ColumnScope.() -> Unit,
 ) {
+    if (motion.gone) return
     LaunchedEffect(motion) {
         motion.progress.animateTo(1f, spring(dampingRatio = 0.7f, stiffness = AlertStiffness))
     }
-    if (onBack != null) BackHandler { motion.close(onBack) }
+    if (onBack != null) BackHandler { motion.close(onBack) } else if (swallowBack) BackHandler { }
 
     val shown = motion.progress.value.coerceIn(0f, 1f)
     // A dialog window is its own semantics root and does not inherit the app's
