@@ -11,6 +11,7 @@ import com.bittr.android.core.network.OnchainPayout
 import com.bittr.android.core.push.PushEnvelope
 import com.bittr.android.core.wallet.WalletOverview
 import com.bittr.android.core.wallet.WalletState
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.delay
@@ -494,14 +495,26 @@ class PushCoordinator(
     }
 
     private suspend fun facilitateHtlcReady() {
-        val depositCode = withContext(io) { depositCodes.firstDepositCode() }?.takeIf { it.isNotEmpty() }
-        val pubkey = depositCode?.let { withContext(io) { signer.pubkey() } }
-        if (depositCode == null || pubkey == null) {
+        // Whatever throws, the loading card and the lock go: a lock left set would ignore every later
+        // incoming payment until a restart.
+        val problem = try {
+            htlcReadyProblem()
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            htlcReadyFriendlyMessage(null)
+        } finally {
             hideLoading()
             handlingHtlc = false
-            incomingPaymentAlert(if (depositCode == null) PushStrings.BITTR_PAYOUT_FAIL else PushStrings.BITTR_PAYOUT_FAIL_2)
-            return
         }
+        problem?.let(::incomingPaymentAlert)
+    }
+
+    /** Tells bittr to send the held payment: what to tell the user, or null once it is on its way. */
+    private suspend fun htlcReadyProblem(): String? {
+        val depositCode = withContext(io) { depositCodes.firstDepositCode() }?.takeIf { it.isNotEmpty() }
+            ?: return PushStrings.BITTR_PAYOUT_FAIL
+        val pubkey = withContext(io) { signer.pubkey() } ?: return PushStrings.BITTR_PAYOUT_FAIL_2
         // bittr forwards the held payment over the peer connection, so have it up before saying
         // we're ready. Best effort: bittr's answer decides what the user sees.
         node.ensureConnectedToBittr()
@@ -511,20 +524,14 @@ class PushCoordinator(
             if (signature == null) {
                 HtlcReady.Outcome.Failed(null)
             } else {
-                try {
-                    HtlcReady.parse(http.execute(HtlcReady.request(environment, depositCode, timestamp, pubkey, signature)))
-                } catch (e: Exception) {
-                    HtlcReady.Outcome.Failed(null)
-                }
+                HtlcReady.parse(http.execute(HtlcReady.request(environment, depositCode, timestamp, pubkey, signature)))
             }
         }
-        hideLoading()
-        handlingHtlc = false
-        when (outcome) {
+        return when (outcome) {
             // The payment completes through the node; no alert.
-            HtlcReady.Outcome.Resumed -> Unit
-            HtlcReady.Outcome.TimedOut -> incomingPaymentAlert(PushStrings.BITTR_PAYOUT_FAIL)
-            is HtlcReady.Outcome.Failed -> incomingPaymentAlert(htlcReadyFriendlyMessage(outcome.code))
+            HtlcReady.Outcome.Resumed -> null
+            HtlcReady.Outcome.TimedOut -> PushStrings.BITTR_PAYOUT_FAIL
+            is HtlcReady.Outcome.Failed -> htlcReadyFriendlyMessage(outcome.code)
         }
     }
 

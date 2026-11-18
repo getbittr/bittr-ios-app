@@ -38,10 +38,14 @@ class PushCoordinatorTest {
     private val requests = mutableListOf<HttpRequest>()
     private var reply = HttpResponse(200, """{"success":false,"error":"no_held_htlc"}""")
     private var replyHeld: CompletableDeferred<Unit>? = null
+    private var signingThrows = false
 
     private val signer = object : BittrRequestSigner {
         override suspend fun pubkey(): String? = "02pub"
-        override suspend fun sign(message: String): String? = "sig:$message"
+        override suspend fun sign(message: String): String? {
+            check(!signingThrows) { "keystore unavailable" }
+            return "sig:$message"
+        }
     }
 
     /** The node's peer calls; everything else a payout doesn't touch. */
@@ -341,6 +345,22 @@ class PushCoordinatorTest {
         assertTrue(request.jsonBody!!, "\"signature\":\"sig:htlc_ready:DEP1:$timestamp\"" in request.jsonBody!!)
         assertEquals(PushStrings.HTLC_NO_HELD, state.alert?.message)
         assertNull(state.loading)
+    }
+
+    @Test
+    fun `an HTLC that throws before the post clears the card and lets the next one through`() {
+        unlockAndSync()
+        depositCode = "DEP1"
+        signingThrows = true
+        coordinator.receive(PushEnvelope.HtlcIncoming, id = "h1")
+
+        assertNull(state.loading)
+        assertEquals(PushStrings.BITTR_PAYOUT_FAIL_2, state.alert?.message)
+
+        signingThrows = false
+        now += 11_000
+        coordinator.receive(PushEnvelope.HtlcIncoming, id = "h2")
+        assertEquals(1, requests.count { it.url.endsWith("/htlc-interceptor/ready") })
     }
 
     @Test
