@@ -387,14 +387,14 @@ private fun AddressBox(state: ReceiveUiState, onQuestion: () -> Unit) {
             }
         }
         val label = if (state.loading) "" else display?.label.orEmpty()
-        if (label.isNotEmpty()) {
+        if (display != null && label.isNotEmpty()) {
             val labelModifier = Modifier
                 .fillMaxWidth()
                 .padding(top = 10.dp)
                 .testTag(TestID.Receive.addressLabel)
-            when {
+            when (state.type) {
                 // An invoice is shortened between whole groups, as iOS shortens only invoices.
-                display?.monospaced == true && state.type == ReceiveType.Lightning -> GroupsOfFourText(
+                ReceiveType.Lightning -> GroupsOfFourText(
                     text = label,
                     readAs = display.copyText,
                     style = style.copy(fontFamily = FontFamily.Monospace),
@@ -403,7 +403,7 @@ private fun AddressBox(state: ReceiveUiState, onQuestion: () -> Unit) {
                     modifier = labelModifier,
                 )
                 // An address wraps between groups and, as iOS's label does, gives way in the middle only when three lines are not enough.
-                display?.monospaced == true -> MiddleEllipsisText(
+                ReceiveType.Onchain -> MiddleEllipsisText(
                     text = label,
                     readAs = display.copyText,
                     style = style.copy(fontFamily = FontFamily.Monospace),
@@ -414,14 +414,14 @@ private fun AddressBox(state: ReceiveUiState, onQuestion: () -> Unit) {
                 // A Lightning address is read aloud and typed, so it is never elided (review, pass 2,
                 // `receive/02`): it wraps, breaking before the `@` rather than inside the domain. The
                 // zero-width space is display only — the copy action reads the model.
-                '@' in label -> Text(
+                ReceiveType.Lnurl -> Text(
                     text = label.replace("@", "\u200B@"),
                     style = style,
                     color = MaterialTheme.colorScheme.onSurface,
                     modifier = labelModifier,
                 )
                 // `lowerAddressLabel`: three lines, truncated in the middle, so the end can be checked.
-                else -> MiddleEllipsisText(
+                ReceiveType.BitcoinQr -> MiddleEllipsisText(
                     text = label,
                     style = style,
                     color = MaterialTheme.colorScheme.onSurface,
