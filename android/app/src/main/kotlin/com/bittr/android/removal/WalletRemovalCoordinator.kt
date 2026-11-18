@@ -204,6 +204,7 @@ class WalletRemovalCoordinator(
                 if (!node.isSynced()) {
                     show(RemovalStrings.SYNCING_WALLET, RemovalStrings.SYNCING_WALLET_2, RemovalButton(RemovalStrings.OKAY))
                 } else {
+                    setBusy(true)
                     scope.launch { evaluate() }
                 }
             }

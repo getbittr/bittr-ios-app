@@ -48,6 +48,7 @@ class WalletRemovalCoordinatorTest {
         var connects = true
         var closeFails = false
         var reading: WalletNodeReading? = reading()
+        var onRead: () -> Unit = {}
         val closed = mutableListOf<String>()
         val forceClosed = mutableListOf<String>()
 
@@ -56,7 +57,10 @@ class WalletRemovalCoordinatorTest {
             startGate?.await()
             return starts
         }
-        override fun read() = reading
+        override fun read(): WalletNodeReading? {
+            onRead()
+            return reading
+        }
         override fun isPeerConnected() = peerConnected
         override suspend fun connectPeer(): Boolean {
             if (connects) peerConnected = true
@@ -112,6 +116,16 @@ class WalletRemovalCoordinatorTest {
         assertFalse(seedIsThere)
         assertEquals(WalletState.Uninitialized, wallet.state.value)
         assertTrue(removal.handOff.value)
+        assertFalse(removal.uiState.value.busy)
+    }
+
+    @Test
+    fun `settings shows the spinner while it reads the node`() {
+        var busyWhileReading = false
+        node.onRead = { busyWhileReading = removal.uiState.value.busy }
+        removal.removeWalletTapped(RemovalOrigin.Settings)
+
+        assertTrue(busyWhileReading)
         assertFalse(removal.uiState.value.busy)
     }
 
