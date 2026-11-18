@@ -282,6 +282,16 @@ class PushCoordinatorTest {
         assertEquals(PushUiState(), state)
     }
 
+    @Test
+    fun `locking closes the Question card`() {
+        unlockAndSync()
+        coordinator.receive(PushEnvelope.Information(headerText = "Hello", bodyText = "World"))
+        assertEquals("hello", state.question?.title)
+        
+        walletState.value = WalletState.Locked
+        assertNull(state.question)
+    }
+
     /** The card swallows taps and Back, so it is only drawn while unlocked. */
     @Test
     fun `locking takes the loading card down, and unlocking with a push pending puts it back`() {

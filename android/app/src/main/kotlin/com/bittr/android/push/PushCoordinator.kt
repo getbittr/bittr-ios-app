@@ -129,6 +129,7 @@ class PushCoordinator(
                 .collect { (nowSignedIn, nowSynced) ->
                     val waiting = pending
                     if (nowSignedIn != wasSignedIn) publishLoading()
+                    if (wasSignedIn && !nowSignedIn) closeQuestion()
                     if (waiting != null && nowSignedIn && !wasSignedIn && !nowSynced) {
                         // lowerPinView: a push will be handled once the wallet has synced.
                         showLoading(TestID.Loading.syncingWallet, PushStrings.SYNCING_WALLET_3)
