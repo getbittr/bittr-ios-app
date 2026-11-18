@@ -91,6 +91,15 @@ class PriceHistoryTest {
         assertEquals("fetched again once 15 minutes old", 2, calls.count { it == "/historical/eur" })
     }
 
+    @Test
+    fun `a cached history is cut to each load's own day`() = runTest {
+        history.load(PriceCurrency.EUR, LocalDate.now())
+        val later = history.load(PriceCurrency.EUR, LocalDate.now().plusDays(9))
+
+        assertEquals(1, calls.count { it == "/historical/eur" })
+        assertEquals(listOf(90_000.0), later.series[GraphSpan.WEEK]?.map { it.price })
+    }
+
     /** A Value screen load brings Home's card up to date. */
     @Test
     fun `every load updates the weeks Home reads`() = runTest {

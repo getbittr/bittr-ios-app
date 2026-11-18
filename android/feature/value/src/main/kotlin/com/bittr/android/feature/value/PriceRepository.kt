@@ -47,9 +47,10 @@ internal interface PriceRepository {
  * The price history behind Home's value card and the Value screen, fetched once for both —
  * iOS's `PriceHistory.load(cache:)` (#97, #98).
  *
- * - **One fetch for both.** The parsed historical series are kept per currency for
- *   [FRESH_MILLIS], as iOS keeps its payloads for 15 minutes, so the Value screen reuses the
- *   series Home's card loaded and the other way round. Two loads at once share one fetch.
+ * - **One fetch for both.** The historical payload is kept per currency for [FRESH_MILLIS],
+ *   as iOS keeps its payloads for 15 minutes, so the Value screen reuses the one Home's card
+ *   loaded and the other way round. Two loads at once share one fetch. Each load cuts it to
+ *   its spans from its own `today`, as iOS parses its cached payload on every load.
  * - **One current price for the app.** [currentPrice] is the app's own price source, so
  *   `GET /price/btc` is read once for the conversion rate, the card and the screen.
  * - **One endpoint at a time.** The current price is asked for first, so a load waits on a
@@ -84,7 +85,7 @@ class PriceHistory(
     private val parsing: CoroutineDispatcher = Dispatchers.Default,
 ) {
 
-    private class Cached(val atMillis: Long, val series: Map<GraphSpan, List<PricePoint>>)
+    private class Cached(val atMillis: Long, val body: String)
 
     private val lock = Mutex()
     private val historical = mutableMapOf<PriceCurrency, Cached>()
@@ -102,8 +103,11 @@ class PriceHistory(
         // The current price first — see the class comment on one endpoint at a time.
         val current = currentPrice(currency) ?: error("no current ${currency.name} price")
         val history = lock.withLock {
-            historical[currency]?.takeIf { nowMillis() - it.atMillis < FRESH_MILLIS }?.series
-                ?: fetchHistorical(currency, today).also { historical[currency] = Cached(nowMillis(), it) }
+            val cached = historical[currency]?.takeIf { nowMillis() - it.atMillis < FRESH_MILLIS }
+            val body = cached?.body ?: fetchHistorical(currency)
+            withContext(parsing) { parsePriceSeries(body, today) }.also {
+                if (cached == null) historical[currency] = Cached(nowMillis(), body)
+            }
         }
 
         // Each span ends on the value shown above the chart, which is what makes
@@ -122,11 +126,11 @@ class PriceHistory(
      * API has no partial-failure semantics worth reading a status code for. Only a payload
      * that parsed is kept.
      */
-    private suspend fun fetchHistorical(currency: PriceCurrency, today: LocalDate): Map<GraphSpan, List<PricePoint>> {
+    private suspend fun fetchHistorical(currency: PriceCurrency): String {
         val url = environment.url("$PRICE_PATH/historical/${currency.historicalPath}")
         val response = http.execute(HttpRequest(HttpMethod.GET, url))
         if (!response.isSuccessful) error("price API returned ${response.code} for $url")
-        return withContext(parsing) { parsePriceSeries(response.body, today) }
+        return response.body
     }
 
     companion object {
