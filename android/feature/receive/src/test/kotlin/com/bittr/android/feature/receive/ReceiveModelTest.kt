@@ -80,11 +80,14 @@ class ReceiveModelTest {
     fun `missing data is never encoded`() {
         val noAddress = receiveDisplay(ReceiveType.Onchain, null, null, null, amountSats = null, description = "")
         assertEquals(ReceiveStrings.UNAVAILABLE, noAddress.label)
+        assertEquals(false, noAddress.monospaced)
         assertNull(noAddress.qrPayload)
         assertNull(noAddress.copyText)
 
         val noInvoice = receiveDisplay(ReceiveType.Lightning, null, null, null, amountSats = null, description = "")
         assertEquals(ReceiveStrings.INVOICE, noInvoice.title)
+        assertEquals(ReceiveStrings.UNAVAILABLE, noInvoice.label)
+        assertEquals(false, noInvoice.monospaced)
         assertNull(noInvoice.qrPayload)
 
         val half = receiveDisplay(ReceiveType.BitcoinQr, address, null, null, amountSats = null, description = "")
