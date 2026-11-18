@@ -26,6 +26,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
+import org.json.JSONObject
 
 /**
  * [SendSource] over the wallet `di/WalletModule` composed: BDK for the previews, ldk-node
@@ -135,7 +136,8 @@ class AppSendSource(
         runCatching {
             val client = http ?: error("No HTTP client")
             val response = client.execute(HttpRequest(HttpMethod.GET, url))
-            check(response.isSuccessful) { "HTTP ${response.code}" }
+            // As iOS's `makeApiCall`: a JSON answer is read whatever its status, so a refusal keeps its reason.
+            check(response.isSuccessful || runCatching { JSONObject(response.body) }.isSuccess) { "HTTP ${response.code}" }
             response.body
         }
     }

@@ -59,7 +59,7 @@ interface SendSource {
 
     // ---- LNURL. Defaulted so a source that has no LNURL wiring still compiles; each says so. ----
 
-    /** A GET to an LNURL service or callback: the body of a 2xx, a failure otherwise. */
+    /** A GET to an LNURL service or callback: the body of a 2xx or of any JSON answer, a failure otherwise. */
     suspend fun lnurlGet(url: String): Result<String> = Result.failure(UnsupportedOperationException("No LNURL client"))
 
     /** A BOLT11 invoice for an LNURL withdraw — `getInvoice(amountMsat:description:expirySecs: 3600)`. */
