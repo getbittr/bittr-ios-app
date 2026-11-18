@@ -12,6 +12,7 @@ import com.bittr.android.core.wallet.WalletOverviewSource
 import com.bittr.android.core.wallet.WalletRefresher
 import com.bittr.android.core.wallet.WalletService
 import com.bittr.android.core.wallet.WalletState
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -61,6 +62,7 @@ class HomeViewModelCacheTest {
     }
 
     private var livePrice: FiatPrice? = null
+    private var priceFetch: CompletableDeferred<Unit>? = null
 
     /** A price fetched elsewhere in the app — the Value screen's load. */
     private val latestPrice = MutableStateFlow<FiatPrice?>(null)
@@ -99,7 +101,10 @@ class HomeViewModelCacheTest {
         refresher = refresher,
         cache = cache,
         prices = object : FiatPriceSource {
-            override suspend fun current(): FiatPrice? = livePrice
+            override suspend fun current(): FiatPrice? {
+                priceFetch?.await()
+                return livePrice
+            }
             override fun currentSymbol(): String = "CHF"
             override val latest = this@HomeViewModelCacheTest.latestPrice
         },
@@ -204,19 +209,23 @@ class HomeViewModelCacheTest {
         assertFalse(home.uiState.value.conversionFailed)
     }
 
-    /** `resetWallet()` forgets the failure, and the fetch after the resync decides again. */
+    /** `resetWallet()` forgets the failure, so the warning stays hidden while the refetch runs. */
     @Test
-    fun `a pull to refresh forgets the failure`() = runTest {
+    fun `a pull to refresh forgets the failure before the refetch answers`() = runTest {
         livePrice = null
         overview.value = overview.value.copy(hasSynced = true)
         val home = viewModel()
         backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { home.uiState.collect {} }
         assertTrue(home.uiState.value.conversionFailed)
 
-        livePrice = FiatPrice(65_000.0, "CHF")
+        val fetch = CompletableDeferred<Unit>()
+        priceFetch = fetch
         home.refresh()
         overview.value = overview.value.copy(hasSynced = true)
+        assertFalse(home.uiState.value.conversionFailed)
 
+        livePrice = FiatPrice(65_000.0, "CHF")
+        fetch.complete(Unit)
         assertFalse(home.uiState.value.conversionFailed)
     }
 
