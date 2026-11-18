@@ -36,14 +36,14 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.bittr.android.core.common.TestID
-import com.bittr.android.core.designsystem.ScreenshotProtection
-import com.bittr.android.core.designsystem.NoKeyboardLearning
 import com.bittr.android.core.designsystem.BittrCanvas
 import com.bittr.android.core.designsystem.BittrCard
 import com.bittr.android.core.designsystem.BittrPrimaryButton
 import com.bittr.android.core.designsystem.BittrTextButton
 import com.bittr.android.core.designsystem.BittrTheme
 import com.bittr.android.core.designsystem.CanvasSpacer
+import com.bittr.android.core.designsystem.NoKeyboardLearning
+import com.bittr.android.core.designsystem.ScreenshotProtection
 import com.bittr.android.core.wallet.Mnemonic
 import com.bittr.android.core.wallet.seed.SeedChallenge
 import com.bittr.android.core.wallet.seed.SeedCheck
