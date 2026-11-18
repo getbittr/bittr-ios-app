@@ -336,6 +336,13 @@ class ReceiveControllerTest {
         controller.onDescriptionChange("😀".repeat(25))
         controller.onDescriptionChange("😀".repeat(26))
         assertEquals("😀".repeat(25), controller.state.value.descriptionText)
+
+        // A paste that runs over is cut, after the last whole character that fits.
+        controller.onDescriptionChange("")
+        controller.onDescriptionChange("a".repeat(120))
+        assertEquals("a".repeat(100), controller.state.value.descriptionText)
+        controller.onDescriptionChange("a" + "😀".repeat(25))
+        assertEquals("a" + "😀".repeat(24), controller.state.value.descriptionText)
     }
 
     @Test

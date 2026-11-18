@@ -265,10 +265,11 @@ class ReceiveController(
     /** Spaces go; anything else stays, for [parsedUserAmount] to read or the label to call invalid. */
     fun onAmountChange(text: String) = _state.update { it.copy(amountText = text.filterNot(Char::isWhitespace)) }
 
-    /** Counted in bytes, which is what the description costs in the Bitcoin QR, so that code always fits. */
-    fun onDescriptionChange(text: String) {
-        if (text.toByteArray(Charsets.UTF_8).size <= MAX_DESCRIPTION_BYTES) _state.update { it.copy(descriptionText = text) }
-    }
+    /**
+     * Counted in bytes, which is what the description costs in the Bitcoin QR, so that code always fits.
+     * A longer one is cut after its last whole character that fits, rather than refused.
+     */
+    fun onDescriptionChange(text: String) = _state.update { it.copy(descriptionText = utf8Prefix(text, MAX_DESCRIPTION_BYTES)) }
 
     /** `doneButtonTapped`: make the code with what was entered; the label says when it is not an amount. */
     fun onDone() {
@@ -318,4 +319,17 @@ class ReceiveController(
 }
 
 /** The amount, description and, with an amount, currency a code was made from. */
+/** The longest start of [text] that is at most [maxBytes] in UTF-8, never splitting a code point. */
+private fun utf8Prefix(text: String, maxBytes: Int): String {
+    var bytes = 0
+    var end = 0
+    while (end < text.length) {
+        val codePoint = text.codePointAt(end)
+        bytes += String(Character.toChars(codePoint)).toByteArray(Charsets.UTF_8).size
+        if (bytes > maxBytes) break
+        end += Character.charCount(codePoint)
+    }
+    return text.substring(0, end)
+}
+
 private data class ReceiveInputs(val amount: String, val description: String, val currency: ReceiveCurrency?)
