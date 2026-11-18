@@ -521,11 +521,17 @@ private fun BalanceCard(
                     )
                 } else if (showConversionProblem) {
                     // `headerProblemImage`, where the spinner was: the conversion rates could not be fetched.
-                    ConversionProblemIcon(
+                    // The theme's `error` is iOS's `systemRed`, the storyboard's tint for this image.
+                    Image(
+                        imageVector = rememberStrokeIcon(
+                            BittrIconPaths.EXCLAMATION_CIRCLE,
+                            MaterialTheme.colorScheme.error,
+                            strokeWidth = 2.2f,
+                        ),
+                        contentDescription = HomeStrings.CONVERSION_UNAVAILABLE,
                         modifier = Modifier
                             .padding(start = 12.dp)
                             .size(18.dp)
-                            .semantics { contentDescription = HomeStrings.CONVERSION_UNAVAILABLE }
                             .testTag(TestID.Home.headerProblemImage),
                     )
                 }
@@ -1230,34 +1236,6 @@ private val CONVERSION_ALERT = HomeAlert(
     title = HomeStrings.OOPS,
     message = HomeStrings.CONVERSION_FAIL,
 )
-
-/**
- * iOS's `exclamationmark.circle` in system red: a ring with an exclamation mark, drawn rather
- * than shipped as a symbol Android does not have.
- */
-@Composable
-private fun ConversionProblemIcon(modifier: Modifier = Modifier) {
-    // The theme's `error` is iOS's `systemRed` (`Red2`), the storyboard's tint for this image.
-    val red = MaterialTheme.colorScheme.error
-    Canvas(modifier = modifier) {
-        val unit = size.minDimension / 18f
-        val stroke = 1.6f * unit
-        drawCircle(
-            color = red,
-            radius = (size.minDimension - stroke) / 2f,
-            style = Stroke(width = stroke),
-        )
-        drawLine(
-            color = red,
-            start = Offset(center.x, 4.8f * unit),
-            end = Offset(center.x, 10.4f * unit),
-            strokeWidth = 1.8f * unit,
-            cap = StrokeCap.Round,
-        )
-        drawCircle(color = red, radius = 1.15f * unit, center = Offset(center.x, 13.2f * unit))
-    }
-}
-
 
 @Preview(showBackground = true, widthDp = 412, heightDp = 892)
 @Composable
