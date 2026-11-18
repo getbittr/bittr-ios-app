@@ -122,9 +122,27 @@ class ReceiveControllerTest {
         assertEquals("Made from the fields as they were when it was asked for.", "addr-1", controller.state.value.display?.copyText)
         assertNull("The field has an amount the code does not.", controller.onCopy())
 
-        controller.onEditingEnded()
         advanceUntilIdle()
-        assertEquals("bitcoin:addr-1?amount=0.00005", controller.onCopy())
+        assertEquals("Copied once the code with the amount is ready.", "bitcoin:addr-1?amount=0.00005", controller.state.value.copyRequest)
+        controller.onCopyRequestHandled()
+        assertNull(controller.state.value.copyRequest)
+    }
+
+    @Test
+    fun `a Copy waiting for its code is dropped when the type changes`() = runTest {
+        val source = FakeSource(channel = true)
+        val controller = controller(source)
+        controller.start()
+        advanceUntilIdle()
+        controller.onEdit()
+        controller.onAmountChange("5000")
+
+        assertNull(controller.onCopy())
+        controller.onMore()
+        controller.onAlertButton(3)
+        advanceUntilIdle()
+
+        assertNull(controller.state.value.copyRequest)
     }
 
     @Test

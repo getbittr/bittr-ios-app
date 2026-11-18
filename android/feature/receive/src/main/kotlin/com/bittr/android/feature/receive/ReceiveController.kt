@@ -49,6 +49,8 @@ data class ReceiveUiState(
     // default is what CurrencyDefaultGuardTest exists to keep out of the port.
     val fiatCode: String,
     val alert: ReceiveAlert? = null,
+    /** A Copy tapped while its code was being made, for the screen to put on the clipboard now it is ready. */
+    val copyRequest: String? = null,
 ) {
 
     /** `btcLabel` — `receive.currencyLabel`. */
@@ -87,6 +89,9 @@ class ReceiveController(
     /** What the shown code was made from, so that any change to it makes the code again. */
     private var codeInputs: ReceiveInputs? = null
 
+    /** `copyWhenCodeIsReady`. */
+    private var copyWhenReady = false
+
     /**
      * `viewDidLoad`: open on the default type. Once: the controller outlives the screen's
      * composition, which runs this again when the app comes back to it.
@@ -100,6 +105,7 @@ class ReceiveController(
     /** `alertTapped(for:newAddress:)`. */
     fun show(type: ReceiveType, newAddress: Boolean = false) {
         val hasChannel = source.lightningAvailable()
+        if (type != _state.value.type) copyWhenReady = false
         _state.update { current ->
             val typeChanged = type != current.type
             current.copy(
@@ -160,6 +166,10 @@ class ReceiveController(
                 alert = if (noneLeft) okayAlert(ReceiveStrings.ADDRESS, ReceiveStrings.NO_ADDRESS_AVAILABLE) else it.alert,
             )
         }
+        if (copyWhenReady) {
+            copyWhenReady = false
+            onCopy()?.let { text -> _state.update { it.copy(copyRequest = text) } }
+        }
     }
 
     /** `moreTapped`: Cancel, Address, Bitcoin QR, Invoice, Lightning address. */
@@ -191,10 +201,16 @@ class ReceiveController(
     /**
      * `copyTapped`: return what to put on the clipboard — the clipboard itself is the
      * screen's, since it needs a platform object — and say "Copied" where the system does
-     * not ([confirmsCopyInApp]). Nothing while a new code loads.
+     * not ([confirmsCopyInApp]). An edit the code does not have yet makes it again, and the
+     * new code comes as [ReceiveUiState.copyRequest] once it is ready.
      */
     fun onCopy(): String? {
-        val text = onShare() ?: return null
+        makeCodeAgainIfInputsChanged()
+        val text = onShare()
+        if (text == null) {
+            if (_state.value.loading) copyWhenReady = true
+            return null
+        }
         if (confirmsCopyInApp) raise(okayAlert(ReceiveStrings.COPIED, text).copy(messageIsValue = true))
         return text
     }
@@ -204,6 +220,9 @@ class ReceiveController(
      * or while the fields hold an edit the code does not have yet.
      */
     fun onShare(): String? = _state.value.takeUnless { it.loading || currentInputs() != codeInputs }?.display?.copyText
+
+    /** The screen has put [ReceiveUiState.copyRequest] on the clipboard. */
+    fun onCopyRequestHandled() = _state.update { it.copy(copyRequest = null) }
 
     /** `refreshTapped`: confirm before revealing a new address. */
     fun onRefresh() = raise(

@@ -130,10 +130,15 @@ internal fun ReceiveScreen(
     val context = LocalContext.current
     val focusManager = LocalFocusManager.current
 
-    // Letting go of the keyboard first makes the code again from an edit that isn't in it yet.
     fun copy() {
         focusManager.clearFocus()
         controller.onCopy()?.let(clipboard::copy)
+    }
+    LaunchedEffect(state.copyRequest) {
+        state.copyRequest?.let {
+            clipboard.copy(it)
+            controller.onCopyRequestHandled()
+        }
     }
 
     fun share() {
