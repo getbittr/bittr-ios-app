@@ -6,7 +6,6 @@ import com.bittr.android.core.network.HttpRequest
 import com.bittr.android.core.network.HttpResponse
 import com.bittr.android.core.preferences.Currency
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Test
@@ -95,18 +94,11 @@ class BitcoinPriceSourceTest {
 
     /** What lets Home pick up a price the Value screen fetched. */
     @Test
-    fun `each new reading is announced, a cached one is not`() = runTest {
-        var announced = 0
-        val listener = backgroundScope.launch(kotlinx.coroutines.test.UnconfinedTestDispatcher(testScheduler)) {
-            prices.freshReadings.collect { announced++ }
-        }
+    fun `the latest reading is kept for every screen`() = runTest {
+        assertEquals(null, prices.readings.value)
 
         prices.price(Currency.EUR)
-        prices.price(Currency.CHF)
-        now += 31_000
-        prices.price(Currency.EUR)
 
-        assertEquals(2, announced)
-        listener.cancel()
+        assertEquals(mapOf(Currency.EUR to 60000.0, Currency.CHF to 58000.0), prices.readings.value)
     }
 }

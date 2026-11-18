@@ -30,8 +30,8 @@ fun interface FiatPriceSource {
     val currencyChanges: Flow<Any> get() = emptyFlow()
 
     /**
-     * Emits when a newer price has been fetched somewhere else in the app — the Value screen
+     * The latest price fetched anywhere in the app, in the chosen currency — the Value screen
      * setting Home's rates as it loads, as on iOS. Empty for a source that cannot say.
      */
-    val priceUpdates: Flow<Any> get() = emptyFlow()
+    val latest: Flow<FiatPrice?> get() = emptyFlow()
 }

@@ -5,10 +5,9 @@ import com.bittr.android.core.network.HttpClient
 import com.bittr.android.core.network.HttpMethod
 import com.bittr.android.core.network.HttpRequest
 import com.bittr.android.core.preferences.Currency
-import kotlinx.coroutines.channels.BufferOverflow
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.MutableSharedFlow
-import kotlinx.coroutines.flow.asSharedFlow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import org.json.JSONObject
@@ -27,16 +26,11 @@ class BitcoinPriceSource(
 ) {
 
     private val lock = Mutex()
-    private var prices: Map<Currency, Double>? = null
+    private val _readings = MutableStateFlow<Map<Currency, Double>?>(null)
     private var readAtMillis = 0L
 
-    private val _freshReadings = MutableSharedFlow<Unit>(extraBufferCapacity = 1, onBufferOverflow = BufferOverflow.DROP_OLDEST)
-
-    /**
-     * Emits after each new reading from the network — iOS's Value screen setting Home's rates
-     * when it loads. Home reads the price again then; the reading it gets is this one, cached.
-     */
-    val freshReadings: Flow<Unit> = _freshReadings.asSharedFlow()
+    /** The latest reading, wherever it was fetched — iOS's Value screen setting Home's rates as it loads. */
+    val readings: StateFlow<Map<Currency, Double>?> = _readings.asStateFlow()
 
     /**
      * Null when the price could not be fetched or read.
@@ -49,7 +43,7 @@ class BitcoinPriceSource(
      */
     suspend fun price(currency: Currency): Double? = runCatching {
         val read = lock.withLock {
-            val cached = prices
+            val cached = _readings.value
             if (cached != null && nowMillis() - readAtMillis < FRESH_MILLIS) {
                 cached
             } else {
@@ -57,9 +51,8 @@ class BitcoinPriceSource(
                 if (!response.isSuccessful) return@runCatching null
                 parse(response.body).also { parsed ->
                     if (parsed.isNotEmpty()) {
-                        prices = parsed
+                        _readings.value = parsed
                         readAtMillis = nowMillis()
-                        _freshReadings.tryEmit(Unit)
                     }
                 }
             }
