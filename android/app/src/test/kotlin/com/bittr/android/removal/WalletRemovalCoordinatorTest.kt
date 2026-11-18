@@ -141,6 +141,30 @@ class WalletRemovalCoordinatorTest {
     }
 
     @Test
+    fun `a channel still opening at the last tap asks for a close, not a resume`() {
+        removal.removeWalletTapped(RemovalOrigin.Settings)
+        tap(1)
+        node.reading = reading(channels = listOf(openChannel().copy(isChannelReady = false)))
+        tap(1)
+
+        assertEquals(RemovalStrings.RESTORE_WALLET_4, alert?.message)
+        assertFalse(flag.inProgress)
+        assertTrue(seedIsThere)
+    }
+
+    @Test
+    fun `the lockout waits for a channel still opening, without erasing`() {
+        node.reading = reading(channels = listOf(openChannel().copy(isChannelReady = false)))
+        removal.lockedOut()
+
+        assertEquals(RemovalStrings.CLOSE_RETRY_LATER, alert?.message)
+        assertEquals(listOf(RemovalStrings.TRY_AGAIN), alert?.buttons?.map { it.label })
+        assertTrue(node.closed.isEmpty())
+        assertFalse(removal.uiState.value.busy)
+        assertTrue(seedIsThere)
+    }
+
+    @Test
     fun `a node that cannot be read at the last tap never erases`() {
         removal.removeWalletTapped(RemovalOrigin.Settings)
         tap(1)

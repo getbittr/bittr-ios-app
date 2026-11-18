@@ -297,7 +297,8 @@ class WalletRemovalCoordinator(
             return
         }
 
-        if (reading?.channels?.activeChannel() != null) {
+        // Any channel, ready or still opening: only one that is gone can be settling.
+        if (reading?.channels?.isNotEmpty() == true) {
             if (lockout) {
                 if (closeInFlight) return
                 closeInFlight = true
@@ -346,10 +347,26 @@ class WalletRemovalCoordinator(
             return
         }
 
-        val channel = withContext(io) { node.read() }?.channels?.activeChannel()
+        val channels = withContext(io) { node.read() }?.channels
+        val channel = channels?.activeChannel()
         if (channel == null) {
-            // Nothing left to close: re-check whether the funds have settled.
-            evaluate()
+            if (channels.isNullOrEmpty()) {
+                // Nothing left to close: re-check whether the funds have settled.
+                evaluate()
+            } else {
+                // Still opening, and it cannot be closed until it is ready.
+                closeInFlight = false
+                setBusy(false)
+                show(
+                    RemovalStrings.RESTORE_WALLET,
+                    RemovalStrings.CLOSE_RETRY_LATER,
+                    if (lockout) {
+                        RemovalButton(RemovalStrings.TRY_AGAIN, RemovalStep.StartInBackground)
+                    } else {
+                        RemovalButton(RemovalStrings.OKAY)
+                    },
+                )
+            }
             return
         }
 
