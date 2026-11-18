@@ -113,6 +113,8 @@ class PushCoordinator(
 
     /** iOS `isHandlingIncomingHTLC`. */
     private var handlingHtlc = false
+    
+    private var handlingPayout = false
 
     private val signedIn: Boolean get() = walletState.value == WalletState.Ready
     private val synced: Boolean get() = overview.value.hasSynced
@@ -242,6 +244,10 @@ class PushCoordinator(
     // ---- Lightning payout (`HandlePaymentNotification.swift:13-37, 144-303`). ----
 
     private fun handlePayout(push: PushEnvelope.LightningPayout) {
+        if (handlingPayout) {
+            log("Payout already being handled; ignoring duplicate trigger.")
+            return
+        }
         pending = push
         when {
             !signedIn -> wasNotified = true
@@ -258,9 +264,20 @@ class PushCoordinator(
 
     private fun triggerPayout() {
         showLoading(TestID.Loading.receivingPayment, PushStrings.RECEIVING_PAYMENT)
-        scope.launch {
+        launchPayout {
             pause(1_000)
             facilitatePayout()
+        }
+    }
+    
+    private fun launchPayout(block: suspend () -> Unit) {
+        handlingPayout = true
+        scope.launch {
+            try {
+                block()
+            } finally {
+                handlingPayout = false
+            }
         }
     }
 
@@ -293,7 +310,7 @@ class PushCoordinator(
                 close(),
                 PushAlertButton(PushStrings.TRY_AGAIN, dismisses = false) {
                     showLoading(TestID.Loading.receivingPayment, PushStrings.RECEIVING_PAYMENT)
-                    scope.launch { facilitatePayout() }
+                    launchPayout { facilitatePayout() }
                 },
             )
             return
@@ -348,7 +365,7 @@ class PushCoordinator(
     }
 
     private fun retryPayout() = PushAlertButton(PushStrings.TRY_AGAIN, dismisses = false) {
-        scope.launch { facilitatePayout() }
+        launchPayout { facilitatePayout() }
     }
 
     /** `handleChannelFullWithSwapSuggestion`. */
@@ -376,7 +393,7 @@ class PushCoordinator(
     /** `receiveOnchainForNotification`. */
     private fun receiveOnchain(notificationId: String) {
         showLoading(TestID.Loading.receivingPayment, PushStrings.RECEIVING_PAYMENT)
-        scope.launch {
+        launchPayout {
             val pubkey = withContext(io) { signer.pubkey() }
             val failure: String? = if (pubkey == null) {
                 PushStrings.WALLET_NOT_SYNCED
