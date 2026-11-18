@@ -115,6 +115,12 @@ class PushCoordinator(
     /** iOS `isHandlingIncomingHTLC`. */
     private var handlingHtlc = false
 
+    /**
+     * An incoming HTLC waiting for unlock and sync. Its own slot rather than [pending], so it never
+     * takes the place of a payout whose alert is still up.
+     */
+    private var htlcWaiting = false
+
     private var handlingPayout = false
 
     private var loading: PushLoading? = null
@@ -130,15 +136,17 @@ class PushCoordinator(
                 .distinctUntilChanged()
                 .collect { (nowSignedIn, nowSynced) ->
                     val waiting = pending
+                    val htlc = htlcWaiting
                     if (nowSignedIn != wasSignedIn) publishLoading()
                     if (wasSignedIn && !nowSignedIn) closeQuestion()
-                    if (waiting != null && nowSignedIn && !wasSignedIn && !nowSynced) {
+                    if ((waiting != null || htlc) && nowSignedIn && !wasSignedIn && !nowSynced) {
                         // lowerPinView: a push will be handled once the wallet has synced.
                         showLoading(TestID.Loading.syncingWallet, PushStrings.SYNCING_WALLET_3)
                     }
-                    if (waiting != null && nowSignedIn && nowSynced && !(wasSignedIn && wasSynced)) {
+                    if (nowSignedIn && nowSynced && !(wasSignedIn && wasSynced)) {
                         // finalizeSync: payout, HTLC, swap and LNURL pushes are replayed.
-                        dispatch(waiting)
+                        if (htlc) handleHtlc()
+                        if (waiting != null) dispatch(waiting)
                     }
                     wasSignedIn = nowSignedIn
                     wasSynced = nowSynced
@@ -189,11 +197,11 @@ class PushCoordinator(
         log("Handling push ${envelope::class.simpleName}.")
         when (envelope) {
             is PushEnvelope.LightningPayout -> handlePayout(envelope)
-            PushEnvelope.HtlcIncoming -> handleHtlc(envelope)
+            PushEnvelope.HtlcIncoming -> handleHtlc()
             is PushEnvelope.Information ->
                 question(envelope.headerText ?: PushStrings.OOPS, envelope.bodyText ?: PushStrings.BITTR_NOTIFICATION_FAIL)
             is PushEnvelope.HtlcExpired -> {
-                pending = null
+                htlcWaiting = false
                 question(envelope.headerText ?: PushStrings.HTLC_EXPIRED_TITLE, envelope.bodyText ?: PushStrings.HTLC_EXPIRED_BODY)
             }
             is PushEnvelope.Unknown -> question(PushStrings.OOPS, PushStrings.BITTR_NOTIFICATION_FAIL)
@@ -472,11 +480,16 @@ class PushCoordinator(
 
     // ---- Incoming HTLC (`HandlePaymentNotification.swift:40-142`). ----
 
-    private fun handleHtlc(push: PushEnvelope) {
-        pending = push
+    private fun handleHtlc() {
         when {
-            !signedIn -> wasNotified = true
-            !synced -> showLoading(TestID.Loading.syncingWallet, PushStrings.SYNCING_WALLET_3)
+            !signedIn -> {
+                htlcWaiting = true
+                wasNotified = true
+            }
+            !synced -> {
+                htlcWaiting = true
+                showLoading(TestID.Loading.syncingWallet, PushStrings.SYNCING_WALLET_3)
+            }
             handlingHtlc -> log("Incoming HTLC already being handled; ignoring duplicate trigger.")
             else -> {
                 handlingHtlc = true
@@ -487,7 +500,7 @@ class PushCoordinator(
 
     private fun triggerHtlcReady() {
         showLoading(TestID.Loading.receivingPayment, PushStrings.RECEIVING_PAYMENT)
-        pending = null
+        htlcWaiting = false
         scope.launch {
             pause(500)
             facilitateHtlcReady()

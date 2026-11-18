@@ -386,6 +386,24 @@ class PushCoordinatorTest {
         coordinator.receive(PushEnvelope.HtlcIncoming, id = "h2")
 
         assertEquals(2, requests.count { it.url.endsWith("/htlc-interceptor/ready") })
+        // The payout's alert is still up, and Okay still pays it out.
+        assertEquals(PushStrings.BITTR_PAYOUT, state.alert?.title)
+        coordinator.onAlertButton(state.alert!!.buttons.single())
+        assertTrue(requests.any { "payout/lightning?notification_id=n1&" in it.url })
+    }
+
+    @Test
+    fun `a payout and an HTLC that both arrived while locked are both handled after the sync`() {
+        depositCode = "DEP1"
+        reply = HttpResponse(200, """{"success":true,"action":"resumed"}""")
+        coordinator.receive(PushEnvelope.LightningPayout("n1", 5_000_000), id = "p1")
+        now += 11_000
+        coordinator.receive(PushEnvelope.HtlcIncoming, id = "h1")
+
+        unlockAndSync()
+
+        assertEquals(1, requests.count { it.url.endsWith("/htlc-interceptor/ready") })
+        assertTrue(requests.any { "payout/lightning?notification_id=n1&" in it.url })
     }
 
     @Test
