@@ -61,9 +61,8 @@ data class PushUiState(
  * then skips the "you're receiving a payment" alert and goes straight to the payout.
  * Information, expired and unknown pushes open their card at once, locked or not.
  *
- * Locking takes the loading card down (`lockForReauthentication`'s `hideLoading()`): it is
- * drawn above the app and swallows taps and Back, so left up it would block the PIN pad. A
- * push still pending at unlock puts it back, as above.
+ * The loading card is only drawn while unlocked, so it never blocks the PIN pad, and one
+ * still loading at unlock comes back.
  */
 class PushCoordinator(
     private val scope: CoroutineScope,
@@ -115,6 +114,8 @@ class PushCoordinator(
     private var handlingHtlc = false
     
     private var handlingPayout = false
+    
+    private var loading: PushLoading? = null
 
     private val signedIn: Boolean get() = walletState.value == WalletState.Ready
     private val synced: Boolean get() = overview.value.hasSynced
@@ -127,10 +128,7 @@ class PushCoordinator(
                 .distinctUntilChanged()
                 .collect { (nowSignedIn, nowSynced) ->
                     val waiting = pending
-                    if (wasSignedIn && !nowSignedIn) {
-                        // lockForReauthentication: the loading card would block the PIN pad.
-                        hideLoading()
-                    }
+                    if (nowSignedIn != wasSignedIn) publishLoading()
                     if (waiting != null && nowSignedIn && !wasSignedIn && !nowSynced) {
                         // lowerPinView: a push will be handled once the wallet has synced.
                         showLoading(TestID.Loading.syncingWallet, PushStrings.SYNCING_WALLET_3)
@@ -547,11 +545,17 @@ class PushCoordinator(
     }
 
     private fun showLoading(testTag: String?, message: String) {
-        _uiState.update { it.copy(loading = PushLoading(testTag, message)) }
+        loading = PushLoading(testTag, message)
+        publishLoading()
     }
 
     private fun hideLoading() {
-        _uiState.update { it.copy(loading = null) }
+        loading = null
+        publishLoading()
+    }
+    
+    private fun publishLoading() {
+        _uiState.update { it.copy(loading = loading.takeIf { signedIn }) }
     }
 
     private fun alert(testTag: String?, title: String, message: String, vararg buttons: PushAlertButton) {

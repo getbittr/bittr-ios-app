@@ -282,11 +282,7 @@ class PushCoordinatorTest {
         assertEquals(PushUiState(), state)
     }
 
-    /**
-     * `lockForReauthentication`'s `hideLoading()`: the card is drawn above the app and swallows
-     * taps and Back, so left up through the 2-minute lock it would block the PIN pad. A push
-     * still pending at unlock puts it back (`fromPinToHome`).
-     */
+    /** The card swallows taps and Back, so it is only drawn while unlocked. */
     @Test
     fun `locking takes the loading card down, and unlocking with a push pending puts it back`() {
         walletState.value = WalletState.Ready
