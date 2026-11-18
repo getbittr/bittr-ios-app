@@ -107,7 +107,10 @@ class HomeViewModel @Inject constructor(
         cache.savePrice(live)
     }
 
-    /** iOS's `couldNotFetchConversion`: set by a failed fetch, cleared by a later success. */
+    /**
+     * iOS's `couldNotFetchConversion`, set by a failed fetch. iOS clears it only at a reset or the Value
+     * screen's load; here any later successful fetch clears it too, as Home refetches far more often.
+     */
     private val conversionFailed = MutableStateFlow(false)
 
     /** `didFetchConversionRates()`: fetch the rate, and remember whether it failed. */
