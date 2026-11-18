@@ -1,5 +1,6 @@
 package com.bittr.android.core.designsystem
 
+import android.text.InputType
 import android.view.View
 import android.view.inputmethod.EditorInfo
 import androidx.activity.ComponentActivity
@@ -20,7 +21,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.annotation.Config
 
-/** [NoKeyboardLearning]: the flag reaches the keyboard for a field inside it, and only there. */
+/** [NoKeyboardLearning]: the flags reach the keyboard for a field inside it, and only there. */
 @RunWith(AndroidJUnit4::class)
 @Config(sdk = [34])
 class NoKeyboardLearningTest {
@@ -47,12 +48,16 @@ class NoKeyboardLearningTest {
     private val EditorInfo.learns: Boolean
         get() = imeOptions and EditorInfo.IME_FLAG_NO_PERSONALIZED_LEARNING == 0
 
+    private val EditorInfo.suggests: Boolean
+        get() = inputType and InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS == 0
+
     @Test
-    fun `a field inside asks the keyboard not to learn`() {
+    fun `a field inside asks the keyboard not to learn or suggest`() {
         val info = editorInfoFor {
             NoKeyboardLearning { BasicTextField(value = "", onValueChange = {}, modifier = Modifier.testTag(FIELD)) }
         }
         assertFalse("imeOptions=0x%08X".format(info.imeOptions), info.learns)
+        assertFalse("inputType=0x%08X".format(info.inputType), info.suggests)
     }
 
     @Test
@@ -61,6 +66,7 @@ class NoKeyboardLearningTest {
             BasicTextField(value = "", onValueChange = {}, modifier = Modifier.testTag(FIELD))
         }
         assertTrue("imeOptions=0x%08X".format(info.imeOptions), info.learns)
+        assertTrue("inputType=0x%08X".format(info.inputType), info.suggests)
     }
 
     private companion object {

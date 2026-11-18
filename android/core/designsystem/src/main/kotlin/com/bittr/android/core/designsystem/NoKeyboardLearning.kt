@@ -1,5 +1,6 @@
 package com.bittr.android.core.designsystem
 
+import android.text.InputType
 import android.view.inputmethod.EditorInfo
 import android.view.inputmethod.InputConnection
 import androidx.compose.runtime.Composable
@@ -14,8 +15,11 @@ import androidx.compose.ui.platform.PlatformTextInputSession
  * that learns its words keeps them in its dictionary, and Gboard can sync that dictionary off the
  * device.
  *
- * `KeyboardOptions` has no setting for it, so the flag is added to the `EditorInfo` Compose has
- * just filled in. It is a request: a keyboard that ignores it can still learn.
+ * Its suggestions are off too, as in iOS's `MnemonicTextField`, so a keyboard that ignores the
+ * learning flag has nothing to learn from.
+ *
+ * `KeyboardOptions` has no setting for either, so both are added to the `EditorInfo` Compose has
+ * just filled in. They are requests that a keyboard can ignore.
  */
 @Composable
 fun NoKeyboardLearning(content: @Composable () -> Unit) {
@@ -33,6 +37,8 @@ private object NoLearningInterceptor : PlatformTextInputInterceptor {
                     request.createInputConnection(outAttributes).also {
                         outAttributes.imeOptions =
                             outAttributes.imeOptions or EditorInfo.IME_FLAG_NO_PERSONALIZED_LEARNING
+                        outAttributes.inputType =
+                            outAttributes.inputType or InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS
                     }
             },
         )
