@@ -1,7 +1,10 @@
 package com.bittr.android.feature.send
 
+import java.util.Locale
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class SendMathTest {
@@ -23,6 +26,23 @@ class SendMathTest {
     fun `fiat converts at the price and needs one`() {
         assertEquals(5_000L, SendMath.parseSats("5", AmountCurrency.Fiat, 100_000.0))
         assertNull(SendMath.parseSats("5", AmountCurrency.Fiat, null))
+    }
+
+    @Test
+    fun `amounts are read as iOS reads them, within 21 million bitcoin`() {
+        val locale = Locale.getDefault()
+        Locale.setDefault(Locale.US)
+        try {
+            assertEquals("A thousand euros, not one.", 1_000_000L, SendMath.parseSats("1,000", AmountCurrency.Fiat, 100_000.0))
+            assertEquals(50_000L, SendMath.parseSats("50,000", AmountCurrency.Satoshis, null))
+            assertNull(SendMath.parseSats("1e-5", AmountCurrency.Bitcoin, null))
+            assertNull(SendMath.parseSats("21000000.00000001", AmountCurrency.Bitcoin, null))
+            assertTrue(SendMath.isWellFormedAmount("1,000.50", AmountCurrency.Fiat))
+            assertFalse(SendMath.isWellFormedAmount("-1", AmountCurrency.Fiat))
+            assertFalse(SendMath.isWellFormedAmount("50000.00", AmountCurrency.Satoshis))
+        } finally {
+            Locale.setDefault(locale)
+        }
     }
 
     @Test

@@ -1,6 +1,5 @@
 package com.bittr.android.feature.receive
 
-import java.math.BigDecimal
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
@@ -144,13 +143,6 @@ class ReceiveModelTest {
 
     @Test
     fun `amounts are read as iOS reads them`() {
-        // A lone separator before exactly three digits groups, unless it is the locale's decimal point.
-        assertEquals(BigDecimal("1000"), parsedUserAmount("1,000", decimalSeparator = '.'))
-        assertEquals(BigDecimal("1.000"), parsedUserAmount("1,000", decimalSeparator = ','))
-        assertEquals(BigDecimal("1.5"), parsedUserAmount("1,5", decimalSeparator = '.'))
-        // Both kinds: the last is the decimal point.
-        assertEquals(BigDecimal("1234.56"), parsedUserAmount("1.234,56", decimalSeparator = '.'))
-        assertEquals(BigDecimal("1234.56"), parsedUserAmount("1'234.56", decimalSeparator = '.'))
         // Satoshis are whole, so their separators only group.
         assertEquals(50_000L, parseAmountSats("50,000", ReceiveCurrency.Satoshis, null))
         assertEquals(1_000L, parseAmountSats("1.000", ReceiveCurrency.Satoshis, null))
