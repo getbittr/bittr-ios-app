@@ -252,6 +252,24 @@ class SendControllerTest {
     }
 
     @Test
+    fun `a service that answers HTML offers try again, which fetches it again`() = runTest {
+        val source = FakeSource(lightningBalance = 10_000, responses = mapOf(wellKnown to payRequest(min = 1_000, max = 1_000_000_000)))
+        source.htmlOnce += wellKnown
+        val controller = SendController(source, this)
+        controller.onToChange(lightningAddress)
+        controller.onToReturn()
+        advanceUntilIdle()
+        assertRetryAlert(controller.state.value.alert)
+        assertEquals(false, controller.state.value.lnurlLoading)
+
+        controller.onAlertButton(1)
+        advanceUntilIdle()
+
+        assertEquals(listOf(wellKnown, wellKnown), source.fetched)
+        assertEquals(1, controller.state.value.focusAmountRequests)
+    }
+
+    @Test
     fun `a service that answers 404 gets okay only, not try again`() = runTest {
         val source = FakeSource()
         source.notFound += wellKnown
