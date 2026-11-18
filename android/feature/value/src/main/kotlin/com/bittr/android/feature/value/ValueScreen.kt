@@ -62,22 +62,13 @@ fun ValueScreen(
     onBack = onBack,
     modifier = modifier,
     currency = currency,
-    repository = remember(history) {
-        object : PriceRepository {
-            override suspend fun load(currency: PriceCurrency, today: LocalDate) = history.load(currency, today)
-        }
-    },
+    repository = remember(history) { PriceRepository(history::load) },
 )
 
 /**
  * The same screen with its data source supplied — how the tests and the preview
  * drive it without a network. Internal because [PriceRepository] is: the payload
  * shape is a detail of this module and nothing outside it should be binding to it.
- *
- * [repository] is required rather than nullable-with-a-default. It was the latter
- * while the default could be `HttpPriceRepository()` — a no-argument constructor
- * that existed only because the backend URL was a constant in this module. It is
- * not, any more.
  */
 @Composable
 internal fun ValueScreen(

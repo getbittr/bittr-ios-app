@@ -50,10 +50,7 @@ kotlin {
 dependencies {
     implementation(project(":core:common"))
     implementation(project(":core:designsystem"))
-    // `api`, not `implementation`: BittrEnvironment and HttpClient are parameters of
-    // the public ValueScreen, so :app needs them on its compile classpath. They are
-    // parameters because this screen used to hold the production price URL as a
-    // constant — see HttpPriceRepository (BIT-32 / BIT-41 item 1).
+    // `api`, not `implementation`: BittrEnvironment and HttpClient are parameters of the public PriceHistory.
     api(project(":core:network"))
 
     implementation(platform(libs.androidx.compose.bom))

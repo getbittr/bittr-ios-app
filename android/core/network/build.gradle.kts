@@ -16,9 +16,7 @@ kotlin {
 }
 
 dependencies {
-    // For suspend on the HttpClient seam. The interface is where the dispatcher
-    // choice belongs to the implementation rather than to every call site, which is
-    // what HttpPriceRepository's `withContext(Dispatchers.IO)` currently hand-rolls.
+    // For suspend on the HttpClient seam: the implementation picks the dispatcher, not each call site.
     implementation(libs.kotlinx.coroutines.core)
 
     // `api`, not `implementation`, and the direction is deliberate: :core:push knows

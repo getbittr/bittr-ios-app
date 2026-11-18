@@ -38,7 +38,7 @@ internal data class PriceSnapshot(
  * appended to every span (`ValueViewController.swift:261-264`), so the series is not complete
  * until both have returned. [PriceHistory] is the live one.
  */
-internal interface PriceRepository {
+internal fun interface PriceRepository {
 
     suspend fun load(currency: PriceCurrency, today: LocalDate): PriceSnapshot
 }
