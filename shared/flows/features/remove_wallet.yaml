@@ -172,11 +172,12 @@ appId: ${APP_ID}
       # on Home.
       - runFlow:
           when:
-            visible:
-              id: "header.downButton"
+            platform: iOS
           commands:
             - tapOn:
                 id: "header.downButton"
+      - assertNotVisible:
+          id: "settings.row.device"
       - assertVisible:
           id: "home.headerLabel"
 
