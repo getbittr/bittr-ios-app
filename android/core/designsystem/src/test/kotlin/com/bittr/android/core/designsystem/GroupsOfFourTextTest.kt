@@ -1,6 +1,13 @@
 package com.bittr.android.core.designsystem
 
 import android.content.Context
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.width
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.test.assertTextEquals
+import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.text.TextMeasurer
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
@@ -9,11 +16,14 @@ import androidx.compose.ui.text.font.createFontFamilyResolver
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.LayoutDirection
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.em
 import androidx.compose.ui.unit.sp
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
+import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.annotation.Config
@@ -25,9 +35,13 @@ import org.robolectric.annotation.GraphicsMode
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 class GroupsOfFourTextTest {
 
+    @get:Rule
+    val composeRule = createComposeRule()
+
+    private val density = Density(1f)
     private val measurer = TextMeasurer(
         createFontFamilyResolver(ApplicationProvider.getApplicationContext<Context>()),
-        Density(1f),
+        density,
         LayoutDirection.Ltr,
     )
     private val style = TextStyle(fontFamily = FontFamily.Monospace, fontWeight = FontWeight.Bold, fontSize = 16.sp, lineHeight = 18.sp)
@@ -40,7 +54,7 @@ class GroupsOfFourTextTest {
     @Test
     fun `a shortened invoice keeps three lines, both its ends and its columns, at every width`() {
         for (width in 100..420 step 3) {
-            val shown = shortenedInGroups(measurer, inGroupsOfFour(invoice), style, 16f, maxLines = 3, width = width)
+            val shown = shortenedInGroups(measurer, inGroupsOfFour(invoice), style, density, maxLines = 3, width = width)
             val layout = measurer.measure(shown, style, constraints = Constraints(maxWidth = width))
             val text = shown.text
 
@@ -61,6 +75,21 @@ class GroupsOfFourTextTest {
     @Test
     fun `text that fits is left as it is`() {
         val address = inGroupsOfFour("bcrt1ql0pkt3du7900avnxcjusmcjgm3fvvtkzm2u6nw")
-        assertEquals(address, shortenedInGroups(measurer, address, style, 16f, maxLines = 3, width = 300).text)
+        assertEquals(address, shortenedInGroups(measurer, address, style, density, maxLines = 3, width = 300).text)
+    }
+
+    @Test
+    fun `a style with no size in sp is shortened rather than crashing`() {
+        composeRule.setContent {
+            Box(Modifier.width(150.dp)) {
+                GroupsOfFourText(inGroupsOfFour(invoice), invoice, TextStyle(fontFamily = FontFamily.Monospace), Modifier.testTag("unspecified"), maxLines = 3)
+            }
+            Box(Modifier.width(150.dp)) {
+                GroupsOfFourText(inGroupsOfFour(invoice), invoice, TextStyle(fontFamily = FontFamily.Monospace, fontSize = 1.2.em), Modifier.testTag("em"), maxLines = 3)
+            }
+        }
+
+        composeRule.onNodeWithTag("unspecified").assertTextEquals(invoice)
+        composeRule.onNodeWithTag("em").assertTextEquals(invoice)
     }
 }

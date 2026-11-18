@@ -1,6 +1,7 @@
 package com.bittr.android.core.designsystem
 
 import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
@@ -18,7 +19,7 @@ import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.Constraints
-import androidx.compose.ui.unit.em
+import androidx.compose.ui.unit.Density
 
 /**
  * [text] in groups of four characters, a space between them — iOS's `String.inGroupsOfFour()` — as
@@ -49,14 +50,16 @@ fun GroupsOfFourText(
 ) {
     BoxWithConstraints(modifier.clearAndSetSemantics { this.text = AnnotatedString(readAs) }) {
         val measurer = rememberTextMeasurer()
-        val fontSizePx = with(LocalDensity.current) { style.fontSize.toPx() }
+        val density = LocalDensity.current
+        // As `Text` resolves it, so what is measured is what is drawn.
+        val resolved = LocalTextStyle.current.merge(style)
         val width = constraints.maxWidth
-        val shown = remember(measurer, text, style, fontSizePx, maxLines, width) {
-            shortenedInGroups(measurer, text, style, fontSizePx, maxLines, width)
+        val shown = remember(measurer, text, resolved, density, maxLines, width) {
+            shortenedInGroups(measurer, text, resolved, density, maxLines, width)
         }
         Text(
             shown,
-            style = style,
+            style = resolved,
             color = color,
             maxLines = maxLines,
             overflow = TextOverflow.Clip,
@@ -74,7 +77,7 @@ internal fun shortenedInGroups(
     measurer: TextMeasurer,
     text: String,
     style: TextStyle,
-    fontSizePx: Float,
+    density: Density,
     maxLines: Int,
     width: Int,
 ): AnnotatedString {
@@ -94,7 +97,7 @@ internal fun shortenedInGroups(
     // Measured between two visible characters, so a space at the end of the line still counts.
     fun advance(run: String) = (right("0" + run.repeat(MEASURED_RUN) + "0") - right("00")) / MEASURED_RUN
     val spacingPx = (4 * advance("0") - advance(ELLIPSIS) - 2 * advance(NO_BREAK_SPACE)) / 2
-    val slotSpacing = (spacingPx / fontSizePx).em
+    val slotSpacing = with(density) { spacingPx.toSp() }
 
     fun arranged(headCount: Int) = buildAnnotatedString {
         (groups.take(headCount) + ELLIPSIS_SLOT + tail).forEachIndexed { index, group ->
