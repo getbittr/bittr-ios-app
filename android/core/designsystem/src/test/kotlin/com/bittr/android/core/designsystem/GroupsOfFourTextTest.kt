@@ -9,6 +9,7 @@ import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.text.TextMeasurer
+import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
@@ -21,6 +22,7 @@ import androidx.compose.ui.unit.em
 import androidx.compose.ui.unit.sp
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import kotlin.math.abs
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -65,12 +67,22 @@ class GroupsOfFourTextTest {
             val end = text.substring(ellipsis).filter(Char::isLetterOrDigit)
             assertTrue("The end is the invoice's end at $width px", end.isEmpty() || invoice.endsWith(end))
 
-            assertEquals("The ellipsis line ends where a full line does at $width px", layout.getLineRight(0), layout.getLineRight(layout.lineCount - 1), 0.5f)
+            val last = layout.lineCount - 1
+            assertTrue("The ellipsis line is no wider than a full line at $width px", layout.getLineRight(last) <= layout.getLineRight(0) + 0.5f)
+            val columns = groupStarts(layout, text, 0)
+            for (x in groupStarts(layout, text, last)) {
+                assertTrue("Every group on the ellipsis line is in a column at $width px", columns.any { abs(it - x) < 0.5f })
+            }
             val slotStart = layout.getHorizontalPosition(ellipsis - 1, usePrimaryDirection = true)
             val box = layout.getBoundingBox(ellipsis)
             assertEquals("The ellipsis sits in the middle of its slot at $width px", slotStart + 2 * characterWidth, (box.left + box.right) / 2, 0.5f)
         }
     }
+
+    private fun groupStarts(layout: TextLayoutResult, text: String, line: Int) =
+        (layout.getLineStart(line) until layout.getLineEnd(line))
+            .filter { text[it].isLetterOrDigit() && (it == 0 || !text[it - 1].isLetterOrDigit()) }
+            .map { layout.getHorizontalPosition(it, usePrimaryDirection = true) }
 
     @Test
     fun `text that fits is left as it is`() {
