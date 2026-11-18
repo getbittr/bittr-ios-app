@@ -133,74 +133,76 @@ fun VerifyScreen(
     BackHandler(onBack = onBack)
     // No arrow in the app bar: the card's own button goes back, as on iOS, and the system back
     // gesture does what that button does.
-    BittrCanvas(modifier = modifier, background = BittrTheme.colors.primaryHigh) {
-        // Signup4's scene: `centerCard` 15 from the screen edges, centred 40 above the middle.
-        Column(
-            verticalArrangement = Arrangement.Center,
-            modifier = Modifier
-                .weight(1f)
-                // Before the scroll: the visible area ends at the keyboard, so Confirm
-                // can be scrolled into view above it.
-                .imePadding()
-                .verticalScroll(rememberScrollState())
-                .padding(start = 15.dp, end = 15.dp, bottom = 80.dp),
-        ) {
-            // The label 30 below the card's top; Back's 25 pt row 20 above its bottom, less the
-            // half of its 48 dp touch target that iOS's row does not have.
-            BittrCard(contentPadding = PaddingValues(top = 30.dp, bottom = 8.dp)) {
-                Text(
-                    text = SignupStrings.CONFIRM_RECOVERY_PHRASE,
-                    // Gilroy Bold 16, centred, 40 from the card's sides.
-                    style = MaterialTheme.typography.titleMedium.copy(fontSize = 16.sp, lineHeight = 20.sp),
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier
-                        .padding(horizontal = 40.dp)
-                        .clickable(
-                            interactionSource = remember { MutableInteractionSource() },
-                            indication = null,
-                            onClick = ::closeKeyboard,
-                        )
-                        .testTag(TestID.Signup.Create.Verify.topLabel),
-                )
-                CanvasSpacer(30.dp)
+    NoKeyboardLearning {
+        BittrCanvas(modifier = modifier, background = BittrTheme.colors.primaryHigh) {
+            // Signup4's scene: `centerCard` 15 from the screen edges, centred 40 above the middle.
+            Column(
+                verticalArrangement = Arrangement.Center,
+                modifier = Modifier
+                    .weight(1f)
+                    // Before the scroll: the visible area ends at the keyboard, so Confirm
+                    // can be scrolled into view above it.
+                    .imePadding()
+                    .verticalScroll(rememberScrollState())
+                    .padding(start = 15.dp, end = 15.dp, bottom = 80.dp),
+            ) {
+                // The label 30 below the card's top; Back's 25 pt row 20 above its bottom, less the
+                // half of its 48 dp touch target that iOS's row does not have.
+                BittrCard(contentPadding = PaddingValues(top = 30.dp, bottom = 8.dp)) {
+                    Text(
+                        text = SignupStrings.CONFIRM_RECOVERY_PHRASE,
+                        // Gilroy Bold 16, centred, 40 from the card's sides.
+                        style = MaterialTheme.typography.titleMedium.copy(fontSize = 16.sp, lineHeight = 20.sp),
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier
+                            .padding(horizontal = 40.dp)
+                            .clickable(
+                                interactionSource = remember { MutableInteractionSource() },
+                                indication = null,
+                                onClick = ::closeKeyboard,
+                            )
+                            .testTag(TestID.Signup.Create.Verify.topLabel),
+                    )
+                    CanvasSpacer(30.dp)
 
-                challenge.labels.forEachIndexed { index, wordNumber ->
-                    if (index > 0) CanvasSpacer(10.dp)
-                    WordField(
-                        wordNumber = wordNumber,
-                        value = answers[index],
-                        onValueChange = { answers[index] = it },
-                        labelTag = labelTags[index],
-                        fieldTag = fieldTags[index],
-                        last = index == SeedChallenge.ASK_COUNT - 1,
-                        onNext = { focusManager.moveFocus(FocusDirection.Down) },
-                        onDone = {
-                            if (answers.all { it.isNotBlank() }) submit() else closeKeyboard()
-                        },
-                        onFocusLost = {
-                            if (index == SeedChallenge.ASK_COUNT - 1 && !advanced &&
-                                challenge.check(answers.toList()) == SeedCheck.Correct
-                            ) {
-                                submit()
-                            }
-                        },
+                    challenge.labels.forEachIndexed { index, wordNumber ->
+                        if (index > 0) CanvasSpacer(10.dp)
+                        WordField(
+                            wordNumber = wordNumber,
+                            value = answers[index],
+                            onValueChange = { answers[index] = it },
+                            labelTag = labelTags[index],
+                            fieldTag = fieldTags[index],
+                            last = index == SeedChallenge.ASK_COUNT - 1,
+                            onNext = { focusManager.moveFocus(FocusDirection.Down) },
+                            onDone = {
+                                if (answers.all { it.isNotBlank() }) submit() else closeKeyboard()
+                            },
+                            onFocusLost = {
+                                if (index == SeedChallenge.ASK_COUNT - 1 && !advanced &&
+                                    challenge.check(answers.toList()) == SeedCheck.Correct
+                                ) {
+                                    submit()
+                                }
+                            },
+                        )
+                    }
+
+                    CanvasSpacer(30.dp)
+                    BittrPrimaryButton(
+                        text = SignupStrings.CONFIRM,
+                        onClick = ::submit,
+                        // iOS dims it to black at 60 % until the words are right, and still takes the tap.
+                        dimmed = BittrTheme.isDark && challenge.check(answers.toList()) != SeedCheck.Correct,
+                        modifier = Modifier.testTag(TestID.Signup.Create.Verify.nextButton),
+                    )
+                    // iOS leaves 10 pt and a 25 pt row for Back; its 48 dp touch target spends the 10.
+                    BittrTextButton(
+                        text = SignupStrings.BACK,
+                        onClick = onBack,
+                        modifier = Modifier.testTag(TestID.Signup.Create.Verify.backButton),
                     )
                 }
-
-                CanvasSpacer(30.dp)
-                BittrPrimaryButton(
-                    text = SignupStrings.CONFIRM,
-                    onClick = ::submit,
-                    // iOS dims it to black at 60 % until the words are right, and still takes the tap.
-                    dimmed = BittrTheme.isDark && challenge.check(answers.toList()) != SeedCheck.Correct,
-                    modifier = Modifier.testTag(TestID.Signup.Create.Verify.nextButton),
-                )
-                // iOS leaves 10 pt and a 25 pt row for Back; its 48 dp touch target spends the 10.
-                BittrTextButton(
-                    text = SignupStrings.BACK,
-                    onClick = onBack,
-                    modifier = Modifier.testTag(TestID.Signup.Create.Verify.backButton),
-                )
             }
         }
     }
@@ -269,35 +271,33 @@ private fun WordField(
                     maxLines = 1,
                 )
             }
-            NoKeyboardLearning {
-                BasicTextField(
-                    value = value,
-                    onValueChange = onValueChange,
-                    singleLine = true,
-                    textStyle = wordStyle.copy(color = colors.onPhraseCard),
-                    cursorBrush = SolidColor(colors.onPhraseCard),
-                    // No autocorrect and no capitalisation: the keyboard "helpfully"
-                    // turning `abandon` into `Abandon` or into a different word is the
-                    // single most common way this screen fails for a user who did write
-                    // the phrase down correctly.
-                    keyboardOptions = KeyboardOptions(
-                        capitalization = KeyboardCapitalization.None,
-                        autoCorrectEnabled = false,
-                        imeAction = if (last) ImeAction.Done else ImeAction.Next,
-                    ),
-                    keyboardActions = KeyboardActions(
-                        onNext = { onNext() },
-                        onDone = { onDone() },
-                    ),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .onFocusChanged { state ->
-                            if (focused && !state.isFocused) onFocusLost()
-                            focused = state.isFocused
-                        }
-                        .testTag(fieldTag),
-                )
-            }
+            BasicTextField(
+                value = value,
+                onValueChange = onValueChange,
+                singleLine = true,
+                textStyle = wordStyle.copy(color = colors.onPhraseCard),
+                cursorBrush = SolidColor(colors.onPhraseCard),
+                // No autocorrect and no capitalisation: the keyboard "helpfully"
+                // turning `abandon` into `Abandon` or into a different word is the
+                // single most common way this screen fails for a user who did write
+                // the phrase down correctly.
+                keyboardOptions = KeyboardOptions(
+                    capitalization = KeyboardCapitalization.None,
+                    autoCorrectEnabled = false,
+                    imeAction = if (last) ImeAction.Done else ImeAction.Next,
+                ),
+                keyboardActions = KeyboardActions(
+                    onNext = { onNext() },
+                    onDone = { onDone() },
+                ),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .onFocusChanged { state ->
+                        if (focused && !state.isFocused) onFocusLost()
+                        focused = state.isFocused
+                    }
+                    .testTag(fieldTag),
+            )
         }
     }
 }

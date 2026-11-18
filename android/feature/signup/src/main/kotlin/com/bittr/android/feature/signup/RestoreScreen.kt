@@ -163,138 +163,140 @@ fun RestoreScreen(
     BackHandler(onBack = onCancel)
     // No arrow in the app bar: Cancel goes back, as on iOS, and the system back
     // gesture does what that button does. The fields scroll up under the translucent top bar.
-    BittrCanvas(modifier = modifier, background = BittrTheme.colors.primaryHigh, scrollsUnderAppBar = true) {
-        // RestoreViewController's scene: no yellow card. The heading, the white card of twelve
-        // words 30 below it, the button 30 below that, Cancel, and the article card — one group,
-        // centred 40 above the middle of the screen.
-        Column(
-            verticalArrangement = Arrangement.Center,
-            horizontalAlignment = Alignment.CenterHorizontally,
-            modifier = Modifier
-                .weight(1f)
-                // Before the scroll, not inside it: padding applied inside a scroll
-                // container pads the content and leaves the viewport running under
-                // the keyboard. Applied here, the visible area ends at the keyboard.
-                .imePadding()
-                .onGloballyPositioned { coordinates ->
-                    viewportTop = coordinates.positionInRoot().y.toInt()
-                }
-                .onSizeChanged { viewportHeight = it.height }
-                .verticalScroll(scrollState)
-                .appBarContentPadding()
-                .padding(top = BittrTokens.Spacing.lg, bottom = BittrTokens.Spacing.lg + 80.dp),
-        ) {
-            Text(
-                text = SignupStrings.ENTER_RECOVERY_PHRASE,
-                // Gilroy Bold 16, centred, 40 from the screen edges.
-                style = MaterialTheme.typography.titleMedium.copy(fontSize = 16.sp, lineHeight = 20.sp),
-                textAlign = TextAlign.Center,
-                modifier = Modifier
-                    .padding(horizontal = 40.dp)
-                    .onGloballyPositioned { headingTop = it.positionInRoot().y.toInt() }
-                    .clickable(
-                        interactionSource = remember { MutableInteractionSource() },
-                        indication = null,
-                    ) {
-                        focusManager.clearFocus()
-                        keyboard?.hide()
-                    }
-                    .testTag(TestID.Signup.Restore.topLabel),
-            )
-            CanvasSpacer(30.dp)
-
-            // `mnemonicView`: white, 13 pt corners, `setShadow()`, 40 from the screen edges and 15
-            // inside. Two columns of six rows, each 35 pt — the storyboard's 240 pt card less its
-            // padding, in six — so the buttons under it stay on screen:
-            // forgot_pin_remove_wallet.yaml taps `removeWalletButton` without scrolling.
-            val colors = BittrTheme.colors
+    NoKeyboardLearning {
+        BittrCanvas(modifier = modifier, background = BittrTheme.colors.primaryHigh, scrollsUnderAppBar = true) {
+            // RestoreViewController's scene: no yellow card. The heading, the white card of twelve
+            // words 30 below it, the button 30 below that, Cancel, and the article card — one group,
+            // centred 40 above the middle of the screen.
             Column(
+                verticalArrangement = Arrangement.Center,
+                horizontalAlignment = Alignment.CenterHorizontally,
                 modifier = Modifier
-                    .padding(horizontal = 40.dp)
-                    .fillMaxWidth()
-                    .iosShadow(IosCardShape)
-                    .background(colors.phraseCard, IosCardShape)
-                    .padding(15.dp),
+                    .weight(1f)
+                    // Before the scroll, not inside it: padding applied inside a scroll
+                    // container pads the content and leaves the viewport running under
+                    // the keyboard. Applied here, the visible area ends at the keyboard.
+                    .imePadding()
+                    .onGloballyPositioned { coordinates ->
+                        viewportTop = coordinates.positionInRoot().y.toInt()
+                    }
+                    .onSizeChanged { viewportHeight = it.height }
+                    .verticalScroll(scrollState)
+                    .appBarContentPadding()
+                    .padding(top = BittrTokens.Spacing.lg, bottom = BittrTokens.Spacing.lg + 80.dp),
             ) {
-                repeat(Bip39.WORD_COUNT / FieldColumns) { row ->
-                    Row(modifier = Modifier.height(RowHeight)) {
-                        repeat(FieldColumns) { column ->
-                            val index = row * FieldColumns + column
-                            val last = index == Bip39.WORD_COUNT - 1
-                            WordField(
-                                wordNumber = index + 1,
-                                value = words[index],
-                                onValueChange = { words[index] = it },
-                                fieldTag = RestoreFieldTags[index],
-                                last = last,
-                                focusRequester = focusRequesters[index],
-                                onFocusChange = { focused ->
-                                    if (focused) {
-                                        focusedIndex = index
-                                    } else if (focusedIndex == index) {
-                                        focusedIndex = NO_FOCUS
-                                    }
-                                },
-                                // Next walks the fields; Done on the twelfth submits, which
-                                // is RestoreViewController's `textField.tag == 12` branch.
-                                onImeAction = {
-                                    if (last) submit() else focusRequesters[index + 1].requestFocus()
-                                },
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .fillMaxHeight(),
-                            )
+                Text(
+                    text = SignupStrings.ENTER_RECOVERY_PHRASE,
+                    // Gilroy Bold 16, centred, 40 from the screen edges.
+                    style = MaterialTheme.typography.titleMedium.copy(fontSize = 16.sp, lineHeight = 20.sp),
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier
+                        .padding(horizontal = 40.dp)
+                        .onGloballyPositioned { headingTop = it.positionInRoot().y.toInt() }
+                        .clickable(
+                            interactionSource = remember { MutableInteractionSource() },
+                            indication = null,
+                        ) {
+                            focusManager.clearFocus()
+                            keyboard?.hide()
+                        }
+                        .testTag(TestID.Signup.Restore.topLabel),
+                )
+                CanvasSpacer(30.dp)
+
+                // `mnemonicView`: white, 13 pt corners, `setShadow()`, 40 from the screen edges and 15
+                // inside. Two columns of six rows, each 35 pt — the storyboard's 240 pt card less its
+                // padding, in six — so the buttons under it stay on screen:
+                // forgot_pin_remove_wallet.yaml taps `removeWalletButton` without scrolling.
+                val colors = BittrTheme.colors
+                Column(
+                    modifier = Modifier
+                        .padding(horizontal = 40.dp)
+                        .fillMaxWidth()
+                        .iosShadow(IosCardShape)
+                        .background(colors.phraseCard, IosCardShape)
+                        .padding(15.dp),
+                ) {
+                    repeat(Bip39.WORD_COUNT / FieldColumns) { row ->
+                        Row(modifier = Modifier.height(RowHeight)) {
+                            repeat(FieldColumns) { column ->
+                                val index = row * FieldColumns + column
+                                val last = index == Bip39.WORD_COUNT - 1
+                                WordField(
+                                    wordNumber = index + 1,
+                                    value = words[index],
+                                    onValueChange = { words[index] = it },
+                                    fieldTag = RestoreFieldTags[index],
+                                    last = last,
+                                    focusRequester = focusRequesters[index],
+                                    onFocusChange = { focused ->
+                                        if (focused) {
+                                            focusedIndex = index
+                                        } else if (focusedIndex == index) {
+                                            focusedIndex = NO_FOCUS
+                                        }
+                                    },
+                                    // Next walks the fields; Done on the twelfth submits, which
+                                    // is RestoreViewController's `textField.tag == 12` branch.
+                                    onImeAction = {
+                                        if (last) submit() else focusRequesters[index + 1].requestFocus()
+                                    },
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .fillMaxHeight(),
+                                )
+                            }
                         }
                     }
                 }
-            }
 
-            CanvasSpacer(30.dp)
-            // iOS's `restoreView`: the plate with its label alone — no arrow.
-            BittrPrimaryButton(
-                text = submitLabel,
-                onClick = ::submit,
-                enabled = !busy,
-                // iOS keeps the plate black while it is busy; light mode dims it.
-                dimmed = busy && !BittrTheme.isDark,
-                arrow = false,
-                modifier = Modifier.testTag(TestID.Signup.Restore.nextButton),
-            )
-            // iOS leaves 10 pt and a 25 pt row for Cancel; its 48 dp touch target spends the 10.
-            BittrTextButton(text = SignupStrings.CANCEL, onClick = onCancel, color = BittrTheme.colors.cancelLabel)
-            if (onOpenArticle != null) {
-                // 50 below Cancel's 25 pt row on iOS, less the rest of the 48 dp target.
-                CanvasSpacer(38.dp)
-                // RestoreViewController's `pageArticle1Slug = "wallet-recovery"`.
-                ArticleCard(slug = BittrArticles.WALLET_RECOVERY, onOpen = onOpenArticle)
-            }
-            if (onRemoveWallet != null) {
-                // `removeWalletStack`, straight under the article card: a 45 pt row with the label
-                // centred in it, Gilroy-Bold 14 in iOS's red at half alpha, and its button 10
-                // around the label.
-                Box(
-                    contentAlignment = Alignment.Center,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(45.dp),
-                ) {
-                    Text(
-                        text = SignupStrings.REMOVE_WALLET,
-                        style = MaterialTheme.typography.labelLarge.copy(fontSize = 14.sp, lineHeight = 14.sp),
-                        color = BittrTheme.colors.removeWalletLabel,
-                        modifier = Modifier
-                            .clickable(role = Role.Button, onClick = onRemoveWallet)
-                            .padding(10.dp)
-                            .offset(y = 1.dp)
-                            .testTag(TestID.Signup.Restore.removeWalletButton),
-                    )
+                CanvasSpacer(30.dp)
+                // iOS's `restoreView`: the plate with its label alone — no arrow.
+                BittrPrimaryButton(
+                    text = submitLabel,
+                    onClick = ::submit,
+                    enabled = !busy,
+                    // iOS keeps the plate black while it is busy; light mode dims it.
+                    dimmed = busy && !BittrTheme.isDark,
+                    arrow = false,
+                    modifier = Modifier.testTag(TestID.Signup.Restore.nextButton),
+                )
+                // iOS leaves 10 pt and a 25 pt row for Cancel; its 48 dp touch target spends the 10.
+                BittrTextButton(text = SignupStrings.CANCEL, onClick = onCancel, color = BittrTheme.colors.cancelLabel)
+                if (onOpenArticle != null) {
+                    // 50 below Cancel's 25 pt row on iOS, less the rest of the 48 dp target.
+                    CanvasSpacer(38.dp)
+                    // RestoreViewController's `pageArticle1Slug = "wallet-recovery"`.
+                    ArticleCard(slug = BittrArticles.WALLET_RECOVERY, onOpen = onOpenArticle)
                 }
-            }
+                if (onRemoveWallet != null) {
+                    // `removeWalletStack`, straight under the article card: a 45 pt row with the label
+                    // centred in it, Gilroy-Bold 14 in iOS's red at half alpha, and its button 10
+                    // around the label.
+                    Box(
+                        contentAlignment = Alignment.Center,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(45.dp),
+                    ) {
+                        Text(
+                            text = SignupStrings.REMOVE_WALLET,
+                            style = MaterialTheme.typography.labelLarge.copy(fontSize = 14.sp, lineHeight = 14.sp),
+                            color = BittrTheme.colors.removeWalletLabel,
+                            modifier = Modifier
+                                .clickable(role = Role.Button, onClick = onRemoveWallet)
+                                .padding(10.dp)
+                                .offset(y = 1.dp)
+                                .testTag(TestID.Signup.Restore.removeWalletButton),
+                        )
+                    }
+                }
 
-            // Room to park the heading at the top. Only while a field has focus, so the
-            // resting layout is unchanged.
-            if (focusedIndex != NO_FOCUS && viewportHeight > 0) {
-                Spacer(Modifier.height(with(density) { viewportHeight.toDp() }))
+                // Room to park the heading at the top. Only while a field has focus, so the
+                // resting layout is unchanged.
+                if (focusedIndex != NO_FOCUS && viewportHeight > 0) {
+                    Spacer(Modifier.height(with(density) { viewportHeight.toDp() }))
+                }
             }
         }
     }
@@ -377,29 +379,27 @@ private fun WordField(
                     maxLines = 1,
                 )
             }
-            NoKeyboardLearning {
-                BasicTextField(
-                    value = value,
-                    onValueChange = onValueChange,
-                    singleLine = true,
-                    textStyle = wordStyle.copy(color = colors.onPhraseCard),
-                    cursorBrush = SolidColor(colors.onPhraseCard),
-                    keyboardOptions = KeyboardOptions(
-                        capitalization = KeyboardCapitalization.None,
-                        autoCorrectEnabled = false,
-                        imeAction = if (last) ImeAction.Done else ImeAction.Next,
-                    ),
-                    keyboardActions = KeyboardActions(
-                        onNext = { onImeAction() },
-                        onDone = { onImeAction() },
-                    ),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .focusRequester(focusRequester)
-                        .onFocusChanged { onFocusChange(it.isFocused) }
-                        .testTag(fieldTag),
-                )
-            }
+            BasicTextField(
+                value = value,
+                onValueChange = onValueChange,
+                singleLine = true,
+                textStyle = wordStyle.copy(color = colors.onPhraseCard),
+                cursorBrush = SolidColor(colors.onPhraseCard),
+                keyboardOptions = KeyboardOptions(
+                    capitalization = KeyboardCapitalization.None,
+                    autoCorrectEnabled = false,
+                    imeAction = if (last) ImeAction.Done else ImeAction.Next,
+                ),
+                keyboardActions = KeyboardActions(
+                    onNext = { onImeAction() },
+                    onDone = { onImeAction() },
+                ),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .focusRequester(focusRequester)
+                    .onFocusChanged { onFocusChange(it.isFocused) }
+                    .testTag(fieldTag),
+            )
         }
     }
 }
