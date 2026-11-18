@@ -524,7 +524,9 @@ private fun BalanceCard(
                     ConversionProblemIcon(
                         modifier = Modifier
                             .padding(start = 12.dp)
-                            .size(18.dp),
+                            .size(18.dp)
+                            .semantics { contentDescription = HomeStrings.CONVERSION_UNAVAILABLE }
+                            .testTag(TestID.Home.headerProblemImage),
                     )
                 }
             }

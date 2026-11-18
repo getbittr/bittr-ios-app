@@ -43,6 +43,7 @@ internal object HomeStrings {
     const val CONVERSION_FAIL =
         "We're experiencing an issue fetching the latest conversion rates. Temporarily, our calculations - if " +
             "available - won't reflect bitcoin's current value."
+    const val CONVERSION_UNAVAILABLE = "Conversion rates unavailable"
 
     // The transaction screen — `TransactionVCLanguage.swift`.
     /** `transaction`. */
