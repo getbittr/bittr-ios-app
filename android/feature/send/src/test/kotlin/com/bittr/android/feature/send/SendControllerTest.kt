@@ -33,6 +33,9 @@ class SendControllerTest {
         /** URLs whose next fetch fails, as a dropped connection would, before they answer. */
         val failOnce = mutableSetOf<String>()
 
+        /** URLs whose next answer is an HTML page, as a proxy's error page would be, before they answer. */
+        val htmlOnce = mutableSetOf<String>()
+
         /** URLs that answer HTTP 404 with no JSON, as a mistyped lightning address does. */
         val notFound = mutableSetOf<String>()
 
@@ -40,6 +43,7 @@ class SendControllerTest {
             fetched += url
             if (failOnce.remove(url)) return Result.failure(java.io.IOException("connection reset"))
             if (url in notFound) return Result.failure(LnurlHttpException(404))
+            if (htmlOnce.remove(url)) return Result.success("<html>busy</html>")
             return responses[url]?.let { Result.success(it) } ?: Result.failure(IllegalStateException("404"))
         }
         var invoicesCreated = 0
@@ -276,6 +280,32 @@ class SendControllerTest {
 
         assertEquals(listOf(wellKnown), source.fetched)
         assertEquals(null, controller.state.value.alert)
+    }
+
+    @Test
+    fun `a pay callback that answers HTML offers try again, as iOS's decode failure does`() = runTest {
+        val payCall = "$callback?amount=150000"
+        val source = FakeSource(
+            lightningBalance = 10_000,
+            responses = mapOf(
+                wellKnown to payRequest(min = 1_000, max = 1_000_000_000),
+                payCall to """{"pr":"$invoice150Sats","routes":[]}""",
+            ),
+        )
+        source.htmlOnce += payCall
+        val controller = SendController(source, this)
+        controller.onToChange(lightningAddress)
+        controller.onToReturn()
+        advanceUntilIdle()
+        controller.onAmountChange("150")
+        controller.onNext()
+        advanceUntilIdle()
+        assertRetryAlert(controller.state.value.alert)
+
+        controller.onAlertButton(1)
+        advanceUntilIdle()
+
+        assertEquals(invoice150Sats, controller.state.value.confirm?.addressOrInvoice)
     }
 
     @Test

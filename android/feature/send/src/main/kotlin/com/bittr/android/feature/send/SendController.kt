@@ -938,6 +938,8 @@ class SendController(
             when (val answer = LnurlService.parsePayCallback(body)) {
                 is LnurlPayCallback.Refused ->
                     raise(okay(SendStrings.PAY_REQUEST, "${SendStrings.LNURL_FAIL_2} ${answer.detail ?: SendStrings.UNEXPECTED_ERROR}"))
+                LnurlPayCallback.Unreadable ->
+                    raise(lnurlRequestFailed(null) { sendPayRequest(callback, amountMsat, description, displayed) })
                 is LnurlPayCallback.Invoice -> {
                     val invoice = DestinationParser.parse(answer.pr, source.network) as? Destination.Lightning
                     val invoiceSats = invoice?.amountSats
@@ -1021,7 +1023,7 @@ class SendController(
         val body = reply.getOrNull()
         setLnurlLoading(false)
         if (body == null) return raise(lnurlRequestFailed(reply.exceptionOrNull()) { scope.launch { withdrawTo(withdraw, invoice) } })
-        val status = LnurlService.parseStatus(body)
+        val status = LnurlService.parseStatus(body) ?: return raise(lnurlRequestFailed(null) { scope.launch { withdrawTo(withdraw, invoice) } })
         if (!status.ok) {
             raise(okay(SendStrings.WITHDRAW_REQUEST, "${SendStrings.LNURL_FAIL_1} ${status.reason ?: SendStrings.UNEXPECTED_ERROR}"))
         }
@@ -1060,7 +1062,7 @@ class SendController(
             setLnurlLoading(false)
             if (body == null) return@launch raise(lnurlStatus(SendStrings.LNAUTH_3))
             val status = LnurlService.parseStatus(body)
-            raise(lnurlStatus(if (status.ok) SendStrings.LNAUTH_2 else status.reason ?: SendStrings.LNAUTH_3))
+            raise(lnurlStatus(if (status?.ok == true) SendStrings.LNAUTH_2 else status?.reason ?: SendStrings.LNAUTH_3))
         }
     }
 
