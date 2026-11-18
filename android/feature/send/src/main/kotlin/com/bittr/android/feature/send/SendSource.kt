@@ -76,3 +76,10 @@ interface SendSource {
     /** `CacheManager.storeTransactionNote` — an LNURL pay request's description, once paid. */
     fun storeTransactionNote(transactionId: String, note: String) = Unit
 }
+
+/** An LNURL service answered with an HTTP error status and no JSON body. */
+class LnurlHttpException(val code: Int) : Exception("HTTP $code") {
+
+    /** A client error other than a timeout or rate limit: asking again gets the same answer. */
+    val permanent: Boolean get() = code in 400..499 && code != 408 && code != 429
+}

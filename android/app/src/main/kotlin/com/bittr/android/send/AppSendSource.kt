@@ -19,6 +19,7 @@ import com.bittr.android.core.wallet.ldk.onchain.OnchainSendSupport
 import com.bittr.android.feature.send.DrainQuote
 import com.bittr.android.feature.send.FeeEstimates
 import com.bittr.android.feature.send.FiatCurrency
+import com.bittr.android.feature.send.LnurlHttpException
 import com.bittr.android.feature.send.SendSource
 import com.bittr.android.receive.BitcoinPriceSource
 import kotlinx.coroutines.Dispatchers
@@ -137,7 +138,7 @@ class AppSendSource(
             val client = http ?: error("No HTTP client")
             val response = client.execute(HttpRequest(HttpMethod.GET, url))
             // As iOS's `makeApiCall`: a JSON answer is read whatever its status, so a refusal keeps its reason.
-            check(response.isSuccessful || runCatching { JSONObject(response.body) }.isSuccess) { "HTTP ${response.code}" }
+            if (!response.isSuccessful && runCatching { JSONObject(response.body) }.isFailure) throw LnurlHttpException(response.code)
             response.body
         }
     }

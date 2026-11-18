@@ -33,9 +33,13 @@ class SendControllerTest {
         /** URLs whose next fetch fails, as a dropped connection would, before they answer. */
         val failOnce = mutableSetOf<String>()
 
+        /** URLs that answer HTTP 404 with no JSON, as a mistyped lightning address does. */
+        val notFound = mutableSetOf<String>()
+
         override suspend fun lnurlGet(url: String): Result<String> {
             fetched += url
             if (failOnce.remove(url)) return Result.failure(java.io.IOException("connection reset"))
+            if (url in notFound) return Result.failure(LnurlHttpException(404))
             return responses[url]?.let { Result.success(it) } ?: Result.failure(IllegalStateException("404"))
         }
         override suspend fun createInvoice(amountMsat: Long, description: String) = Result.success("lnbcrt-withdraw-$amountMsat")
@@ -237,6 +241,21 @@ class SendControllerTest {
         assertEquals(listOf(wellKnown, wellKnown), source.fetched)
         assertEquals(null, controller.state.value.alert)
         assertEquals("the amount field is asked for, as on a first success", 1, controller.state.value.focusAmountRequests)
+    }
+
+    @Test
+    fun `a service that answers 404 gets okay only, not try again`() = runTest {
+        val source = FakeSource()
+        source.notFound += wellKnown
+        val controller = SendController(source, this)
+        controller.onToChange(lightningAddress)
+        controller.onToReturn()
+        advanceUntilIdle()
+
+        val alert = controller.state.value.alert
+        assertEquals(SendStrings.LNURL_FAIL_3, alert?.message)
+        assertEquals(listOf(SendStrings.OKAY), alert?.buttons?.map { it.label })
+        assertEquals(false, controller.state.value.lnurlLoading)
     }
 
     @Test

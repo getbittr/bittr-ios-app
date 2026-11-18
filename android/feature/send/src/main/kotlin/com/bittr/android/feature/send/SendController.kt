@@ -825,10 +825,11 @@ class SendController(
         if (LnurlEndpoint.validate(url) is LnurlEndpointCheck.Rejected) return raise(lnurlStatus(SendStrings.LNURL_FAIL_3))
         setLnurlLoading(true)
         scope.launch {
-            val body = source.lnurlGet(url).getOrNull()
+            val reply = source.lnurlGet(url)
+            val body = reply.getOrNull()
             if (body == null) {
                 setLnurlLoading(false)
-                return@launch raise(lnurlRequestFailed { fetchService(url, displayed, origin) })
+                return@launch raise(lnurlRequestFailed(reply.exceptionOrNull()) { fetchService(url, displayed, origin) })
             }
             when (val response = LnurlService.parse(body)) {
                 is LnurlServiceResponse.Pay -> if (permitted(LnurlAction.Pay, origin)) handlePay(response, displayed)
@@ -847,7 +848,7 @@ class SendController(
                 LnurlServiceResponse.Unreadable -> {
                     // iOS's decode failure, which its `.failure` branch answers with a retry.
                     setLnurlLoading(false)
-                    raise(lnurlRequestFailed { fetchService(url, displayed, origin) })
+                    raise(lnurlRequestFailed(null) { fetchService(url, displayed, origin) })
                 }
             }
         }
@@ -928,10 +929,11 @@ class SendController(
         if (LnurlEndpoint.validate(callback) is LnurlEndpointCheck.Rejected) return raise(lnurlStatus(SendStrings.LNURL_FAIL_3))
         setLnurlLoading(true)
         scope.launch {
-            val body = source.lnurlGet(LnurlService.withQuery(callback, "amount" to amountMsat.toString())).getOrNull()
+            val reply = source.lnurlGet(LnurlService.withQuery(callback, "amount" to amountMsat.toString()))
+            val body = reply.getOrNull()
             setLnurlLoading(false)
             if (body == null) {
-                return@launch raise(lnurlRequestFailed { sendPayRequest(callback, amountMsat, description, displayed) })
+                return@launch raise(lnurlRequestFailed(reply.exceptionOrNull()) { sendPayRequest(callback, amountMsat, description, displayed) })
             }
             when (val answer = LnurlService.parsePayCallback(body)) {
                 is LnurlPayCallback.Refused ->
@@ -1008,10 +1010,11 @@ class SendController(
                 setLnurlLoading(false)
                 return@launch raise(okay(SendStrings.UNEXPECTED_ERROR, SendStrings.INVOICE_CREATE_FAIL))
             }
-            val body = source.lnurlGet(LnurlService.withQuery(withdraw.callback, "k1" to withdraw.k1, "pr" to invoice)).getOrNull()
+            val reply = source.lnurlGet(LnurlService.withQuery(withdraw.callback, "k1" to withdraw.k1, "pr" to invoice))
+            val body = reply.getOrNull()
             setLnurlLoading(false)
             // A retry asks for a new invoice, as iOS's `sendWithdrawRequest` does.
-            if (body == null) return@launch raise(lnurlRequestFailed { sendWithdrawRequest(withdraw, amountMsat) })
+            if (body == null) return@launch raise(lnurlRequestFailed(reply.exceptionOrNull()) { sendWithdrawRequest(withdraw, amountMsat) })
             val status = LnurlService.parseStatus(body)
             if (!status.ok) {
                 raise(okay(SendStrings.WITHDRAW_REQUEST, "${SendStrings.LNURL_FAIL_1} ${status.reason ?: SendStrings.UNEXPECTED_ERROR}"))
@@ -1063,16 +1066,21 @@ class SendController(
     /**
      * `lnurlfail3` after an LNURL request that failed, with Cancel and Try again — iOS's
      * `.failure` branches in `handleLNURL`, `sendPayRequest` and `sendWithdrawRequest` (#100).
-     * A request that can never succeed, like a rejected endpoint, keeps its single Okay.
+     * A request that can never succeed, like a rejected endpoint or a 404, keeps its single Okay.
      */
-    private fun lnurlRequestFailed(retry: () -> Unit) = SendAlert(
-        title = SendStrings.LNURL_STATUS,
-        message = SendStrings.LNURL_FAIL_3,
-        buttons = listOf(
-            SendAlertButton(SendStrings.CANCEL),
-            SendAlertButton(SendStrings.TRY_AGAIN, onTap = retry),
-        ),
-    )
+    private fun lnurlRequestFailed(failure: Throwable?, retry: () -> Unit): SendAlert =
+        if ((failure as? LnurlHttpException)?.permanent == true) {
+            lnurlStatus(SendStrings.LNURL_FAIL_3)
+        } else {
+            SendAlert(
+                title = SendStrings.LNURL_STATUS,
+                message = SendStrings.LNURL_FAIL_3,
+                buttons = listOf(
+                    SendAlertButton(SendStrings.CANCEL),
+                    SendAlertButton(SendStrings.TRY_AGAIN, onTap = retry),
+                ),
+            )
+        }
 
     private fun setSending(sending: Boolean) = _state.update { state ->
         state.copy(confirm = state.confirm?.copy(sending = sending))
