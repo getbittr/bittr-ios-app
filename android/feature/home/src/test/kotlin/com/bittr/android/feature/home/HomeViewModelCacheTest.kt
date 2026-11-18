@@ -62,7 +62,7 @@ class HomeViewModelCacheTest {
     }
 
     private var livePrice: FiatPrice? = null
-    private var priceFetch: CompletableDeferred<Unit>? = null
+    private val pendingFetches = ArrayDeque<CompletableDeferred<FiatPrice?>>()
 
     /** A price fetched elsewhere in the app — the Value screen's load. */
     private val latestPrice = MutableStateFlow<FiatPrice?>(null)
@@ -102,8 +102,8 @@ class HomeViewModelCacheTest {
         cache = cache,
         prices = object : FiatPriceSource {
             override suspend fun current(): FiatPrice? {
-                priceFetch?.await()
-                return livePrice
+                val pending = pendingFetches.removeFirstOrNull() ?: return livePrice
+                return pending.await()
             }
             override fun currentSymbol(): String = "CHF"
             override val latest = this@HomeViewModelCacheTest.latestPrice
@@ -218,14 +218,27 @@ class HomeViewModelCacheTest {
         backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { home.uiState.collect {} }
         assertTrue(home.uiState.value.conversionFailed)
 
-        val fetch = CompletableDeferred<Unit>()
-        priceFetch = fetch
+        val fetch = CompletableDeferred<FiatPrice?>()
+        pendingFetches += fetch
         home.refresh()
         overview.value = overview.value.copy(hasSynced = true)
         assertFalse(home.uiState.value.conversionFailed)
 
+        fetch.complete(FiatPrice(65_000.0, "CHF"))
+        assertFalse(home.uiState.value.conversionFailed)
+    }
+
+    @Test
+    fun `a slow failed fetch does not override a later successful one`() = runTest {
+        val slow = CompletableDeferred<FiatPrice?>()
+        pendingFetches += slow
         livePrice = FiatPrice(65_000.0, "CHF")
-        fetch.complete(Unit)
+        overview.value = overview.value.copy(hasSynced = true)
+        val home = viewModel()
+        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { home.uiState.collect {} }
+
+        slow.complete(null)
+
         assertFalse(home.uiState.value.conversionFailed)
     }
 

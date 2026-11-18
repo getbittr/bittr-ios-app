@@ -27,6 +27,8 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.merge
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 
 /**
  * What Home knows about the wallet.
@@ -113,11 +115,16 @@ class HomeViewModel @Inject constructor(
      */
     private val conversionFailed = MutableStateFlow(false)
 
+    /** One fetch at a time, so the warning follows the latest request rather than the slowest. */
+    private val fetching = Mutex()
+
     /** `didFetchConversionRates()`: fetch the rate, and remember whether it failed. */
     private suspend fun fetchPrice() {
-        val live = prices.current()
-        conversionFailed.value = live == null
-        live?.let(::applyPrice)
+        fetching.withLock {
+            val live = prices.current()
+            conversionFailed.value = live == null
+            live?.let(::applyPrice)
+        }
     }
 
     /**
