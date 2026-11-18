@@ -50,9 +50,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.draw.clip
 import androidx.compose.foundation.layout.widthIn
-import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.SolidColor
-import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.testTag
@@ -242,8 +240,8 @@ internal fun ReceiveScreen(
 @Composable
 private fun QrBox(payload: String?, loading: Boolean, onCopy: () -> Unit, onShare: () -> Unit) {
     var menuOpen by remember { mutableStateOf(false) }
-    val code by produceState<Pair<QrCode, ImageBitmap>?>(initialValue = null, payload) {
-        value = payload?.let { withContext(Dispatchers.Default) { qrCode(it).let { code -> code to code.bitmap.asImageBitmap() } } }
+    val code by produceState<QrCode?>(initialValue = null, payload) {
+        value = payload?.let { withContext(Dispatchers.Default) { qrCode(it) } }
     }
 
     // `qrWhiteView`: square, white in both schemes (a QR reads dark on light), 8 corners and the
@@ -257,12 +255,11 @@ private fun QrBox(payload: String?, loading: Boolean, onCopy: () -> Unit, onShar
             .background(Color.White, PlateShape)
             .padding(15.dp),
     ) {
-        val shown = code
-        if (!loading && shown != null) {
-            val (qr, bitmap) = shown
+        val qr = code
+        if (!loading && qr != null) {
             Box {
                 Image(
-                    bitmap = bitmap,
+                    bitmap = qr.image,
                     contentDescription = "QR code",
                     modifier = Modifier
                         .fillMaxSize()

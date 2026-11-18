@@ -2,6 +2,8 @@ package com.bittr.android.feature.receive
 
 import android.graphics.Bitmap
 import android.graphics.Color
+import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.asImageBitmap
 import com.google.zxing.BarcodeFormat
 import com.google.zxing.EncodeHintType
 import com.google.zxing.qrcode.QRCodeWriter
@@ -15,7 +17,7 @@ import kotlin.math.ceil
  * on the module grid and its edges fall on module edges.
  * @property logoMark the logo's width inside the box, which leaves it 30 px of the 1080 all round.
  */
-internal class QrCode(val bitmap: Bitmap, val logoBox: Float, val logoMark: Float)
+internal class QrCode(val image: ImageBitmap, val logoBox: Float, val logoMark: Float)
 
 /**
  * `String.toBigQRCode()` — a square black-on-white QR, error correction level H.
@@ -56,11 +58,10 @@ internal fun qrCode(payload: String, minSizePx: Int = QR_SIZE_PX): QrCode {
             pixels[row + x] = if (matrix[x / scale, moduleY]) Color.BLACK else Color.WHITE
         }
     }
-    val bitmap = Bitmap.createBitmap(pixels, size, size, Bitmap.Config.ARGB_8888)
 
     val boxPx = logoModules(modules) * scale
     return QrCode(
-        bitmap = bitmap,
+        image = Bitmap.createBitmap(pixels, size, size, Bitmap.Config.ARGB_8888).asImageBitmap(),
         logoBox = boxPx.toFloat() / size,
         logoMark = (boxPx - 2 * LOGO_PADDING_PX).toFloat() / boxPx,
     )
