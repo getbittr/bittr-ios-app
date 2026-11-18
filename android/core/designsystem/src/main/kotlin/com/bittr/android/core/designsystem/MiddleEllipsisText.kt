@@ -1,17 +1,11 @@
 package com.bittr.android.core.designsystem
 
-import androidx.compose.foundation.layout.BoxWithConstraints
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.semantics.clearAndSetSemantics
-import androidx.compose.ui.semantics.text
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.TextMeasurer
 import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Constraints
@@ -24,10 +18,7 @@ import androidx.compose.ui.unit.Constraints
  * The lines before the last are kept whole; the last holds as much of what follows them as fits,
  * then "…", then as much of the string's end.
  *
- * What the screen shows is shortened; what it says is not: the node's text is [readAs], the whole
- * string unless a caller says otherwise, as a truncated UILabel's is, so the flows' `copyTextFrom`
- * and text assertions read it all.
- * [modifier] goes on that node, so a test tag there names it.
+ * It says [readAs], the whole string unless a caller says otherwise, as a truncated UILabel does.
  */
 @Composable
 fun MiddleEllipsisText(
@@ -39,20 +30,8 @@ fun MiddleEllipsisText(
     textAlign: TextAlign? = null,
     readAs: String = text,
 ) {
-    BoxWithConstraints(modifier.clearAndSetSemantics { this.text = AnnotatedString(readAs) }) {
-        val measurer = rememberTextMeasurer()
-        val width = constraints.maxWidth
-        val shown = remember(text, style, maxLines, width) {
-            middleEllipsized(measurer, text, style, maxLines, width)
-        }
-        Text(
-            shown,
-            style = style,
-            color = color,
-            textAlign = textAlign,
-            maxLines = maxLines,
-            overflow = TextOverflow.Clip,
-        )
+    ShortenedText(readAs, style, maxLines, modifier, color, text, textAlign = textAlign) { measurer, resolved, width ->
+        AnnotatedString(middleEllipsized(measurer, text, resolved, maxLines, width))
     }
 }
 

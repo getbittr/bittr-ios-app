@@ -1,22 +1,14 @@
 package com.bittr.android.core.designsystem
 
-import androidx.compose.foundation.layout.BoxWithConstraints
-import androidx.compose.material3.LocalTextStyle
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.semantics.clearAndSetSemantics
-import androidx.compose.ui.semantics.text
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextMeasurer
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.buildAnnotatedString
-import androidx.compose.ui.text.rememberTextMeasurer
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Density
@@ -35,9 +27,7 @@ fun inGroupsOfFour(text: String): String = text.chunked(4).joinToString(" ")
  * both ends, with "…" centred in the slot of the groups in between, so every group after it stays
  * in its column. The tail is grouped from the end, so its last group is never cut short.
  *
- * What the screen shows is grouped; what it says is [readAs], so TalkBack and the flows' text
- * assertions and `copyTextFrom` read the string whole. [modifier] goes on that node, so a test tag
- * there names it.
+ * It says [readAs], as [ShortenedText] does.
  */
 @Composable
 fun GroupsOfFourText(
@@ -48,22 +38,9 @@ fun GroupsOfFourText(
     color: Color = Color.Unspecified,
     maxLines: Int = Int.MAX_VALUE,
 ) {
-    BoxWithConstraints(modifier.clearAndSetSemantics { this.text = AnnotatedString(readAs) }) {
-        val measurer = rememberTextMeasurer()
-        val density = LocalDensity.current
-        // As `Text` resolves it, so what is measured is what is drawn.
-        val resolved = LocalTextStyle.current.merge(style)
-        val width = constraints.maxWidth
-        val shown = remember(measurer, text, resolved, density, maxLines, width) {
-            shortenedInGroups(measurer, text, resolved, density, maxLines, width)
-        }
-        Text(
-            shown,
-            style = resolved,
-            color = color,
-            maxLines = maxLines,
-            overflow = TextOverflow.Clip,
-        )
+    val density = LocalDensity.current
+    ShortenedText(readAs, style, maxLines, modifier, color, text, density) { measurer, resolved, width ->
+        shortenedInGroups(measurer, text, resolved, density, maxLines, width)
     }
 }
 
