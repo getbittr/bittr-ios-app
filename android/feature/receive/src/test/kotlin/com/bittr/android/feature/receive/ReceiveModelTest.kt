@@ -71,6 +71,7 @@ class ReceiveModelTest {
     fun `the Bitcoin QR's label is percent-encoded, so it can't cut the invoice off or add parameters`() {
         val display = receiveDisplay(ReceiveType.BitcoinQr, address, invoice, null, amountSats = 500, description = "Order #12 & cake=x?")
         assertEquals("bitcoin:$address?amount=0.000005&label=Order%20%2312%20%26%20cake%3Dx%3F&lightning=$invoice", display.copyText)
+        assertEquals("Only the code is encoded.", "bitcoin:$address?\u2060amount=0.000005&label=Order #12 & cake=x?\u2060&lightning=$invoice", display.label)
         assertEquals("Caf%C3%A9%20%E2%98%95", percentEncoded("Café ☕"))
         assertEquals("a-b.c_d~e", percentEncoded("a-b.c_d~e"))
     }

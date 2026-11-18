@@ -148,8 +148,8 @@ fun receiveDisplay(
         ReceiveType.BitcoinQr -> if (bitcoinQr == null) missing else ReceiveDisplay(
             title = title,
             showBolt = showBolt,
-            // A word joiner after "?" so the label does not wrap at the query mark.
-            label = bitcoinQr.replace("?", "?⁠"),
+            // The note decoded, on screen only, and a word joiner after "?" so the label does not wrap there.
+            label = bitcoinQr.replace("label=${percentEncoded(description)}", "label=$description").replace("?", "?⁠"),
             monospaced = false,
             qrPayload = bitcoinQr,
             copyText = bitcoinQr,
