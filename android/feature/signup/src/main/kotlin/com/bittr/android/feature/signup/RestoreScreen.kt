@@ -20,9 +20,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.text.BasicTextField
-import androidx.compose.foundation.text.KeyboardActions
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -38,7 +35,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
-import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.layout.positionInRoot
@@ -46,8 +42,6 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.text.input.ImeAction
-import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -335,7 +329,8 @@ private val RestoreFieldTags = listOf(
 
 /**
  * One numbered word in the white card. The restore twin of `VerifyScreen`'s private
- * `WordField`, kept separate because this one drives focus to the next field.
+ * `WordField`, kept separate because this one drives focus to the next field; the word itself is
+ * the shared [PhraseWordInput].
  */
 @Composable
 private fun WordField(
@@ -364,43 +359,20 @@ private fun WordField(
             color = colors.brandFixed,
             modifier = Modifier.width(20.dp),
         )
-        Box(
-            contentAlignment = Alignment.CenterStart,
+        PhraseWordInput(
+            value = value,
+            onValueChange = onValueChange,
+            last = last,
+            onNext = onImeAction,
+            onDone = onImeAction,
             modifier = Modifier
                 .weight(1f)
                 .padding(start = 3.dp),
-        ) {
-            val wordStyle = MaterialTheme.typography.bodyLarge.copy(fontSize = 18.sp, lineHeight = 22.sp)
-            if (value.isEmpty()) {
-                Text(
-                    text = SignupStrings.ENTER_WORD,
-                    style = wordStyle,
-                    color = colors.phrasePlaceholder,
-                    maxLines = 1,
-                )
-            }
-            BasicTextField(
-                value = value,
-                onValueChange = onValueChange,
-                singleLine = true,
-                textStyle = wordStyle.copy(color = colors.onPhraseCard),
-                cursorBrush = SolidColor(colors.onPhraseCard),
-                keyboardOptions = KeyboardOptions(
-                    capitalization = KeyboardCapitalization.None,
-                    autoCorrectEnabled = false,
-                    imeAction = if (last) ImeAction.Done else ImeAction.Next,
-                ),
-                keyboardActions = KeyboardActions(
-                    onNext = { onImeAction() },
-                    onDone = { onImeAction() },
-                ),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .focusRequester(focusRequester)
-                    .onFocusChanged { onFocusChange(it.isFocused) }
-                    .testTag(fieldTag),
-            )
-        }
+            fieldModifier = Modifier
+                .focusRequester(focusRequester)
+                .onFocusChanged { onFocusChange(it.isFocused) }
+                .testTag(fieldTag),
+        )
     }
 }
 
