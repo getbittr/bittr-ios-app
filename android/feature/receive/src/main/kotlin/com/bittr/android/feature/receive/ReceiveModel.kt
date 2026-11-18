@@ -112,15 +112,13 @@ fun receiveDisplay(
         null
     }
 
-    val title = when (type) {
-        ReceiveType.Onchain, ReceiveType.Lnurl -> ReceiveStrings.ADDRESS
-        ReceiveType.Lightning -> ReceiveStrings.INVOICE
-        ReceiveType.BitcoinQr -> ReceiveStrings.BITCOIN_QR
-    }
-    val showBolt = type == ReceiveType.Lightning || type == ReceiveType.Lnurl
     val missing = ReceiveDisplay(
-        title = title,
-        showBolt = showBolt,
+        title = when (type) {
+            ReceiveType.Onchain, ReceiveType.Lnurl -> ReceiveStrings.ADDRESS
+            ReceiveType.Lightning -> ReceiveStrings.INVOICE
+            ReceiveType.BitcoinQr -> ReceiveStrings.BITCOIN_QR
+        },
+        showBolt = type == ReceiveType.Lightning || type == ReceiveType.Lnurl,
         label = if (amountInvalid) ReceiveStrings.INVALID_AMOUNT else ReceiveStrings.UNAVAILABLE,
         monospaced = false,
         qrPayload = null,
@@ -129,36 +127,26 @@ fun receiveDisplay(
     if (amountInvalid) return missing
 
     return when (type) {
-        ReceiveType.Onchain -> if (onchainAddress == null) missing else ReceiveDisplay(
-            title = title,
-            showBolt = showBolt,
+        ReceiveType.Onchain -> if (onchainAddress == null) missing else missing.copy(
             label = inGroupsOfFour(onchainAddress) + amountText,
             monospaced = true,
             qrPayload = "bitcoin:$onchainAddress$amountText".uppercase(),
             copyText = if (amountText.isEmpty()) onchainAddress else "bitcoin:$onchainAddress$amountText",
         )
-        ReceiveType.Lightning -> if (invoice == null) missing else ReceiveDisplay(
-            title = title,
-            showBolt = showBolt,
+        ReceiveType.Lightning -> if (invoice == null) missing else missing.copy(
             label = inGroupsOfFour(invoice),
             monospaced = true,
             qrPayload = "lightning:$invoice".uppercase(),
             copyText = invoice,
         )
-        ReceiveType.BitcoinQr -> if (bitcoinQr == null) missing else ReceiveDisplay(
-            title = title,
-            showBolt = showBolt,
+        ReceiveType.BitcoinQr -> if (bitcoinQr == null) missing else missing.copy(
             // The note decoded, on screen only, and a word joiner after "?" so the label does not wrap there.
             label = bitcoinQr.replace("label=${percentEncoded(description)}", "label=$description").replace("?", "?⁠"),
-            monospaced = false,
             qrPayload = bitcoinQr,
             copyText = bitcoinQr,
         )
-        ReceiveType.Lnurl -> if (lightningAddress == null) missing else ReceiveDisplay(
-            title = title,
-            showBolt = showBolt,
+        ReceiveType.Lnurl -> if (lightningAddress == null) missing else missing.copy(
             label = lightningAddress,
-            monospaced = false,
             qrPayload = lightningAddress,
             copyText = lightningAddress,
         )
