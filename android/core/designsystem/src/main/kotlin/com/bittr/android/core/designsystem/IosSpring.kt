@@ -1,6 +1,7 @@
 package com.bittr.android.core.designsystem
 
-import androidx.compose.animation.core.SpringSpec
+import androidx.compose.animation.core.FiniteAnimationSpec
+import androidx.compose.animation.core.snap
 import androidx.compose.animation.core.spring
 import kotlin.math.floor
 import kotlin.math.pow
@@ -10,15 +11,21 @@ import kotlin.math.pow
  *
  * UIKit turns the duration into a unit-mass `CASpringAnimation` whose natural frequency is a
  * function of the damping divided by the duration, and Compose takes that stiffness directly.
+ * A duration of 0 jumps straight to the end, as it does on iOS.
  */
-fun <T> iosSpring(durationSeconds: Float, dampingRatio: Float, visibilityThreshold: T? = null): SpringSpec<T> =
-    spring(dampingRatio = dampingRatio, stiffness = iosSpringStiffness(durationSeconds, dampingRatio), visibilityThreshold = visibilityThreshold)
+fun <T> iosSpring(durationSeconds: Float, dampingRatio: Float, visibilityThreshold: T? = null): FiniteAnimationSpec<T> =
+    if (durationSeconds == 0f) {
+        snap()
+    } else {
+        spring(dampingRatio = dampingRatio, stiffness = iosSpringStiffness(durationSeconds, dampingRatio), visibilityThreshold = visibilityThreshold)
+    }
 
 /**
  * The stiffness UIKit gives a spring of [durationSeconds] at [dampingRatio]: (ω·d / d)², with ω·d
  * read from [UIKIT_OMEGA_TIMES_DURATION] and interpolated between its steps.
  */
 fun iosSpringStiffness(durationSeconds: Float, dampingRatio: Float): Float {
+    require(durationSeconds > 0f) { "A spring needs a duration above 0, not $durationSeconds" }
     require(dampingRatio in 0.3f..1f) { "UIKit's stiffness was read for damping 0.3 to 1, not $dampingRatio" }
     val position = ((dampingRatio - 0.3f) / 0.05f).toDouble()
     val index = floor(position).toInt().coerceAtMost(UIKIT_OMEGA_TIMES_DURATION.lastIndex - 1)
