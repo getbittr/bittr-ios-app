@@ -204,6 +204,7 @@ fun TransactionScreen(
     viewModel: TransactionViewModel = hiltViewModel(),
 ) {
     val detail by viewModel.detail.collectAsState()
+    val confetti = detail?.confetti == true
     val clipboard = rememberTextClipboard()
     var copied by remember { mutableStateOf<String?>(null) }
     var editingNote by remember { mutableStateOf(false) }
@@ -279,14 +280,14 @@ fun TransactionScreen(
                     // this alert is the only feedback there is. See SYSTEM_CONFIRMS_COPY.
                     if (!SYSTEM_CONFIRMS_COPY) copied = text
                 }
-                if (shown.confetti) {
+                if (confetti) {
                     PayoutHeader()
                 }
                 // `yellowCard`: the date, then the rows 10 in and 10 apart. The date's band and, at the
                 // bottom, "Add a note"'s are both 55 from the card's edge to the nearest row, as on
                 // iOS, with each label centred in its band — iOS sets the date 8 from its band's
                 // bottom and "Add a note" 6 below its row's middle, both off-centre (Tom, 2026-10-06).
-                val addNoteLast = !shown.confetti && shown.note == null
+                val addNoteLast = !confetti && shown.note == null
                 BittrCard(
                     fill = BittrTheme.colors.levelCard,
                     // "Add a note" is 45 tall and the column's 10 above it make its 55.
@@ -313,7 +314,7 @@ fun TransactionScreen(
                             )
                         }
                         DetailRow(HomeStrings.AMOUNT, shown.amount, valueTag = TestID.Transaction.labelAmount)
-                        if (!shown.confetti) {
+                        if (!confetti) {
                             DetailRow(HomeStrings.TYPE, shown.type, bolt = shown.typeBolt)
                         }
                         // `swapStack` comes before the fees in the storyboard, as one card.
@@ -334,7 +335,7 @@ fun TransactionScreen(
                                 onClick = { copy(description) },
                             )
                         }
-                        if (!shown.confetti) {
+                        if (!confetti) {
                             val swap = shown.swap
                             val bottomId = swap?.bottomId.orEmpty()
                             IdCard(
@@ -364,7 +365,7 @@ fun TransactionScreen(
                         }
                         // `noteStack` / `addANoteStack`, the card's last rows. The payout summary
                         // offers no note (`addANoteStack` hidden under `showConfetti`).
-                        if (!shown.confetti) {
+                        if (!confetti) {
                             val note = shown.note
                             if (note != null) {
                                 Box(modifier = Modifier.bringIntoViewRequester(noteRequester)) {
@@ -388,7 +389,7 @@ fun TransactionScreen(
                         }
                     }
                 }
-                if (shown.confetti) {
+                if (confetti) {
                     ReminderCard()
                 }
             }
@@ -402,7 +403,7 @@ fun TransactionScreen(
             downTestTag = TestID.Header.downButton,
         )
         // Over everything, header included, as `SPConfetti` draws over the whole window.
-        if (detail?.confetti == true) {
+        if (confetti) {
             HeartsConfetti(modifier = Modifier.matchParentSize())
         }
     }
