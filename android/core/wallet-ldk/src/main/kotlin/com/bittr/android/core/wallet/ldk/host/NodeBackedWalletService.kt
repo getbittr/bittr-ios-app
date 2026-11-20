@@ -62,6 +62,12 @@ class NodeBackedWalletService(
      * Defaulted to a no-op for the same reason [wipeNodeState] is.
      */
     private val prepareNodeState: suspend (Mnemonic) -> Unit = {},
+    /**
+     * Whether erasing now could cost channel funds — `WipeSafety.channelsFullyClosedAndSwept`
+     * over a fresh reading in production. Defaulted to yes for the same reason [wipeNodeState]
+     * is a no-op.
+     */
+    private val wipeIsSafe: suspend () -> Boolean = { true },
 ) : WalletService {
 
     override val state: StateFlow<WalletState> get() = seed.state
@@ -157,14 +163,15 @@ class NodeBackedWalletService(
      * indistinguishable from foreign state to the BIT-20 guard on the next
      * install.
      *
-     * **What this does not do is close channels.** `WalletService.removeWallet`
-     * says the cooperative close is BIT-6's and unimplemented, and it stays
-     * that way here — see [WalletNodeHost.withWalletDown] for why the decision
-     * (`WipeSafety.channelsFullyClosedAndSwept`) cannot live inside this call:
-     * it needs the node running to answer, and by this point it is not. The
-     * caller that asks the user "are you sure" is where it goes.
+     * **It refuses rather than closes.** Closing channels is the removal
+     * coordinator's, which asks the user. Here [wipeIsSafe] is asked under the
+     * host's lock with the node still up, immediately before it stops, and an
+     * unsafe answer throws with nothing erased: a payout channel opened after
+     * the coordinator's own check still stops the erase.
      */
-    override suspend fun removeWallet() = host.withWalletDown {
+    override suspend fun removeWallet() = host.withWalletDown(
+        beforeStop = { check(wipeIsSafe()) { "A Lightning channel is open or its funds are still settling" } },
+    ) {
         wipeNodeState()
         seed.removeWallet()
     }
