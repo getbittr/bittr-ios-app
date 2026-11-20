@@ -348,6 +348,7 @@ extension BitcoinManager {
         func didCreateBdkWallet() -> Bool {
             // A new wallet hasn't been scanned yet.
             self.clearFullScanCompletion()
+            self.bdkScan.markNeedsFullScan()
             
             do {
                 self.bdkWallet = try Wallet(descriptor: bip84ExternalDescriptor, changeDescriptor: bip84InternalDescriptor, network: EnvironmentConfig.bitcoinDevKitNetwork, connection: self.connection!)
