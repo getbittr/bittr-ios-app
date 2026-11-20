@@ -14,6 +14,7 @@ import androidx.compose.ui.window.DialogWindowProvider
 import com.bittr.android.core.designsystem.BittrAppBarLogoHeight
 import com.bittr.android.core.designsystem.BittrLogo
 import com.bittr.android.core.designsystem.BittrTheme
+import com.bittr.android.core.designsystem.exposeTestTags
 
 /**
  * iOS's privacy cover (`CoreViewController.showPrivacyCover`): `yelloworblue3` with the logo in the
@@ -31,6 +32,7 @@ internal fun PrivacyCover() {
             contentAlignment = Alignment.Center,
             modifier = Modifier
                 .fillMaxSize()
+                .exposeTestTags()
                 .background(BittrTheme.colors.primaryHigh),
         ) {
             BittrLogo(height = BittrAppBarLogoHeight)
