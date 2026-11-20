@@ -12,6 +12,7 @@ import com.bittr.android.core.wallet.WalletOverviewSource
 import com.bittr.android.core.wallet.WalletRefresher
 import com.bittr.android.core.wallet.WalletService
 import com.bittr.android.core.wallet.WalletState
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -61,6 +62,10 @@ class HomeViewModelCacheTest {
     }
 
     private var livePrice: FiatPrice? = null
+    private val pendingFetches = ArrayDeque<CompletableDeferred<FiatPrice?>>()
+
+    /** A price fetched elsewhere in the app — the Value screen's load. */
+    private val latestPrice = MutableStateFlow<FiatPrice?>(null)
 
     private val refresher = object : WalletRefresher {
         val running = MutableStateFlow(false)
@@ -96,8 +101,12 @@ class HomeViewModelCacheTest {
         refresher = refresher,
         cache = cache,
         prices = object : FiatPriceSource {
-            override suspend fun current(): FiatPrice? = livePrice
+            override suspend fun current(): FiatPrice? {
+                val pending = pendingFetches.removeFirstOrNull() ?: return livePrice
+                return pending.await()
+            }
             override fun currentSymbol(): String = "CHF"
+            override val latest = this@HomeViewModelCacheTest.latestPrice
         },
     )
 
@@ -179,5 +188,71 @@ class HomeViewModelCacheTest {
 
         assertFalse(home.uiState.value.showingCachedData)
         assertNull(home.uiState.value.balanceSats)
+    }
+
+    /**
+     * `couldNotFetchConversion` and `headerProblemImage`: a failed rate fetch shows the warning once
+     * synced, hidden while syncing, and a later successful fetch clears it.
+     */
+    @Test
+    fun `a failed conversion fetch warns once synced, and a later success clears it`() = runTest {
+        livePrice = null
+        val home = viewModel()
+        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { home.uiState.collect {} }
+        assertFalse("hidden while the wallet syncs", home.uiState.value.conversionFailed)
+
+        overview.value = overview.value.copy(hasSynced = true)
+        assertTrue(home.uiState.value.conversionFailed)
+
+        livePrice = FiatPrice(65_000.0, "CHF")
+        overview.value = overview.value.copy(transactions = listOf(cachedRow))
+        assertFalse(home.uiState.value.conversionFailed)
+    }
+
+    /** `resetWallet()` forgets the failure, so the warning stays hidden while the refetch runs. */
+    @Test
+    fun `a pull to refresh forgets the failure before the refetch answers`() = runTest {
+        livePrice = null
+        overview.value = overview.value.copy(hasSynced = true)
+        val home = viewModel()
+        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { home.uiState.collect {} }
+        assertTrue(home.uiState.value.conversionFailed)
+
+        val fetch = CompletableDeferred<FiatPrice?>()
+        pendingFetches += fetch
+        home.refresh()
+        overview.value = overview.value.copy(hasSynced = true)
+        assertFalse(home.uiState.value.conversionFailed)
+
+        fetch.complete(FiatPrice(65_000.0, "CHF"))
+        assertFalse(home.uiState.value.conversionFailed)
+    }
+
+    @Test
+    fun `a slow failed fetch does not override a later successful one`() = runTest {
+        val slow = CompletableDeferred<FiatPrice?>()
+        pendingFetches += slow
+        livePrice = FiatPrice(65_000.0, "CHF")
+        overview.value = overview.value.copy(hasSynced = true)
+        val home = viewModel()
+        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { home.uiState.collect {} }
+
+        slow.complete(null)
+
+        assertFalse(home.uiState.value.conversionFailed)
+    }
+
+    /** iOS's Value screen sets the rates and clears `couldNotFetchConversion` as it loads. */
+    @Test
+    fun `a price fetched by the Value screen clears the warning`() = runTest {
+        livePrice = null
+        overview.value = overview.value.copy(hasSynced = true)
+        val home = viewModel()
+        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { home.uiState.collect {} }
+        assertTrue(home.uiState.value.conversionFailed)
+
+        latestPrice.value = FiatPrice(65_000.0, "CHF")
+
+        assertFalse(home.uiState.value.conversionFailed)
     }
 }

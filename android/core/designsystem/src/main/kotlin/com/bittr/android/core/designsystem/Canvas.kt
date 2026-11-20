@@ -871,6 +871,11 @@ object BittrIconPaths {
             "M14 10a4 4 0 00-5.7 0l-2.8 2.8a4 4 0 105.7 5.7l1-1"
     const val HOURGLASS = "M7 3h10v3l-5 6 5 6v3H7v-3l5-6-5-6z"
     const val BOLT = "M13 2L4 14h6l-1 8 9-12h-6z"
+
+    /** iOS's `exclamationmark.circle`: a ring, a short bar and a dot. */
+    const val EXCLAMATION_CIRCLE =
+        "M1.1 12a10.9 10.9 0 1 0 21.8 0a10.9 10.9 0 1 0 -21.8 0z M12 6.4v7.5 " +
+            "M11.6 17.6a.4 .4 0 1 0 .8 0a.4 .4 0 1 0 -.8 0z"
     const val TRASH =
         "M4 7h16 M9 7V5a1 1 0 011-1h4a1 1 0 011 1v2 M6 7l1 13a1 1 0 001 1h8a1 1 0 001-1l1-13"
 

@@ -18,6 +18,7 @@
   "home": {
     "headerLabel": null,
     "headerSpinner": null,
+    "headerProblemImage": null,
     "sendButton": null,
     "receiveButton": null,
     "buyButton": null,
