@@ -419,6 +419,11 @@ data class BittrColors(
      */
     val welcomeHeader: Color,
     /**
+     * iOS's `whiteoryellow`, on the brand surface: white on yellow, yellow on blue in dark. Home's
+     * card titles, the sheet and alert headers' glyphs, the Value curve.
+     */
+    val onBrand: Color,
+    /**
      * Restore's white card of twelve words (`RestoreViewController.mnemonicView`), its typed words
      * and its "Enter word" placeholder: white, black and `UIColor.gray`, fixed in both schemes as the
      * storyboard has them. The numbers beside the words are [brandFixed]. Decision 55.
@@ -438,13 +443,12 @@ data class BittrColors(
     val pinKeyPress: Color,
     /**
      * Home, as `HomeHeaderTableViewCell` colours it. [homeHeader] is `yelloworblue3` — the yellow
-     * block and its cards; [homeCardTitle] `whiteoryellow`, their titles and the piggy; [homeAction]
+     * block and its cards, their titles and the piggy in [onBrand]; [homeAction]
      * `white0.7orblue2`, the Send / Receive / Buy plates; [homeBackground] `grey3orblue1`, the page
      * under the history and the menu's plates; [menuLabel] the menu's unselected labels;
      * [noTransactions] `noTransactionsLabel`'s grey, white in dark.
      */
     val homeHeader: Color,
-    val homeCardTitle: Color,
     val homeAction: Color,
     val homeBackground: Color,
     val menuLabel: Color,
@@ -645,6 +649,7 @@ val BittrLightColorsExtended = BittrColors(
     lessonTile = Color.White.copy(alpha = 0.70f),
     canvasArc = Color.White,
     welcomeHeader = Color.White,
+    onBrand = Color.White,
     phraseCard = Color.White,
     onPhraseCard = Color.Black,
     phrasePlaceholder = Color(0xFF808080),
@@ -653,7 +658,6 @@ val BittrLightColorsExtended = BittrColors(
     pinConfirm = Ink,
     pinKeyPress = Ink,
     homeHeader = Yellow,
-    homeCardTitle = Color.White,
     homeAction = Color.White.copy(alpha = 0.70f),
     homeBackground = Grey3,
     menuLabel = Color(0xFF535353),
@@ -731,6 +735,7 @@ val BittrDarkColorsExtended = BittrColors(
     // brand-yellow sites already (see `brandFixed`). This is the eighth.
     canvasArc = Yellow,
     welcomeHeader = Yellow,
+    onBrand = Yellow,
     phraseCard = Color.White,
     onPhraseCard = Color.Black,
     phrasePlaceholder = Color(0xFF808080),
@@ -739,7 +744,6 @@ val BittrDarkColorsExtended = BittrColors(
     pinConfirm = Blue1,
     pinKeyPress = Color.Black,
     homeHeader = Blue3,
-    homeCardTitle = Yellow,
     homeAction = Blue2,
     homeBackground = Blue1,
     menuLabel = Color.White,

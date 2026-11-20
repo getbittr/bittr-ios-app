@@ -105,7 +105,7 @@ private fun PushQuestionCard(question: PushQuestion, onDown: () -> Unit) {
             titleTestTag = TestID.Header.titleLabel,
             downTestTag = TestID.Header.downButton,
             // iOS's `iconpiggyyellow` and `downarrow32yellow` in dark.
-            tint = if (BittrTheme.isDark) BittrTheme.colors.homeCardTitle else LocalContentColor.current,
+            tint = if (BittrTheme.isDark) BittrTheme.colors.onBrand else LocalContentColor.current,
         )
         Column(
             modifier = Modifier

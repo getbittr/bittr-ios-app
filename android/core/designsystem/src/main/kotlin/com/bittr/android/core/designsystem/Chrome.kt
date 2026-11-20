@@ -242,7 +242,7 @@ fun BittrSheetHeader(
     titleTestTag: String? = null,
     downTestTag: String? = null,
 ) {
-    val tint = BittrTheme.colors.homeCardTitle
+    val tint = BittrTheme.colors.onBrand
     Row(
         verticalAlignment = Alignment.CenterVertically,
         modifier = modifier

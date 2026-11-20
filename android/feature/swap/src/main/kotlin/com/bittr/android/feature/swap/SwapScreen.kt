@@ -388,7 +388,7 @@ private fun StatusCard(status: SwapStatusState, controller: SwapController) {
             Text(
                 SwapCopy.SWAP_STATUS_HEADER.lowercase(),
                 style = MaterialTheme.typography.titleMedium.copy(lineHeight = 18.sp),
-                color = colors.homeCardTitle,
+                color = colors.onBrand,
                 modifier = Modifier
                     .padding(start = 10.dp)
                     .offset(y = 1.dp),

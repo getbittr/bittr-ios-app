@@ -205,7 +205,7 @@ private fun LevelCard(section: LevelSection, onOpenLesson: (Lesson) -> Unit) {
             Text(
                 text = section.title,
                 style = titleStyle,
-                color = colors.homeCardTitle,
+                color = colors.onBrand,
                 modifier = Modifier
                     .weight(1f)
                     .padding(start = 10.dp)
@@ -214,7 +214,7 @@ private fun LevelCard(section: LevelSection, onOpenLesson: (Lesson) -> Unit) {
             Text(
                 text = section.countLabel,
                 style = titleStyle,
-                color = colors.homeCardTitle,
+                color = colors.onBrand,
                 modifier = Modifier.offset(y = 1.dp),
             )
         }

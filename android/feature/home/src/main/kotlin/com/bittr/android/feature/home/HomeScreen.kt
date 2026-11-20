@@ -488,7 +488,7 @@ private fun BalanceCard(
                 Text(
                     text = HomeStrings.YOUR_WALLET,
                     style = CardTitle,
-                    color = colors.homeCardTitle,
+                    color = colors.onBrand,
                     modifier = Modifier
                         .padding(start = 10.dp)
                         .testTag(TestID.Home.headerLabel),
@@ -498,7 +498,7 @@ private fun BalanceCard(
                 // not for an animation to be hidden.
                 if (showSyncSpinner) {
                     BittrSpinner(
-                        color = colors.homeCardTitle,
+                        color = colors.onBrand,
                         strokeWidth = 2.dp,
                         modifier = Modifier
                             .padding(start = 12.dp)
@@ -841,7 +841,7 @@ private fun SmallCardTitle(icon: Int, title: String) {
         Text(
             text = title,
             style = CardTitle,
-            color = BittrTheme.colors.homeCardTitle,
+            color = BittrTheme.colors.onBrand,
             modifier = Modifier
                 .padding(start = 10.dp)
                 .offset(y = 0.5.dp),
