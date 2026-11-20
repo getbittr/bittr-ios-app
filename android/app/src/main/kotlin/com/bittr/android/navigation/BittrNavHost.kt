@@ -4,6 +4,7 @@ import com.bittr.android.core.designsystem.BittrPopup
 import com.bittr.android.core.designsystem.BittrSheet
 import com.bittr.android.home.HomeValueViewModel
 import com.bittr.android.core.designsystem.BittrTheme
+import com.bittr.android.core.designsystem.BittrPage
 import androidx.compose.ui.window.DialogProperties
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.compose.ui.semantics.clearAndSetSemantics
@@ -11,10 +12,8 @@ import androidx.navigation.compose.dialog
 import androidx.compose.animation.AnimatedContentTransitionScope
 import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.ExitTransition
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.statusBars
 import androidx.compose.ui.platform.LocalDensity
 import com.bittr.android.risingWithLaunchLogo
@@ -385,11 +384,7 @@ fun BittrNavHost(
     // The canvas behind every destination. The signup pages' slide overshoots — iOS's spring at
     // damping 0.65 — and for that moment the edge the page has pulled away from shows whatever is
     // behind it; on iOS that is SignupViewController's own `yelloworblue3`, here it was the white window.
-    Box(
-        Modifier
-            .fillMaxSize()
-            .background(BittrTheme.colors.primaryHigh),
-    ) {
+    BittrPage(BittrTheme.colors.primaryHigh) {
         CompositionLocalProvider(
             LocalAppBarLogoVisible provides (launchLogoVisible && !logoPinned),
             LocalAppBarBackgroundVisible provides !barPinned,

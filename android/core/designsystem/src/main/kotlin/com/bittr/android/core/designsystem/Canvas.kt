@@ -5,6 +5,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -124,15 +125,8 @@ fun BittrCanvas(
     content: @Composable ColumnScope.() -> Unit,
 ) {
     val colors = BittrTheme.colors
-    CompositionLocalProvider(
-        LocalContentColor provides colors.onCanvas,
-        LocalPageColor provides background,
-    ) {
-        Box(
-            modifier = modifier
-                .fillMaxSize()
-                .background(background),
-        ) {
+    CompositionLocalProvider(LocalContentColor provides colors.onCanvas) {
+        BittrPage(background, modifier) {
             Column(
                 modifier = Modifier
                     .fillMaxSize()
@@ -160,13 +154,21 @@ fun BittrCanvas(
  */
 fun Modifier.appBarContentPadding(): Modifier = statusBarsPadding().padding(top = AppBarContentInset)
 
+/** A full-screen page in [background], which is what [pageColor] reads inside it. */
+@Composable
+fun BittrPage(background: Color, modifier: Modifier = Modifier, content: @Composable BoxScope.() -> Unit) {
+    CompositionLocalProvider(LocalPageColor provides background) {
+        Box(modifier.fillMaxSize().background(background), content = content)
+    }
+}
+
 /**
- * The colour of the page [BittrCanvas] is drawing, for what composites over it or cuts through to it.
- * Null outside a canvas; read it with [pageColor].
+ * The colour of the page [BittrPage] is drawing, for what composites over it or cuts through to it.
+ * Null outside a page; read it with [pageColor].
  */
 val LocalPageColor = compositionLocalOf<Color?> { null }
 
-/** The page under the caller: [LocalPageColor], or [BittrColors.canvas] outside a [BittrCanvas]. */
+/** The page under the caller: [LocalPageColor], or [BittrColors.canvas] outside a [BittrPage]. */
 @Composable
 fun pageColor(): Color = LocalPageColor.current ?: BittrTheme.colors.canvas
 
