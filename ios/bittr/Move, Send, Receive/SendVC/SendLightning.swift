@@ -123,7 +123,7 @@ extension SendViewController {
         }
         
         // Set fields
-        self.amountTextField.text = "\(satoshisAmount)"
+        self.fillInAmount("\(satoshisAmount)")
         self.btcLabel.text = "Sats"
         self.selectedCurrency = .satoshis
         
@@ -282,6 +282,12 @@ extension UIViewController {
         let receiveVC = self as? ReceiveViewController
         let swapVC = self as? SwapViewController
         
+        // Cache invoice note, before resetFields clears it.
+        if let pendingLnurlNote = sendVC?.pendingLnurlNote {
+            CacheManager.storeTransactionNote(txid: thisPayment.kind.transactionID ?? thisPayment.id, note: pendingLnurlNote)
+            sendVC?.pendingLnurlNote = nil
+        }
+        
         // Update views.
         sendVC?.nextLabel.alpha = 1
         sendVC?.arrowIcon.alpha = 1
@@ -290,12 +296,6 @@ extension UIViewController {
         sendVC?.confirmSendVC?.confirmSpinner.stopAnimating()
         sendVC?.resetFields()
         sendVC?.slideFromConfirmToSend()
-        
-        // Cache invoice note.
-        if let pendingLnurlNote = sendVC?.pendingLnurlNote {
-            CacheManager.storeTransactionNote(txid: thisPayment.kind.transactionID ?? thisPayment.id, note: pendingLnurlNote)
-            sendVC?.pendingLnurlNote = nil
-        }
         
         // Create transaction.
         let newTransaction = thisPayment.createTransaction(bittrTransactions: nil)

@@ -79,6 +79,7 @@ class SendViewController: UIViewController, UITextFieldDelegate, OnchainSyncFail
     var homeVC:HomeViewController?
     var maximumSendableOnchainSats:Int?
     var didTapAvailable = false
+    var filledInAmount:String? // The amount the app itself last put in the amount field.
     var completedTransaction:Transaction?
     var bitcoinQR = ""
     var pendingLightningInvoice = ""
@@ -86,12 +87,13 @@ class SendViewController: UIViewController, UITextFieldDelegate, OnchainSyncFail
     var pendingOnchainAmount:Int = 0
     
     // Pending URI data from segue
-    var pendingBitcoinURI: (address: String, amount: String, label: String)?
-    var pendingLightningURI: String?
+    var pendingPaymentURI: String?
     
     // Pending LNURL data
+    var pendingLNURLSource: String? // The LNURL or lightning address the pending data belongs to.
     var pendingLNURLCallback: String?
     var pendingLNURLDescription: String?
+    var pendingLNURLMetadata: String?
     var pendingLNURLMinAmount: Int?
     var pendingLNURLMaxAmount: Int?
     
@@ -261,10 +263,23 @@ class SendViewController: UIViewController, UITextFieldDelegate, OnchainSyncFail
         case .bitcoin: self.btcLabel.text = "BTC"
         case .satoshis: self.btcLabel.text = "Sats"
         case .currency:
+            guard self.hasCurrentConversionRate() else {
+                self.showConversionRateUnavailable()
+                return
+            }
             let currency = CacheStore.value(for: CacheKeys.currency) ?? "EUR"
             self.btcLabel.text = currency
         }
         self.selectedCurrency = type
+    }
+    
+    // A fiat amount is only converted with a rate fetched in this session.
+    func hasCurrentConversionRate() -> Bool {
+        self.homeVC?.didFetchConversion == true && BitcoinManager.shared.bittrWallet.getCorrectBitcoinValue().currentValue > 0
+    }
+    
+    func showConversionRateUnavailable() {
+        self.showAlert(title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "conversionfailsend"), buttons: [.dismiss(Language.getWord(withID: "okay"))])
     }
     
     @IBAction func availableButtonTapped(_ sender: UIButton) {
@@ -273,13 +288,18 @@ class SendViewController: UIViewController, UITextFieldDelegate, OnchainSyncFail
         if self.onchainOrLightning == .onchain {
             // Regular - use satoshis for onchain too
             let sendableInSatoshis:Int = self.maximumSendableOnchainSats ?? max(BitcoinManager.shared.bittrWallet.satoshisOnchainSpendable ?? 0, 0)
-            self.amountTextField.text = "\(sendableInSatoshis)"
+            self.fillInAmount("\(sendableInSatoshis)")
             self.didTapAvailable = true
         } else {
             // Instant
             let sendableInSatoshis:Int = Int((BitcoinManager.shared.bittrWallet.lightningChannels.getActiveChannel()?.outboundCapacityMsat ?? 0)/1000)
-            self.amountTextField.text = "\(sendableInSatoshis)"
+            self.fillInAmount("\(sendableInSatoshis)")
         }
+    }
+    
+    func fillInAmount(_ amount:String) {
+        self.amountTextField.text = amount
+        self.filledInAmount = amount
     }
     
     @IBAction func toPasteButtonTapped(_ sender: UIButton) {
@@ -300,6 +320,19 @@ class SendViewController: UIViewController, UITextFieldDelegate, OnchainSyncFail
     
     @IBAction func nextButtonTapped(_ sender: UIButton) {
         self.view.endEditing(true)
+        
+        // The rates can fail to refresh after a fiat amount was entered.
+        let enteredAmount = (self.amountTextField.text ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+        if self.selectedCurrency == .currency, !enteredAmount.isEmpty, !self.hasCurrentConversionRate() {
+            self.showConversionRateUnavailable()
+            return
+        }
+        
+        // Pending LNURL data only belongs to the LNURL it came from.
+        let enteredCode = (self.toTextField.text ?? "").trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        if self.pendingLNURLSource != enteredCode {
+            self.clearPendingLnurlState()
+        }
         
         // Check if we have pending LNURL data FIRST (for when Next button shows "Done")
         if self.pendingLNURLCallback != nil, self.pendingLNURLMinAmount != nil, self.pendingLNURLMaxAmount != nil {
@@ -358,6 +391,8 @@ class SendViewController: UIViewController, UITextFieldDelegate, OnchainSyncFail
     
     
     @IBAction func switchTapped(_ sender: UIButton) {
+        
+        self.clearPendingLnurlState()
 
         if (sender.boundString ?? "") == "onchain", self.bitcoinQR != "" {
             self.toTextField.text = self.bitcoinQR
