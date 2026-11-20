@@ -463,22 +463,33 @@ extension BitcoinManager {
     
     // A full scan stands until the user asks for another one by pulling to refresh.
     var hasStoredFullScan: Bool {
-        // Check when the BDK wallet was last scanned.
+        // Check when, and in which database, the BDK wallet was last scanned.
         guard let scannedAt = CacheStore.value(for: CacheKeys.lastBdkFullScan) else { return false }
+        guard let databaseCreated = Self.walletDatabaseCreatedAt else { return false }
         
-        // Make sure the cached most recent scan date is after this database's creation date.
-        guard let databaseCreated = Connection.walletDatabaseCreationDate else { return false }
+        // Matched to the database it was made in, so a clock corrected in between doesn't matter.
+        if let scannedDatabase = CacheStore.value(for: CacheKeys.lastBdkFullScanDatabase) {
+            return scannedDatabase == databaseCreated
+        }
         
-        // The scan date is stored in whole seconds, so compare the creation date in whole seconds too.
-        return Int(databaseCreated.timeIntervalSince1970) <= scannedAt
+        // A scan stored without its database: make sure it's not older than this database.
+        return databaseCreated <= scannedAt
+    }
+    
+    // The wallet database's creation date, in the whole seconds the scan is stored in.
+    private static var walletDatabaseCreatedAt: Int? {
+        guard let databaseCreated = Connection.walletDatabaseCreationDate else { return nil }
+        return Int(databaseCreated.timeIntervalSince1970)
     }
     
     // Keep track of latest full BDK scan.
     func storeFullScanCompletion() {
         CacheStore.set(Int(Date().timeIntervalSince1970), for: CacheKeys.lastBdkFullScan)
+        CacheStore.set(Self.walletDatabaseCreatedAt, for: CacheKeys.lastBdkFullScanDatabase)
     }
     func clearFullScanCompletion() {
         CacheStore.set(nil, for: CacheKeys.lastBdkFullScan)
+        CacheStore.set(nil, for: CacheKeys.lastBdkFullScanDatabase)
     }
     
     func didSyncBdkWallet(mayScanAgainForRebuild: Bool = true, completion originalCompletion: @escaping (Bool) -> Void) {
