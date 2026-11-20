@@ -22,6 +22,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.merge
 import kotlinx.coroutines.flow.stateIn
@@ -96,6 +97,7 @@ class HomeViewModel @Inject constructor(
 
     /** A live conversion rate: shown, and kept for the next launch. */
     private fun applyPrice(live: FiatPrice) {
+        if (live == price.value) return
         price.value = live
         cache.savePrice(live)
     }
@@ -137,6 +139,7 @@ class HomeViewModel @Inject constructor(
                 if (overview.overview.value.hasSynced) prices.current()?.let(::applyPrice)
             }
         }
+        viewModelScope.launch { prices.latest.filterNotNull().collect(::applyPrice) }
     }
 
     val uiState: StateFlow<HomeUiState> = combine(
