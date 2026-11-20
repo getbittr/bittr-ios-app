@@ -93,6 +93,9 @@ class MainActivity : ComponentActivity() {
     /** `elapsedRealtime` at the last [onStop], or 0 before the first one. */
     private var backgroundedAt: Long = 0L
 
+    /** Below Android 13, where Recents can't be kept from taking a picture, the [PrivacyCover] is up while paused. */
+    private var covered by mutableStateOf(false)
+
     /** Reconnected on every foreground while the node runs, as iOS's `SceneDelegate` does. */
     @Inject
     lateinit var bittrPeer: BittrPeerConnection
@@ -137,6 +140,16 @@ class MainActivity : ComponentActivity() {
         setTaskDescription(ActivityManager.TaskDescription.Builder().setBackgroundColor(color).build())
     }
 
+    override fun onPause() {
+        super.onPause()
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) covered = true
+    }
+
+    override fun onResume() {
+        super.onResume()
+        covered = false
+    }
+
     override fun onStop() {
         appForeground.setActive(false)
         backgroundedAt = SystemClock.elapsedRealtime()
@@ -174,6 +187,7 @@ class MainActivity : ComponentActivity() {
                 val recentsColor = BittrTheme.colors.primaryHigh.toArgb()
                 SideEffect { showInRecentsAs(recentsColor) }
                 BittrApp(pushCoordinator, transactionConfirmations.transactionScreenOpen)
+                if (covered) PrivacyCover()
             }
         }
     }

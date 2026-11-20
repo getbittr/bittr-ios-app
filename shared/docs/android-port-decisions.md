@@ -740,3 +740,18 @@ presents it as a page sheet: a card rising from the bottom over the dimmed scree
   at 1.2 × their size, 12 between paragraphs, an empty `<p>&nbsp;</p>` as a ~13.8 line (UIKit's default 12 pt
   HTML font) — the gap under the byline, which `ArticleMarkup` used to drop — and 12 plus a trailing empty line
   after each block, whose text sits 20 in from the sides and 20 below the one above.
+
+## 57. The privacy cover, and what Recents can still see
+
+**2026-11-20.** iOS raises its privacy cover (`yelloworblue3` with the logo) on `willResignActive` and drops
+it on `didBecomeActive`, so the app switcher never shows the wallet (`CoreViewController.showPrivacyCover`).
+
+- **Android 13 and up.** The app asks Recents for no picture at all (`setRecentsScreenshotEnabled(false)`) and
+  gives its card the cover's colour, which Android draws without a logo.
+- **Android 8 to 12.** There is no switch for the picture, so `PrivacyCover` is up while the app is paused,
+  as its own window over every sheet. With the Home or Recents button, the picture is taken after the pause
+  and shows the cover. Gesture navigation on 10 to 12 takes it as the swipe starts, before the pause, so
+  there the wallet can still show. The cover also lies behind the share sheet, the browser and permission
+  dialogs while they are open.
+- **Raising the minimum to Android 13 instead** was considered and declined (Tom): in October 2026 about a
+  third of active Android devices ran something older.
