@@ -2,9 +2,6 @@ package com.bittr.android.feature.home
 
 import androidx.compose.foundation.relocation.bringIntoViewRequester
 import androidx.compose.foundation.relocation.BringIntoViewRequester
-import androidx.compose.animation.core.Animatable
-import androidx.compose.animation.core.LinearEasing
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -27,9 +24,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.Role
@@ -37,7 +36,10 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.drawscope.rotate
 import androidx.compose.ui.graphics.drawscope.translate
+import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
@@ -68,6 +70,7 @@ import com.bittr.android.core.wallet.TransactionNoteStore
 import com.bittr.android.core.wallet.WalletOverviewSource
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
+import kotlin.math.cos
 import kotlin.math.sin
 import kotlin.random.Random
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -90,6 +93,7 @@ import com.bittr.android.core.designsystem.Gilroy
 import com.bittr.android.core.designsystem.iosShadow
 import com.bittr.android.core.designsystem.IosCardShape
 import com.bittr.android.core.designsystem.BittrSheetHeader
+import com.bittr.android.core.designsystem.LocalSheetHasAppeared
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.CompositingStrategy
 import androidx.compose.ui.geometry.Offset
@@ -579,42 +583,58 @@ private fun RowTitle(text: String, modifier: Modifier = Modifier) {
 private val RowShape = RoundedCornerShape(8.dp)
 private val RowStyle = TextStyle(fontFamily = Gilroy, fontWeight = FontWeight.Bold, fontSize = 16.sp, lineHeight = 18.sp)
 
-/** Two seconds of red hearts falling across the screen — iOS's `SPConfetti` `.fullWidthToDown` with `.heart` particles. */
+/**
+ * Red hearts falling across the screen once the sheet is up — iOS's `SPConfetti` `.fullWidthToDown`
+ * with `.heart` particles, started in `viewDidAppear`: 24 a second for two seconds along the top
+ * edge, each at 180 ± 40 dp/s within 45° of straight down, spinning, until it leaves the screen.
+ */
 @Composable
 private fun HeartsConfetti(modifier: Modifier = Modifier) {
-    val progress = remember { Animatable(0f) }
-    LaunchedEffect(Unit) {
-        progress.animateTo(1f, tween(durationMillis = CONFETTI_MILLIS, easing = LinearEasing))
-    }
+    val sheetHasAppeared = LocalSheetHasAppeared.current
+    var seconds by remember { mutableFloatStateOf(-1f) }
+    var height by remember { mutableFloatStateOf(0f) }
     val hearts = remember {
         List(HEART_COUNT) { index ->
             val random = Random(index * 7919 + 17)
             Heart(
+                birth = index / HEARTS_PER_SECOND,
                 x = random.nextFloat(),
-                delay = random.nextFloat() * 0.35f,
-                speed = 0.7f + random.nextFloat() * 0.6f,
+                angle = (random.nextFloat() * 2f - 1f) * HEART_SPREAD,
+                speed = HEART_SPEED + (random.nextFloat() * 2f - 1f) * HEART_SPEED_RANGE,
+                spin = HEART_SPIN + (random.nextFloat() * 2f - 1f) * HEART_SPIN_RANGE,
                 sizeDp = 10f + random.nextFloat() * 10f,
-                sway = random.nextFloat() * 2f - 1f,
             )
         }
     }
-    if (progress.value >= 1f) return
-    Canvas(modifier = modifier) {
+    val density = LocalDensity.current.density
+    LaunchedEffect(sheetHasAppeared) {
+        if (!sheetHasAppeared || seconds >= 0f) return@LaunchedEffect
+        val start = withFrameNanos { it }
+        do {
+            withFrameNanos { seconds = (it - start) / 1_000_000_000f }
+        } while (height == 0f || hearts.any { it.top(seconds, density) < height })
+    }
+    if (seconds < 0f) return
+    Canvas(modifier = modifier.onSizeChanged { height = it.height.toFloat() }) {
         hearts.forEach { heart ->
-            val t = ((progress.value - heart.delay) / (1f - heart.delay)).coerceIn(0f, 1f)
-            if (t <= 0f) return@forEach
+            val t = seconds - heart.birth
+            if (t < 0f) return@forEach
             val side = heart.sizeDp * density
-            val x = heart.x * size.width + heart.sway * 24f * density * sin(t * 6f)
-            val y = -side + t * heart.speed * (size.height + side * 2)
-            val alpha = if (t > 0.8f) (1f - t) / 0.2f else 1f
-            translate(left = x, top = y) {
-                drawPath(heartPath(side), Color.Red.copy(alpha = alpha))
+            val x = heart.x * size.width + sin(heart.angle) * heart.speed * density * t
+            translate(left = x, top = heart.top(seconds, density)) {
+                rotate(degrees = Math.toDegrees((heart.spin * t).toDouble()).toFloat(), pivot = Offset(side / 2f, side / 2f)) {
+                    drawPath(heartPath(side), Color.Red)
+                }
             }
         }
     }
 }
 
-private data class Heart(val x: Float, val delay: Float, val speed: Float, val sizeDp: Float, val sway: Float)
+private data class Heart(val birth: Float, val x: Float, val angle: Float, val speed: Float, val spin: Float, val sizeDp: Float) {
+    /** Where the heart's top is, in px, [seconds] after the first one fell; above the screen before its birth. */
+    fun top(seconds: Float, density: Float): Float =
+        -sizeDp * density + cos(angle) * speed * density * (seconds - birth).coerceAtLeast(0f)
+}
 
 private fun heartPath(side: Float): Path = Path().apply {
     moveTo(side / 2f, side * 0.9f)
@@ -934,6 +954,11 @@ private fun ExplorerLink(onClick: () -> Unit, testTag: String?, padding: Padding
 }
 
 
-/** `SPConfetti.startAnimating(…, duration: 2)`. */
-private const val CONFETTI_MILLIS = 1_500
-private const val HEART_COUNT = 40
+/** `SPConfetti.startAnimating(…, duration: 2)` at `SPConfettiParticlesConfig`'s defaults. */
+private const val HEARTS_PER_SECOND = 24f
+private const val HEART_COUNT = 48
+private const val HEART_SPEED = 180f
+private const val HEART_SPEED_RANGE = 40f
+private const val HEART_SPREAD = 0.7853982f
+private const val HEART_SPIN = 1.75f
+private const val HEART_SPIN_RANGE = 2f

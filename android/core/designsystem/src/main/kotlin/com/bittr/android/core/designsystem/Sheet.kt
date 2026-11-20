@@ -29,8 +29,10 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.SideEffect
+import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -109,11 +111,16 @@ fun BittrSheet(
                     .statusBarsPadding()
                     .clip(SheetShape),
             ) {
-                content(dismiss)
+                CompositionLocalProvider(LocalSheetHasAppeared provides (visible.isIdle && visible.currentState)) {
+                    content(dismiss)
+                }
             }
         }
     }
 }
+
+/** True once a [BittrSheet] has finished rising, iOS's `viewDidAppear`; always true outside one. */
+val LocalSheetHasAppeared = compositionLocalOf { true }
 
 /** iOS's standard page-sheet corners. */
 private val SheetShape = RoundedCornerShape(topStart = 10.dp, topEnd = 10.dp)
