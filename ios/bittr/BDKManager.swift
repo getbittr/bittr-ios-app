@@ -38,6 +38,7 @@ final class BdkScanState {
     private var _wasInterrupted = false
     private var generation = 0
     private var _lightSync:LightSyncClaim?
+    private var abandonedLightSyncs = 0
     private var waiters = [(Bool) -> Void]()
     
     var isScanning: Bool {
@@ -112,6 +113,11 @@ final class BdkScanState {
         if let current = _lightSync, Date().timeIntervalSince(current.startedAt) < BdkScanState.lightSyncClaimLimit {
             return nil
         }
+        if _lightSync != nil {
+            // Electrum has no read timeout, so a taken-over sync that hasn't returned still blocks a thread.
+            guard abandonedLightSyncs == 0 else { return nil }
+            abandonedLightSyncs += 1
+        }
         let claim = LightSyncClaim(replacesHungSync: _lightSync != nil)
         _lightSync = claim
         return claim
@@ -121,7 +127,11 @@ final class BdkScanState {
         // Releases the claim, unless a newer light sync has taken it over.
         lock.lock()
         defer { lock.unlock() }
-        guard _lightSync?.id == claim.id else { return }
+        guard _lightSync?.id == claim.id else {
+            // A taken-over light sync has returned at last.
+            if abandonedLightSyncs > 0 { abandonedLightSyncs -= 1 }
+            return
+        }
         _lightSync = nil
     }
     
