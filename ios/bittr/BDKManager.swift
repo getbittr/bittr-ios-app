@@ -706,7 +706,12 @@ extension BitcoinManager {
         // One light sync at a time.
         guard let lightSyncClaim = self.bdkScan.claimLightSync() else {
             if self.bdkScan.lightSyncIsStuck {
-                // Waiting won't help, so let the caller scan in full on a new connection instead.
+                // Waiting won't help.
+                // Before the first scan, let the caller scan in full on a new connection instead.
+                guard !self.bdkWalletHasBeenScanned else {
+                    Log.info("Light sync is stuck behind hung ones. A pull to refresh will start it over.")
+                    return .failed
+                }
                 Log.info("Light sync is stuck behind hung ones. Will reconnect to Electrum.")
                 do {
                     self.electrumClient = try ElectrumClient(url: EnvironmentConfig.electrumURL)
