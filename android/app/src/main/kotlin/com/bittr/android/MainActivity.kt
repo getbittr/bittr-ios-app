@@ -137,7 +137,7 @@ class MainActivity : ComponentActivity() {
      */
     private fun showInRecentsAs(color: Int) {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) return
-        setTaskDescription(ActivityManager.TaskDescription.Builder().setBackgroundColor(color).build())
+        setTaskDescription(ActivityManager.TaskDescription.Builder().setBackgroundColor(color or 0xFF000000.toInt()).build())
     }
 
     override fun onPause() {
