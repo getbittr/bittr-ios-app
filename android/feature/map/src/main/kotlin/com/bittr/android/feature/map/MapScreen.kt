@@ -255,7 +255,7 @@ internal fun MapScreen(
 
             if (state.isSyncing) {
                 BittrSpinner(
-                    color = colors.onCanvas,
+                    color = colors.onChartSurface,
                     modifier = Modifier
                         .align(Alignment.Center)
                         .testTag(TestID.Map.mapSpinner),
