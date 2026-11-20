@@ -104,7 +104,12 @@ final class BdkScanState {
         }
         _isScanning = false
         _wasInterrupted = false
-        if scanned { _hasBeenScanned = true }
+        if scanned {
+            _hasBeenScanned = true
+            
+            // The connection works again, so light syncs stuck behind hung ones can start over.
+            releaseStuckLightSyncHoldingLock()
+        }
         let waiting = waiters
         waiters.removeAll()
         lock.unlock()
@@ -135,11 +140,28 @@ final class BdkScanState {
     }
     
     var lightSyncIsStuck: Bool {
-        // A hung light sync holds the claim, and can't be taken over while an earlier taken-over one is still blocked.
         lock.lock()
         defer { lock.unlock() }
+        return lightSyncIsStuckHoldingLock
+    }
+    
+    func releaseStuckLightSync() {
+        lock.lock()
+        defer { lock.unlock() }
+        releaseStuckLightSyncHoldingLock()
+    }
+    
+    private var lightSyncIsStuckHoldingLock: Bool {
+        // A hung light sync holds the claim, and can't be taken over while an earlier taken-over one is still blocked.
         guard let current = _lightSync else { return false }
         return abandonedLightSyncs > 0 && Date().timeIntervalSince(current.startedAt) >= BdkScanState.lightSyncClaimLimit
+    }
+    
+    private func releaseStuckLightSyncHoldingLock() {
+        // Lets light syncs start again, and counts the stuck one's thread as still blocked.
+        guard lightSyncIsStuckHoldingLock else { return }
+        _lightSync = nil
+        abandonedLightSyncs += 1
     }
     
     func endLightSync(_ claim:LightSyncClaim) {
@@ -455,6 +477,9 @@ extension BitcoinManager {
     // Throw the loaded BDK wallet away and build it again from an empty database.
     private func didRebuildBdkWallet() -> Bool {
         Log.info("Will rebuild the BDK wallet.")
+        
+        // A light sync stuck behind hung ones would never give up its claim.
+        self.bdkScan.releaseStuckLightSync()
         
         // Wait for a running light sync to finish, as it still writes to the stored database.
         let deadline = Date().addingTimeInterval(30)
