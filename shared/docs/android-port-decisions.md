@@ -366,8 +366,10 @@ Bitcoin-value branches merged after it. Not taken, or taken differently:
   label; the review measured `#C9A21A` off a JPEG. No change.
 - **S14 ("previous screen left painted") is the navigation crossfade caught mid-way by the screenshot**,
   not a screen left behind: every destination paints its own canvas.
-- **The payout confetti already falls behind the rows** (`5ec98a52`); it shows through the card's
-  translucent 9 % wash, and the Reminder card is below the fold of a scrolling screen, not clipped.
+- **The payout confetti falls over the whole screen**, header included, as iOS's `SPConfetti` draws
+  over the window: iOS parity overrides this finding (2026-10-23, `fix/android-confetti-on-top`). It
+  first fell behind the rows (`5ec98a52`). The Reminder card is below the fold of a scrolling screen,
+  not clipped.
 - **The switch's off state stays see-through with a 70 % ink border and thumb.** The review asked for a
   cream track with a white thumb and a 20 % ink outline, which is well under the 3 : 1 edge WCAG 1.4.11
   needs; `CanvasComponentColorsTest` (BIT-95) holds the current tokens for that reason.
