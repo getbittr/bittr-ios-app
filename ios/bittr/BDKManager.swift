@@ -251,13 +251,21 @@ extension BitcoinManager {
         self.bdkStartLock.lock()
         defer { self.bdkStartLock.unlock() }
         
-        guard self.bdkWallet == nil else {
-            return true
+        // Read the seed, which a loaded wallet is checked against too.
+        let storedMnemonic:String?
+        do {
+            storedMnemonic = try CacheManager.readMnemonic()
+        } catch {
+            // The seed can't be read right now, so trust a loaded wallet as before.
+            guard self.bdkWallet == nil else { return true }
+            Log.info("Mnemonic is unavailable. Aborting BDK start.")
+            return false
         }
-        Log.info("Will start blockchain and wallet.")
-        
-        // Check mnemonic.
-        guard let cachedMnemonic = CacheManager.getMnemonic() else {
+        guard let cachedMnemonic = storedMnemonic else {
+            // Without a seed, a loaded wallet belongs to nothing.
+            if self.bdkWallet != nil {
+                self.dropLoadedBdkWallet()
+            }
             Log.info("Mnemonic is unavailable. Aborting BDK start.")
             return false
         }
@@ -278,17 +286,30 @@ extension BitcoinManager {
         let bip84ExternalDescriptor = Descriptor.newBip84(secretKey: bip32ExtendedRootKey, keychain: .external, network: EnvironmentConfig.bitcoinDevKitNetwork)
         
         // Get XPUB.
+        var xpub:String?
         let descriptor = bip84ExternalDescriptor.description
         let components = descriptor.components(separatedBy: "]")
         if components.count > 1 {
-            let xpubPart = components[1].split(separator: "/").first
-            if let xpub = xpubPart {
-                self.xpub = String(xpub)
+            if let xpubPart = components[1].split(separator: "/").first {
+                xpub = String(xpubPart)
             } else {
                 Log.info("Error: Could not extract XPUB")
             }
         } else {
             Log.info("Error: Descriptor format not recognized")
+        }
+        
+        // Reuse a loaded wallet only when it was built from this seed.
+        if self.bdkWallet != nil {
+            if let xpub, xpub == self.xpub {
+                return true
+            }
+            Log.info("The loaded BDK wallet wasn't built from this seed. Will start it again.")
+            self.dropLoadedBdkWallet()
+        }
+        Log.info("Will start blockchain and wallet.")
+        if let xpub {
+            self.xpub = xpub
         }
         
         // Create a BIP84 internal descriptor using the same BIP32 extended root key, specifying the keychain as internal and the network as testnet
@@ -426,6 +447,12 @@ extension BitcoinManager {
         self.bdkWallet = nil
         self.electrumClient = nil
         self.connection = nil
+    }
+    
+    private func dropLoadedBdkWallet() {
+        // Forget the wallet, and what the scan state says about it, so the next one is scanned in full.
+        self.clearBdkWalletReferences()
+        self.clearBdkScanState()
     }
     
     // MARK: Manage BDK scanning.
