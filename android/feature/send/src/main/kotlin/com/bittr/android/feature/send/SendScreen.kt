@@ -507,9 +507,10 @@ private fun ColumnScope.SendPage(
 /**
  * `ConfirmSendViewController`'s card, as its scene is: the heading in Gilroy-Regular 16 30 from the
  * top and 40 in; 15 under it and 20 in, the address and amount rows (`whiteorblue3`, 8 corners), 10
- * apart — the title in yellow Gilroy-Bold 16 and the value against the trailing edge in Bold 16, the
- * address or invoice monospaced in left-aligned groups of four, the amount's fiat under it in Regular 15. Then Lightning's estimated-fees row, or 30 under the rows the fee rate's line
- * and its three tiles; the back and Send buttons 35 under those, centred, 20 from the bottom.
+ * apart — the title in yellow Gilroy-Bold 16 and the value against the trailing edge in Bold 16,
+ * the address or invoice monospaced in left-aligned groups of four, the amount's fiat under it in
+ * Regular 15. Then Lightning's estimated-fees row, or 30 under the rows the fee rate's line and its
+ * three tiles; the back and Send buttons 35 under those, centred, 20 from the bottom.
  */
 @Composable
 private fun ColumnScope.ConfirmPage(confirm: ConfirmState, controller: SendController) {
