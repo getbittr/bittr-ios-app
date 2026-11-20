@@ -325,6 +325,9 @@ extension BitcoinManager {
         
         // Build a new wallet in the empty database.
         func didCreateBdkWallet() -> Bool {
+            // A new wallet hasn't been scanned yet.
+            self.clearFullScanCompletion()
+            
             do {
                 self.bdkWallet = try Wallet(descriptor: bip84ExternalDescriptor, changeDescriptor: bip84InternalDescriptor, network: EnvironmentConfig.bitcoinDevKitNetwork, connection: self.connection!)
                 
@@ -528,9 +531,16 @@ extension BitcoinManager {
     }
     
     // Keep track of latest full BDK scan.
-    func storeFullScanCompletion() {
+    func storeFullScanCompletion(ofDatabaseCreatedAt scannedDatabaseCreatedAt: Int?) {
+        // A database replaced during the scan isn't the one that was scanned.
+        guard let scannedDatabaseCreatedAt, scannedDatabaseCreatedAt == Self.walletDatabaseCreatedAt else {
+            self.clearFullScanCompletion()
+            return
+        }
+        
+        // The database first, so a scan time is never read beside another database's date.
+        CacheStore.set(scannedDatabaseCreatedAt, for: CacheKeys.lastBdkFullScanDatabase)
         CacheStore.set(Int(Date().timeIntervalSince1970), for: CacheKeys.lastBdkFullScan)
-        CacheStore.set(Self.walletDatabaseCreatedAt, for: CacheKeys.lastBdkFullScanDatabase)
     }
     func clearFullScanCompletion() {
         CacheStore.set(nil, for: CacheKeys.lastBdkFullScan)
@@ -598,6 +608,7 @@ extension BitcoinManager {
                 self.endBdkScan(scan, scanned: false)
                 return
             }
+            let scannedDatabaseCreatedAt = Self.walletDatabaseCreatedAt
             Log.info("Will perform a full scan.")
             
             // Build request.
@@ -643,7 +654,7 @@ extension BitcoinManager {
             // Persist wallet changes, and only then count the full scan as done.
             do {
                 let _ = try bdkWallet.persist(connection: connection)
-                self.storeFullScanCompletion()
+                self.storeFullScanCompletion(ofDatabaseCreatedAt: scannedDatabaseCreatedAt)
             } catch {
                 self.handleError(error: error, row: 250)
                 
