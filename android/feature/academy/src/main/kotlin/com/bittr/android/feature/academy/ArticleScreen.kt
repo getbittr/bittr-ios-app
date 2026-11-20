@@ -41,11 +41,13 @@ import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.em
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.graphics.compositeOver
 import com.bittr.android.core.common.TestID
 import com.bittr.android.core.designsystem.dismissOnPullDown
 import com.bittr.android.core.designsystem.iosShadow
 import com.bittr.android.core.designsystem.BittrCanvasShapes
 import com.bittr.android.core.designsystem.BittrTheme
+import com.bittr.android.core.designsystem.pageColor
 import com.bittr.android.core.designsystem.R as DesignR
 import com.bittr.android.core.designsystem.BittrTokens
 
@@ -150,7 +152,7 @@ fun ArticleCard(slug: String, onOpen: (String) -> Unit, modifier: Modifier = Mod
                 .height(45.dp)
                 .iosShadow(ArticleChipShape)
                 .clip(ArticleChipShape)
-                .background(colors.tonalFill)
+                .background(colors.tonalFill.compositeOver(pageColor()))
                 .clickable { onOpen(slug) }
                 .then(if (testTag != null) Modifier.testTag(testTag) else Modifier),
         ) {

@@ -463,7 +463,7 @@ internal fun AlertCardContent(
                 Image(
                     painter = painterResource(R.drawable.alert_close),
                     contentDescription = null,
-                    colorFilter = ColorFilter.tint(BittrTheme.colors.homeCardTitle),
+                    colorFilter = ColorFilter.tint(BittrTheme.colors.onBrand),
                     modifier = Modifier.size(14.dp),
                 )
             }
@@ -474,7 +474,7 @@ internal fun AlertCardContent(
 /** `addAlertHeader`: the bell and the lower-cased title. */
 @Composable
 private fun AlertHeader(title: String) {
-    val tint = BittrTheme.colors.homeCardTitle
+    val tint = BittrTheme.colors.onBrand
     Row(
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier

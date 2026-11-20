@@ -50,7 +50,7 @@ fun ReadyScreen(
     modifier: Modifier = Modifier,
     onOpenArticle: ((String) -> Unit)? = null,
 ) {
-    BittrCanvas(modifier = modifier) {
+    BittrCanvas(modifier = modifier, background = BittrTheme.colors.primaryHigh) {
         Column(
             verticalArrangement = Arrangement.Center,
             horizontalAlignment = Alignment.CenterHorizontally,

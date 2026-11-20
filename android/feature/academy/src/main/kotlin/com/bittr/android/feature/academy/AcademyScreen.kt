@@ -141,7 +141,7 @@ internal fun AcademyList(
     // The list runs up under the translucent top bar, as iOS's table does (`contentInset.top`
     // under CoreViewController's top bar), and starts below it.
     val underBar = WindowInsets.statusBars.asPaddingValues().calculateTopPadding() + AppBarContentInset
-    BittrCanvas(modifier = modifier, onBack = onBack, scrollsUnderAppBar = true) {
+    BittrCanvas(modifier = modifier, onBack = onBack, scrollsUnderAppBar = true, background = BittrTheme.colors.primaryHigh) {
         LazyColumn(
             verticalArrangement = Arrangement.spacedBy(13.5.dp),
             contentPadding = PaddingValues(
@@ -205,7 +205,7 @@ private fun LevelCard(section: LevelSection, onOpenLesson: (Lesson) -> Unit) {
             Text(
                 text = section.title,
                 style = titleStyle,
-                color = colors.homeCardTitle,
+                color = colors.onBrand,
                 modifier = Modifier
                     .weight(1f)
                     .padding(start = 10.dp)
@@ -214,7 +214,7 @@ private fun LevelCard(section: LevelSection, onOpenLesson: (Lesson) -> Unit) {
             Text(
                 text = section.countLabel,
                 style = titleStyle,
-                color = colors.homeCardTitle,
+                color = colors.onBrand,
                 modifier = Modifier.offset(y = 1.dp),
             )
         }
@@ -283,7 +283,7 @@ private fun LessonTile(cell: LessonCell, onOpenLesson: (Lesson) -> Unit, modifie
                 modifier = Modifier
                     .size(LessonImageSize)
                     .clip(TileShape)
-                    .background(BittrTheme.colors.scrim1),
+                    .background(BittrTheme.colors.lessonTile),
             ) {
                 if (artwork != null) {
                     Image(

@@ -317,16 +317,8 @@ class GraphCardFitTest {
     }
 
     /**
-     * The curve is stroked white, in both schemes, checked on the pixels — iOS's `GraphView`
-     * line, and Home's value card's, now that the chart sits on the yellow card again
-     * (Tom, 2026-09-29). Before that it was the white card's ink.
-     *
-     * It has been wrong in two directions. It was a near-black literal, which did not
-     * move with the scheme and was 2.43 : 1 on the dark canvas (BIT-156); it then took
-     * `emphasis`, iOS's `whiteoryellow` — right while the curve sat on the canvas. The
-     * design review moved it onto a fixed white card, where `emphasis` is yellow in
-     * dark and about 1.6 : 1. So the expectation is now the same token in both schemes,
-     * and the dark run is the one that tells a scheme-following stroke apart.
+     * The curve is iOS's `GraphView` line, `whiteoryellow`: white in light and the brand yellow in
+     * dark, checked on the pixels.
      *
      * A `Canvas` has no semantics to read, which is why it is pixels rather than a
      * layout property.
@@ -337,8 +329,8 @@ class GraphCardFitTest {
 
     @Test
     @Config(qualifiers = "w411dp-h891dp-night-420dpi")
-    fun `the curve is stroked white in dark`() =
-        assertCurveIsStrokedWith(Color.White, "dark")
+    fun `the curve is stroked yellow in dark`() =
+        assertCurveIsStrokedWith(BittrDarkColorsExtended.brandFixed, "dark")
 
     /**
      * Counts pixels of exactly [expected] in the chart.
@@ -366,7 +358,7 @@ class GraphCardFitTest {
         println("GRAPH CURVE ($scheme): ${"%,d".format(found)} px of #%08X".format(wanted))
 
         assertTrue(
-            "$scheme: not one pixel of the chart is white (#%08X), so the curve is drawn " +
+            "$scheme: not one pixel of the chart is #%08X, so the curve is drawn " +
                 "in something else.".format(wanted),
             found > 0,
         )

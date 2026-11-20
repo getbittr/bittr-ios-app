@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
@@ -67,7 +68,7 @@ fun ConfirmScreen(
     BackHandler(onBack = onBack)
     // No arrow in the app bar: the card's own button goes back, as on iOS, and the system back
     // gesture does what that button does.
-    BittrCanvas(modifier = modifier) {
+    BittrCanvas(modifier = modifier, background = BittrTheme.colors.primaryHigh) {
         Column(
             verticalArrangement = Arrangement.Center,
             modifier = Modifier
@@ -110,6 +111,8 @@ fun ConfirmScreen(
                     text = SignupStrings.I_UNDERSTAND,
                     onClick = onUnderstood,
                     enabled = ownBank && noRecovery && !busy,
+                    // iOS keeps the plate black while it is busy; light mode dims it.
+                    dimmed = !(ownBank && noRecovery) || (busy && !BittrTheme.isDark),
                     modifier = Modifier.testTag(TestID.Signup.Create.Confirm.nextButton),
                     content = if (!busy) {
                         null
@@ -117,8 +120,7 @@ fun ConfirmScreen(
                         {
                             BittrSpinner(
                                 strokeWidth = 2.dp,
-                                // The plate is disabled while busy, so its label colour is.
-                                color = BittrTheme.colors.onActionFillDisabled,
+                                color = LocalContentColor.current,
                                 modifier = Modifier.size(20.dp),
                             )
                         }
@@ -128,6 +130,7 @@ fun ConfirmScreen(
                 BittrTextButton(
                     text = SignupStrings.CANCEL,
                     onClick = onBack,
+                    color = BittrTheme.colors.cancelLabel,
                     modifier = Modifier.testTag(TestID.Signup.Create.Confirm.cancelButton),
                 )
             }

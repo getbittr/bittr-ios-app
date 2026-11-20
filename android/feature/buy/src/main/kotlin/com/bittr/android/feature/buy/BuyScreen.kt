@@ -309,7 +309,7 @@ private fun BuyCards(state: BuyUiState, controller: BuyController, onDown: () ->
             if (state.refreshing) {
                 BittrSpinner(
                     strokeWidth = 2.dp,
-                    color = BittrTheme.colors.homeCardTitle,
+                    color = BittrTheme.colors.onBrand,
                     modifier = Modifier
                         .align(Alignment.CenterHorizontally)
                         .size(20.dp),

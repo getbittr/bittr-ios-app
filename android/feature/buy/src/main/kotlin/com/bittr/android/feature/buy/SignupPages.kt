@@ -65,6 +65,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.ui.unit.sp
 import com.bittr.android.core.designsystem.dismissOnPullDown
 import com.bittr.android.core.designsystem.BittrCanvas
+import com.bittr.android.core.designsystem.BittrPage
 import com.bittr.android.core.designsystem.BittrCard
 import com.bittr.android.core.designsystem.BittrCheckBadge
 import com.bittr.android.core.designsystem.BittrSheetHeader
@@ -145,17 +146,12 @@ internal fun SignupContainer(
     }
 
     if (onboarding) {
-        BittrCanvas(appBar = true, scrollsUnderAppBar = true) {
+        BittrCanvas(appBar = true, scrollsUnderAppBar = true, background = BittrTheme.colors.primaryHigh) {
             pages(Modifier.weight(1f).fillMaxWidth())
         }
     } else {
-        // `RegisterIbanViewController`: `addHeader` with the piggy, over the pages.
-        Box(
-            Modifier
-                .fillMaxSize()
-                .background(BittrTheme.colors.canvas)
-                .dismissOnPullDown(controller::onCloseSignup),
-        ) {
+        // `RegisterIbanViewController`: `addHeader` with the piggy, over the pages, on `yelloworblue3`.
+        BittrPage(BittrTheme.colors.primaryHigh, Modifier.dismissOnPullDown(controller::onCloseSignup)) {
             pages(Modifier.fillMaxSize())
             BittrSheetHeader(
                 icon = painterResource(R.drawable.buy_header_piggy),
