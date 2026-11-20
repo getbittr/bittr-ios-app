@@ -39,6 +39,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.bittr.android.core.common.TestID
+import com.bittr.android.core.designsystem.BittrAlertDialog
 import com.bittr.android.core.designsystem.BittrBackspaceIcon
 import com.bittr.android.core.designsystem.BittrCanvas
 import com.bittr.android.core.designsystem.BittrPrimaryButton
@@ -97,13 +98,22 @@ fun PinScreen(
     clearKey: Int = 0,
 ) {
     var pin by remember { mutableStateOf("") }
+    var pinRequired by remember { mutableStateOf(false) }
     val initialClearKey = remember { clearKey }
     LaunchedEffect(clearKey) { if (clearKey != initialClearKey) pin = "" }
 
     BackHandler(enabled = onBack != null) { onBack?.invoke() }
+    if (pinRequired) {
+        BittrAlertDialog(
+            title = SignupStrings.PIN_REQUIRED,
+            message = SignupStrings.PIN_SHOULD_BE_4_TO_8,
+            confirmLabel = SignupStrings.OKAY,
+            onConfirm = { pinRequired = false },
+        )
+    }
     // No arrow in the app bar: Back under the pad goes back, as on iOS, and the system back
     // gesture does what that button does.
-    BittrCanvas(modifier = modifier) {
+    BittrCanvas(modifier = modifier, background = BittrTheme.colors.primaryHigh) {
         Column(
             modifier = Modifier
                 .weight(1f)
@@ -148,9 +158,11 @@ fun PinScreen(
                 BittrPrimaryButton(
                     text = confirmLabel,
                     onClick = {
-                        onSubmit(pin)
+                        if (SeedWalletService.isValidPin(pin)) onSubmit(pin) else pinRequired = true
                     },
-                    enabled = SeedWalletService.isValidPin(pin),
+                    // iOS never dims it; light mode does until the PIN is long enough.
+                    dimmed = !SeedWalletService.isValidPin(pin) && !BittrTheme.isDark,
+                    fill = BittrTheme.colors.pinConfirm,
                     arrow = false,
                     modifier = Modifier
                         .size(width = column * 2 + 22.dp, height = 45.dp)
@@ -316,7 +328,7 @@ private fun RowScope.Key(
             .clickable(
                 enabled = enabled,
                 interactionSource = null,
-                indication = ripple(bounded = false, radius = 28.dp, color = BittrTheme.colors.onCanvas),
+                indication = ripple(bounded = false, radius = 28.dp, color = BittrTheme.colors.pinKeyPress),
                 onClick = onClick,
             )
             .then(

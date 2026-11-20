@@ -22,10 +22,13 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.merge
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 
 /**
  * What Home knows about the wallet.
@@ -53,6 +56,11 @@ data class HomeUiState(
     val history: List<HistoryRow> = emptyList(),
     /** The sync overlay's first row: a conversion rate has been fetched. */
     val conversionFetched: Boolean = false,
+    /**
+     * `headerProblemImage`: the wallet has synced but the last conversion-rate fetch failed, so
+     * the fiat figures may be out of date. Tapping the sync status then explains it.
+     */
+    val conversionFailed: Boolean = false,
     /** A pull-to-refresh resync is running (`ReloadWallet.swift`); the balance and history it started from stay on screen. */
     val refreshing: Boolean = false,
     /** Pulling Home down resyncs the wallet: it has a node, has synced, and no refresh is running. */
@@ -79,7 +87,7 @@ class HomeViewModel @Inject constructor(
     private val cache: HomeCache = HomeCache.None,
     private val purchases: BittrPurchaseSource = BittrPurchaseSource.None,
     // Last, so callers can pass it as a trailing lambda.
-    prices: FiatPriceSource,
+    private val prices: FiatPriceSource,
 ) : ViewModel() {
 
     private val alert = MutableStateFlow<HomeAlert?>(null)
@@ -96,8 +104,27 @@ class HomeViewModel @Inject constructor(
 
     /** A live conversion rate: shown, and kept for the next launch. */
     private fun applyPrice(live: FiatPrice) {
+        if (live == price.value) return
         price.value = live
         cache.savePrice(live)
+    }
+
+    /**
+     * iOS's `couldNotFetchConversion`, set by a failed fetch. iOS clears it only at a reset or the Value
+     * screen's load; here any later successful fetch clears it too, as Home refetches far more often.
+     */
+    private val conversionFailed = MutableStateFlow(false)
+
+    /** One fetch at a time, so the warning follows the latest request rather than the slowest. */
+    private val fetching = Mutex()
+
+    /** `didFetchConversionRates()`: fetch the rate, and remember whether it failed. */
+    private suspend fun fetchPrice() {
+        fetching.withLock {
+            val live = prices.current()
+            conversionFailed.value = live == null
+            live?.let(::applyPrice)
+        }
     }
 
     /**
@@ -125,7 +152,7 @@ class HomeViewModel @Inject constructor(
         }
         // iOS fetches conversion rates first thing at start (`SyncType.conversion`), before the
         // wallet has synced; the sync overlay's first row reports it.
-        viewModelScope.launch { prices.current()?.let(::applyPrice) }
+        viewModelScope.launch { fetchPrice() }
         // Refetched when the history changes and when Settings switches the currency —
         // Home stays on the back stack under Settings, so without the second trigger it
         // would keep showing the old currency until the next transaction.
@@ -134,7 +161,14 @@ class HomeViewModel @Inject constructor(
                 overview.overview.map { it.hasSynced to it.transactions }.distinctUntilChanged(),
                 prices.currencyChanges,
             ).collect {
-                if (overview.overview.value.hasSynced) prices.current()?.let(::applyPrice)
+                if (overview.overview.value.hasSynced) fetchPrice()
+            }
+        }
+        // A price fetched elsewhere clears a failed fetch's warning, as iOS's Value screen clears `couldNotFetchConversion`.
+        viewModelScope.launch {
+            prices.latest.filterNotNull().collect { live ->
+                conversionFailed.value = false
+                applyPrice(live)
             }
         }
     }
@@ -142,10 +176,10 @@ class HomeViewModel @Inject constructor(
     val uiState: StateFlow<HomeUiState> = combine(
         walletService.state,
         overview.overview,
-        price,
+        combine(price, conversionFailed) { price, failed -> price to failed },
         refresher.isRefreshing,
         combine(cache.cached, purchases.purchases, purchasePrices) { cached, bought, rates -> Triple(cached, bought, rates) },
-    ) { state, wallet, price, refreshing, (cached, bought, rates) ->
+    ) { state, wallet, (price, failed), refreshing, (cached, bought, rates) ->
         if (state == WalletState.Uninitialized) lastSynced = null
         if (wallet.hasSynced) lastSynced = wallet
         // A pull-to-refresh keeps the figures it started from on screen until the new reading
@@ -184,6 +218,8 @@ class HomeViewModel @Inject constructor(
                 else -> emptyList()
             },
             conversionFetched = price != null,
+            // `showLabels()` shows it once synced, and `hideLabels()` hides it while a sync runs.
+            conversionFailed = failed && wallet.hasSynced,
             refreshing = refreshing,
             canRefresh = wallet.hasNode && wallet.hasSynced && !refreshing,
             showingCachedData = fromCache != null,
@@ -220,7 +256,8 @@ class HomeViewModel @Inject constructor(
             alert.value = HomeAlert(HomeStrings.CHECK_YOUR_CONNECTION, HomeStrings.TRY_TO_CONNECT)
             return
         }
-        refresher.refresh()
+        // `resetWallet()` forgets the failure; the fetch after the resync decides again.
+        if (refresher.refresh()) conversionFailed.value = false
     }
 
     private companion object {

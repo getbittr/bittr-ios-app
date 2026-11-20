@@ -86,6 +86,7 @@ object SignupStrings {
     const val CONFIRM_YOUR_PIN = "Confirm your PIN"
     const val ENTER_YOUR_PIN = "Enter your PIN"
     const val INCORRECT_PIN = "Incorrect PIN"
+    const val PIN_REQUIRED = "PIN Required"
     const val REPEAT_NUMBER = "Repeat the same number."
     const val PIN_SHOULD_BE_4_TO_8 = "PIN should be between 4 and 8 digits"
 

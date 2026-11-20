@@ -1,7 +1,6 @@
 package com.bittr.android.core.designsystem
 
 import androidx.compose.material3.SwitchColors
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import org.junit.Assert.assertEquals
@@ -75,9 +74,9 @@ class CanvasComponentColorsTest {
                 switch.checkedBorderColor,
             )
             assertEquals(
-                "$name checked border should be mutedOnCanvas — the token the unchecked " +
+                "$name checked border should be switchBorder — the token the unchecked " +
                     "state already used, and the one the contrast guard measures",
-                tokens.mutedOnCanvas,
+                tokens.switchBorder,
                 switch.checkedBorderColor,
             )
             // Both states share the border, so the outline stays put across the toggle
@@ -101,12 +100,9 @@ class CanvasComponentColorsTest {
             // `TokenContrastTest` can hold them at all — see `BittrColors.switchOn`.
             assertEquals("$name checked track", tokens.switchOn, switch.checkedTrackColor)
             assertEquals("$name checked thumb", tokens.onSwitchOn, switch.checkedThumbColor)
-            assertEquals("$name unchecked thumb", tokens.mutedOnCanvas, switch.uncheckedThumbColor)
-            // Unchecked is deliberately see-through: the canvas shows through the track,
-            // which is what makes the border the only thing outlining it.
-            assertEquals(
-                "$name unchecked track", Color.Transparent, switch.uncheckedTrackColor,
-            )
+            assertEquals("$name unchecked thumb", tokens.switchOffThumb, switch.uncheckedThumbColor)
+            // See-through in light, where the border outlines it; UIKit's grey in dark.
+            assertEquals("$name unchecked track", tokens.switchOffTrack, switch.uncheckedTrackColor)
         }
     }
 }

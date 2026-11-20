@@ -105,6 +105,7 @@ object TestID {
         const val buyButton = "home.buyButton"
         const val currencyButton = "home.currencyButton"
         const val headerLabel = "home.headerLabel"
+        const val headerProblemImage = "home.headerProblemImage"
         const val headerSpinner = "home.headerSpinner"
         const val mapButton = "home.mapButton"
         const val profitButton = "home.profitButton"

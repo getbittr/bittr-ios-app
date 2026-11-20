@@ -19,6 +19,7 @@ import com.bittr.android.core.wallet.ldk.onchain.OnchainSendSupport
 import com.bittr.android.feature.send.DrainQuote
 import com.bittr.android.feature.send.FeeEstimates
 import com.bittr.android.feature.send.FiatCurrency
+import com.bittr.android.feature.send.LnurlHttpException
 import com.bittr.android.feature.send.SendSource
 import com.bittr.android.receive.BitcoinPriceSource
 import kotlinx.coroutines.Dispatchers
@@ -26,6 +27,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
+import org.json.JSONObject
 
 /**
  * [SendSource] over the wallet `di/WalletModule` composed: BDK for the previews, ldk-node
@@ -135,7 +137,8 @@ class AppSendSource(
         runCatching {
             val client = http ?: error("No HTTP client")
             val response = client.execute(HttpRequest(HttpMethod.GET, url))
-            check(response.isSuccessful) { "HTTP ${response.code}" }
+            // As iOS's `makeApiCall`: a JSON answer is read whatever its status, so a refusal keeps its reason.
+            if (!response.isSuccessful && runCatching { JSONObject(response.body) }.isFailure) throw LnurlHttpException(response.code)
             response.body
         }
     }

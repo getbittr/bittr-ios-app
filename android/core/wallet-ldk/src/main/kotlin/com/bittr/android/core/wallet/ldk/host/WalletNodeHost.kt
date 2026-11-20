@@ -247,19 +247,22 @@ class WalletNodeHost(
      * wipe that lands between `build()` and `start()` produces a node running
      * against a seed that has been erased.
      *
-     * **This is not the cooperative channel close.** `WalletService.removeWallet`
-     * says that is BIT-6's and it is still unimplemented;
-     * `WipeSafety.channelsFullyClosedAndSwept` is the decision it will be built
-     * from, and it needs the node *up* to answer — so it belongs above this
-     * call, not inside it. What this guarantees is only that by the time [block]
-     * runs, nothing holds the state directory and nothing will start a node
-     * against key material that is about to go.
+     * [beforeStop] runs under the same lock with the node still up: the last
+     * moment a node question can be answered, which is where `removeWallet`
+     * takes its final `WipeSafety` reading. Throwing there leaves the wallet as
+     * it was, running. By the time [block] runs, nothing holds the state
+     * directory and nothing will start a node against key material that is
+     * about to go.
      *
      * The wallet is left down afterwards, including when [block] throws. There
      * is no restart on the failure path on purpose: a removal that got part-way
      * through is not a wallet to bring back up.
      */
-    suspend fun <T> withWalletDown(block: suspend () -> T): T = mutex.withLock {
+    suspend fun <T> withWalletDown(
+        beforeStop: suspend () -> Unit = {},
+        block: suspend () -> T,
+    ): T = mutex.withLock {
+        beforeStop()
         stopLocked()
         block()
     }

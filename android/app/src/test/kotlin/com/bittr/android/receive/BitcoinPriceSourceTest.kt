@@ -61,4 +61,44 @@ class BitcoinPriceSourceTest {
         assertEquals(null, source.price(Currency.EUR))
         assertEquals(60000.0, source.price(Currency.EUR))
     }
+
+    /** Parsed before it is kept: a reply that isn't the price is not cached for 30 seconds. */
+    @Test
+    fun `a reply that does not parse is not cached`() = runTest {
+        val replies = ArrayDeque(listOf("<html>busy</html>", """{"btc_eur":"60000","btc_chf":"58000"}"""))
+        val source = BitcoinPriceSource(BittrEnvironment.DEVELOPMENT, object : HttpClient {
+            override suspend fun execute(request: HttpRequest): HttpResponse {
+                calls++
+                return HttpResponse(200, replies.removeFirst())
+            }
+        }) { now }
+
+        assertEquals(null, source.price(Currency.EUR))
+        assertEquals(60000.0, source.price(Currency.EUR))
+        assertEquals(2, calls)
+    }
+
+    @Test
+    fun `a reply missing a currency is used and cached`() = runTest {
+        val source = BitcoinPriceSource(BittrEnvironment.DEVELOPMENT, object : HttpClient {
+            override suspend fun execute(request: HttpRequest): HttpResponse {
+                calls++
+                return HttpResponse(200, """{"btc_eur":"60000"}""")
+            }
+        }) { now }
+
+        assertEquals(60000.0, source.price(Currency.EUR))
+        assertEquals(null, source.price(Currency.CHF))
+        assertEquals(1, calls)
+    }
+
+    /** What lets Home pick up a price the Value screen fetched. */
+    @Test
+    fun `the latest reading is kept for every screen`() = runTest {
+        assertEquals(null, prices.readings.value)
+
+        prices.price(Currency.EUR)
+
+        assertEquals(mapOf(Currency.EUR to 60000.0, Currency.CHF to 58000.0), prices.readings.value)
+    }
 }

@@ -168,8 +168,12 @@ private fun SyncRow(label: String, done: Boolean) {
                         .size(14.dp),
                 )
             } else {
-                // The activity indicator's grey, on a card that is white in both schemes.
-                BittrSpinner(strokeWidth = 2.dp, color = BittrTheme.colors.phrasePlaceholder, modifier = Modifier.size(16.dp))
+                // The activity indicator's grey on the white card; the storyboard's yellow in dark.
+                BittrSpinner(
+                    strokeWidth = 2.dp,
+                    color = if (BittrTheme.isDark) BittrTheme.colors.brandFixed else BittrTheme.colors.phrasePlaceholder,
+                    modifier = Modifier.size(16.dp),
+                )
             }
         }
         Text(

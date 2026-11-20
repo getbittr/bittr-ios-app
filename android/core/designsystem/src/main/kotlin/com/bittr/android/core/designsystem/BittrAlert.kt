@@ -5,12 +5,11 @@ import androidx.compose.ui.platform.LocalFocusManager
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.FastOutSlowInEasing
-import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -219,6 +218,8 @@ fun BittrInlineAlert(
  * message — Gilroy-Bold 16, `blackorwhite` — side by side, 11 apart and centred, 25 from the
  * card's top and bottom. Nothing on it to tap and no way to dismiss it: the dim swallows taps and
  * Back. Drawn in the current window, so the screen underneath stays in Maestro's view.
+ *
+ * Back goes to the newest handler, so one composed while the card is up still takes it first.
  */
 @Composable
 fun BittrLoadingCard(
@@ -230,7 +231,7 @@ fun BittrLoadingCard(
     CloseKeyboardOnShow(motion)
     AlertOverlay(
         motion = motion,
-        onBack = {},
+        onBack = null,
         cardColor = MaterialTheme.colorScheme.surfaceContainerHigh,
         cardModifier = modifier.then(if (testTag != null) Modifier.testTag(testTag) else Modifier),
     ) {
@@ -359,9 +360,9 @@ internal fun AlertWindowSetup() {
 }
 
 /**
- * The dim and the card sliding up inside it. [onBack] is what Back does, after the card has gone
- * down; null leaves Back to whatever is underneath. [bottomInsets] is what the card's bottom sits
- * on — the navigation bar, or the keyboard as well for a text field.
+ * The dim and the card sliding up inside it, drawn until the card is [AlertMotion.gone]. [onBack]
+ * is what Back does, after the card has gone down; null swallows it. [bottomInsets] is what the
+ * card's bottom sits on — the navigation bar, or the keyboard as well for a text field.
  */
 @Composable
 internal fun AlertOverlay(
@@ -372,10 +373,12 @@ internal fun AlertOverlay(
     bottomInsets: WindowInsets = WindowInsets.navigationBars,
     content: @Composable ColumnScope.() -> Unit,
 ) {
+    if (motion.gone) return
     LaunchedEffect(motion) {
-        motion.progress.animateTo(1f, spring(dampingRatio = 0.7f, stiffness = AlertStiffness))
+        // `slideIn`'s 0.5 s spring at damping 0.7.
+        motion.progress.animateTo(1f, iosSpring(0.5f, 0.7f))
     }
-    if (onBack != null) BackHandler { motion.close(onBack) }
+    BackHandler { onBack?.let(motion::close) }
 
     val shown = motion.progress.value.coerceIn(0f, 1f)
     // A dialog window is its own semantics root and does not inherit the app's
@@ -385,8 +388,15 @@ internal fun AlertOverlay(
             Modifier
                 .fillMaxSize()
                 .background(Color.Black.copy(alpha = 0.5f * shown))
-                // Taps on the dim go nowhere, as on iOS.
-                .pointerInput(Unit) { detectTapGestures { } },
+                // Taps and drags on the dim go nowhere: a pull-down would close the sheet behind.
+                .pointerInput(Unit) {
+                    awaitEachGesture {
+                        do {
+                            val event = awaitPointerEvent()
+                            event.changes.forEach { it.consume() }
+                        } while (event.changes.any { it.pressed })
+                    }
+                },
         )
         Column(
             modifier = Modifier
@@ -463,7 +473,7 @@ internal fun AlertCardContent(
                 Image(
                     painter = painterResource(R.drawable.alert_close),
                     contentDescription = null,
-                    colorFilter = ColorFilter.tint(BittrTheme.colors.homeCardTitle),
+                    colorFilter = ColorFilter.tint(BittrTheme.colors.onBrand),
                     modifier = Modifier.size(14.dp),
                 )
             }
@@ -474,7 +484,7 @@ internal fun AlertCardContent(
 /** `addAlertHeader`: the bell and the lower-cased title. */
 @Composable
 private fun AlertHeader(title: String) {
-    val tint = BittrTheme.colors.homeCardTitle
+    val tint = BittrTheme.colors.onBrand
     Row(
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier
@@ -612,9 +622,6 @@ private fun AlertButton(button: BittrAlertButton, position: Int, motion: AlertMo
 }
 
 private val AlertButtonShape = RoundedCornerShape(8.dp)
-
-/** `slideIn`'s 0.5 s spring at damping 0.7: (4 / (0.7 × 0.5))², by [PageSlideSpec]'s settle rule. */
-private const val AlertStiffness = 131f
 
 /** `slideOut`'s 0.3 s. */
 private const val AlertCloseMs = 300

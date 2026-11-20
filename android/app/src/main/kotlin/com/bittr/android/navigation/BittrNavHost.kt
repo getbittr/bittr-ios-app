@@ -3,7 +3,10 @@ package com.bittr.android.navigation
 import com.bittr.android.core.designsystem.BittrPopup
 import com.bittr.android.core.designsystem.BittrSheet
 import com.bittr.android.home.HomeValueViewModel
+import com.bittr.android.home.ValueScreenViewModel
+import com.bittr.android.home.priceCurrency
 import com.bittr.android.core.designsystem.BittrTheme
+import com.bittr.android.core.designsystem.BittrPage
 import androidx.compose.ui.window.DialogProperties
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.compose.ui.semantics.clearAndSetSemantics
@@ -11,10 +14,8 @@ import androidx.navigation.compose.dialog
 import androidx.compose.animation.AnimatedContentTransitionScope
 import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.ExitTransition
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.statusBars
 import androidx.compose.ui.platform.LocalDensity
 import com.bittr.android.risingWithLaunchLogo
@@ -51,9 +52,6 @@ import com.bittr.android.BuildConfig
 import com.bittr.android.core.common.TestID
 import com.bittr.android.core.common.destination.BitcoinNetwork
 import com.bittr.android.core.designsystem.BittrAlertDialog
-import com.bittr.android.core.network.BittrEnvironment
-import com.bittr.android.core.network.HttpClient
-import com.bittr.android.core.network.okhttp.OkHttpBittrHttpClient
 import com.bittr.android.core.wallet.WalletState
 import com.bittr.android.feature.academy.AcademyScreen
 import com.bittr.android.feature.academy.ArticleScreen
@@ -218,20 +216,6 @@ fun BittrNavHost(
     // rather than read inside the parser because `:core:common` cannot see `:app`'s
     // BuildConfig — the same reason AuthCapabilities is injected.
     network: BitcoinNetwork = BitcoinNetwork.fromBuildConfig(BuildConfig.BITCOIN_NETWORK),
-    // Which backend this build talks to, read here for the same reason and handed
-    // down the same way (BIT-41 item 1). Unlike `network` above there is no lenient
-    // fallback on an unrecognised name: see BittrEnvironment.fromBuildConfig on why
-    // neither direction is the safe one.
-    environment: BittrEnvironment = BittrEnvironment.fromBuildConfig(BuildConfig.BITTR_ENVIRONMENT),
-    // The single HTTP client for the process. One instance, because OkHttp's
-    // connection and thread pools live on it — a per-screen client is a per-screen
-    // pool, which is the standard way to turn one app into several from the
-    // backend's point of view.
-    http: HttpClient = remember {
-        // Logged in debug builds, like the injected client in PushModule: the buy signup's calls
-        // are the ones the regtest suite fails on, and they left no trace.
-        OkHttpBittrHttpClient(log = { line -> if (BuildConfig.DEBUG) android.util.Log.i("BittrHttp", line) })
-    },
     // The launch logo's rise, 0 to 1, which the PIN or signup page rises with — see
     // [risingWithLaunchLogo]. Up already when there is no launch animation.
     launchRise: () -> Float = { 1f },
@@ -384,12 +368,8 @@ fun BittrNavHost(
     }
     // The canvas behind every destination. The signup pages' slide overshoots — iOS's spring at
     // damping 0.65 — and for that moment the edge the page has pulled away from shows whatever is
-    // behind it; on iOS that is SignupViewController's own yellow, here it was the white window.
-    Box(
-        Modifier
-            .fillMaxSize()
-            .background(BittrTheme.colors.canvas),
-    ) {
+    // behind it; on iOS that is SignupViewController's own `yelloworblue3`, here it was the white window.
+    BittrPage(BittrTheme.colors.primaryHigh) {
         CompositionLocalProvider(
             LocalAppBarLogoVisible provides (launchLogoVisible && !logoPinned),
             LocalAppBarBackgroundVisible provides !barPinned,
@@ -564,10 +544,12 @@ fun BittrNavHost(
                 }
 
                 sheet(navController, Routes.VALUE) { _, dismiss ->
+                    val value = hiltViewModel<ValueScreenViewModel>()
+                    val currency by value.currency.collectAsState()
                     ValueScreen(
-                        environment = environment,
-                        http = http,
+                        history = value.history,
                         onBack = dismiss,
+                        currency = currency.priceCurrency(),
                     )
                 }
 

@@ -825,10 +825,11 @@ class SendController(
         if (LnurlEndpoint.validate(url) is LnurlEndpointCheck.Rejected) return raise(lnurlStatus(SendStrings.LNURL_FAIL_3))
         setLnurlLoading(true)
         scope.launch {
-            val body = source.lnurlGet(url).getOrNull()
+            val reply = source.lnurlGet(url)
+            val body = reply.getOrNull()
             if (body == null) {
                 setLnurlLoading(false)
-                return@launch raise(lnurlStatus(SendStrings.LNURL_FAIL_3))
+                return@launch raise(lnurlRequestFailed(reply.exceptionOrNull()) { fetchService(url, displayed, origin) })
             }
             when (val response = LnurlService.parse(body)) {
                 is LnurlServiceResponse.Pay -> if (permitted(LnurlAction.Pay, origin)) handlePay(response, displayed)
@@ -845,8 +846,9 @@ class SendController(
                     raise(lnurlStatus(SendStrings.LNURL_FAIL_4))
                 }
                 LnurlServiceResponse.Unreadable -> {
+                    // iOS's decode failure, which its `.failure` branch answers with a retry.
                     setLnurlLoading(false)
-                    raise(lnurlStatus(SendStrings.LNURL_FAIL_3))
+                    raise(lnurlRequestFailed(null) { fetchService(url, displayed, origin) })
                 }
             }
         }
@@ -927,12 +929,17 @@ class SendController(
         if (LnurlEndpoint.validate(callback) is LnurlEndpointCheck.Rejected) return raise(lnurlStatus(SendStrings.LNURL_FAIL_3))
         setLnurlLoading(true)
         scope.launch {
-            val body = source.lnurlGet(LnurlService.withQuery(callback, "amount" to amountMsat.toString())).getOrNull()
+            val reply = source.lnurlGet(LnurlService.withQuery(callback, "amount" to amountMsat.toString()))
+            val body = reply.getOrNull()
             setLnurlLoading(false)
-            if (body == null) return@launch raise(lnurlStatus(SendStrings.LNURL_FAIL_3))
+            if (body == null) {
+                return@launch raise(lnurlRequestFailed(reply.exceptionOrNull()) { sendPayRequest(callback, amountMsat, description, displayed) })
+            }
             when (val answer = LnurlService.parsePayCallback(body)) {
                 is LnurlPayCallback.Refused ->
                     raise(okay(SendStrings.PAY_REQUEST, "${SendStrings.LNURL_FAIL_2} ${answer.detail ?: SendStrings.UNEXPECTED_ERROR}"))
+                LnurlPayCallback.Unreadable ->
+                    raise(lnurlRequestFailed(null) { sendPayRequest(callback, amountMsat, description, displayed) })
                 is LnurlPayCallback.Invoice -> {
                     val invoice = DestinationParser.parse(answer.pr, source.network) as? Destination.Lightning
                     val invoiceSats = invoice?.amountSats
@@ -1005,13 +1012,20 @@ class SendController(
                 setLnurlLoading(false)
                 return@launch raise(okay(SendStrings.UNEXPECTED_ERROR, SendStrings.INVOICE_CREATE_FAIL))
             }
-            val body = source.lnurlGet(LnurlService.withQuery(withdraw.callback, "k1" to withdraw.k1, "pr" to invoice)).getOrNull()
-            setLnurlLoading(false)
-            if (body == null) return@launch raise(lnurlStatus(SendStrings.LNURL_FAIL_3))
-            val status = LnurlService.parseStatus(body)
-            if (!status.ok) {
-                raise(okay(SendStrings.WITHDRAW_REQUEST, "${SendStrings.LNURL_FAIL_1} ${status.reason ?: SendStrings.UNEXPECTED_ERROR}"))
-            }
+            withdrawTo(withdraw, invoice)
+        }
+    }
+
+    /** A retry hands the service the same [invoice], so one k1 is never given two. */
+    private suspend fun withdrawTo(withdraw: LnurlServiceResponse.Withdraw, invoice: String) {
+        setLnurlLoading(true)
+        val reply = source.lnurlGet(LnurlService.withQuery(withdraw.callback, "k1" to withdraw.k1, "pr" to invoice))
+        val body = reply.getOrNull()
+        setLnurlLoading(false)
+        if (body == null) return raise(lnurlRequestFailed(reply.exceptionOrNull()) { scope.launch { withdrawTo(withdraw, invoice) } })
+        val status = LnurlService.parseStatus(body) ?: return raise(lnurlRequestFailed(null) { scope.launch { withdrawTo(withdraw, invoice) } })
+        if (!status.ok) {
+            raise(okay(SendStrings.WITHDRAW_REQUEST, "${SendStrings.LNURL_FAIL_1} ${status.reason ?: SendStrings.UNEXPECTED_ERROR}"))
         }
     }
 
@@ -1048,13 +1062,32 @@ class SendController(
             setLnurlLoading(false)
             if (body == null) return@launch raise(lnurlStatus(SendStrings.LNAUTH_3))
             val status = LnurlService.parseStatus(body)
-            raise(lnurlStatus(if (status.ok) SendStrings.LNAUTH_2 else status.reason ?: SendStrings.LNAUTH_3))
+            raise(lnurlStatus(if (status?.ok == true) SendStrings.LNAUTH_2 else status?.reason ?: SendStrings.LNAUTH_3))
         }
     }
 
     private fun setLnurlLoading(loading: Boolean) = _state.update { it.copy(lnurlLoading = loading) }
 
     private fun lnurlStatus(message: String) = okay(SendStrings.LNURL_STATUS, message)
+
+    /**
+     * `lnurlfail3` after an LNURL request that failed, with Cancel and Try again — iOS's
+     * `.failure` branches in `handleLNURL`, `sendPayRequest` and `sendWithdrawRequest` (#100).
+     * A request that can never succeed, like a rejected endpoint or a 404, keeps its single Okay.
+     */
+    private fun lnurlRequestFailed(failure: Throwable?, retry: () -> Unit): SendAlert =
+        if ((failure as? LnurlHttpException)?.permanent == true) {
+            lnurlStatus(SendStrings.LNURL_FAIL_3)
+        } else {
+            SendAlert(
+                title = SendStrings.LNURL_STATUS,
+                message = SendStrings.LNURL_FAIL_3,
+                buttons = listOf(
+                    SendAlertButton(SendStrings.CANCEL),
+                    SendAlertButton(SendStrings.TRY_AGAIN, onTap = retry),
+                ),
+            )
+        }
 
     private fun setSending(sending: Boolean) = _state.update { state ->
         state.copy(confirm = state.confirm?.copy(sending = sending))
