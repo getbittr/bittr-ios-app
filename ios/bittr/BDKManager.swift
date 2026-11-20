@@ -253,8 +253,9 @@ extension BitcoinManager {
         let bip84InternalDescriptor = Descriptor.newBip84(secretKey: bip32ExtendedRootKey, keychain: .internal, network: EnvironmentConfig.bitcoinDevKitNetwork)
         
         // Open the stored wallet database, or an empty one when the user asked for a rebuild.
+        var databaseIsEmpty = self.bdkRebuildIsRequested
         do {
-            if self.bdkRebuildIsRequested {
+            if databaseIsEmpty {
                 Log.info("A BDK rebuild was requested. Will start from an empty database.")
                 self.connection = try Connection.recreate()
             } else {
@@ -265,6 +266,7 @@ extension BitcoinManager {
             
             // A corrupt database holds nothing worth keeping, so start an empty one.
             self.clearFullScanCompletion()
+            databaseIsEmpty = true
             do {
                 self.connection = try Connection.recreate()
             } catch {
@@ -279,52 +281,9 @@ extension BitcoinManager {
             return false
         }
         
-        do {
-            // Check whether a stored BDK wallet is available.
-            let loaded = try Wallet.load(descriptor: bip84ExternalDescriptor, changeDescriptor: bip84InternalDescriptor, connection: self.connection!)
-            
-            // Confirm the stored wallet's network matches this build's network.
-            guard loaded.network() == EnvironmentConfig.bitcoinDevKitNetwork else {
-                throw WalletError.storedWalletOnAnotherNetwork
-            }
-            
-            Log.info("Did load the stored BDK wallet.")
-            SentryManager.countMetric("sync.bdk.loaded")
-            self.bdkWallet = loaded
-            
-            if self.hasStoredFullScan {
-                Log.info("A full scan is stored. Will light sync rather than scan.")
-                SentryManager.countMetric("sync.bdk.scan.skipped")
-            } else {
-                Log.info("No stored full scan is available. Will scan.")
-            }
-        } catch {
-            // Only replace a database that is corrupt, or doesn't hold this wallet.
-            let reason:String? = {
-                switch error {
-                case LoadWithPersistError.CouldNotLoad: return "nothing stored"
-                case LoadWithPersistError.InvalidChangeSet: return "stored data did not match"
-                case WalletError.storedWalletOnAnotherNetwork: return "stored on another network"
-                case _ where error.isCorruptDatabase: return "database is corrupt"
-                default: return nil
-                }
-            }()
-            
-            guard let reason else {
-                // A read failure may pass, so keep the file for the next launch to try again.
-                self.handleError(error: error, row: 216)
-                self.clearBdkWalletReferences()
-                return false
-            }
-            Log.info("No stored BDK wallet to load (\(reason)). Creating one.")
-            SentryManager.countMetric("sync.bdk.recreated")
-            
-            // Release the database before deleting the file underneath it.
-            self.connection = nil
-            self.clearFullScanCompletion()
-            
+        // Build a new wallet in the empty database.
+        func didCreateBdkWallet() -> Bool {
             do {
-                self.connection = try Connection.recreate()
                 self.bdkWallet = try Wallet(descriptor: bip84ExternalDescriptor, changeDescriptor: bip84InternalDescriptor, network: EnvironmentConfig.bitcoinDevKitNetwork, connection: self.connection!)
                 
                 // A new wallet has revealed nothing, so reveal the cached address pool again for syncs to watch.
@@ -335,10 +294,71 @@ extension BitcoinManager {
                 
                 // The wallet has been built from scratch, so a requested rebuild is done.
                 self.clearBdkRebuildRequest()
+                return true
             } catch {
                 self.handleError(error: error, row: 218)
                 self.clearBdkWalletReferences()
                 return false
+            }
+        }
+        
+        if databaseIsEmpty {
+            // An empty database holds no wallet to load.
+            SentryManager.countMetric("sync.bdk.recreated")
+            guard didCreateBdkWallet() else { return false }
+        } else {
+            do {
+                // Check whether a stored BDK wallet is available.
+                let loaded = try Wallet.load(descriptor: bip84ExternalDescriptor, changeDescriptor: bip84InternalDescriptor, connection: self.connection!)
+                
+                // Confirm the stored wallet's network matches this build's network.
+                guard loaded.network() == EnvironmentConfig.bitcoinDevKitNetwork else {
+                    throw WalletError.storedWalletOnAnotherNetwork
+                }
+                
+                Log.info("Did load the stored BDK wallet.")
+                SentryManager.countMetric("sync.bdk.loaded")
+                self.bdkWallet = loaded
+                
+                if self.hasStoredFullScan {
+                    Log.info("A full scan is stored. Will light sync rather than scan.")
+                    SentryManager.countMetric("sync.bdk.scan.skipped")
+                } else {
+                    Log.info("No stored full scan is available. Will scan.")
+                }
+            } catch {
+                // Only replace a database that is corrupt, or doesn't hold this wallet.
+                let reason:String? = {
+                    switch error {
+                    case LoadWithPersistError.CouldNotLoad: return "nothing stored"
+                    case LoadWithPersistError.InvalidChangeSet: return "stored data did not match"
+                    case WalletError.storedWalletOnAnotherNetwork: return "stored on another network"
+                    case _ where error.isCorruptDatabase: return "database is corrupt"
+                    default: return nil
+                    }
+                }()
+                
+                guard let reason else {
+                    // A read failure may pass, so keep the file for the next launch to try again.
+                    self.handleError(error: error, row: 216)
+                    self.clearBdkWalletReferences()
+                    return false
+                }
+                Log.info("No stored BDK wallet to load (\(reason)). Creating one.")
+                SentryManager.countMetric("sync.bdk.recreated")
+                
+                // Release the database before deleting the file underneath it.
+                self.connection = nil
+                self.clearFullScanCompletion()
+                
+                do {
+                    self.connection = try Connection.recreate()
+                } catch {
+                    self.handleError(error: error, row: 218)
+                    self.clearBdkWalletReferences()
+                    return false
+                }
+                guard didCreateBdkWallet() else { return false }
             }
         }
         
