@@ -134,6 +134,14 @@ final class BdkScanState {
         return claim
     }
     
+    var lightSyncIsStuck: Bool {
+        // A hung light sync holds the claim, and can't be taken over while an earlier taken-over one is still blocked.
+        lock.lock()
+        defer { lock.unlock() }
+        guard let current = _lightSync else { return false }
+        return abandonedLightSyncs > 0 && Date().timeIntervalSince(current.startedAt) >= BdkScanState.lightSyncClaimLimit
+    }
+    
     func endLightSync(_ claim:LightSyncClaim) {
         // Releases the claim, unless a newer light sync has taken it over.
         lock.lock()
@@ -634,6 +642,16 @@ extension BitcoinManager {
         
         // One light sync at a time.
         guard let lightSyncClaim = self.bdkScan.claimLightSync() else {
+            if self.bdkScan.lightSyncIsStuck {
+                // Waiting won't help, so let the caller scan in full on a new connection instead.
+                Log.info("Light sync is stuck behind hung ones. Will reconnect to Electrum.")
+                do {
+                    self.electrumClient = try ElectrumClient(url: EnvironmentConfig.electrumURL)
+                } catch {
+                    self.handleError(error: error, row: 563)
+                }
+                return .failed
+            }
             Log.info("Skipping light sync — another one is in progress.")
             return .skippedForLightSync
         }
