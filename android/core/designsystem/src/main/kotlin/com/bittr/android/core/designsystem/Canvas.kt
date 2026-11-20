@@ -398,7 +398,7 @@ fun BittrPrimaryButton(
                     .padding(horizontal = 17.dp),
             ) {
                 if (content != null) {
-                    content()
+                    CompositionLocalProvider(LocalContentColor provides labelColor, content = content)
                 } else {
                     Text(
                         text = text,
@@ -438,7 +438,7 @@ fun BittrPrimaryButton(
     ) {
         val labelColor = if (dimmed) colors.onActionFillDisabled else colors.onActionFill
         if (content != null) {
-            content()
+            CompositionLocalProvider(LocalContentColor provides labelColor, content = content)
         } else {
             Text(
                 text = text,
