@@ -1,10 +1,16 @@
 package com.bittr.android.feature.receive
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class QrCodeTest {
+
+    @Test
+    fun `a payload too long for a level-H code gives no code`() {
+        assertNull(qrCode("x".repeat(3_000)))
+    }
 
     @Test
     fun `the logo's box is odd or even like the code, about 13 percent of it, and clear of the finder patterns`() {

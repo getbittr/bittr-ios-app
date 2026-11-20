@@ -1,10 +1,14 @@
 package com.bittr.android.feature.receive
 
+import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.test.TestScope
+import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.advanceUntilIdle
+import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -19,17 +23,25 @@ class ReceiveControllerTest {
         var channel: Boolean = false,
         var address: String? = null,
         verified: Boolean = true,
+        var invoicesWork: Boolean = true,
         val pool: ArrayDeque<String> = ArrayDeque(listOf("addr-1", "addr-2")),
     ) : ReceiveSource {
         var current: String? = pool.removeFirst()
         val invoiceAmounts = mutableListOf<Long?>()
+        var invoiceGate = CompletableDeferred(Unit)
         override val addressesVerified = MutableStateFlow(verified)
+        override fun stopWaitingForAddresses() {
+            addressesVerified.value = true
+        }
         override fun lightningAvailable() = channel
         override fun lightningAddress() = address
         override fun currentOnchainAddress() = current
         override fun nextOnchainAddress(): String? = pool.removeFirstOrNull()?.also { current = it }
-        override suspend fun zeroAmountInvoice(description: String) = "lnbcrt-zero".also { invoiceAmounts += null }
-        override suspend fun invoice(amountSats: Long, description: String) = "lnbcrt-$amountSats".also { invoiceAmounts += amountSats }
+        override suspend fun zeroAmountInvoice(description: String) = "lnbcrt-zero".takeIf { invoicesWork }.also { invoiceAmounts += null }
+        override suspend fun invoice(amountSats: Long, description: String): String? {
+            invoiceGate.await()
+            return "lnbcrt-$amountSats".takeIf { invoicesWork }.also { invoiceAmounts += amountSats }
+        }
         override fun fiatCurrency() = FiatCurrency("EUR", "€")
         override suspend fun fiatPricePerBitcoin() = 50_000.0
     }
@@ -46,12 +58,12 @@ class ReceiveControllerTest {
 
         controller.onAmountChange("1 500")
         assertEquals("1500", controller.state.value.amountText)
-        // A separator is refused rather than dropped, which would have asked for 100 times as much.
-        for (malformed in listOf("50000.00", "50,000", "15-")) {
+        // A separator that can't be thousands is refused rather than dropped, which would have asked for 100 times as much.
+        for (malformed in listOf("50000.00", "5,00", "15-")) {
             controller.onAmountChange(malformed)
             controller.onDone()
-            assertEquals(malformed, ReceiveStrings.ENTER_VALID_AMOUNT, controller.state.value.alert?.message)
-            controller.onAlertButton(0)
+            advanceUntilIdle()
+            assertInvalid(controller, malformed)
         }
 
         controller.onCurrencyButton()
@@ -62,10 +74,16 @@ class ReceiveControllerTest {
         for (malformed in listOf("-0.1", "0.1.2", "0,1.2", "1,,2")) {
             controller.onAmountChange(malformed)
             controller.onDone()
-            assertEquals(malformed, ReceiveStrings.ENTER_VALID_AMOUNT, controller.state.value.alert?.message)
-            controller.onAlertButton(0)
+            advanceUntilIdle()
+            assertInvalid(controller, malformed)
         }
-        advanceUntilIdle()
+    }
+
+    /** As iOS says it: in the label, with no code and no alert. */
+    private fun assertInvalid(controller: ReceiveController, amount: String) {
+        assertEquals(amount, ReceiveStrings.INVALID_AMOUNT, controller.state.value.display?.label)
+        assertNull(amount, controller.state.value.display?.qrPayload)
+        assertNull(amount, controller.state.value.alert)
     }
 
     @Test
@@ -94,6 +112,65 @@ class ReceiveControllerTest {
         advanceUntilIdle()
         assertFalse(controller.state.value.loading)
         assertEquals("addr-1", controller.state.value.display?.copyText)
+        assertTrue("Gave up for good, as iOS does.", source.addressesVerified.value)
+    }
+
+    @Test
+    fun `an amount typed during the wait is not in the code, and Copy waits for it`() = runTest {
+        val source = FakeSource(verified = false)
+        val controller = controller(source)
+        controller.start()
+        controller.onEdit()
+        controller.onAmountChange("5000")
+
+        advanceTimeBy(9_000)
+        advanceUntilIdle()
+        assertEquals("Made from the fields as they were when it was asked for.", "addr-1", controller.state.value.display?.copyText)
+        assertNull("The field has an amount the code does not.", controller.onCopy())
+
+        advanceUntilIdle()
+        assertEquals("Copied once the code with the amount is ready.", "bitcoin:addr-1?amount=0.00005", controller.state.value.copyRequest)
+        controller.onCopyRequestHandled()
+        assertNull(controller.state.value.copyRequest)
+    }
+
+    @Test
+    fun `a Copy waiting for its code is dropped when the type changes`() = runTest {
+        val source = FakeSource(channel = true)
+        val controller = controller(source)
+        controller.start()
+        advanceUntilIdle()
+        controller.onEdit()
+        controller.onAmountChange("5000")
+
+        assertNull(controller.onCopy())
+        controller.onMore()
+        controller.onAlertButton(3)
+        advanceUntilIdle()
+
+        assertNull(controller.state.value.copyRequest)
+    }
+
+    @Test
+    fun `closing Add amount straight after an edit makes one invoice, without the amount`() = runTest {
+        val source = FakeSource(channel = true)
+        // Eager, as the app's main dispatcher is, so a load starts the moment it is asked for.
+        val controller = ReceiveController(source, CoroutineScope(UnconfinedTestDispatcher(testScheduler)))
+        controller.start()
+        controller.onMore()
+        controller.onAlertButton(3)
+        advanceUntilIdle()
+        val made = source.invoiceAmounts.size
+
+        controller.onEdit()
+        controller.onAmountChange("5000")
+        // As the screen does it: the stack closes, then the keyboard goes.
+        controller.onEdit()
+        controller.onEditingEnded()
+        advanceUntilIdle()
+
+        assertEquals(made, source.invoiceAmounts.size)
+        assertEquals("lnbcrt-zero", controller.state.value.display?.copyText)
     }
 
     @Test
@@ -150,7 +227,7 @@ class ReceiveControllerTest {
         advanceUntilIdle()
 
         assertEquals(10_000L, source.invoiceAmounts.last())
-        assertTrue(controller.state.value.display!!.copyText.contains("amount=0.0001"))
+        assertTrue(controller.state.value.display?.copyText.orEmpty().contains("amount=0.0001"))
     }
 
     @Test
@@ -168,13 +245,125 @@ class ReceiveControllerTest {
         controller.onDone()
         advanceUntilIdle()
         assertEquals(5_000L, source.invoiceAmounts.last())
-        assertTrue(controller.state.value.codeIncludesAmount)
 
         controller.onEdit()
         advanceUntilIdle()
         assertFalse(controller.state.value.amountOpen)
         assertEquals("lnbcrt-zero", controller.state.value.display?.copyText)
-        assertFalse(controller.state.value.codeIncludesAmount)
+    }
+
+    @Test
+    fun `an amount left by tapping elsewhere is in the code, and so is a change of currency`() = runTest {
+        val source = FakeSource(channel = true)
+        val controller = controller(source)
+        controller.start()
+        advanceUntilIdle()
+        controller.onMore()
+        controller.onAlertButton(3)
+        advanceUntilIdle()
+
+        controller.onEdit()
+        controller.onAmountChange("1000")
+        controller.onEditingEnded()
+        advanceUntilIdle()
+        assertEquals(1_000L, source.invoiceAmounts.last())
+
+        controller.onCurrencyButton()
+        controller.onAlertButton(3)
+        advanceUntilIdle()
+        assertEquals(ReceiveCurrency.Bitcoin, controller.state.value.currency)
+        assertEquals(100_000_000_000L, source.invoiceAmounts.last())
+
+        val made = source.invoiceAmounts.size
+        controller.onEditingEnded()
+        advanceUntilIdle()
+        assertEquals("Nothing changed, so no new invoice.", made, source.invoiceAmounts.size)
+    }
+
+    @Test
+    fun `an amount that can't be read shows Invalid amount, with no code and no invoice`() = runTest {
+        val source = FakeSource(channel = true)
+        val controller = controller(source)
+        controller.start()
+        advanceUntilIdle()
+        controller.onMore()
+        controller.onAlertButton(3)
+        advanceUntilIdle()
+        val made = source.invoiceAmounts.size
+
+        controller.onEdit()
+        controller.onAmountChange("50.00.1")
+        controller.onEditingEnded()
+        advanceUntilIdle()
+
+        assertEquals(ReceiveStrings.INVALID_AMOUNT, controller.state.value.display?.label)
+        assertNull(controller.state.value.display?.qrPayload)
+        assertEquals(made, source.invoiceAmounts.size)
+    }
+
+    @Test
+    fun `an invoice that can't be made shows Unavailable, with nothing to copy`() = runTest {
+        val source = FakeSource(channel = true, invoicesWork = false)
+        val controller = controller(source)
+        controller.start()
+        advanceUntilIdle()
+
+        assertEquals(ReceiveType.BitcoinQr, controller.state.value.type)
+        assertEquals(ReceiveStrings.UNAVAILABLE, controller.state.value.display?.label)
+        assertNull(controller.onCopy())
+    }
+
+    @Test
+    fun `nothing is copied or shared while a new code loads`() = runTest {
+        val controller = controller(FakeSource())
+        controller.start()
+        advanceUntilIdle()
+        assertEquals("addr-1", controller.onShare())
+
+        controller.show(ReceiveType.Onchain)
+        assertTrue(controller.state.value.loading)
+        assertNull(controller.onCopy())
+        assertNull(controller.onShare())
+    }
+
+    @Test
+    fun `the description stops at 100 bytes`() = runTest {
+        val controller = controller(FakeSource())
+        controller.onDescriptionChange("a".repeat(100))
+        controller.onDescriptionChange("a".repeat(101))
+        assertEquals(100, controller.state.value.descriptionText.length)
+
+        controller.onDescriptionChange("😀".repeat(25))
+        controller.onDescriptionChange("😀".repeat(26))
+        assertEquals("😀".repeat(25), controller.state.value.descriptionText)
+
+        // A paste that runs over is cut, after the last whole character that fits.
+        controller.onDescriptionChange("")
+        controller.onDescriptionChange("a".repeat(120))
+        assertEquals("a".repeat(100), controller.state.value.descriptionText)
+        controller.onDescriptionChange("a" + "😀".repeat(25))
+        assertEquals("a" + "😀".repeat(24), controller.state.value.descriptionText)
+    }
+
+    @Test
+    fun `closing Add amount while a code with an amount loads makes it again without`() = runTest {
+        val source = FakeSource(channel = true)
+        val controller = controller(source)
+        controller.start()
+        controller.onMore()
+        controller.onAlertButton(3)
+        advanceUntilIdle()
+
+        source.invoiceGate = CompletableDeferred()
+        controller.onEdit()
+        controller.onAmountChange("5000")
+        controller.onDone()
+        runCurrent()
+        controller.onEdit()
+        source.invoiceGate.complete(Unit)
+        advanceUntilIdle()
+
+        assertEquals("lnbcrt-zero", controller.state.value.display?.copyText)
     }
 
     @Test

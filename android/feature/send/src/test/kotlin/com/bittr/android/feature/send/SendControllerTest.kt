@@ -92,7 +92,7 @@ class SendControllerTest {
         controller.onAmountChange("50 000")
         assertEquals("50000", controller.state.value.amountText)
 
-        for (malformed in listOf("50000.00", "50,000", "1.500,5", "-5")) {
+        for (malformed in listOf("50000.00", "1.500,5", "-5")) {
             controller.onAmountChange(malformed)
             assertEquals(malformed, controller.state.value.amountText)
             controller.onNext()
