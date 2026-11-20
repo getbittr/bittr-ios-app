@@ -37,7 +37,8 @@ fun iosSpringStiffness(durationSeconds: Float, dampingRatio: Float): Float {
 /**
  * √stiffness × duration of the `CASpringAnimation` UIKit creates, at damping 0.30, 0.35 … 1.00.
  * Read from `UIView.animate(withDuration:usingSpringWithDamping:)` in a Mac Catalyst build: UIKit
- * solves for it numerically, so there is no closed form to port.
+ * solves for it numerically, so there is no closed form to port. It switches solution at critical
+ * damping, so a damping between 0.95 and 1 gets only an approximation.
  */
 private val UIKIT_OMEGA_TIMES_DURATION = doubleArrayOf(
     19.1698, 16.9236, 15.1966, 13.8275, 12.7169, 11.8001, 11.0335, 10.3869,
