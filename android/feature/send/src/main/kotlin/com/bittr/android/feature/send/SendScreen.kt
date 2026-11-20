@@ -526,6 +526,7 @@ private fun ColumnScope.ConfirmPage(confirm: ConfirmState, controller: SendContr
     )
     Gap(15.dp)
     ConfirmRow(if (confirm.mode == SendMode.Onchain) SendStrings.ADDRESS else SendStrings.INVOICE) {
+        val addressLabel = Modifier.testTag(TestID.Send.Confirm.addressLabel)
         if (confirm.displayedAddress == confirm.addressOrInvoice) {
             // An address is shown whole, so it can be checked before sending, and an invoice is shortened to three lines.
             GroupsOfFourText(
@@ -534,7 +535,7 @@ private fun ColumnScope.ConfirmPage(confirm: ConfirmState, controller: SendContr
                 style = ConfirmValue.copy(fontFamily = FontFamily.Monospace),
                 color = ink,
                 maxLines = if (confirm.mode == SendMode.Onchain) Int.MAX_VALUE else 3,
-                modifier = Modifier.testTag(TestID.Send.Confirm.addressLabel),
+                modifier = addressLabel,
             )
         } else {
             // A lightning address or LNURL, truncated in the middle as iOS's `addressLabel` is.
@@ -544,7 +545,7 @@ private fun ColumnScope.ConfirmPage(confirm: ConfirmState, controller: SendContr
                 color = ink,
                 textAlign = TextAlign.End,
                 maxLines = 4,
-                modifier = Modifier.testTag(TestID.Send.Confirm.addressLabel),
+                modifier = addressLabel,
             )
         }
     }
