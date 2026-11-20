@@ -33,11 +33,11 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import com.bittr.android.core.designsystem.rememberRetained
 import com.bittr.android.core.designsystem.MiddleEllipsisText
 import com.bittr.android.core.designsystem.GroupsOfFourText
-import androidx.compose.ui.text.font.FontFamily
 import com.bittr.android.core.designsystem.inGroupsOfFour
 import com.bittr.android.core.designsystem.rememberFillIcon
 import com.bittr.android.core.designsystem.rememberTextClipboard
