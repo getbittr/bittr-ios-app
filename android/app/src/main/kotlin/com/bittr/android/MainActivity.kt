@@ -3,6 +3,7 @@ package com.bittr.android
 import android.app.ActivityManager
 import android.os.Build
 import android.os.Bundle
+import androidx.annotation.ChecksSdkIntAtLeast
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import android.os.SystemClock
 import androidx.activity.ComponentActivity
@@ -93,7 +94,10 @@ class MainActivity : ComponentActivity() {
     /** `elapsedRealtime` at the last [onStop], or 0 before the first one. */
     private var backgroundedAt: Long = 0L
 
-    /** Below Android 13, where Recents can't be kept from taking a picture, the [PrivacyCover] is up while paused. */
+    /** Android 13 and up let Recents take no picture of the app; below that, the [PrivacyCover] is up while paused. */
+    @get:ChecksSdkIntAtLeast(api = Build.VERSION_CODES.TIRAMISU)
+    private val recentsPictureCanBeTurnedOff = Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU
+
     private var covered by mutableStateOf(false)
 
     /** Reconnected on every foreground while the node runs, as iOS's `SceneDelegate` does. */
@@ -131,18 +135,9 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    /**
-     * The colour of the card Recents shows in place of a picture of the app: iOS's privacy cover's,
-     * `yelloworblue3`. Android draws that card itself, so it has the cover's colour but not its logo.
-     */
-    private fun showInRecentsAs(color: Int) {
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) return
-        setTaskDescription(ActivityManager.TaskDescription.Builder().setBackgroundColor(color or 0xFF000000.toInt()).build())
-    }
-
     override fun onPause() {
         super.onPause()
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) covered = true
+        if (!recentsPictureCanBeTurnedOff) covered = true
     }
 
     override fun onResume() {
@@ -179,13 +174,16 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
         // Recents takes no picture of the wallet, which iOS hides from its app switcher behind the privacy cover.
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) setRecentsScreenshotEnabled(false)
+        if (recentsPictureCanBeTurnedOff) setRecentsScreenshotEnabled(false)
         removedWalletReset.start()
         setContent {
             val setting by preferences.darkMode.collectAsState()
             BittrTheme(darkTheme = setting.isDark()) {
-                val recentsColor = BittrTheme.colors.primaryHigh.toArgb()
-                SideEffect { showInRecentsAs(recentsColor) }
+                if (recentsPictureCanBeTurnedOff) {
+                    // The card Recents shows instead, in the privacy cover's colour; Android draws it without the logo.
+                    val recentsColor = BittrTheme.colors.primaryHigh.toArgb() or 0xFF000000.toInt()
+                    SideEffect { setTaskDescription(ActivityManager.TaskDescription.Builder().setBackgroundColor(recentsColor).build()) }
+                }
                 BittrApp(pushCoordinator, transactionConfirmations.transactionScreenOpen)
                 if (covered) PrivacyCover()
             }
