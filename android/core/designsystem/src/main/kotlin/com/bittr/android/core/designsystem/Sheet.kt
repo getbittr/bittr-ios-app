@@ -121,10 +121,7 @@ private val SheetShape = RoundedCornerShape(topStart = 10.dp, topEnd = 10.dp)
 /** Black at 20 % — the iOS sheet's dim over the yellow canvas, off a screenshot. */
 private val SheetScrim = Color.Black.copy(alpha = 0.2f)
 
-/**
- * Critically damped, as iOS's sheet is: it arrives and leaves without a bounce, settling in about
- * 0.4 s.
- */
+/** Critically damped, as iOS's sheet is: it arrives and leaves without a bounce, as UIKit's 0.53 s spring. */
 private const val SheetStiffness = 300f
 
 /**
