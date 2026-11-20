@@ -121,10 +121,7 @@ private val SheetShape = RoundedCornerShape(topStart = 10.dp, topEnd = 10.dp)
 /** Black at 20 % — the iOS sheet's dim over the yellow canvas, off a screenshot. */
 private val SheetScrim = Color.Black.copy(alpha = 0.2f)
 
-/**
- * Critically damped, as iOS's sheet is: it arrives and leaves without a bounce, settling in about
- * 0.4 s.
- */
+/** Critically damped, as iOS's sheet is: it arrives and leaves without a bounce, as UIKit's 0.53 s spring. */
 private const val SheetStiffness = 300f
 
 /**
@@ -177,7 +174,7 @@ fun BittrPopup(
         // Counted in frames rather than `delay`, so a test's frame clock carries it as it does the spring.
         val start = withFrameMillis { it }
         while (withFrameMillis { it } - start < PopupOpenDelayMs) Unit
-        offset.animateTo(0f, spring(dampingRatio = 0.7f, stiffness = PopupStiffness))
+        offset.animateTo(0f, iosSpring(0.6f, 0.7f))
     }
 
     val dismiss: () -> Unit = {
@@ -253,9 +250,6 @@ private const val PopupOpenDelayMs = 200L
 
 /** `hideSettings`' and the snap-back's 0.3 s. */
 private const val PopupCloseMs = 300
-
-/** A 0.6 s spring at damping 0.7: 4 / (0.7 × 0.6) squared, by [PageSlideSpec]'s settle rule. */
-private const val PopupStiffness = 91f
 
 /** `handleSettingsPan`'s 800 pt/s. */
 private const val PopupFlingVelocity = 800

@@ -2,7 +2,6 @@ package com.bittr.android.core.designsystem
 
 import androidx.compose.foundation.Image
 import androidx.compose.ui.graphics.painter.Painter
-import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.AnimationSpec
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.runtime.getValue
@@ -387,10 +386,9 @@ enum class BittrNavTab { Wallet, Academy, Settings }
 /**
  * The selection's slide between Wallet and Academy, and the pages' above it — shared so the two
  * move as one. iOS's `menuButtonTapped` is a plain 0.3 s ease-in-out; this is a spring with a
- * little bounce, as the other page slides in the app have (Tom, 2026-09-29): damping 0.75,
- * settling in about 0.5 s by [PageSlideSpec]'s rule.
+ * little bounce, as the other page slides in the app have (Tom, 2026-09-29): 0.5 s at damping 0.75.
  */
-val MenuSlideSpec: AnimationSpec<Float> = spring(dampingRatio = 0.75f, stiffness = 110f)
+val MenuSlideSpec: AnimationSpec<Float> = iosSpring(0.5f, 0.75f)
 
 private val MenuGap = 10.dp
 
