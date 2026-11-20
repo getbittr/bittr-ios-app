@@ -19,7 +19,8 @@ fun <T> iosSpring(durationSeconds: Float, dampingRatio: Float, visibilityThresho
  * read from [UIKIT_OMEGA_TIMES_DURATION] and interpolated between its steps.
  */
 fun iosSpringStiffness(durationSeconds: Float, dampingRatio: Float): Float {
-    val position = ((dampingRatio.coerceIn(0.3f, 1f) - 0.3f) / 0.05f).toDouble()
+    require(dampingRatio in 0.3f..1f) { "UIKit's stiffness was read for damping 0.3 to 1, not $dampingRatio" }
+    val position = ((dampingRatio - 0.3f) / 0.05f).toDouble()
     val index = floor(position).toInt().coerceAtMost(UIKIT_OMEGA_TIMES_DURATION.lastIndex - 1)
     val fraction = position - index
     val omegaTimesDuration = UIKIT_OMEGA_TIMES_DURATION[index] * (1 - fraction) + UIKIT_OMEGA_TIMES_DURATION[index + 1] * fraction
