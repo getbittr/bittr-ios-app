@@ -48,6 +48,7 @@ internal object SendStrings {
     // Alerts.
     const val OKAY = "Okay"
     const val CANCEL = "Cancel"
+    const val TRY_AGAIN = "Try again"
     const val CONFIRM = "Confirm"
     const val CLOSE = "Close"
     const val CONTINUE = "Continue"

@@ -59,7 +59,7 @@ interface SendSource {
 
     // ---- LNURL. Defaulted so a source that has no LNURL wiring still compiles; each says so. ----
 
-    /** A GET to an LNURL service or callback: the body of a 2xx, a failure otherwise. */
+    /** A GET to an LNURL service or callback: the body of a 2xx or of any JSON answer, a failure otherwise. */
     suspend fun lnurlGet(url: String): Result<String> = Result.failure(UnsupportedOperationException("No LNURL client"))
 
     /** A BOLT11 invoice for an LNURL withdraw — `getInvoice(amountMsat:description:expirySecs: 3600)`. */
@@ -75,4 +75,11 @@ interface SendSource {
 
     /** `CacheManager.storeTransactionNote` — an LNURL pay request's description, once paid. */
     fun storeTransactionNote(transactionId: String, note: String) = Unit
+}
+
+/** An LNURL service answered with an HTTP error status and no JSON body. */
+class LnurlHttpException(val code: Int) : Exception("HTTP $code") {
+
+    /** A client error other than a timeout or rate limit: asking again gets the same answer. */
+    val permanent: Boolean get() = code in 400..499 && code != 408 && code != 429
 }

@@ -2,8 +2,6 @@ package com.bittr.android.core.lnurl
 
 import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertFalse
-import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class LnurlServiceTest {
@@ -52,14 +50,16 @@ class LnurlServiceTest {
             LnurlPayCallback.Refused("Unable to connect to https://api.getalby.com."),
             LnurlService.parsePayCallback("""{"detail":"Unable to connect to https://api.getalby.com.","status":"pending"}"""),
         )
+        assertEquals(LnurlPayCallback.Unreadable, LnurlService.parsePayCallback("<html>"))
     }
 
     @Test
     fun `status OK is the only success`() {
-        assertTrue(LnurlService.parseStatus("""{"status":"OK"}""").ok)
+        assertEquals(true, LnurlService.parseStatus("""{"status":"OK"}""")?.ok)
         val refused = LnurlService.parseStatus("""{"status":"ERROR","reason":"expired"}""")
-        assertFalse(refused.ok)
-        assertEquals("expired", refused.reason)
+        assertEquals(false, refused?.ok)
+        assertEquals("expired", refused?.reason)
+        assertEquals(null, LnurlService.parseStatus("<html>"))
     }
 
     @Test
