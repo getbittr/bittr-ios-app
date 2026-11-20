@@ -39,6 +39,7 @@ final class BdkScanState {
     private var generation = 0
     private var _lightSync:LightSyncClaim?
     private var abandonedLightSyncs = 0
+    private var walletResets = 0
     private var waiters = [(Bool) -> Void]()
     
     var isScanning: Bool {
@@ -62,18 +63,28 @@ final class BdkScanState {
         return _timedOut
     }
     
-    func claim(withWaiter waiter: @escaping (Bool) -> Void) -> Int? {
+    func claim(withWaiter waiter: @escaping (_ scanned: Bool, _ waitedOnThisWalletsScan: Bool) -> Void) -> Int? {
         // Queues the waiter, and returns a scan number when no scan is running yet.
         lock.lock()
         defer { lock.unlock() }
         
-        waiters += [waiter]
-        guard !_isScanning else { return nil }
+        let joinedRunningScan = _isScanning
+        let resetsWhenQueued = walletResets
+        waiters += [{ scanned in
+            waiter(scanned, joinedRunningScan && self.hasNotBeenReset(since: resetsWhenQueued))
+        }]
+        guard !joinedRunningScan else { return nil }
         _isScanning = true
         _timedOut = false
         _wasInterrupted = false
         generation += 1
         return generation
+    }
+    
+    private func hasNotBeenReset(since resets: Int) -> Bool {
+        lock.lock()
+        defer { lock.unlock() }
+        return walletResets == resets
     }
     
     func isCurrent(_ scan: Int) -> Bool {
@@ -192,6 +203,7 @@ final class BdkScanState {
         _hasBeenScanned = false
         _timedOut = false
         _wasInterrupted = false
+        walletResets += 1
         let waiting = waiters
         waiters.removeAll()
         lock.unlock()
@@ -389,7 +401,7 @@ extension BitcoinManager {
     var bdkWalletHasBeenScanned: Bool { self.bdkScan.hasBeenScanned }
     var bdkFullScanTimedOut: Bool { self.bdkScan.timedOut }
 
-    func claimBdkScan(withWaiter waiter: @escaping (Bool) -> Void) -> Int? {
+    func claimBdkScan(withWaiter waiter: @escaping (_ scanned: Bool, _ waitedOnThisWalletsScan: Bool) -> Void) -> Int? {
         return self.bdkScan.claim(withWaiter: waiter)
     }
     func isCurrentBdkScan(_ scan: Int) -> Bool {
@@ -505,10 +517,9 @@ extension BitcoinManager {
         }
         
         // Wait on the scan, and run it if none is running yet.
-        var waitedOnRunningScan = false
-        let claimedScan = self.claimBdkScan { scanned in
+        let claimedScan = self.claimBdkScan { scanned, waitedOnThisWalletsScan in
             // The running scan checked for a rebuild before one may have been requested.
-            if waitedOnRunningScan, mayScanAgainForRebuild, self.bdkRebuildIsRequested {
+            if scanned, waitedOnThisWalletsScan, mayScanAgainForRebuild, self.bdkRebuildIsRequested {
                 Log.info("A BDK rebuild was requested during the running scan. Will scan again.")
                 self.didSyncBdkWallet(mayScanAgainForRebuild: false, completion: originalCompletion)
                 return
@@ -516,7 +527,6 @@ extension BitcoinManager {
             completion(scanned)
         }
         guard let scan = claimedScan else {
-            waitedOnRunningScan = true
             Log.info("A BDK full scan is already running. Waiting on it.")
             return
         }
