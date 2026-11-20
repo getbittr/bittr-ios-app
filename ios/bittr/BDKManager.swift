@@ -451,7 +451,7 @@ extension BitcoinManager {
         CacheStore.set(nil, for: CacheKeys.lastBdkFullScan)
     }
     
-    func didSyncBdkWallet(completion originalCompletion: @escaping (Bool) -> Void) {
+    func didSyncBdkWallet(mayScanAgainForRebuild: Bool = true, completion originalCompletion: @escaping (Bool) -> Void) {
         
         // Handle sync completion.
         var didComplete = false
@@ -464,7 +464,18 @@ extension BitcoinManager {
         }
         
         // Wait on the scan, and run it if none is running yet.
-        guard let scan = self.claimBdkScan(withWaiter: completion) else {
+        var waitedOnRunningScan = false
+        let claimedScan = self.claimBdkScan { scanned in
+            // The running scan checked for a rebuild before one may have been requested.
+            if waitedOnRunningScan, mayScanAgainForRebuild, self.bdkRebuildIsRequested {
+                Log.info("A BDK rebuild was requested during the running scan. Will scan again.")
+                self.didSyncBdkWallet(mayScanAgainForRebuild: false, completion: originalCompletion)
+                return
+            }
+            completion(scanned)
+        }
+        guard let scan = claimedScan else {
+            waitedOnRunningScan = true
             Log.info("A BDK full scan is already running. Waiting on it.")
             return
         }
