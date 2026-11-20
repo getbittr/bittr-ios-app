@@ -876,13 +876,13 @@ class TokenContrastTest {
     /**
      * The border of a checked switch, as rendered.
      *
-     * `mutedOnCanvas` is translucent and Material strokes the track border *inside* the
+     * `switchBorder` is translucent and Material strokes the track border *inside* the
      * track's bounds, so the checked border composites over [BittrColors.switchOn] and
      * not over the page. That is why this is a two-step composite and not a token read,
      * and why promoting `switchOn` out of `Canvas.kt` was a precondition for asserting
      * anything here at all.
      */
-    private fun checkedBorder(c: BittrColors): Color = composite(c.mutedOnCanvas, c.switchOn)
+    private fun checkedBorder(c: BittrColors): Color = composite(c.switchBorder, c.switchOn)
 
     /** The switch draws the mock's bordered control in light mode only; dark is UIKit's. */
     private val switchSchemes = listOf("light" to BittrLightColorsExtended)
@@ -904,7 +904,7 @@ class TokenContrastTest {
         // anything while this half still holds.
         for ((name, c) in switchSchemes) {
             for ((where, bg) in switchBackgrounds(c)) {
-                assertAtLeast(aaLarge, c.mutedOnCanvas, bg, "$name unchecked switch border on $where")
+                assertAtLeast(aaLarge, c.switchBorder, bg, "$name unchecked switch border on $where")
             }
         }
     }
@@ -935,10 +935,10 @@ class TokenContrastTest {
                 aaLarge, checkedBorder(c), c.switchOn,
                 "$name checked border against the track it strokes",
             )
-            // Unchecked: the thumb is `mutedOnCanvas` over a transparent track, so the
+            // Unchecked: the thumb is `switchOffThumb` over a transparent track, so the
             // background is what it has to clear.
             for ((where, bg) in switchBackgrounds(c)) {
-                assertAtLeast(aaLarge, c.mutedOnCanvas, bg, "$name unchecked thumb on $where")
+                assertAtLeast(aaLarge, c.switchOffThumb, bg, "$name unchecked thumb on $where")
             }
         }
     }
