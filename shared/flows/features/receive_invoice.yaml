@@ -152,7 +152,7 @@ appId: ${APP_ID}
       id: "receive.qrSpinner"
     timeout: 30000
 - assertVisible:
-    id: "receive.invoiceLabel"
+    id: "receive.addressLabel"
     text: ".*lnbcrt.*"
 - takeScreenshot: shared/docs/screenshots/receive_invoice/06_invoice_with_amount
 
@@ -219,13 +219,13 @@ appId: ${APP_ID}
       id: "receive.qrSpinner"
     timeout: 30000
 - assertVisible:
-    id: "receive.invoiceLabel"
+    id: "receive.addressLabel"
     text: ".*lnbcrt.*"
 
 # Capture the bolt11 and have the backend pay it. (If this comes back truncated
 # the submit fails loudly rather than silently — capture from a fuller source then.)
 - copyTextFrom:
-    id: "receive.invoiceLabel"
+    id: "receive.addressLabel"
 - evalScript: ${output.invoice = maestro.copiedText}
 - runScript: ../scripts/submit_invoice.js
 
