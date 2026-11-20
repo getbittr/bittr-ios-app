@@ -9,7 +9,7 @@ import org.junit.Test
  *
  * `FLAG_SECURE` is Android's answer to the seed-phrase screenshot warning that iOS
  * implements with `userDidTakeScreenshotNotification` (DEV-18,
- * `shared/docs/parity.md` → *Deliberate platform divergences*). It is the right
+ * `android/docs/wallet-security-properties.md` §3). It is the right
  * answer. It is also a **window** flag, and this app has exactly one window —
  * single Activity, Compose Navigation. Two consequences:
  *

@@ -105,6 +105,7 @@ Two caveats that belong in a founder-facing statement rather than a footnote:
 | Uninstall → reinstall | the Keychain item can survive | Keystore key and app data destroyed → mnemonic-only | **real, accepted** (BIT-8; the restore screen is the reinstall path) |
 | Blob destroyed, LDK state intact | guard quarantines the state | **guard keeps it** if the discriminator matches | **deliberate — BIT-20**, and the reason the guard was changed |
 | Quarantine fires twice | cannot (one-shot migration) | second quarantine does not replace the first | **deliberate — BIT-20 rule 4** |
+| Screenshot of the recovery phrase | taken, then a warning (`userDidTakeScreenshotNotification`) | blocked on the phrase screens (`FLAG_SECURE`, `ScreenshotProtection`) | **deliberate — DEV-18**: Android can stop it, so it does |
 
 Two accepted trade-offs, Ruben's, not to be re-litigated in review:
 uninstall→reinstall requires re-entering the mnemonic; and a user who loses
