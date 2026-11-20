@@ -253,13 +253,15 @@ extension BitcoinManager {
         
         // Read the seed, which a loaded wallet is checked against too.
         let storedMnemonic:String?
-        do {
-            storedMnemonic = try CacheManager.readMnemonic()
-        } catch {
-            // The seed can't be read right now, so trust a loaded wallet as before.
-            guard self.bdkWallet == nil else { return true }
-            Log.info("Mnemonic is unavailable. Aborting BDK start.")
-            return false
+        if self.bdkWallet == nil {
+            storedMnemonic = CacheManager.getMnemonic()
+        } else {
+            do {
+                storedMnemonic = try CacheManager.readMnemonic()
+            } catch {
+                // The seed can't be read right now, so trust the loaded wallet as before.
+                return true
+            }
         }
         guard let cachedMnemonic = storedMnemonic else {
             // Without a seed, a loaded wallet belongs to nothing.
