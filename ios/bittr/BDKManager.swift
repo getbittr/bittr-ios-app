@@ -508,15 +508,18 @@ extension BitcoinManager {
     private func didRebuildBdkWallet() -> Bool {
         Log.info("Will rebuild the BDK wallet.")
         
-        // A light sync stuck behind hung ones would never give up its claim.
-        self.bdkScan.releaseStuckLightSync()
+        // A light sync stuck behind hung ones would never give up its claim, so release it before each try.
+        func claimLightSyncForRebuild() -> LightSyncClaim? {
+            self.bdkScan.releaseStuckLightSync()
+            return self.bdkScan.claimLightSync()
+        }
         
         // Wait for a running light sync to finish, as it still writes to the stored database.
         let deadline = Date().addingTimeInterval(30)
-        var lightSyncClaim = self.bdkScan.claimLightSync()
+        var lightSyncClaim = claimLightSyncForRebuild()
         while lightSyncClaim == nil, Date() < deadline {
             Thread.sleep(forTimeInterval: 0.25)
-            lightSyncClaim = self.bdkScan.claimLightSync()
+            lightSyncClaim = claimLightSyncForRebuild()
         }
         guard let lightSyncClaim else {
             Log.info("A light sync is still running. Will rebuild the BDK wallet later.")
