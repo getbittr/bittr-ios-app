@@ -85,7 +85,7 @@ class GroupsOfFourTextTest {
             .map { layout.getHorizontalPosition(it, usePrimaryDirection = true) }
 
     @Test
-    fun `narrowed to its longest line for the trailing edge, the text wraps exactly as before`() {
+    fun `narrowed to its longest line, the text wraps exactly as before`() {
         val address = inGroupsOfFour("bc1p5d7rjq7g6rdk2yhzks9smlaqtedr4dekq08ge8ztwac72sfr9rusxg3297")
         for (width in 100..420 step 3) {
             for (shown in listOf(shortenedInGroups(measurer, address, style, density, Int.MAX_VALUE, width), shortenedInGroups(measurer, inGroupsOfFour(invoice), style, density, 3, width))) {

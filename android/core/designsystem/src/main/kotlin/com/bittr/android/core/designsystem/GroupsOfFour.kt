@@ -28,8 +28,8 @@ fun inGroupsOfFour(text: String): String = text.chunked(4).joinToString(" ")
  * both ends, with "…" centred in the slot of the groups in between, so every group after it stays
  * in its column. The tail is grouped from the end, so its last group is never cut short.
  *
- * With [trailing], the text is as wide as its longest line, so a parent aligning it to its end puts
- * that line against the edge while the lines stay left-aligned in their columns.
+ * It is only as wide as its longest line, so a parent aligning it to its end puts that line against
+ * the edge while the lines stay left-aligned in their columns.
  *
  * It says [readAs], as [ShortenedText] does.
  */
@@ -41,10 +41,9 @@ fun GroupsOfFourText(
     modifier: Modifier = Modifier,
     color: Color = Color.Unspecified,
     maxLines: Int = Int.MAX_VALUE,
-    trailing: Boolean = false,
 ) {
     val density = LocalDensity.current
-    ShortenedText(readAs, style, maxLines, modifier, color, text, density, asWideAsLongestLine = trailing) { measurer, resolved, width ->
+    ShortenedText(readAs, style, maxLines, modifier, color, text, density, asWideAsLongestLine = true) { measurer, resolved, width ->
         shortenedInGroups(measurer, text, resolved, density, maxLines, width)
     }
 }

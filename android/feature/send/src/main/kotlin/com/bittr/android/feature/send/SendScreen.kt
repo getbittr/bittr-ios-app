@@ -534,7 +534,6 @@ private fun ColumnScope.ConfirmPage(confirm: ConfirmState, controller: SendContr
                 style = ConfirmValue.copy(fontFamily = FontFamily.Monospace),
                 color = ink,
                 maxLines = if (confirm.mode == SendMode.Onchain) Int.MAX_VALUE else 3,
-                trailing = true,
                 modifier = Modifier.testTag(TestID.Send.Confirm.addressLabel),
             )
         } else {
