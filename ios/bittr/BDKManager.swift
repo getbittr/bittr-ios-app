@@ -303,9 +303,8 @@ extension BitcoinManager {
         
         // Reuse a loaded wallet only when it was built from this seed.
         if self.bdkWallet != nil {
-            if let xpub, xpub == self.xpub {
-                return true
-            }
+            // An xpub that can't be read leaves nothing to compare, so trust the loaded wallet as before.
+            guard let xpub, xpub != self.xpub else { return true }
             Log.info("The loaded BDK wallet wasn't built from this seed. Will start it again.")
             self.dropLoadedBdkWallet()
         }
