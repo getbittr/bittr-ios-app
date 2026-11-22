@@ -188,6 +188,13 @@ extension CoreViewController {
             self.showAlert(title: Language.getWord(withID: "bittrpayout"), message: Language.getWord(withID: "bittrpayoutfail"), buttons: [.dismiss(Language.getWord(withID: "close"))])
             return
         }
+        
+        guard !self.payoutsAnsweredByBittr.contains(notificationId) else {
+            Log.info("Bittr has already answered this payout; not requesting it again.")
+            self.hideLoading()
+            self.isHandlingPayout = false
+            return
+        }
             
         // Get pubkey.
         guard let pubkey:String = BitcoinManager.shared.nodeId() else {
@@ -807,6 +814,11 @@ extension CoreViewController {
         
         guard let notificationId = self.pendingNotificationId else {
             Log.info("ERROR: No pending notification ID for on-chain payout")
+            return
+        }
+        
+        guard !self.payoutsAnsweredByBittr.contains(notificationId) else {
+            Log.info("Bittr has already answered this payout; not requesting it on-chain.")
             return
         }
         
