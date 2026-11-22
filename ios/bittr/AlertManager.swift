@@ -516,13 +516,19 @@ extension UIViewController {
     // MARK: - Loading overlay
 
     // Shows a non-dismissable loading overlay over this view controller.
-    func showLoading(message: String) {
+    func showLoading(message: String, ifStillHeld: Bool = false) {
         DispatchQueue.main.async {
             
             // Never cover the PIN pad.
             if let coreVC = self as? CoreViewController, !coreVC.userHasSignedIn {
                 coreVC.loadingMessageAfterSignIn = message
                 return
+            }
+            
+            // A held card whose request finished in the meantime stays gone.
+            if ifStillHeld {
+                guard let coreVC = self as? CoreViewController, coreVC.loadingMessageAfterSignIn != nil else { return }
+                coreVC.loadingMessageAfterSignIn = nil
             }
             
             // Already showing → just swap the message, don't stack a second overlay.

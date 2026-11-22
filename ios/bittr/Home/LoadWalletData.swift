@@ -340,8 +340,7 @@ extension CoreViewController {
     func didSignIn() {
         self.userHasSignedIn = true
         if let message = self.loadingMessageAfterSignIn {
-            self.loadingMessageAfterSignIn = nil
-            self.showLoading(message: message)
+            self.showLoading(message: message, ifStillHeld: true)
         }
         if !self.walletHasSynced {
             self.startWallet()
