@@ -555,6 +555,10 @@ extension CoreViewController {
             return
         }
         
+        // A payout's invoice was cached with its notification ID as description.
+        let cachedDescription = paymentDetails.map { CacheManager.getInvoiceDescription(preimages: $0.cacheIDs) } ?? ""
+        let invoiceDescription = cachedDescription.isEmpty ? nil : cachedDescription
+        
         // Get deposit codes.
         var depositCodes = [String]()
         for eachIbanEntity in BitcoinManager.shared.bittrWallet.ibanEntities {
@@ -582,9 +586,11 @@ extension CoreViewController {
                         DispatchQueue.main.async {
                             
                             // Add payout ID to cache.
-                            if let notificationId = self.lightningNotification?.notificationID {
+                            if let notificationId = invoiceDescription ?? self.lightningNotification?.notificationID {
                                 CacheManager.storeInvoiceDescription(preimage: paymentPreimage, desc: notificationId)
-                                self.lightningNotification = nil
+                                if self.lightningNotification?.notificationID == notificationId {
+                                    self.lightningNotification = nil
+                                }
                             }
                             
                             // Create transaction object.
