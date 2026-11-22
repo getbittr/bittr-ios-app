@@ -156,6 +156,9 @@ extension CoreViewController {
     
     func rememberAnsweredPayout(_ notificationId: String) {
         self.payoutsAnsweredByBittr.insert(notificationId)
+        if self.lightningNotification?.notificationID == notificationId {
+            self.lightningNotification = nil
+        }
         if let cachedNotification = CacheManager.getLastNotification(), cachedNotification.notificationID == notificationId, let pushId = cachedNotification.id {
             CacheManager.didHandleNotification(pushId)
         }
@@ -193,6 +196,7 @@ extension CoreViewController {
             Log.info("Bittr has already answered this payout; not requesting it again.")
             self.hideLoading()
             self.isHandlingPayout = false
+            self.rememberAnsweredPayout(notificationId)
             return
         }
             
@@ -280,9 +284,7 @@ extension CoreViewController {
                                 // never offer a retry: resending would mint a new invoice that
                                 // could be paid on top of an in-flight one. Close-only. This is
                                 // an expected transient state, not a fault, so it's kept out of
-                                // Sentry. lightningNotification is deliberately left set — if the
-                                // payment does settle, the .paymentReceived handler reconciles it
-                                // as the Bittr payout rather than as a stray incoming payment.
+                                // Sentry.
                                 sendToSentry = false
                                 self.rememberAnsweredPayout(notificationId)
                                 self.showAlert(title: Language.getWord(withID: "bittrpayout"), message: message, buttons: [.dismiss(Language.getWord(withID: "close"))])
@@ -857,9 +859,6 @@ extension CoreViewController {
                     self.hideLoading()
                     self.isHandlingPayout = false
                     self.rememberAnsweredPayout(notificationId)
-                    if self.lightningNotification?.notificationID == notificationId {
-                        self.lightningNotification = nil
-                    }
                     self.showAlert(
                         title: Language.getWord(withID: "onchainpayoutscheduled"),
                         message: Language.getWord(withID: "onchainpayoutscheduled2"),
