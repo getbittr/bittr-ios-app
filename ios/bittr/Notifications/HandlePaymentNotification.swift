@@ -13,6 +13,11 @@ extension CoreViewController {
     func handlePayoutNotification(_ notification:BittrNotification) {
         Log.info("Will handle payout notification.")
         
+        guard !self.isHandlingPayout else {
+            Log.info("Payout already being handled; ignoring duplicate trigger.")
+            return
+        }
+        
         self.lightningNotification = notification
         
         if !self.userHasSignedIn {
@@ -141,6 +146,7 @@ extension CoreViewController {
     }
 
     func triggerPayout() {
+        self.isHandlingPayout = true
         self.showLoading(message: Language.getWord(withID: "receivingpayment"))
         DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
             self.facilitateNotificationPayout()
@@ -149,6 +155,7 @@ extension CoreViewController {
     
     func facilitateNotificationPayout() {
         Log.info("Will start payout process.")
+        self.isHandlingPayout = true
         
         // Extract required data.
         guard
@@ -159,6 +166,7 @@ extension CoreViewController {
             Log.info("No notification available for handling.")
             SentryManager.capture("Required data unavailable while trying to handle notification payout.", context: "HandlePaymentNotification row 108")
             self.hideLoading()
+            self.isHandlingPayout = false
             self.lightningNotification = nil
             self.showAlert(title: Language.getWord(withID: "bittrpayout"), message: Language.getWord(withID: "bittrpayoutfail"), buttons: [.dismiss(Language.getWord(withID: "close"))])
             return
@@ -167,6 +175,7 @@ extension CoreViewController {
         // Get pubkey.
         guard let pubkey:String = BitcoinManager.shared.nodeId() else {
             Log.info("Pubkey unavailable.")
+            self.isHandlingPayout = false
             self.showAlert(title: Language.getWord(withID: "bittrpayout"), message: Language.getWord(withID: "bittrpayoutfail2"), buttons: [.dismiss(Language.getWord(withID: "close")), .action(Language.getWord(withID: "tryagain")) { self.facilitateNotificationPayout() }])
             return
         }
@@ -184,6 +193,7 @@ extension CoreViewController {
                 else {
                     DispatchQueue.main.async {
                         self.hideLoading()
+                        self.isHandlingPayout = false
                         self.lightningNotification = nil
                         self.showAlert(title: Language.getWord(withID: "bittrpayout"), message: Language.getWord(withID: "bittrpayoutfail"), buttons: [.dismiss(Language.getWord(withID: "close"))])
                     }
@@ -208,6 +218,7 @@ extension CoreViewController {
                     DispatchQueue.main.async {
                         SentryManager.capture(error, context: "HandlePaymentNotification row 163")
                         self.hideLoading()
+                        self.isHandlingPayout = false
                         self.lightningNotification = nil
                         self.showAlert(title: Language.getWord(withID: "bittrpayout"), message: Language.getWord(withID: "bittrpayoutfail"), buttons: [.dismiss(Language.getWord(withID: "close"))])
                     }
@@ -223,11 +234,13 @@ extension CoreViewController {
                     DispatchQueue.main.async {
                         CacheManager.didHandleNotification(notificationId)
                         self.hideLoading()
+                        self.isHandlingPayout = false
                     }
                 } catch {
                     Log.info("Error occurred: \(error.localizedDescription)")
                     DispatchQueue.main.async {
                         self.hideLoading()
+                        self.isHandlingPayout = false
                         var sendToSentry = true
                         
                         if let bittrServiceError = error as? BittrServiceError {
@@ -286,6 +299,7 @@ extension CoreViewController {
             Log.info("Not connected to peer.")
             DispatchQueue.main.async {
                 self.hideLoading()
+                self.isHandlingPayout = false
                 self.showAlert(title: Language.getWord(withID: "bittrpayout"), message: Language.getWord(withID: "couldntconnect"), buttons: [.dismiss(Language.getWord(withID: "close")), .action(Language.getWord(withID: "tryagain")) { self.reconnectToPeer() }])
             }
         }
@@ -293,6 +307,7 @@ extension CoreViewController {
     
     
     func reconnectToPeer() {
+        self.isHandlingPayout = true
         Task {
             _ = await BitcoinManager.shared.didEstablishPeerConnection()
             DispatchQueue.main.async {
@@ -732,6 +747,7 @@ extension CoreViewController {
         }
         
         // Show loading state
+        self.isHandlingPayout = true
         self.showLoading(message: Language.getWord(withID: "receivingpayment"))
         
         // Get pubkey
@@ -740,6 +756,7 @@ extension CoreViewController {
             pubkey = pubkeyString
         } else {
             self.hideLoading()
+            self.isHandlingPayout = false
             self.showAlert(
                 title: Language.getWord(withID: "error"),
                 message: Language.getWord(withID: "onchainpayoutfail").replacingOccurrences(of: "<message>", with: Language.getWord(withID: "walletnotsynced")),
@@ -762,6 +779,7 @@ extension CoreViewController {
                 
                 DispatchQueue.main.async {
                     self.hideLoading()
+                    self.isHandlingPayout = false
                     self.showAlert(
                         title: Language.getWord(withID: "onchainpayoutscheduled"),
                         message: Language.getWord(withID: "onchainpayoutscheduled2"),
@@ -777,6 +795,7 @@ extension CoreViewController {
                 DispatchQueue.main.async {
                     SentryManager.capture(error, context: "HandlePaymentNotification row 637")
                     self.hideLoading()
+                    self.isHandlingPayout = false
                     self.showAlert(
                         title: Language.getWord(withID: "error"),
                         message: Language.getWord(withID: "onchainpayoutfail").replacingOccurrences(of: "<message>", with: error.localizedDescription),
