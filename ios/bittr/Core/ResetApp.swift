@@ -373,6 +373,7 @@ extension CoreViewController {
                 self.forgetWallet()
                 self.userHasSignedIn = false
                 self.walletHasSynced = false
+                self.loadingMessageAfterSignIn = nil
                 
                 // Hide signup view and launch create wallet flow.
                 Log.info("ResetApp - Launching signup after cleanup")

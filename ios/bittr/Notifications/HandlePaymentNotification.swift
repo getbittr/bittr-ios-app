@@ -175,6 +175,7 @@ extension CoreViewController {
         // Get pubkey.
         guard let pubkey:String = BitcoinManager.shared.nodeId() else {
             Log.info("Pubkey unavailable.")
+            self.hideLoading()
             self.isHandlingPayout = false
             self.showAlert(title: Language.getWord(withID: "bittrpayout"), message: Language.getWord(withID: "bittrpayoutfail2"), buttons: [.dismiss(Language.getWord(withID: "close")), .action(Language.getWord(withID: "tryagain")) { self.facilitateNotificationPayout() }])
             return
