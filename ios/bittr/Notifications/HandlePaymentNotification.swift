@@ -445,8 +445,16 @@ extension CoreViewController {
                             if let homeVC = self.homeVC {
                                 homeVC.addLightningTransaction(thisTransaction: newTransaction, paymentDetails: paymentDetails)
                                 if !newTransaction.isSwap, !newTransaction.isSwapPayment {
-                                    homeVC.tappedTransaction = newTransaction
-                                    homeVC.performSegue(withIdentifier: "HomeToTransaction", sender: homeVC)
+                                    let presentTransactionVC = { [weak homeVC] in
+                                        guard let homeVC else { return }
+                                        homeVC.tappedTransaction = newTransaction
+                                        homeVC.performSegue(withIdentifier: "HomeToTransaction", sender: homeVC)
+                                    }
+                                    if self.transactionScreenMustWait() {
+                                        self.transactionScreensWaiting.append(presentTransactionVC)
+                                    } else {
+                                        presentTransactionVC()
+                                    }
                                 }
                             }
                             CacheManager.storeLightningTransaction(newTransaction)
@@ -531,14 +539,18 @@ extension CoreViewController {
                     self.homeVC?.performSegue(withIdentifier: "HomeToTransaction", sender: self)
                 }
             }
-            if let receiveVC = self.receiveVC {
-                receiveVC.dismiss(animated: true, completion: presentTransactionVC)
-            } else if self.homeVC?.presentedViewController is TransactionViewController {
+            if self.transactionScreenMustWait() {
                 self.transactionScreensWaiting.append(presentTransactionVC)
+            } else if let receiveVC = self.receiveVC {
+                receiveVC.dismiss(animated: true, completion: presentTransactionVC)
             } else {
                 presentTransactionVC()
             }
         }
+    }
+    
+    func transactionScreenMustWait() -> Bool {
+        return !self.userHasSignedIn || self.currentPage != .home || self.homeVC?.presentedViewController is TransactionViewController
     }
     
     func presentWaitingTransactionScreen() {
@@ -556,9 +568,17 @@ extension CoreViewController {
             for eachTransaction in self.homeVC!.visibleTransactions {
                 if eachTransaction.id == paymentPreimage {
                     Log.info("Found correct transaction in transactions table.")
-                    self.receivedBittrTransaction = eachTransaction
                     DispatchQueue.main.async {
-                        self.homeVC?.performSegue(withIdentifier: "HomeToTransaction", sender: self)
+                        let presentTransactionVC = { [weak self] in
+                            guard let self else { return }
+                            self.receivedBittrTransaction = eachTransaction
+                            self.homeVC?.performSegue(withIdentifier: "HomeToTransaction", sender: self)
+                        }
+                        if self.transactionScreenMustWait() {
+                            self.transactionScreensWaiting.append(presentTransactionVC)
+                        } else {
+                            presentTransactionVC()
+                        }
                     }
                 }
             }
