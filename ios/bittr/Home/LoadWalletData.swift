@@ -357,6 +357,7 @@ extension CoreViewController {
             self.deferredPresentation = nil
             deferred()
         }
+        self.presentWaitingTransactionScreen()
         
         if self.needsToHandleURI() {
             Log.info("Needs to handle URI.")

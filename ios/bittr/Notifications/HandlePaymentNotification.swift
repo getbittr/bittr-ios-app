@@ -512,12 +512,6 @@ extension CoreViewController {
     
     func launchTransactionVC(thisTransaction:Transaction, paymentDetails:PaymentDetails?) {
         
-        if thisTransaction.isBittr {
-            self.receivedBittrTransaction = thisTransaction
-        } else {
-            self.homeVC?.tappedTransaction = thisTransaction
-        }
-        
         DispatchQueue.main.async {
             // Add and cache transaction.
             self.homeVC?.addLightningTransaction(thisTransaction: thisTransaction, paymentDetails: paymentDetails)
@@ -526,6 +520,11 @@ extension CoreViewController {
             // Launch TransactionVC after ReceiveVC has dismissed.
             let presentTransactionVC = { [weak self] in
                 guard let self else { return }
+                if thisTransaction.isBittr {
+                    self.receivedBittrTransaction = thisTransaction
+                } else {
+                    self.homeVC?.tappedTransaction = thisTransaction
+                }
                 if thisTransaction.isSwapPayment {
                     SwapManager.openCompletedSwapTransaction(dateID: thisTransaction.lnDescription, homeVC: self.homeVC)
                 } else {
@@ -534,9 +533,18 @@ extension CoreViewController {
             }
             if let receiveVC = self.receiveVC {
                 receiveVC.dismiss(animated: true, completion: presentTransactionVC)
+            } else if self.homeVC?.presentedViewController is TransactionViewController {
+                self.transactionScreensWaiting.append(presentTransactionVC)
             } else {
                 presentTransactionVC()
             }
+        }
+    }
+    
+    func presentWaitingTransactionScreen() {
+        DispatchQueue.main.async {
+            guard self.userHasSignedIn, self.currentPage == .home, self.homeVC?.presentedViewController == nil, !self.transactionScreensWaiting.isEmpty else { return }
+            self.transactionScreensWaiting.removeFirst()()
         }
     }
     

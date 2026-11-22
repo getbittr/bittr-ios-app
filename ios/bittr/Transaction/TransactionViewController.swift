@@ -241,6 +241,13 @@ class TransactionViewController: UIViewController {
         }
     }
     
+    override func viewDidDisappear(_ animated: Bool) {
+        super.viewDidDisappear(animated)
+        if self.isBeingDismissed {
+            self.coreVC?.presentWaitingTransactionScreen()
+        }
+    }
+    
     func setTransactionData() {
         
         // Date

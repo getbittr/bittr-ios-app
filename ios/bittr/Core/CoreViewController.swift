@@ -46,6 +46,7 @@ class CoreViewController: UIViewController {
     var payoutsAnsweredByBittr = Set<String>()
     var payoutsWithInvoice = Set<String>()
     var receivedBittrTransaction:Transaction?
+    var transactionScreensWaiting = [() -> Void]()
     var pendingNotificationId:String?
     var pendingSuggestedSwapAmount:Int = 0
     var pendingPayout:BittrPendingPayout?
