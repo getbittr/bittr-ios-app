@@ -15,6 +15,11 @@ extension CoreViewController {
         
         guard !self.payoutIsAlreadyRunning() else { return }
         
+        if let notificationId = notification.notificationID, self.payoutsAnsweredByBittr.contains(notificationId) {
+            Log.info("Bittr has already answered this payout; ignoring replay.")
+            return
+        }
+        
         self.lightningNotification = notification
         
         if !self.userHasSignedIn {
@@ -149,6 +154,13 @@ extension CoreViewController {
         return self.isHandlingPayout
     }
     
+    func rememberAnsweredPayout(_ notificationId: String) {
+        self.payoutsAnsweredByBittr.insert(notificationId)
+        if let cachedNotification = CacheManager.getLastNotification(), cachedNotification.notificationID == notificationId, let pushId = cachedNotification.id {
+            CacheManager.didHandleNotification(pushId)
+        }
+    }
+    
     func triggerPayout() {
         guard !self.payoutIsAlreadyRunning() else { return }
         self.isHandlingPayout = true
@@ -238,7 +250,7 @@ extension CoreViewController {
                     Log.info("Payout successful.")
                     Log.debug("PreImage: \(payoutResponse.preImage ?? "N/A")")
                     DispatchQueue.main.async {
-                        CacheManager.didHandleNotification(notificationId)
+                        self.rememberAnsweredPayout(notificationId)
                         self.hideLoading()
                         self.isHandlingPayout = false
                     }
@@ -264,6 +276,7 @@ extension CoreViewController {
                                 // payment does settle, the .paymentReceived handler reconciles it
                                 // as the Bittr payout rather than as a stray incoming payment.
                                 sendToSentry = false
+                                self.rememberAnsweredPayout(notificationId)
                                 self.showAlert(title: Language.getWord(withID: "bittrpayout"), message: message, buttons: [.dismiss(Language.getWord(withID: "close"))])
                             case .paymentTooLarge(let message):
                                 // Permanent: resending the same amount will fail again, so no
@@ -279,6 +292,7 @@ extension CoreViewController {
                                     if message == "This payment has already been processed." {
                                         // No need to notify Sentry.
                                         sendToSentry = false
+                                        self.rememberAnsweredPayout(notificationId)
                                     }
                                     self.lightningNotification = nil
                                 }
@@ -794,6 +808,10 @@ extension CoreViewController {
                 DispatchQueue.main.async {
                     self.hideLoading()
                     self.isHandlingPayout = false
+                    self.rememberAnsweredPayout(notificationId)
+                    if self.lightningNotification?.notificationID == notificationId {
+                        self.lightningNotification = nil
+                    }
                     self.showAlert(
                         title: Language.getWord(withID: "onchainpayoutscheduled"),
                         message: Language.getWord(withID: "onchainpayoutscheduled2"),
