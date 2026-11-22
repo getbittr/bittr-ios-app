@@ -21,6 +21,7 @@ class CoreViewController: UIViewController {
     // Backgrounded app
     var backgroundedAt:Date?
     var deferredPresentation:(() -> Void)? // A screen someone asked for while the PIN was up.
+    var loadingMessageAfterSignIn:String? // A loading card someone asked for while the PIN was up.
     var privacyCover:UIView? // Hides the wallet from the app switcher snapshot.
     var lockedDuringSignup = false
     

@@ -519,6 +519,12 @@ extension UIViewController {
     func showLoading(message: String) {
         DispatchQueue.main.async {
             
+            // Never cover the PIN pad.
+            if let coreVC = self as? CoreViewController, !coreVC.userHasSignedIn {
+                coreVC.loadingMessageAfterSignIn = message
+                return
+            }
+            
             // Already showing → just swap the message, don't stack a second overlay.
             if let existing = self.view.subviews.compactMap({ $0 as? LoadingOverlayView }).first(where: { !$0.isDismissing }) {
                 existing.messageLabel?.text = message
@@ -568,6 +574,7 @@ extension UIViewController {
     // Slides the loading overlay back down and removes it.
     func hideLoading() {
         DispatchQueue.main.async {
+            (self as? CoreViewController)?.loadingMessageAfterSignIn = nil
             for overlay in self.view.subviews.compactMap({ $0 as? LoadingOverlayView }) where !overlay.isDismissing {
                 self.slideOut(overlay, from: self)
             }
