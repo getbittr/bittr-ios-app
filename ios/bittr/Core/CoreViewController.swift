@@ -44,6 +44,7 @@ class CoreViewController: UIViewController {
     var isHandlingIncomingHTLC = false
     var isHandlingPayout = false
     var payoutsAnsweredByBittr = Set<String>()
+    var payoutsWithInvoice = Set<String>()
     var receivedBittrTransaction:Transaction?
     var pendingNotificationId:String?
     var pendingSuggestedSwapAmount:Int = 0

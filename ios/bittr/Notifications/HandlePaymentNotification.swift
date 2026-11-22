@@ -201,6 +201,7 @@ extension CoreViewController {
         // Call payoutLightning in an async context
         if isConnectedToPeer() {
             Log.info("Is connected to peer.")
+            self.payoutsWithInvoice.insert(notificationId)
             
             Task {
                 // Create invoice.
@@ -359,7 +360,8 @@ extension CoreViewController {
                 if let paymentDetails = BitcoinManager.shared.getPaymentDetails(paymentHash: paymentHash) {
                     Log.info("Did receive payment details.")
                     
-                    if self.lightningNotification != nil {
+                    let invoiceDescription = CacheManager.getInvoiceDescription(preimages: paymentDetails.cacheIDs)
+                    if self.lightningNotification != nil || self.payoutsWithInvoice.contains(invoiceDescription) {
                         // This is an incoming Bittr payout.
                         self.checkPaymentWithBittr(paymentPreimage: paymentDetails.kind.transactionID ?? paymentDetails.id, paymentDetails: paymentDetails, isFundingTransaction: false)
                     } else {
