@@ -587,8 +587,11 @@ extension CoreViewController {
     // Slides the loading overlay down, and brings it back once the user has signed in.
     func holdLoadingUntilSignIn() {
         DispatchQueue.main.async {
-            for overlay in self.view.subviews.compactMap({ $0 as? LoadingOverlayView }) where !overlay.isDismissing {
-                if let message = overlay.messageLabel?.text {
+            let subviews = self.view.subviews
+            let alertPosition = self.view.liveAlertOverlay.flatMap { subviews.firstIndex(of: $0) } ?? -1
+            for overlay in subviews.compactMap({ $0 as? LoadingOverlayView }) where !overlay.isDismissing {
+                // A card under an alert would come back over it.
+                if let message = overlay.messageLabel?.text, let position = subviews.firstIndex(of: overlay), position > alertPosition {
                     self.loadingMessageAfterSignIn = message
                 }
                 self.slideOut(overlay, from: self)

@@ -13,10 +13,7 @@ extension CoreViewController {
     func handlePayoutNotification(_ notification:BittrNotification) {
         Log.info("Will handle payout notification.")
         
-        guard !self.isHandlingPayout else {
-            Log.info("Payout already being handled; ignoring duplicate trigger.")
-            return
-        }
+        guard !self.payoutIsAlreadyRunning() else { return }
         
         self.lightningNotification = notification
         
@@ -145,7 +142,15 @@ extension CoreViewController {
         return Language.getWord(withID: "bittrpayoutfail2")
     }
 
+    func payoutIsAlreadyRunning() -> Bool {
+        if self.isHandlingPayout {
+            Log.info("Payout already being handled; ignoring duplicate trigger.")
+        }
+        return self.isHandlingPayout
+    }
+    
     func triggerPayout() {
+        guard !self.payoutIsAlreadyRunning() else { return }
         self.isHandlingPayout = true
         self.showLoading(message: Language.getWord(withID: "receivingpayment"))
         DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
@@ -177,7 +182,7 @@ extension CoreViewController {
             Log.info("Pubkey unavailable.")
             self.hideLoading()
             self.isHandlingPayout = false
-            self.showAlert(title: Language.getWord(withID: "bittrpayout"), message: Language.getWord(withID: "bittrpayoutfail2"), buttons: [.dismiss(Language.getWord(withID: "close")), .action(Language.getWord(withID: "tryagain")) { self.facilitateNotificationPayout() }])
+            self.showAlert(title: Language.getWord(withID: "bittrpayout"), message: Language.getWord(withID: "bittrpayoutfail2"), buttons: [.dismiss(Language.getWord(withID: "close")), .action(Language.getWord(withID: "tryagain")) { self.retryPayout() }])
             return
         }
 
@@ -268,7 +273,7 @@ extension CoreViewController {
                                 self.lightningNotification = nil
                             case .serverError(let message):
                                 if message.contains("try again"), self.lightningNotification != nil {
-                                    self.showAlert(title: Language.getWord(withID: "bittrpayout"), message: message, buttons: [.dismiss(Language.getWord(withID: "close")), .action(Language.getWord(withID: "tryagain")) { self.facilitateNotificationPayout() }])
+                                    self.showAlert(title: Language.getWord(withID: "bittrpayout"), message: message, buttons: [.dismiss(Language.getWord(withID: "close")), .action(Language.getWord(withID: "tryagain")) { self.retryPayout() }])
                                 } else {
                                     self.showAlert(title: Language.getWord(withID: "bittrpayout"), message: message, buttons: [.dismiss(Language.getWord(withID: "close"))])
                                     if message == "This payment has already been processed." {
@@ -283,7 +288,7 @@ extension CoreViewController {
                             }
                         } else {
                             if error.localizedDescription.contains("try again"), self.lightningNotification != nil {
-                                self.showAlert(title: Language.getWord(withID: "bittrpayout"), message: "\(error.localizedDescription)", buttons: [.dismiss(Language.getWord(withID: "close")), .action(Language.getWord(withID: "tryagain")) { self.facilitateNotificationPayout() }])
+                                self.showAlert(title: Language.getWord(withID: "bittrpayout"), message: "\(error.localizedDescription)", buttons: [.dismiss(Language.getWord(withID: "close")), .action(Language.getWord(withID: "tryagain")) { self.retryPayout() }])
                             } else {
                                 self.showAlert(title: Language.getWord(withID: "bittrpayout"), message: "\(error.localizedDescription)", buttons: [.dismiss(Language.getWord(withID: "close"))])
                                 self.lightningNotification = nil
@@ -307,7 +312,13 @@ extension CoreViewController {
     }
     
     
+    func retryPayout() {
+        guard !self.payoutIsAlreadyRunning() else { return }
+        self.facilitateNotificationPayout()
+    }
+    
     func reconnectToPeer() {
+        guard !self.payoutIsAlreadyRunning() else { return }
         self.isHandlingPayout = true
         Task {
             _ = await BitcoinManager.shared.didEstablishPeerConnection()
@@ -741,6 +752,8 @@ extension CoreViewController {
     }
     
     func receiveOnchainForNotification() {
+        
+        guard !self.payoutIsAlreadyRunning() else { return }
         
         guard let notificationId = self.pendingNotificationId else {
             Log.info("ERROR: No pending notification ID for on-chain payout")
