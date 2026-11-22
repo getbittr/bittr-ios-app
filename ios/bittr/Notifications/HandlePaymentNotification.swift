@@ -338,12 +338,14 @@ extension CoreViewController {
     
     func retryPayout() {
         guard !self.payoutIsAlreadyRunning() else { return }
+        self.showLoading(message: Language.getWord(withID: "receivingpayment"))
         self.facilitateNotificationPayout()
     }
     
     func reconnectToPeer() {
         guard !self.payoutIsAlreadyRunning() else { return }
         self.isHandlingPayout = true
+        self.showLoading(message: Language.getWord(withID: "receivingpayment"))
         Task {
             _ = await BitcoinManager.shared.didEstablishPeerConnection()
             DispatchQueue.main.async {

@@ -596,8 +596,8 @@ extension CoreViewController {
             let subviews = self.view.subviews
             let alertPosition = self.view.liveAlertOverlay.flatMap { subviews.firstIndex(of: $0) } ?? -1
             for overlay in subviews.compactMap({ $0 as? LoadingOverlayView }) where !overlay.isDismissing {
-                // A card under an alert would come back over it.
-                if let message = overlay.messageLabel?.text, let position = subviews.firstIndex(of: overlay), position > alertPosition {
+                // A card under an alert would come back over it, and fromPinToHome shows the syncing card again.
+                if let message = overlay.messageLabel?.text, message != Language.getWord(withID: "syncingwallet3"), let position = subviews.firstIndex(of: overlay), position > alertPosition {
                     self.loadingMessageAfterSignIn = message
                 }
                 self.slideOut(overlay, from: self)
