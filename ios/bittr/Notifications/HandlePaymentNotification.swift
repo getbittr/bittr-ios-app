@@ -34,11 +34,11 @@ extension CoreViewController {
             if !self.wasNotified {
                 // App was open when notification came in.
                 Log.info("Will notify user of alert.")
-                self.showAlert(title: Language.getWord(withID: "bittrpayout"), message: Language.getWord(withID: "newbittrpayment"), buttons: [.action(Language.getWord(withID: "okay")) { self.triggerPayout() }])
+                self.showAlert(title: Language.getWord(withID: "bittrpayout"), message: Language.getWord(withID: "newbittrpayment"), buttons: [.action(Language.getWord(withID: "okay")) { self.triggerPayout(notification.notificationID) }])
             } else {
                 // App was closed when notification came in and was subsequently opened.
                 Log.info("User has been notified of alert.")
-                self.triggerPayout()
+                self.triggerPayout(notification.notificationID)
             }
         }
     }
@@ -164,8 +164,16 @@ extension CoreViewController {
         }
     }
     
-    func triggerPayout() {
-        guard !self.payoutIsAlreadyRunning() else { return }
+    func payoutIsStillWaiting(_ notificationId: String?) -> Bool {
+        guard let current = self.lightningNotification, current.notificationID == notificationId, !self.payoutsAnsweredByBittr.contains(notificationId ?? "") else {
+            Log.info("This payout is no longer waiting; ignoring old button.")
+            return false
+        }
+        return true
+    }
+    
+    func triggerPayout(_ notificationId: String?) {
+        guard !self.payoutIsAlreadyRunning(), self.payoutIsStillWaiting(notificationId) else { return }
         self.isHandlingPayout = true
         self.showLoading(message: Language.getWord(withID: "receivingpayment"))
         DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
@@ -205,7 +213,7 @@ extension CoreViewController {
             Log.info("Pubkey unavailable.")
             self.hideLoading()
             self.isHandlingPayout = false
-            self.showAlert(title: Language.getWord(withID: "bittrpayout"), message: Language.getWord(withID: "bittrpayoutfail2"), buttons: [.dismiss(Language.getWord(withID: "close")), .action(Language.getWord(withID: "tryagain")) { self.retryPayout() }])
+            self.showAlert(title: Language.getWord(withID: "bittrpayout"), message: Language.getWord(withID: "bittrpayoutfail2"), buttons: [.dismiss(Language.getWord(withID: "close")), .action(Language.getWord(withID: "tryagain")) { self.retryPayout(notificationId) }])
             return
         }
 
@@ -296,7 +304,7 @@ extension CoreViewController {
                                 self.lightningNotification = nil
                             case .serverError(let message):
                                 if message.contains("try again"), self.lightningNotification != nil {
-                                    self.showAlert(title: Language.getWord(withID: "bittrpayout"), message: message, buttons: [.dismiss(Language.getWord(withID: "close")), .action(Language.getWord(withID: "tryagain")) { self.retryPayout() }])
+                                    self.showAlert(title: Language.getWord(withID: "bittrpayout"), message: message, buttons: [.dismiss(Language.getWord(withID: "close")), .action(Language.getWord(withID: "tryagain")) { self.retryPayout(notificationId) }])
                                 } else {
                                     self.showAlert(title: Language.getWord(withID: "bittrpayout"), message: message, buttons: [.dismiss(Language.getWord(withID: "close"))])
                                     if message == "This payment has already been processed." {
@@ -312,7 +320,7 @@ extension CoreViewController {
                             }
                         } else {
                             if error.localizedDescription.contains("try again"), self.lightningNotification != nil {
-                                self.showAlert(title: Language.getWord(withID: "bittrpayout"), message: "\(error.localizedDescription)", buttons: [.dismiss(Language.getWord(withID: "close")), .action(Language.getWord(withID: "tryagain")) { self.retryPayout() }])
+                                self.showAlert(title: Language.getWord(withID: "bittrpayout"), message: "\(error.localizedDescription)", buttons: [.dismiss(Language.getWord(withID: "close")), .action(Language.getWord(withID: "tryagain")) { self.retryPayout(notificationId) }])
                             } else {
                                 self.showAlert(title: Language.getWord(withID: "bittrpayout"), message: "\(error.localizedDescription)", buttons: [.dismiss(Language.getWord(withID: "close"))])
                                 self.lightningNotification = nil
@@ -330,20 +338,20 @@ extension CoreViewController {
             DispatchQueue.main.async {
                 self.hideLoading()
                 self.isHandlingPayout = false
-                self.showAlert(title: Language.getWord(withID: "bittrpayout"), message: Language.getWord(withID: "couldntconnect"), buttons: [.dismiss(Language.getWord(withID: "close")), .action(Language.getWord(withID: "tryagain")) { self.reconnectToPeer() }])
+                self.showAlert(title: Language.getWord(withID: "bittrpayout"), message: Language.getWord(withID: "couldntconnect"), buttons: [.dismiss(Language.getWord(withID: "close")), .action(Language.getWord(withID: "tryagain")) { self.reconnectToPeer(notificationId) }])
             }
         }
     }
     
     
-    func retryPayout() {
-        guard !self.payoutIsAlreadyRunning() else { return }
+    func retryPayout(_ notificationId: String) {
+        guard !self.payoutIsAlreadyRunning(), self.payoutIsStillWaiting(notificationId) else { return }
         self.showLoading(message: Language.getWord(withID: "receivingpayment"))
         self.facilitateNotificationPayout()
     }
     
-    func reconnectToPeer() {
-        guard !self.payoutIsAlreadyRunning() else { return }
+    func reconnectToPeer(_ notificationId: String) {
+        guard !self.payoutIsAlreadyRunning(), self.payoutIsStillWaiting(notificationId) else { return }
         self.isHandlingPayout = true
         self.showLoading(message: Language.getWord(withID: "receivingpayment"))
         Task {
