@@ -101,9 +101,21 @@ extension CoreViewController {
             self.showAlert(title: Language.getWord(withID: "incomingpayment"), message: Language.getWord(withID: "bittrpayoutfail2"), buttons: [.dismiss(Language.getWord(withID: "close"))])
             return
         }
-        let timestamp = Int(Date().timeIntervalSince1970)
-        let message = "htlc_ready:\(depositCode):\(timestamp)"
         Task {
+            // bittr can only release the payment over a live peer connection.
+            if !isConnectedToPeer() {
+                let didConnect = await BitcoinManager.shared.didEstablishPeerConnection()
+                guard didConnect else {
+                    await MainActor.run {
+                        self.hideLoading()
+                        self.isHandlingIncomingHTLC = false
+                        self.showAlert(title: Language.getWord(withID: "incomingpayment"), message: Language.getWord(withID: "couldntconnect"), buttons: [.dismiss(Language.getWord(withID: "close")), .action(Language.getWord(withID: "tryagain")) { self.handleHTLCNotification() }])
+                    }
+                    return
+                }
+            }
+            let timestamp = Int(Date().timeIntervalSince1970)
+            let message = "htlc_ready:\(depositCode):\(timestamp)"
             do {
                 let signature = try await BitcoinManager.shared.signMessage(message: message)
                 let response = try await BittrService.shared.htlcReady(depositCode: depositCode, timestamp: timestamp, pubkey: pubkey, signature: signature)
