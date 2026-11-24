@@ -375,6 +375,12 @@ extension CoreViewController {
                 self.walletHasSynced = false
                 self.loadingMessageAfterSignIn = nil
                 self.transactionScreensWaiting.removeAll()
+                self.lightningNotification = nil
+                self.isHandlingPayout = false
+                self.wasNotified = false
+                self.pendingNotificationId = nil
+                self.pendingSuggestedSwapAmount = 0
+                self.payoutsWithInvoice.removeAll()
                 
                 // Hide signup view and launch create wallet flow.
                 Log.info("ResetApp - Launching signup after cleanup")

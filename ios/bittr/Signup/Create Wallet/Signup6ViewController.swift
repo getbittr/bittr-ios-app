@@ -50,6 +50,7 @@ class Signup6ViewController: UIViewController, UITextFieldDelegate {
                 }
                 
                 self.signupVC?.coreVC?.didSignIn()
+                self.signupVC?.coreVC?.bringBackHeldLoading()
                 self.signupVC?.enteredPin = ""
                 
                 // Move to next page.

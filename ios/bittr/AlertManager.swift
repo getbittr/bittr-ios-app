@@ -604,4 +604,10 @@ extension CoreViewController {
             }
         }
     }
+    
+    func bringBackHeldLoading() {
+        if let message = self.loadingMessageAfterSignIn {
+            self.showLoading(message: message, ifStillHeld: true)
+        }
+    }
 }
