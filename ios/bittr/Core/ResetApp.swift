@@ -302,6 +302,7 @@ extension CoreViewController {
     }
     
     func performWalletReset() {
+        self.walletIsBeingRemoved = true
         self.hideSettings()
         
         // Stop background sync timer.
@@ -360,6 +361,7 @@ extension CoreViewController {
                     // than leaving the app half-reset for the rest of the session.
                     self.resettingPin = wasResettingPin
                     self.removingWalletForIncorrectPin = wasRemovingWalletForIncorrectPin
+                    self.walletIsBeingRemoved = false
                     self.genericSpinner.stopAnimating()
                     self.fullViewCover.alpha = 0
                     self.showAlert(title: Language.getWord(withID: "removewallet"), message: Language.getWord(withID: "removalfailed"), buttons: [.dismiss(Language.getWord(withID: "okay"))])
@@ -381,6 +383,7 @@ extension CoreViewController {
                 self.pendingNotificationId = nil
                 self.pendingSuggestedSwapAmount = 0
                 self.payoutsWithInvoice.removeAll()
+                self.walletIsBeingRemoved = false
                 
                 // Hide signup view and launch create wallet flow.
                 Log.info("ResetApp - Launching signup after cleanup")

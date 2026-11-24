@@ -15,6 +15,11 @@ extension CoreViewController {
         
         guard !self.payoutIsAlreadyRunning() else { return }
         
+        guard !self.walletIsBeingRemoved else {
+            Log.info("Wallet is being removed; ignoring payout.")
+            return
+        }
+        
         if let notificationId = notification.notificationID, self.payoutsAnsweredByBittr.contains(notificationId) {
             Log.info("Bittr has already answered this payout; ignoring replay.")
             return
@@ -187,6 +192,14 @@ extension CoreViewController {
     
     func facilitateNotificationPayout() {
         Log.info("Will start payout process.")
+        
+        guard !self.walletIsBeingRemoved else {
+            Log.info("Wallet is being removed; not starting payout.")
+            self.hideLoading()
+            self.isHandlingPayout = false
+            return
+        }
+        
         self.isHandlingPayout = true
         
         // Extract required data.
