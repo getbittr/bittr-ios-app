@@ -60,9 +60,7 @@ class BittrService {
                 }
                 throw BittrServiceError.serverError(decodedResponse.error ?? "Unknown error")
             case "PAYMENT_PROCESSING":
-                // The payment attempt is committed and its outcome is ambiguous
-                // (LND timeout / transport error / still in flight). The app MUST
-                // NOT resend — a fresh invoice could be paid on top of this one.
+                // bittr is still paying this payout, so there's nothing to retry.
                 throw BittrServiceError.paymentProcessing(
                     decodedResponse.error ?? "Your payment is being processed and should complete shortly."
                 )
@@ -269,7 +267,7 @@ enum BittrServiceError: Error {
     case other(Error)
     case noData
     case channelFullWithSwapSuggestion(String, String) // error message, suggested amount
-    case paymentProcessing(String) // committed but ambiguous — never resend (double-pay risk)
+    case paymentProcessing(String) // still being paid — nothing to retry
     case paymentTooLarge(String)   // permanent — resending the same amount will fail again
     case unclearPayoutResponse(Int) // HTTP status
 }

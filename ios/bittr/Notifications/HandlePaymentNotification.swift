@@ -292,16 +292,16 @@ extension CoreViewController {
                                 sendToSentry = false
                                 self.handleChannelFullWithSwapSuggestion(message: message, suggestedAmount: suggestedAmount, notificationId: notificationId)
                             case .paymentProcessing(let message):
-                                // The attempt is committed and its outcome is ambiguous, so
-                                // never offer a retry: resending would mint a new invoice that
-                                // could be paid on top of an in-flight one. Close-only. This is
-                                // an expected transient state, not a fault, so it's kept out of
-                                // Sentry. If the attempt fails, bittr can still ask again.
+                                // Already on its way, so there's nothing to retry. Not a fault, so
+                                // kept out of Sentry. If the attempt fails, bittr can ask again.
                                 sendToSentry = false
                                 self.stopWaitingForPayout(notificationId)
                                 self.showAlert(title: Language.getWord(withID: "bittrpayout"), message: message, buttons: [.dismiss(Language.getWord(withID: "close"))])
                             case .unclearPayoutResponse:
-                                self.showAlert(title: Language.getWord(withID: "bittrpayout"), message: Language.getWord(withID: "bittrpayoutretry"), buttons: [.dismiss(Language.getWord(withID: "close")), .action(Language.getWord(withID: "tryagain")) { self.retryPayout(notificationId) }])
+                                // Silent if the payout has arrived meanwhile.
+                                if self.lightningNotification?.notificationID == notificationId {
+                                    self.showAlert(title: Language.getWord(withID: "bittrpayout"), message: Language.getWord(withID: "bittrpayoutretry"), buttons: [.dismiss(Language.getWord(withID: "close")), .action(Language.getWord(withID: "tryagain")) { self.retryPayout(notificationId) }])
+                                }
                             case .paymentTooLarge(let message):
                                 // Permanent: resending the same amount will fail again, so no
                                 // retry. Expected business rule, not a fault — keep it out of Sentry.
@@ -325,7 +325,9 @@ extension CoreViewController {
                                 self.lightningNotification = nil
                             }
                         } else if error is URLError || error is DecodingError {
-                            self.showAlert(title: Language.getWord(withID: "bittrpayout"), message: Language.getWord(withID: "bittrpayoutretry"), buttons: [.dismiss(Language.getWord(withID: "close")), .action(Language.getWord(withID: "tryagain")) { self.retryPayout(notificationId) }])
+                            if self.lightningNotification?.notificationID == notificationId {
+                                self.showAlert(title: Language.getWord(withID: "bittrpayout"), message: Language.getWord(withID: "bittrpayoutretry"), buttons: [.dismiss(Language.getWord(withID: "close")), .action(Language.getWord(withID: "tryagain")) { self.retryPayout(notificationId) }])
+                            }
                         } else {
                             if error.localizedDescription.contains("try again"), self.lightningNotification != nil {
                                 self.showAlert(title: Language.getWord(withID: "bittrpayout"), message: "\(error.localizedDescription)", buttons: [.dismiss(Language.getWord(withID: "close")), .action(Language.getWord(withID: "tryagain")) { self.retryPayout(notificationId) }])
