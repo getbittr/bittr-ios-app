@@ -378,12 +378,17 @@ extension CoreViewController {
                     if removalClaimed {
                         BitcoinManager.shared.endWalletRemoval()
                     }
-                    self.genericSpinner.stopAnimating()
-                    self.fullViewCover.alpha = 0
-                    self.showAlert(title: Language.getWord(withID: "removewallet"), message: Language.getWord(withID: "removalfailed"), buttons: [.dismiss(Language.getWord(withID: "okay"))])
+                    
+                    // A locked-out or Forgot PIN removal carries on once the wallet has synced again, while the spinner runs.
+                    let removalCarriesOn = removalBlocked && (wasResettingPin || wasRemovingWalletForIncorrectPin)
+                    if !removalCarriesOn {
+                        self.genericSpinner.stopAnimating()
+                        self.fullViewCover.alpha = 0
+                        self.showAlert(title: Language.getWord(withID: "removewallet"), message: Language.getWord(withID: "removalfailed"), buttons: [.dismiss(Language.getWord(withID: "okay"))])
+                    }
                     
                     if removalBlocked {
-                        // Bring back the node the check stopped.
+                        // Bring back the node the reset stopped.
                         self.walletHasSynced = false
                         self.startWallet()
                     }
