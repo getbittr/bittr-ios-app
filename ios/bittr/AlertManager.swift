@@ -373,6 +373,12 @@ extension UIViewController {
         }
     }
     
+    // Hides the alert on this controller's own view, whichever controller showed it.
+    func hideAlertOnOwnView() {
+        self.alertPresenter = nil
+        self.hideAlert()
+    }
+    
     func hideAlert() {
         let host = self.alertPresenter ?? self
         DispatchQueue.main.async {

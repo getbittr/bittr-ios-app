@@ -726,6 +726,13 @@ extension CoreViewController {
     
     func receiveOnchainForNotification() {
         
+        // The alert can outlive a lock, so this choice waits for the PIN.
+        guard self.userHasSignedIn else {
+            Log.info("receiveOnchainForNotification while locked. Deferring until the PIN is entered.")
+            self.deferredPresentation = { [weak self] in self?.receiveOnchainForNotification() }
+            return
+        }
+        
         guard let notificationId = self.pendingNotificationId else {
             Log.info("ERROR: No pending notification ID for on-chain payout")
             return
@@ -790,6 +797,13 @@ extension CoreViewController {
         // Navigate to swap screen using existing pattern
         // Use the stored suggested swap amount
         Log.info("swapAndPayForNotification called.")
+        
+        // The alert can outlive a lock, so the swap screen waits for the PIN.
+        guard self.userHasSignedIn else {
+            Log.info("swapAndPayForNotification while locked. Deferring until the PIN is entered.")
+            self.deferredPresentation = { [weak self] in self?.swapAndPayForNotification() }
+            return
+        }
         
         self.performSegue(withIdentifier: "CoreToSwap", sender: self)
     }
