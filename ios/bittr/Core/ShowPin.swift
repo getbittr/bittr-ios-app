@@ -15,6 +15,10 @@ extension CoreViewController {
     
     @objc func appDidBecomeActive() {
         self.hidePrivacyCover()
+        
+        if self.incomingPaymentIsWaiting, self.userHasSignedIn, self.walletHasSynced {
+            self.handleHTLCNotification()
+        }
     }
     
     func showPrivacyCover() {

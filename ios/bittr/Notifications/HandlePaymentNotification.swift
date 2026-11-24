@@ -60,6 +60,12 @@ extension CoreViewController {
                 self.incomingPaymentIsWaiting = false
                 return
             }
+            guard UIApplication.shared.applicationState == .active else {
+                // Tell bittr once the app is back in front.
+                Log.info("App not active; incoming HTLC waits until it is.")
+                self.incomingPaymentIsWaiting = true
+                return
+            }
             self.isHandlingIncomingHTLC = true
             UserDefaults.standard.removeObject(forKey: "pendingSwapResume")
             self.triggerHTLCReady()
