@@ -185,7 +185,9 @@ extension CoreViewController {
                         self.showAlert(title: Language.getWord(withID: "restorewallet"), message: Language.getWord(withID: "closeretrylater"), buttons: [.action(Language.getWord(withID: "tryagain")) { self.startWalletInBackground() }])
                     } else {
                         // Manual reset: let the user explicitly choose force close.
-                        self.forceCloseChannel()
+                        self.genericSpinner.stopAnimating()
+                        self.fullViewCover.alpha = 0
+                        self.showAlert(title: Language.getWord(withID: "closechannel6"), message: Language.getWord(withID: "closechannel7"), buttons: [.dismiss(Language.getWord(withID: "cancel")), .action(Language.getWord(withID: "forceclose")) { self.forceCloseChannel() }])
                     }
                 }
             }
@@ -330,7 +332,8 @@ extension CoreViewController {
             }
             
             var cleanupSucceeded = false
-            if BitcoinManager.shared.channelsFullyClosedAndSwept() {
+            let removalBlocked = !BitcoinManager.shared.channelsFullyClosedAndSwept()
+            if !removalBlocked {
                 do {
                     // Always clean up documents directory
                     try BitcoinManager.shared.deleteDocuments()
@@ -372,6 +375,12 @@ extension CoreViewController {
                     self.genericSpinner.stopAnimating()
                     self.fullViewCover.alpha = 0
                     self.showAlert(title: Language.getWord(withID: "removewallet"), message: Language.getWord(withID: "removalfailed"), buttons: [.dismiss(Language.getWord(withID: "okay"))])
+                    
+                    if removalBlocked {
+                        // Bring back the node the check stopped.
+                        self.walletHasSynced = false
+                        self.startWallet()
+                    }
                 }
                 return
             }
