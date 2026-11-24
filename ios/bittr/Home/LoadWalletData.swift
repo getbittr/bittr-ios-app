@@ -356,6 +356,10 @@ extension CoreViewController {
         }
         self.presentWaitingTransactionScreen()
         
+        if self.incomingPaymentIsWaiting {
+            self.handleHTLCNotification()
+        }
+        
         if self.needsToHandleURI() {
             Log.info("Needs to handle URI.")
             self.hideLoading()
@@ -369,8 +373,6 @@ extension CoreViewController {
             } else if actualNotification.type == .lightningPayout {
                 // It's a payout notification.
                 self.handlePayoutNotification(actualNotification)
-            } else if actualNotification.type == .htlcIncoming {
-                self.handleHTLCNotification(actualNotification)
             } else if actualNotification.type == .lnUrl {
                 // It's an LNURL notification.
                 self.handleLightningAddressNotification(actualNotification)

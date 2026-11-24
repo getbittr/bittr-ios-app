@@ -42,6 +42,7 @@ class CoreViewController: UIViewController {
     var wasNotified = false
     var lightningNotification:BittrNotification?
     var isHandlingIncomingHTLC = false
+    var incomingPaymentIsWaiting = false
     var isHandlingPayout = false
     var payoutsAnsweredByBittr = Set<String>()
     var payoutsWithInvoice = Set<String>()
