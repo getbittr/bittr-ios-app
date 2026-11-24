@@ -45,7 +45,7 @@ extension CoreViewController {
         }
     }
     
-    func restoreWalletTapped() {
+    func restoreWalletTapped(removalConfirmed:Bool = false) {
         // This function is reached from:
         // - The RestoreVC in case the user has lost their mnemonic and pin (before syncing).
         // - The HomeVC finalizeSync function in case the user has lost their mnemonic and pin (after syncing).
@@ -114,7 +114,7 @@ extension CoreViewController {
             } else {
                 // Fully closed and swept — the close is done.
                 self.isRemovalInFlight = false
-                if self.resettingPin || self.removingWalletForIncorrectPin {
+                if self.resettingPin || self.removingWalletForIncorrectPin || removalConfirmed {
                     Log.info("No channels and nothing left to sweep — removing wallet.")
                     self.performWalletReset()
                 } else {
@@ -153,7 +153,7 @@ extension CoreViewController {
     }
 
     func walletRestoreAlert() {
-        self.showAlert(title: Language.getWord(withID: "removewallet"), message: Language.getWord(withID: "restorewallet3"), buttons: [.dismiss(Language.getWord(withID: "cancel")), .action(Language.getWord(withID: "remove")) { self.performWalletReset() }])
+        self.showAlert(title: Language.getWord(withID: "removewallet"), message: Language.getWord(withID: "restorewallet3"), buttons: [.dismiss(Language.getWord(withID: "cancel")), .action(Language.getWord(withID: "remove")) { self.restoreWalletTapped(removalConfirmed: true) }])
     }
     
     func closeChannelAlert() {
@@ -316,40 +316,49 @@ extension CoreViewController {
         
         // Remove wallet from device and remove corresponding cached data.
         DispatchQueue.global(qos: .userInitiated).async {
-            var cleanupSucceeded = false
-            do {
-                Log.info("Starting wallet reset cleanup")
-                
-                // Always try to stop the node first if it exists
-                if BitcoinManager.shared.ldkNode != nil {
+            Log.info("Starting wallet reset cleanup")
+            
+            // Stop the node first, so no channel can open after the check below.
+            if BitcoinManager.shared.ldkNode != nil {
+                do {
                     try BitcoinManager.shared.stop()
                     Log.info("Lightning node stopped successfully")
+                } catch {
+                    Log.info("Error stopping the node: \(error.localizedDescription)")
+                    SentryManager.capture(error, context: "ResetApp row 269")
                 }
-                
-                // Always clean up documents directory
-                try BitcoinManager.shared.deleteDocuments()
-                Log.info("Documents directory cleaned successfully")
-                
-                // Reset node state to clear all references
-                BitcoinManager.shared.resetNodeState()
-                Log.info("Node state reset completed")
-                
-                cleanupSucceeded = true
-            } catch {
-                Log.info("Error during cleanup: \(error.localizedDescription)")
-                SentryManager.capture(error, context: "ResetApp row 269")
-                
-                // Even if everything fails, try to clean up documents (and state).
+            }
+            
+            var cleanupSucceeded = false
+            if BitcoinManager.shared.channelsFullyClosedAndSwept() {
                 do {
-                    Log.info("Attempting final fallback document cleanup")
+                    // Always clean up documents directory
                     try BitcoinManager.shared.deleteDocuments()
+                    Log.info("Documents directory cleaned successfully")
+                    
+                    // Reset node state to clear all references
                     BitcoinManager.shared.resetNodeState()
-                    Log.info("Final fallback document cleanup successful")
+                    Log.info("Node state reset completed")
+                    
                     cleanupSucceeded = true
                 } catch {
-                    Log.info("Final fallback document cleanup failed: \(error.localizedDescription)")
-                    SentryManager.capture(error, context: "ResetApp row 282")
+                    Log.info("Error during cleanup: \(error.localizedDescription)")
+                    SentryManager.capture(error, context: "ResetApp row 269")
+                    
+                    // Even if everything fails, try to clean up documents (and state).
+                    do {
+                        Log.info("Attempting final fallback document cleanup")
+                        try BitcoinManager.shared.deleteDocuments()
+                        BitcoinManager.shared.resetNodeState()
+                        Log.info("Final fallback document cleanup successful")
+                        cleanupSucceeded = true
+                    } catch {
+                        Log.info("Final fallback document cleanup failed: \(error.localizedDescription)")
+                        SentryManager.capture(error, context: "ResetApp row 282")
+                    }
                 }
+            } else {
+                Log.info("A channel or channel funds appeared since the removal was confirmed — nothing removed.")
             }
             
             guard cleanupSucceeded else {
