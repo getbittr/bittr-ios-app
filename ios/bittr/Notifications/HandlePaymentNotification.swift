@@ -156,6 +156,10 @@ extension CoreViewController {
     
     func rememberAnsweredPayout(_ notificationId: String) {
         self.payoutsAnsweredByBittr.insert(notificationId)
+        self.stopWaitingForPayout(notificationId)
+    }
+    
+    func stopWaitingForPayout(_ notificationId: String) {
         if self.lightningNotification?.notificationID == notificationId {
             self.lightningNotification = nil
         }
@@ -292,9 +296,9 @@ extension CoreViewController {
                                 // never offer a retry: resending would mint a new invoice that
                                 // could be paid on top of an in-flight one. Close-only. This is
                                 // an expected transient state, not a fault, so it's kept out of
-                                // Sentry.
+                                // Sentry. If the attempt fails, bittr can still ask again.
                                 sendToSentry = false
-                                self.rememberAnsweredPayout(notificationId)
+                                self.stopWaitingForPayout(notificationId)
                                 self.showAlert(title: Language.getWord(withID: "bittrpayout"), message: message, buttons: [.dismiss(Language.getWord(withID: "close"))])
                             case .unclearPayoutResponse:
                                 self.showAlert(title: Language.getWord(withID: "bittrpayout"), message: Language.getWord(withID: "bittrpayoutretry"), buttons: [.dismiss(Language.getWord(withID: "close")), .action(Language.getWord(withID: "tryagain")) { self.retryPayout(notificationId) }])
