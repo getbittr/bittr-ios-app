@@ -61,9 +61,10 @@ struct LightningStorage {
     
 // MARK: - Quarantine
     
-    // A new URL to quarantine foreign LDK Node data.
+    // A new URL to quarantine foreign LDK Node data. Removing a wallet keeps it.
+    static let quarantineDirectoryName = "foreign_ldk_state"
     private static var quarantineURL: URL {
-        documentsURL.appendingPathComponent("foreign_ldk_state", isDirectory: true)
+        documentsURL.appendingPathComponent(quarantineDirectoryName, isDirectory: true)
     }
     
     // All currently available LDK Node channel data.

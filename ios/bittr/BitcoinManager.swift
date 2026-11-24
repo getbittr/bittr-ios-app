@@ -681,7 +681,7 @@ class BitcoinManager {
     }
     
     func deleteDocuments() throws {
-        try FileManager.default.deleteAllContentsInDocumentsDirectory()
+        try FileManager.default.deleteAllContentsInDocumentsDirectory(keeping: LightningStorage.quarantineDirectoryName)
     }
     
     func resetNodeState() {
@@ -831,17 +831,10 @@ enum WalletError: Error {
 
 extension FileManager {
     
-    func deleteAllContentsInDocumentsDirectory() throws {
-        
-        if #available(iOS 16.0, *) {
-            let documentsURL = URL.documentsDirectory
-            let contents = try contentsOfDirectory(at: documentsURL, includingPropertiesForKeys: nil, options: [])
-            for fileURL in contents {
-                try removeItem(at: fileURL)
-            }
-        } else {
-            // Fallback on earlier versions
-            try FileManager.default.removeItem(atPath: LightningStorage().getDocumentsDirectory())
+    func deleteAllContentsInDocumentsDirectory(keeping keptName:String) throws {
+        let contents = try contentsOfDirectory(at: LightningStorage.documentsURL, includingPropertiesForKeys: nil, options: [])
+        for fileURL in contents where fileURL.lastPathComponent != keptName {
+            try removeItem(at: fileURL)
         }
     }
 }
