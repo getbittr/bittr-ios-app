@@ -324,6 +324,8 @@ extension CoreViewController {
                                 self.showAlert(title: Language.getWord(withID: "bittrpayout"), message: error.localizedDescription, buttons: [.dismiss(Language.getWord(withID: "close"))])
                                 self.lightningNotification = nil
                             }
+                        } else if (error as? URLError)?.code == .timedOut {
+                            self.showAlert(title: Language.getWord(withID: "bittrpayout"), message: Language.getWord(withID: "bittrpayoutretry"), buttons: [.dismiss(Language.getWord(withID: "close")), .action(Language.getWord(withID: "tryagain")) { self.retryPayout(notificationId) }])
                         } else {
                             if error.localizedDescription.contains("try again"), self.lightningNotification != nil {
                                 self.showAlert(title: Language.getWord(withID: "bittrpayout"), message: "\(error.localizedDescription)", buttons: [.dismiss(Language.getWord(withID: "close")), .action(Language.getWord(withID: "tryagain")) { self.retryPayout(notificationId) }])
