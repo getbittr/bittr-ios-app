@@ -305,6 +305,8 @@ extension CoreViewController {
     
     func performWalletReset() {
         self.hideSettings()
+        self.fullViewCover.alpha = 0.8
+        self.genericSpinner.startAnimating()
         
         // Stop background sync timer.
         self.walletSync?.stop()
@@ -320,8 +322,9 @@ extension CoreViewController {
         DispatchQueue.global(qos: .userInitiated).async {
             Log.info("Starting wallet reset cleanup")
             
-            // Stop the node first, so no channel can open after the check below.
-            if BitcoinManager.shared.ldkNode != nil {
+            // No node starts from here, and the running one stops, so no channel can open after the check below.
+            let removalClaimed = BitcoinManager.shared.claimWalletRemoval()
+            if removalClaimed, BitcoinManager.shared.ldkNode != nil {
                 do {
                     try BitcoinManager.shared.stop()
                     Log.info("Lightning node stopped successfully")
@@ -332,7 +335,7 @@ extension CoreViewController {
             }
             
             var cleanupSucceeded = false
-            let removalBlocked = !BitcoinManager.shared.channelsFullyClosedAndSwept()
+            let removalBlocked = !removalClaimed || !BitcoinManager.shared.channelsFullyClosedAndSwept()
             if !removalBlocked {
                 do {
                     // Always clean up documents directory
@@ -361,7 +364,7 @@ extension CoreViewController {
                     }
                 }
             } else {
-                Log.info("A channel or channel funds appeared since the removal was confirmed — nothing removed.")
+                Log.info("A node start was in flight, or a channel or channel funds appeared — nothing removed.")
             }
             
             guard cleanupSucceeded else {
@@ -372,6 +375,9 @@ extension CoreViewController {
                     // than leaving the app half-reset for the rest of the session.
                     self.resettingPin = wasResettingPin
                     self.removingWalletForIncorrectPin = wasRemovingWalletForIncorrectPin
+                    if removalClaimed {
+                        BitcoinManager.shared.endWalletRemoval()
+                    }
                     self.genericSpinner.stopAnimating()
                     self.fullViewCover.alpha = 0
                     self.showAlert(title: Language.getWord(withID: "removewallet"), message: Language.getWord(withID: "removalfailed"), buttons: [.dismiss(Language.getWord(withID: "okay"))])
@@ -389,6 +395,7 @@ extension CoreViewController {
             DispatchQueue.main.async {
                 // Node stopped and files removed, so the seed can go now, last, which completes the removal.
                 self.forgetWallet()
+                BitcoinManager.shared.endWalletRemoval()
                 self.userHasSignedIn = false
                 self.walletHasSynced = false
                 
