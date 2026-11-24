@@ -66,7 +66,7 @@ extension CoreViewController {
             case .lnUrl:
                 self.handleLightningAddressNotification(thisNotification)
             case .htlcIncoming:
-                self.handleHTLCNotification(thisNotification)
+                self.handleHTLCNotification()
             case .htlcExpired:
                 self.handleHTLCExpiredNotification(thisNotification)
             case .unknown:

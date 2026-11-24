@@ -43,34 +43,38 @@ extension CoreViewController {
         }
     }
     
-    func handleHTLCNotification(_ notification: BittrNotification) {
-        Log.info("Will handle HTLC (incoming payment) notification. signedIn=\(self.userHasSignedIn) synced=\(self.walletHasSynced) wasNotified=\(self.wasNotified) alreadyHandling=\(self.isHandlingIncomingHTLC)")
-        self.lightningNotification = notification
+    func handleHTLCNotification() {
+        Log.info("Will handle HTLC (incoming payment) notification. signedIn=\(self.userHasSignedIn) synced=\(self.walletHasSynced) alreadyHandling=\(self.isHandlingIncomingHTLC)")
         if !self.userHasSignedIn {
+            self.incomingPaymentIsWaiting = true
             self.wasNotified = true
             // No alert: let them unlock as quickly as possible.
         } else if !self.walletHasSynced {
+            self.incomingPaymentIsWaiting = true
             self.showLoading(message: Language.getWord(withID: "syncingwallet3"))
         } else {
             // The incoming payment can be triggered from both the HTLC-resume push
             // AND a Live Activity tap around the same time — handle it only once.
             guard !self.isHandlingIncomingHTLC else {
                 Log.info("Incoming HTLC already being handled; ignoring duplicate trigger.")
+                self.incomingPaymentIsWaiting = false
+                return
+            }
+            guard UIApplication.shared.applicationState == .active else {
+                // Tell bittr once the app is back in front.
+                Log.info("App not active; incoming HTLC waits until it is.")
+                self.incomingPaymentIsWaiting = true
                 return
             }
             self.isHandlingIncomingHTLC = true
             UserDefaults.standard.removeObject(forKey: "pendingSwapResume")
-            if !self.wasNotified {
-                self.showAlert(title: Language.getWord(withID: "incomingpayment"), message: Language.getWord(withID: "newbittrpayment"), buttons: [.action(Language.getWord(withID: "okay")) { self.triggerHTLCReady() }])
-            } else {
-                self.triggerHTLCReady()
-            }
+            self.triggerHTLCReady()
         }
     }
     
     func triggerHTLCReady() {
+        self.incomingPaymentIsWaiting = false
         self.showLoading(message: Language.getWord(withID: "receivingpayment"))
-        self.lightningNotification = nil
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
             self.facilitateHTLCReady()
         }
@@ -78,7 +82,7 @@ extension CoreViewController {
     
     func handleHTLCExpiredNotification(_ notification: BittrNotification) {
         // Payment already failed; don't show any "incoming payment" modal.
-        self.lightningNotification = nil
+        self.incomingPaymentIsWaiting = false
         let title = notification.headerText ?? Language.getWord(withID: "htlc_expired_title")
         let body = notification.bodyText ?? Language.getWord(withID: "htlc_expired_body")
         self.launchQuestion(question: title, answer: body, type: nil)
@@ -97,9 +101,21 @@ extension CoreViewController {
             self.showAlert(title: Language.getWord(withID: "incomingpayment"), message: Language.getWord(withID: "bittrpayoutfail2"), buttons: [.dismiss(Language.getWord(withID: "close"))])
             return
         }
-        let timestamp = Int(Date().timeIntervalSince1970)
-        let message = "htlc_ready:\(depositCode):\(timestamp)"
         Task {
+            // bittr can only release the payment over a live peer connection.
+            if !isConnectedToPeer() {
+                let didConnect = await BitcoinManager.shared.didEstablishPeerConnection()
+                guard didConnect else {
+                    await MainActor.run {
+                        self.hideLoading()
+                        self.isHandlingIncomingHTLC = false
+                        self.showAlert(title: Language.getWord(withID: "incomingpayment"), message: Language.getWord(withID: "couldntconnect"), buttons: [.dismiss(Language.getWord(withID: "close")), .action(Language.getWord(withID: "tryagain")) { self.handleHTLCNotification() }])
+                    }
+                    return
+                }
+            }
+            let timestamp = Int(Date().timeIntervalSince1970)
+            let message = "htlc_ready:\(depositCode):\(timestamp)"
             do {
                 let signature = try await BitcoinManager.shared.signMessage(message: message)
                 let response = try await BittrService.shared.htlcReady(depositCode: depositCode, timestamp: timestamp, pubkey: pubkey, signature: signature)
@@ -801,9 +817,7 @@ extension CoreViewController {
         Log.info("resumeSwapPayment: Live Activity tap → routing to incoming-HTLC handling.")
         UserDefaults.standard.removeObject(forKey: "pendingSwapResume")
         DispatchQueue.main.async {
-            let htlc = BittrNotification()
-            htlc.type = .htlcIncoming
-            self.handleHTLCNotification(htlc)
+            self.handleHTLCNotification()
         }
     }
     

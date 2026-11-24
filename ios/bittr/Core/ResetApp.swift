@@ -377,6 +377,7 @@ extension CoreViewController {
                 self.transactionScreensWaiting.removeAll()
                 self.lightningNotification = nil
                 self.isHandlingPayout = false
+                self.incomingPaymentIsWaiting = false
                 self.wasNotified = false
                 self.pendingNotificationId = nil
                 self.pendingSuggestedSwapAmount = 0

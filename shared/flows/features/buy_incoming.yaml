@@ -79,8 +79,8 @@ appId: com.bittr.bittr-regtest
     id: "buy.yourCode"
 - evalScript: ${output.depositCode = maestro.copiedText}
 
-# Dismiss BuyVC before the push. The incoming-payment alert is added as a
-# subview of CoreVC.view (AlertManager.showAlert), so it'd be hidden behind the
+# Dismiss BuyVC before the push. The payout alert is added as a subview of
+# CoreVC.view (AlertManager.showAlert), so it'd be hidden behind the
 # BuyVC modal if we left it open — Maestro (and the user) would never see it,
 # and the transaction would present tangled over the modal.
 - swipe:
@@ -98,19 +98,25 @@ appId: com.bittr.bittr-regtest
 
 # Real APNS push doesn't reach the iOS Simulator, so — like buy_more — inject the
 # matching push via push_server.js instead of waiting on the app's (slow) next
-# foreground sync. The backend returns a notification_id for the first deposit,
-# so build_payout_push builds a lightningPayout push.
+# foreground sync. With a notification_id, build_payout_push builds a
+# lightningPayout push; without one (possible for a channel-open deposit), an
+# htlcIncoming push.
 - runScript: ../scripts/build_payout_push.js
 - runScript: ../scripts/push_notification.js
 
-# The payout push surfaces the "bittr payout" alert (Okay → receive). With BuyVC
-# dismissed it's over Home, so wait for it and confirm the transaction landed.
-- extendedWaitUntil:
-    visible:
-      id: "alert.button.0"
-    timeout: 30000
-- tapOn:
-    id: "alert.button.0"
+# A payout push surfaces the "bittr payout" alert (Okay → receive). With BuyVC
+# dismissed it's over Home. An htlcIncoming push shows no alert and tells bittr
+# straight away. Either way, confirm the transaction landed.
+- runFlow:
+    when:
+      true: ${output.notificationId != null}
+    commands:
+      - extendedWaitUntil:
+          visible:
+            id: "alert.button.0"
+          timeout: 30000
+      - tapOn:
+          id: "alert.button.0"
 - extendedWaitUntil:
     visible:
       id: "transaction.labelAmount"
@@ -118,8 +124,8 @@ appId: com.bittr.bittr-regtest
 - takeScreenshot: shared/docs/screenshots/buy_incoming/04_transaction
 
 # The first deposit fires more than one incoming-payment event (the payout, then
-# the channel-open HTLC), so alerts and transaction screens can stack. Clear
-# whatever is on top — payment alerts (Okay) and transaction screens (down) —
+# the channel-open HTLC), so transaction screens, and any alert, can stack.
+# Clear whatever is on top — alerts (button 0) and transaction screens (down) —
 # until we settle back on Home.
 - repeat:
     times: 6
