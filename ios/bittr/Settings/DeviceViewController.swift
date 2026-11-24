@@ -331,6 +331,9 @@ extension UIViewController {
         thisNotification.notificationID = pendingPayout.id!
         thisNotification.amountMsat = (pendingPayout.transaction!["bitcoin_amount"] as! String).toNumber().inSatoshis() * 1000
         
+        // Handled right here, so becoming active never replays it.
+        thisNotification.hasBeenHandled = true
+        
         // Cache notification.
         CacheManager.cacheLastNotification(thisNotification)
         
