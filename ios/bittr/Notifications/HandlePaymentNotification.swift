@@ -13,6 +13,13 @@ extension CoreViewController {
     func handlePayoutNotification(_ notification:BittrNotification) {
         Log.info("Will handle payout notification.")
         
+        guard !self.payoutIsAlreadyRunning() else { return }
+        
+        if let notificationId = notification.notificationID, self.payoutsAnsweredByBittr.contains(notificationId) {
+            Log.info("Bittr has already answered this payout; ignoring replay.")
+            return
+        }
+        
         self.lightningNotification = notification
         
         if !self.userHasSignedIn {
@@ -27,11 +34,11 @@ extension CoreViewController {
             if !self.wasNotified {
                 // App was open when notification came in.
                 Log.info("Will notify user of alert.")
-                self.showAlert(title: Language.getWord(withID: "bittrpayout"), message: Language.getWord(withID: "newbittrpayment"), buttons: [.action(Language.getWord(withID: "okay")) { self.triggerPayout() }])
+                self.showAlert(title: Language.getWord(withID: "bittrpayout"), message: Language.getWord(withID: "newbittrpayment"), buttons: [.action(Language.getWord(withID: "okay")) { self.triggerPayout(notification.notificationID) }])
             } else {
                 // App was closed when notification came in and was subsequently opened.
                 Log.info("User has been notified of alert.")
-                self.triggerPayout()
+                self.triggerPayout(notification.notificationID)
             }
         }
     }
@@ -140,7 +147,34 @@ extension CoreViewController {
         return Language.getWord(withID: "bittrpayoutfail2")
     }
 
-    func triggerPayout() {
+    func payoutIsAlreadyRunning() -> Bool {
+        if self.isHandlingPayout {
+            Log.info("Payout already being handled; ignoring duplicate trigger.")
+        }
+        return self.isHandlingPayout
+    }
+    
+    func rememberAnsweredPayout(_ notificationId: String) {
+        self.payoutsAnsweredByBittr.insert(notificationId)
+        if self.lightningNotification?.notificationID == notificationId {
+            self.lightningNotification = nil
+        }
+        if let cachedNotification = CacheManager.getLastNotification(), cachedNotification.notificationID == notificationId, let pushId = cachedNotification.id {
+            CacheManager.didHandleNotification(pushId)
+        }
+    }
+    
+    func payoutIsStillWaiting(_ notificationId: String?) -> Bool {
+        guard let current = self.lightningNotification, current.notificationID == notificationId, !self.payoutsAnsweredByBittr.contains(notificationId ?? "") else {
+            Log.info("This payout is no longer waiting; ignoring old button.")
+            return false
+        }
+        return true
+    }
+    
+    func triggerPayout(_ notificationId: String?) {
+        guard !self.payoutIsAlreadyRunning(), self.payoutIsStillWaiting(notificationId) else { return }
+        self.isHandlingPayout = true
         self.showLoading(message: Language.getWord(withID: "receivingpayment"))
         DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
             self.facilitateNotificationPayout()
@@ -149,6 +183,7 @@ extension CoreViewController {
     
     func facilitateNotificationPayout() {
         Log.info("Will start payout process.")
+        self.isHandlingPayout = true
         
         // Extract required data.
         guard
@@ -159,21 +194,33 @@ extension CoreViewController {
             Log.info("No notification available for handling.")
             SentryManager.capture("Required data unavailable while trying to handle notification payout.", context: "HandlePaymentNotification row 108")
             self.hideLoading()
+            self.isHandlingPayout = false
             self.lightningNotification = nil
             self.showAlert(title: Language.getWord(withID: "bittrpayout"), message: Language.getWord(withID: "bittrpayoutfail"), buttons: [.dismiss(Language.getWord(withID: "close"))])
+            return
+        }
+        
+        guard !self.payoutsAnsweredByBittr.contains(notificationId) else {
+            Log.info("Bittr has already answered this payout; not requesting it again.")
+            self.hideLoading()
+            self.isHandlingPayout = false
+            self.rememberAnsweredPayout(notificationId)
             return
         }
             
         // Get pubkey.
         guard let pubkey:String = BitcoinManager.shared.nodeId() else {
             Log.info("Pubkey unavailable.")
-            self.showAlert(title: Language.getWord(withID: "bittrpayout"), message: Language.getWord(withID: "bittrpayoutfail2"), buttons: [.dismiss(Language.getWord(withID: "close")), .action(Language.getWord(withID: "tryagain")) { self.facilitateNotificationPayout() }])
+            self.hideLoading()
+            self.isHandlingPayout = false
+            self.showAlert(title: Language.getWord(withID: "bittrpayout"), message: Language.getWord(withID: "bittrpayoutfail2"), buttons: [.dismiss(Language.getWord(withID: "close")), .action(Language.getWord(withID: "tryagain")) { self.retryPayout(notificationId) }])
             return
         }
 
         // Call payoutLightning in an async context
         if isConnectedToPeer() {
             Log.info("Is connected to peer.")
+            self.payoutsWithInvoice.insert(notificationId)
             
             Task {
                 // Create invoice.
@@ -184,6 +231,7 @@ extension CoreViewController {
                 else {
                     DispatchQueue.main.async {
                         self.hideLoading()
+                        self.isHandlingPayout = false
                         self.lightningNotification = nil
                         self.showAlert(title: Language.getWord(withID: "bittrpayout"), message: Language.getWord(withID: "bittrpayoutfail"), buttons: [.dismiss(Language.getWord(withID: "close"))])
                     }
@@ -208,6 +256,7 @@ extension CoreViewController {
                     DispatchQueue.main.async {
                         SentryManager.capture(error, context: "HandlePaymentNotification row 163")
                         self.hideLoading()
+                        self.isHandlingPayout = false
                         self.lightningNotification = nil
                         self.showAlert(title: Language.getWord(withID: "bittrpayout"), message: Language.getWord(withID: "bittrpayoutfail"), buttons: [.dismiss(Language.getWord(withID: "close"))])
                     }
@@ -221,13 +270,15 @@ extension CoreViewController {
                     Log.info("Payout successful.")
                     Log.debug("PreImage: \(payoutResponse.preImage ?? "N/A")")
                     DispatchQueue.main.async {
-                        CacheManager.didHandleNotification(notificationId)
+                        self.rememberAnsweredPayout(notificationId)
                         self.hideLoading()
+                        self.isHandlingPayout = false
                     }
                 } catch {
                     Log.info("Error occurred: \(error.localizedDescription)")
                     DispatchQueue.main.async {
                         self.hideLoading()
+                        self.isHandlingPayout = false
                         var sendToSentry = true
                         
                         if let bittrServiceError = error as? BittrServiceError {
@@ -241,10 +292,9 @@ extension CoreViewController {
                                 // never offer a retry: resending would mint a new invoice that
                                 // could be paid on top of an in-flight one. Close-only. This is
                                 // an expected transient state, not a fault, so it's kept out of
-                                // Sentry. lightningNotification is deliberately left set — if the
-                                // payment does settle, the .paymentReceived handler reconciles it
-                                // as the Bittr payout rather than as a stray incoming payment.
+                                // Sentry.
                                 sendToSentry = false
+                                self.rememberAnsweredPayout(notificationId)
                                 self.showAlert(title: Language.getWord(withID: "bittrpayout"), message: message, buttons: [.dismiss(Language.getWord(withID: "close"))])
                             case .paymentTooLarge(let message):
                                 // Permanent: resending the same amount will fail again, so no
@@ -254,12 +304,13 @@ extension CoreViewController {
                                 self.lightningNotification = nil
                             case .serverError(let message):
                                 if message.contains("try again"), self.lightningNotification != nil {
-                                    self.showAlert(title: Language.getWord(withID: "bittrpayout"), message: message, buttons: [.dismiss(Language.getWord(withID: "close")), .action(Language.getWord(withID: "tryagain")) { self.facilitateNotificationPayout() }])
+                                    self.showAlert(title: Language.getWord(withID: "bittrpayout"), message: message, buttons: [.dismiss(Language.getWord(withID: "close")), .action(Language.getWord(withID: "tryagain")) { self.retryPayout(notificationId) }])
                                 } else {
                                     self.showAlert(title: Language.getWord(withID: "bittrpayout"), message: message, buttons: [.dismiss(Language.getWord(withID: "close"))])
                                     if message == "This payment has already been processed." {
                                         // No need to notify Sentry.
                                         sendToSentry = false
+                                        self.rememberAnsweredPayout(notificationId)
                                     }
                                     self.lightningNotification = nil
                                 }
@@ -269,7 +320,7 @@ extension CoreViewController {
                             }
                         } else {
                             if error.localizedDescription.contains("try again"), self.lightningNotification != nil {
-                                self.showAlert(title: Language.getWord(withID: "bittrpayout"), message: "\(error.localizedDescription)", buttons: [.dismiss(Language.getWord(withID: "close")), .action(Language.getWord(withID: "tryagain")) { self.facilitateNotificationPayout() }])
+                                self.showAlert(title: Language.getWord(withID: "bittrpayout"), message: "\(error.localizedDescription)", buttons: [.dismiss(Language.getWord(withID: "close")), .action(Language.getWord(withID: "tryagain")) { self.retryPayout(notificationId) }])
                             } else {
                                 self.showAlert(title: Language.getWord(withID: "bittrpayout"), message: "\(error.localizedDescription)", buttons: [.dismiss(Language.getWord(withID: "close"))])
                                 self.lightningNotification = nil
@@ -286,13 +337,23 @@ extension CoreViewController {
             Log.info("Not connected to peer.")
             DispatchQueue.main.async {
                 self.hideLoading()
-                self.showAlert(title: Language.getWord(withID: "bittrpayout"), message: Language.getWord(withID: "couldntconnect"), buttons: [.dismiss(Language.getWord(withID: "close")), .action(Language.getWord(withID: "tryagain")) { self.reconnectToPeer() }])
+                self.isHandlingPayout = false
+                self.showAlert(title: Language.getWord(withID: "bittrpayout"), message: Language.getWord(withID: "couldntconnect"), buttons: [.dismiss(Language.getWord(withID: "close")), .action(Language.getWord(withID: "tryagain")) { self.reconnectToPeer(notificationId) }])
             }
         }
     }
     
     
-    func reconnectToPeer() {
+    func retryPayout(_ notificationId: String) {
+        guard !self.payoutIsAlreadyRunning(), self.payoutIsStillWaiting(notificationId) else { return }
+        self.showLoading(message: Language.getWord(withID: "receivingpayment"))
+        self.facilitateNotificationPayout()
+    }
+    
+    func reconnectToPeer(_ notificationId: String) {
+        guard !self.payoutIsAlreadyRunning(), self.payoutIsStillWaiting(notificationId) else { return }
+        self.isHandlingPayout = true
+        self.showLoading(message: Language.getWord(withID: "receivingpayment"))
         Task {
             _ = await BitcoinManager.shared.didEstablishPeerConnection()
             DispatchQueue.main.async {
@@ -318,7 +379,8 @@ extension CoreViewController {
                 if let paymentDetails = BitcoinManager.shared.getPaymentDetails(paymentHash: paymentHash) {
                     Log.info("Did receive payment details.")
                     
-                    if self.lightningNotification != nil {
+                    let invoiceDescription = CacheManager.getInvoiceDescription(preimages: paymentDetails.cacheIDs)
+                    if self.lightningNotification != nil || self.payoutsWithInvoice.contains(invoiceDescription) {
                         // This is an incoming Bittr payout.
                         self.checkPaymentWithBittr(paymentPreimage: paymentDetails.kind.transactionID ?? paymentDetails.id, paymentDetails: paymentDetails, isFundingTransaction: false)
                     } else {
@@ -402,8 +464,16 @@ extension CoreViewController {
                             if let homeVC = self.homeVC {
                                 homeVC.addLightningTransaction(thisTransaction: newTransaction, paymentDetails: paymentDetails)
                                 if !newTransaction.isSwap, !newTransaction.isSwapPayment {
-                                    homeVC.tappedTransaction = newTransaction
-                                    homeVC.performSegue(withIdentifier: "HomeToTransaction", sender: homeVC)
+                                    let presentTransactionVC = { [weak homeVC] in
+                                        guard let homeVC else { return }
+                                        homeVC.tappedTransaction = newTransaction
+                                        homeVC.performSegue(withIdentifier: "HomeToTransaction", sender: homeVC)
+                                    }
+                                    if self.transactionScreenMustWait() {
+                                        self.transactionScreensWaiting.append(presentTransactionVC)
+                                    } else {
+                                        presentTransactionVC()
+                                    }
                                 }
                             }
                             CacheManager.storeLightningTransaction(newTransaction)
@@ -469,12 +539,6 @@ extension CoreViewController {
     
     func launchTransactionVC(thisTransaction:Transaction, paymentDetails:PaymentDetails?) {
         
-        if thisTransaction.isBittr {
-            self.receivedBittrTransaction = thisTransaction
-        } else {
-            self.homeVC?.tappedTransaction = thisTransaction
-        }
-        
         DispatchQueue.main.async {
             // Add and cache transaction.
             self.homeVC?.addLightningTransaction(thisTransaction: thisTransaction, paymentDetails: paymentDetails)
@@ -483,17 +547,35 @@ extension CoreViewController {
             // Launch TransactionVC after ReceiveVC has dismissed.
             let presentTransactionVC = { [weak self] in
                 guard let self else { return }
+                if thisTransaction.isBittr {
+                    self.receivedBittrTransaction = thisTransaction
+                } else {
+                    self.homeVC?.tappedTransaction = thisTransaction
+                }
                 if thisTransaction.isSwapPayment {
                     SwapManager.openCompletedSwapTransaction(dateID: thisTransaction.lnDescription, homeVC: self.homeVC)
                 } else {
                     self.homeVC?.performSegue(withIdentifier: "HomeToTransaction", sender: self)
                 }
             }
-            if let receiveVC = self.receiveVC {
+            if self.transactionScreenMustWait() {
+                self.transactionScreensWaiting.append(presentTransactionVC)
+            } else if let receiveVC = self.receiveVC {
                 receiveVC.dismiss(animated: true, completion: presentTransactionVC)
             } else {
                 presentTransactionVC()
             }
+        }
+    }
+    
+    func transactionScreenMustWait() -> Bool {
+        return !self.userHasSignedIn || self.currentPage != .home || self.homeVC?.presentedViewController is TransactionViewController
+    }
+    
+    func presentWaitingTransactionScreen() {
+        DispatchQueue.main.async {
+            guard self.userHasSignedIn, self.currentPage == .home, self.homeVC?.presentedViewController == nil, !self.transactionScreensWaiting.isEmpty else { return }
+            self.transactionScreensWaiting.removeFirst()()
         }
     }
     
@@ -505,14 +587,26 @@ extension CoreViewController {
             for eachTransaction in self.homeVC!.visibleTransactions {
                 if eachTransaction.id == paymentPreimage {
                     Log.info("Found correct transaction in transactions table.")
-                    self.receivedBittrTransaction = eachTransaction
                     DispatchQueue.main.async {
-                        self.homeVC?.performSegue(withIdentifier: "HomeToTransaction", sender: self)
+                        let presentTransactionVC = { [weak self] in
+                            guard let self else { return }
+                            self.receivedBittrTransaction = eachTransaction
+                            self.homeVC?.performSegue(withIdentifier: "HomeToTransaction", sender: self)
+                        }
+                        if self.transactionScreenMustWait() {
+                            self.transactionScreensWaiting.append(presentTransactionVC)
+                        } else {
+                            presentTransactionVC()
+                        }
                     }
                 }
             }
             return
         }
+        
+        // A payout's invoice was cached with its notification ID as description.
+        let cachedDescription = paymentDetails.map { CacheManager.getInvoiceDescription(preimages: $0.cacheIDs) } ?? ""
+        let invoiceDescription = cachedDescription.isEmpty ? nil : cachedDescription
         
         // Get deposit codes.
         var depositCodes = [String]()
@@ -541,9 +635,11 @@ extension CoreViewController {
                         DispatchQueue.main.async {
                             
                             // Add payout ID to cache.
-                            if let notificationId = self.lightningNotification?.notificationID {
+                            if let notificationId = invoiceDescription ?? self.lightningNotification?.notificationID {
                                 CacheManager.storeInvoiceDescription(preimage: paymentPreimage, desc: notificationId)
-                                self.lightningNotification = nil
+                                if self.lightningNotification?.notificationID == notificationId {
+                                    self.lightningNotification = nil
+                                }
                             }
                             
                             // Create transaction object.
@@ -726,12 +822,20 @@ extension CoreViewController {
     
     func receiveOnchainForNotification() {
         
+        guard !self.payoutIsAlreadyRunning() else { return }
+        
         guard let notificationId = self.pendingNotificationId else {
             Log.info("ERROR: No pending notification ID for on-chain payout")
             return
         }
         
+        guard !self.payoutsAnsweredByBittr.contains(notificationId) else {
+            Log.info("Bittr has already answered this payout; not requesting it on-chain.")
+            return
+        }
+        
         // Show loading state
+        self.isHandlingPayout = true
         self.showLoading(message: Language.getWord(withID: "receivingpayment"))
         
         // Get pubkey
@@ -740,6 +844,7 @@ extension CoreViewController {
             pubkey = pubkeyString
         } else {
             self.hideLoading()
+            self.isHandlingPayout = false
             self.showAlert(
                 title: Language.getWord(withID: "error"),
                 message: Language.getWord(withID: "onchainpayoutfail").replacingOccurrences(of: "<message>", with: Language.getWord(withID: "walletnotsynced")),
@@ -762,6 +867,8 @@ extension CoreViewController {
                 
                 DispatchQueue.main.async {
                     self.hideLoading()
+                    self.isHandlingPayout = false
+                    self.rememberAnsweredPayout(notificationId)
                     self.showAlert(
                         title: Language.getWord(withID: "onchainpayoutscheduled"),
                         message: Language.getWord(withID: "onchainpayoutscheduled2"),
@@ -777,6 +884,7 @@ extension CoreViewController {
                 DispatchQueue.main.async {
                     SentryManager.capture(error, context: "HandlePaymentNotification row 637")
                     self.hideLoading()
+                    self.isHandlingPayout = false
                     self.showAlert(
                         title: Language.getWord(withID: "error"),
                         message: Language.getWord(withID: "onchainpayoutfail").replacingOccurrences(of: "<message>", with: error.localizedDescription),

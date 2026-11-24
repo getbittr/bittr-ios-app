@@ -132,8 +132,7 @@ extension CoreViewController {
         if self.presentedViewController != nil { self.dismiss(animated: false) }
         self.hideSettings()
         
-        // Remove any loading overlay, because it would block the PIN pad.
-        self.hideLoading()
+        self.holdLoadingUntilSignIn()
         
         // Prepare and show PinVC.
         self.pinVC?.clearPinField()
@@ -252,6 +251,8 @@ extension CoreViewController {
                 self.pinBottom = NSLayoutConstraint(item: self.pinContainerView, attribute: .bottom, relatedBy: .equal, toItem: self.view, attribute: .bottom, multiplier: 1, constant: 0)
                 NSLayoutConstraint.activate([self.pinBottom])
                 self.view.layoutIfNeeded()
+                
+                self.bringBackHeldLoading()
             }
             self.currentPage = .signup
         }
@@ -292,6 +293,7 @@ extension CoreViewController {
             NSLayoutConstraint.activate([self.signupBottom, self.pinBottom, self.homeContainerTop, self.menuBarBottom])
             self.view.layoutIfNeeded()
         } completion: { finished in
+            self.bringBackHeldLoading()
             completion?()
             
             if walletHadSynced, self.userHasSignedIn {

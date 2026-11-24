@@ -516,8 +516,20 @@ extension UIViewController {
     // MARK: - Loading overlay
 
     // Shows a non-dismissable loading overlay over this view controller.
-    func showLoading(message: String) {
+    func showLoading(message: String, ifStillHeld: Bool = false) {
         DispatchQueue.main.async {
+            
+            // Never cover the PIN pad.
+            if let coreVC = self as? CoreViewController, !coreVC.userHasSignedIn {
+                coreVC.loadingMessageAfterSignIn = message
+                return
+            }
+            
+            // A held card whose request finished in the meantime stays gone.
+            if ifStillHeld {
+                guard let coreVC = self as? CoreViewController, coreVC.loadingMessageAfterSignIn != nil else { return }
+                coreVC.loadingMessageAfterSignIn = nil
+            }
             
             // Already showing → just swap the message, don't stack a second overlay.
             if let existing = self.view.subviews.compactMap({ $0 as? LoadingOverlayView }).first(where: { !$0.isDismissing }) {
@@ -568,9 +580,34 @@ extension UIViewController {
     // Slides the loading overlay back down and removes it.
     func hideLoading() {
         DispatchQueue.main.async {
+            (self as? CoreViewController)?.loadingMessageAfterSignIn = nil
             for overlay in self.view.subviews.compactMap({ $0 as? LoadingOverlayView }) where !overlay.isDismissing {
                 self.slideOut(overlay, from: self)
             }
+        }
+    }
+}
+
+extension CoreViewController {
+    
+    // Slides the loading overlay down, and brings it back once the user has signed in.
+    func holdLoadingUntilSignIn() {
+        DispatchQueue.main.async {
+            let subviews = self.view.subviews
+            let alertPosition = self.view.liveAlertOverlay.flatMap { subviews.firstIndex(of: $0) } ?? -1
+            for overlay in subviews.compactMap({ $0 as? LoadingOverlayView }) where !overlay.isDismissing {
+                // A card under an alert would come back over it, and fromPinToHome shows the syncing card again.
+                if let message = overlay.messageLabel?.text, message != Language.getWord(withID: "syncingwallet3"), let position = subviews.firstIndex(of: overlay), position > alertPosition {
+                    self.loadingMessageAfterSignIn = message
+                }
+                self.slideOut(overlay, from: self)
+            }
+        }
+    }
+    
+    func bringBackHeldLoading() {
+        if let message = self.loadingMessageAfterSignIn {
+            self.showLoading(message: message, ifStillHeld: true)
         }
     }
 }

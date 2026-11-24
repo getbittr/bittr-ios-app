@@ -21,6 +21,7 @@ class CoreViewController: UIViewController {
     // Backgrounded app
     var backgroundedAt:Date?
     var deferredPresentation:(() -> Void)? // A screen someone asked for while the PIN was up.
+    var loadingMessageAfterSignIn:String? // A loading card someone asked for while the PIN was up.
     var privacyCover:UIView? // Hides the wallet from the app switcher snapshot.
     var lockedDuringSignup = false
     
@@ -41,7 +42,11 @@ class CoreViewController: UIViewController {
     var wasNotified = false
     var lightningNotification:BittrNotification?
     var isHandlingIncomingHTLC = false
+    var isHandlingPayout = false
+    var payoutsAnsweredByBittr = Set<String>()
+    var payoutsWithInvoice = Set<String>()
     var receivedBittrTransaction:Transaction?
+    var transactionScreensWaiting = [() -> Void]()
     var pendingNotificationId:String?
     var pendingSuggestedSwapAmount:Int = 0
     var pendingPayout:BittrPendingPayout?
