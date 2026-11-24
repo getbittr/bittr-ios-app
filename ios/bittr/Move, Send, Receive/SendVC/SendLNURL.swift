@@ -428,27 +428,37 @@ extension UIViewController {
                 }
             }
             
-            let actualUrl = lnurlCallbackURL(callbackURL, adding: ["k1": k1, "pr": "\(invoice)"])
-            Log.debug("Actual URL: \(actualUrl)")
-            
-            await CallsManager.makeApiCall(url: actualUrl, parameters: nil, getOrPost: .get, reportDecodeFailures: false) { result in
-                DispatchQueue.main.async {
-                    sendVC?.stopLNURLSpinner()
-                    
-                    switch result {
-                    case .success(let actualDataDict):
-                        guard let receivedStatus = actualDataDict["status"] as? String, receivedStatus == "OK" else {
-                            SentryManager.countMetric("lnurl.withdraw.failure.1")
-                            let errorMessage:String = (actualDataDict["reason"] as? String) ?? "Unexpected error"
-                            self.showAlert(title: Language.getWord(withID: "withdrawrequest"), message: "\(Language.getWord(withID: "lnurlfail1")) \(errorMessage)", buttons: [.dismiss(Language.getWord(withID: "okay"))])
-                            return
-                        }
-                        // Successful withdrawal.
-                        SentryManager.countMetric("lnurl.withdraw.success")
-                    case .failure(let error):
-                        Log.info("Error: \(error.localizedDescription)")
-                        SentryManager.countMetric("lnurl.withdraw.failure.3")
-                        self.showLNURLRequestFailed(error) { self.sendWithdrawRequest(callbackURL: callbackURL, amount: amount, k1: k1) }
+            await self.withdraw(to: invoice.description, callbackURL: callbackURL, k1: k1)
+        }
+    }
+    
+    func withdraw(to invoice:String, callbackURL:String, k1:String) async {
+        
+        let sendVC = self as? SendViewController
+        
+        let actualUrl = lnurlCallbackURL(callbackURL, adding: ["k1": k1, "pr": invoice])
+        Log.debug("Actual URL: \(actualUrl)")
+        
+        await CallsManager.makeApiCall(url: actualUrl, parameters: nil, getOrPost: .get, reportDecodeFailures: false) { result in
+            DispatchQueue.main.async {
+                sendVC?.stopLNURLSpinner()
+                
+                switch result {
+                case .success(let actualDataDict):
+                    guard let receivedStatus = actualDataDict["status"] as? String, receivedStatus == "OK" else {
+                        SentryManager.countMetric("lnurl.withdraw.failure.1")
+                        let errorMessage:String = (actualDataDict["reason"] as? String) ?? "Unexpected error"
+                        self.showAlert(title: Language.getWord(withID: "withdrawrequest"), message: "\(Language.getWord(withID: "lnurlfail1")) \(errorMessage)", buttons: [.dismiss(Language.getWord(withID: "okay"))])
+                        return
+                    }
+                    // Successful withdrawal.
+                    SentryManager.countMetric("lnurl.withdraw.success")
+                case .failure(let error):
+                    Log.info("Error: \(error.localizedDescription)")
+                    SentryManager.countMetric("lnurl.withdraw.failure.3")
+                    self.showLNURLRequestFailed(error) {
+                        sendVC?.startLNURLSpinner()
+                        Task { await self.withdraw(to: invoice, callbackURL: callbackURL, k1: k1) }
                     }
                 }
             }
