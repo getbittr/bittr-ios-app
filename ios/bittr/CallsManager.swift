@@ -25,6 +25,12 @@ extension APIError: LocalizedError {
             return "Could not read the server's response."
         }
     }
+    
+    // A client error other than a timeout or rate limit: asking again gets the same answer.
+    var isPermanent:Bool {
+        guard case .requestFailed(let message) = self, message.hasPrefix("HTTP "), let status = Int(message.dropFirst("HTTP ".count)) else { return false }
+        return (400..<500).contains(status) && status != 408 && status != 429
+    }
 }
 
 class CallsManager: NSObject {

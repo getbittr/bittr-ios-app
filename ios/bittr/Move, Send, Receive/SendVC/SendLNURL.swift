@@ -229,13 +229,7 @@ extension UIViewController {
                         sendVC?.stopLNURLSpinner()
                         SentryManager.countMetric("lnurl.api.failure.1")
                         Log.info("Error 111: \(error.localizedDescription)")
-                        self.showAlert(
-                            title: Language.getWord(withID: "lnurl"),
-                            message: Language.getWord(withID: "lnurlfail3"),
-                            buttons: [
-                                .dismiss(Language.getWord(withID: "cancel")),
-                                .action(Language.getWord(withID: "tryagain")) { self.handleLNURL(code: code) }
-                            ])
+                        self.showLNURLRequestFailed(error) { self.handleLNURL(code: code) }
                     }
                 }
             }
@@ -398,13 +392,7 @@ extension UIViewController {
                     case .failure(let error):
                         SentryManager.countMetric("lnurl.pay.failure.1")
                         Log.info("Error: \(error.localizedDescription)")
-                        self.showAlert(
-                            title: Language.getWord(withID: "lnurl"),
-                            message: Language.getWord(withID: "lnurlfail3"),
-                            buttons: [
-                                .dismiss(Language.getWord(withID: "cancel")),
-                                .action(Language.getWord(withID: "tryagain")) { self.sendPayRequest(callbackURL: callbackURL, amount: amount, receivedDescription: receivedDescription, metadata: metadata) }
-                            ])
+                        self.showLNURLRequestFailed(error) { self.sendPayRequest(callbackURL: callbackURL, amount: amount, receivedDescription: receivedDescription, metadata: metadata) }
                     }
                 }
             }
@@ -460,13 +448,7 @@ extension UIViewController {
                     case .failure(let error):
                         Log.info("Error: \(error.localizedDescription)")
                         SentryManager.countMetric("lnurl.withdraw.failure.3")
-                        self.showAlert(
-                            title: Language.getWord(withID: "lnurl"),
-                            message: Language.getWord(withID: "lnurlfail3"),
-                            buttons: [
-                                .dismiss(Language.getWord(withID: "cancel")),
-                                .action(Language.getWord(withID: "tryagain")) { self.sendWithdrawRequest(callbackURL: callbackURL, amount: amount, k1: k1) }
-                            ])
+                        self.showLNURLRequestFailed(error) { self.sendWithdrawRequest(callbackURL: callbackURL, amount: amount, k1: k1) }
                     }
                 }
             }
@@ -659,6 +641,14 @@ extension UIViewController {
         Log.info("Rejected an LNURL with an invalid amount range.")
         (self as? SendViewController)?.stopLNURLSpinner()
         self.showAlert(title: Language.getWord(withID: "lnurl"), message: Language.getWord(withID: "lnurlinvalidamounts"), buttons: [.dismiss(Language.getWord(withID: "okay"))])
+    }
+    
+    func showLNURLRequestFailed(_ error:APIError, retry: @escaping () -> Void) {
+        if error.isPermanent {
+            self.showAlert(title: Language.getWord(withID: "lnurl"), message: Language.getWord(withID: "lnurlfail3"), buttons: [.dismiss(Language.getWord(withID: "okay"))])
+        } else {
+            self.showAlert(title: Language.getWord(withID: "lnurl"), message: Language.getWord(withID: "lnurlfail3"), buttons: [.dismiss(Language.getWord(withID: "cancel")), .action(Language.getWord(withID: "tryagain"), retry)])
+        }
     }
 }
 
