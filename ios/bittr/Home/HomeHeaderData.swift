@@ -125,7 +125,15 @@ extension HomeHeaderTableViewCell {
         self.headerSpinner.stopAnimating()
         
         guard let homeVC = self.homeVC else { return }
-        self.headerProblemImage.alpha = (BitcoinManager.shared.lastWalletSyncFailed || homeVC.couldNotFetchConversion) ? 1 : 0
+        var problems = [String]()
+        if homeVC.couldNotFetchConversion {
+            problems.append(Language.getWord(withID: "conversionunavailable"))
+        }
+        if BitcoinManager.shared.lastWalletSyncFailed {
+            problems.append(Language.getWord(withID: "walletsyncfailed"))
+        }
+        self.headerProblemImage.accessibilityLabel = problems.joined(separator: ", ")
+        self.headerProblemImage.alpha = problems.isEmpty ? 0 : 1
     }
     
     func hideLabels() {
