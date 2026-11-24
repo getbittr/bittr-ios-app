@@ -20,6 +20,7 @@ class BitcoinManager {
     // LDK Node single-flight startup guard.
     private let nodeStartLock = NSLock()
     private var isStartingNode = false
+    private var isRemovingWallet = false
     private var nodeStartCompletions = [(Bool) -> Void]()
     
     // BDK
@@ -67,6 +68,7 @@ class BitcoinManager {
         case proceed         // LDKNode hasn't been started yet.
         case startInFlight   // LDKNode is already being started.
         case alreadyRunning  // LDKNode is already running.
+        case walletRemoval   // The wallet is being removed.
     }
     
     /// Claims the right to start the node.
@@ -80,6 +82,9 @@ class BitcoinManager {
         nodeStartLock.lock()
         defer { nodeStartLock.unlock() }
 
+        if isRemovingWallet {
+            return .walletRemoval
+        }
         if isStartingNode {
             if let onInFlightStart {
                 nodeStartCompletions.append(onInFlightStart)
@@ -102,6 +107,21 @@ class BitcoinManager {
         defer { endNodeStart(didStart: didStart) }
         didStart = start()
         return didStart
+    }
+
+    /// Keeps any node from starting until `endWalletRemoval()`. Refused while a start is in flight.
+    func claimWalletRemoval() -> Bool {
+        nodeStartLock.lock()
+        defer { nodeStartLock.unlock() }
+        guard !isStartingNode else { return false }
+        isRemovingWallet = true
+        return true
+    }
+    
+    func endWalletRemoval() {
+        nodeStartLock.lock()
+        isRemovingWallet = false
+        nodeStartLock.unlock()
     }
 
     private func endNodeStart(didStart: Bool) {
@@ -661,7 +681,7 @@ class BitcoinManager {
     }
     
     func deleteDocuments() throws {
-        try FileManager.default.deleteAllContentsInDocumentsDirectory()
+        try FileManager.default.deleteAllContentsInDocumentsDirectory(keeping: LightningStorage.quarantineDirectoryName)
     }
     
     func resetNodeState() {
@@ -811,17 +831,10 @@ enum WalletError: Error {
 
 extension FileManager {
     
-    func deleteAllContentsInDocumentsDirectory() throws {
-        
-        if #available(iOS 16.0, *) {
-            let documentsURL = URL.documentsDirectory
-            let contents = try contentsOfDirectory(at: documentsURL, includingPropertiesForKeys: nil, options: [])
-            for fileURL in contents {
-                try removeItem(at: fileURL)
-            }
-        } else {
-            // Fallback on earlier versions
-            try FileManager.default.removeItem(atPath: LightningStorage().getDocumentsDirectory())
+    func deleteAllContentsInDocumentsDirectory(keeping keptName:String) throws {
+        let contents = try contentsOfDirectory(at: LightningStorage.documentsURL, includingPropertiesForKeys: nil, options: [])
+        for fileURL in contents where fileURL.lastPathComponent != keptName {
+            try removeItem(at: fileURL)
         }
     }
 }

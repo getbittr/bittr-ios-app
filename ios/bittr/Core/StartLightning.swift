@@ -55,6 +55,9 @@ extension CoreViewController {
             // Node is already running. Proceed to next step.
             self.continueStartWallet()
             
+        case .walletRemoval:
+            Log.info("Not starting the node while the wallet is being removed.")
+            
         case .startInFlight:
             // Node start already in flight. Restart timer.
             self.startSync(.ldk)
