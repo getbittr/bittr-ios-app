@@ -117,6 +117,8 @@ class HomeHeaderTableViewCell: UITableViewCell {
         // Accessibility identifiers
         self.headerSpinner.accessibilityIdentifier = TestID.Home.headerSpinner
         self.headerLabel.accessibilityIdentifier = TestID.Home.headerLabel
+        self.headerProblemImage.accessibilityIdentifier = TestID.Home.headerProblemImage
+        self.headerProblemImage.isAccessibilityElement = true
         self.balanceLabel.accessibilityIdentifier = TestID.Home.balanceLabel
         self.profitLabel.accessibilityIdentifier = TestID.Home.profitLabel
         self.balanceCardButton.accessibilityIdentifier = TestID.Home.balanceCardButton

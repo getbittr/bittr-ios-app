@@ -60,6 +60,7 @@ enum TestID {
         static let buyButton = "home.buyButton"
         static let currencyButton = "home.currencyButton"
         static let headerLabel = "home.headerLabel"
+        static let headerProblemImage = "home.headerProblemImage"
         static let headerSpinner = "home.headerSpinner"
         static let mapButton = "home.mapButton"
         static let profitButton = "home.profitButton"
