@@ -791,6 +791,13 @@ extension CoreViewController {
         // Use the stored suggested swap amount
         Log.info("swapAndPayForNotification called.")
         
+        // The alert can outlive a lock, so the swap screen waits for the PIN.
+        guard self.userHasSignedIn else {
+            Log.info("swapAndPayForNotification while locked. Deferring until the PIN is entered.")
+            self.deferredPresentation = { [weak self] in self?.swapAndPayForNotification() }
+            return
+        }
+        
         self.performSegue(withIdentifier: "CoreToSwap", sender: self)
     }
 
