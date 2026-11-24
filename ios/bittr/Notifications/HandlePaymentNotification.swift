@@ -296,6 +296,8 @@ extension CoreViewController {
                                 sendToSentry = false
                                 self.rememberAnsweredPayout(notificationId)
                                 self.showAlert(title: Language.getWord(withID: "bittrpayout"), message: message, buttons: [.dismiss(Language.getWord(withID: "close"))])
+                            case .unclearPayoutResponse:
+                                self.showAlert(title: Language.getWord(withID: "bittrpayout"), message: Language.getWord(withID: "bittrpayoutretry"), buttons: [.dismiss(Language.getWord(withID: "close")), .action(Language.getWord(withID: "tryagain")) { self.retryPayout(notificationId) }])
                             case .paymentTooLarge(let message):
                                 // Permanent: resending the same amount will fail again, so no
                                 // retry. Expected business rule, not a fault — keep it out of Sentry.

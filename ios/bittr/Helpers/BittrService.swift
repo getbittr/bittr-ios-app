@@ -34,7 +34,7 @@ class BittrService {
         let (data, response) = try await URLSession.shared.data(for: request)
         
         guard let httpResponse = response as? HTTPURLResponse, (200...299).contains(httpResponse.statusCode) else {
-            throw BittrServiceError.serverError("Couldn't connect to Bittr to complete payout. Please try again or check your connection.")
+            throw BittrServiceError.unclearPayoutResponse((response as? HTTPURLResponse)?.statusCode ?? 0)
         }
         
         let decodedResponse = try JSONDecoder().decode(BittrPayoutResponse.self, from: data)
@@ -271,6 +271,7 @@ enum BittrServiceError: Error {
     case channelFullWithSwapSuggestion(String, String) // error message, suggested amount
     case paymentProcessing(String) // committed but ambiguous — never resend (double-pay risk)
     case paymentTooLarge(String)   // permanent — resending the same amount will fail again
+    case unclearPayoutResponse(Int) // HTTP status
 }
 
 extension BittrServiceError: LocalizedError {
@@ -296,6 +297,8 @@ extension BittrServiceError: LocalizedError {
             return message
         case .paymentTooLarge(let message):
             return message
+        case .unclearPayoutResponse(let statusCode):
+            return "Unclear payout response from bittr (HTTP \(statusCode))."
         }
     }
 }
