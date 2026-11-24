@@ -6,13 +6,13 @@
 # is asking the app to come online so the payment can complete. Its payload is an
 # "htlc_notification" object with no "expired" flag. handleHTLCNotification
 # behaves differently depending on state:
-#   - locked (!userHasSignedIn): stores the notification (wasNotified = true) and
-#     shows NO alert — the code deliberately lets the user unlock as fast as
-#     possible.
-#   - after unlock: finalizeSync re-invokes the handler; because wasNotified is
-#     set it goes straight to triggerHTLCReady → the "receiving payment" pending
-#     view → facilitateHTLCReady, which signs an htlc_ready message and calls the
-#     backend (/htlc-interceptor/ready).
+#   - locked (!userHasSignedIn): marks the payment as waiting
+#     (incomingPaymentIsWaiting) and shows NO alert — the code deliberately lets
+#     the user unlock as fast as possible.
+#   - after unlock and sync: handlePendingWork re-invokes the handler, which goes
+#     straight to triggerHTLCReady → the "receiving payment" pending view →
+#     facilitateHTLCReady, which signs an htlc_ready message and calls the
+#     backend (/htlc-interceptor/ready). There is no alert to confirm first.
 #
 # This flow fires the notification on the PIN screen, unlocks, and follows the
 # deferred path through its pending views to the terminal alert. There is no real
@@ -25,8 +25,7 @@
 # Because .htlcIncoming shows nothing while locked, there is no UI signal to wait
 # on before unlocking — so after pushing we pause (scripts/sleep.js) long enough
 # for the app's ~1s deferred handler to run while still on the PIN screen,
-# guaranteeing the silent pre-unlock path (and avoiding the intermediate
-# "new payment" alert of the handled-during-sync path).
+# guaranteeing the silent pre-unlock path.
 #
 # Real APNS pushes don't reach the simulator, so — like the buy flows — the
 # payload is delivered via scripts/push_notification.js → push_server.js →
@@ -79,27 +78,27 @@ appId: com.bittr.bittr-regtest
     })}
 
 # Fire it while LOCKED, then pause so the app's deferred handler (~1s after the
-# push) runs while userHasSignedIn is still false — that stores the notification
-# silently (wasNotified = true) for processing after unlock. A single push is
+# push) runs while userHasSignedIn is still false — that marks the payment as
+# waiting, silently, for processing after unlock. A single push is
 # enough; unlike the LNURL flow there's no pre-unlock alert to loop on.
 - runScript: ../scripts/push_notification.js
 - evalScript: ${output.sleepMs = 2500}
 - runScript: ../scripts/sleep.js
 
-# Unlock. Because a notification is waiting (lightningNotification != nil), the
-# app shows the "syncing wallet" loading card while the wallet syncs. Both this
-# card and the "receiving payment" one below are transient: on a warm wallet the
-# sync (and a fast backend reply) can flash them between two Maestro hierarchy
-# polls, so both checks are best-effort (optional) — the terminal "Incoming
-# payment" alert below is the real proof the deferred .htlcIncoming flow ran.
+# Unlock. Because a payment is waiting (incomingPaymentIsWaiting), the app shows
+# the "syncing wallet" loading card while the wallet syncs. Both this card and
+# the "receiving payment" one below are transient: on a warm wallet the sync
+# (and a fast backend reply) can flash them between two Maestro hierarchy polls,
+# so both checks are best-effort (optional) — the terminal "Incoming payment"
+# alert below is the real proof the deferred .htlcIncoming flow ran.
 - runFlow: ../helpers/unlock.yaml
 - assertVisible:
     text: ".*[Ss]yncing wallet.*"
     optional: true
 - takeScreenshot: shared/docs/screenshots/notification_htlcincoming/02_syncing
 
-# Once synced, finalizeSync re-runs the handler → triggerHTLCReady shows the
-# "receiving payment" loading card.
+# Once synced, handlePendingWork re-runs the handler → triggerHTLCReady shows
+# the "receiving payment" loading card.
 - assertVisible:
     text: ".*receiving payment.*"
     optional: true
