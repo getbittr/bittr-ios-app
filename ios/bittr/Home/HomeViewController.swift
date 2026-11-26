@@ -14,6 +14,7 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
     // Home table view
     @IBOutlet weak var homeTableView: UITableView!
     var appliedTopSafeArea:CGFloat?
+    let pullDownBackground = UIView()
     
     // Profit calculations
     var calculatedProfit = 0
@@ -62,6 +63,7 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
         self.homeTableView.delegate = self
         self.homeTableView.dataSource = self
         self.homeTableView.contentInsetAdjustmentBehavior = .never
+        self.homeTableView.insertSubview(self.pullDownBackground, at: 0)
         
         // Check if dark mode is on.
         self.changeColors()
@@ -90,6 +92,8 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
     }
     
     @objc func changeColors() {
+        self.pullDownBackground.backgroundColor = Colors.getColor("yelloworblue3")
+        
         // Update table.
         self.reloadTransactionsTable()
     }
@@ -106,6 +110,9 @@ class HomeViewController: UIViewController, UITableViewDelegate, UITableViewData
         let bottomSafeArea = self.coreVC!.view.safeAreaInsets.bottom
         let bottomInset:CGFloat = bottomSafeArea == 0 ? 130 : bottomSafeArea + 80
         self.homeTableView.contentInset = UIEdgeInsets(top: 0, left: 0, bottom: bottomInset, right: 0)
+        
+        let tableSize = self.homeTableView.bounds.size
+        self.pullDownBackground.frame = CGRect(x: 0, y: -tableSize.height, width: tableSize.width, height: tableSize.height)
     }
     
     @IBAction func profitButtonTapped(_ sender: UIButton) {
