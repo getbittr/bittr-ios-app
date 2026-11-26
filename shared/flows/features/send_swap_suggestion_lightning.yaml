@@ -67,18 +67,11 @@ appId: com.bittr.bittr-regtest
 # from the e2e endpoint and put it on the simulator clipboard (clipboard_server.js
 # bridges to `xcrun simctl pbcopy`). Then tap the in-app Paste button. Because the
 # clipboard was written by another process, iOS shows an "Allow Paste" system
-# prompt; it renders a beat after the tap, so wait for it explicitly, then tap.
+# prompt, which helpers/paste_into_send.yaml allows.
 - evalScript: ${output.invoiceAmountSats = 50000}
 - runScript: ../scripts/request_invoice.js
 - runScript: ../scripts/set_clipboard.js
-- tapOn:
-    id: "send.pasteButton"
-- extendedWaitUntil:
-    visible:
-      text: "Allow Paste"
-    timeout: 10000
-- tapOn:
-    text: "Allow Paste"
+- runFlow: ../helpers/paste_into_send.yaml
 
 # Pasting the lightning invoice switches the type to lightning: the "to" label
 # reads "Invoice and amount", the invoice lands in the field, and the amount

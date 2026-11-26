@@ -169,8 +169,7 @@ appId: com.bittr.bittr-regtest
 # Open Send and paste the copied onchain address.
 - tapOn:
     id: "home.sendButton"
-- tapOn:
-    id: "send.pasteButton"
+- runFlow: ../helpers/paste_into_send.yaml
 
 # Switching to onchain recomputes the max sendable amount; if BDK hasn't
 # finished its scan yet that surfaces a "syncing wallet" alert. Dismiss it if
@@ -244,8 +243,7 @@ appId: com.bittr.bittr-regtest
 # Open Send and paste again — this time both the address and amount carry.
 - tapOn:
     id: "home.sendButton"
-- tapOn:
-    id: "send.pasteButton"
+- runFlow: ../helpers/paste_into_send.yaml
 # Dismiss the "syncing wallet" alert if BDK is mid-scan (no-op otherwise).
 - tapOn:
     id: "alert.button.0"
@@ -359,8 +357,7 @@ appId: com.bittr.bittr-regtest
       # invoice amount in the amount field.
       - tapOn:
           id: "home.sendButton"
-      - tapOn:
-          id: "send.pasteButton"
+      - runFlow: ../helpers/paste_into_send.yaml
       - tapOn:
           id: "alert.button.0"
           optional: true

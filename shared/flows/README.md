@@ -220,6 +220,9 @@ shared/flows/
                           Running. Takes over two minutes.
   helpers/         Reusable subflows invoked via runFlow.
     unlock.yaml           Enters PIN 1234 on the unlock screen.
+    paste_into_send.yaml  Taps Paste on Send, and allows the paste when iOS asks
+                          (a clipboard set from outside the app). Used by every
+                          flow that pastes.
     register_iban.yaml    Registers the e2e IBAN and email with bittr, from
                           Transfer1 to Done on "Open your banking app", tapping
                           Try again if notification registration fails. Used by

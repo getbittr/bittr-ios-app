@@ -137,14 +137,13 @@ appId: com.bittr.bittr-regtest
     id: "home.sendButton"
 
 # Paste the onchain address we just copied. Our own app put it on the clipboard,
-# so there's no "Allow Paste" prompt. Pasting a bare onchain address switches the
+# so iOS normally doesn't ask to allow the paste. Pasting a bare onchain address switches the
 # type to Regular (onchain) and lands the address in the field. Recomputing the
 # max sendable amount kicks off a BDK scan if it hasn't run yet, which surfaces a
 # "syncing wallet" alert and spins the spinner. Dismiss the alert if present,
 # then wait for the spinner to stop before entering an amount (Next needs BDK
 # scanned).
-- tapOn:
-    id: "send.pasteButton"
+- runFlow: ../helpers/paste_into_send.yaml
 - assertVisible:
     id: "send.toTextField"
     text: ".*bcrt1.*"
