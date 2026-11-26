@@ -229,15 +229,35 @@ appId: com.bittr.bittr-regtest
 - tapOn:
     id: "alert.button.0"
 
-# Lightning connections → QuestionViewController → Down button back to
-# Device details.
+# Lightning connections → an alert when no connection is ready (a restored
+# wallet has none), otherwise QuestionViewController. Close either → back to
+# Device details. Let the payout alert slide out first, so its Okay isn't
+# mistaken for the new alert's.
+- extendedWaitUntil:
+    notVisible:
+      id: "alert.button.0"
+    timeout: 5000
+- evalScript: ${output.lightningAlert = false}
 - tapOn:
     id: "device.row.lightningchannels"
-- assertVisible:
-    id: "question.yellowCard"
-- takeScreenshot: shared/docs/screenshots/settings/14_lightning_question
-- tapOn:
-    id: "header.downButton"
+- runFlow:
+    when:
+      visible:
+        id: "alert.button.0"
+    commands:
+      - evalScript: ${output.lightningAlert = true}
+      - takeScreenshot: shared/docs/screenshots/settings/14_lightning_alert
+      - tapOn:
+          id: "alert.button.0"
+- runFlow:
+    when:
+      true: ${!output.lightningAlert}
+    commands:
+      - assertVisible:
+          id: "question.yellowCard"
+      - takeScreenshot: shared/docs/screenshots/settings/14_lightning_question
+      - tapOn:
+          id: "header.downButton"
 - assertVisible:
     id: "device.row.lightningchannels"
 

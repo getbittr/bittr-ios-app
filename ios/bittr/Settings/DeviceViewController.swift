@@ -228,7 +228,11 @@ class DeviceViewController: UIViewController, UNUserNotificationCenterDelegate, 
         //     }
         // }
         
-        self.coreVC!.launchQuestion(question: Language.getWord(withID: "lightningchannels"), answer: Language.getWord(withID: "lightningexplanation1"), type: "lightningexplanation")
+        if BitcoinManager.shared.bittrWallet.lightningChannels.getActiveChannel() == nil {
+            self.showAlert(title: Language.getWord(withID: "lightningchannels"), message: Language.getWord(withID: "lightningexplanation1"), buttons: [.dismiss(Language.getWord(withID: "okay"))])
+        } else {
+            self.coreVC!.launchQuestion(question: Language.getWord(withID: "lightningchannels"), answer: Language.getWord(withID: "lightningexplanation1"), type: "lightningexplanation")
+        }
     }
     
     @objc func changeColors() {
