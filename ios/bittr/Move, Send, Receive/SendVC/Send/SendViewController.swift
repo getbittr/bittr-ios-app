@@ -383,9 +383,20 @@ class SendViewController: UIViewController, UITextFieldDelegate, OnchainSyncFail
     
     @IBAction func availableQuestionTapped(_ sender: UIButton) {
         self.view.endEditing(true)
+        Log.info("Did tap available balance question mark.")
+        
         if self.onchainOrLightning == .lightning {
-            self.coreVC!.launchQuestion(question: Language.getWord(withID: "limitlightning"), answer: Language.getWord(withID: "limitlightninganswer"), type: "lightningsendable")
+            // User is sending Lightning.
+            
+            if BitcoinManager.shared.bittrWallet.lightningChannels.getActiveChannel() != nil {
+                // User has an active lightning connection.
+                self.coreVC!.launchQuestion(question: Language.getWord(withID: "limitlightning"), answer: Language.getWord(withID: "limitlightninganswer"), type: "lightningsendable")
+            } else {
+                // There's no active lightning connection.
+                self.showAlert(title: Language.getWord(withID: "sendbitcoin"), message: Language.getWord(withID: "questionvc13"), buttons: [.dismiss(Language.getWord(withID: "okay"))])
+            }
         } else {
+            // User is sending on-chain.
             self.showAlert(title: Language.getWord(withID: "sendbitcoin"), message: Language.getWord(withID: "maximumonchain"), buttons: [.dismiss(Language.getWord(withID: "okay"))])
         }
     }
