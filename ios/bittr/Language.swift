@@ -226,6 +226,7 @@ class Language: NSObject {
             "couldntconnect": "We couldn't connect to bittr. Please try again.",
             "bittrpayoutfail": "The notification did not contain the data needed to complete your payout.",
             "bittrpayoutfail2": "Something went wrong processing the notification we sent to you.\n\nPlease wait for your wallet to sync, and try again. Or go to Settings > Device details, and try again from there.",
+            "bittrpayoutretry": "Something went wrong with our payout. Please try again.",
             "onchainpayoutscheduled": "Payment Scheduled",
             "onchainpayoutscheduled2": "Your payment has been scheduled for on-chain delivery within 4-24 hours. You'll receive a notification when it's completed.",
             "onchainpayoutfail": "Failed to schedule on-chain payment: <message>",

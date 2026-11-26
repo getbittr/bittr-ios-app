@@ -383,12 +383,7 @@ class BitcoinManager {
     }
     
     func nodeId() -> String? {
-        if self.ldkNode != nil {
-            let nodeID = self.ldkNode!.nodeId()
-            return nodeID
-        } else {
-            return nil
-        }
+        return self.ldkNode?.nodeId()
     }
     
     func signMessage(message: String) async throws -> String {
@@ -407,11 +402,7 @@ class BitcoinManager {
     }
     
     func listPeers() -> [PeerDetails] {
-        guard self.ldkNode != nil else {
-            return []
-        }
-        let peers = self.ldkNode!.listPeers()
-        return peers
+        return self.ldkNode?.listPeers() ?? []
     }
     
     func listPayments() -> [PaymentDetails] {
@@ -444,7 +435,8 @@ class BitcoinManager {
     }
     
     func connect(nodeId: PublicKey, address: String, persist: Bool) async throws {
-        try self.ldkNode!.connect(
+        guard let node = self.ldkNode else { throw WalletError.walletNotInitiated }
+        try node.connect(
             nodeId: nodeId,
             address: address,
             persist: persist
@@ -580,14 +572,16 @@ class BitcoinManager {
     }
     
     func receivePayment(amountMsat: UInt64, description: String, expirySecs: UInt32) async throws -> Bolt11Invoice {
+        guard let node = self.ldkNode else { throw WalletError.walletNotInitiated }
         let invoiceDescription = Bolt11InvoiceDescription.direct(description: description)
-        let invoice = try self.ldkNode!.bolt11Payment().receive(amountMsat: amountMsat, description: invoiceDescription, expirySecs: expirySecs)
+        let invoice = try node.bolt11Payment().receive(amountMsat: amountMsat, description: invoiceDescription, expirySecs: expirySecs)
         return invoice
     }
     
     func receivePaymentWithHash(amountMsat: UInt64, descriptionHash: String, expirySecs: UInt32) async throws -> Bolt11Invoice {
+        guard let node = self.ldkNode else { throw WalletError.walletNotInitiated }
         let invoiceDescription = Bolt11InvoiceDescription.hash(hash: descriptionHash)
-        let invoice = try self.ldkNode!.bolt11Payment().receive(amountMsat: amountMsat, description: invoiceDescription, expirySecs: expirySecs)
+        let invoice = try node.bolt11Payment().receive(amountMsat: amountMsat, description: invoiceDescription, expirySecs: expirySecs)
         return invoice
     }
     

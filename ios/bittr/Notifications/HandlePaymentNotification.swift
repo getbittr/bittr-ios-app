@@ -15,6 +15,11 @@ extension CoreViewController {
         
         guard !self.payoutIsAlreadyRunning() else { return }
         
+        guard !self.walletIsBeingRemoved else {
+            Log.info("Wallet is being removed; ignoring payout.")
+            return
+        }
+        
         if let notificationId = notification.notificationID, self.payoutsAnsweredByBittr.contains(notificationId) {
             Log.info("Bittr has already answered this payout; ignoring replay.")
             return
@@ -156,6 +161,10 @@ extension CoreViewController {
     
     func rememberAnsweredPayout(_ notificationId: String) {
         self.payoutsAnsweredByBittr.insert(notificationId)
+        self.stopWaitingForPayout(notificationId)
+    }
+    
+    func stopWaitingForPayout(_ notificationId: String) {
         if self.lightningNotification?.notificationID == notificationId {
             self.lightningNotification = nil
         }
@@ -177,12 +186,25 @@ extension CoreViewController {
         self.isHandlingPayout = true
         self.showLoading(message: Language.getWord(withID: "receivingpayment"))
         DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
+            guard self.payoutIsStillWaiting(notificationId) else {
+                self.hideLoading()
+                self.isHandlingPayout = false
+                return
+            }
             self.facilitateNotificationPayout()
         }
     }
     
     func facilitateNotificationPayout() {
         Log.info("Will start payout process.")
+        
+        guard !self.walletIsBeingRemoved else {
+            Log.info("Wallet is being removed; not starting payout.")
+            self.hideLoading()
+            self.isHandlingPayout = false
+            return
+        }
+        
         self.isHandlingPayout = true
         
         // Extract required data.
@@ -288,14 +310,16 @@ extension CoreViewController {
                                 sendToSentry = false
                                 self.handleChannelFullWithSwapSuggestion(message: message, suggestedAmount: suggestedAmount, notificationId: notificationId)
                             case .paymentProcessing(let message):
-                                // The attempt is committed and its outcome is ambiguous, so
-                                // never offer a retry: resending would mint a new invoice that
-                                // could be paid on top of an in-flight one. Close-only. This is
-                                // an expected transient state, not a fault, so it's kept out of
-                                // Sentry.
+                                // Already on its way, so there's nothing to retry. Not a fault, so
+                                // kept out of Sentry. If the attempt fails, bittr can ask again.
                                 sendToSentry = false
-                                self.rememberAnsweredPayout(notificationId)
+                                self.stopWaitingForPayout(notificationId)
                                 self.showAlert(title: Language.getWord(withID: "bittrpayout"), message: message, buttons: [.dismiss(Language.getWord(withID: "close"))])
+                            case .unclearPayoutResponse:
+                                // Silent if the payout has arrived meanwhile.
+                                if self.lightningNotification?.notificationID == notificationId {
+                                    self.showAlert(title: Language.getWord(withID: "bittrpayout"), message: Language.getWord(withID: "bittrpayoutretry"), buttons: [.dismiss(Language.getWord(withID: "close")), .action(Language.getWord(withID: "tryagain")) { self.retryPayout(notificationId) }])
+                                }
                             case .paymentTooLarge(let message):
                                 // Permanent: resending the same amount will fail again, so no
                                 // retry. Expected business rule, not a fault — keep it out of Sentry.
@@ -317,6 +341,10 @@ extension CoreViewController {
                             default:
                                 self.showAlert(title: Language.getWord(withID: "bittrpayout"), message: error.localizedDescription, buttons: [.dismiss(Language.getWord(withID: "close"))])
                                 self.lightningNotification = nil
+                            }
+                        } else if error is URLError || error is DecodingError {
+                            if self.lightningNotification?.notificationID == notificationId {
+                                self.showAlert(title: Language.getWord(withID: "bittrpayout"), message: Language.getWord(withID: "bittrpayoutretry"), buttons: [.dismiss(Language.getWord(withID: "close")), .action(Language.getWord(withID: "tryagain")) { self.retryPayout(notificationId) }])
                             }
                         } else {
                             if error.localizedDescription.contains("try again"), self.lightningNotification != nil {
@@ -637,9 +665,7 @@ extension CoreViewController {
                             // Add payout ID to cache.
                             if let notificationId = invoiceDescription ?? self.lightningNotification?.notificationID {
                                 CacheManager.storeInvoiceDescription(preimage: paymentPreimage, desc: notificationId)
-                                if self.lightningNotification?.notificationID == notificationId {
-                                    self.lightningNotification = nil
-                                }
+                                self.rememberAnsweredPayout(notificationId)
                             }
                             
                             // Create transaction object.

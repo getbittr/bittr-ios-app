@@ -386,7 +386,7 @@ extension CoreViewController {
             // Skip the payout check when a wipe / PIN reset is in progress: the
             // node is about to be torn down, so signing a message against it
             // would race the teardown (force-unwrap of a nil ldkNode).
-            if userHasBittrAccount, !self.resettingPin, !self.removingWalletForIncorrectPin {
+            if userHasBittrAccount, !self.resettingPin, !self.removingWalletForIncorrectPin, !self.walletIsBeingRemoved {
                 Log.info("Check for pending payout.")
                 self.checkPendingPayout()
             }

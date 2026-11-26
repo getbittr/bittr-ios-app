@@ -29,6 +29,7 @@ class CoreViewController: UIViewController {
     var resettingPin = false
     var removingWalletForIncorrectPin = false
     var isRemovalInFlight = false
+    var walletIsBeingRemoved = false
     
     // True while continueStartWallet's post-start work is running. Several
     // startWallet callers can be attached to a single node start, and they all
