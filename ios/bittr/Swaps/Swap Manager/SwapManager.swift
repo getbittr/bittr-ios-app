@@ -425,10 +425,10 @@ class SwapManager: NSObject {
             
             // Confirm fees with user.
             DispatchQueue.main.async {
-                swapVC.thisSwap!.feeHigh = swapVC.highestFeePerVbyte!
-                swapVC.thisSwap!.onchainFees = feesForOnchainPayment
-                swapVC.thisSwap!.lightningFees = feesForLightningPayment
-                self.saveSwapDetailsToFile(swapID: swapVC.thisSwap!.boltzID!, swapDictionary: swapVC.thisSwap!.toDictionary())
+                ongoingSwap.feeHigh = swapVC.highestFeePerVbyte!
+                ongoingSwap.onchainFees = feesForOnchainPayment
+                ongoingSwap.lightningFees = feesForLightningPayment
+                self.saveSwapDetailsToFile(swapID: ongoingSwap.boltzID!, swapDictionary: ongoingSwap.toDictionary())
                 swapVC.confirmExpectedFees()
             }
         }
@@ -916,13 +916,13 @@ class SwapManager: NSObject {
     }
     
     static func checkReverseSwapFees(swapVC:SwapViewController) {
-        guard swapVC.thisSwap != nil, swapVC.checkInternetConnection() else {
+        guard let ongoingSwap = swapVC.thisSwap, swapVC.checkInternetConnection() else {
             swapVC.resetNextButton()
             return
         }
         
         // Check requested invoice amount.
-        guard let parsedInvoice = swapVC.thisSwap!.boltzInvoice!.bolt11Invoice(), let invoiceAmountMilli = parsedInvoice.amountMilliSatoshis() else {
+        guard let parsedInvoice = ongoingSwap.boltzInvoice!.bolt11Invoice(), let invoiceAmountMilli = parsedInvoice.amountMilliSatoshis() else {
             Log.info("Could not parse the Boltz invoice.")
             swapVC.cancelSwap(alertMessage: Language.getWord(withID: "swaperror2"))
             return
@@ -934,21 +934,21 @@ class SwapManager: NSObject {
         // Calculate onchain fees.
         // For lightning-to-onchain swaps, the user's input is the final amount they want to receive
         // The invoice amount includes Boltz fees, so we need to calculate the actual on-chain amount
-        let finalOnchainAmount = swapVC.thisSwap!.satoshisAmount // This is what the user wants to receive
+        let finalOnchainAmount = ongoingSwap.satoshisAmount // This is what the user wants to receive
         let onchainFees:Int = invoiceAmount - finalOnchainAmount
         
         // Note: The claim transaction fee is already included in the on-chain amount requested
         // so the user will receive exactly the amount they input
         
         // Calculate maximum total routing fees.
-        guard let lightningFees = swapVC.thisSwap!.boltzInvoice!.getLightningFeesInSatoshis() else {
+        guard let lightningFees = ongoingSwap.boltzInvoice!.getLightningFeesInSatoshis() else {
             Log.info("Could not calculate routing fees for the Boltz invoice.")
             swapVC.cancelSwap(alertMessage: Language.getWord(withID: "swaperror2"))
             return
         }
         
         // Calculate claim transaction fee
-        let storedClaimTransactionFee = swapVC.thisSwap!.claimTransactionFee
+        let storedClaimTransactionFee = ongoingSwap.claimTransactionFee
         Task {
             let claimTransactionFee:Int
             if let storedClaimTransactionFee {
@@ -960,11 +960,11 @@ class SwapManager: NSObject {
             }
             
             DispatchQueue.main.async {
-                swapVC.thisSwap!.boltzExpectedAmount = invoiceAmount
-                swapVC.thisSwap!.onchainFees = onchainFees
-                swapVC.thisSwap!.lightningFees = lightningFees
-                swapVC.thisSwap!.claimTransactionFee = claimTransactionFee
-                self.saveSwapDetailsToFile(swapID: swapVC.thisSwap!.boltzID!, swapDictionary: swapVC.thisSwap!.toDictionary())
+                ongoingSwap.boltzExpectedAmount = invoiceAmount
+                ongoingSwap.onchainFees = onchainFees
+                ongoingSwap.lightningFees = lightningFees
+                ongoingSwap.claimTransactionFee = claimTransactionFee
+                self.saveSwapDetailsToFile(swapID: ongoingSwap.boltzID!, swapDictionary: ongoingSwap.toDictionary())
                 
                 // Confirm fees with user.
                 swapVC.confirmExpectedFees()
