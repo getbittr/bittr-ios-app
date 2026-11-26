@@ -23,9 +23,9 @@ class BitcoinManager {
     private var nodeStartCompletions = [(Bool) -> Void]()
     
     // BDK
-    var bdkWallet: BitcoinDevKit.Wallet?
-    var electrumClient: BitcoinDevKit.ElectrumClient?
-    var connection: BitcoinDevKit.Connection?
+    @Locked var bdkWallet: BitcoinDevKit.Wallet? = nil
+    @Locked var electrumClient: BitcoinDevKit.ElectrumClient? = nil
+    @Locked var connection: BitcoinDevKit.Connection? = nil
     let bdkStartLock = NSLock()
     let bdkScan = BdkScanState()
     
@@ -811,6 +811,30 @@ enum WalletError: Error {
     case drainProducedNoOutput
     /// The stored wallet database was written on a different network to this build's.
     case storedWalletOnAnotherNetwork
+}
+
+// A value read and replaced from several threads.
+@propertyWrapper
+final class Locked<Value> {
+    
+    private let lock = NSLock()
+    private var value: Value
+    
+    init(wrappedValue: Value) {
+        self.value = wrappedValue
+    }
+    
+    var wrappedValue: Value {
+        get { self.lock.withLock { self.value } }
+        set {
+            // Hand the old value out, so it's freed outside the lock.
+            _ = self.lock.withLock { () -> Value in
+                let replaced = self.value
+                self.value = newValue
+                return replaced
+            }
+        }
+    }
 }
 
 extension FileManager {
