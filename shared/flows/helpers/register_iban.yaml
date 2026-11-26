@@ -1,0 +1,95 @@
+# Reusable subflow: registers the e2e IBAN and email with bittr, from
+# Transfer1 (IBAN + email entry) to Done on the "Open your banking app"
+# alert. Screenshots go to the SCREENSHOTS directory the caller passes.
+#
+# Called by:
+#   - onboarding/happy_path_signup.yaml
+#   - features/buy_signup.yaml
+
+appId: com.bittr.bittr-regtest
+---
+# Transfer1: IBAN + email entry. IBAN field auto-focuses.
+- assertVisible:
+    id: "signup.bittr.start.ibanTextField"
+- takeScreenshot: ${SCREENSHOTS}/bittr_1_start
+- inputText: "NL27ABNA0451135725"
+- tapOn:
+    id: "signup.bittr.start.emailButton"
+- inputText: "e2ebittr@getbittr.com"
+- takeScreenshot: ${SCREENSHOTS}/bittr_2_start_filled
+# Press Return — Transfer1's textFieldShouldReturn auto-triggers nextButtonTapped
+# when the email field is focused and both fields are valid.
+- pressKey: Enter
+
+# The exclusive-initiative alert. Confirm is alert.button.1, stacked above Cancel.
+- extendedWaitUntil:
+    visible:
+      id: "alert.button.1"
+    timeout: 10000
+- waitForAnimationToEnd:
+    timeout: 3000
+- takeScreenshot: ${SCREENSHOTS}/bittr_3_exclusive_initiative
+- tapOn:
+    id: "alert.button.1"
+# Let it slide out, so a following alert.button.0 is the next alert's, not its Cancel.
+- extendedWaitUntil:
+    notVisible:
+      id: "alert.button.1"
+    timeout: 5000
+
+# Transfer2: OTP entry. Test-mode fixed code 123456. Auto-submits at 6 digits.
+- assertVisible:
+    id: "signup.bittr.otp.codeTextField"
+- takeScreenshot: ${SCREENSHOTS}/bittr_4_otp_initial
+- inputText: "123456"
+- takeScreenshot: ${SCREENSHOTS}/bittr_5_otp_entered
+
+# Push notification permission alerts (in-app, then iOS system).
+# Both are optional so reruns where permission is already granted skip.
+- tapOn:
+    id: "alert.button.0"
+    optional: true
+- tapOn:
+    text: "Allow"
+    optional: true
+
+# Transfer3: bittr signup success. Long async chain after OTP, allow generous
+# timeout. If registering for notifications fails, tap Try again on that alert.
+- repeat:
+    while:
+      notVisible:
+        id: "signup.bittr.success.topLabelOne"
+    times: 18
+    commands:
+      - runFlow:
+          when:
+            visible:
+              text: "We couldn't register this device for notifications.*"
+          commands:
+            - tapOn:
+                id: "alert.button.0"
+      - extendedWaitUntil:
+          visible:
+            id: "signup.bittr.success.topLabelOne"
+          timeout: 5000
+          optional: true
+- assertVisible:
+    id: "signup.bittr.success.topLabelOne"
+- takeScreenshot: ${SCREENSHOTS}/bittr_6_success
+- tapOn:
+    id: "signup.bittr.success.nextButton"
+
+# Transfer4: 4 explanation cards + "Let's go" at the bottom.
+- assertVisible:
+    id: "signup.bittr.transferInfo.amountTitle"
+- takeScreenshot: ${SCREENSHOTS}/bittr_7_transfer_info_top
+- scrollUntilVisible:
+    element:
+      id: "signup.bittr.transferInfo.nextButton"
+- takeScreenshot: ${SCREENSHOTS}/bittr_8_transfer_info_bottom
+- tapOn:
+    id: "signup.bittr.transferInfo.nextButton"
+
+# "Open your banking app" alert — Done.
+- tapOn:
+    id: "alert.button.0"

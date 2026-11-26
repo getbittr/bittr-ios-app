@@ -17,14 +17,11 @@
 #      viewWillAppear hides topLabelOne, so we assert on the (still
 #      visible) Next button instead of the top label.
 #   4. Tap Next → Transfer1.
-#   5. Same IBAN/email/OTP/info-cards path as
-#      onboarding/happy_path_signup.yaml — same IBAN
-#      (NL27ABNA0451135725) and email (e2ebittr@getbittr.com) so cache
-#      assertions stay consistent.
-#   6. Done on the "Open your banking app" modal → modal dismisses, Buy
-#      reappears with the new IBAN entity rendered.
-#   7. Assert email / IBAN / deposit code are present on the Buy cell.
-#   8. Tap the down button → Home.
+#   5. helpers/register_iban.yaml, as in onboarding/happy_path_signup.yaml,
+#      up to Done on the "Open your banking app" modal → modal dismisses,
+#      Buy reappears with the new IBAN entity rendered.
+#   6. Assert email / IBAN / deposit code are present on the Buy cell.
+#   7. Tap the down button → Home.
 #
 # Run: maestro test shared/flows/features/buy_signup.yaml
 
@@ -66,79 +63,12 @@ appId: com.bittr.bittr-regtest
 - tapOn:
     id: "signup.create.ready.continueButton"
 
-# Transfer1: IBAN + email entry. IBAN field auto-focuses. Same IBAN +
-# email as onboarding/happy_path_signup.yaml.
-- assertVisible:
-    id: "signup.bittr.start.ibanTextField"
-- takeScreenshot: shared/docs/screenshots/buy_signup/04_bittr_start
-- inputText: "NL27ABNA0451135725"
-- tapOn:
-    id: "signup.bittr.start.emailButton"
-- inputText: "e2ebittr@getbittr.com"
-- takeScreenshot: shared/docs/screenshots/buy_signup/05_bittr_start_filled
-# Press Return — Transfer1's textFieldShouldReturn auto-triggers
-# nextButtonTapped when the email field is focused and both fields are
-# valid.
-- pressKey: Enter
-
-# The exclusive-initiative alert. Confirm is alert.button.1, stacked above Cancel.
-- extendedWaitUntil:
-    visible:
-      id: "alert.button.1"
-    timeout: 10000
-- waitForAnimationToEnd:
-    timeout: 3000
-- takeScreenshot: shared/docs/screenshots/buy_signup/05a_exclusive_initiative
-- tapOn:
-    id: "alert.button.1"
-# Let it slide out, so a following alert.button.0 is the next alert's, not its Cancel.
-- extendedWaitUntil:
-    notVisible:
-      id: "alert.button.1"
-    timeout: 5000
-
-# Transfer2: OTP entry. Test-mode fixed code 123456. Auto-submits at 6
-# digits.
-- assertVisible:
-    id: "signup.bittr.otp.codeTextField"
-- takeScreenshot: shared/docs/screenshots/buy_signup/06_bittr_otp_initial
-- inputText: "123456"
-- takeScreenshot: shared/docs/screenshots/buy_signup/07_bittr_otp_entered
-
-# Push notification permission alerts (in-app, then iOS system). Both
-# optional so reruns where permission is already granted skip.
-- tapOn:
-    id: "alert.button.0"
-    optional: true
-- tapOn:
-    text: "Allow"
-    optional: true
-
-# Transfer3: bittr signup success. Long async chain after OTP, allow
-# generous timeout — same as happy_path_signup.yaml.
-- extendedWaitUntil:
-    visible:
-      id: "signup.bittr.success.topLabelOne"
-    timeout: 90000
-- takeScreenshot: shared/docs/screenshots/buy_signup/08_bittr_success
-- tapOn:
-    id: "signup.bittr.success.nextButton"
-
-# Transfer4: 4 explanation cards + "Let's go" at the bottom.
-- assertVisible:
-    id: "signup.bittr.transferInfo.amountTitle"
-- takeScreenshot: shared/docs/screenshots/buy_signup/09_transfer_info_top
-- scrollUntilVisible:
-    element:
-      id: "signup.bittr.transferInfo.nextButton"
-- takeScreenshot: shared/docs/screenshots/buy_signup/10_transfer_info_bottom
-- tapOn:
-    id: "signup.bittr.transferInfo.nextButton"
-
-# "Open your banking app" modal — Done dismisses both the alert and the
-# RegisterIban modal; Buy reappears underneath with the new cell.
-- tapOn:
-    id: "alert.button.0"
+# Done dismisses both the alert and the RegisterIban modal; Buy reappears
+# underneath with the new cell.
+- runFlow:
+    file: ../helpers/register_iban.yaml
+    env:
+      SCREENSHOTS: shared/docs/screenshots/buy_signup
 
 # Verify the new IBAN cell is rendered on Buy with the entered details.
 # Allow a small grace period — Transfer4.proceedToWallet kicks off the

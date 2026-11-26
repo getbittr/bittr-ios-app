@@ -220,6 +220,10 @@ shared/flows/
                           Running. Takes over two minutes.
   helpers/         Reusable subflows invoked via runFlow.
     unlock.yaml           Enters PIN 1234 on the unlock screen.
+    register_iban.yaml    Registers the e2e IBAN and email with bittr, from
+                          Transfer1 to Done on "Open your banking app", tapping
+                          Try again if notification registration fails. Used by
+                          happy_path_signup.yaml and buy_signup.yaml.
     wrong_pin_until_lockout.yaml  Enters the wrong PIN ten times on the unlock
                           screen to trigger the lockout + background wipe; stops
                           at the 10th confirm so the caller can handle the
