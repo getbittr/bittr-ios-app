@@ -872,6 +872,10 @@ class SwapManager: NSObject {
                 statusVC?.hideLoading()
                 statusVC?.markSwapComplete()
                 
+                // Update balances and transactions.
+                homeVC.loadWalletData()
+                homeVC.moveVC?.updateLabels()
+                
                 // Open TransactionVC.
                 homeVC.tappedTransaction = swapTransaction
                 homeVC.performSegue(withIdentifier: "HomeToTransaction", sender: homeVC)
