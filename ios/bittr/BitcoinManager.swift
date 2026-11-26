@@ -671,6 +671,9 @@ class BitcoinManager {
         self.ldkNode = nil
         self.cancelEventListener()
         
+        // Under the start lock, so a BDK start in progress finishes first and nothing reads these halfway.
+        self.bdkStartLock.lock()
+        
         // Clear wallet reference
         self.bdkWallet = nil
         
@@ -685,6 +688,7 @@ class BitcoinManager {
         
         // Reset other state variables
         self.xpub = ""
+        self.bdkStartLock.unlock()
         
         Log.info("🔍 [DEBUG] BitcoinManager - Node state reset completed")
     }
