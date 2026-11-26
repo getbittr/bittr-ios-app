@@ -93,10 +93,13 @@ class SwapStatusViewController: UIViewController {
         if self.swapVC == nil, let swapDictionary = SwapManager.loadSwapDetailsFromFile(swapID: self.thisSwap!.boltzID!) {
             // Load swap from TransactionVC.
             let fileSwap = swapDictionary.toSwap()
-            fileSwap.onchainFees = self.thisSwap!.onchainFees
-            fileSwap.lightningFees = self.thisSwap!.lightningFees
-            if (self.thisSwap!.onchainFees ?? 0) > fileSwap.satoshisAmount {
-                fileSwap.onchainFees = (self.thisSwap!.onchainFees ?? 0) - fileSwap.satoshisAmount
+            if fileSwap.onchainFees == nil, fileSwap.lightningFees == nil {
+                // No estimate in the file, so show the real fees.
+                fileSwap.onchainFees = self.thisSwap!.onchainFees
+                fileSwap.lightningFees = self.thisSwap!.lightningFees
+                if (self.thisSwap!.onchainFees ?? 0) > fileSwap.satoshisAmount {
+                    fileSwap.onchainFees = (self.thisSwap!.onchainFees ?? 0) - fileSwap.satoshisAmount
+                }
             }
             self.thisSwap = fileSwap
         }

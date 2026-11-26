@@ -428,6 +428,7 @@ class SwapManager: NSObject {
                 swapVC.thisSwap!.feeHigh = swapVC.highestFeePerVbyte!
                 swapVC.thisSwap!.onchainFees = feesForOnchainPayment
                 swapVC.thisSwap!.lightningFees = feesForLightningPayment
+                self.saveSwapDetailsToFile(swapID: swapVC.thisSwap!.boltzID!, swapDictionary: swapVC.thisSwap!.toDictionary())
                 swapVC.confirmExpectedFees()
             }
         }
@@ -963,6 +964,7 @@ class SwapManager: NSObject {
                 swapVC.thisSwap!.onchainFees = onchainFees
                 swapVC.thisSwap!.lightningFees = lightningFees
                 swapVC.thisSwap!.claimTransactionFee = claimTransactionFee
+                self.saveSwapDetailsToFile(swapID: swapVC.thisSwap!.boltzID!, swapDictionary: swapVC.thisSwap!.toDictionary())
                 
                 // Confirm fees with user.
                 swapVC.confirmExpectedFees()
