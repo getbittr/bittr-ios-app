@@ -217,7 +217,7 @@ class SwapViewController: UIViewController, UITextFieldDelegate, UNUserNotificat
     
     func confirmExpectedFees() {
         self.resetNextButton()
-        guard self.thisSwap != nil else { return }
+        guard let confirmedSwap = self.thisSwap else { return }
         
         let bitcoinValue = BitcoinManager.shared.bittrWallet.getCorrectBitcoinValue()
         
@@ -225,21 +225,21 @@ class SwapViewController: UIViewController, UITextFieldDelegate, UNUserNotificat
         // payment finds a route, so the total is a range and the message reads
         // "between X and Y". Everything else — the claim transaction and Boltz's
         // spread — is quoted up front.
-        let feesMinimum = "\(self.thisSwap!.minimumTotalFees)".addSpaces()
-        let feesAmount = "\(self.thisSwap!.maximumTotalFees)".addSpaces()
-        let messageID = self.thisSwap!.hasVariableFee ? "swapfunds3range" : "swapfunds3"
+        let feesMinimum = "\(confirmedSwap.minimumTotalFees)".addSpaces()
+        let feesAmount = "\(confirmedSwap.maximumTotalFees)".addSpaces()
+        let messageID = confirmedSwap.hasVariableFee ? "swapfunds3range" : "swapfunds3"
         
         // Fiat fee, rounded to two decimals and formatted with the device's
         // decimal separator (e.g. "0,50" in comma locales).
-        let convertedMinimum = (self.thisSwap!.minimumTotalFees.inBTC() * bitcoinValue.currentValue).twoDecimals().toString()
-        let convertedMaximum = (self.thisSwap!.maximumTotalFees.inBTC() * bitcoinValue.currentValue).twoDecimals().toString()
+        let convertedMinimum = (confirmedSwap.minimumTotalFees.inBTC() * bitcoinValue.currentValue).twoDecimals().toString()
+        let convertedMaximum = (confirmedSwap.maximumTotalFees.inBTC() * bitcoinValue.currentValue).twoDecimals().toString()
         let convertedFees = convertedMinimum == convertedMaximum ? convertedMaximum : "\(convertedMinimum) - \(convertedMaximum)"
-        let convertedAmount = "\(Int((self.thisSwap!.satoshisAmount.inBTC()*bitcoinValue.currentValue).rounded()))"
+        let convertedAmount = "\(Int((confirmedSwap.satoshisAmount.inBTC()*bitcoinValue.currentValue).rounded()))"
         
-        let message = Language.getWord(withID: messageID).replacingOccurrences(of: "<feesamountmin>", with: feesMinimum).replacingOccurrences(of: "<feesamount>", with: feesAmount).replacingOccurrences(of: "<convertedfees>", with: "\(bitcoinValue.chosenCurrency) \(convertedFees)").replacingOccurrences(of: "<amount>", with: "\(self.thisSwap!.satoshisAmount)".addSpaces()).replacingOccurrences(of: "<convertedamount>", with: "\(bitcoinValue.chosenCurrency) \(convertedAmount)")
+        let message = Language.getWord(withID: messageID).replacingOccurrences(of: "<feesamountmin>", with: feesMinimum).replacingOccurrences(of: "<feesamount>", with: feesAmount).replacingOccurrences(of: "<convertedfees>", with: "\(bitcoinValue.chosenCurrency) \(convertedFees)").replacingOccurrences(of: "<amount>", with: "\(confirmedSwap.satoshisAmount)".addSpaces()).replacingOccurrences(of: "<convertedamount>", with: "\(bitcoinValue.chosenCurrency) \(convertedAmount)")
         let doYouWishToProceed = Language.getWord(withID: "wishtoproceed")
         let cautionMessage:String
-        if self.swapDirection == .onchainToLightning {
+        if confirmedSwap.swapDirection == .onchainToLightning {
             cautionMessage = Language.getWord(withID: "onchaintolightningexplanation")
         } else {
             cautionMessage = ""
@@ -248,7 +248,7 @@ class SwapViewController: UIViewController, UITextFieldDelegate, UNUserNotificat
         self.showAlert(
             title: Language.getWord(withID: "swapfunds2"),
             message: message + cautionMessage + " " + doYouWishToProceed,
-            buttons: [.action(Language.getWord(withID: "cancel")) { self.cancelSwapFromFeesAlert() }, .action(Language.getWord(withID: "proceed")) { self.proceedWithSwap() }])
+            buttons: [.action(Language.getWord(withID: "cancel")) { self.cancelSwapFromFeesAlert() }, .action(Language.getWord(withID: "proceed")) { self.proceedWithSwap(confirmedSwap) }])
     }
     
     func cancelSwapFromFeesAlert() {
@@ -257,13 +257,16 @@ class SwapViewController: UIViewController, UITextFieldDelegate, UNUserNotificat
         self.clearPendingSwapData()
     }
     
-    func proceedWithSwap() {
+    func proceedWithSwap(_ confirmedSwap:Swap) {
         Log.info("Proceed with swap.")
-        guard self.thisSwap != nil else { return }
+        guard confirmedSwap === self.thisSwap else {
+            Log.info("The swap on screen isn't the one whose fees were confirmed. Abort swap.")
+            return
+        }
         
         // Verify Boltz invoice for lightning-to-onchain swaps.
-        if self.thisSwap!.swapDirection == .lightningToOnchain {
-            guard self.didVerifyBoltzInvoice() else {
+        if confirmedSwap.swapDirection == .lightningToOnchain {
+            guard self.didVerifyBoltzInvoice(confirmedSwap) else {
                 Log.info("Received Boltz invoice doesn't match our preimage. Abort swap.")
                 self.showAlert(title: Language.getWord(withID: "error"), message: Language.getWord(withID: "swapvalidationfailed"), buttons: [.dismiss(Language.getWord(withID: "okay"))])
                 SentryManager.countMetric("swap.lightningtoonchain.invoicerejected")
@@ -272,29 +275,29 @@ class SwapViewController: UIViewController, UITextFieldDelegate, UNUserNotificat
         }
         
         // Save ongoing swap to cache.
-        CacheManager.saveLatestSwap(self.thisSwap!)
+        CacheManager.saveLatestSwap(confirmedSwap)
         
         // Show swap status.
         self.showStatusView()
         
         // Send payment.
-        if self.thisSwap!.swapDirection == .onchainToLightning {
+        if confirmedSwap.swapDirection == .onchainToLightning {
             SentryManager.countMetric("swap.onchaintolightning.initiated")
             
             // Surface the on-chain confirmation wait in the Dynamic Island.
-            SwapLiveActivityController.start(swap: self.thisSwap!)
+            SwapLiveActivityController.start(swap: confirmedSwap)
             
-            SwapManager.sendOnchainPayment(swapVC: self)
+            SwapManager.sendOnchainPayment(swap: confirmedSwap, swapVC: self)
         } else {
             SentryManager.countMetric("swap.lightningtoonchain.initiated")
             // The Boltz invoice carries its own amount, so no separate amount is needed.
-            self.performLightningPayment(invoiceText: self.thisSwap!.boltzInvoice!, satoshisAmount: 0)
+            self.performLightningPayment(invoiceText: confirmedSwap.boltzInvoice!, satoshisAmount: 0)
         }
     }
     
-    func didVerifyBoltzInvoice() -> Bool {
-        let expectedHash = Data(hexString: self.thisSwap!.preimage ?? "").map { SwapManager.sha256Hash(of: $0).hexEncodedString() }
-        return (expectedHash != nil && self.thisSwap!.boltzInvoice?.getInvoiceHash()?.lowercased() == expectedHash!.lowercased())
+    func didVerifyBoltzInvoice(_ swap:Swap) -> Bool {
+        let expectedHash = Data(hexString: swap.preimage ?? "").map { SwapManager.sha256Hash(of: $0).hexEncodedString() }
+        return (expectedHash != nil && swap.boltzInvoice?.getInvoiceHash()?.lowercased() == expectedHash!.lowercased())
     }
     
     func clearPendingSwapData() {
@@ -314,21 +317,6 @@ class SwapViewController: UIViewController, UITextFieldDelegate, UNUserNotificat
     @IBAction func boltzTapped(_ sender: UIButton) {
         self.view.endEditing(true)
         self.showAlert(title: Language.getWord(withID: "boltzexplanation3"), message: Language.getWord(withID: "boltzexplanation"), buttons: [.dismiss(Language.getWord(withID: "okay"))])
-    }
-    
-    func handleSwapNotification(_ notification: BittrNotification) {
-        Log.info("Received swap notification.")
-        // The push id is already the swap file's stem — sha256(boltzID) with
-        // hashSwapId on, the plaintext id for older swaps — so resolve it
-        // directly rather than assuming a plaintext id.
-        guard let pushedSwapID = notification.swapID,
-              let ongoingSwap = SwapManager.loadSwapDetails(forPushedID: pushedSwapID)?.toSwap() else { return }
-        
-        // Set up the confirm view with loaded data
-        self.thisSwap = ongoingSwap
-        
-        // Switch to confirm view
-        self.showStatusView()
     }
     
     func handlePendingLightningInvoice() {

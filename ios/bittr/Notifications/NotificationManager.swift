@@ -56,9 +56,9 @@ extension CoreViewController {
             case .information:
                 self.handleBittrNotification(thisNotification)
             case .swap:
-                if let swapVC = self.homeVC?.moveVC?.swapVC {
+                if self.homeVC?.moveVC?.swapVC != nil {
                     // SwapVC is open.
-                    swapVC.handleSwapNotification(thisNotification)
+                    self.alertAboutSwapUpdate(thisNotification)
                 } else {
                     // SwapVC is closed.
                     self.handleSwapNotificationFromBackground(thisNotification)

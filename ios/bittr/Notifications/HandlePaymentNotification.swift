@@ -609,10 +609,11 @@ extension CoreViewController {
             
         Log.info("Received swap notification from background for ID.")
         
-        // Check if SwapViewController is already open - if so, ignore the notification
+        // Leave an open swap screen as it is.
         if self.swapScreenIsVisible() {
-            Log.info("A swap screen is already on screen, ignoring notification")
+            Log.info("A swap screen is already on screen. Only alert about the update.")
             self.lightningNotification = nil
+            self.alertAboutSwapUpdate(notification)
             return
         }
         
@@ -656,6 +657,34 @@ extension CoreViewController {
             return true
         }
         return false
+    }
+    
+    func alertAboutSwapUpdate(_ notification: BittrNotification) {
+        guard let pushedID = notification.swapID,
+              let status = notification.status,
+              let pushedSwap = SwapManager.loadSwapDetails(forPushedID: pushedID)?.toSwap(),
+              !self.swapIsOnScreen(boltzID: pushedSwap.boltzID) else { return }
+        
+        let needsClaim = pushedSwap.swapDirection == .lightningToOnchain && (status == "transaction.mempool" || status == "transaction.confirmed")
+        let needsRefund = pushedSwap.swapDirection == .onchainToLightning && (status == "invoice.failedToPay" || status == "transaction.lockupFailed")
+        
+        var message = Language.getWord(withID: "earlierswapstatus")
+            .replacingOccurrences(of: "<amount>", with: "\(pushedSwap.satoshisAmount)".addSpaces())
+            .replacingOccurrences(of: "<status>", with: status.userFriendlyStatus(direction: pushedSwap.swapDirection))
+        if needsClaim || needsRefund {
+            message += " " + Language.getWord(withID: "earlierswapaction")
+        }
+        self.showAlert(title: Language.getWord(withID: "earlierswapupdate"), message: message, buttons: [.dismiss(Language.getWord(withID: "okay"))])
+    }
+    
+    func swapIsOnScreen(boltzID: String?) -> Bool {
+        guard let boltzID else { return false }
+        let swapVC = self.homeVC?.moveVC?.swapVC
+        var shownIDs = [swapVC?.thisSwap?.boltzID, swapVC?.swapStatusVC?.thisSwap?.boltzID]
+        if let statusVC = self.homeVC?.swapStatusVC, statusVC.presentingViewController != nil || statusVC.parent != nil {
+            shownIDs.append(statusVC.thisSwap?.boltzID)
+        }
+        return shownIDs.contains(boltzID)
     }
     
     func presentSwapStatus() {

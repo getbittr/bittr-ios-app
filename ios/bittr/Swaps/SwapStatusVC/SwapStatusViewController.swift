@@ -48,6 +48,8 @@ class SwapStatusViewController: UIViewController {
     // Variables
     var thisSwap:Swap?
     var hasCompleted = false
+    var isClaiming = false
+    var didClaim = false
     var didRefreshHomeAfterSwap = false
     var coreVC:CoreViewController?
     var swapVC:SwapViewController?
@@ -203,7 +205,7 @@ class SwapStatusViewController: UIViewController {
                     SentryManager.capture(error, context: "SwapViewController row 584")
                 }
             }
-        } else if status == "transaction.mempool", self.thisSwap!.swapDirection == .lightningToOnchain {
+        } else if status == "transaction.mempool" || status == "transaction.confirmed", self.thisSwap!.swapDirection == .lightningToOnchain {
             // Handle transaction.mempool for reverse swaps
             if let transaction = fullMessage["transaction"] as? [String: Any],
                let transactionHex = transaction["hex"] as? String {
@@ -241,6 +243,12 @@ class SwapStatusViewController: UIViewController {
         
         Log.debug("Found ongoing swap with ID: \(self.thisSwap!.boltzID ?? "nil")")
         
+        guard !self.didClaim, !self.isClaiming else {
+            Log.info("Swap is already claimed or being claimed.")
+            return
+        }
+        self.isClaiming = true
+        
         self.thisSwap!.lockupTx = transactionHex
         CacheManager.saveLatestSwap(self.thisSwap!)
         SwapManager.updateSwapFileWithLockupTx(swapID: self.thisSwap!.boltzID!, lockupTx: self.thisSwap!.lockupTx!)
@@ -256,7 +264,9 @@ class SwapStatusViewController: UIViewController {
                 
                 // Handle the result on main thread
                 DispatchQueue.main.async {
+                    self.isClaiming = false
                     if claimResult.success {
+                        self.didClaim = true
                         self.hasCompleted = true
                         self.confirmStatusLabel.text = Language.getWord(withID: "swapstatusswapcomplete")
                         self.confirmStatusSpinner.stopAnimating()
@@ -277,6 +287,7 @@ class SwapStatusViewController: UIViewController {
             } catch {
                 Log.info("Error claiming transaction: \(error)")
                 DispatchQueue.main.async {
+                    self.isClaiming = false
                     self.confirmStatusLabel.text = Language.getWord(withID: "swapstatusfailed")
                     SentryManager.countMetric("swap.lightningtoonchain.failed")
                     SentryManager.capture(error, context: "SwapViewController row 839")
@@ -354,10 +365,9 @@ class SwapStatusViewController: UIViewController {
         }
     }
     
-    func didCompleteOnchainTransaction() {
+    func didCompleteOnchainTransaction(_ sentSwap:Swap) {
         // It may take significant time (e.g. 30 minutes) for the onchain transaction to be confirmed. We need to wait for this confirmation.
-        guard swapVC?.thisSwap != nil else { return }
-        self.thisSwap = self.swapVC!.thisSwap!
+        guard sentSwap === self.thisSwap else { return }
         
         // Update label.
         self.confirmStatusLabel.text = Language.getWord(withID: "swapstatusawaitingconfirmation")

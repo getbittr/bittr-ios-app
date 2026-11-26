@@ -434,9 +434,7 @@ class SwapManager: NSObject {
         }
     }
     
-    static func sendOnchainPayment(swapVC:SwapViewController) {
-        guard let ongoingSwap = swapVC.thisSwap else { return }
-        
+    static func sendOnchainPayment(swap ongoingSwap:Swap, swapVC:SwapViewController) {
         let address = ongoingSwap.boltzOnchainAddress!
         let amountSats = ongoingSwap.boltzExpectedAmount!
         let feeHigh = ongoingSwap.feeHigh!
@@ -473,30 +471,30 @@ class SwapManager: NSObject {
             
             // Small settle window before we start watching the swap.
             try? await Task.sleep(nanoseconds: 2_000_000_000)
-            await MainActor.run { self.finalizeOnchainSend(swapVC: swapVC, txId: txId, rawData: rawData) }
+            await MainActor.run { self.finalizeOnchainSend(swap: ongoingSwap, swapVC: swapVC, txId: txId, rawData: rawData) }
         }
     }
 
-    private static func finalizeOnchainSend(swapVC:SwapViewController, txId:String, rawData:String) {
+    private static func finalizeOnchainSend(swap ongoingSwap:Swap, swapVC:SwapViewController, txId:String, rawData:String) {
         Log.info("Successful transaction.")
         
         // Update swap object.
-        swapVC.thisSwap!.sentOnchainTransactionID = txId
-        swapVC.thisSwap!.lockupTx = rawData
-        self.updateSwapFileWithLockupTx(swapID: swapVC.thisSwap!.boltzID!, lockupTx: rawData)
+        ongoingSwap.sentOnchainTransactionID = txId
+        ongoingSwap.lockupTx = rawData
+        self.updateSwapFileWithLockupTx(swapID: ongoingSwap.boltzID!, lockupTx: rawData)
         
         // Create transaction object.
-        CacheManager.storeInvoiceDescription(preimage: txId, desc: swapVC.thisSwap!.dateID)
-        CacheManager.storeSwapID(dateID: swapVC.thisSwap!.dateID, swapID: swapVC.thisSwap!.boltzID!)
-        if swapVC.thisSwap!.isSuggested {
-            CacheManager.storeSuggestedSwap(dateID: swapVC.thisSwap!.dateID)
+        CacheManager.storeInvoiceDescription(preimage: txId, desc: ongoingSwap.dateID)
+        CacheManager.storeSwapID(dateID: ongoingSwap.dateID, swapID: ongoingSwap.boltzID!)
+        if ongoingSwap.isSuggested {
+            CacheManager.storeSuggestedSwap(dateID: ongoingSwap.dateID)
         }
         
         // Update Home table.
         BitcoinManager.shared.lightSync() { _ in }
         
         // Set up WebSocket monitoring.
-        swapVC.swapStatusVC?.didCompleteOnchainTransaction()
+        swapVC.swapStatusVC?.didCompleteOnchainTransaction(ongoingSwap)
     }
     
     static func fetchRawTransactionHex(txid:String, retries:Int = 6) async -> String? {
