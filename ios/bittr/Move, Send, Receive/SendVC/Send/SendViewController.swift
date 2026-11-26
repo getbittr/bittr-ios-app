@@ -203,8 +203,10 @@ class SendViewController: UIViewController, UITextFieldDelegate, OnchainSyncFail
         self.bdkSpinner.startAnimating()
         self.showAlert(title: Language.getWord(withID: "syncing"), message: Language.getWord(withID: "awaitingbdksync"), buttons: [.dismiss(Language.getWord(withID: "okay"))])
         
-        // Check whether BDK wallet is currently scanning.
-        if !BitcoinManager.shared.bdkWalletIsScanning {
+        // A previously scanned wallet waits for its light sync instead of scanning again.
+        if BitcoinManager.shared.bdkWallet != nil, BitcoinManager.shared.hasStoredFullScan {
+            Log.info("Waiting for the loaded BDK wallet's light sync.")
+        } else if !BitcoinManager.shared.bdkWalletIsScanning {
             Log.info("BDK wallet isn't scanning. Will start scan.")
 
             // didStartBDK is synchronous and blocking (descriptor derivation,
