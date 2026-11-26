@@ -186,6 +186,11 @@ extension CoreViewController {
         self.isHandlingPayout = true
         self.showLoading(message: Language.getWord(withID: "receivingpayment"))
         DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
+            guard self.payoutIsStillWaiting(notificationId) else {
+                self.hideLoading()
+                self.isHandlingPayout = false
+                return
+            }
             self.facilitateNotificationPayout()
         }
     }
@@ -660,9 +665,7 @@ extension CoreViewController {
                             // Add payout ID to cache.
                             if let notificationId = invoiceDescription ?? self.lightningNotification?.notificationID {
                                 CacheManager.storeInvoiceDescription(preimage: paymentPreimage, desc: notificationId)
-                                if self.lightningNotification?.notificationID == notificationId {
-                                    self.lightningNotification = nil
-                                }
+                                self.rememberAnsweredPayout(notificationId)
                             }
                             
                             // Create transaction object.
