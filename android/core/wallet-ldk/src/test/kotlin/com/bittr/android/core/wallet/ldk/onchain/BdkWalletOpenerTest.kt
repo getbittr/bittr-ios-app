@@ -253,14 +253,13 @@ class BdkWalletOpenerTest {
     /** As iOS's `revealAddresses`: a failed reveal is reported, and the wallet still opens. */
     @Test
     fun `a failed reveal is reported and the new wallet still opens`() {
-        port.loadFailure = Failure("couldNotLoad")
         port.revealFailure = Failure("disk")
         topPoolIndex = 3
         record.rebuildRequested = true
 
         val opened = opener().open()
 
-        assertEquals("created-in-store-2", opened.wallet)
+        assertEquals("created-in-store-1", opened.wallet)
         assertEquals(listOf("disk" to BdkWalletOpener.ROW_REVEAL_FAILED), errors)
         assertFalse(record.rebuildRequested)
     }

@@ -1,5 +1,8 @@
 package com.bittr.android.feature.receive
 
+import com.bittr.android.core.common.amount.parsedUserAmount
+import com.bittr.android.core.common.amount.wholeSatoshis
+import com.bittr.android.core.designsystem.inGroupsOfFour
 import java.math.BigDecimal
 import java.math.RoundingMode
 
@@ -60,79 +63,113 @@ data class ReceiveCards(
 /**
  * What the address box and the QR show — the label half of `setLabels(for:newAddress:)`.
  *
- * @property addressLabel `receive.addressLabel`, beside the title (on-chain, lightning address).
- * @property lowerLabel `receive.invoiceLabel`, the full-width text under the title (invoice, Bitcoin QR).
- * @property qrPayload null when there is nothing to encode — an unavailable lightning address.
+ * @property label `receive.addressLabel`, under the title for every type.
+ * @property monospaced [label] is an address or invoice in groups of four, shown monospaced so they line up.
+ * @property qrPayload null when there is nothing to encode — data that is missing, or an amount that can't be read.
+ * @property copyText null when there is nothing to copy or share, for the same reasons.
  * @property showBolt the lightning bolt before the title.
  */
 data class ReceiveDisplay(
     val title: String,
     val showBolt: Boolean,
-    val addressLabel: String,
-    val lowerLabel: String,
+    val label: String,
+    val monospaced: Boolean,
     val qrPayload: String?,
-    val copyText: String,
+    val copyText: String?,
 )
 
 /**
  * `setLabels`, as a pure function of what it gathered.
  *
- * Ported as iOS builds it, including one quirk worth knowing: the Bitcoin QR appends
- * `&label=` and `&lightning=` directly after the address when there is no amount, so it
- * reads `bitcoin:<address>&lightning=<invoice>` with no `?`. The Send parser on both
- * platforms has to accept that, because that is what the iOS app hands out.
+ * The Bitcoin QR's parameters follow a single `?`, with or without an amount. Older versions of
+ * the iOS app handed out `bitcoin:<address>&lightning=<invoice>` when there was no amount, so the
+ * Send parser on both platforms still accepts that.
  *
+ * @param onchainAddress null when there is none to show; nothing stands in for it in a code.
+ * @param invoice null when none could be created, likewise.
  * @param amountSats null when no amount was entered.
+ * @param amountInvalid an amount was entered but can't be read, so no code is shown rather than one without it.
  */
 fun receiveDisplay(
     type: ReceiveType,
-    onchainAddress: String,
-    invoice: String,
+    onchainAddress: String?,
+    invoice: String?,
     lightningAddress: String?,
     amountSats: Long?,
     description: String,
+    amountInvalid: Boolean = false,
 ): ReceiveDisplay {
-    val amountText = amountSats?.let { "?amount=${bitcoinAmount(it)}" }.orEmpty()
-    val labelText = if (description.isNotEmpty()) "&label=$description" else ""
-    val bitcoinQr = "bitcoin:$onchainAddress$amountText$labelText&lightning=$invoice"
+    val amount = amountSats?.let(::bitcoinAmount)
+    val amountText = amount?.let { "?amount=$it" }.orEmpty()
+    val bitcoinQr = if (onchainAddress != null && invoice != null) {
+        val parameters = listOfNotNull(
+            amount?.let { "amount=$it" },
+            description.takeIf { it.isNotEmpty() }?.let { "label=${percentEncoded(it)}" },
+            "lightning=$invoice",
+        )
+        "bitcoin:$onchainAddress?" + parameters.joinToString("&")
+    } else {
+        null
+    }
+
+    val missing = ReceiveDisplay(
+        title = when (type) {
+            ReceiveType.Onchain, ReceiveType.Lnurl -> ReceiveStrings.ADDRESS
+            ReceiveType.Lightning -> ReceiveStrings.INVOICE
+            ReceiveType.BitcoinQr -> ReceiveStrings.BITCOIN_QR
+        },
+        showBolt = type == ReceiveType.Lightning || type == ReceiveType.Lnurl,
+        label = if (amountInvalid) ReceiveStrings.INVALID_AMOUNT else ReceiveStrings.UNAVAILABLE,
+        monospaced = false,
+        qrPayload = null,
+        copyText = null,
+    )
+    if (amountInvalid) return missing
 
     return when (type) {
-        ReceiveType.Onchain -> ReceiveDisplay(
-            title = ReceiveStrings.ADDRESS,
-            showBolt = false,
-            addressLabel = onchainAddress + amountText,
-            lowerLabel = "",
+        ReceiveType.Onchain -> if (onchainAddress == null) missing else missing.copy(
+            label = inGroupsOfFour(onchainAddress) + amountText,
+            monospaced = true,
             qrPayload = "bitcoin:$onchainAddress$amountText".uppercase(),
             copyText = if (amountText.isEmpty()) onchainAddress else "bitcoin:$onchainAddress$amountText",
         )
-        ReceiveType.Lightning -> ReceiveDisplay(
-            title = ReceiveStrings.INVOICE,
-            showBolt = true,
-            addressLabel = "",
-            lowerLabel = invoice,
+        ReceiveType.Lightning -> if (invoice == null) missing else missing.copy(
+            label = inGroupsOfFour(invoice),
+            monospaced = true,
             qrPayload = "lightning:$invoice".uppercase(),
             copyText = invoice,
         )
-        ReceiveType.BitcoinQr -> ReceiveDisplay(
-            title = ReceiveStrings.BITCOIN_QR,
-            showBolt = false,
-            addressLabel = "",
-            // A word joiner after "?" so the label does not wrap at the query mark.
-            lowerLabel = bitcoinQr.replace("?", "?⁠"),
+        ReceiveType.BitcoinQr -> if (bitcoinQr == null) missing else missing.copy(
+            // The note decoded, on screen only, and a word joiner after "?" so the label does not wrap there.
+            label = bitcoinQr.replace("label=${percentEncoded(description)}", "label=$description").replace("?", "?⁠"),
             qrPayload = bitcoinQr,
             copyText = bitcoinQr,
         )
-        ReceiveType.Lnurl -> ReceiveDisplay(
-            title = ReceiveStrings.ADDRESS,
-            showBolt = true,
-            addressLabel = lightningAddress ?: ReceiveStrings.UNAVAILABLE,
-            lowerLabel = "",
-            // No QR for an unavailable address — it would encode the word "Unavailable".
+        ReceiveType.Lnurl -> if (lightningAddress == null) missing else missing.copy(
+            label = lightningAddress,
             qrPayload = lightningAddress,
-            copyText = lightningAddress ?: ReceiveStrings.UNAVAILABLE,
+            copyText = lightningAddress,
         )
     }
 }
+
+/**
+ * [text] as UTF-8 with everything but the unreserved characters percent-encoded, so no label can end
+ * its parameter or the URI early — a `#`, `&`, `=` or `?` — or make it invalid, as a space or an emoji would.
+ */
+fun percentEncoded(text: String): String = buildString {
+    for (byte in text.toByteArray(Charsets.UTF_8)) {
+        val value = byte.toInt() and 0xFF
+        val character = value.toChar()
+        if (character in 'A'..'Z' || character in 'a'..'z' || character in '0'..'9' || character in "-._~") {
+            append(character)
+        } else {
+            append('%').append(HEX_DIGITS[value shr 4]).append(HEX_DIGITS[value and 0x0F])
+        }
+    }
+}
+
+private const val HEX_DIGITS = "0123456789ABCDEF"
 
 /**
  * Satoshis as a bitcoin amount for a BIP-21 `amount=`: up to eight decimals, no grouping,
@@ -145,35 +182,18 @@ fun bitcoinAmount(satoshis: Long): String =
  * The entered amount as whole satoshis, or null when nothing (or nothing readable) was
  * entered — `setLabels`' `amountInSatoshis`.
  *
- * Satoshis take whole numbers only; bitcoin and fiat accept a comma or a dot as the
- * decimal separator. Fiat converts through [fiatPricePerBitcoin] and is null without it.
+ * Read as iOS reads it, through [parsedUserAmount]. Fiat converts through [fiatPricePerBitcoin]
+ * and is null without it. Null too below zero or above 21 million bitcoin, as iOS's `satoshis()`.
  */
-/**
- * Android's decimal keyboard offers `-`, `,` and `.`: an amount with a minus sign, or with more
- * than one separator of either kind, is not one. Satoshis are whole, so any separator at all makes
- * a satoshi amount not one — dropped, a pasted "50000.00" would ask for 5 000 000. Spaces are this
- * app's own grouping. Blank is well formed — it means no amount.
- */
-fun isWellFormedAmount(text: String, currency: ReceiveCurrency): Boolean =
-    if (currency == ReceiveCurrency.Satoshis) {
-        text.filterNot(Char::isWhitespace).all(Char::isDigit)
-    } else {
-        '-' !in text && text.count { it == '.' || it == ',' } <= 1
-    }
-
 fun parseAmountSats(text: String, currency: ReceiveCurrency, fiatPricePerBitcoin: Double?): Long? {
-    val cleaned = text.trim().replace(" ", "").replace(',', '.')
-    if (cleaned.isEmpty()) return null
-    return when (currency) {
-        ReceiveCurrency.Satoshis -> cleaned.toLongOrNull()?.takeIf { it >= 0 }
-        ReceiveCurrency.Bitcoin -> cleaned.toBigDecimalOrNull()?.let(::bitcoinToSats)
+    val amount = parsedUserAmount(text, allowingFraction = currency != ReceiveCurrency.Satoshis) ?: return null
+    val satoshis = when (currency) {
+        ReceiveCurrency.Satoshis -> amount
+        ReceiveCurrency.Bitcoin -> amount.movePointRight(8)
         ReceiveCurrency.Fiat -> {
-            val price = fiatPricePerBitcoin?.takeIf { it > 0 } ?: return null
-            val fiat = cleaned.toBigDecimalOrNull() ?: return null
-            bitcoinToSats(fiat.divide(BigDecimal.valueOf(price), 16, RoundingMode.HALF_UP))
+            val price = fiatPricePerBitcoin?.takeIf { it > 0 && it.isFinite() } ?: return null
+            amount.divide(BigDecimal.valueOf(price), 16, RoundingMode.HALF_UP).movePointRight(8)
         }
     }
+    return wholeSatoshis(satoshis)
 }
-
-private fun bitcoinToSats(bitcoin: BigDecimal): Long? =
-    bitcoin.takeIf { it.signum() >= 0 }?.movePointRight(8)?.setScale(0, RoundingMode.HALF_UP)?.toLong()

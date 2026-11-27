@@ -33,9 +33,12 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import com.bittr.android.core.designsystem.rememberRetained
 import com.bittr.android.core.designsystem.MiddleEllipsisText
+import com.bittr.android.core.designsystem.GroupsOfFourText
+import com.bittr.android.core.designsystem.inGroupsOfFour
 import com.bittr.android.core.designsystem.rememberFillIcon
 import com.bittr.android.core.designsystem.rememberTextClipboard
 import com.bittr.android.core.designsystem.BittrSpinner
@@ -504,9 +507,10 @@ private fun ColumnScope.SendPage(
 /**
  * `ConfirmSendViewController`'s card, as its scene is: the heading in Gilroy-Regular 16 30 from the
  * top and 40 in; 15 under it and 20 in, the address and amount rows (`whiteorblue3`, 8 corners), 10
- * apart — the title in yellow Gilroy-Bold 16 and the value right-aligned in Bold 16, the amount's fiat
- * under it in Regular 15. Then Lightning's estimated-fees row, or 30 under the rows the fee rate's line
- * and its three tiles; the back and Send buttons 35 under those, centred, 20 from the bottom.
+ * apart — the title in yellow Gilroy-Bold 16 and the value against the trailing edge in Bold 16,
+ * the address or invoice monospaced in left-aligned groups of four, the amount's fiat under it in
+ * Regular 15. Then Lightning's estimated-fees row, or 30 under the rows the fee rate's line and its
+ * three tiles; the back and Send buttons 35 under those, centred, 20 from the bottom.
  */
 @Composable
 private fun ColumnScope.ConfirmPage(confirm: ConfirmState, controller: SendController) {
@@ -522,15 +526,28 @@ private fun ColumnScope.ConfirmPage(confirm: ConfirmState, controller: SendContr
     )
     Gap(15.dp)
     ConfirmRow(if (confirm.mode == SendMode.Onchain) SendStrings.ADDRESS else SendStrings.INVOICE) {
-        // Truncated in the middle, as iOS's `addressLabel` is, so the end can be checked.
-        MiddleEllipsisText(
-            confirm.displayedAddress,
-            style = ConfirmValue,
-            color = ink,
-            textAlign = TextAlign.End,
-            maxLines = 4,
-            modifier = Modifier.testTag(TestID.Send.Confirm.addressLabel),
-        )
+        val addressLabel = Modifier.testTag(TestID.Send.Confirm.addressLabel)
+        if (confirm.displayedAddress == confirm.addressOrInvoice) {
+            // An address is shown whole, so it can be checked before sending, and an invoice is shortened to three lines.
+            GroupsOfFourText(
+                text = inGroupsOfFour(confirm.displayedAddress),
+                readAs = confirm.displayedAddress,
+                style = ConfirmValue.copy(fontFamily = FontFamily.Monospace),
+                color = ink,
+                maxLines = if (confirm.mode == SendMode.Onchain) Int.MAX_VALUE else 3,
+                modifier = addressLabel,
+            )
+        } else {
+            // A lightning address or LNURL, truncated in the middle as iOS's `addressLabel` is.
+            MiddleEllipsisText(
+                confirm.displayedAddress,
+                style = ConfirmValue,
+                color = ink,
+                textAlign = TextAlign.End,
+                maxLines = 4,
+                modifier = addressLabel,
+            )
+        }
     }
     Gap(10.dp)
     ConfirmRow(SendStrings.AMOUNT) {
@@ -862,7 +879,7 @@ private fun Entry(
             textStyle = style.copy(
                 color = if (idleText) Color.Transparent else MaterialTheme.colorScheme.onSurface,
             ),
-            cursorBrush = SolidColor(colors.onTonalFill),
+            cursorBrush = SolidColor(colors.onCanvas),
             keyboardOptions = KeyboardOptions(keyboardType = keyboardType, imeAction = imeAction, autoCorrectEnabled = false),
             keyboardActions = KeyboardActions(onNext = { onIme() }, onDone = { onIme() }),
             modifier = Modifier

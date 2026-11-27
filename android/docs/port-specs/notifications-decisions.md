@@ -47,6 +47,12 @@ Spec: `notifications-removal-settings-pin.md` §A.
       bittr key of the flow's APNS JSON to `--es <key> '<json>'` and drops `aps`, so an aps-only payload is an
       unknown push.
     - The flows themselves are unchanged.
+11. **An incoming HTLC never asks.** With the app open and synced, iOS shows `alert.incomingPayment` /
+    `newbittrpayment` [Okay] before `triggerHTLCReady`. Android goes straight to `loading.receivingPayment`.
+    - Okay was the only button, so the tap only delayed the payment, and a slow tap could let bittr's hold expire.
+    - A push that replaced the alert before the tap left the single-flight guard set, and every later HTLC push was
+      ignored until a restart.
+    - A waiting HTLC has its own flag rather than the shared pending slot, so it never takes a payout's place.
 
 ## Question
 

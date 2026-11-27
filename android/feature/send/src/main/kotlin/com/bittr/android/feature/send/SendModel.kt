@@ -1,5 +1,7 @@
 package com.bittr.android.feature.send
 
+import com.bittr.android.core.common.amount.parsedUserAmount
+import com.bittr.android.core.common.amount.wholeSatoshis
 import java.math.BigDecimal
 import java.math.RoundingMode
 import java.util.Locale
@@ -27,54 +29,29 @@ data class FiatCurrency(val code: String, val symbol: String)
 internal object SendMath {
 
     private const val SATS_PER_BITCOIN = 100_000_000L
-    private const val MAX_SATS = 2_100_000_000_000_000L
 
     /**
-     * `getSatoshisFrom(enteredAmount:)`. Satoshis take whole numbers only; bitcoin and fiat
-     * take one decimal separator, `.` or `,`. Spaces (this app's own grouping) are ignored.
-     * Null when the text is not a number or the fiat price is missing.
-     */
-    /**
-     * Android's decimal keyboard offers `-`, `,` and `.`, none of which iOS's decimal pad lets
-     * through more than once: an amount with a minus sign, or with more than one separator of
-     * either kind, is not one. Satoshis are whole, so any separator at all makes a satoshi amount
-     * not one — a paste or a hardware keyboard can bring one the digit pad does not offer, and
-     * refusing it is the only safe reading: dropped, "50000.00" would send 5 000 000. Spaces are
-     * this app's own grouping. Blank is well formed — whether an amount is needed is decided later.
+     * Whether Next should accept the text: blank, as whether an amount is needed is decided later,
+     * or a number that is not negative, read as [parsedUserAmount] reads it.
      */
     fun isWellFormedAmount(text: String, currency: AmountCurrency): Boolean =
-        if (currency == AmountCurrency.Satoshis) {
-            text.filterNot(Char::isWhitespace).all(Char::isDigit)
-        } else {
-            '-' !in text && text.count { it == '.' || it == ',' } <= 1
-        }
+        text.isBlank() || (parsedUserAmount(text, allowingFraction = currency != AmountCurrency.Satoshis)?.signum() ?: -1) >= 0
 
+    /**
+     * `getSatoshisFrom(enteredAmount:)`, read through [parsedUserAmount] as iOS reads it. Null when the
+     * text is not a number, the fiat price is missing, or it is below zero or above 21 million bitcoin.
+     */
     fun parseSats(text: String, currency: AmountCurrency, pricePerBitcoin: Double?): Long? {
-        val stripped = text.filterNot { it.isWhitespace() || it == ' ' }
-        if (stripped.isEmpty()) return null
-        return when (currency) {
-            AmountCurrency.Satoshis -> if (stripped.all { it.isDigit() }) toSats(BigDecimal(stripped)) else null
-            AmountCurrency.Bitcoin -> decimal(stripped)?.let { toSats(it.multiply(BigDecimal(SATS_PER_BITCOIN))) }
+        val amount = parsedUserAmount(text, allowingFraction = currency != AmountCurrency.Satoshis) ?: return null
+        val satoshis = when (currency) {
+            AmountCurrency.Satoshis -> amount
+            AmountCurrency.Bitcoin -> amount.movePointRight(8)
             AmountCurrency.Fiat -> {
                 val price = pricePerBitcoin?.takeIf { it > 0 && it.isFinite() } ?: return null
-                decimal(stripped)?.let {
-                    toSats(it.divide(BigDecimal(price), 12, RoundingMode.HALF_UP).multiply(BigDecimal(SATS_PER_BITCOIN)))
-                }
+                amount.divide(BigDecimal.valueOf(price), 16, RoundingMode.HALF_UP).movePointRight(8)
             }
         }
-    }
-
-    private fun decimal(text: String): BigDecimal? {
-        val normalised = text.replace(',', '.')
-        if (normalised.count { it == '.' } > 1) return null
-        if (!normalised.all { it.isDigit() || it == '.' } || normalised == ".") return null
-        return runCatching { BigDecimal(normalised) }.getOrNull()
-    }
-
-    private fun toSats(value: BigDecimal): Long? {
-        val rounded = value.setScale(0, RoundingMode.HALF_UP)
-        if (rounded.signum() < 0 || rounded > BigDecimal(MAX_SATS)) return null
-        return rounded.toLong()
+        return wholeSatoshis(satoshis)
     }
 
     /** `SatPerVb.wholeSatPerVb`: whole sats per vbyte, never below 1. */

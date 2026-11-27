@@ -30,11 +30,27 @@ class SendControllerTest {
         val fetched = mutableListOf<String>()
         val notes = mutableMapOf<String, String>()
 
+        /** URLs whose next fetch fails, as a dropped connection would, before they answer. */
+        val failOnce = mutableSetOf<String>()
+
+        /** URLs whose next answer is an HTML page, as a proxy's error page would be, before they answer. */
+        val htmlOnce = mutableSetOf<String>()
+
+        /** URLs that answer HTTP 404 with no JSON, as a mistyped lightning address does. */
+        val notFound = mutableSetOf<String>()
+
         override suspend fun lnurlGet(url: String): Result<String> {
             fetched += url
+            if (failOnce.remove(url)) return Result.failure(java.io.IOException("connection reset"))
+            if (url in notFound) return Result.failure(LnurlHttpException(404))
+            if (htmlOnce.remove(url)) return Result.success("<html>busy</html>")
             return responses[url]?.let { Result.success(it) } ?: Result.failure(IllegalStateException("404"))
         }
-        override suspend fun createInvoice(amountMsat: Long, description: String) = Result.success("lnbcrt-withdraw-$amountMsat")
+        var invoicesCreated = 0
+        override suspend fun createInvoice(amountMsat: Long, description: String): Result<String> {
+            invoicesCreated++
+            return Result.success("lnbcrt-withdraw-$amountMsat")
+        }
         override fun storeTransactionNote(transactionId: String, note: String) {
             notes[transactionId] = note
         }
@@ -92,7 +108,7 @@ class SendControllerTest {
         controller.onAmountChange("50 000")
         assertEquals("50000", controller.state.value.amountText)
 
-        for (malformed in listOf("50000.00", "50,000", "1.500,5", "-5")) {
+        for (malformed in listOf("50000.00", "1.500,5", "-5")) {
             controller.onAmountChange(malformed)
             assertEquals(malformed, controller.state.value.amountText)
             controller.onNext()
@@ -210,6 +226,174 @@ class SendControllerTest {
         assertEquals(null, controller.state.value.confirm)
     }
 
+    // ---- A failed LNURL request offers Cancel and Try again, as iOS since #100. ----
+
+    private fun assertRetryAlert(alert: SendAlert?) {
+        assertEquals(SendStrings.LNURL_FAIL_3, alert?.message)
+        assertEquals(listOf(SendStrings.CANCEL, SendStrings.TRY_AGAIN), alert?.buttons?.map { it.label })
+    }
+
+    @Test
+    fun `a failed service fetch offers try again, which fetches it again`() = runTest {
+        val source = FakeSource(lightningBalance = 10_000, responses = mapOf(wellKnown to payRequest(min = 1_000, max = 1_000_000_000)))
+        source.failOnce += wellKnown
+        val controller = SendController(source, this)
+        controller.onToChange(lightningAddress)
+        controller.onToReturn()
+        advanceUntilIdle()
+        assertRetryAlert(controller.state.value.alert)
+
+        controller.onAlertButton(1)
+        advanceUntilIdle()
+
+        assertEquals(listOf(wellKnown, wellKnown), source.fetched)
+        assertEquals(null, controller.state.value.alert)
+        assertEquals("the amount field is asked for, as on a first success", 1, controller.state.value.focusAmountRequests)
+    }
+
+    @Test
+    fun `a service that answers HTML offers try again, which fetches it again`() = runTest {
+        val source = FakeSource(lightningBalance = 10_000, responses = mapOf(wellKnown to payRequest(min = 1_000, max = 1_000_000_000)))
+        source.htmlOnce += wellKnown
+        val controller = SendController(source, this)
+        controller.onToChange(lightningAddress)
+        controller.onToReturn()
+        advanceUntilIdle()
+        assertRetryAlert(controller.state.value.alert)
+        assertEquals(false, controller.state.value.lnurlLoading)
+
+        controller.onAlertButton(1)
+        advanceUntilIdle()
+
+        assertEquals(listOf(wellKnown, wellKnown), source.fetched)
+        assertEquals(1, controller.state.value.focusAmountRequests)
+    }
+
+    @Test
+    fun `a service that answers 404 gets okay only, not try again`() = runTest {
+        val source = FakeSource()
+        source.notFound += wellKnown
+        val controller = SendController(source, this)
+        controller.onToChange(lightningAddress)
+        controller.onToReturn()
+        advanceUntilIdle()
+
+        val alert = controller.state.value.alert
+        assertEquals(SendStrings.LNURL_FAIL_3, alert?.message)
+        assertEquals(listOf(SendStrings.OKAY), alert?.buttons?.map { it.label })
+        assertEquals(false, controller.state.value.lnurlLoading)
+    }
+
+    @Test
+    fun `cancel on a failed request does nothing more`() = runTest {
+        val source = FakeSource(responses = mapOf(wellKnown to payRequest(min = 1_000, max = 1_000_000_000)))
+        source.failOnce += wellKnown
+        val controller = SendController(source, this)
+        controller.onToChange(lightningAddress)
+        controller.onToReturn()
+        advanceUntilIdle()
+
+        controller.onAlertButton(0)
+        advanceUntilIdle()
+
+        assertEquals(listOf(wellKnown), source.fetched)
+        assertEquals(null, controller.state.value.alert)
+    }
+
+    @Test
+    fun `a pay callback that answers HTML offers try again, as iOS's decode failure does`() = runTest {
+        val payCall = "$callback?amount=150000"
+        val source = FakeSource(
+            lightningBalance = 10_000,
+            responses = mapOf(
+                wellKnown to payRequest(min = 1_000, max = 1_000_000_000),
+                payCall to """{"pr":"$invoice150Sats","routes":[]}""",
+            ),
+        )
+        source.htmlOnce += payCall
+        val controller = SendController(source, this)
+        controller.onToChange(lightningAddress)
+        controller.onToReturn()
+        advanceUntilIdle()
+        controller.onAmountChange("150")
+        controller.onNext()
+        advanceUntilIdle()
+        assertRetryAlert(controller.state.value.alert)
+
+        controller.onAlertButton(1)
+        advanceUntilIdle()
+
+        assertEquals(invoice150Sats, controller.state.value.confirm?.addressOrInvoice)
+    }
+
+    @Test
+    fun `a failed pay callback offers try again, which asks for the invoice again`() = runTest {
+        val payCall = "$callback?amount=150000"
+        val source = FakeSource(
+            lightningBalance = 10_000,
+            responses = mapOf(
+                wellKnown to payRequest(min = 1_000, max = 1_000_000_000),
+                payCall to """{"pr":"$invoice150Sats","routes":[]}""",
+            ),
+        )
+        source.failOnce += payCall
+        val controller = SendController(source, this)
+        controller.onToChange(lightningAddress)
+        controller.onToReturn()
+        advanceUntilIdle()
+        controller.onAmountChange("150")
+        controller.onNext()
+        advanceUntilIdle()
+        assertRetryAlert(controller.state.value.alert)
+
+        controller.onAlertButton(1)
+        advanceUntilIdle()
+
+        assertEquals(invoice150Sats, controller.state.value.confirm?.addressOrInvoice)
+        assertEquals(2, source.fetched.count { it == payCall })
+    }
+
+    @Test
+    fun `a failed withdraw callback offers try again, which hands the service the same invoice`() = runTest {
+        val service = "https://lnbits.example.com/withdraw"
+        val cb = "https://lnbits.example.com/withdraw/cb"
+        val withdrawCall = "$cb?k1=abc&pr=lnbcrt-withdraw-20000"
+        val source = FakeSource(
+            responses = mapOf(
+                service to """{"tag":"withdrawRequest","callback":"$cb","k1":"abc","minWithdrawable":1000,"maxWithdrawable":50000}""",
+                withdrawCall to """{"status":"OK"}""",
+            ),
+        )
+        source.failOnce += withdrawCall
+        val controller = SendController(source, this)
+        controller.onDestination(
+            Destination.Lnurl(raw = "lnurl1", target = com.bittr.android.core.common.destination.LnurlTarget.Service(service)),
+        )
+        advanceUntilIdle()
+        controller.onAlertText(1, "20")
+        advanceUntilIdle()
+        assertRetryAlert(controller.state.value.alert)
+
+        controller.onAlertButton(1)
+        advanceUntilIdle()
+
+        assertEquals(null, controller.state.value.alert)
+        assertEquals(2, source.fetched.count { it == withdrawCall })
+        assertEquals(1, source.invoicesCreated)
+    }
+
+    @Test
+    fun `a pasted invoice is confirmed as exactly what is paid`() = runTest {
+        val controller = SendController(FakeSource(lightningBalance = 10_000), this)
+        controller.onToChange(invoice150Sats)
+        controller.onNext()
+        advanceUntilIdle()
+
+        val confirm = controller.state.value.confirm!!
+        assertEquals(invoice150Sats, confirm.displayedAddress)
+        assertEquals(invoice150Sats, confirm.addressOrInvoice)
+    }
+
     @Test
     fun `a withdraw with a range asks for the amount and re-asks when it is out of range`() = runTest {
         val service = "https://lnbits.example.com/withdraw"
@@ -301,6 +485,9 @@ class SendControllerTest {
         advanceUntilIdle()
 
         val confirm = assertNotNull(controller.state.value.confirm).let { controller.state.value.confirm!! }
+        // Shown in groups of four only because it is exactly what is paid.
+        assertEquals(address, confirm.displayedAddress)
+        assertEquals(address, confirm.addressOrInvoice)
         assertEquals(5_000L, confirm.amountSats)
         assertEquals("5.00 €", confirm.amountFiat)
         assertEquals(141L, confirm.vsize)

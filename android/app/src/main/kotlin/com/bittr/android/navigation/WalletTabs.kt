@@ -78,11 +78,11 @@ internal fun WalletTabs(
     val overlay = remember { OverlayHost() }
 
     // Behind both pages, and seen only where the spring overshoots and a page's trailing edge pulls
-    // away from the screen's: the canvas yellow, as the pages' own tops and Academy are.
+    // away from the screen's: `yelloworblue3`, as the pages' own tops and Academy are.
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(BittrTheme.colors.canvas),
+            .background(BittrTheme.colors.primaryHigh),
     ) {
         val outerLogoVisible = LocalAppBarLogoVisible.current
         val outerBarVisible = LocalAppBarBackgroundVisible.current

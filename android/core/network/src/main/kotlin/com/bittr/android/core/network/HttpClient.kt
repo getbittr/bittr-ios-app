@@ -75,7 +75,7 @@ class HttpTransportException(message: String, cause: Throwable? = null) :
  * that *do* want a socket use a loopback server rather than a real backend.
  *
  * Implementations move to a background dispatcher themselves; callers must not have
- * to know. That is one place the existing `HttpPriceRepository` leaked the detail to
+ * to know. That is one place the price repository (now `PriceHistory`) leaked the detail to
  * its call site via `withContext(Dispatchers.IO)`.
  */
 interface HttpClient {

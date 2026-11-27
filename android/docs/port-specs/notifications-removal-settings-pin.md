@@ -24,9 +24,10 @@ a new message replaces the old one and moves the id. `loading.syncingWallet` `sy
 Alerts put their `id` on the card; buttons `alert.button.N` in `buttons:` order.
 
 **HTLC incoming** (`HandlePaymentNotification.swift:39-141`): locked → stored; not synced → `loading.syncingWallet`;
-synced → single-flight guard; if the push arrived while open → `alert.incomingPayment` "Incoming payment" /
-`newbittrpayment` "You're receiving a new payment! Tap Okay to receive it now and continue what you're doing after."
-[Okay] → `triggerHTLCReady`: `loading.receivingPayment`, 0.5 s → deposit code = first non-empty
+synced → single-flight guard → `triggerHTLCReady`. iOS first asks when the push arrived while open:
+`alert.incomingPayment` "Incoming payment" / `newbittrpayment` "You're receiving a new payment! Tap Okay to receive
+it now and continue what you're doing after." [Okay]. Android does not (`notifications-decisions.md` 11).
+`triggerHTLCReady`: `loading.receivingPayment`, 0.5 s → deposit code = first non-empty
 `ibanEntities[].yourUniqueCode` (none → `bittrpayoutfail`); `nodeId()` nil → `bittrpayoutfail2`; sign
 `"htlc_ready:<deposit_code>:<timestamp>"`; `POST {base}/htlc-interceptor/ready` JSON `{deposit_code, timestamp,
 pubkey, signature}` → `{success, action, error}`: `action == "resumed"` no alert; `"failed_timeout"` →

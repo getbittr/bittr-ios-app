@@ -366,8 +366,10 @@ Bitcoin-value branches merged after it. Not taken, or taken differently:
   label; the review measured `#C9A21A` off a JPEG. No change.
 - **S14 ("previous screen left painted") is the navigation crossfade caught mid-way by the screenshot**,
   not a screen left behind: every destination paints its own canvas.
-- **The payout confetti already falls behind the rows** (`5ec98a52`); it shows through the card's
-  translucent 9 % wash, and the Reminder card is below the fold of a scrolling screen, not clipped.
+- **The payout confetti falls over the whole screen**, header included, as iOS's `SPConfetti` draws
+  over the window: iOS parity overrides this finding (2026-10-23, `fix/android-confetti-on-top`). It
+  first fell behind the rows (`5ec98a52`). The Reminder card is below the fold of a scrolling screen,
+  not clipped.
 - **The switch's off state stays see-through with a 70 % ink border and thumb.** The review asked for a
   cream track with a white thumb and a 20 % ink outline, which is well under the 3 : 1 edge WCAG 1.4.11
   needs; `CanvasComponentColorsTest` (BIT-95) holds the current tokens for that reason.
@@ -740,3 +742,18 @@ presents it as a page sheet: a card rising from the bottom over the dimmed scree
   at 1.2 × their size, 12 between paragraphs, an empty `<p>&nbsp;</p>` as a ~13.8 line (UIKit's default 12 pt
   HTML font) — the gap under the byline, which `ArticleMarkup` used to drop — and 12 plus a trailing empty line
   after each block, whose text sits 20 in from the sides and 20 below the one above.
+
+## 57. The privacy cover, and what Recents can still see
+
+**2026-11-20.** iOS raises its privacy cover (`yelloworblue3` with the logo) on `willResignActive` and drops
+it on `didBecomeActive`, so the app switcher never shows the wallet (`CoreViewController.showPrivacyCover`).
+
+- **Android 13 and up.** The app asks Recents for no picture at all (`setRecentsScreenshotEnabled(false)`) and
+  gives its card the cover's colour, which Android draws without a logo.
+- **Android 8 to 12.** There is no switch for the picture, so `PrivacyCover` is up while the app is paused,
+  as its own window over every sheet. With the Home or Recents button, the picture is taken after the pause
+  and shows the cover. Gesture navigation on 10 to 12 takes it as the swipe starts, before the pause, so
+  there the wallet can still show. The cover also lies behind the share sheet, the browser and permission
+  dialogs while they are open.
+- **Raising the minimum to Android 13 instead** was considered and declined (Tom): in October 2026 about a
+  third of active Android devices ran something older.

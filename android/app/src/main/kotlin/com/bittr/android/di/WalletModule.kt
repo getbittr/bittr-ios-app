@@ -14,6 +14,7 @@ import com.bittr.android.core.wallet.SecureStore
 import com.bittr.android.core.wallet.WalletStorageException
 import com.bittr.android.core.wallet.WalletOverviewSource
 import com.bittr.android.core.wallet.WalletService
+import com.bittr.android.core.wallet.WalletState
 import com.bittr.android.core.wallet.keystore.KeystoreSecureStore
 import com.bittr.android.core.wallet.ldk.adapter.BdkOnchainWalletHolder
 import com.bittr.android.core.wallet.ldk.adapter.LdkEventPumpRunner
@@ -39,6 +40,7 @@ import com.bittr.android.core.wallet.ldk.lightning.NodeEvents
 import com.bittr.android.core.wallet.ldk.lightning.NodeOnchainPort
 import com.bittr.android.core.wallet.ldk.lightning.WalletBalanceReader
 import com.bittr.android.core.wallet.ldk.lightning.WalletOverviewPublisher
+import com.bittr.android.core.wallet.ldk.lightning.WipeSafety
 import com.bittr.android.core.wallet.ldk.lightning.openChannelFundingTxIds
 import com.bittr.android.core.wallet.ldk.node.LdkEnvironment
 import com.bittr.android.core.wallet.ldk.node.NodeConfigPlan
@@ -697,6 +699,13 @@ object WalletModule {
                     CachedChannelClosureStore.KEY_FUNDING_OUTPOINT,
                     CachedChannelClosureStore.KEY_CLOSURE_TX_IDS,
                 ).forEach(cache::remove)
+            },
+            // The last word on the removal's hard rule, read with the node still up. No wallet
+            // means no channel to lose; a node that cannot answer is not safe.
+            wipeIsSafe = {
+                seed.state.value == WalletState.Uninitialized ||
+                    lightning.readWalletState()
+                        ?.let { WipeSafety.channelsFullyClosedAndSwept(it.channels, it.balances) } == true
             },
             // The next create or restore runs `prepareNodeState` below. After a removal there is
             // no state left to judge; otherwise state whose discriminator does not match the new

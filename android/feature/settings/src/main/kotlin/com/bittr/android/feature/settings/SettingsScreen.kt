@@ -133,7 +133,7 @@ private fun SettingsRow(label: String, icon: String, onClick: () -> Unit, testTa
                 .padding(start = 25.dp, end = 30.dp),
         ) {
             Image(
-                imageVector = rememberFillIcon(icon, BittrTheme.colors.brandFixed, evenOdd = true),
+                imageVector = rememberFillIcon(icon, BittrTheme.colors.settingsIcon, evenOdd = true),
                 contentDescription = null,
                 modifier = Modifier.size(20.dp),
             )

@@ -1,5 +1,6 @@
 package com.bittr.android.core.common.destination
 
+import com.bittr.android.core.common.amount.MAXIMUM_SATOSHIS
 import java.math.BigDecimal
 import java.math.RoundingMode
 
@@ -26,9 +27,6 @@ import java.math.RoundingMode
 object DestinationParser {
 
     private const val SATS_PER_BTC = 100_000_000L
-
-    /** 21 million BTC in sats — iOS's `Bitcoin.maximumSatoshis` clamp. */
-    private const val MAX_SATS = 2_100_000_000_000_000L
 
     /**
      * The separators iOS splits on before testing each piece
@@ -145,7 +143,7 @@ object DestinationParser {
             .setScale(0, RoundingMode.HALF_UP)
             .toBigInteger()
 
-        return if (sats > BigDecimal(MAX_SATS).toBigInteger()) MAX_SATS else sats.toLong()
+        return if (sats > BigDecimal(MAXIMUM_SATOSHIS).toBigInteger()) MAXIMUM_SATOSHIS else sats.toLong()
     }
 
     private fun String.toBigDecimalOrNull(): BigDecimal? =

@@ -1,6 +1,9 @@
 package com.bittr.android
 
+import android.app.ActivityManager
+import android.os.Build
 import android.os.Bundle
+import androidx.annotation.ChecksSdkIntAtLeast
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import android.os.SystemClock
 import androidx.activity.ComponentActivity
@@ -13,11 +16,13 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -89,6 +94,12 @@ class MainActivity : ComponentActivity() {
     /** `elapsedRealtime` at the last [onStop], or 0 before the first one. */
     private var backgroundedAt: Long = 0L
 
+    /** Android 13 and up let Recents take no picture of the app; below that, the [PrivacyCover] is up while paused. */
+    @get:ChecksSdkIntAtLeast(api = Build.VERSION_CODES.TIRAMISU)
+    private val recentsPictureCanBeTurnedOff = Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU
+
+    private var covered by mutableStateOf(false)
+
     /** Reconnected on every foreground while the node runs, as iOS's `SceneDelegate` does. */
     @Inject
     lateinit var bittrPeer: BittrPeerConnection
@@ -124,6 +135,16 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    override fun onPause() {
+        super.onPause()
+        if (!recentsPictureCanBeTurnedOff) covered = true
+    }
+
+    override fun onResume() {
+        super.onResume()
+        covered = false
+    }
+
     override fun onStop() {
         appForeground.setActive(false)
         backgroundedAt = SystemClock.elapsedRealtime()
@@ -152,11 +173,19 @@ class MainActivity : ComponentActivity() {
         // `restore_wallet.yaml` could not reach field 7 on an API 34 emulator.
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
+        // Recents takes no picture of the wallet, which iOS hides from its app switcher behind the privacy cover.
+        if (recentsPictureCanBeTurnedOff) setRecentsScreenshotEnabled(false)
         removedWalletReset.start()
         setContent {
             val setting by preferences.darkMode.collectAsState()
             BittrTheme(darkTheme = setting.isDark()) {
+                if (recentsPictureCanBeTurnedOff) {
+                    // The card Recents shows instead, in the privacy cover's colour; Android draws it without the logo.
+                    val recentsColor = BittrTheme.colors.primaryHigh.toArgb() or 0xFF000000.toInt()
+                    SideEffect { setTaskDescription(ActivityManager.TaskDescription.Builder().setBackgroundColor(recentsColor).build()) }
+                }
                 BittrApp(pushCoordinator, transactionConfirmations.transactionScreenOpen)
+                if (covered) PrivacyCover()
             }
         }
     }

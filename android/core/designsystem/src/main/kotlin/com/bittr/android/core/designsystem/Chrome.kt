@@ -2,7 +2,6 @@ package com.bittr.android.core.designsystem
 
 import androidx.compose.foundation.Image
 import androidx.compose.ui.graphics.painter.Painter
-import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.AnimationSpec
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.runtime.getValue
@@ -91,6 +90,7 @@ fun BittrModalHeader(
     icon: String = BittrIconPaths.PIGGY,
     titleTestTag: String? = null,
     downTestTag: String? = null,
+    tint: Color = LocalContentColor.current,
 ) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
@@ -100,13 +100,14 @@ fun BittrModalHeader(
             .padding(start = BittrTokens.Spacing.lg, end = BittrTokens.Spacing.xs),
     ) {
         Image(
-            imageVector = rememberFillIcon(icon, LocalContentColor.current),
+            imageVector = rememberFillIcon(icon, tint),
             contentDescription = null,
             modifier = Modifier.size(HeaderIcon),
         )
         Text(
             text = title.lowercase(),
             style = MaterialTheme.typography.titleMedium,
+            color = tint,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
             modifier = Modifier
@@ -127,7 +128,7 @@ fun BittrModalHeader(
             Image(
                 imageVector = rememberStrokeIcon(
                     BittrIconPaths.ARROW_DOWN,
-                    LocalContentColor.current,
+                    tint,
                 ),
                 contentDescription = "Close",
                 modifier = Modifier.size(22.dp),
@@ -240,7 +241,7 @@ fun BittrSheetHeader(
     titleTestTag: String? = null,
     downTestTag: String? = null,
 ) {
-    val tint = BittrTheme.colors.homeCardTitle
+    val tint = BittrTheme.colors.onBrand
     Row(
         verticalAlignment = Alignment.CenterVertically,
         modifier = modifier
@@ -387,10 +388,9 @@ enum class BittrNavTab { Wallet, Academy, Settings }
 /**
  * The selection's slide between Wallet and Academy, and the pages' above it — shared so the two
  * move as one. iOS's `menuButtonTapped` is a plain 0.3 s ease-in-out; this is a spring with a
- * little bounce, as the other page slides in the app have (Tom, 2026-09-29): damping 0.75,
- * settling in about 0.5 s by [PageSlideSpec]'s rule.
+ * little bounce, as the other page slides in the app have (Tom, 2026-09-29): 0.5 s at damping 0.75.
  */
-val MenuSlideSpec: AnimationSpec<Float> = spring(dampingRatio = 0.75f, stiffness = 110f)
+val MenuSlideSpec: AnimationSpec<Float> = iosSpring(0.5f, 0.75f)
 
 private val MenuGap = 10.dp
 

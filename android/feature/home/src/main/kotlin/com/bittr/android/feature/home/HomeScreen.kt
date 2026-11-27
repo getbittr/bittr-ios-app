@@ -169,6 +169,7 @@ fun HomeScreen(
         alert = alert,
         onDismissAlert = viewModel::dismissAlert,
         onSyncingWallet = { viewModel.showAlert(SYNCING_ALERT) },
+        onConversionFailed = { viewModel.showAlert(CONVERSION_ALERT) },
         onSettings = onSettings,
         onMap = onMap,
         onCurrency = onCurrency,
@@ -219,6 +220,8 @@ internal fun HomeScreen(
     navBar: Boolean = true,
     contentBottomPadding: Dp = 0.dp,
     onRefresh: () -> Unit = {},
+    /** Raise the `conversionfail` alert, when the sync status is tapped after a failed rate fetch. */
+    onConversionFailed: () -> Unit = {},
 ) {
     alert?.let {
         BittrAlertDialog(
@@ -237,7 +240,8 @@ internal fun HomeScreen(
     fun guarded(action: () -> Unit): () -> Unit =
         { if (state.walletHasSynced) action() else onSyncingWallet() }
 
-    // `syncingStatusTapped`: the balance screen once synced, the sync overlay before.
+    // `syncingStatusTapped`: the balance screen once synced — or why the rates may be out of date,
+    // after a failed fetch — and the sync overlay before.
     var syncStatusVisible by remember { mutableStateOf(false) }
 
     // `ReloadWallet.swift`: pulling Home down past a threshold resyncs the wallet. Everything
@@ -272,6 +276,7 @@ internal fun HomeScreen(
                 item {
                     HomeHeader(
                         showSyncSpinner = state.showSyncSpinner,
+                        showConversionProblem = state.conversionFailed,
                         balanceSats = state.balanceSats,
                         balanceFiat = state.balanceFiat,
                         onMap = onMap,
@@ -279,7 +284,13 @@ internal fun HomeScreen(
                         onSend = guarded(onSend),
                         onReceive = guarded(onReceive),
                         onBuy = onBuy,
-                        onSyncStatus = { if (state.walletHasSynced) onBalanceDetails() else syncStatusVisible = true },
+                        onSyncStatus = {
+                            when {
+                                !state.walletHasSynced -> syncStatusVisible = true
+                                state.conversionFailed -> onConversionFailed()
+                                else -> onBalanceDetails()
+                            }
+                        },
                         onBalanceCard = guarded(onBalanceDetails),
                         profitPill = profitPill,
                         onProfit = onProfit,
@@ -363,6 +374,7 @@ internal fun HomeScreen(
 private fun HomeHeader(
     showSyncSpinner: Boolean,
     balanceSats: Long?,
+    showConversionProblem: Boolean = false,
     balanceFiat: String? = null,
     onMap: () -> Unit,
     onCurrency: () -> Unit,
@@ -399,6 +411,7 @@ private fun HomeHeader(
                 CanvasSpacer(25.dp)
                 BalanceCard(
                     showSyncSpinner = showSyncSpinner,
+                    showConversionProblem = showConversionProblem,
                     // iOS shows the cached balance, or 0, until the first reading replaces it; the
                     // card is never without one.
                     balanceSats = balanceSats ?: 0L,
@@ -439,6 +452,7 @@ private fun HomeHeader(
 @Composable
 private fun BalanceCard(
     showSyncSpinner: Boolean,
+    showConversionProblem: Boolean,
     balanceSats: Long,
     balanceFiat: String?,
     onSend: () -> Unit,
@@ -488,7 +502,7 @@ private fun BalanceCard(
                 Text(
                     text = HomeStrings.YOUR_WALLET,
                     style = CardTitle,
-                    color = colors.homeCardTitle,
+                    color = colors.onBrand,
                     modifier = Modifier
                         .padding(start = 10.dp)
                         .testTag(TestID.Home.headerLabel),
@@ -498,12 +512,27 @@ private fun BalanceCard(
                 // not for an animation to be hidden.
                 if (showSyncSpinner) {
                     BittrSpinner(
-                        color = colors.homeCardTitle,
+                        color = colors.onBrand,
                         strokeWidth = 2.dp,
                         modifier = Modifier
                             .padding(start = 12.dp)
                             .size(18.dp)
                             .testTag(TestID.Home.headerSpinner),
+                    )
+                } else if (showConversionProblem) {
+                    // `headerProblemImage`, where the spinner was: the conversion rates could not be fetched.
+                    // The theme's `error` is iOS's `systemRed`, the storyboard's tint for this image.
+                    Image(
+                        imageVector = rememberStrokeIcon(
+                            BittrIconPaths.EXCLAMATION_CIRCLE,
+                            MaterialTheme.colorScheme.error,
+                            strokeWidth = 2.2f,
+                        ),
+                        contentDescription = HomeStrings.CONVERSION_UNAVAILABLE,
+                        modifier = Modifier
+                            .padding(start = 12.dp)
+                            .size(18.dp)
+                            .testTag(TestID.Home.headerProblemImage),
                     )
                 }
             }
@@ -841,7 +870,7 @@ private fun SmallCardTitle(icon: Int, title: String) {
         Text(
             text = title,
             style = CardTitle,
-            color = BittrTheme.colors.homeCardTitle,
+            color = BittrTheme.colors.onBrand,
             modifier = Modifier
                 .padding(start = 10.dp)
                 .offset(y = 0.5.dp),
@@ -1200,6 +1229,12 @@ private val HistorySmall: TextStyle
 private val SYNCING_ALERT = HomeAlert(
     title = HomeStrings.SYNCING_WALLET,
     message = HomeStrings.SYNCING_WALLET_2,
+)
+
+/** `syncingStatusTapped` after a failed conversion-rate fetch. */
+private val CONVERSION_ALERT = HomeAlert(
+    title = HomeStrings.OOPS,
+    message = HomeStrings.CONVERSION_FAIL,
 )
 
 @Preview(showBackground = true, widthDp = 412, heightDp = 892)

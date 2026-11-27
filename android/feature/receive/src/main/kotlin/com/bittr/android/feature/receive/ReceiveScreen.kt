@@ -34,13 +34,15 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import com.bittr.android.core.designsystem.rememberRetained
 import com.bittr.android.core.designsystem.MiddleEllipsisText
+import com.bittr.android.core.designsystem.GroupsOfFourText
+import androidx.compose.ui.text.font.FontFamily
 import com.bittr.android.core.designsystem.rememberFillIcon
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.ui.graphics.Color
 import com.bittr.android.core.designsystem.rememberTextClipboard
 import com.bittr.android.core.designsystem.BittrSpinner
@@ -49,12 +51,11 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.draw.clip
 import androidx.compose.foundation.layout.widthIn
-import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.SolidColor
-import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
@@ -66,6 +67,7 @@ import com.bittr.android.core.designsystem.BittrAlertButton
 import com.bittr.android.core.designsystem.BittrIconPaths
 import com.bittr.android.core.designsystem.BittrTheme
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.gestures.detectTapGestures
@@ -87,6 +89,9 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.text
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.unit.sp
 import com.bittr.android.core.designsystem.BittrSheetHeader
 import com.bittr.android.core.designsystem.iosShadow
@@ -126,13 +131,25 @@ internal fun ReceiveScreen(
     val clipboard = rememberTextClipboard()
     val context = LocalContext.current
     val focusManager = LocalFocusManager.current
+    // `textFieldDidEndEditing`: checked on the next turn, and not at all once the screen has gone, so a
+    // field that loses focus as the sheet closes makes no code.
+    val scope = rememberCoroutineScope()
+    val editingEnded = { scope.launch { controller.onEditingEnded() }; Unit }
 
     fun copy() {
+        focusManager.clearFocus()
         controller.onCopy()?.let(clipboard::copy)
+    }
+    LaunchedEffect(state.copyRequest) {
+        state.copyRequest?.let {
+            clipboard.copy(it)
+            controller.onCopyRequestHandled()
+        }
     }
 
     fun share() {
-        val text = state.display?.copyText ?: return
+        focusManager.clearFocus()
+        val text = controller.onShare() ?: return
         val send = Intent(Intent.ACTION_SEND).setType("text/plain").putExtra(Intent.EXTRA_TEXT, text)
         context.startActivity(Intent.createChooser(send, null).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
     }
@@ -200,8 +217,9 @@ internal fun ReceiveScreen(
                         controller.onRefresh()
                     },
                     onEdit = {
-                        focusManager.clearFocus()
+                        // The fields change before the keyboard goes, so closing makes one code rather than two.
                         controller.onEdit()
+                        focusManager.clearFocus()
                     },
                     onMore = {
                         focusManager.clearFocus()
@@ -222,6 +240,7 @@ internal fun ReceiveScreen(
                             focusManager.clearFocus()
                             controller.onDone()
                         },
+                        onEditingEnded = editingEnded,
                     )
                 }
             }
@@ -241,8 +260,9 @@ internal fun ReceiveScreen(
 @Composable
 private fun QrBox(payload: String?, loading: Boolean, onCopy: () -> Unit, onShare: () -> Unit) {
     var menuOpen by remember { mutableStateOf(false) }
-    val bitmap by produceState<ImageBitmap?>(initialValue = null, payload) {
-        value = payload?.let { withContext(Dispatchers.Default) { qrBitmap(it).asImageBitmap() } }
+    // Kept with the payload it was made from, so a code from before a remake is never drawn beside the new label.
+    val code by produceState<Pair<String, QrCode>?>(initialValue = null, payload) {
+        value = payload?.let { withContext(Dispatchers.Default) { qrCode(it)?.let { code -> it to code } } }
     }
 
     // `qrWhiteView`: square, white in both schemes (a QR reads dark on light), 8 corners and the
@@ -256,32 +276,30 @@ private fun QrBox(payload: String?, loading: Boolean, onCopy: () -> Unit, onShar
             .background(Color.White, PlateShape)
             .padding(15.dp),
     ) {
-        val shown = bitmap
-        if (!loading && shown != null) {
+        val qr = code?.takeIf { it.first == payload }?.second
+        if (!loading && qr != null) {
             Box {
                 Image(
-                    bitmap = shown,
+                    bitmap = qr.image,
                     contentDescription = "QR code",
                     modifier = Modifier
                         .fillMaxSize()
                         .combinedClickable(onClick = {}, onLongClick = { menuOpen = true })
                         .testTag(TestID.Receive.qrImageView),
                 )
-                // The bittr mark at the centre, in a round white cut-out as iOS draws it (review,
-                // pass 3). A 20 % circle covers about 3 % of the modules, well inside what the
-                // code's level-H error correction (30 %) recovers.
+                // The bittr mark at the centre, in a square white box of whole modules as iOS draws it.
+                // The box covers about 2 % of the modules, well inside what level H (30 %) recovers.
                 Box(
                     contentAlignment = Alignment.Center,
                     modifier = Modifier
                         .align(Alignment.Center)
-                        .fillMaxSize(0.20f)
-                        .background(Color.White, CircleShape)
-                        .padding(6.dp),
+                        .fillMaxSize(qr.logoBox)
+                        .background(Color.White),
                 ) {
                     BittrMark(
                         ink = Color.Black,
                         arc = BittrTheme.colors.brandFixed,
-                        modifier = Modifier.fillMaxSize(),
+                        modifier = Modifier.fillMaxSize(qr.logoMark),
                     )
                 }
                 // The dialog's cream, 16 dp and a glyph per item, rather than Material's bare
@@ -320,7 +338,8 @@ private fun QrBox(payload: String?, loading: Boolean, onCopy: () -> Unit, onShar
         }
         if (loading) {
             BittrSpinner(
-                color = BittrTheme.colors.emphasis,
+                // The storyboard's black, on the QR's white box in both modes.
+                color = BittrTheme.colors.onChartSurface,
                 modifier = Modifier.testTag(TestID.Receive.qrSpinner),
             )
         }
@@ -330,8 +349,8 @@ private fun QrBox(payload: String?, loading: Boolean, onCopy: () -> Unit, onShar
 /**
  * `addressView`: `whiteorblue3` with 8 corners and the iOS shadow, at least 45 tall. The title in
  * yellow Gilroy-Bold 16 15 in — after the 14 pt bolt for Lightning — with `questionmark.circle` 7
- * after it; the address in black or white, right-aligned and wrapping, at least 15 after that. An
- * invoice or a Bitcoin QR has no room there and runs under the title instead, up to three lines.
+ * after it. Under it, for every type, the label in black or white: an address or invoice
+ * monospaced in groups of four, an invoice shortened to three lines between whole groups.
  * `questionButton` is the title and its question mark, as on iOS.
  */
 @Composable
@@ -385,35 +404,46 @@ private fun AddressBox(state: ReceiveUiState, onQuestion: () -> Unit) {
                     }
                 }
             }
-            val address = if (state.loading) "" else display?.addressLabel.orEmpty()
-            // A Lightning address is read aloud and typed, so it is never elided (review, pass 2,
-            // `receive/02`): it wraps, breaking before the `@` rather than inside the domain. The
-            // zero-width space is display only — the copy action reads the model.
-            val lightningAddress = '@' in address
-            Text(
-                text = if (lightningAddress) address.replace("@", "\u200B@") else address,
-                style = style,
-                color = MaterialTheme.colorScheme.onSurface,
-                textAlign = TextAlign.End,
-                modifier = Modifier
-                    .weight(1f)
-                    .padding(start = 15.dp)
-                    .testTag(TestID.Receive.addressLabel),
-            )
         }
-        val lower = if (state.loading) "" else display?.lowerLabel.orEmpty()
-        if (lower.isNotEmpty()) {
-            // `lowerAddressLabel`: three lines, truncated in the middle, so the end can be checked.
-            MiddleEllipsisText(
-                text = lower,
-                style = style,
-                color = MaterialTheme.colorScheme.onSurface,
-                maxLines = 3,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = 10.dp)
-                    .testTag(TestID.Receive.invoiceLabel),
-            )
+        val label = if (state.loading) "" else display?.label.orEmpty()
+        if (display != null && label.isNotEmpty()) {
+            // Read as the copy text, as iOS's accessibility label is, so no display-only character reaches TalkBack or the flows.
+            val readAs = display.copyText ?: label
+            val labelStyle = if (display.monospaced) style.copy(fontFamily = FontFamily.Monospace) else style
+            val labelModifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 10.dp)
+                .testTag(TestID.Receive.addressLabel)
+            when (state.type) {
+                // An invoice is shortened between whole groups, as iOS shortens only invoices.
+                ReceiveType.Lightning -> GroupsOfFourText(
+                    text = label,
+                    readAs = readAs,
+                    style = labelStyle,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    maxLines = 3,
+                    modifier = labelModifier,
+                )
+                // `lowerAddressLabel`: three lines, truncated in the middle only when they are not enough.
+                ReceiveType.Onchain, ReceiveType.BitcoinQr -> MiddleEllipsisText(
+                    text = label,
+                    readAs = readAs,
+                    style = labelStyle,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    maxLines = 3,
+                    modifier = labelModifier,
+                )
+                // A Lightning address is read aloud and typed, so it is never elided (review, pass 2,
+                // `receive/02`): it wraps, breaking before the `@` rather than inside the domain. The
+                // zero-width space is display only — the copy action reads the model.
+                ReceiveType.Lnurl -> Box(labelModifier.clearAndSetSemantics { text = AnnotatedString(readAs) }) {
+                    Text(
+                        text = label.replace("@", "\u200B@"),
+                        style = style,
+                        color = MaterialTheme.colorScheme.onSurface,
+                    )
+                }
+            }
         }
     }
 }
@@ -622,6 +652,7 @@ private fun AmountStack(
     onDescriptionChange: (String) -> Unit,
     onCurrency: () -> Unit,
     onDone: () -> Unit,
+    onEditingEnded: () -> Unit,
 ) {
     // The keyboard's ✓ is iOS's toolbar Done on both fields: it commits the amount and note.
     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -634,6 +665,7 @@ private fun AmountStack(
                 },
                 keyboardType = if (state.currency == ReceiveCurrency.Satoshis) KeyboardType.Number else KeyboardType.Decimal,
                 onDone = onDone,
+                onEditingEnded = onEditingEnded,
                 testTag = TestID.Receive.amountTextField,
                 modifier = Modifier.weight(1f),
             )
@@ -671,6 +703,7 @@ private fun AmountStack(
                 onValueChange = onDescriptionChange,
                 keyboardType = KeyboardType.Text,
                 onDone = onDone,
+                onEditingEnded = onEditingEnded,
                 testTag = null,
                 modifier = Modifier.fillMaxWidth(),
             )
@@ -685,10 +718,12 @@ private fun EntryField(
     onValueChange: (String) -> Unit,
     keyboardType: KeyboardType,
     onDone: () -> Unit,
+    onEditingEnded: () -> Unit,
     testTag: String?,
     modifier: Modifier = Modifier,
 ) {
     val colors = BittrTheme.colors
+    var focused by remember { mutableStateOf(false) }
     val style = MaterialTheme.typography.bodyLarge.copy(textAlign = TextAlign.Center)
     Box(
         contentAlignment = Alignment.Center,
@@ -711,11 +746,15 @@ private fun EntryField(
             onValueChange = onValueChange,
             singleLine = true,
             textStyle = style.copy(color = MaterialTheme.colorScheme.onSurface),
-            cursorBrush = SolidColor(colors.onTonalFill),
+            cursorBrush = SolidColor(colors.onCanvas),
             keyboardOptions = KeyboardOptions(keyboardType = keyboardType, imeAction = ImeAction.Done),
             keyboardActions = KeyboardActions(onDone = { onDone() }),
             modifier = Modifier
                 .fillMaxWidth()
+                .onFocusChanged {
+                    if (focused && !it.isFocused) onEditingEnded()
+                    focused = it.isFocused
+                }
                 .then(if (testTag != null) Modifier.testTag(testTag) else Modifier),
         )
     }

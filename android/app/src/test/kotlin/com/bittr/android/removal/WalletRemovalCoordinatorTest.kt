@@ -48,6 +48,7 @@ class WalletRemovalCoordinatorTest {
         var connects = true
         var closeFails = false
         var reading: WalletNodeReading? = reading()
+        var onRead: () -> Unit = {}
         val closed = mutableListOf<String>()
         val forceClosed = mutableListOf<String>()
 
@@ -56,7 +57,10 @@ class WalletRemovalCoordinatorTest {
             startGate?.await()
             return starts
         }
-        override fun read() = reading
+        override fun read(): WalletNodeReading? {
+            onRead()
+            return reading
+        }
         override fun isPeerConnected() = peerConnected
         override suspend fun connectPeer(): Boolean {
             if (connects) peerConnected = true
@@ -116,6 +120,16 @@ class WalletRemovalCoordinatorTest {
     }
 
     @Test
+    fun `settings shows the spinner while it reads the node`() {
+        var busyWhileReading = false
+        node.onRead = { busyWhileReading = removal.uiState.value.busy }
+        removal.removeWalletTapped(RemovalOrigin.Settings)
+
+        assertTrue(busyWhileReading)
+        assertFalse(removal.uiState.value.busy)
+    }
+
+    @Test
     fun `cancel on either confirmation erases nothing`() {
         removal.removeWalletTapped(RemovalOrigin.Settings)
         tap(0)
@@ -125,6 +139,69 @@ class WalletRemovalCoordinatorTest {
         tap(0)
         assertTrue(seedIsThere)
         assertFalse(removal.handOff.value)
+    }
+
+    @Test
+    fun `a channel opened during the confirmations stops the erase at the last tap`() {
+        removal.removeWalletTapped(RemovalOrigin.Settings)
+        tap(1)
+        node.reading = reading(channels = listOf(openChannel()))
+        tap(1)
+
+        assertEquals(RemovalStrings.RESTORE_WALLET_4, alert?.message)
+        assertTrue(seedIsThere)
+        assertFalse(removal.handOff.value)
+        assertFalse(removal.uiState.value.busy)
+    }
+
+    @Test
+    fun `a channel still opening at the last tap asks for a close, not a resume`() {
+        removal.removeWalletTapped(RemovalOrigin.Settings)
+        tap(1)
+        node.reading = reading(channels = listOf(openChannel().copy(isChannelReady = false)))
+        tap(1)
+
+        assertEquals(RemovalStrings.RESTORE_WALLET_4, alert?.message)
+        assertFalse(flag.inProgress)
+        assertTrue(seedIsThere)
+    }
+
+    @Test
+    fun `the lockout waits for a channel still opening, without erasing`() {
+        node.reading = reading(channels = listOf(openChannel().copy(isChannelReady = false)))
+        removal.lockedOut()
+
+        assertEquals(RemovalStrings.CLOSE_RETRY_LATER, alert?.message)
+        assertEquals(listOf(RemovalStrings.TRY_AGAIN), alert?.buttons?.map { it.label })
+        assertTrue(node.closed.isEmpty())
+        assertFalse(removal.uiState.value.busy)
+        assertTrue(seedIsThere)
+    }
+
+    @Test
+    fun `a node that cannot be read at the last tap never erases`() {
+        removal.removeWalletTapped(RemovalOrigin.Settings)
+        tap(1)
+        node.reading = null
+        tap(1)
+
+        assertEquals(RemovalStrings.REMOVAL_FAILED, alert?.message)
+        assertTrue(seedIsThere)
+        assertFalse(removal.handOff.value)
+        assertFalse(removal.uiState.value.busy)
+    }
+
+    @Test
+    fun `funds still settling at the last tap block the erase and resume next launch`() {
+        removal.removeWalletTapped(RemovalOrigin.Settings)
+        tap(1)
+        node.reading = reading(pending = listOf(PendingSweepView.AwaitingThresholdConfirmations(5_000uL, "tx")))
+        tap(1)
+
+        assertEquals(RemovalStrings.STILL_CLOSING, alert?.message)
+        assertTrue(flag.inProgress)
+        assertTrue(seedIsThere)
+        assertFalse(removal.uiState.value.busy)
     }
 
     @Test
