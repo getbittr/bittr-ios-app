@@ -1,0 +1,120 @@
+package com.bittr.android.core.designsystem
+
+import android.content.Context
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.width
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.test.assertTextEquals
+import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.text.TextMeasurer
+import androidx.compose.ui.text.TextLayoutResult
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.font.createFontFamilyResolver
+import androidx.compose.ui.unit.Constraints
+import androidx.compose.ui.unit.Density
+import androidx.compose.ui.unit.LayoutDirection
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.em
+import androidx.compose.ui.unit.sp
+import androidx.test.core.app.ApplicationProvider
+import androidx.test.ext.junit.runners.AndroidJUnit4
+import kotlin.math.abs
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
+import org.junit.Rule
+import org.junit.Test
+import org.junit.runner.RunWith
+import org.robolectric.annotation.Config
+import org.robolectric.annotation.GraphicsMode
+
+/** Measured with the platform's own text layout, so the widths are the ones a phone gets. */
+@RunWith(AndroidJUnit4::class)
+@Config(sdk = [34])
+@GraphicsMode(GraphicsMode.Mode.NATIVE)
+class GroupsOfFourTextTest {
+
+    @get:Rule
+    val composeRule = createComposeRule()
+
+    private val density = Density(1f)
+    private val measurer = TextMeasurer(
+        createFontFamilyResolver(ApplicationProvider.getApplicationContext<Context>()),
+        density,
+        LayoutDirection.Ltr,
+    )
+    private val style = TextStyle(fontFamily = FontFamily.Monospace, fontWeight = FontWeight.Bold, fontSize = 16.sp, lineHeight = 18.sp)
+    private val invoice = "lnbcrt1500n1pn7xyz0pp5qqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqypqdq5" +
+        "xysxxatsyp3k7enxv4jsxqzpusp5zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zygs9qrsgq" +
+        "357wnc5r2ueh7ck6q93dj32dlqnls087fxdwk8qakdyafkq3yap9us6v52vjjsrvywa6rt52cm9r9zqt8r2t7" +
+        "mlcwspyetp5h2tztugp9lfyql"
+    private val characterWidth = measurer.measure("0".repeat(40), style, softWrap = false).getLineRight(0) / 40
+
+    @Test
+    fun `a shortened invoice keeps three lines, both its ends and its columns, at every width`() {
+        for (width in 100..420 step 3) {
+            val shown = shortenedInGroups(measurer, inGroupsOfFour(invoice), style, density, maxLines = 3, width = width)
+            val layout = measurer.measure(shown, style, constraints = Constraints(maxWidth = width))
+            val text = shown.text
+
+            assertTrue("Three lines at most at $width px", layout.lineCount <= 3)
+            val ellipsis = text.indexOf('…')
+            assertTrue("Shortened at $width px", ellipsis > 0)
+            assertTrue("The start is the invoice's start at $width px", invoice.startsWith(text.substring(0, ellipsis).filter(Char::isLetterOrDigit)))
+            val end = text.substring(ellipsis).filter(Char::isLetterOrDigit)
+            assertTrue("The end is the invoice's end at $width px", end.isEmpty() || invoice.endsWith(end))
+
+            val last = layout.lineCount - 1
+            assertTrue("The ellipsis line is no wider than a full line at $width px", layout.getLineRight(last) <= layout.getLineRight(0) + 0.5f)
+            val columns = groupStarts(layout, text, 0)
+            for (x in groupStarts(layout, text, last)) {
+                assertTrue("Every group on the ellipsis line is in a column at $width px", columns.any { abs(it - x) < 0.5f })
+            }
+            val slotStart = layout.getHorizontalPosition(ellipsis - 1, usePrimaryDirection = true)
+            val box = layout.getBoundingBox(ellipsis)
+            assertEquals("The ellipsis sits in the middle of its slot at $width px", slotStart + 2 * characterWidth, (box.left + box.right) / 2, 0.5f)
+        }
+    }
+
+    private fun groupStarts(layout: TextLayoutResult, text: String, line: Int) =
+        (layout.getLineStart(line) until layout.getLineEnd(line))
+            .filter { text[it].isLetterOrDigit() && (it == 0 || !text[it - 1].isLetterOrDigit()) }
+            .map { layout.getHorizontalPosition(it, usePrimaryDirection = true) }
+
+    @Test
+    fun `narrowed to its longest line, the text wraps exactly as before`() {
+        val address = inGroupsOfFour("bc1p5d7rjq7g6rdk2yhzks9smlaqtedr4dekq08ge8ztwac72sfr9rusxg3297")
+        for (width in 100..420 step 3) {
+            for (shown in listOf(shortenedInGroups(measurer, address, style, density, Int.MAX_VALUE, width), shortenedInGroups(measurer, inGroupsOfFour(invoice), style, density, 3, width))) {
+                val full = measurer.measure(shown, style, constraints = Constraints(maxWidth = width))
+                val narrowed = measurer.measure(shown, style, constraints = Constraints(maxWidth = longestLine(measurer, shown, style, width)))
+                assertEquals("Lines at $width px", full.lineCount, narrowed.lineCount)
+                for (line in 0 until full.lineCount) assertEquals("Line ${line + 1} at $width px", full.getLineEnd(line), narrowed.getLineEnd(line))
+            }
+        }
+    }
+
+    @Test
+    fun `text that fits is left as it is`() {
+        val address = inGroupsOfFour("bcrt1ql0pkt3du7900avnxcjusmcjgm3fvvtkzm2u6nw")
+        assertEquals(address, shortenedInGroups(measurer, address, style, density, maxLines = 3, width = 300).text)
+    }
+
+    @Test
+    fun `a style with no size in sp is shortened rather than crashing`() {
+        composeRule.setContent {
+            Box(Modifier.width(150.dp)) {
+                GroupsOfFourText(inGroupsOfFour(invoice), invoice, TextStyle(fontFamily = FontFamily.Monospace), Modifier.testTag("unspecified"), maxLines = 3)
+            }
+            Box(Modifier.width(150.dp)) {
+                GroupsOfFourText(inGroupsOfFour(invoice), invoice, TextStyle(fontFamily = FontFamily.Monospace, fontSize = 1.2.em), Modifier.testTag("em"), maxLines = 3)
+            }
+        }
+
+        composeRule.onNodeWithTag("unspecified").assertTextEquals(invoice)
+        composeRule.onNodeWithTag("em").assertTextEquals(invoice)
+    }
+}

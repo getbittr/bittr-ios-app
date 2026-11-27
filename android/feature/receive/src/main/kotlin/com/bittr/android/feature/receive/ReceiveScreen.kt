@@ -39,8 +39,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import com.bittr.android.core.designsystem.rememberRetained
 import com.bittr.android.core.designsystem.MiddleEllipsisText
+import com.bittr.android.core.designsystem.GroupsOfFourText
+import androidx.compose.ui.text.font.FontFamily
 import com.bittr.android.core.designsystem.rememberFillIcon
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.ui.graphics.Color
 import com.bittr.android.core.designsystem.rememberTextClipboard
 import com.bittr.android.core.designsystem.BittrSpinner
@@ -49,9 +50,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.draw.clip
 import androidx.compose.foundation.layout.widthIn
-import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.SolidColor
-import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.testTag
@@ -241,8 +240,8 @@ internal fun ReceiveScreen(
 @Composable
 private fun QrBox(payload: String?, loading: Boolean, onCopy: () -> Unit, onShare: () -> Unit) {
     var menuOpen by remember { mutableStateOf(false) }
-    val bitmap by produceState<ImageBitmap?>(initialValue = null, payload) {
-        value = payload?.let { withContext(Dispatchers.Default) { qrBitmap(it).asImageBitmap() } }
+    val code by produceState<QrCode?>(initialValue = null, payload) {
+        value = payload?.let { withContext(Dispatchers.Default) { qrCode(it) } }
     }
 
     // `qrWhiteView`: square, white in both schemes (a QR reads dark on light), 8 corners and the
@@ -256,32 +255,30 @@ private fun QrBox(payload: String?, loading: Boolean, onCopy: () -> Unit, onShar
             .background(Color.White, PlateShape)
             .padding(15.dp),
     ) {
-        val shown = bitmap
-        if (!loading && shown != null) {
+        val qr = code
+        if (!loading && qr != null) {
             Box {
                 Image(
-                    bitmap = shown,
+                    bitmap = qr.image,
                     contentDescription = "QR code",
                     modifier = Modifier
                         .fillMaxSize()
                         .combinedClickable(onClick = {}, onLongClick = { menuOpen = true })
                         .testTag(TestID.Receive.qrImageView),
                 )
-                // The bittr mark at the centre, in a round white cut-out as iOS draws it (review,
-                // pass 3). A 20 % circle covers about 3 % of the modules, well inside what the
-                // code's level-H error correction (30 %) recovers.
+                // The bittr mark at the centre, in a square white box of whole modules as iOS draws it.
+                // The box covers about 2 % of the modules, well inside what level H (30 %) recovers.
                 Box(
                     contentAlignment = Alignment.Center,
                     modifier = Modifier
                         .align(Alignment.Center)
-                        .fillMaxSize(0.20f)
-                        .background(Color.White, CircleShape)
-                        .padding(6.dp),
+                        .fillMaxSize(qr.logoBox)
+                        .background(Color.White),
                 ) {
                     BittrMark(
                         ink = Color.Black,
                         arc = BittrTheme.colors.brandFixed,
-                        modifier = Modifier.fillMaxSize(),
+                        modifier = Modifier.fillMaxSize(qr.logoMark),
                     )
                 }
                 // The dialog's cream, 16 dp and a glyph per item, rather than Material's bare
@@ -331,8 +328,8 @@ private fun QrBox(payload: String?, loading: Boolean, onCopy: () -> Unit, onShar
 /**
  * `addressView`: `whiteorblue3` with 8 corners and the iOS shadow, at least 45 tall. The title in
  * yellow Gilroy-Bold 16 15 in — after the 14 pt bolt for Lightning — with `questionmark.circle` 7
- * after it; the address in black or white, right-aligned and wrapping, at least 15 after that. An
- * invoice or a Bitcoin QR has no room there and runs under the title instead, up to three lines.
+ * after it. Under it, for every type, the label in black or white: an address or invoice
+ * monospaced in groups of four, an invoice shortened to three lines between whole groups.
  * `questionButton` is the title and its question mark, as on iOS.
  */
 @Composable
@@ -386,35 +383,43 @@ private fun AddressBox(state: ReceiveUiState, onQuestion: () -> Unit) {
                     }
                 }
             }
-            val address = if (state.loading) "" else display?.addressLabel.orEmpty()
-            // A Lightning address is read aloud and typed, so it is never elided (review, pass 2,
-            // `receive/02`): it wraps, breaking before the `@` rather than inside the domain. The
-            // zero-width space is display only — the copy action reads the model.
-            val lightningAddress = '@' in address
-            Text(
-                text = if (lightningAddress) address.replace("@", "\u200B@") else address,
-                style = style,
-                color = MaterialTheme.colorScheme.onSurface,
-                textAlign = TextAlign.End,
-                modifier = Modifier
-                    .weight(1f)
-                    .padding(start = 15.dp)
-                    .testTag(TestID.Receive.addressLabel),
-            )
         }
-        val lower = if (state.loading) "" else display?.lowerLabel.orEmpty()
-        if (lower.isNotEmpty()) {
-            // `lowerAddressLabel`: three lines, truncated in the middle, so the end can be checked.
-            MiddleEllipsisText(
-                text = lower,
-                style = style,
-                color = MaterialTheme.colorScheme.onSurface,
-                maxLines = 3,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = 10.dp)
-                    .testTag(TestID.Receive.invoiceLabel),
-            )
+        val label = if (state.loading) "" else display?.label.orEmpty()
+        if (display != null && label.isNotEmpty()) {
+            val labelStyle = if (display.monospaced) style.copy(fontFamily = FontFamily.Monospace) else style
+            val labelModifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 10.dp)
+                .testTag(TestID.Receive.addressLabel)
+            when (state.type) {
+                // An invoice is shortened between whole groups, as iOS shortens only invoices.
+                ReceiveType.Lightning -> GroupsOfFourText(
+                    text = label,
+                    readAs = display.copyText,
+                    style = labelStyle,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    maxLines = 3,
+                    modifier = labelModifier,
+                )
+                // `lowerAddressLabel`: three lines, truncated in the middle only when they are not enough.
+                ReceiveType.Onchain, ReceiveType.BitcoinQr -> MiddleEllipsisText(
+                    text = label,
+                    readAs = display.copyText,
+                    style = labelStyle,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    maxLines = 3,
+                    modifier = labelModifier,
+                )
+                // A Lightning address is read aloud and typed, so it is never elided (review, pass 2,
+                // `receive/02`): it wraps, breaking before the `@` rather than inside the domain. The
+                // zero-width space is display only — the copy action reads the model.
+                ReceiveType.Lnurl -> Text(
+                    text = label.replace("@", "\u200B@"),
+                    style = style,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    modifier = labelModifier,
+                )
+            }
         }
     }
 }

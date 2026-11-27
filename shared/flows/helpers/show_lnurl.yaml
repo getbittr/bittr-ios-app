@@ -45,8 +45,6 @@ appId: ${APP_ID}
 #   .lightning → add-amount + More
 #   .bitcoinqr → add-amount + More
 #   .lnurl     → More only — the ONLY type with no add-amount (edit) card
-# and .lnurl is the only lightning-ish type that fills the upper addressLabel
-# (the lower invoiceLabel is emptied and collapsed by hideLowerAddress).
 - assertVisible:
     id: "receive.addressLabel"
 - assertNotVisible:
