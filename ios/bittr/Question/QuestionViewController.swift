@@ -51,7 +51,7 @@ class QuestionViewController: UIViewController {
         self.yellowCard.setShadow()
         
         self.changeColors()
-        self.answerLabel.text = self.answerText ?? ""
+        self.answerLabel.attributedText = (self.answerText ?? "").attributed()
         var topHeaderText = self.headerText ?? ""
         
         if let actualType = self.questionType {

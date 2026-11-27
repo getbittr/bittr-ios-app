@@ -204,7 +204,8 @@ shared/flows/
                           Device-details row: dark-mode toggle, language,
                           currency (EUR↔CHF, verified on Home), device token,
                           public key, Bittr peer / pending payout, and
-                          Lightning connections (QuestionViewController).
+                          Lightning connections (an alert without a ready
+                          connection, else QuestionViewController).
     inactivity_lock.yaml  Inactivity lockout — unlock, wait for the sync to
                           finish, background the app with pressKey: Home, wait
                           out the two-minute window (scripts/sleep.js), then tap

@@ -221,8 +221,10 @@ appId: com.bittr.bittr-regtest
       # history table. Open it and check TransactionVC says where the funds came
       # from: descriptionText() falls back to the channelclosuretransaction
       # string when a transaction carries no lightning description of its own
-      # and its txid is in the channel-closure cache, which loadWalletData fills
-      # from listBalances().pendingBalancesFromChannelClosures.
+      # and its txid is in the channel-closure cache. After a cooperative close,
+      # the BDK scan that the pull-to-refresh started fills that cache, possibly
+      # after the screen has opened; the screen then adds the description, so
+      # wait for it.
       - extendedWaitUntil:
           visible:
             id: "history.transactionButton0"
@@ -233,9 +235,11 @@ appId: com.bittr.bittr-regtest
           visible:
             id: "transaction.yellowCard"
           timeout: 30000
-      - assertVisible:
-          id: "transaction.descriptionLabel"
-          text: ".*closed lightning connection.*"
+      - extendedWaitUntil:
+          visible:
+            id: "transaction.descriptionLabel"
+            text: ".*closed lightning connection.*"
+          timeout: 60000
       - takeScreenshot: shared/docs/screenshots/remove_wallet/09b_closure_description
 
       # Back to Home, then on to the reset.

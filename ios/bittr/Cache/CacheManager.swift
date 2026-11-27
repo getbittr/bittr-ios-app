@@ -744,6 +744,9 @@ class CacheManager: NSObject {
         let newTxIDs = txIDs.filter { !cachedTxIDs.contains($0) }
         guard !newTxIDs.isEmpty else { return }
         CacheStore.set(cachedTxIDs + newTxIDs, for: CacheKeys.channelClosureTxIDs)
+        DispatchQueue.main.async {
+            NotificationCenter.default.post(name: NSNotification.Name(rawValue: "channelclosurefound"), object: nil)
+        }
     }
     
     static func getChannelClosureTxIDs() -> [String] {

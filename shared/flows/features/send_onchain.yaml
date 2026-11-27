@@ -86,15 +86,35 @@ appId: com.bittr.bittr-regtest
     id: "send.regularButton"
 
 # Still on the default Instant (lightning) view: tap the question mark next to
-# the "You can send…" label → the QuestionViewController explaining the lightning
-# channel. Close it (header down button) → back on Send.
+# the "You can send…" label → an alert when no lightning connection is ready,
+# otherwise the QuestionViewController explaining the connection. Close either
+# → back on Send. Let the scanner alert slide out first, so its Okay isn't
+# mistaken for the new alert's.
+- extendedWaitUntil:
+    notVisible:
+      id: "alert.button.0"
+    timeout: 5000
+- evalScript: ${output.lightningAlert = false}
 - tapOn:
     id: "send.availableQuestionButton"
-- assertVisible:
-    id: "question.yellowCard"
-- takeScreenshot: shared/docs/screenshots/send_onchain/01c_lightning_sendable_info
-- tapOn:
-    id: "header.downButton"
+- runFlow:
+    when:
+      visible:
+        id: "alert.button.0"
+    commands:
+      - evalScript: ${output.lightningAlert = true}
+      - takeScreenshot: shared/docs/screenshots/send_onchain/01c_lightning_sendable_alert
+      - tapOn:
+          id: "alert.button.0"
+- runFlow:
+    when:
+      true: ${!output.lightningAlert}
+    commands:
+      - assertVisible:
+          id: "question.yellowCard"
+      - takeScreenshot: shared/docs/screenshots/send_onchain/01c_lightning_sendable_info
+      - tapOn:
+          id: "header.downButton"
 - assertVisible:
     id: "send.regularButton"
 

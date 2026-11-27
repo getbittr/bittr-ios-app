@@ -25,7 +25,7 @@ extension CoreViewController {
         let menuConstraint = menuViews[sender.tag]
         let leadingConstant = CGFloat(sender.tag * -1) * self.view.safeAreaLayoutGuide.layoutFrame.size.width
         
-        UIView.animate(withDuration: 0.3, delay: 0, options: .curveEaseInOut) {
+        UIView.animate(withDuration: 0.6, delay: 0, usingSpringWithDamping: 0.7, initialSpringVelocity: 0, options: .curveEaseInOut) {
             
             // Selected menu item.
             NSLayoutConstraint.deactivate([self.selectedViewLeading, self.selectedViewTrailing])

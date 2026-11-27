@@ -208,6 +208,7 @@ class TransactionViewController: UIViewController {
         self.changeColors()
         self.addHeader(iconLight: "iconpiggywhite", iconDark: "iconpiggyyellow", title: Language.getWord(withID: "transaction"))
         self.setTransactionData()
+        NotificationCenter.default.addObserver(self, selector: #selector(channelClosureFound), name: NSNotification.Name(rawValue: "channelclosurefound"), object: nil)
         
         // Confetti
         if self.showConfetti {
@@ -389,20 +390,7 @@ class TransactionViewController: UIViewController {
         }
         
         // Description
-        if self.descriptionText().trimmingCharacters(in: .whitespacesAndNewlines) != "", !self.tappedTransaction.isSwap, !self.tappedTransaction.isSuggestedSwap, !self.showConfetti {
-            
-            if self.tappedTransaction.isBittr {
-                self.labelDescription.numberOfLines = 1
-                self.labelDescription.lineBreakMode = .byTruncatingMiddle
-            }
-            
-            self.labelDescription.text = self.descriptionText()
-            NSLayoutConstraint.deactivate([self.descriptionStackHeight])
-            self.descriptionStackHeight = NSLayoutConstraint(item: self.descriptionStack, attribute: .height, relatedBy: .greaterThanOrEqual, toItem: nil, attribute: .notAnAttribute, multiplier: 1, constant: 0)
-            NSLayoutConstraint.activate([self.descriptionStackHeight])
-            self.view.layoutIfNeeded()
-            self.descriptionStack.alpha = 1
-        }
+        self.showDescription()
         
         // IDs
         if self.showConfetti {
@@ -690,6 +678,29 @@ class TransactionViewController: UIViewController {
             return Language.getWord(withID: "channelclosuretransaction")
         }
         return self.tappedTransaction.lnDescription
+    }
+    
+    func showDescription() {
+        if self.descriptionText().trimmingCharacters(in: .whitespacesAndNewlines) != "", !self.tappedTransaction.isSwap, !self.tappedTransaction.isSuggestedSwap, !self.showConfetti {
+            
+            if self.tappedTransaction.isBittr {
+                self.labelDescription.numberOfLines = 1
+                self.labelDescription.lineBreakMode = .byTruncatingMiddle
+            }
+            
+            self.labelDescription.text = self.descriptionText()
+            NSLayoutConstraint.deactivate([self.descriptionStackHeight])
+            self.descriptionStackHeight = NSLayoutConstraint(item: self.descriptionStack, attribute: .height, relatedBy: .greaterThanOrEqual, toItem: nil, attribute: .notAnAttribute, multiplier: 1, constant: 0)
+            NSLayoutConstraint.activate([self.descriptionStackHeight])
+            self.view.layoutIfNeeded()
+            self.descriptionStack.alpha = 1
+        }
+    }
+    
+    @objc func channelClosureFound() {
+        guard self.tappedTransaction.isChannelClosure else { return }
+        self.showDescription()
+        self.checkContentViewHeight()
     }
     
     @IBAction func descriptionButtonTapped(_ sender: UIButton) {

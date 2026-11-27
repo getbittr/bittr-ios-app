@@ -18,7 +18,7 @@ extension SendViewController {
             
         // Check address.
         guard let enteredAddress = self.toTextField.text?.trimmingCharacters(in: .whitespacesAndNewlines), !enteredAddress.isEmpty else {
-            self.showAlert(title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "enterbitcoinaddress"), buttons: [.dismiss(Language.getWord(withID: "okay"))])
+            self.showAlert(title: Language.getWord(withID: "oops"), message: Language.getWord(withID: "enterbitcoinaddress2"), buttons: [.dismiss(Language.getWord(withID: "okay"))])
             return
         }
         
