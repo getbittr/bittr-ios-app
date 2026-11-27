@@ -192,3 +192,9 @@ appId: com.bittr.bittr-regtest
     id: "transaction.labelNote"
     text: "buy_more test"
 - takeScreenshot: shared/docs/screenshots/buy_more/13_note_saved
+
+# Close the TransactionViewController, so the flow ends on Home.
+- tapOn:
+    id: "header.downButton"
+- assertVisible:
+    id: "home.headerLabel"
