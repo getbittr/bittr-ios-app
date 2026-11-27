@@ -29,32 +29,12 @@
 
 appId: com.bittr.bittr-regtest
 ---
-# Launch without clearState so existing wallet state is preserved across runs.
-- launchApp
-- runFlow: ../helpers/wait_for_launch.yaml
-
-# Auto-recover if no wallet exists yet (full onboarding lands on Home).
+# Start on Home without clearing state. If there is no wallet yet, create one
+# and complete the bittr signup (full onboarding lands on Home).
 - runFlow:
-    when:
-      visible:
-        id: "signup.create.start.createWalletButton"
-    file: ../onboarding/happy_path_wallet.yaml
-- runFlow:
-    when:
-      visible:
-        id: "signup.create.ready.topLabelOne"
-    file: ../onboarding/happy_path_signup.yaml
-
-# If the app launched into the PIN unlock screen (existing wallet), enter PIN.
-- runFlow:
-    when:
-      visible:
-        id: "unlock.topLabel"
-    file: ../helpers/unlock.yaml
-
-# Should be on Home now.
-- assertVisible:
-    id: "home.headerLabel"
+    file: ../helpers/start_on_home.yaml
+    env:
+      ONBOARDING: create
 
 # On a fresh launch the wallet syncs first — the header spinner spins until the
 # sync finishes. Wait for it to stop before opening Receive.
@@ -100,8 +80,7 @@ appId: com.bittr.bittr-regtest
 # Open Send and paste the copied invoice.
 - tapOn:
     id: "home.sendButton"
-- tapOn:
-    id: "send.pasteButton"
+- runFlow: ../helpers/paste_into_send.yaml
 
 # Pasting a lightning invoice switches the type to lightning: the "to" label
 # reads "Invoice and amount", the invoice lands in the field, and because this
@@ -168,8 +147,7 @@ appId: com.bittr.bittr-regtest
 # Open Send and paste again — this time the invoice carries the 2000 sat amount.
 - tapOn:
     id: "home.sendButton"
-- tapOn:
-    id: "send.pasteButton"
+- runFlow: ../helpers/paste_into_send.yaml
 - assertVisible:
     id: "send.toLabel"
     text: "Invoice and amount"

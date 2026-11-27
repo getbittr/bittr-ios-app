@@ -17,7 +17,8 @@
 # actually blocked; the happy path skips it entirely.
 #
 # Flow:
-#   1. Launch (preserve state, notifications allowed). Unlock with PIN if locked.
+#   1. helpers/start_on_home.yaml: reuse the running app on Home, or launch
+#      (preserve state, notifications allowed) and unlock with the PIN.
 #   2. First leg (helpers/swap_leg1.yaml): balance card → MoveVC → SwapVC, type
 #      75000 sats, Next. (Next is where the APNs-token check runs.)
 #   3. Next shows the fees alert, OR the "notifications required" gate if there's
@@ -34,26 +35,15 @@
 appId: com.bittr.bittr-regtest
 ---
 # Swaps require notifications (the app blocks swapping with a "notifications
-# required" alert otherwise). Explicitly allow them at launch so this test is
-# unaffected by a prior run that denied notifications (e.g.
-# buy_signup_no_notifications.yaml) — permissions is applied on every launch.
-- launchApp:
-    permissions:
-      notifications: allow
-- runFlow: ../helpers/wait_for_launch.yaml
-
-# If app launched into the PIN unlock screen, enter it.
-- runFlow:
-    when:
-      visible:
-        id: "unlock.topLabel"
-    file: ../helpers/unlock.yaml
-
+# required" alert otherwise). start_on_home's launchApp allows every permission,
+# notifications included, so a prior run that denied them (e.g.
+# buy_signup_no_notifications.yaml) doesn't affect this test.
+#
 # Sanity: must be on Home with funds. If on Signup, the user hasn't run
-# buy_incoming yet — fail loudly rather than auto-running it (channel-open
-# requires fresh install and we don't want to wipe state silently).
-- assertVisible:
-    id: "home.headerLabel"
+# buy_incoming yet, and the helper's Home check fails loudly rather than
+# auto-running it (channel-open requires fresh install and we don't want to
+# wipe state silently).
+- runFlow: ../helpers/start_on_home.yaml
 
 # On a fresh launch the wallet syncs first — the header spinner spins until the
 # sync finishes. Wait for it to stop before tapping the balance card so the
@@ -418,3 +408,9 @@ appId: com.bittr.bittr-regtest
     id: "transaction.labelNote"
     text: "swap.yaml test"
 - takeScreenshot: shared/docs/screenshots/swap/22_note_saved
+
+# Close the TransactionViewController, so the flow ends on Home.
+- tapOn:
+    id: "header.downButton"
+- assertVisible:
+    id: "home.headerLabel"

@@ -27,6 +27,13 @@ var response = http.post(
 console.log('clipboard helper status: ' + response.status);
 console.log('clipboard helper body: ' + response.body);
 
+if (response.status >= 500 && response.body.indexOf('"step":"verify"') >= 0) {
+    throw new Error(
+        'set_clipboard.js: the simulator\'s clipboard didn\'t take the text: ' + response.body +
+        '. Restart the simulator (Device → Restart) and run the flow again.'
+    );
+}
+
 if (response.status < 200 || response.status >= 300) {
     throw new Error(
         'set_clipboard.js: helper returned ' + response.status + ' ' + response.body +

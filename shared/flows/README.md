@@ -220,6 +220,22 @@ shared/flows/
                           Running. Takes over two minutes.
   helpers/         Reusable subflows invoked via runFlow.
     unlock.yaml           Enters PIN 1234 on the unlock screen.
+    start_on_home.yaml    Gets the app onto a clear Home: reuses the running
+                          app when it already shows a clear Home (checked
+                          within about a second), and relaunches it
+                          otherwise. Replaces
+                          launchApp + wait_for_launch + unlock; never clears
+                          state. Honours output.APP_ID. ONBOARDING (env)
+                          set to create or restore provisions a wallet on
+                          the relaunch path when there is none. Used by
+                          most feature flows.
+    paste_into_send.yaml  Taps Paste on Send, and allows the paste when iOS asks
+                          (a clipboard set from outside the app). Used by every
+                          flow that pastes.
+    register_iban.yaml    Registers the e2e IBAN and email with bittr, from
+                          Transfer1 to Done on "Open your banking app", tapping
+                          Try again if notification registration fails. Used by
+                          happy_path_signup.yaml and buy_signup.yaml.
     wrong_pin_until_lockout.yaml  Enters the wrong PIN ten times on the unlock
                           screen to trigger the lockout + background wipe; stops
                           at the 10th confirm so the caller can handle the
@@ -371,6 +387,8 @@ maestro test shared/flows/features/send_lightning.yaml
 ```
 
 The flow sets `output.clipboardText` before each paste; `set_clipboard.js` POSTs it to the helper, which copies it on the Mac and on the booted simulator, then checks that the simulator holds it. During a run, the Mac clipboard holds the pasted text; the helper puts back its earlier text when it stops. iOS may show a one-off "Allow Paste" prompt — the flow accepts it automatically.
+
+If a paste step fails with the helper's `verify` error (the simulator's clipboard still holds older text, often something the app copied itself), the simulator's clipboard has stopped taking text from the Mac. Restart the simulator (Device → Restart, or `xcrun simctl shutdown booted && xcrun simctl boot <UDID>`) and run the flow again. The restart keeps the wallet; only the app stops.
 
 ## CI
 

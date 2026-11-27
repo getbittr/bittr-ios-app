@@ -41,32 +41,12 @@
 
 appId: com.bittr.bittr-regtest
 ---
-# Launch without clearState so existing wallet state is preserved across runs.
-- launchApp
-- runFlow: ../helpers/wait_for_launch.yaml
-
-# Auto-recover if no wallet exists yet (full onboarding lands on Home).
+# Start on Home without clearing state. If there is no wallet yet, create one
+# and complete the bittr signup (full onboarding lands on Home).
 - runFlow:
-    when:
-      visible:
-        id: "signup.create.start.createWalletButton"
-    file: ../onboarding/happy_path_wallet.yaml
-- runFlow:
-    when:
-      visible:
-        id: "signup.create.ready.topLabelOne"
-    file: ../onboarding/happy_path_signup.yaml
-
-# If the app launched into the PIN unlock screen (existing wallet), enter PIN.
-- runFlow:
-    when:
-      visible:
-        id: "unlock.topLabel"
-    file: ../helpers/unlock.yaml
-
-# Should be on Home now.
-- assertVisible:
-    id: "home.headerLabel"
+    file: ../helpers/start_on_home.yaml
+    env:
+      ONBOARDING: create
 
 # On a fresh launch the wallet syncs first — wait for the header spinner to stop.
 - extendedWaitUntil:
@@ -124,18 +104,11 @@ appId: com.bittr.bittr-regtest
 # — clipboard_server.js bridges that; request_invoice.js sets
 # output.clipboardText). Then tap the in-app Paste button. Because the
 # clipboard was written by another process, iOS shows an "Allow Paste" system
-# prompt; it renders a beat after the tap, so wait for it explicitly, then tap.
+# prompt, which helpers/paste_into_send.yaml allows.
 - evalScript: ${output.invoiceAmountSats = 1000}
 - runScript: ../scripts/request_invoice.js
 - runScript: ../scripts/set_clipboard.js
-- tapOn:
-    id: "send.pasteButton"
-- extendedWaitUntil:
-    visible:
-      text: "Allow Paste"
-    timeout: 10000
-- tapOn:
-    text: "Allow Paste"
+- runFlow: ../helpers/paste_into_send.yaml
 
 # Pasting a lightning invoice switches the type to lightning: the "to" label
 # reads "Invoice and amount", the invoice lands in the field, and because this
@@ -190,19 +163,12 @@ appId: com.bittr.bittr-regtest
 # ---------------------------------------------------------------------------
 
 # Request a zero-amount invoice (amount 0) from the e2e endpoint and paste it
-# the same way. The clipboard content changed, so iOS prompts to allow the
-# paste again — wait for it, then tap.
+# the same way. The clipboard content changed, so iOS asks to allow the paste
+# again.
 - evalScript: ${output.invoiceAmountSats = 0}
 - runScript: ../scripts/request_invoice.js
 - runScript: ../scripts/set_clipboard.js
-- tapOn:
-    id: "send.pasteButton"
-- extendedWaitUntil:
-    visible:
-      text: "Allow Paste"
-    timeout: 10000
-- tapOn:
-    text: "Allow Paste"
+- runFlow: ../helpers/paste_into_send.yaml
 
 # The invoice lands in the field but, being a zero-amount invoice, no amount
 # appears.

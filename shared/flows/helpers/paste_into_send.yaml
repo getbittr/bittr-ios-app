@@ -1,0 +1,38 @@
+# Reusable subflow: taps Paste on the Send screen and allows the paste when iOS
+# asks. iOS asks when the clipboard came from outside the app (set_clipboard.js,
+# through Device Hub); a copy made in the app pastes without asking.
+#
+# The prompt appears a beat after the tap and ignores taps while it animates
+# in, so wait for it to settle, and tap again if it's still up.
+#
+# Called by:
+#   - features/send_lightning.yaml
+#   - features/receive_onchain.yaml
+#   - features/send_swap_suggestion_onchain.yaml
+#   - features/send_swap_suggestion_lightning.yaml
+#   - features/receive_invoice.yaml
+
+appId: com.bittr.bittr-regtest
+---
+- tapOn:
+    id: "send.pasteButton"
+- extendedWaitUntil:
+    visible:
+      text: "Allow Paste"
+    timeout: 3000
+    optional: true
+- repeat:
+    while:
+      visible:
+        text: "Allow Paste"
+    times: 3
+    commands:
+      - waitForAnimationToEnd:
+          timeout: 3000
+      - tapOn:
+          text: "Allow Paste"
+      - extendedWaitUntil:
+          notVisible:
+            text: "Allow Paste"
+          timeout: 3000
+          optional: true

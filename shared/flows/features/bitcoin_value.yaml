@@ -1,12 +1,13 @@
 # Feature test: the Bitcoin value / price-chart screen (ValueViewController).
 #
-# Prerequisite: an existing wallet on the simulator, so launch lands on the
-# PIN unlock screen. This flow does NOT clearState — it relies on a wallet
+# Prerequisite: an existing wallet on the simulator. This flow does NOT
+# clearState — it relies on a wallet
 # already being set up (run onboarding/restore_wallet.yaml first if needed).
 # It is non-destructive and can be run repeatedly.
 #
 # Flow:
-#   1. Launch (preserve state) and unlock with the PIN (helpers/unlock.yaml).
+#   1. helpers/start_on_home.yaml: reuse the running app on Home, or launch
+#      (preserve state) and unlock with the PIN.
 #   2. On Home, tap the currency icon (home.currencyButton) → ValueViewController.
 #   3. Wait for the price data to download: the spinner (value.valueSpinner)
 #      stops and the profit badge (value.profitLabel) fades in once drawGraph
@@ -28,14 +29,7 @@
 
 appId: com.bittr.bittr-regtest
 ---
-- launchApp
-- runFlow: ../helpers/wait_for_launch.yaml
-
-# Existing wallet → launch lands on the PIN unlock screen. Enter the PIN.
-- assertVisible:
-    id: "unlock.topLabel"
-- takeScreenshot: shared/docs/screenshots/bitcoin_value/01_unlock
-- runFlow: ../helpers/unlock.yaml
+- runFlow: ../helpers/start_on_home.yaml
 
 # Land on Home.
 - assertVisible:
@@ -111,3 +105,9 @@ appId: com.bittr.bittr-regtest
 - assertVisible:
     id: "value.graphView"
 - takeScreenshot: shared/docs/screenshots/bitcoin_value/08_five_years
+
+# Close the ValueViewController, so the flow ends on Home.
+- tapOn:
+    id: "header.downButton"
+- assertVisible:
+    id: "home.headerLabel"

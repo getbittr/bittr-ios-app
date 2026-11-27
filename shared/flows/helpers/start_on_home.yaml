@@ -1,0 +1,105 @@
+# Reusable subflow: gets the app onto a clear Home screen, reusing the
+# running app when it is already there instead of relaunching it.
+#
+#   1. Bring the app to the front without stopping it. If it wasn't running,
+#      this launches it.
+#   2. Check, with a 1 s timeout per check, that Home is clear: the launch
+#      animation is done, home.headerLabel is visible, and no sheet
+#      (header.downButton), alert (alert.button.0) or PIN screen
+#      (unlock.topLabel) sits over it.
+#   3. Anything else, relaunch the app the usual way: launchApp,
+#      wait_for_launch, unlock.
+#   4. Assert Home.
+#
+# No `when:` condition decides whether to reuse the app. Maestro polls those
+# for up to about 7 s before answering, which a clear Home would pay on every
+# start. The checks run in an optional subflow instead, which only sets
+# output.homeIsClear when all of them pass.
+#
+# This only replaces the relaunch, never clearState. A flow that needs a
+# fresh install still has to clear state itself.
+#
+# Use it in place of launchApp + wait_for_launch + unlock:
+#   - runFlow: ../helpers/start_on_home.yaml
+#
+# Targets output.APP_ID when the caller has set it, the regtest app otherwise.
+#
+# A flow that should provision a wallet when there is none passes ONBOARDING
+# through env: "create" runs happy_path_wallet and happy_path_signup,
+# "restore" runs restore_wallet. Only the relaunch path checks for this, after
+# the unlock check, so a reused Home never pays for it.
+
+appId: com.bittr.bittr-regtest
+---
+- evalScript: "${output.APP_ID = (output.APP_ID == null ? 'com.bittr.bittr-regtest' : output.APP_ID)}"
+- launchApp:
+    appId: ${output.APP_ID}
+    stopApp: false
+
+- evalScript: ${output.homeIsClear = false}
+- runFlow:
+    optional: true
+    commands:
+      - extendedWaitUntil:
+          visible:
+            id: "core.launchComplete"
+          timeout: 1000
+      - extendedWaitUntil:
+          visible:
+            id: "home.headerLabel"
+          timeout: 1000
+      - extendedWaitUntil:
+          notVisible:
+            id: "header.downButton"
+          timeout: 1000
+      - extendedWaitUntil:
+          notVisible:
+            id: "alert.button.0"
+          timeout: 1000
+      - extendedWaitUntil:
+          notVisible:
+            id: "unlock.topLabel"
+          timeout: 1000
+      - evalScript: ${output.homeIsClear = true}
+
+- runFlow:
+    when:
+      true: ${!output.homeIsClear}
+    commands:
+      - launchApp:
+          appId: ${output.APP_ID}
+      - runFlow: wait_for_launch.yaml
+      - evalScript: ${output.walletUnlocked = false}
+      - runFlow:
+          when:
+            visible:
+              id: "unlock.topLabel"
+          commands:
+            - runFlow: unlock.yaml
+            - evalScript: ${output.walletUnlocked = true}
+      - runFlow:
+          when:
+            true: ${!output.walletUnlocked && typeof ONBOARDING !== 'undefined' && ONBOARDING == 'restore'}
+          commands:
+            - runFlow:
+                when:
+                  visible:
+                    id: "signup.create.start.createWalletButton"
+                file: ../onboarding/restore_wallet.yaml
+      - runFlow:
+          when:
+            true: ${!output.walletUnlocked && typeof ONBOARDING !== 'undefined' && ONBOARDING == 'create'}
+          commands:
+            - runFlow:
+                when:
+                  visible:
+                    id: "signup.create.start.createWalletButton"
+                file: ../onboarding/happy_path_wallet.yaml
+            - runFlow:
+                when:
+                  visible:
+                    id: "signup.create.ready.topLabelOne"
+                file: ../onboarding/happy_path_signup.yaml
+
+- assertVisible:
+    id: "home.headerLabel"

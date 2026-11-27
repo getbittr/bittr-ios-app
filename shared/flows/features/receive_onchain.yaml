@@ -24,32 +24,12 @@
 
 appId: com.bittr.bittr-regtest
 ---
-# Launch without clearState so existing wallet state is preserved across runs.
-- launchApp
-- runFlow: ../helpers/wait_for_launch.yaml
-
-# Auto-recover if no wallet exists yet (full onboarding lands on Home).
+# Start on Home without clearing state. If there is no wallet yet, create one
+# and complete the bittr signup (full onboarding lands on Home).
 - runFlow:
-    when:
-      visible:
-        id: "signup.create.start.createWalletButton"
-    file: ../onboarding/happy_path_wallet.yaml
-- runFlow:
-    when:
-      visible:
-        id: "signup.create.ready.topLabelOne"
-    file: ../onboarding/happy_path_signup.yaml
-
-# If the app launched into the PIN unlock screen (existing wallet), enter PIN.
-- runFlow:
-    when:
-      visible:
-        id: "unlock.topLabel"
-    file: ../helpers/unlock.yaml
-
-# Should be on Home now.
-- assertVisible:
-    id: "home.headerLabel"
+    file: ../helpers/start_on_home.yaml
+    env:
+      ONBOARDING: create
 
 # As soon as the PIN view has lowered and Home is up, tap the syncing-status
 # header button (it overlays the spinner) — done as early as possible to catch
@@ -169,8 +149,7 @@ appId: com.bittr.bittr-regtest
 # Open Send and paste the copied onchain address.
 - tapOn:
     id: "home.sendButton"
-- tapOn:
-    id: "send.pasteButton"
+- runFlow: ../helpers/paste_into_send.yaml
 
 # Switching to onchain recomputes the max sendable amount; if BDK hasn't
 # finished its scan yet that surfaces a "syncing wallet" alert. Dismiss it if
@@ -244,8 +223,7 @@ appId: com.bittr.bittr-regtest
 # Open Send and paste again — this time both the address and amount carry.
 - tapOn:
     id: "home.sendButton"
-- tapOn:
-    id: "send.pasteButton"
+- runFlow: ../helpers/paste_into_send.yaml
 # Dismiss the "syncing wallet" alert if BDK is mid-scan (no-op otherwise).
 - tapOn:
     id: "alert.button.0"
@@ -359,8 +337,7 @@ appId: com.bittr.bittr-regtest
       # invoice amount in the amount field.
       - tapOn:
           id: "home.sendButton"
-      - tapOn:
-          id: "send.pasteButton"
+      - runFlow: ../helpers/paste_into_send.yaml
       - tapOn:
           id: "alert.button.0"
           optional: true
@@ -461,3 +438,13 @@ appId: com.bittr.bittr-regtest
 - assertVisible:
     id: "receive.addressLabel"
 - takeScreenshot: shared/docs/screenshots/receive_onchain/10_done
+
+# Close Receive once the alert has slid away, so the flow ends on Home.
+- extendedWaitUntil:
+    notVisible:
+      id: "alert.button.0"
+    timeout: 5000
+- tapOn:
+    id: "header.downButton"
+- assertVisible:
+    id: "home.headerLabel"

@@ -8,8 +8,8 @@
 # to close it. Device details (DeviceViewController) and the website pages
 # (WebsiteViewController) are presented modally over that pop-up.
 #
-# Prerequisite: an existing, synced wallet on the simulator, so launch lands
-# on the PIN unlock screen. This flow does NOT clearState (run
+# Prerequisite: an existing, synced wallet on the simulator. This flow does
+# NOT clearState (run
 # onboarding/restore_wallet.yaml first if needed).
 #
 # Nondeterminism handled inline:
@@ -29,14 +29,7 @@
 
 appId: com.bittr.bittr-regtest
 ---
-- launchApp
-- runFlow: ../helpers/wait_for_launch.yaml
-
-# Existing wallet → launch lands on the PIN unlock screen. Enter the PIN.
-- assertVisible:
-    id: "unlock.topLabel"
-- takeScreenshot: shared/docs/screenshots/settings/01_unlock
-- runFlow: ../helpers/unlock.yaml
+- runFlow: ../helpers/start_on_home.yaml
 
 # Land on Home and wait for the post-sign-in wallet sync to finish (the
 # header spinner stops in finalizeSync). The Device-details checks below

@@ -43,24 +43,10 @@
 
 appId: com.bittr.bittr-regtest
 ---
-# Launch without clearState so existing wallet state is preserved across runs.
-# Explicitly allow notifications so a prior deny (e.g.
+# Start on Home without clearing state. start_on_home's launchApp allows every
+# permission, so a prior notifications deny (e.g.
 # buy_signup_no_notifications.yaml) doesn't block the swap.
-- launchApp:
-    permissions:
-      notifications: allow
-- runFlow: ../helpers/wait_for_launch.yaml
-
-# If the app launched into the PIN unlock screen (existing wallet), enter PIN.
-- runFlow:
-    when:
-      visible:
-        id: "unlock.topLabel"
-    file: ../helpers/unlock.yaml
-
-# Should be on Home now.
-- assertVisible:
-    id: "home.headerLabel"
+- runFlow: ../helpers/start_on_home.yaml
 
 # On a fresh launch the wallet syncs first — wait for the header spinner to stop
 # so the balances (and BDK scan needed for the swap) are settled.
@@ -137,14 +123,13 @@ appId: com.bittr.bittr-regtest
     id: "home.sendButton"
 
 # Paste the onchain address we just copied. Our own app put it on the clipboard,
-# so there's no "Allow Paste" prompt. Pasting a bare onchain address switches the
+# so iOS normally doesn't ask to allow the paste. Pasting a bare onchain address switches the
 # type to Regular (onchain) and lands the address in the field. Recomputing the
 # max sendable amount kicks off a BDK scan if it hasn't run yet, which surfaces a
 # "syncing wallet" alert and spins the spinner. Dismiss the alert if present,
 # then wait for the spinner to stop before entering an amount (Next needs BDK
 # scanned).
-- tapOn:
-    id: "send.pasteButton"
+- runFlow: ../helpers/paste_into_send.yaml
 - assertVisible:
     id: "send.toTextField"
     text: ".*bcrt1.*"
