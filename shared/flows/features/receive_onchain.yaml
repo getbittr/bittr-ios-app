@@ -438,3 +438,13 @@ appId: com.bittr.bittr-regtest
 - assertVisible:
     id: "receive.addressLabel"
 - takeScreenshot: shared/docs/screenshots/receive_onchain/10_done
+
+# Close Receive once the alert has slid away, so the flow ends on Home.
+- extendedWaitUntil:
+    notVisible:
+      id: "alert.button.0"
+    timeout: 5000
+- tapOn:
+    id: "header.downButton"
+- assertVisible:
+    id: "home.headerLabel"
