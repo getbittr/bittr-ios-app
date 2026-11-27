@@ -679,7 +679,7 @@ extension CoreViewController {
     
     func swapIsOnScreen(boltzID: String?) -> Bool {
         guard let boltzID else { return false }
-        let swapVC = self.homeVC?.moveVC?.swapVC
+        let swapVC = self.swapVC
         var shownIDs = [swapVC?.thisSwap?.boltzID, swapVC?.swapStatusVC?.thisSwap?.boltzID]
         if let statusVC = self.homeVC?.swapStatusVC, statusVC.presentingViewController != nil || statusVC.parent != nil {
             shownIDs.append(statusVC.thisSwap?.boltzID)
