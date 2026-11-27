@@ -82,7 +82,7 @@ extension String {
         return chunks
     }
     
-    func inGroupsOfFour(width:CGFloat, lines:Int = .max, font:UIFont, color:UIColor, trailing:Bool = false) -> NSAttributedString {
+    func inGroupsOfFour(width:CGFloat, lines:Int = .max, font:UIFont, color:UIColor) -> NSAttributedString {
         
         let lines = max(1, lines)
         // Every character in a monospaced font is as wide as a zero.
@@ -104,15 +104,6 @@ extension String {
         // Left-aligned, so every line's groups stay in the same columns.
         let paragraphStyle = NSMutableParagraphStyle()
         paragraphStyle.alignment = .left
-        if trailing {
-            // Indented by what the longest line leaves free, less a point so rounding never wraps it.
-            // The ellipsis fills a four-character slot.
-            let longestLine = groups.prefix(groupsPerLine)
-            let longestLineCharacters = longestLine.reduce(longestLine.count - 1) { $0 + ($1 == "\u{2026}" ? 4 : $1.count) }
-            let indent = max(0, width - CGFloat(longestLineCharacters) * characterWidth - 1)
-            paragraphStyle.firstLineHeadIndent = indent
-            paragraphStyle.headIndent = indent
-        }
         let attributes:[NSAttributedString.Key:Any] = [.font: font, .foregroundColor: color, .paragraphStyle: paragraphStyle]
         let shortened = NSMutableAttributedString()
         for (index, group) in groups.enumerated() {

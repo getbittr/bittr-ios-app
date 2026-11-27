@@ -4783,7 +4783,7 @@
                                                                 <rect key="frame" x="20" y="61" width="323" height="45"/>
                                                                 <subviews>
                                                                     <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="252" verticalHuggingPriority="251" horizontalCompressionResistancePriority="752" text="Address" textAlignment="natural" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="bCc-N5-Fqf">
-                                                                        <rect key="frame" x="15" y="16.000000000000028" width="219" height="16"/>
+                                                                        <rect key="frame" x="15" y="16" width="59" height="16"/>
                                                                         <constraints>
                                                                             <constraint firstAttribute="width" relation="greaterThanOrEqual" constant="10" id="BfT-51-sSK"/>
                                                                             <constraint firstAttribute="height" relation="greaterThanOrEqual" constant="10" id="rbt-oo-EaJ"/>
@@ -4792,8 +4792,8 @@
                                                                         <color key="textColor" red="0.96470588239999999" green="0.78039215689999997" blue="0.2666666667" alpha="1" colorSpace="custom" customColorSpace="displayP3"/>
                                                                         <nil key="highlightedColor"/>
                                                                     </label>
-                                                                    <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="address" textAlignment="right" lineBreakMode="middleTruncation" numberOfLines="3" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="XNi-zS-c9b" customClass="GroupedLabel" customModule="bittr" customModuleProvider="target">
-                                                                        <rect key="frame" x="249" y="12.000000000000028" width="59" height="24"/>
+                                                                    <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="address" lineBreakMode="middleTruncation" numberOfLines="3" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="XNi-zS-c9b" customClass="GroupedLabel" customModule="bittr" customModuleProvider="target">
+                                                                        <rect key="frame" x="15" y="42" width="293" height="16"/>
                                                                         <constraints>
                                                                             <constraint firstAttribute="height" relation="greaterThanOrEqual" constant="10" id="qAR-e7-TYR"/>
                                                                         </constraints>
@@ -4804,13 +4804,14 @@
                                                                 </subviews>
                                                                 <color key="backgroundColor" white="1" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
                                                                 <constraints>
-                                                                    <constraint firstItem="bCc-N5-Fqf" firstAttribute="centerY" secondItem="XNi-zS-c9b" secondAttribute="centerY" id="4AZ-Bb-W8j"/>
-                                                                    <constraint firstAttribute="bottom" secondItem="XNi-zS-c9b" secondAttribute="bottom" constant="9" id="AlX-47-xxJ"/>
+                                                                    <constraint firstItem="bCc-N5-Fqf" firstAttribute="top" secondItem="rjP-uM-TJ8" secondAttribute="top" constant="16" id="4AZ-Bb-W8j"/>
+                                                                    <constraint firstAttribute="bottom" secondItem="XNi-zS-c9b" secondAttribute="bottom" constant="13" id="AlX-47-xxJ"/>
                                                                     <constraint firstItem="XNi-zS-c9b" firstAttribute="trailing" secondItem="rjP-uM-TJ8" secondAttribute="trailing" constant="-15" id="CSI-Ug-bs0"/>
-                                                                    <constraint firstItem="XNi-zS-c9b" firstAttribute="leading" secondItem="bCc-N5-Fqf" secondAttribute="trailing" constant="15" id="Lal-uw-Zuv"/>
+                                                                    <constraint firstItem="XNi-zS-c9b" firstAttribute="leading" secondItem="rjP-uM-TJ8" secondAttribute="leading" constant="15" id="Lal-uw-Zuv"/>
                                                                     <constraint firstAttribute="height" relation="greaterThanOrEqual" constant="45" id="OcB-dV-AGC"/>
-                                                                    <constraint firstItem="XNi-zS-c9b" firstAttribute="top" secondItem="rjP-uM-TJ8" secondAttribute="top" constant="12" id="Puc-np-eVj"/>
+                                                                    <constraint firstItem="XNi-zS-c9b" firstAttribute="top" secondItem="bCc-N5-Fqf" secondAttribute="bottom" constant="10" id="Puc-np-eVj"/>
                                                                     <constraint firstItem="bCc-N5-Fqf" firstAttribute="leading" secondItem="rjP-uM-TJ8" secondAttribute="leading" constant="15" id="e2y-4j-ifb"/>
+                                                                    <constraint firstAttribute="trailing" relation="greaterThanOrEqual" secondItem="bCc-N5-Fqf" secondAttribute="trailing" constant="15" id="kQ3-Ad-T1t"/>
                                                                 </constraints>
                                                             </view>
                                                             <view contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="asO-os-gc7">
