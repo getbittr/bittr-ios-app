@@ -220,6 +220,11 @@ shared/flows/
                           Running. Takes over two minutes.
   helpers/         Reusable subflows invoked via runFlow.
     unlock.yaml           Enters PIN 1234 on the unlock screen.
+    start_on_home.yaml    Gets the app onto a clear Home: reuses the running
+                          app when it already shows Home (unlocking if
+                          needed), and relaunches it only otherwise. Replaces
+                          launchApp + wait_for_launch + unlock; never clears
+                          state. Used by buy_signup.
     paste_into_send.yaml  Taps Paste on Send, and allows the paste when iOS asks
                           (a clipboard set from outside the app). Used by every
                           flow that pastes.

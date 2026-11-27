@@ -10,7 +10,8 @@
 # state, same as forgot_pin.yaml.
 #
 # Flow:
-#   1. Launch (preserve state). Unlock with PIN 1234 if locked.
+#   1. helpers/start_on_home.yaml: reuse the running app if it already
+#      shows Home, otherwise launch (preserve state) and unlock with PIN 1234.
 #   2. Tap Buy on Home → empty Buy screen.
 #   3. Tap "Check options" → RegisterIbanViewController opens modal-style
 #      at Signup7 (wallet-ready). When Signup7 is hosted by RegisterIban,
@@ -27,18 +28,9 @@
 
 appId: com.bittr.bittr-regtest
 ---
-- launchApp
-- runFlow: ../helpers/wait_for_launch.yaml
-
-- runFlow:
-    when:
-      visible:
-        id: "unlock.topLabel"
-    file: ../helpers/unlock.yaml
+- runFlow: ../helpers/start_on_home.yaml
 
 # Should be on Home with a wallet but no bittr account.
-- assertVisible:
-    id: "home.headerLabel"
 - takeScreenshot: shared/docs/screenshots/buy_signup/01_home
 
 # Open Buy → empty state (no IBAN entities yet).

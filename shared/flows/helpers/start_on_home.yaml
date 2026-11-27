@@ -1,0 +1,73 @@
+# Reusable subflow: gets the app onto a clear Home screen, reusing the
+# running app when it is already there instead of relaunching it.
+#
+#   1. Bring the app to the front without stopping it. If it wasn't running,
+#      this launches it.
+#   2. Unlock with the PIN if the unlock screen shows.
+#   3. If Home still isn't clear (another tab, a sheet, an alert, or no
+#      Home at all), relaunch the app the usual way: launchApp,
+#      wait_for_launch, unlock.
+#   4. Assert Home.
+#
+# "Clear" means home.headerLabel is visible and none of the things that can
+# sit over Home are: a sheet (header.downButton) or an alert (alert.button.0).
+#
+# This only replaces the relaunch, never clearState. A flow that needs a
+# fresh install still has to clear state itself.
+#
+# Use it in place of launchApp + wait_for_launch + unlock:
+#   - runFlow: ../helpers/start_on_home.yaml
+
+appId: com.bittr.bittr-regtest
+---
+- launchApp:
+    stopApp: false
+
+# A cold start still plays the launch animation. A running app has passed it,
+# but its marker can be hidden behind a full-screen modal, so don't fail here.
+- extendedWaitUntil:
+    visible:
+      id: "core.launchComplete"
+    timeout: 15000
+    optional: true
+
+- runFlow:
+    when:
+      visible:
+        id: "unlock.topLabel"
+    file: unlock.yaml
+
+- evalScript: ${output.homeIsClear = true}
+- runFlow:
+    when:
+      notVisible:
+        id: "home.headerLabel"
+    commands:
+      - evalScript: ${output.homeIsClear = false}
+- runFlow:
+    when:
+      visible:
+        id: "header.downButton"
+    commands:
+      - evalScript: ${output.homeIsClear = false}
+- runFlow:
+    when:
+      visible:
+        id: "alert.button.0"
+    commands:
+      - evalScript: ${output.homeIsClear = false}
+
+- runFlow:
+    when:
+      true: ${!output.homeIsClear}
+    commands:
+      - launchApp
+      - runFlow: wait_for_launch.yaml
+      - runFlow:
+          when:
+            visible:
+              id: "unlock.topLabel"
+          file: unlock.yaml
+
+- assertVisible:
+    id: "home.headerLabel"
