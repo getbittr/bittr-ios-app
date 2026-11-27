@@ -256,3 +256,9 @@ appId: com.bittr.bittr-regtest
 - assertVisible:
     id: "transaction.yellowCard"
 - takeScreenshot: shared/docs/screenshots/send_onchain_all/07_transaction
+
+# Close the TransactionViewController, so the flow ends on Home.
+- tapOn:
+    id: "header.downButton"
+- assertVisible:
+    id: "home.headerLabel"
