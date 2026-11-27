@@ -5,7 +5,8 @@
 # clearState, so the channel survives across runs.
 #
 # Flow:
-#   1. Launch (preserve state). Unlock if locked.
+#   1. helpers/start_on_home.yaml: reuse the running app if it already shows
+#      Home, otherwise launch (preserve state) and unlock if locked.
 #   2. Once synced, open the Profit screen and remember the starting profit.
 #   3. Tap Buy on Home → BuyVC.
 #   4. Copy the deposit code.
@@ -20,19 +21,9 @@
 
 appId: com.bittr.bittr-regtest
 ---
-- launchApp
-- runFlow: ../helpers/wait_for_launch.yaml
-
-- runFlow:
-    when:
-      visible:
-        id: "unlock.topLabel"
-    file: ../helpers/unlock.yaml
-
 # Sanity: must be on Home with the channel already open. If on Signup, the
-# user hasn't run buy_incoming yet — fail loudly.
-- assertVisible:
-    id: "home.headerLabel"
+# user hasn't run buy_incoming yet, and the helper's Home check fails loudly.
+- runFlow: ../helpers/start_on_home.yaml
 - takeScreenshot: shared/docs/screenshots/buy_more/01_home
 
 # Wait for the post-sign-in wallet sync to finish — the header spinner stops
