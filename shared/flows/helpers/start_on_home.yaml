@@ -17,10 +17,14 @@
 #
 # Use it in place of launchApp + wait_for_launch + unlock:
 #   - runFlow: ../helpers/start_on_home.yaml
+#
+# Targets output.APP_ID when the caller has set it, the regtest app otherwise.
 
 appId: com.bittr.bittr-regtest
 ---
+- evalScript: "${output.APP_ID = (output.APP_ID == null ? 'com.bittr.bittr-regtest' : output.APP_ID)}"
 - launchApp:
+    appId: ${output.APP_ID}
     stopApp: false
 
 # A cold start still plays the launch animation. A running app has passed it,
@@ -61,7 +65,8 @@ appId: com.bittr.bittr-regtest
     when:
       true: ${!output.homeIsClear}
     commands:
-      - launchApp
+      - launchApp:
+          appId: ${output.APP_ID}
       - runFlow: wait_for_launch.yaml
       - runFlow:
           when:

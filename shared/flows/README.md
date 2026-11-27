@@ -224,7 +224,8 @@ shared/flows/
                           app when it already shows Home (unlocking if
                           needed), and relaunches it only otherwise. Replaces
                           launchApp + wait_for_launch + unlock; never clears
-                          state. Used by buy_signup and remove_wallet.
+                          state. Honours output.APP_ID. Used by
+                          buy_signup, buy_incoming and remove_wallet.
     paste_into_send.yaml  Taps Paste on Send, and allows the paste when iOS asks
                           (a clipboard set from outside the app). Used by every
                           flow that pastes.

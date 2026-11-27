@@ -6,7 +6,8 @@
 # the first successful run.
 #
 # Flow:
-#   1. Launch (preserve state). Unlock if locked.
+#   1. helpers/start_on_home.yaml: reuse the running app if it already shows
+#      Home, otherwise launch (preserve state) and unlock if locked.
 #   2. Once synced, open the Profit screen and remember the starting profit.
 #   3. Tap Buy on Home → copy deposit code → trigger bank transaction.
 #   4. Mine blocks so the lightning channel opens and confirms.
@@ -23,19 +24,9 @@ appId: com.bittr.bittr-regtest
 ---
 # Resolve the app under test (default: the regtest app).
 - evalScript: "${output.APP_ID = (output.APP_ID == null ? 'com.bittr.bittr-regtest' : output.APP_ID)}"
-- launchApp:
-    appId: ${output.APP_ID}
-- runFlow: ../helpers/wait_for_launch.yaml
-
-- runFlow:
-    when:
-      visible:
-        id: "unlock.topLabel"
-    file: ../helpers/unlock.yaml
+- runFlow: ../helpers/start_on_home.yaml
 
 # Should be on Home with wallet + bittr account.
-- assertVisible:
-    id: "home.headerLabel"
 - takeScreenshot: shared/docs/screenshots/buy_incoming/01_home
 
 # Wait for the post-sign-in wallet sync to finish — the header spinner stops
