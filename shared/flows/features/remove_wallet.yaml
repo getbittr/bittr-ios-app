@@ -26,17 +26,7 @@
 
 appId: com.bittr.bittr-regtest
 ---
-- launchApp
-- runFlow: ../helpers/wait_for_launch.yaml
-
-- runFlow:
-    when:
-      visible:
-        id: "unlock.topLabel"
-    file: ../helpers/unlock.yaml
-
-- assertVisible:
-    id: "home.headerLabel"
+- runFlow: ../helpers/start_on_home.yaml
 - takeScreenshot: shared/docs/screenshots/remove_wallet/01_home
 
 # Wait for the post-sign-in wallet sync to finish before reading the
