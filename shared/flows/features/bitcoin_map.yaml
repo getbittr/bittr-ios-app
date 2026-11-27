@@ -163,3 +163,9 @@ appId: com.bittr.bittr-regtest
 - assertVisible:
     id: "map.mapView"
 - takeScreenshot: shared/docs/screenshots/bitcoin_map/08_back_to_user
+
+# Close the MapViewController, so the flow ends on Home.
+- tapOn:
+    id: "header.downButton"
+- assertVisible:
+    id: "home.headerLabel"

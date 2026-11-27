@@ -129,3 +129,13 @@ appId: com.bittr.bittr-regtest
       id: "academy.nextPageButton"
     timeout: 30000
 - takeScreenshot: shared/docs/screenshots/academy/07_next_lesson_open
+
+# Close the lesson, then switch back to the Wallet tab, so the flow ends on Home.
+- tapOn:
+    id: "header.downButton"
+- assertVisible:
+    id: "academy.headerLabel"
+- tapOn:
+    id: "nav.walletButton"
+- assertVisible:
+    id: "home.headerLabel"
