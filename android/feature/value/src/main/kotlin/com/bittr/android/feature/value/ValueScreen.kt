@@ -1,12 +1,16 @@
 package com.bittr.android.feature.value
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -14,11 +18,12 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.bittr.android.core.common.TestID
 import com.bittr.android.core.designsystem.BittrAlertDialog
-import com.bittr.android.core.designsystem.BittrCanvas
+import com.bittr.android.core.designsystem.BittrSheetHeader
 import com.bittr.android.core.designsystem.BittrTheme
 import com.bittr.android.core.network.BittrEnvironment
 import com.bittr.android.core.network.HttpClient
@@ -106,26 +111,32 @@ internal fun ValueScreen(
         )
     }
 
-    BittrCanvas(modifier = modifier, onBack = onBack) {
-        // The design review's content column (2026-09-18, S13): 24 dp in from the
-        // sides and 24 dp down from the app bar, which the title used to sit flush
-        // against. The chart card shares the 24 dp side margin, so title and card
-        // align on one edge.
-        Column(
-            Modifier
-                .fillMaxWidth()
-                .padding(start = ContentGutter, end = ContentGutter, top = ContentGutter),
-        ) {
-            // `headlineSmall` is the scale's screen-title slot (Gilroy-Bold 26/32), and
-            // it stays that: the review's 28/34 would make this title a size larger
-            // than every other screen title in the app. If titles should be 28, that is
-            // the slot's change to make, in `Type.kt`.
-            Text(
-                text = ValueCopy.TITLE,
-                style = MaterialTheme.typography.headlineSmall,
-            )
-            Spacer(Modifier.height(16.dp))
-            ValueChartCard(state = state, onSelect = { state = state.selectSpan(it) })
+    // `ValueViewController` in its page sheet: `addHeader`'s exchange icon and "bitcoin value", and
+    // under it `centerCard`, 15 from the sides and centred in what is left.
+    Column(
+        modifier = modifier
+            .fillMaxSize()
+            .background(BittrTheme.colors.canvas)
+            .navigationBarsPadding(),
+    ) {
+        BittrSheetHeader(
+            icon = painterResource(R.drawable.value_header_icon),
+            title = ValueCopy.TITLE,
+            onDown = onBack,
+            titleTestTag = TestID.Header.titleLabel,
+            downTestTag = TestID.Header.downButton,
+        )
+        BoxWithConstraints(modifier = Modifier.weight(1f).fillMaxWidth()) {
+            Column(
+                verticalArrangement = Arrangement.Center,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .verticalScroll(rememberScrollState())
+                    .heightIn(min = maxHeight)
+                    .padding(horizontal = 15.dp, vertical = 30.dp),
+            ) {
+                ValueChartCard(state = state, onSelect = { state = state.selectSpan(it) })
+            }
         }
     }
 
@@ -146,8 +157,6 @@ internal fun ValueScreen(
     }
 }
 
-/** The review's content-column gutter, top and sides. */
-private val ContentGutter = 24.dp
 
 @Preview(showBackground = true, widthDp = 412, heightDp = 892)
 @Composable

@@ -4,12 +4,10 @@ import android.content.pm.PackageManager
 import androidx.activity.compose.LocalActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -26,27 +24,30 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.Path
-import androidx.compose.ui.graphics.StrokeCap
-import androidx.compose.ui.graphics.StrokeJoin
-import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import com.bittr.android.core.common.TestID
 import com.bittr.android.core.designsystem.BittrAlert
 import com.bittr.android.core.designsystem.BittrAlertButton
-import com.bittr.android.core.designsystem.BittrCanvas
 import com.bittr.android.core.designsystem.BittrInlineAlert
-import com.bittr.android.core.designsystem.BittrModalHeader
-import com.bittr.android.core.designsystem.BittrTextButton
 import com.bittr.android.core.designsystem.BittrTheme
-import com.bittr.android.core.designsystem.BittrTokens
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.ui.graphics.vector.rememberVectorPainter
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.sp
+import com.bittr.android.core.designsystem.BittrSheetHeader
+import com.bittr.android.core.designsystem.rememberStrokeIcon
 import com.bittr.android.core.permissions.AppSettings
 import com.bittr.android.core.permissions.BittrPermissions
 import com.bittr.android.core.permissions.firstResolvable
@@ -160,61 +161,55 @@ internal fun ScannerScreenContent(
     modifier: Modifier = Modifier,
     viewfinder: @Composable () -> Unit = {},
 ) {
+    // As `ScannerViewController` lays it out: `addHeader` with `qrcode` over a block centred in the
+    // whole sheet — the camera view 25 in and 400 tall with 13 corners, and 20 under it the black
+    // Close. No brackets and no helper line: iOS has neither.
     Box(modifier = modifier.fillMaxSize()) {
-        BittrCanvas(appBar = false) {
-            BittrModalHeader(
-                title = ScannerCopy.HEADER,
-                onDown = onClose,
-                icon = SCANNER_ICON_PATH,
-                titleTestTag = TestID.Header.titleLabel,
-                downTestTag = TestID.Header.downButton,
-            )
-
+        BoxWithConstraints(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(BittrTheme.colors.canvas),
+        ) {
+            val sheetHeight = maxHeight
+            // 400 as on iOS, but never at Close's expense: on a sheet too short for both, the
+            // camera view gives up the difference (down to a floor) instead of pushing Close
+            // below the edge.
+            val previewHeight = (sheetHeight - SheetInset * 2 - 20.dp - 40.dp).coerceIn(MinPreviewHeight, PreviewHeight)
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Center,
                 modifier = Modifier
-                    .weight(1f)
                     .fillMaxWidth()
-                    .padding(horizontal = PreviewSideMargin),
+                    .verticalScroll(rememberScrollState())
+                    .heightIn(min = sheetHeight)
+                    .padding(horizontal = 25.dp, vertical = SheetInset),
             ) {
                 // The frame. Always composed, in every state — see the class doc.
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .aspectRatio(1f)
+                        .height(previewHeight)
                         .clip(RoundedCornerShape(PreviewCornerRadius))
-                        // Black, not a canvas token: this is where the camera image goes,
-                        // and a camera that has not started is black in both schemes. On
-                        // the yellow light canvas anything lighter would also swallow the
-                        // brand-yellow brackets drawn over it.
+                        // Black, as iOS's `scannerView` is: where the camera image goes, and a
+                        // camera that has not started is black in both schemes.
                         .background(Color.Black)
                         .testTag(TestID.Scanner.scannerView),
                 ) {
                     if (state is ScannerUiState.Scanning) {
                         viewfinder()
                     }
-                    ViewfinderBrackets(Modifier.matchParentSize())
                 }
 
-                Text(
-                    text = ScannerCopy.HELPER,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = BittrTheme.colors.mutedOnCanvas,
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(top = BittrTokens.Spacing.md),
-                )
-
-                BittrTextButton(
-                    text = ScannerCopy.CLOSE,
-                    onClick = onClose,
-                    modifier = Modifier
-                        .padding(top = BittrTokens.Spacing.sm)
-                        .testTag(TestID.Scanner.closeButton),
-                )
+                CloseButton(onClick = onClose, modifier = Modifier.padding(top = 20.dp))
             }
+
+            BittrSheetHeader(
+                icon = rememberVectorPainter(rememberStrokeIcon(QR_ICON_PATH, Color.White, strokeWidth = 1.6f)),
+                title = ScannerCopy.HEADER,
+                onDown = onClose,
+                titleTestTag = TestID.Header.titleLabel,
+                downTestTag = TestID.Header.downButton,
+            )
         }
 
         // Inline, not dialog, alerts: `send_onchain.yaml` asserts `scanner.scannerView` and
@@ -262,57 +257,43 @@ internal fun ScannerScreenContent(
 }
 
 /**
- * Four corner brackets, inset inside the preview so they frame what the camera sees
- * rather than the card's rounded edge — the corner radius would otherwise cut into
- * the brackets' elbows.
- *
- * `brandFixed` because the brackets sit on the camera image, not on the canvas: the
- * canvas turns blue in dark mode, and the image behind the brackets does not.
+ * `closeView`: 40 tall and black with 8 corners, "Close" in white Gilroy-Bold 14, 17 from either
+ * end. Black is `actionFill`, which lightens in dark mode where black would not read on blue.
  */
 @Composable
-private fun ViewfinderBrackets(modifier: Modifier = Modifier) {
-    val color = BittrTheme.colors.brandFixed
-    Canvas(modifier = modifier.padding(BracketInset)) {
-        val arm = BracketLength.toPx()
-        val stroke = Stroke(width = BracketStroke.toPx(), cap = StrokeCap.Round, join = StrokeJoin.Round)
-        // Half the stroke in from the edge, so the inset is measured to the bracket's
-        // outer edge rather than to the middle of its line.
-        val half = stroke.width / 2
-        val left = half
-        val top = half
-        val right = size.width - half
-        val bottom = size.height - half
-        val corners = listOf(
-            Triple(Offset(left, top + arm), Offset(left, top), Offset(left + arm, top)),
-            Triple(Offset(right - arm, top), Offset(right, top), Offset(right, top + arm)),
-            Triple(Offset(right, bottom - arm), Offset(right, bottom), Offset(right - arm, bottom)),
-            Triple(Offset(left + arm, bottom), Offset(left, bottom), Offset(left, bottom - arm)),
+private fun CloseButton(onClick: () -> Unit, modifier: Modifier = Modifier) {
+    val colors = BittrTheme.colors
+    Box(
+        contentAlignment = Alignment.Center,
+        modifier = modifier
+            .height(40.dp)
+            .clip(CloseShape)
+            .background(colors.actionFill)
+            .clickable(role = Role.Button, onClick = onClick)
+            .testTag(TestID.Scanner.closeButton)
+            .padding(horizontal = 17.dp),
+    ) {
+        Text(
+            text = ScannerCopy.CLOSE,
+            style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold, lineHeight = 14.sp),
+            color = colors.onActionFill,
+            modifier = Modifier.offset(y = 1.dp),
         )
-        for ((start, elbow, end) in corners) {
-            val path = Path().apply {
-                moveTo(start.x, start.y)
-                lineTo(elbow.x, elbow.y)
-                lineTo(end.x, end.y)
-            }
-            drawPath(path, color = color, style = stroke)
-        }
     }
 }
 
-private val PreviewSideMargin = 24.dp
-private val PreviewCornerRadius = 24.dp
-private val BracketInset = 12.dp
-private val BracketLength = 32.dp
-private val BracketStroke = 3.dp
+private val PreviewHeight = 400.dp
+private val MinPreviewHeight = 200.dp
 
-/**
- * The header glyph — a scan frame around a QR code, standing in for iOS's `qrcode`
- * asset. Filled, because [BittrModalHeader] fills its icon; the frame is drawn as
- * solid L-shapes rather than strokes for that reason.
- */
-private const val SCANNER_ICON_PATH =
-    "M3 3h6v2H5v4H3zM15 3h6v6h-2V5h-4zM21 15v6h-6v-2h4v-4zM3 15h2v4h4v2H3z" +
-        "M7 7h4v4H7zM13 7h4v4h-4zM7 13h4v4H7zM13 13h2v2h-2zM15 15h2v2h-2z"
+/** The header's 58 above the block, and the same below so it centres on the whole sheet. */
+private val SheetInset = 58.dp
+private val PreviewCornerRadius = 13.dp
+private val CloseShape = RoundedCornerShape(8.dp)
+
+/** SF Symbols' `qrcode`, the header's icon: three finder squares and the scattered modules. */
+private const val QR_ICON_PATH =
+    "M3.5 3.5h7v7h-7z M13.5 3.5h7v7h-7z M3.5 13.5h7v7h-7z M6.5 6.5h1v1h-1z M16.5 6.5h1v1h-1z M6.5 16.5h1v1h-1z " +
+        "M14 14h2 M19 14h1.5 M14 17.5v3 M17.5 17.5h3v3"
 
 @Preview(showBackground = true)
 @Composable

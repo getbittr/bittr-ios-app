@@ -131,8 +131,10 @@ a product choice, defaulting to it is the thing being guarded).
 
 ## `FLAG_SECURE` blanks a capture without failing it
 
-The recovery-phrase screen uses `FLAG_SECURE` (Android's answer to the iOS
-screenshot-warning notification — see `shared/docs/parity.md`). A `FLAG_SECURE`
+The recovery-phrase screens use `FLAG_SECURE` (Android's answer to the iOS
+screenshot-warning notification — see `shared/docs/parity.md`), through
+`ScreenshotProtection`: the phrase shown (Signup3), words of it checked (Signup4), and
+the phrase typed in (Restore, and the forgot-PIN reset, which reuses it). A `FLAG_SECURE`
 window is captured as a **black frame** by `adb screencap`, which is what Maestro's
 `takeScreenshot` drives. It does not error. The PNG is written, the flow goes green,
 and the file is blank.
@@ -141,7 +143,7 @@ and the file is blank.
 for exactly this reason. That guard does not help here: a correctly scoped
 `DisposableEffect` still blanks **the screen it is scoped to**. So:
 
-> No store screenshot may come from the recovery-phrase screen, or from any screen
+> No store screenshot may come from the recovery-phrase screens, or from any screen
 > that sets `FLAG_SECURE`.
 
 The black-frame check in the verification step below catches this if it happens

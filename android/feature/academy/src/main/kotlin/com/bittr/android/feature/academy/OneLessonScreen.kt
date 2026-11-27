@@ -8,14 +8,16 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.widthIn
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
@@ -29,27 +31,35 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.bittr.android.core.common.TestID
-import com.bittr.android.core.designsystem.BittrCanvas
-import com.bittr.android.core.designsystem.BittrCanvasShapes
-import com.bittr.android.core.designsystem.BittrIconPaths
+import com.bittr.android.core.designsystem.BittrSheetHeader
 import com.bittr.android.core.designsystem.BittrTheme
 import com.bittr.android.core.designsystem.CanvasSpacer
+import com.bittr.android.core.designsystem.IosCardShape
+import com.bittr.android.core.designsystem.R as DesignR
 import com.bittr.android.core.designsystem.bittrMarkup
-import com.bittr.android.core.designsystem.rememberFillIcon
-import com.bittr.android.core.designsystem.rememberStrokeIcon
+import com.bittr.android.core.designsystem.iosShadow
 
 /**
- * One lesson, a page at a time.
+ * One lesson, a page at a time — the content of the page sheet the Academy opens it in, as iOS
+ * presents `OneLessonViewController` over the Academy.
  *
- * Ported from `OneLessonViewController` plus `Button.swift`. Three behaviours carry
+ * Ported from `OneLessonViewController` plus `Label.swift`, `Image.swift` and `Button.swift`: the
+ * page's paragraphs straight on the sheet, centred, and its images on white cards, the whole page
+ * with its buttons centred vertically. Three behaviours carry
  * across because the Maestro flow depends on each of them:
  *
  * 1. **The page is hidden while it loads, and the buttons do not exist yet.**
@@ -90,124 +100,129 @@ internal fun OneLessonScreen(
         state = state.pageLoaded()
     }
 
-    BittrCanvas(modifier = modifier, onBack = onClose) {
-        AcademyHeading(
-            text = lesson.title,
-            modifier = Modifier.padding(
-                start = AcademyLayout.contentPadding,
-                end = AcademyLayout.contentPadding,
-                top = AcademyLayout.contentPadding,
-            ),
+    val colors = BittrTheme.colors
+    // `yelloworblue2`, under `addHeader`'s academy icon and the lesson's title.
+    Column(
+        modifier = modifier
+            .fillMaxSize()
+            .background(colors.levelCard)
+            .navigationBarsPadding(),
+    ) {
+        BittrSheetHeader(
+            icon = painterResource(R.drawable.academy_level_icon),
+            title = lesson.title,
+            onDown = onClose,
+            titleTestTag = TestID.Header.titleLabel,
+            downTestTag = TestID.Header.downButton,
         )
 
+        // `centerView`, centred in what is left: the page's components one under the other and
+        // the buttons under them, scrolling when a page is taller than the sheet.
         BoxWithConstraints(modifier = Modifier.weight(1f).fillMaxWidth()) {
             if (state.isLoadingPage) {
                 CircularProgressIndicator(
-                    color = BittrTheme.colors.onCanvas,
+                    color = colors.onCanvas,
                     modifier = Modifier
                         .align(Alignment.Center)
                         .testTag(TestID.Academy.lessonSpinner),
                 )
             } else {
-                // Bottom-aligned, so the card sits a fixed [LessonCardToButtons] above
-                // its button and all the spare height is above the card: the two read
-                // as a pair (design review pass 3, `academy/04`). Pass 2 centred the card,
-                // which split the spare height and left the button floating on its own.
-                //
-                // `Arrangement.Bottom` in a column at least as tall as the viewport is
-                // the review's `Spacer(Modifier.weight(1f))` above the card, in the only
-                // form a scrolling column accepts — a weight has no meaning inside
-                // `verticalScroll`. When a page is taller than the viewport the minimum
-                // height stops mattering, the arrangement has no spare height to place,
-                // and the column simply scrolls from its top.
                 Column(
-                    verticalArrangement = Arrangement.Bottom,
+                    verticalArrangement = Arrangement.Center,
+                    horizontalAlignment = Alignment.CenterHorizontally,
                     modifier = Modifier
                         .fillMaxWidth()
                         .verticalScroll(rememberScrollState())
                         .heightIn(min = maxHeight)
-                        .padding(horizontal = AcademyLayout.contentPadding),
+                        .padding(vertical = 30.dp),
                 ) {
-                    LessonCard(components = state.page.components, images = images)
+                    var previous: Component? = null
+                    state.page.components.forEach { component ->
+                        CanvasSpacer(gapBefore(component, previous))
+                        when (component) {
+                            is Component.Text -> Text(
+                                text = bittrMarkup(component.text),
+                                style = LessonText,
+                                color = colors.onCanvas,
+                                textAlign = TextAlign.Center,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 35.dp),
+                            )
+
+                            is Component.Image -> LessonImage(images[component.url])
+                        }
+                        previous = component
+                    }
+                    if (state.showsButtons) {
+                        CanvasSpacer(if (previous is Component.Image) 40.dp else 20.dp + TrailingLine)
+                        LessonButtons(
+                            state = state,
+                            onBack = { state = state.previousPage() },
+                            onNext = { state = state.nextPage() },
+                            onComplete = onCompleted,
+                        )
+                    }
                 }
             }
         }
-
-        if (state.showsButtons) {
-            CanvasSpacer(LessonCardToButtons)
-            LessonButtons(
-                state = state,
-                onBack = { state = state.previousPage() },
-                onNext = { state = state.nextPage() },
-                onComplete = onCompleted,
-            )
-        }
-        CanvasSpacer(AcademyLayout.contentPadding)
     }
 }
 
 /**
- * A page's components on the review's white card.
- *
- * `chartSurface` rather than a white literal: it is the designsystem's fixed white
- * with ink on it in both schemes, and ink-on-white is the only pairing that reads on
- * either canvas — the reasoning is on `BittrColors.chartSurface`. iOS draws the page's
- * text straight on the canvas and only its images on white cards (`Image.swift:17`);
- * the review moves the whole page onto one card.
+ * The gap above a component, as `addLabel` and `addImage` space them: none above the first, 8
+ * between two paragraphs, 20 from a paragraph down to an image and 30 below an image. A paragraph
+ * also carries [TrailingLine] under it.
  */
-@Composable
-private fun LessonCard(components: List<Component>, images: Map<String, ImageBitmap?>) {
-    val colors = BittrTheme.colors
-    Column(
-        verticalArrangement = Arrangement.spacedBy(LessonParagraphGap),
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(colors.chartSurface, LessonCardShape)
-            .padding(LessonCardPadding),
-    ) {
-        components.forEach { component ->
-            when (component) {
-                is Component.Text -> Text(
-                    text = bittrMarkup(component.text),
-                    style = AcademyType.lessonBody,
-                    color = colors.onChartSurface,
-                    textAlign = TextAlign.Start,
-                    modifier = Modifier.fillMaxWidth(),
-                )
-
-                is Component.Image -> LessonImage(images[component.url])
-            }
-        }
-    }
+private fun gapBefore(component: Component, previous: Component?) = when {
+    previous == null -> 0.dp
+    previous is Component.Image -> 30.dp
+    component is Component.Text -> 8.dp + TrailingLine
+    else -> 20.dp + TrailingLine
 }
 
 /**
- * A downloaded image, or the gap iOS leaves when the download failed.
- *
- * `addImage` gives the empty card a fixed 30pt height and carries on
- * (`Image.swift:72-78`); the same 30 dp here is what keeps a dead URL from reading
- * as a missing component.
+ * The empty line under every paragraph on iOS: `addLabel` wraps the text in `<center>`, a block
+ * that ends in a line break, so each label is one line of its 18 pt at 1.2 taller than its text.
+ */
+private val TrailingLine = 21.6.dp
+
+/** `addLabel`'s HTML: Gilroy Regular 18 at a line height of 1.2, bold where marked. */
+private val LessonText: TextStyle
+    @Composable get() = MaterialTheme.typography.bodyLarge.copy(fontSize = 18.sp, lineHeight = 21.6.sp)
+
+/**
+ * `addImage`: a white card 30 from the sides with 13 pt corners and `setShadow()`, the image
+ * filling its width. A failed download leaves the card 30 tall and the page carries on, as iOS's
+ * does.
  */
 @Composable
 private fun LessonImage(bitmap: ImageBitmap?) {
-    if (bitmap == null) {
-        Box(Modifier.fillMaxWidth().height(30.dp))
-        return
-    }
-    Image(
-        bitmap = bitmap,
-        contentDescription = null,
-        contentScale = ContentScale.FillWidth,
+    Box(
         modifier = Modifier
+            .padding(horizontal = 30.dp)
             .fillMaxWidth()
-            .clip(BittrCanvasShapes.wordRow),
-    )
+            .iosShadow(IosCardShape)
+            .clip(IosCardShape)
+            .background(Color.White),
+    ) {
+        if (bitmap == null) {
+            Box(Modifier.fillMaxWidth().height(30.dp))
+        } else {
+            Image(
+                bitmap = bitmap,
+                contentDescription = null,
+                contentScale = ContentScale.FillWidth,
+                modifier = Modifier.fillMaxWidth(),
+            )
+        }
+    }
 }
 
 /**
- * Next (or Complete) as a content-width ink pill, with Back beside it from page 2 on;
- * the pair is centred. Back is a rounded square rather than a circle because iOS draws
- * it as one (`Button.swift:54-56`) and the review kept that shape at 56 dp.
+ * `addButton`: 40 tall with 8 pt corners, as the app's other buttons are. Next (or Complete) sized
+ * to its label — 17, the label in Gilroy Bold 14, 10, the 11 pt arrow, 17 — and from page 2 on the
+ * square Back 7 before it; the pair centred.
  */
 @Composable
 private fun LessonButtons(
@@ -219,36 +234,36 @@ private fun LessonButtons(
     val colors = BittrTheme.colors
     Row(
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(12.dp, Alignment.CenterHorizontally),
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = AcademyLayout.contentPadding),
+        horizontalArrangement = Arrangement.spacedBy(7.dp),
     ) {
         if (!state.isFirstPage) {
             Box(
                 contentAlignment = Alignment.Center,
                 modifier = Modifier
                     .size(LessonButtonHeight)
-                    .clip(BittrCanvasShapes.field)
+                    .clip(LessonButtonShape)
                     .background(colors.actionFill)
                     .clickable(role = Role.Button, onClick = onBack)
                     .testTag(TestID.Academy.backPageButton),
             ) {
+                // `arrowleftwhite`: the forward arrow, turned round.
                 Image(
-                    imageVector = rememberFillIcon(BittrIconPaths.BACK, colors.onActionFill),
+                    painter = painterResource(DesignR.drawable.bittr_arrow_right),
                     contentDescription = "Back",
-                    modifier = Modifier.size(20.dp),
+                    colorFilter = ColorFilter.tint(colors.onActionFill),
+                    modifier = Modifier
+                        .size(11.dp)
+                        .rotate(180f),
                 )
             }
         }
 
         Row(
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally),
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
             modifier = Modifier
                 .height(LessonButtonHeight)
-                .widthIn(min = 160.dp)
-                .clip(BittrCanvasShapes.pill)
+                .clip(LessonButtonShape)
                 .background(colors.actionFill)
                 .clickable(role = Role.Button) {
                     if (state.isLastPage) onComplete() else onNext()
@@ -260,33 +275,31 @@ private fun LessonButtons(
                         TestID.Academy.nextPageButton
                     },
                 )
-                .padding(horizontal = 28.dp),
+                .padding(horizontal = 17.dp),
         ) {
             Text(
                 text = if (state.isLastPage) AcademyCopy.COMPLETE else AcademyCopy.NEXT,
-                style = MaterialTheme.typography.labelLarge,
+                style = MaterialTheme.typography.labelLarge.copy(fontSize = 14.sp, lineHeight = 14.sp),
                 color = colors.onActionFill,
+                // iOS centres the label 1 pt below the plate's centre.
+                modifier = Modifier.offset(y = 1.dp),
             )
-            // The forward chevron is hidden on the last page, where the label reads
+            // The forward arrow is hidden on the last page, where the label reads
             // "Complete" and there is nothing to go forward to (`Button.swift:141`).
             if (!state.isLastPage) {
                 Image(
-                    imageVector = rememberStrokeIcon(BittrIconPaths.ARROW_FORWARD, colors.onActionFill),
+                    painter = painterResource(DesignR.drawable.bittr_arrow_right),
                     contentDescription = null,
-                    modifier = Modifier.size(18.dp),
+                    colorFilter = ColorFilter.tint(colors.onActionFill),
+                    modifier = Modifier.size(11.dp),
                 )
             }
         }
     }
 }
 
-private val LessonButtonHeight = 56.dp
-
-/** The review's fixed card-to-button gap (pass 3), which is what pairs them. */
-private val LessonCardToButtons = 32.dp
-private val LessonCardShape = RoundedCornerShape(20.dp)
-private val LessonCardPadding = 20.dp
-private val LessonParagraphGap = 16.dp
+private val LessonButtonHeight = 40.dp
+private val LessonButtonShape = RoundedCornerShape(8.dp)
 
 @Preview(showBackground = true, widthDp = 412, heightDp = 892)
 @Composable

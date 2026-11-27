@@ -108,6 +108,8 @@ interface BittrLookup {
  * @param raw the node's overview, where a Lightning row still has its payment hash.
  * @param history the matched overview the transaction screen reads (descriptions and swaps applied).
  * @param refresh sync and take a reading, so a just-completed payment reaches [raw].
+ * @param swapPayment hands a received payment to the swap it completes, if it is one; true when it
+ *   was, and the swap opens its own transaction.
  */
 class TransactionConfirmations(
     private val scope: CoroutineScope,
@@ -122,6 +124,7 @@ class TransactionConfirmations(
     private val payouts: BittrPayoutTracker = BittrPayoutTracker(),
     private val clockMillis: () -> Long = System::currentTimeMillis,
     private val log: (String) -> Unit = { runCatching { Log.i(TAG, it) } },
+    private val swapPayment: (String) -> Boolean = { false },
 ) {
 
     private val _requests = MutableSharedFlow<TransactionRequest>(extraBufferCapacity = 8)
@@ -152,7 +155,11 @@ class TransactionConfirmations(
         scope.launch {
             nodeEvents.collect { event ->
                 when (event) {
-                    is NodeEvent.PaymentReceived -> scope.launch { openReceived(event.paymentHash) }
+                    // iOS: `isSwapPayment` → `openCompletedSwapTransaction`, straight from the event.
+                    is NodeEvent.PaymentReceived ->
+                        if (!runCatching { swapPayment(event.paymentHash) }.getOrDefault(false)) {
+                            scope.launch { openReceived(event.paymentHash) }
+                        }
                     is NodeEvent.PaymentSuccessful -> scope.launch { openPayment(event.paymentHash) }
                     is NodeEvent.ChannelPending -> scope.launch { openFunding(event.fundingTxId) }
                     is NodeEvent.PaymentFailed -> paymentFailed(event.reason)
@@ -216,9 +223,12 @@ class TransactionConfirmations(
 
     /** `.paymentReceived`: a bittr payout is checked with bittr first; anything else opens as it is. */
     private suspend fun openReceived(paymentHash: String) {
+        // Read as the payment arrives, not after the row is found: the payout is expected before its
+        // payment can come in (the push handler expects it, then asks bittr to pay), and the wait for
+        // the row is the window in which anything else could act on it.
+        val notificationId = payouts.awaiting(clockMillis())
         val lookup = findRow(paymentHash)
         val found = lookup as? Lookup.Row
-        val notificationId = payouts.awaiting(clockMillis())
         log("Payment received: ${lookup::class.simpleName}, payout expected: ${notificationId != null}")
         if (found == null) return
         if (notificationId == null) {
@@ -241,7 +251,20 @@ class TransactionConfirmations(
             txId = fundingTxId,
             inHistory = false,
             otherwise = null,
-            onPurchase = { bittr.rememberFunding(fundingTxId) },
+            onPurchase = {
+                bittr.rememberFunding(fundingTxId)
+                // `checkPaymentWithBittr(…isFundingTransaction: true)` stores the payout's notification id
+                // as the funding transaction's description too. Read here rather than on entry: the
+                // funding can land before the payout call is made.
+                //
+                // Not cleared, where iOS clears `lightningNotification`: a payout that opens the channel
+                // can also send its payment over it, and that payment is checked against this same
+                // expected payout — cleared first, it opened without bittr's summary or description.
+                // The payment's own check clears it; with no payment, it lapses after its window.
+                payouts.awaiting(clockMillis())?.let { notificationId ->
+                    bittr.storeDescription(fundingTxId, notificationId)
+                }
+            },
         )
     }
 
@@ -364,6 +387,7 @@ object TransactionConfirmationsModule {
         canShow = { wallet.state.value == WalletState.Ready && !removal.isLockoutRemoval },
         bittr = bittr,
         payouts = payouts,
+        swapPayment = swaps::onPaymentReceived,
     )
 }
 

@@ -35,6 +35,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import com.bittr.android.core.common.TestID
+import com.bittr.android.core.designsystem.R as DesignR
 import com.bittr.android.core.designsystem.BittrTheme
 import com.bittr.android.core.lnurl.LnurlRequestSlot
 import com.bittr.android.core.lnurl.LnurlSource
@@ -197,7 +198,8 @@ private fun WebsiteTopBar(
         modifier = Modifier
             .fillMaxWidth()
             .height(50.dp)
-            .background(MaterialTheme.colorScheme.primary),
+            // `yelloworblue1`, with its glyphs in `whiteoryellow` as the app's other sheet headers.
+            .background(BittrTheme.colors.canvas),
     ) {
         IconButton(
             onClick = onClose,
@@ -208,10 +210,11 @@ private fun WebsiteTopBar(
                 // renameable without editing shared/test-ids/test-ids.json.
                 .testTag(TestID.Website.downButton),
         ) {
+            // iOS's `downarrow32`, the chevron every sheet header closes with.
             Icon(
-                painter = painterResource(R.drawable.ic_website_chevron_down),
+                painter = painterResource(DesignR.drawable.bittr_down_chevron),
                 contentDescription = stringResource(R.string.website_close),
-                tint = MaterialTheme.colorScheme.onPrimary,
+                tint = BittrTheme.colors.homeCardTitle,
                 modifier = Modifier.size(20.dp),
             )
         }
@@ -229,7 +232,7 @@ private fun WebsiteTopBar(
             Icon(
                 painter = painterResource(R.drawable.ic_website_open_external),
                 contentDescription = stringResource(R.string.website_open_externally),
-                tint = MaterialTheme.colorScheme.onPrimary,
+                tint = BittrTheme.colors.homeCardTitle,
                 modifier = Modifier.size(26.dp),
             )
         }

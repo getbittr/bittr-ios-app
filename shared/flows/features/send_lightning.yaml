@@ -251,8 +251,7 @@ appId: ${APP_ID}
 - tapOn:
     id: "send.amountTextField"
 - inputText: "0.00001"
-- tapOn:
-    text: "Done"
+- runFlow: ../helpers/amount_done.yaml
 
 # Verify the details on the ConfirmSendViewController, then Send.
 - extendedWaitUntil:
@@ -314,8 +313,7 @@ appId: ${APP_ID}
 # LNURL data set, Done fetches the invoice from the LNURL callback, so the
 # "Handling lightning request" spinner flashes again.
 - inputText: "1500"
-- tapOn:
-    text: "Done"
+- runFlow: ../helpers/amount_done.yaml
 
 # After the callback returns, LNURL now follows the same
 # ConfirmSendViewController flow as the invoice paths (no more [Cancel, Confirm]

@@ -39,6 +39,36 @@ class ReceiveControllerTest {
     private fun TestScope.controller(source: FakeSource) = ReceiveController(source, this)
 
     @Test
+    fun `amounts drop spaces, keep satoshis whole, and refuse a minus or a second separator`() = runTest {
+        val controller = controller(FakeSource())
+        controller.start()
+        advanceUntilIdle()
+
+        controller.onAmountChange("1 500")
+        assertEquals("1500", controller.state.value.amountText)
+        // A separator is refused rather than dropped, which would have asked for 100 times as much.
+        for (malformed in listOf("50000.00", "50,000", "15-")) {
+            controller.onAmountChange(malformed)
+            controller.onDone()
+            assertEquals(malformed, ReceiveStrings.ENTER_VALID_AMOUNT, controller.state.value.alert?.message)
+            controller.onAlertButton(0)
+        }
+
+        controller.onCurrencyButton()
+        controller.onAlertButton(3) // Bitcoin
+        controller.onAmountChange(" 0.000 01 ")
+        assertEquals("0.00001", controller.state.value.amountText)
+
+        for (malformed in listOf("-0.1", "0.1.2", "0,1.2", "1,,2")) {
+            controller.onAmountChange(malformed)
+            controller.onDone()
+            assertEquals(malformed, ReceiveStrings.ENTER_VALID_AMOUNT, controller.state.value.alert?.message)
+            controller.onAlertButton(0)
+        }
+        advanceUntilIdle()
+    }
+
+    @Test
     fun `with no channel it opens on the address, and More is hidden`() = runTest {
         val controller = controller(FakeSource())
         controller.start()

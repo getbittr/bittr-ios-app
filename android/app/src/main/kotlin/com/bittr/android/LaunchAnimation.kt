@@ -1,166 +1,218 @@
 package com.bittr.android
 
+import androidx.annotation.DrawableRes
 import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.AnimationVector1D
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
-import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
-import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clipToBounds
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.lerp
-import com.bittr.android.core.designsystem.BittrCoin
-import com.bittr.android.core.designsystem.BittrMark
 import com.bittr.android.core.designsystem.BittrTheme
-import com.bittr.android.core.designsystem.BittrWordmark
-import com.bittr.android.core.designsystem.COIN_HIDDEN
-import com.bittr.android.core.designsystem.LOGO_TAIL_RATIO
 import kotlinx.coroutines.delay
 
 /**
- * The launch animation, ported from `ios/bittr/Core/LogoAnimation.swift`.
+ * The launch animation — `ios/bittr/Core/LogoAnimation.swift`, built as iOS builds it: the logo is
+ * a gold coin sliding into a piggy bank's slot, told with a few image pieces moving inside a
+ * clipping box and fading in and out at the right moments. The pieces, the box and the cover are
+ * iOS's, in the brand yellow in light and dark mode alike; the mode shows only as the cover fades
+ * and the PIN or signup page appears.
  *
- * Three stages, with iOS's durations, easings and spring damping:
+ * The pieces, back to front, in `logoView` (30 tall, clipping, centred on the screen):
+ * - `bittrtext` — the word, pinned to the box's right edge, so widening the box unveils it;
+ *   `bittrtextwhite` over it for dark mode's final logo.
+ * - `coverView` — yellow, over the coin's width and 5 more: hides the word behind the coin.
+ * - `coin1` — the white disc with the black wedge of the slot at its lower left.
+ * - `secondCoin` — a yellow disc 40 up and right of `firstCoin`, outside the box, which follows it
+ *   into the disc's centre.
+ * - `blackCoin` — the wedge alone (`coin2`), under the coin.
+ * - `firstCoin` — the yellow disc in the white disc's centre that makes it a ring: the gold coin.
+ * - `coin3` — the wedge's shading, over the coin, so it slides *into* the slot.
+ * - `logo80` and `logodarkmode80` — the finished mark, faded in as the pieces fade out.
  *
- * 1. **The coin slides into its slot** — `coinSlidesIntoSlot`: 0.6 s ease-in-out after a
- *    0.3 s pause. The coin crosses the ring from upper right to lower left and is clipped to
- *    the disc the ring traces, so it is seen only *through* the mark and is gone by the end;
- *    the mark's wedge draws over it, which is what makes the exit read as a slot rather than
- *    a disc drifting off. Both ends of the slide are the plain mark — the same frame the
- *    splash drawable holds, so the hand-off from the splash is invisible.
- * 2. **The logo widens to unveil the word** — `widenLogoView`: 0.6 s, spring damping 0.65.
- *    A right-aligned clip that grows reveals the word from its right end — "tr", "ittr",
- *    "bittr" — and the mark slides left as the pair re-centres, which is what iOS's widening
- *    logo view does and what the recording shows.
- * 3. **The logo rises into the app bar** — `logoSlidesToTop`: 0.7 s after 0.3 s, while the
- *    cover fades and the screen appears behind it. This one does not bounce: see [RISE_MS].
+ * Three stages, with iOS's timings:
+ * 1. **The coin slides into the slot** (`coinSlidesIntoSlot`): 0.3 s in, 0.6 s ease-in-out, the
+ *    coin 40 left and 40 down, under the shading and out of the box, while `secondCoin` takes its
+ *    place in the ring.
+ * 2. **The logo widens to unveil the word** (`widenLogoView`): the box from 30 to 106 about its
+ *    centre, 0.6 s spring at damping 0.65.
+ * 3. **The logo rises to the top** (`logoSlidesToTop`): 0.3 s in, 0.7 s spring at damping 0.65,
+ *    from the screen's centre to 10 below the status bar — where the app bar's logo is — while the
+ *    yellow cover and the pieces fade out and the final logo fades in, white-and-yellow in dark
+ *    mode.
  *
- * **`core.launchComplete` moves with this.** iOS sets that id when stage 3 finishes and every
- * flow gates on it through `helpers/wait_for_launch.yaml`; [MainActivity] tags the root once
- * [onFinished] has fired, so no flow taps into a cover that still swallows taps.
+ * **`core.launchComplete` moves with this.** iOS sets that id when stage 3 finishes and every flow
+ * gates on it through `helpers/wait_for_launch.yaml`; [MainActivity] tags the root once
+ * [onFinished] has fired, so no flow taps into a cover that still swallows taps. The app's own
+ * logo stays hidden until then (`LocalAppBarLogoVisible`), and this one lands exactly on it.
  *
+ * @param rise stage 3's progress, 0 to 1. Hoisted so the PIN or signup page can rise with the
+ *   logo — see [risingWithLaunchLogo].
  * @param onFinished stage 3 is over, the cover is gone and the app is interactive.
  */
 @Composable
-fun LaunchAnimation(onFinished: () -> Unit, modifier: Modifier = Modifier) {
+fun LaunchAnimation(
+    rise: Animatable<Float, AnimationVector1D>,
+    onFinished: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
     val slide = remember { Animatable(0f) }
-    val reveal = remember { Animatable(0f) }
-    val rise = remember { Animatable(0f) }
+    val widen = remember { Animatable(0f) }
 
     LaunchedEffect(Unit) {
         delay(COIN_DELAY_MS)
         slide.animateTo(1f, tween(durationMillis = COIN_MS, easing = FastOutSlowInEasing))
-        reveal.animateTo(1f, spring(dampingRatio = DAMPING, stiffness = REVEAL_STIFFNESS))
+        widen.animateTo(1f, spring(dampingRatio = DAMPING, stiffness = WIDEN_STIFFNESS))
         delay(RISE_DELAY_MS)
-        rise.animateTo(1f, tween(durationMillis = RISE_MS, easing = FastOutSlowInEasing))
+        rise.animateTo(1f, spring(dampingRatio = DAMPING, stiffness = RISE_STIFFNESS))
         onFinished()
     }
 
-    Box(
-        modifier = modifier
-            .fillMaxSize()
-            // The splash's yellow, carried on without a seam and fading as the app arrives.
-            // Full-bleed, behind the status bar as the splash was.
-            .background(BittrTheme.colors.canvas.copy(alpha = 1f - rise.value)),
-    ) {
-        // **The same box the app bar is laid out in.** `BittrCanvas` puts its column inside
-        // these two insets and hangs the 56 dp bar off the top of it, so measuring the landing
-        // here means measuring it in the app bar's own coordinates. Reading the status-bar inset
-        // and subtracting it by hand instead left the logo 22 dp below the bar's real one, which
-        // is the sort of arithmetic that is wrong on exactly the devices nobody tests on.
-        BoxWithConstraints(
-            modifier = Modifier
-                .fillMaxSize()
-                .statusBarsPadding()
-                .navigationBarsPadding(),
-            contentAlignment = Alignment.Center,
-        ) {
-            val logoHeight = lerp(LOGO_HEIGHT, APP_BAR_LOGO_HEIGHT, rise.value)
-            val travel = maxHeight / 2 - logoHeight / 2 - APP_BAR_LOGO_TOP
-            // The logo does not fade: it lands *on* the app bar's own logo, at that logo's height
-            // and position, and is taken away with the cover. Fading it out instead showed both at
-            // once for a frame or two, slightly out of line — iOS has no such moment because there
-            // the logo that rises is the app bar's.
-            Logo(
-                logoHeight = logoHeight,
-                slide = slide.value,
-                reveal = reveal.value,
-                modifier = Modifier.offset(y = lerp(0.dp, -travel, rise.value)),
-            )
-        }
-    }
-}
+    val yellow = BittrTheme.colors.brandFixed
+    val dark = BittrTheme.isDark
+    // Alphas follow the rise's spring, clamped: it overshoots, alpha cannot.
+    val shown = rise.value.coerceIn(0f, 1f)
+    val statusTop = with(LocalDensity.current) { WindowInsets.statusBars.getTop(this).toDp() }
 
-/** The mark, the coin sliding into it, and the word being unveiled beside them. */
-@Composable
-private fun Logo(logoHeight: Dp, slide: Float, reveal: Float, modifier: Modifier = Modifier) {
-    val colors = BittrTheme.colors
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.Center,
-        modifier = modifier,
-    ) {
-        Box(contentAlignment = Alignment.Center) {
-            BittrMark(size = logoHeight, ink = colors.onCanvas, arc = colors.canvasArc)
-            BittrCoin(
-                size = logoHeight,
-                ink = Color.Transparent,
-                face = colors.canvasArc,
-                // From clear of the ring at the upper right, through it, to clear of it at the
-                // lower left: the coin is only ever seen through the ring, and both ends of the
-                // slide are the plain mark — the splash's frame, and the app bar's.
-                travel = Offset(
-                    x = COIN_HIDDEN * (1f - 2f * slide),
-                    y = -COIN_HIDDEN * (1f - 2f * slide),
-                ),
-            )
-            // The wedge over the coin: the coin slides *under* the black half, into the slot.
-            BittrMark(size = logoHeight, ink = colors.onCanvas, arc = Color.Transparent)
-        }
-        // What widens is everything past the mark — the artwork's gap and then the word — so
-        // the lockup this settles on is the one `BittrLogo` draws, to the unit. Right-aligned,
-        // the word comes out of the mark end first: "tr", "ittr", "bittr", and the gap opens
-        // last, which is the order the iOS recording shows.
+    BoxWithConstraints(modifier = modifier.fillMaxSize()) {
+        // `animationCover`: the splash's yellow, full-bleed, fading as the logo rises.
+        Box(
+            Modifier
+                .fillMaxSize()
+                .alpha(1f - shown)
+                .background(yellow),
+        )
+
+        val logoWidth = LOGO_HEIGHT + (LOGO_WIDE - LOGO_HEIGHT) * widen.value
+        // Centred on the whole screen, as the splash's mark is; landing on the app bar's logo.
+        val startTop = maxHeight / 2 - LOGO_HEIGHT / 2
+        val endTop = statusTop + LOGO_TOP_IN_BAR
         Box(
             modifier = Modifier
-                .width(logoHeight * LOGO_TAIL_RATIO * reveal)
+                .offset(x = (maxWidth - logoWidth) / 2, y = lerp(startTop, endTop, rise.value))
+                .width(logoWidth)
+                .height(LOGO_HEIGHT)
                 .clipToBounds(),
-            contentAlignment = Alignment.CenterEnd,
         ) {
-            BittrWordmark(height = logoHeight, ink = colors.onCanvas)
+            val coinDx = COIN_TRAVEL * -slide.value
+            val coinDy = COIN_TRAVEL * slide.value
+            val pieces = 1f - shown
+
+            // `bittrtext` / `bittrtextwhite`: trailing on the box, 0.94 of its height, 0.5 low.
+            Piece(R.drawable.launch_text, x = logoWidth - TEXT_WIDTH, y = TEXT_TOP, width = TEXT_WIDTH, height = TEXT_HEIGHT)
+            if (dark) {
+                Piece(R.drawable.launch_text_dark, x = logoWidth - TEXT_WIDTH, y = TEXT_TOP, width = TEXT_WIDTH, height = TEXT_HEIGHT, alpha = shown)
+            }
+            // `coverView`.
+            Box(
+                Modifier
+                    .size(width = LOGO_HEIGHT + 5.dp, height = LOGO_HEIGHT)
+                    .alpha(pieces)
+                    .background(yellow),
+            )
+            // `coin1`.
+            Piece(R.drawable.launch_coin_slot, x = 0.dp, y = 0.dp, width = LOGO_HEIGHT, height = LOGO_HEIGHT, alpha = pieces)
+            // `secondCoin`: 40 right and 40 up of `firstCoin`.
+            Disc(centreX = COIN_CENTRE + coinDx + COIN_TRAVEL, centreY = COIN_CENTRE + coinDy - COIN_TRAVEL, alpha = pieces)
+            // `blackCoin`: the wedge, 0.63 of the disc, at its lower left.
+            Piece(R.drawable.launch_coin_wedge, x = 0.dp, y = LOGO_HEIGHT - WEDGE_SIZE, width = WEDGE_SIZE, height = WEDGE_SIZE, alpha = pieces)
+            // `firstCoin`: the gold coin.
+            Disc(centreX = COIN_CENTRE + coinDx, centreY = COIN_CENTRE + coinDy, alpha = pieces)
+            // `coin3`: the slot's shading, over the coin.
+            Piece(R.drawable.launch_coin_shade, x = 0.dp, y = LOGO_HEIGHT - WEDGE_SIZE, width = WEDGE_SIZE, height = WEDGE_SIZE, alpha = pieces)
+            // `finalLogo` and, in dark mode, `logoIconDarkMode` over it.
+            Piece(R.drawable.launch_logo, x = 0.dp, y = 0.dp, width = LOGO_HEIGHT, height = LOGO_HEIGHT, alpha = shown)
+            if (dark) {
+                Piece(R.drawable.launch_logo_dark, x = 0.dp, y = 0.dp, width = LOGO_HEIGHT, height = LOGO_HEIGHT, alpha = shown)
+            }
         }
     }
 }
 
 /**
- * iOS's `logoViewWidth = 106` lockup, as the mark's height: 106 / 3.58 (the artwork's ratio).
- * Measured against the recording — the lockup is 26 % of the screen's width on iOS, and this
- * is what puts it there. At 49 dp, the first attempt, it was 38 %.
+ * The PIN or signup page under the launch logo, held as far below its place as the logo is below
+ * the app bar's and rising with it. iOS pins `pinContainerView` and `signupContainerView` to
+ * `topBar`'s top, which `viewDidLayoutSubviews` lowers to `centeredTopBarTop` and
+ * `logoSlidesToTop` springs back to 0, so the page keeps its place under the logo all the way up.
+ *
+ * @param statusTop the status bar's height, in pixels.
+ * @param rise [LaunchAnimation]'s stage 3, 0 to 1; read in the layer, so the page moves without
+ *   recomposing.
  */
-private val LOGO_HEIGHT = 29.6.dp
+fun Modifier.risingWithLaunchLogo(statusTop: Int, rise: () -> Float): Modifier = graphicsLayer {
+    // The logo's travel: from centred on the screen to 10 below the status bar.
+    val lowered = size.height / 2 - (LOGO_HEIGHT / 2).toPx() - statusTop - LOGO_TOP_IN_BAR.toPx()
+    translationY = lowered * (1f - rise())
+}
 
-/**
- * `BittrAppBar`'s logo, and how far below the status bar it sits — where stage 3 lands. The bar
- * is 56 dp with the logo centred in it, so the logo's top is (56 − 19) / 2 below the status bar.
- */
-private val APP_BAR_LOGO_HEIGHT = 19.dp
-private val APP_BAR_LOGO_TOP = 18.5.dp
+/** One of iOS's image pieces, aspect-fit into its frame in the logo box. */
+@Composable
+private fun Piece(@DrawableRes image: Int, x: Dp, y: Dp, width: Dp, height: Dp, alpha: Float = 1f) {
+    Image(
+        painter = painterResource(image),
+        contentDescription = null,
+        contentScale = ContentScale.Fit,
+        modifier = Modifier
+            .offset(x = x, y = y)
+            .size(width = width, height = height)
+            .alpha(alpha),
+    )
+}
+
+/** `firstCoin` / `secondCoin`: a yellow disc, 0.7 of the white one, centred on the given point. */
+@Composable
+private fun Disc(centreX: Dp, centreY: Dp, alpha: Float) {
+    Box(
+        Modifier
+            .offset(x = centreX - COIN_SIZE / 2, y = centreY - COIN_SIZE / 2)
+            .size(COIN_SIZE)
+            .alpha(alpha)
+            .background(BittrTheme.colors.brandFixed, CircleShape),
+    )
+}
+
+/** `logoView`: 30 tall, 30 wide until it widens to 106 — the app bar's logo box. */
+private val LOGO_HEIGHT = 30.dp
+private val LOGO_WIDE = 106.dp
+
+/** `logoTopInset`: the logo's top, 10 below the status bar. */
+private val LOGO_TOP_IN_BAR = 10.dp
+
+/** `bittrtext`: 2.18 : 1 at 0.94 of the logo's height, its centre 0.5 below the disc's. */
+private val TEXT_HEIGHT = LOGO_HEIGHT * 0.94f
+private val TEXT_WIDTH = LOGO_HEIGHT * 2.17971f
+private val TEXT_TOP = (LOGO_HEIGHT - TEXT_HEIGHT) / 2 + 0.5.dp
+
+/** `firstCoin` and `secondCoin`: 0.7 of the disc, travelling 40 each way. */
+private val COIN_SIZE = LOGO_HEIGHT * 0.7f
+private val COIN_CENTRE = LOGO_HEIGHT / 2
+private val COIN_TRAVEL = 40.dp
+
+/** `blackCoin` and `coin3`: 0.63 of the disc. */
+private val WEDGE_SIZE = LOGO_HEIGHT * 0.63f
 
 private const val COIN_DELAY_MS = 300L
 private const val COIN_MS = 600
@@ -169,22 +221,8 @@ private const val DAMPING = 0.65f
 
 /**
  * iOS gives its springs a duration — 0.6 s to widen, 0.7 s to rise — and Compose's take theirs
- * from stiffness instead. A spring settles in about `4 / (damping × √stiffness)` seconds, so
- * these are the stiffnesses that land on iOS's two durations. The stock constants are far too
- * brisk for this: `StiffnessMediumLow` settles in 0.31 s and `StiffnessLow` in 0.2 s, which read
- * as the logo snapping into place rather than travelling there.
+ * from stiffness. A spring settles in about `4 / (damping × √stiffness)` seconds: (4 / (0.65 ×
+ * 0.6))² is 105, and (4 / (0.65 × 0.7))² is 77.
  */
-private const val REVEAL_STIFFNESS = 105f
-
-/**
- * **The rise is a 0.7 s ease, not a spring, and this is a deliberate departure from iOS.**
- *
- * iOS springs it at [DAMPING], and a spring has no duration: it overshoots and then takes as
- * long as it takes. Both halves of that hurt here, because ours is a *second* logo that has to
- * land on the app bar's own and then be taken away at a known moment — `core.launchComplete`
- * gates every flow on it. Sprung, it overshot the bar by some 25 dp and hung above the real
- * logo for half a second; damped so it would not overshoot, it was still 34 dp short when the
- * hand-off came and vanished in mid-air (both measured on Ruben's phone, 2026-09-22). A tween
- * of exactly iOS's 0.7 s lands on the bar on the frame the cover goes, and the swap is invisible.
- */
-private const val RISE_MS = 700
+private const val WIDEN_STIFFNESS = 105f
+private const val RISE_STIFFNESS = 77f

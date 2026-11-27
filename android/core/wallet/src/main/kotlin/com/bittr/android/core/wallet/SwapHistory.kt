@@ -43,6 +43,9 @@ interface TransactionDescriptionStore {
     val descriptions: kotlinx.coroutines.flow.StateFlow<Map<String, String>>
 
     fun store(key: String, description: String)
+
+    /** The wallet is gone: forget every description, so none labels the next wallet's rows. */
+    fun clear() {}
 }
 
 /**

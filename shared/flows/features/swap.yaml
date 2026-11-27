@@ -265,8 +265,7 @@ appId: ${APP_ID}
 - tapOn:
     id: "swap.amountTextField"
 - inputText: "50000"
-- tapOn:
-    text: "Done"
+- runFlow: ../helpers/amount_done.yaml
 - takeScreenshot: shared/docs/screenshots/swap/12_reverse_amount_entered
 - tapOn:
     id: "swap.nextButton"

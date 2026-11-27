@@ -26,8 +26,6 @@ data class SignupUiState(
     val code: String = "",
     /** The Next button's spinner. */
     val busy: Boolean = false,
-    /** The exclusive-initiative confirmation sheet. */
-    val showInitiative: Boolean = false,
 )
 
 data class BuyUiState(
@@ -59,6 +57,9 @@ enum class BuyAction {
     RetryDeviceToken,
     BackToStart,
     FinishSignup,
+
+    /** `initiativeconfirm` — records the exclusive-initiative confirmation and carries on with Verify. */
+    ConfirmInitiative,
 }
 
 data class BuyAlertButton(val label: String, val action: BuyAction)
@@ -226,19 +227,27 @@ class BuyController(
             return
         }
         if (recordedInitiativeConfirmation(signup) == null) {
-            updateSignup { it.copy(showInitiative = true) }
+            confirmInitiative()
         } else {
             gatherIbanDetails()
         }
     }
 
-    fun onInitiativeConfirm() {
-        sessionInitiativeAt = source.nowIsoUtc()
-        updateSignup { it.copy(showInitiative = false) }
-        gatherIbanDetails()
-    }
-
-    fun onInitiativeCancel() = updateSignup { it.copy(showInitiative = false) }
+    /**
+     * `confirmInitiative`: the user confirms they're requesting Bittr's service on their own
+     * initiative, in the app's own alert. Cancel is `alert.button.0` and Confirm `alert.button.1`,
+     * stacked above it, as on iOS.
+     */
+    private fun confirmInitiative() = showAlert(
+        BuyAlert(
+            title = BuyStrings.INITIATIVE_TITLE,
+            message = BuyStrings.INITIATIVE_MESSAGE,
+            buttons = listOf(
+                BuyAlertButton(BuyStrings.CANCEL, BuyAction.Dismiss),
+                BuyAlertButton(BuyStrings.INITIATIVE_CONFIRM, BuyAction.ConfirmInitiative),
+            ),
+        ),
+    )
 
     /** "I don't have an IBAN". */
     fun onSkip() = showAlert(
@@ -494,6 +503,11 @@ class BuyController(
             BuyAction.RetryDeviceToken -> {
                 updateSignup { it.copy(busy = true) }
                 checkPushNotificationStatus()
+            }
+            BuyAction.ConfirmInitiative -> {
+                // Stored in UTC, so the time is unambiguous wherever the user was.
+                sessionInitiativeAt = source.nowIsoUtc()
+                gatherIbanDetails()
             }
         }
     }

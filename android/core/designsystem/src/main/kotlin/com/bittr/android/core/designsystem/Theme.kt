@@ -63,4 +63,12 @@ object BittrTheme {
     val colors: BittrColors
         @Composable @ReadOnlyComposable
         get() = LocalBittrColors.current
+
+    /**
+     * Whether the dark palette is in force — for the few iOS image assets that come as a light and
+     * a dark pair (`iconpiggywhite` / `iconpiggyyellow`) rather than as one tintable shape.
+     */
+    val isDark: Boolean
+        @Composable @ReadOnlyComposable
+        get() = LocalBittrColors.current === BittrDarkColorsExtended
 }

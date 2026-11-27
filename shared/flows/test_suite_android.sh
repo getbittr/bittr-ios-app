@@ -44,6 +44,11 @@
 #   APP_ID            default com.bittr.android.regtest
 #   BITTR_LOG_DIR     keep this run's logs here instead of a throwaway /tmp dir
 #
+# Screenshots: maestro writes a flow's takeScreenshot images under its --test-output-dir.
+# After each flow, those meant for shared/docs/screenshots/ are copied to
+# shared/docs/screenshots/android/<flow_name>/, so they outlive the /tmp log dir and never
+# overwrite the iOS set in shared/docs/screenshots/.
+#
 # Exit code: 0 if everything passed, 1 if any flow failed, 2 on preflight errors.
 
 set -uo pipefail
@@ -60,6 +65,7 @@ FLOWS_DIR="shared/flows"
 SCRIPTS_DIR="${FLOWS_DIR}/scripts"
 LOG_DIR="${BITTR_LOG_DIR:-$(mktemp -d /tmp/bittr-test-suite-android.XXXXXX)}"
 mkdir -p "${LOG_DIR}" || { echo "cannot create log dir ${LOG_DIR}" >&2; exit 2; }
+SHOTS_DIR="shared/docs/screenshots/android"
 
 PUSH_PORT=8888
 CLIPBOARD_PORT=8889
@@ -371,6 +377,21 @@ ensure_server "clipboard_server" "${CLIPBOARD_PORT}" "${SCRIPTS_DIR}/clipboard_s
 
 # ── Run the flows ────────────────────────────────────────────────────────────
 
+# Copies a flow's shared/docs/screenshots frames out of its maestro output dir into ${SHOTS_DIR},
+# keeping the flow's own <flow_name>/<step>.png layout. Runs after failures too, so the
+# steps that passed still leave their screenshots.
+copy_screenshots() {
+    local all="$1/screenshots"
+    local taken="${all}/shared/docs/screenshots"
+    local others
+    others=$(find "${all}" -name '*.png' -not -path "${taken}/*" 2>/dev/null)
+    [[ -n "${others}" ]] && warn "not copied, outside shared/docs/screenshots (still in ${all}):"$'\n'"${others}"
+    [[ -d "${taken}" ]] || return 0
+    mkdir -p "${SHOTS_DIR}" && cp -Rp "${taken}/." "${SHOTS_DIR}/" \
+        && info "  screenshots: ${SHOTS_DIR}" \
+        || warn "could not copy screenshots from ${taken}"
+}
+
 FLOWS_TO_RUN=()
 if [[ ${#EXPLICIT_FLOWS[@]} -gt 0 ]]; then
     FLOWS_TO_RUN=("${EXPLICIT_FLOWS[@]}")
@@ -410,6 +431,8 @@ for flow in "${FLOWS_TO_RUN[@]}"; do
     # remove-task"), leaving a blank screen past wait_for_launch's 15 s.
     dev shell am force-stop "${APP_ID}" >/dev/null 2>&1 || true
     sleep 2
+    # A reused BITTR_LOG_DIR still holds the last run's frames, which would be copied as this run's.
+    rm -rf "${OUT_DIR}/screenshots"
     START_TS=$(date +%s)
     # A watchdog, because maestro can stop without exiting: when a runScript throws (a 429 from
     # the e2e endpoints does it), its JS engine dies with "API object must not be garbage
@@ -424,13 +447,15 @@ for flow in "${FLOWS_TO_RUN[@]}"; do
         pkill -P $$ -f "maestro" 2>/dev/null || true
     ) &
     WATCHDOG_PID=$!
-    if maestro --device "${SERIAL}" test --env APP_ID="${APP_ID}" --env MNEMONIC="${MNEMONIC}" \
-            --env SLOW_SYNC=0 --test-output-dir "${OUT_DIR}" \
-            "${FLOW_PATH}" 2>&1 | tee "${FLOW_LOG}"; then
-        kill "${WATCHDOG_PID}" 2>/dev/null || true
+    maestro --device "${SERIAL}" test --env APP_ID="${APP_ID}" --env MNEMONIC="${MNEMONIC}" \
+        --env SLOW_SYNC=0 --test-output-dir "${OUT_DIR}" \
+        "${FLOW_PATH}" 2>&1 | tee "${FLOW_LOG}"
+    maestro_status=$?
+    kill "${WATCHDOG_PID}" 2>/dev/null || true
+    copy_screenshots "${OUT_DIR}"
+    if [[ ${maestro_status} -eq 0 ]]; then
         RESULTS+=("${GREEN}✔${RESET} ${flow} ($(($(date +%s) - START_TS))s)")
     else
-        kill "${WATCHDOG_PID}" 2>/dev/null || true
         RESULTS+=("${RED}✖${RESET} ${flow} ($(($(date +%s) - START_TS))s) — log: ${FLOW_LOG}")
         FAILURES=$((FAILURES + 1))
         fail "${flow} failed — full output: ${FLOW_LOG}"

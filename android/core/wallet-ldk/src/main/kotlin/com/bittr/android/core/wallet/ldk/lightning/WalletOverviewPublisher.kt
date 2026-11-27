@@ -71,11 +71,21 @@ class WalletOverviewPublisher(
         _overview.value = WalletOverview(hasNode = hasNode)
     }
 
+    /**
+     * The node came up, or went down. Up is `completeSync(.ldk)`: the sync view's "Start lightning
+     * node" ticks here, while "Final calculations" waits for the first reading after the sync.
+     */
+    fun nodeUp(up: Boolean) = synchronized(lock) {
+        _overview.value = _overview.value.copy(nodeStarted = up)
+        beforeResync = beforeResync?.copy(nodeStarted = up)
+    }
+
     fun publish(reading: WalletNodeReading, snapshot: WalletBalanceSnapshot) = synchronized(lock) {
         beforeResync = null
         _overview.value = WalletOverview(
             hasNode = hasNode,
             hasSynced = true,
+            nodeStarted = true,
             satoshisOnchain = snapshot.satoshisOnchain,
             satoshisLightning = snapshot.satoshisLightning,
             pendingClosureSatoshis = snapshot.pendingClosureSatoshis,

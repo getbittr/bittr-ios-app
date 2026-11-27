@@ -3,147 +3,147 @@ package com.bittr.android.core.wallet.ldk.onchain
 import java.io.File
 
 /**
- * Preparing BDK's SQLite store for a wallet start.
+ * BDK's SQLite store: opened as it is, or thrown away and started empty.
  *
- * Port of `Connection.createConnection()` (`BitcoinManager.swift:832–850`) —
- * which is the **app's own extension, not a BDK API**. Worth stating because
- * bdk-android 1.2.0's `Connection` companion offers only `newInMemory()`, so a
- * port that goes looking for `createConnection` finds nothing and has to decide
- * what the path and the lifecycle are. Both are decided here, out of the iOS
- * source, rather than improvised in an adapter no JVM test can reach.
+ * Port of `Connection.open()`, `Connection.recreate()` and
+ * `Connection.walletDatabaseCreationDate` (`BitcoinManager.swift`, PR #99) — the
+ * **app's own extension, not a BDK API**. bdk-android 1.2.0's `Connection` takes
+ * a path and nothing else, so the directory, its lifecycle and the creation date
+ * are decided here, out of the iOS source.
  *
- * ## iOS deletes the whole store on every start. That is ported, deliberately.
+ * ## The store is kept between starts
  *
- * ```swift
- * if FileManager.default.fileExists(atPath: walletDataDirectoryURL.path) {
- *     try FileManager.default.removeItem(at: walletDataDirectoryURL)
- * }
- * ```
+ * iOS used to delete `wallet_data/` on every start, so every launch paid for a
+ * full scan. Since PR #99 it opens the stored database instead, loads the wallet
+ * from it with `Wallet.load`, and only starts empty when the stored data is
+ * corrupt, belongs to another seed or network, or the user pulled to refresh.
+ * [open] and [recreate] are those two paths; `BdkWalletOpener` decides between
+ * them.
  *
- * `createConnection()` is called from `didStartBDK()` (`BDKManager.swift:149`) on
- * every start, so BDK begins every launch with an empty store. Three consequences,
- * and they are the reason this is a named, tested decision rather than a line in
- * an adapter:
+ * Everything in this store is chain data derived from the two BIP84 descriptors.
+ * No key material lives here, so throwing it away costs a scan, not a coin.
  *
- * 1. **A full scan is mandatory after every start, not an optimisation.** With an
- *    empty store BDK knows no UTXOs, so `startFullScan` with `stopGap: 25` is the
- *    only thing that makes the wallet's own coins visible. That is why
- *    `StartLightning.swift:186` full-scans unless `hasBeenScanned`.
- * 2. **It is safe for funds, and that is why it is ported rather than questioned.**
- *    Everything in this store is chain data derived from the two BIP84 descriptors,
- *    and those come from the mnemonic. No key material lives here, nothing in it is
- *    irreplaceable, and BIT-8 rule 1 is untouched. Deleting it costs a scan, not a
- *    coin.
- * 3. **On Android the cost lands far more often than on iOS.** Process death is
- *    routine rather than exceptional, so "full scan per start" becomes "full scan
- *    per process", each one a fresh Electrum/Esplora round trip with a 180-second
- *    watchdog ([ScanCoordinator]) that Doze can push past. A start whose scan fails
- *    presents an empty wallet: balance zero, and a drain preview that throws
- *    `drainProducedNoOutput` rather than offering a wrong number. **It fails
- *    closed**, which is why this is flagged as a cost and a UX question rather
- *    than as a fund risk — but it is the single most likely reason an Android user
- *    sees "no funds" on a wallet that has them, so it belongs in the security
- *    write-up as a known behaviour and not as a surprise.
+ * ## When the database was created
  *
- * The alternative — persisting the store across starts — is a **deviation from
- * iOS behaviour**, and this issue's notes put that decision with the founder, not
- * in this file. It is raised on the issue rather than taken here.
- *
- * ## If that decision ever goes the other way, this delete is not the only line
- *
- * Stated here because this is the file a reader would come to first, and the
- * change looks like a deletion when it is not one. `BdkWalletFactory.open`
- * opens the wallet with bdk-android's *create* constructor, and the binding
- * declares `CreateWithPersistException.DataAlreadyExists` for a store that
- * already holds a changeset — so a store that survives a start makes the *next*
- * start throw. Persisting means construction goes through
- * `Wallet.load(external, internal, connection)` first, falling back to create on
- * `LoadWithPersistException.CouldNotLoad` (the genuinely-empty store).
- *
- * Two consequences worth having written down before anyone starts:
- *
- * - **`load` takes no `Network`.** The persisted changeset carries network and
- *   genesis, and BDK checks them itself — reported as `InvalidChangeSet`, which
- *   carries one flattened message string. A seed change, a network flip and a
- *   corrupt store are the same bucket, indistinguishable without parsing Rust
- *   `Display` text. So a persisted store needs *our* guard, keyed on the BIT-20
- *   [SeedDiscriminator], checked before the store is opened — not BDK's.
- * - **Wallet removal does not currently delete anything.** `removeWallet`
- *   erases the seed, the PIN and the attempt counter from the keystore-backed
- *   store and touches no file; `wipeNodeState` is bound to its no-op default in
- *   `di/WalletModule`, deliberately, so BIT-20 keeps force-close sweep material.
- *   That is harmless only *because* this delete runs. Persist without adding a
- *   removal-time wipe and the previous wallet's whole address and transaction
- *   history outlives its own seed, on disk, with nothing left that can open or
- *   clear it. Not a fund risk — no key material is here — but a privacy one, and
- *   it is a precondition of the change rather than a follow-up to it.
- *
- * Recorded on BIT-131.
+ * iOS distrusts a stored full scan older than the database it describes, and
+ * reads the database file's creation date for that. Android's file systems do
+ * not reliably report a creation date — `BasicFileAttributes.creationTime()`
+ * falls back to the modification time, which every write moves past the scan.
+ * So the creation time is written down instead, in [CREATED_AT_FILE] beside the
+ * database, by [recreate] and by the first [open] that finds none, or finds one it
+ * cannot read. It is not essential: when it cannot be written, the database simply
+ * has no known creation time, and the next launch scans in full.
  *
  * ## Where the store lives, and why the delete is fenced
  *
  * iOS puts it at `Documents/wallet_data/wallet.sqlite`. On Android it is
  * `WalletPaths.bdkDatabaseFile`, inside `WalletPaths.bdkStoreDir` — under
- * `no_backup/wallet/`, so it inherits the BIT-8 rule 4 / BIT-20 rule 5 backup
- * exclusion by path rather than by a manifest entry a later PR can weaken. It is
- * deliberately *not* inside `ldkStateDir`: the BIT-20 quarantine moves that
- * directory, and a quarantine must not drag BDK's cache along.
+ * `no_backup/wallet/`, so it inherits the backup exclusion by path. It is
+ * deliberately *not* inside `ldkStateDir`: a quarantine moves that directory, and
+ * must not drag BDK's store along.
  *
  * **The dedicated directory is load-bearing, not organisational.** iOS's
  * `wallet_data/` holds only `wallet.sqlite`, so deleting it recursively is safe.
- * Until `bdkStoreDir` was split out, Android's database sat directly in
- * `walletDir` beside `seed.bin`, `ldk_state/` and `foreign_ldk_state/` — where
- * this same ported delete would have destroyed the seed blob and every channel
- * state on the device, on a routine start. [prepare] therefore refuses to delete
- * a directory that is not named [EXPECTED_DIR_NAME], so the layout cannot regress
- * into that shape without failing loudly. A comment would not have stopped it; a
- * precondition does.
+ * Android's `walletDir` also holds `seed.bin`, `ldk_state/` and
+ * `foreign_ldk_state/`, where the same recursive delete would destroy the seed
+ * blob and every channel state on the device. [recreate] and [delete] therefore
+ * refuse a directory that is not named [EXPECTED_DIR_NAME].
  *
- * Proved by `BdkStoreTest`, which asserts the siblings survive and that a
- * mis-sited database is rejected rather than honoured.
+ * Proved by `BdkStoreTest`.
  */
 object BdkStore {
 
     /**
-     * Clear and recreate the directory holding BDK's SQLite file, returning the
-     * path to open a `Connection` at.
-     *
-     * Mirrors `createConnection()`'s order exactly: delete the directory if it
-     * exists, recreate it, then hand back the file path inside it.
+     * `Connection.open()`: make sure the store's directory exists and hand back the
+     * database path, leaving whatever is stored there in place.
      *
      * @param databaseFile `WalletPaths.bdkDatabaseFile`.
-     * @return the same file, with its parent directory guaranteed present and empty.
-     * @throws java.io.IOException if the directory cannot be cleared or created —
-     *   a failure, not something to proceed past. iOS's `try` propagates and
-     *   `didStartBDK` returns false (`BDKManager.swift:147–152`); the same
-     *   distinction BIT-20 rule 3 draws for the Keystore applies here.
+     * @return the same file, with its parent directory guaranteed present.
+     * @throws java.io.IOException if the directory cannot be created.
      */
-    fun prepare(databaseFile: File): File {
+    fun open(databaseFile: File): File {
+        val directory = storeDirectory(databaseFile)
+        if (!directory.mkdirs() && !directory.isDirectory) {
+            throw java.io.IOException("Could not create BDK store directory: $directory")
+        }
+        // A store whose creation time is missing or unreadable counts as created now.
+        // Any full scan recorded before this moment is then distrusted, as on iOS.
+        val createdAt = File(directory, CREATED_AT_FILE)
+        if (readCreatedAt(createdAt) == null) writeCreatedAt(createdAt)
+        return databaseFile
+    }
+
+    /**
+     * `Connection.recreate()`: throw the stored wallet away and open an empty
+     * database in its place.
+     *
+     * @throws java.io.IOException if the directory cannot be cleared or created.
+     */
+    fun recreate(databaseFile: File): File {
+        delete(databaseFile)
+        return open(databaseFile)
+    }
+
+    /**
+     * Delete the store's directory and everything in it. Used by [recreate], and by
+     * wallet removal, so the removed wallet's history doesn't outlive its seed —
+     * iOS deletes it with the rest of `Documents` (`deleteDocuments()`).
+     *
+     * @throws java.io.IOException if the directory cannot be deleted.
+     */
+    fun delete(databaseFile: File) {
+        val directory = storeDirectory(databaseFile)
+        // `deleteRecursively` follows a symlinked directory, so a link here could reach
+        // anything the app can write. Nothing in the app creates one.
+        require(!java.nio.file.Files.isSymbolicLink(directory.toPath())) {
+            "Refusing to delete '$directory': it is a symbolic link"
+        }
+        if (directory.exists() && !directory.deleteRecursively()) {
+            throw java.io.IOException("Could not clear BDK store directory: $directory")
+        }
+    }
+
+    /**
+     * `Connection.walletDatabaseCreationDate`, in whole seconds since the epoch.
+     *
+     * Null when there is no database, or no creation time was written down for it.
+     */
+    fun creationEpochSeconds(databaseFile: File): Long? {
+        if (!databaseFile.exists()) return null
+        return readCreatedAt(File(databaseFile.parentFile ?: return null, CREATED_AT_FILE))
+    }
+
+    private fun readCreatedAt(file: File): Long? =
+        runCatching { file.readText().trim().toLong() }.getOrNull()
+
+    /** Written to a temporary file and renamed into place, so it is never read half-written. */
+    private fun writeCreatedAt(file: File) {
+        val temporary = File(file.parentFile, "$CREATED_AT_FILE.tmp")
+        val written = runCatching {
+            temporary.writeText((System.currentTimeMillis() / 1000).toString())
+            temporary.renameTo(file)
+        }.getOrDefault(false)
+        if (!written) temporary.delete()
+    }
+
+    private fun storeDirectory(databaseFile: File): File {
         val directory = databaseFile.parentFile
             ?: throw java.io.IOException("BDK database path has no parent directory: $databaseFile")
 
-        // The fence. This function recursively deletes `directory`, so it must be
-        // BDK's own directory and nothing else — see the class comment for what
-        // sat next to the database before `bdkStoreDir` existed.
+        // The fence. [delete] removes this directory recursively, so it must be
+        // BDK's own directory and nothing else — see the class comment.
         require(directory.name == EXPECTED_DIR_NAME) {
-            "Refusing to clear '${directory.name}': BdkStore.prepare deletes this " +
+            "Refusing to use '${directory.name}': BdkStore deletes this " +
                 "directory recursively and will only do so for a directory named " +
                 "'$EXPECTED_DIR_NAME'. The BDK database must live in its own " +
                 "directory (WalletPaths.bdkStoreDir), never beside the seed blob " +
                 "or the LDK state directory. Got: $databaseFile"
         }
-
-        if (directory.exists() && !directory.deleteRecursively()) {
-            throw java.io.IOException("Could not clear BDK store directory: $directory")
-        }
-        if (!directory.mkdirs() && !directory.isDirectory) {
-            throw java.io.IOException("Could not create BDK store directory: $directory")
-        }
-        return databaseFile
+        return directory
     }
 
     /**
-     * The only directory name [prepare] will clear.
+     * The only directory name this object will use, and so the only one it deletes.
      *
      * Deliberately duplicated from `WalletPaths.BDK_STORE_DIR` rather than
      * referenced: `state/` may not depend on `onchain/` or the reverse, and a
@@ -152,4 +152,7 @@ object BdkStore {
      * cannot drift.
      */
     const val EXPECTED_DIR_NAME = "bdk_store"
+
+    /** When the database was created, in whole seconds since the epoch. */
+    const val CREATED_AT_FILE = "created_at"
 }

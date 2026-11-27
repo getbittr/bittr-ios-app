@@ -82,9 +82,15 @@ class ReceiveController(
     val state: StateFlow<ReceiveUiState> = _state.asStateFlow()
 
     private var loadJob: Job? = null
+    private var started = false
 
-    /** `viewDidLoad`: open on the default type. */
+    /**
+     * `viewDidLoad`: open on the default type. Once: the controller outlives the screen's
+     * composition, which runs this again when the app comes back to it.
+     */
     fun start() {
+        if (started) return
+        started = true
         show(ReceiveType.default(source.lightningAvailable(), source.lightningAddress()))
     }
 
@@ -226,12 +232,19 @@ class ReceiveController(
         ),
     )
 
-    fun onAmountChange(text: String) = _state.update { it.copy(amountText = text) }
+    /**
+     * Spaces go; anything else stays — a separator in satoshis, which a paste or a hardware
+     * keyboard can bring, a `-` or a second separator — for Done to refuse with an explanation.
+     */
+    fun onAmountChange(text: String) = _state.update { it.copy(amountText = text.filterNot(Char::isWhitespace)) }
 
     fun onDescriptionChange(text: String) = _state.update { it.copy(descriptionText = text) }
 
-    /** `doneButtonTapped`: regenerate with what was entered. */
-    fun onDone() = show(_state.value.type)
+    /** `doneButtonTapped`: regenerate with what was entered — unless it is not an amount. */
+    fun onDone() {
+        if (!isWellFormedAmount(_state.value.amountText, _state.value.currency)) return raise(okayAlert(ReceiveStrings.OOPS, ReceiveStrings.ENTER_VALID_AMOUNT))
+        show(_state.value.type)
+    }
 
     /** A button on the current alert, by position. */
     fun onAlertButton(position: Int) {

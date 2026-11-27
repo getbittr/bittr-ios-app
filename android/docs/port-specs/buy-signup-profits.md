@@ -35,8 +35,8 @@ reuses them as pages 9–13.
   field "Enter IBAN" `…ibanTextField` (+`…ibanButton`, autofocus), `whatsyouremail` `…topLabelThree`, email
   `…emailTextField`/`…emailButton`, Verify `…nextButton`, "I don't have an IBAN" `…skipButton`, article card.
   Enabled when IBAN non-blank and email valid; Return in email submits. Disabled tap → `oops` / `transfer1vc`.
-  Enabled: if no `initiativeConfirmedAt` → sheet `alert.exclusiveInitiative` (`initiativetitle`/`initiativemessage`,
-  `initiativeconfirm` `signup.bittr.initiative.confirmButton`, Cancel `…cancelButton`); Confirm stores ISO-8601 UTC
+  Enabled: if no `initiativeConfirmedAt` → `showAlert` (`initiativetitle`/`initiativemessage`, Cancel
+  `alert.button.0`, `initiativeconfirm` `alert.button.1` stacked above it); Confirm stores ISO-8601 UTC
   (seconds). `gatherIbanDetails`: trim email; trim IBAN and strip spaces; update/create entity (UUID id, `order =
   count`); POST `/verify/email` → success page 2; `success:false` + `message` → `oops` + message; transport →
   `bittrsignupfail4`. Skip → `alert.onlyIban` (`weresorry`/`onlyiban`, [0 "Go to wallet", 1 "Cancel"]).
@@ -155,16 +155,17 @@ results of your savings so far."; `totalinvestment` "Total investment"; `current
 
 All present in `TestIDs.kt`: `Buy.*` (`headerLabel, downButton, continueButton, yourCode, yourEmail, yourIban,
 paymentModeSwitch, paymentModeButton`), `Profits.*`, `Home.buyButton/profitButton/profitLabel`,
-`Signup.Create.Ready.*`, `Signup.Bittr.Initiative.*`, `Signup.Bittr.Start.*`, `Signup.Bittr.Otp.*`,
-`Signup.Bittr.Success.*`, `Signup.Bittr.TransferInfo.*`, `Alert.{copied, exclusiveInitiative, lightningExplanation,
+`Signup.Create.Ready.*`, `Signup.Bittr.Start.*`, `Signup.Bittr.Otp.*`,
+`Signup.Bittr.Success.*`, `Signup.Bittr.TransferInfo.*`, `Alert.{copied, lightningExplanation,
 onlyIban, receiveNotificationsPrompt, receiveNotificationsDenied, resendCode}`.
 
 ## 6. Flows
 
 - `buy_signup.yaml`: unlock, `home.buyButton`, `buy.headerLabel`, `buy.continueButton`,
   `signup.create.ready.continueButton`, IBAN `NL27ABNA0451135725` (field focused), `…emailButton`, email
-  `e2ebittr@getbittr.com`, `pressKey: Enter`, `initiative.confirmButton`, code `123456` (auto-submit), optional
-  `alert.button.0` + "Allow", `success.topLabelOne` (90 s), next, `transferInfo.amountTitle`, scroll to next, tap,
+  `e2ebittr@getbittr.com`, `…topLabelOne` (keyboard down), Verify `…nextButton`, `alert.button.1` (initiative), code
+  `123456` (auto-submit), optional `alert.button.0` + "Allow", `success.topLabelOne` (90 s), next,
+  `transferInfo.amountTitle`, scroll to next, tap,
   `alert.button.0`, `buy.yourCode` (20 s), `buy.yourEmail`, `buy.yourIban`, `buy.downButton`, `home.headerLabel`.
 - `buy_signup_no_notifications.yaml` (notifications denied): skip → `alert.onlyIban` Go to wallet; short IBAN →
   initiative cancel/confirm → invalid IBAN alert; bad email alert; resend + cooldown `alert.resendCode` → Change

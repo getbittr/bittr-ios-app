@@ -89,7 +89,7 @@ class BuyControllerTest {
     private fun TestScope.toCodePage(c: BuyController) {
         c.fillStart()
         c.onVerify()
-        c.onInitiativeConfirm()
+        c.onAlertAction(BuyAction.ConfirmInitiative)
         runCurrent()
         assertEquals(SignupPage.Otp, c.state.value.signup!!.page)
     }
@@ -117,8 +117,13 @@ class BuyControllerTest {
         val c = controller(source)
         c.fillStart()
         c.onVerify()
-        assertTrue(c.state.value.signup!!.showInitiative)
-        c.onInitiativeConfirm()
+        val initiative = c.state.value.alert!!
+        assertEquals(BuyStrings.INITIATIVE_TITLE, initiative.title)
+        assertEquals(
+            listOf(BuyAction.Dismiss, BuyAction.ConfirmInitiative),
+            initiative.buttons.map { it.action },
+        )
+        c.onAlertAction(BuyAction.ConfirmInitiative)
         runCurrent()
         assertEquals(SignupPage.Otp, c.state.value.signup!!.page)
         assertEquals("NL27ABNA0451135725", source.store.value.single().yourIbanNumber)
@@ -203,15 +208,33 @@ class BuyControllerTest {
 
         c.onEmailChange("e2ebittr@getbittr.com")
         c.onVerify()
-        c.onInitiativeConfirm()
+        c.onAlertAction(BuyAction.ConfirmInitiative)
         runCurrent()
         assertEquals("bad iban", c.state.value.alert!!.message)
         c.onAlertAction(BuyAction.Dismiss)
 
         c.onVerify()
-        assertFalse(c.state.value.signup!!.showInitiative)
+        assertNull(c.state.value.alert)
         runCurrent()
         assertEquals(2, source.verifyCalls)
+    }
+
+    @Test
+    fun `cancelling the initiative sends and records nothing, and Verify asks again`() = runTest {
+        val source = FakeSource()
+        val c = controller(source)
+        c.fillStart()
+        c.onVerify()
+        assertEquals(BuyStrings.INITIATIVE_TITLE, c.state.value.alert!!.title)
+        c.onAlertAction(BuyAction.Dismiss)
+        runCurrent()
+        assertNull(c.state.value.alert)
+        assertEquals(SignupPage.Start, c.state.value.signup!!.page)
+        assertEquals(0, source.verifyCalls)
+        assertTrue(source.store.value.isEmpty())
+
+        c.onVerify()
+        assertEquals(BuyStrings.INITIATIVE_TITLE, c.state.value.alert!!.title)
     }
 
     @Test

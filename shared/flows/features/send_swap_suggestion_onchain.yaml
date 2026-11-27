@@ -168,8 +168,7 @@ appId: ${APP_ID}
 - tapOn:
     id: "send.amountTextField"
 - inputText: ${output.sendAmount}
-- tapOn:
-    text: "Done"
+- runFlow: ../helpers/amount_done.yaml
 
 # Next → the onchain balance is below the amount but the Lightning channel covers
 # it, so SendViewController shows the "insufficient funds / Swap and pay" alert

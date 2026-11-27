@@ -7,6 +7,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.bittr.android.core.wallet.FiatPrice
 import com.bittr.android.core.wallet.FiatPriceSource
+import com.bittr.android.core.wallet.BittrPurchaseSource
+import com.bittr.android.core.wallet.WalletActivity
 import com.bittr.android.core.wallet.HomeCache
 import com.bittr.android.core.wallet.WalletOverview
 import com.bittr.android.core.wallet.WalletOverviewSource
@@ -42,6 +44,8 @@ import kotlinx.coroutines.launch
 data class HomeUiState(
     val walletState: WalletState = WalletState.Uninitialized,
     val walletHasSynced: Boolean = false,
+    /** The node is up (`completeSync(.ldk)`), ahead of the sync and the first reading. */
+    val nodeStarted: Boolean = false,
     val showSyncSpinner: Boolean = false,
     val balanceSats: Long? = null,
     /** `conversionLabel` — the balance in the display currency, e.g. "CHF 190". */
@@ -73,6 +77,8 @@ class HomeViewModel @Inject constructor(
     private val refresher: WalletRefresher = WalletRefresher.None,
     private val internet: InternetConnection = InternetConnection.Always,
     private val cache: HomeCache = HomeCache.None,
+    private val purchases: BittrPurchaseSource = BittrPurchaseSource.None,
+    // Last, so callers can pass it as a trailing lambda.
     prices: FiatPriceSource,
 ) : ViewModel() {
 
@@ -94,7 +100,29 @@ class HomeViewModel @Inject constructor(
         cache.savePrice(live)
     }
 
+    /**
+     * One bitcoin in each bittr purchase's own currency (`EUR` / `CHF`), for the rows' gain: iOS values
+     * a purchase in its currency even when Home shows another. The cached rate stands in until the
+     * live one lands.
+     */
+    private val purchasePrices = MutableStateFlow<Map<String, Double>>(emptyMap())
+
     init {
+        viewModelScope.launch {
+            merge(
+                purchases.purchases.map { bought -> bought.values.mapNotNull { it.currency }.toSet() }.distinctUntilChanged(),
+                price.map { purchases.purchases.value.values.mapNotNull { it.currency }.toSet() },
+            ).collect { codes ->
+                // Known rates stay until the live ones land, so a tick never steps back to the cache.
+                val known = codes.mapNotNull { code ->
+                    (purchasePrices.value[code] ?: cache.cached.value?.priceForCode(code)?.pricePerBitcoin)?.let { code to it }
+                }.toMap()
+                purchasePrices.value = known
+                purchasePrices.value = codes.mapNotNull { code ->
+                    (purchases.pricePerBitcoin(code) ?: known[code])?.let { code to it }
+                }.toMap()
+            }
+        }
         // iOS fetches conversion rates first thing at start (`SyncType.conversion`), before the
         // wallet has synced; the sync overlay's first row reports it.
         viewModelScope.launch { prices.current()?.let(::applyPrice) }
@@ -116,8 +144,8 @@ class HomeViewModel @Inject constructor(
         overview.overview,
         price,
         refresher.isRefreshing,
-        cache.cached,
-    ) { state, wallet, price, refreshing, cached ->
+        combine(cache.cached, purchases.purchases, purchasePrices) { cached, bought, rates -> Triple(cached, bought, rates) },
+    ) { state, wallet, price, refreshing, (cached, bought, rates) ->
         if (state == WalletState.Uninitialized) lastSynced = null
         if (wallet.hasSynced) lastSynced = wallet
         // A pull-to-refresh keeps the figures it started from on screen until the new reading
@@ -128,6 +156,12 @@ class HomeViewModel @Inject constructor(
         val fromCache = cached?.takeIf {
             beforeRefresh == null && it.hasReading && !wallet.hasSynced && state != WalletState.Uninitialized
         }
+        // `showBittrStack`: a bittr purchase's row carries its gain since it was bought.
+        val gainFor = { activity: WalletActivity ->
+            bought[activity.id]?.let { purchase ->
+                purchaseGainPercent(activity.netSats, purchase.fiatNetAmount, purchase.currency?.let { rates[it] })
+            }
+        }
         val balance = when {
             wallet.hasSynced -> wallet.totalSatoshis
             beforeRefresh != null -> beforeRefresh.totalSatoshis
@@ -137,13 +171,16 @@ class HomeViewModel @Inject constructor(
         HomeUiState(
             walletState = state,
             walletHasSynced = wallet.hasSynced,
+            nodeStarted = wallet.nodeStarted,
             showSyncSpinner = wallet.hasNode && !wallet.hasSynced,
             balanceSats = balance,
-            balanceFiat = balance?.let { balanceFiat(it, price) },
+            // `updateConversionLabel`: the chosen currency and the balance in it, "€ 0" before a
+            // reading or a rate — iOS never leaves the line out.
+            balanceFiat = balanceFiat(balance ?: 0L, price) ?: "${prices.currentSymbol() ?: DEFAULT_SYMBOL} 0",
             history = when {
-                wallet.hasSynced -> historyRows(wallet.transactions, price, wallet.currentHeight)
-                beforeRefresh != null -> historyRows(beforeRefresh.transactions, price, beforeRefresh.currentHeight)
-                fromCache != null -> historyRows(fromCache.transactions, price, fromCache.currentHeight)
+                wallet.hasSynced -> historyRows(wallet.transactions, price, wallet.currentHeight, gainFor = gainFor)
+                beforeRefresh != null -> historyRows(beforeRefresh.transactions, price, beforeRefresh.currentHeight, gainFor = gainFor)
+                fromCache != null -> historyRows(fromCache.transactions, price, fromCache.currentHeight, gainFor = gainFor)
                 else -> emptyList()
             },
             conversionFetched = price != null,
@@ -190,3 +227,9 @@ class HomeViewModel @Inject constructor(
         const val STOP_TIMEOUT_MS = 5_000L
     }
 }
+
+/**
+ * The display currency when the source cannot say which one the user chose. CHF: this app serves
+ * Switzerland only, and `CurrencyDefaultGuardTest` holds every path to it.
+ */
+private const val DEFAULT_SYMBOL = "CHF"

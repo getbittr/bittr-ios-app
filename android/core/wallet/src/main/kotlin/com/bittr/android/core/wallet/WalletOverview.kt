@@ -14,6 +14,8 @@ import kotlinx.coroutines.flow.StateFlow
  * @property hasSynced iOS's `CoreViewController.walletHasSynced`. False until the first
  *   balance reading after the on-chain scan, and false for ever in a build with no node.
  *   Home gates Send, Receive and the balance card on it.
+ * @property nodeStarted the node is up — iOS's `completeSync(.ldk)`, before the wallets sync and
+ *   the first reading lands. True with every reading; false again when the node stops.
  * @property hasNode this build runs a node, so there is a sync to wait for. Home shows
  *   `home.headerSpinner` only while `hasNode && !hasSynced` — a build with no node has
  *   nothing to spin for, and a spinner that never stops would hold every flow that waits
@@ -22,6 +24,7 @@ import kotlinx.coroutines.flow.StateFlow
 data class WalletOverview(
     val hasNode: Boolean = false,
     val hasSynced: Boolean = false,
+    val nodeStarted: Boolean = false,
     val satoshisOnchain: Long = 0L,
     val satoshisLightning: Long = 0L,
     val pendingClosureSatoshis: Long = 0L,

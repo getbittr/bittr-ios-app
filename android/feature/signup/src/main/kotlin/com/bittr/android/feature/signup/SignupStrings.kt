@@ -75,8 +75,11 @@ object SignupStrings {
             "your recovery phrase to ensure you have the correct words."
     const val CANCEL = "Cancel"
 
-    /** The forgot-PIN screen's removal button (`Main.storyboard`, "Remove Wallet Stack"). */
-    const val REMOVE_WALLET_FROM_DEVICE = "Remove wallet from device"
+    /**
+     * The forgot-PIN screen's removal button — `removewalletfromdevice`, which reads "Remove
+     * wallet"; the storyboard's "Remove wallet from device" is replaced at `setWords`.
+     */
+    const val REMOVE_WALLET = "Remove wallet"
 
     // Signup5 / Signup6 — the PIN.
     const val SET_A_PIN = "Set a PIN for secure access to your wallet"

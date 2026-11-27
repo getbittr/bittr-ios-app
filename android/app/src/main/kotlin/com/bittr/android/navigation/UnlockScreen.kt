@@ -1,5 +1,7 @@
 package com.bittr.android.navigation
 
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.togetherWith
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -8,6 +10,9 @@ import androidx.compose.ui.Modifier
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.bittr.android.core.common.TestID
 import com.bittr.android.core.designsystem.BittrAlertDialog
+import com.bittr.android.core.designsystem.pageSlide
+import com.bittr.android.core.designsystem.stackSlideIn
+import com.bittr.android.core.designsystem.stackSlideOut
 import com.bittr.android.feature.signup.PinScreen
 import com.bittr.android.feature.signup.RestoreScreen
 import com.bittr.android.feature.signup.SignupStrings
@@ -65,7 +70,38 @@ fun UnlockScreen(
         )
     }
 
-    when (state.step) {
+    // `startPinReset` → `showSignup` and Cancel → `showPin`: the PIN and the restore page move as
+    // iOS's stacked containers do, vertically — the PIN rising away with Restore coming up from
+    // below, and back down again. Within the reset, the signup strip's sideways page slide.
+    AnimatedContent(
+        targetState = state.step,
+        transitionSpec = {
+            val from = initialState
+            val to = targetState
+            if (from == UnlockStep.Pin || to == UnlockStep.Pin) {
+                val fromLevel = if (from == UnlockStep.Pin) 0 else 1
+                val toLevel = if (to == UnlockStep.Pin) 0 else 1
+                stackSlideIn(fromLevel, toLevel) togetherWith stackSlideOut(fromLevel, toLevel)
+            } else {
+                pageSlide(from.ordinal, to.ordinal)
+            }
+        },
+        label = "unlockSteps",
+        modifier = modifier,
+    ) { step ->
+        UnlockStepContent(step, state, viewModel, onUnlocked, onOpenArticle)
+    }
+}
+
+@Composable
+private fun UnlockStepContent(
+    step: UnlockStep,
+    state: UnlockUiState,
+    viewModel: UnlockViewModel,
+    onUnlocked: () -> Unit,
+    onOpenArticle: ((String) -> Unit)?,
+) {
+    when (step) {
         UnlockStep.Pin -> PinScreen(
             title = UnlockStrings.ENTER_YOUR_PIN,
             titleTestTag = TestID.Unlock.topLabel,
@@ -75,10 +111,10 @@ fun UnlockScreen(
             onBack = viewModel::forgotPin,
             backLabel = UnlockStrings.FORGOT_PIN,
             // `clearPinField()`, which iOS calls on every confirm that does not
-            // unlock. This is the one embedding where the screen stays put after a
+            // unlock — and only then, so a PIN that unlocks stays on the pad as it slides
+            // away. This is the one embedding where the screen stays put after a
             // rejection, so it is the one that has to empty the cells.
-            clearOnSubmit = true,
-            modifier = modifier,
+            clearKey = state.rejections,
         )
 
         UnlockStep.ResetPhrase -> RestoreScreen(
@@ -90,7 +126,6 @@ fun UnlockScreen(
             // "How to recover my wallet?", as on iOS — the one route to recovery help from the
             // screen a user who forgot their PIN is stuck on (review, `forgot_pin/03`).
             onOpenArticle = onOpenArticle,
-            modifier = modifier,
         )
 
         // Restore2 / Restore3, and they carry the `signup.restore.pin*` ids because on
@@ -102,7 +137,6 @@ fun UnlockScreen(
             confirmLabel = SignupStrings.NEXT,
             titleTestTag = TestID.Signup.Restore.PinSet.topLabel,
             onSubmit = viewModel::submitFirstPin,
-            modifier = modifier,
         )
 
         UnlockStep.ResetPinConfirm -> PinScreen(
@@ -110,7 +144,6 @@ fun UnlockScreen(
             titleTestTag = TestID.Signup.Restore.PinConfirm.topLabel,
             onSubmit = { pin -> viewModel.submitConfirmationPin(pin, onUnlocked) },
             onBack = viewModel::backToPinSet,
-            modifier = modifier,
         )
     }
 }

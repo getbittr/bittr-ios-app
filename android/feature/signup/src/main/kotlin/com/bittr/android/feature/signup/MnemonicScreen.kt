@@ -1,14 +1,18 @@
 package com.bittr.android.feature.signup
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -19,38 +23,39 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.bittr.android.core.common.TestID
+import com.bittr.android.core.designsystem.ScreenshotProtection
 import com.bittr.android.core.designsystem.BittrCanvas
-import com.bittr.android.core.designsystem.BittrCanvasShapes
-import com.bittr.android.core.designsystem.BittrNumeral
+import com.bittr.android.core.designsystem.BittrCard
 import com.bittr.android.core.designsystem.BittrPrimaryButton
-import com.bittr.android.core.designsystem.BittrStepHeading
 import com.bittr.android.core.designsystem.BittrTheme
 import com.bittr.android.core.designsystem.CanvasSpacer
+import com.bittr.android.core.designsystem.appBarContentPadding
 import com.bittr.android.core.wallet.Mnemonic
 import com.bittr.android.feature.academy.ArticleCard
 import com.bittr.android.feature.academy.BittrArticles
 
 /**
- * Android counterpart of iOS `Signup3ViewController` — the twelve words. Artboard 04.
+ * Android counterpart of iOS `Signup3ViewController` — the twelve words.
+ *
+ * Laid out as the storyboard's scene is: the two labels 40 from the screen edges, then
+ * `mnemonicView` — the canvas-coloured card with 13 pt corners and `setShadow()`, fixed at 250
+ * wide — holding the twelve words, then Next and the article card. Too tall for a phone, so it
+ * scrolls, as iOS's does once `viewDidAppear` finds the centre view taller than the screen.
  *
  * The word rows carry `signup.create.mnemonic.word1…word12`, which is what the
  * Maestro flow reads them by; `wordAt` keeps the 1-based numbering iOS uses rather
  * than letting the list index leak into a test id.
  *
- * **The index number is not brand yellow**, here or in the mock's palette. iOS draws
- * it in `yellow` on the white word card, which measures 1.7 : 1 — invisible to a good
- * fraction of users and a fail under WCAG 1.4.3 for what is, in a 12-word list,
- * load-bearing information. See [BittrNumeral].
+ * **The index number is brand yellow**, as iOS draws it in `yellow` on the white word row. That
+ * measures 1.7 : 1, the pairing DEV-40 darkened for `DetailRow` labels; matched to iOS on this
+ * screen at Tom's request, as Restore's numbers are.
  *
  * **No "Copy to clipboard".** The mock offers it under Next. Putting a seed phrase on
  * the system clipboard hands it to every app with a foreground read, and iOS does not
  * do it — `becareful`/`noscreenshot` is the copy iOS shows *instead*. If it is wanted
  * it is a decision with a security review attached, not a button this screen adds.
- *
- * The list is 12 rows of 36 dp and fits an unscrolled 891 dp screen; the scroll is
- * there for the large end of dynamic type, where it is the difference between reading
- * word 12 and not having word 12.
  */
 @Composable
 fun MnemonicScreen(
@@ -60,80 +65,104 @@ fun MnemonicScreen(
     modifier: Modifier = Modifier,
     onOpenArticle: ((String) -> Unit)? = null,
 ) {
-    BittrCanvas(modifier = modifier, onBack = onBack) {
+    // The recovery phrase is on screen: out of screenshots, recordings and Recents.
+    ScreenshotProtection()
+    BackHandler(enabled = onBack != null) { onBack?.invoke() }
+    // No arrow in the app bar, as on iOS; the system back gesture goes back when there is a back.
+    // The words scroll up under the translucent top bar, as they do on iOS.
+    BittrCanvas(modifier = modifier, scrollsUnderAppBar = true) {
+        // The storyboard's centre view: 30 above the first label, 40 below the article card.
         Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
             modifier = Modifier
                 .weight(1f)
+                .fillMaxWidth()
                 .verticalScroll(rememberScrollState())
-                .padding(horizontal = CanvasGutter),
+                .appBarContentPadding()
+                .padding(top = 30.dp, bottom = 40.dp),
         ) {
-            BittrStepHeading(
+            Text(
                 text = SignupStrings.RECOVERY_PHRASE,
+                // Gilroy Bold 16, centred, 40 from the screen edges.
+                style = MaterialTheme.typography.titleMedium.copy(fontSize = 16.sp, lineHeight = 20.sp),
+                textAlign = TextAlign.Center,
                 modifier = Modifier
-                    .fillMaxWidth()
+                    .padding(horizontal = 40.dp)
                     .testTag(TestID.Signup.Create.Mnemonic.topLabelOne),
             )
-            CanvasSpacer(8.dp)
+            CanvasSpacer(15.dp)
             Text(
                 text = SignupStrings.RECOVERY_PHRASE_2,
-                style = MaterialTheme.typography.bodyMedium,
-                color = BittrTheme.colors.mutedOnCanvas,
+                // Gilroy Regular 16, `blackorwhite` like the label above.
+                style = MaterialTheme.typography.bodyLarge.copy(fontSize = 16.sp, lineHeight = 20.sp),
                 textAlign = TextAlign.Center,
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier.padding(horizontal = 40.dp),
             )
-            CanvasSpacer(12.dp)
+            CanvasSpacer(30.dp)
 
-            Column(
-                verticalArrangement = Arrangement.spacedBy(4.dp),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(BittrTheme.colors.cardWash, BittrCanvasShapes.card)
-                    .padding(8.dp)
-                    .testTag(TestID.Signup.Create.Mnemonic.mnemonicStack),
+            // `mnemonicView`: 250 wide, `yelloworblue1`, 13 pt corners and `setShadow()` — BittrCard's
+            // own look, as Signup1's `centerCard` is. The stack inside is 10 from its top and bottom.
+            BittrCard(
+                contentPadding = PaddingValues(vertical = 10.dp),
+                modifier = Modifier.width(MnemonicCardWidth),
             ) {
-                mnemonic.words.forEachIndexed { index, word ->
-                    WordRow(position = index, word = word)
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(10.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .testTag(TestID.Signup.Create.Mnemonic.mnemonicStack),
+                ) {
+                    mnemonic.words.forEachIndexed { index, word ->
+                        WordRow(position = index, word = word)
+                    }
                 }
             }
 
-            CanvasSpacer(12.dp)
+            CanvasSpacer(30.dp)
             BittrPrimaryButton(
                 text = SignupStrings.NEXT,
                 onClick = onNext,
-                compact = true,
                 modifier = Modifier.testTag(TestID.Signup.Create.Mnemonic.nextButton),
             )
-            CanvasSpacer(12.dp)
             if (onOpenArticle != null) {
+                CanvasSpacer(50.dp)
                 // Signup3's `pageArticle1Slug = "wallet-recovery"`.
                 ArticleCard(slug = BittrArticles.WALLET_RECOVERY, onOpen = onOpenArticle)
-                CanvasSpacer(12.dp)
             }
         }
     }
 }
 
+/** The storyboard pins `mnemonicView` at 250 pt wide. */
+private val MnemonicCardWidth = 250.dp
+
 /**
- * One word: the index hard left, the word optically centred in the row.
- *
- * The word is centred against the *row*, not against the space left of the index,
- * which is why it is a [Box] overlay rather than a weighted [Row] cell — twelve words
- * of different lengths have to line up as a column or the phrase is hard to read back.
+ * One word, as `setMnemonic` builds it: a `whiteorblue3` row 40 tall with 8 pt corners, 10 in
+ * from the card's sides and 50 below the one above. The number 20 in, the word centred on the
+ * row — so twelve words of different lengths line up as a column — both in Gilroy Bold 16 and
+ * 1.5 pt below the row's centre.
  */
 @Composable
 private fun WordRow(position: Int, word: String) {
+    val labelStyle = MaterialTheme.typography.labelLarge.copy(fontSize = 16.sp, lineHeight = 16.sp)
     Box(
         contentAlignment = Alignment.CenterStart,
         modifier = Modifier
+            .padding(horizontal = 10.dp)
             .fillMaxWidth()
-            .heightIn(min = 36.dp)
-            .background(MaterialTheme.colorScheme.surfaceContainer, BittrCanvasShapes.wordRow)
-            .padding(horizontal = 16.dp, vertical = 4.dp),
+            .height(40.dp)
+            .background(MaterialTheme.colorScheme.surfaceContainerHigh, WordRowShape)
+            .offset(y = 1.5.dp),
     ) {
-        BittrNumeral(text = "${position + 1}", width = 20.dp)
+        Text(
+            text = "${position + 1}",
+            style = labelStyle,
+            color = BittrTheme.colors.brandFixed,
+            modifier = Modifier.padding(start = 20.dp),
+        )
         Text(
             text = word,
-            style = MaterialTheme.typography.labelLarge,
+            style = labelStyle,
             color = MaterialTheme.colorScheme.onSurface,
             textAlign = TextAlign.Center,
             modifier = Modifier
@@ -142,6 +171,8 @@ private fun WordRow(position: Int, word: String) {
         )
     }
 }
+
+private val WordRowShape = RoundedCornerShape(8.dp)
 
 @Preview(showBackground = true, widthDp = 412, heightDp = 892)
 @Composable

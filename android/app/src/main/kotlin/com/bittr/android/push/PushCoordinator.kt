@@ -60,6 +60,9 @@ data class PushUiState(
  * (`lowerPinView`), and the first finished sync re-dispatches it (`finalizeSync`), which
  * then skips the "you're receiving a payment" alert and goes straight to the payout.
  * Information, expired and unknown pushes open their card at once, locked or not.
+ *
+ * The loading card is only drawn while unlocked, so it never blocks the PIN pad, and one
+ * still loading at unlock comes back.
  */
 class PushCoordinator(
     private val scope: CoroutineScope,
@@ -110,6 +113,10 @@ class PushCoordinator(
     /** iOS `isHandlingIncomingHTLC`. */
     private var handlingHtlc = false
 
+    private var handlingPayout = false
+
+    private var loading: PushLoading? = null
+
     private val signedIn: Boolean get() = walletState.value == WalletState.Ready
     private val synced: Boolean get() = overview.value.hasSynced
 
@@ -121,6 +128,8 @@ class PushCoordinator(
                 .distinctUntilChanged()
                 .collect { (nowSignedIn, nowSynced) ->
                     val waiting = pending
+                    if (nowSignedIn != wasSignedIn) publishLoading()
+                    if (wasSignedIn && !nowSignedIn) closeQuestion()
                     if (waiting != null && nowSignedIn && !wasSignedIn && !nowSynced) {
                         // lowerPinView: a push will be handled once the wallet has synced.
                         showLoading(TestID.Loading.syncingWallet, PushStrings.SYNCING_WALLET_3)
@@ -234,6 +243,10 @@ class PushCoordinator(
     // ---- Lightning payout (`HandlePaymentNotification.swift:13-37, 144-303`). ----
 
     private fun handlePayout(push: PushEnvelope.LightningPayout) {
+        if (handlingPayout) {
+            log("Payout already being handled; ignoring duplicate trigger.")
+            return
+        }
         pending = push
         when {
             !signedIn -> wasNotified = true
@@ -250,9 +263,20 @@ class PushCoordinator(
 
     private fun triggerPayout() {
         showLoading(TestID.Loading.receivingPayment, PushStrings.RECEIVING_PAYMENT)
-        scope.launch {
+        launchPayout {
             pause(1_000)
             facilitatePayout()
+        }
+    }
+
+    private fun launchPayout(block: suspend () -> Unit) {
+        handlingPayout = true
+        scope.launch {
+            try {
+                block()
+            } finally {
+                handlingPayout = false
+            }
         }
     }
 
@@ -285,7 +309,7 @@ class PushCoordinator(
                 close(),
                 PushAlertButton(PushStrings.TRY_AGAIN, dismisses = false) {
                     showLoading(TestID.Loading.receivingPayment, PushStrings.RECEIVING_PAYMENT)
-                    scope.launch { facilitatePayout() }
+                    launchPayout { facilitatePayout() }
                 },
             )
             return
@@ -340,7 +364,7 @@ class PushCoordinator(
     }
 
     private fun retryPayout() = PushAlertButton(PushStrings.TRY_AGAIN, dismisses = false) {
-        scope.launch { facilitatePayout() }
+        launchPayout { facilitatePayout() }
     }
 
     /** `handleChannelFullWithSwapSuggestion`. */
@@ -368,7 +392,7 @@ class PushCoordinator(
     /** `receiveOnchainForNotification`. */
     private fun receiveOnchain(notificationId: String) {
         showLoading(TestID.Loading.receivingPayment, PushStrings.RECEIVING_PAYMENT)
-        scope.launch {
+        launchPayout {
             val pubkey = withContext(io) { signer.pubkey() }
             val failure: String? = if (pubkey == null) {
                 PushStrings.WALLET_NOT_SYNCED
@@ -522,11 +546,17 @@ class PushCoordinator(
     }
 
     private fun showLoading(testTag: String?, message: String) {
-        _uiState.update { it.copy(loading = PushLoading(testTag, message)) }
+        loading = PushLoading(testTag, message)
+        publishLoading()
     }
 
     private fun hideLoading() {
-        _uiState.update { it.copy(loading = null) }
+        loading = null
+        publishLoading()
+    }
+
+    private fun publishLoading() {
+        _uiState.update { it.copy(loading = loading.takeIf { signedIn }) }
     }
 
     private fun alert(testTag: String?, title: String, message: String, vararg buttons: PushAlertButton) {

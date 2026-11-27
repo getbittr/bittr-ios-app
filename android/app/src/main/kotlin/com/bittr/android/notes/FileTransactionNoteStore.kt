@@ -41,6 +41,12 @@ class FileTransactionNoteStore(private val file: File) : TransactionNoteStore {
         runCatching { write(_notes.value) }
     }
 
+    @Synchronized
+    override fun clear() {
+        _notes.value = emptyMap()
+        runCatching { file.delete() }
+    }
+
     private fun load(): Map<String, String> = runCatching {
         if (!file.exists()) return emptyMap()
         Json.parseToJsonElement(file.readText()).jsonObject

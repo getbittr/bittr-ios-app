@@ -27,6 +27,9 @@ interface SendSource {
     /** The active channel's outbound capacity. */
     fun lightningSendableSats(): Long
 
+    /** Whether the wallet has a Lightning channel at all; without one Send opens on Regular. */
+    fun hasLightningChannel(): Boolean = true
+
     suspend fun feeEstimates(): FeeEstimates?
 
     /** The drain to [address] (or to the largest common output), clamped; null if it cannot be built. */

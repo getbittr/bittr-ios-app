@@ -145,10 +145,12 @@ class AppSwapWallet(
     /**
      * `openCompletedSwapTransaction`: the completed swap's row, once both legs are matched into it.
      * The Lightning leg is found by its payment hash (its id is the preimage); null until the matched
-     * history holds a succeeded swap row with that leg, so the caller retries as iOS does.
+     * history holds a succeeded swap row with that leg, so the caller retries as iOS does. Without
+     * [sync] the history is rebuilt from what the node already holds — the Lightning leg of an
+     * onchain-to-lightning swap is there as soon as its payment event is.
      */
-    override suspend fun transactionIdForPayment(paymentHash: String): String? = io {
-        runCatching { lightning.syncWallets() }
+    override suspend fun transactionIdForPayment(paymentHash: String, sync: Boolean): String? = io {
+        if (sync) runCatching { lightning.syncWallets() }
         composition.refresh()
         val leg = overview.transactions.firstOrNull {
             it.paymentHash.equals(paymentHash, ignoreCase = true) || it.id.equals(paymentHash, ignoreCase = true)

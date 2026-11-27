@@ -18,6 +18,10 @@ internal object HomeStrings {
     const val RECEIVE = "Receive"
     const val BUY = "Buy"
 
+    // The value and map cards under the balance card — `homevcvalue`, `homevcmap`.
+    const val VALUE = "value"
+    const val MAP = "map"
+
     /**
      * `notransactions1` + `buy` + `notransactions2`.
      *
