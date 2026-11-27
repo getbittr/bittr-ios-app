@@ -23,6 +23,11 @@
 #   - runFlow: ../helpers/start_on_home.yaml
 #
 # Targets output.APP_ID when the caller has set it, the regtest app otherwise.
+#
+# A flow that should provision a wallet when there is none passes ONBOARDING
+# through env: "create" runs happy_path_wallet and happy_path_signup,
+# "restore" runs restore_wallet. Only the relaunch path checks for this, after
+# the unlock check, so a reused Home never pays for it.
 
 appId: com.bittr.bittr-regtest
 ---
@@ -64,11 +69,37 @@ appId: com.bittr.bittr-regtest
       - launchApp:
           appId: ${output.APP_ID}
       - runFlow: wait_for_launch.yaml
+      - evalScript: ${output.walletUnlocked = false}
       - runFlow:
           when:
             visible:
               id: "unlock.topLabel"
-          file: unlock.yaml
+          commands:
+            - runFlow: unlock.yaml
+            - evalScript: ${output.walletUnlocked = true}
+      - runFlow:
+          when:
+            true: ${!output.walletUnlocked && typeof ONBOARDING !== 'undefined' && ONBOARDING == 'restore'}
+          commands:
+            - runFlow:
+                when:
+                  visible:
+                    id: "signup.create.start.createWalletButton"
+                file: ../onboarding/restore_wallet.yaml
+      - runFlow:
+          when:
+            true: ${!output.walletUnlocked && typeof ONBOARDING !== 'undefined' && ONBOARDING == 'create'}
+          commands:
+            - runFlow:
+                when:
+                  visible:
+                    id: "signup.create.start.createWalletButton"
+                file: ../onboarding/happy_path_wallet.yaml
+            - runFlow:
+                when:
+                  visible:
+                    id: "signup.create.ready.topLabelOne"
+                file: ../onboarding/happy_path_signup.yaml
 
 - assertVisible:
     id: "home.headerLabel"

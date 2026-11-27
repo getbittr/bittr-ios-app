@@ -1,7 +1,7 @@
 # Feature test: the Academy tab (AcademyViewController + OneLessonViewController).
 #
-# Prerequisite: an existing wallet on the simulator, so launch lands on the
-# PIN unlock screen. This flow does NOT clearState — it relies on a wallet
+# Prerequisite: an existing wallet on the simulator. This flow does NOT
+# clearState — it relies on a wallet
 # already being set up (run onboarding/restore_wallet.yaml first if needed).
 #
 # Lesson availability: lessons unlock in order. Completed lessons and the
@@ -13,7 +13,8 @@
 # the table may need scrolling first.
 #
 # Flow:
-#   1. Launch (preserve state) and unlock with the PIN.
+#   1. helpers/start_on_home.yaml: reuse the running app on Home, or launch
+#      (preserve state) and unlock with the PIN.
 #   2. On Home, tap the Academy tab (nav.academyButton) → AcademyViewController.
 #   3. Tap the latest available lesson (academy.nextLessonButton) →
 #      OneLessonViewController.
@@ -31,14 +32,7 @@
 
 appId: com.bittr.bittr-regtest
 ---
-- launchApp
-- runFlow: ../helpers/wait_for_launch.yaml
-
-# Existing wallet → launch lands on the PIN unlock screen. Enter the PIN.
-- assertVisible:
-    id: "unlock.topLabel"
-- takeScreenshot: shared/docs/screenshots/academy/01_unlock
-- runFlow: ../helpers/unlock.yaml
+- runFlow: ../helpers/start_on_home.yaml
 
 # Land on Home.
 - assertVisible:

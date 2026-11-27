@@ -36,20 +36,8 @@
 
 appId: com.bittr.bittr-regtest
 ---
-# Launch without clearState so existing wallet state is preserved across runs.
-- launchApp
-- runFlow: ../helpers/wait_for_launch.yaml
-
-# If the app launched into the PIN unlock screen (existing wallet), enter PIN.
-- runFlow:
-    when:
-      visible:
-        id: "unlock.topLabel"
-    file: ../helpers/unlock.yaml
-
-# Should be on Home now.
-- assertVisible:
-    id: "home.headerLabel"
+# Start on Home without clearing state.
+- runFlow: ../helpers/start_on_home.yaml
 
 # On a fresh launch the wallet syncs first — wait for the header spinner to stop
 # so the onchain balance (and BDK scan needed for the swap) are settled.
