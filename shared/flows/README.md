@@ -221,8 +221,9 @@ shared/flows/
   helpers/         Reusable subflows invoked via runFlow.
     unlock.yaml           Enters PIN 1234 on the unlock screen.
     start_on_home.yaml    Gets the app onto a clear Home: reuses the running
-                          app when it already shows Home (unlocking if
-                          needed), and relaunches it only otherwise. Replaces
+                          app when it already shows a clear Home (checked
+                          within about a second), and relaunches it
+                          otherwise. Replaces
                           launchApp + wait_for_launch + unlock; never clears
                           state. Honours output.APP_ID. Used by
                           buy_signup, buy_incoming, buy_more and

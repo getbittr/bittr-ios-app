@@ -3,14 +3,18 @@
 #
 #   1. Bring the app to the front without stopping it. If it wasn't running,
 #      this launches it.
-#   2. Unlock with the PIN if the unlock screen shows.
-#   3. If Home still isn't clear (another tab, a sheet, an alert, or no
-#      Home at all), relaunch the app the usual way: launchApp,
+#   2. Check, with a 1 s timeout per check, that Home is clear: the launch
+#      animation is done, home.headerLabel is visible, and no sheet
+#      (header.downButton), alert (alert.button.0) or PIN screen
+#      (unlock.topLabel) sits over it.
+#   3. Anything else, relaunch the app the usual way: launchApp,
 #      wait_for_launch, unlock.
 #   4. Assert Home.
 #
-# "Clear" means home.headerLabel is visible and none of the things that can
-# sit over Home are: a sheet (header.downButton) or an alert (alert.button.0).
+# No `when:` condition decides whether to reuse the app. Maestro polls those
+# for up to about 7 s before answering, which a clear Home would pay on every
+# start. The checks run in an optional subflow instead, which only sets
+# output.homeIsClear when all of them pass.
 #
 # This only replaces the relaunch, never clearState. A flow that needs a
 # fresh install still has to clear state itself.
@@ -27,39 +31,31 @@ appId: com.bittr.bittr-regtest
     appId: ${output.APP_ID}
     stopApp: false
 
-# A cold start still plays the launch animation. A running app has passed it,
-# but its marker can be hidden behind a full-screen modal, so don't fail here.
-- extendedWaitUntil:
-    visible:
-      id: "core.launchComplete"
-    timeout: 15000
+- evalScript: ${output.homeIsClear = false}
+- runFlow:
     optional: true
-
-- runFlow:
-    when:
-      visible:
-        id: "unlock.topLabel"
-    file: unlock.yaml
-
-- evalScript: ${output.homeIsClear = true}
-- runFlow:
-    when:
-      notVisible:
-        id: "home.headerLabel"
     commands:
-      - evalScript: ${output.homeIsClear = false}
-- runFlow:
-    when:
-      visible:
-        id: "header.downButton"
-    commands:
-      - evalScript: ${output.homeIsClear = false}
-- runFlow:
-    when:
-      visible:
-        id: "alert.button.0"
-    commands:
-      - evalScript: ${output.homeIsClear = false}
+      - extendedWaitUntil:
+          visible:
+            id: "core.launchComplete"
+          timeout: 1000
+      - extendedWaitUntil:
+          visible:
+            id: "home.headerLabel"
+          timeout: 1000
+      - extendedWaitUntil:
+          notVisible:
+            id: "header.downButton"
+          timeout: 1000
+      - extendedWaitUntil:
+          notVisible:
+            id: "alert.button.0"
+          timeout: 1000
+      - extendedWaitUntil:
+          notVisible:
+            id: "unlock.topLabel"
+          timeout: 1000
+      - evalScript: ${output.homeIsClear = true}
 
 - runFlow:
     when:
