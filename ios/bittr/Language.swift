@@ -273,7 +273,7 @@ class Language: NSObject {
             "pinrequired": "PIN Required",
             "pinshouldbe4to8": "PIN should be between 4 and 8 digits",
             "syncingwallet": "Syncing wallet",
-            "syncingwallet3": "syncing wallet",
+            "syncingwallet3": "Syncing wallet",
             "syncingwallet2": "Please wait a moment while we're syncing your wallet.",
             "resendcode2": "Please wait 30 seconds before requesting another verification code.",
             "changeemail": "Change email",
