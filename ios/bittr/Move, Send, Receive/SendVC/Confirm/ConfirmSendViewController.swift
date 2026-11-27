@@ -188,7 +188,7 @@ class ConfirmSendViewController: UIViewController {
             self.addressLabel.font = .monospacedSystemFont(ofSize: 15, weight: .bold)
             // An address is shown whole, so it can be checked before sending, and an invoice is shortened to three lines.
             self.addressLabel.numberOfLines = 0
-            self.addressLabel.setGroupedText(addressOrInvoice, lines: onchainOrLightning == .onchain ? .max : 3, trailing: true)
+            self.addressLabel.setGroupedText(addressOrInvoice, lines: onchainOrLightning == .onchain ? .max : 3)
         }
         // Read without the groups' spaces, by VoiceOver and the flows alike.
         self.addressLabel.accessibilityLabel = lightningAddress ?? addressOrInvoice

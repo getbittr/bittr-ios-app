@@ -34,7 +34,7 @@ extension UILabel {
 // Groups its text in fours for its own width, and again whenever that width changes.
 class GroupedLabel: UILabel {
     
-    private var grouping:(text:String, lines:Int, trailing:Bool)?
+    private var grouping:(text:String, lines:Int)?
     private var groupedWidth:CGFloat = 0
     private var isGrouping = false
     
@@ -46,8 +46,8 @@ class GroupedLabel: UILabel {
         didSet { if !self.isGrouping { self.grouping = nil } }
     }
     
-    func setGroupedText(_ text:String, lines:Int = .max, trailing:Bool = false) {
-        self.grouping = (text, lines, trailing)
+    func setGroupedText(_ text:String, lines:Int = .max) {
+        self.grouping = (text, lines)
         self.groupedWidth = 0
         self.applyGrouping()
         self.setNeedsLayout()
@@ -62,7 +62,7 @@ class GroupedLabel: UILabel {
         guard let grouping, self.bounds.width > 0, self.bounds.width != self.groupedWidth else { return }
         self.groupedWidth = self.bounds.width
         self.isGrouping = true
-        self.attributedText = grouping.text.inGroupsOfFour(width: self.bounds.width, lines: grouping.lines, font: self.font, color: self.textColor, trailing: grouping.trailing)
+        self.attributedText = grouping.text.inGroupsOfFour(width: self.bounds.width, lines: grouping.lines, font: self.font, color: self.textColor)
         self.isGrouping = false
     }
 }
