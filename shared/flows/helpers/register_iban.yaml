@@ -54,7 +54,8 @@ appId: com.bittr.bittr-regtest
     optional: true
 
 # Transfer3: bittr signup success. Long async chain after OTP, allow generous
-# timeout. If registering for notifications fails, tap Try again on that alert.
+# timeout. If registering for notifications fails, tap Try again on that alert,
+# then Next on Transfer2, because Try again only asks for the token again.
 - repeat:
     while:
       notVisible:
@@ -68,6 +69,12 @@ appId: com.bittr.bittr-regtest
           commands:
             - tapOn:
                 id: "alert.button.0"
+            - extendedWaitUntil:
+                notVisible:
+                  id: "alert.button.0"
+                timeout: 5000
+            - tapOn:
+                id: "signup.bittr.otp.nextButton"
       - extendedWaitUntil:
           visible:
             id: "signup.bittr.success.topLabelOne"
