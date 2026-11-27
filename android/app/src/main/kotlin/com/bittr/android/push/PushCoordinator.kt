@@ -11,6 +11,7 @@ import com.bittr.android.core.network.OnchainPayout
 import com.bittr.android.core.push.PushEnvelope
 import com.bittr.android.core.wallet.WalletOverview
 import com.bittr.android.core.wallet.WalletState
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.delay
@@ -59,6 +60,7 @@ data class PushUiState(
  * started it. Unlocking with a push pending shows `loading.syncingWallet`
  * (`lowerPinView`), and the first finished sync re-dispatches it (`finalizeSync`), which
  * then skips the "you're receiving a payment" alert and goes straight to the payout.
+ * An incoming HTLC never asks, locked or not: it goes straight to `loading.receivingPayment`.
  * Information, expired and unknown pushes open their card at once, locked or not.
  *
  * The loading card is only drawn while unlocked, so it never blocks the PIN pad, and one
@@ -113,6 +115,12 @@ class PushCoordinator(
     /** iOS `isHandlingIncomingHTLC`. */
     private var handlingHtlc = false
 
+    /**
+     * An incoming HTLC waiting for unlock and sync. Its own slot rather than [pending], so it never
+     * takes the place of a payout whose alert is still up.
+     */
+    private var htlcWaiting = false
+
     private var handlingPayout = false
 
     private var loading: PushLoading? = null
@@ -128,15 +136,17 @@ class PushCoordinator(
                 .distinctUntilChanged()
                 .collect { (nowSignedIn, nowSynced) ->
                     val waiting = pending
+                    val htlc = htlcWaiting
                     if (nowSignedIn != wasSignedIn) publishLoading()
                     if (wasSignedIn && !nowSignedIn) closeQuestion()
-                    if (waiting != null && nowSignedIn && !wasSignedIn && !nowSynced) {
+                    if ((waiting != null || htlc) && nowSignedIn && !wasSignedIn && !nowSynced) {
                         // lowerPinView: a push will be handled once the wallet has synced.
                         showLoading(TestID.Loading.syncingWallet, PushStrings.SYNCING_WALLET_3)
                     }
-                    if (waiting != null && nowSignedIn && nowSynced && !(wasSignedIn && wasSynced)) {
+                    if (nowSignedIn && nowSynced && !(wasSignedIn && wasSynced)) {
                         // finalizeSync: payout, HTLC, swap and LNURL pushes are replayed.
-                        dispatch(waiting)
+                        if (htlc) handleHtlc()
+                        if (waiting != null) dispatch(waiting)
                     }
                     wasSignedIn = nowSignedIn
                     wasSynced = nowSynced
@@ -187,11 +197,11 @@ class PushCoordinator(
         log("Handling push ${envelope::class.simpleName}.")
         when (envelope) {
             is PushEnvelope.LightningPayout -> handlePayout(envelope)
-            PushEnvelope.HtlcIncoming -> handleHtlc(envelope)
+            PushEnvelope.HtlcIncoming -> handleHtlc()
             is PushEnvelope.Information ->
                 question(envelope.headerText ?: PushStrings.OOPS, envelope.bodyText ?: PushStrings.BITTR_NOTIFICATION_FAIL)
             is PushEnvelope.HtlcExpired -> {
-                pending = null
+                htlcWaiting = false
                 question(envelope.headerText ?: PushStrings.HTLC_EXPIRED_TITLE, envelope.bodyText ?: PushStrings.HTLC_EXPIRED_BODY)
             }
             is PushEnvelope.Unknown -> question(PushStrings.OOPS, PushStrings.BITTR_NOTIFICATION_FAIL)
@@ -470,31 +480,27 @@ class PushCoordinator(
 
     // ---- Incoming HTLC (`HandlePaymentNotification.swift:40-142`). ----
 
-    private fun handleHtlc(push: PushEnvelope) {
-        pending = push
+    private fun handleHtlc() {
         when {
-            !signedIn -> wasNotified = true
-            !synced -> showLoading(TestID.Loading.syncingWallet, PushStrings.SYNCING_WALLET_3)
+            !signedIn -> {
+                htlcWaiting = true
+                wasNotified = true
+            }
+            !synced -> {
+                htlcWaiting = true
+                showLoading(TestID.Loading.syncingWallet, PushStrings.SYNCING_WALLET_3)
+            }
             handlingHtlc -> log("Incoming HTLC already being handled; ignoring duplicate trigger.")
             else -> {
                 handlingHtlc = true
-                if (!wasNotified) {
-                    alert(
-                        TestID.Alert.incomingPayment,
-                        PushStrings.INCOMING_PAYMENT,
-                        PushStrings.NEW_BITTR_PAYMENT,
-                        PushAlertButton(PushStrings.OKAY, dismisses = false) { triggerHtlcReady() },
-                    )
-                } else {
-                    triggerHtlcReady()
-                }
+                triggerHtlcReady()
             }
         }
     }
 
     private fun triggerHtlcReady() {
         showLoading(TestID.Loading.receivingPayment, PushStrings.RECEIVING_PAYMENT)
-        pending = null
+        htlcWaiting = false
         scope.launch {
             pause(500)
             facilitateHtlcReady()
@@ -502,14 +508,26 @@ class PushCoordinator(
     }
 
     private suspend fun facilitateHtlcReady() {
-        val depositCode = withContext(io) { depositCodes.firstDepositCode() }?.takeIf { it.isNotEmpty() }
-        val pubkey = depositCode?.let { withContext(io) { signer.pubkey() } }
-        if (depositCode == null || pubkey == null) {
+        // Whatever throws, the loading card and the lock go: a lock left set would ignore every later
+        // incoming payment until a restart.
+        val problem = try {
+            htlcReadyProblem()
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            htlcReadyFriendlyMessage(null)
+        } finally {
             hideLoading()
             handlingHtlc = false
-            incomingPaymentAlert(if (depositCode == null) PushStrings.BITTR_PAYOUT_FAIL else PushStrings.BITTR_PAYOUT_FAIL_2)
-            return
         }
+        problem?.let(::incomingPaymentAlert)
+    }
+
+    /** Tells bittr to send the held payment: what to tell the user, or null once it is on its way. */
+    private suspend fun htlcReadyProblem(): String? {
+        val depositCode = withContext(io) { depositCodes.firstDepositCode() }?.takeIf { it.isNotEmpty() }
+            ?: return PushStrings.BITTR_PAYOUT_FAIL
+        val pubkey = withContext(io) { signer.pubkey() } ?: return PushStrings.BITTR_PAYOUT_FAIL_2
         // bittr forwards the held payment over the peer connection, so have it up before saying
         // we're ready. Best effort: bittr's answer decides what the user sees.
         node.ensureConnectedToBittr()
@@ -519,20 +537,14 @@ class PushCoordinator(
             if (signature == null) {
                 HtlcReady.Outcome.Failed(null)
             } else {
-                try {
-                    HtlcReady.parse(http.execute(HtlcReady.request(environment, depositCode, timestamp, pubkey, signature)))
-                } catch (e: Exception) {
-                    HtlcReady.Outcome.Failed(null)
-                }
+                HtlcReady.parse(http.execute(HtlcReady.request(environment, depositCode, timestamp, pubkey, signature)))
             }
         }
-        hideLoading()
-        handlingHtlc = false
-        when (outcome) {
+        return when (outcome) {
             // The payment completes through the node; no alert.
-            HtlcReady.Outcome.Resumed -> Unit
-            HtlcReady.Outcome.TimedOut -> incomingPaymentAlert(PushStrings.BITTR_PAYOUT_FAIL)
-            is HtlcReady.Outcome.Failed -> incomingPaymentAlert(htlcReadyFriendlyMessage(outcome.code))
+            HtlcReady.Outcome.Resumed -> null
+            HtlcReady.Outcome.TimedOut -> PushStrings.BITTR_PAYOUT_FAIL
+            is HtlcReady.Outcome.Failed -> htlcReadyFriendlyMessage(outcome.code)
         }
     }
 

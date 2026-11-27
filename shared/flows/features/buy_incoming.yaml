@@ -117,9 +117,9 @@ appId: ${APP_ID}
 - takeScreenshot: shared/docs/screenshots/buy_incoming/04_transaction
 
 # The first deposit fires more than one incoming-payment event (the payout, then
-# the channel-open HTLC), so alerts and transaction screens can stack. Clear
-# whatever is on top — payment alerts (Okay) and transaction screens (down) —
-# until we settle back on Home.
+# the channel-open HTLC). The payout asks for Okay, and on iOS so does the HTLC,
+# so alerts and transaction screens can stack. Clear whatever is on top — payment
+# alerts (Okay) and transaction screens (down) — until we settle back on Home.
 - repeat:
     times: 6
     commands:
