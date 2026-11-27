@@ -408,3 +408,9 @@ appId: com.bittr.bittr-regtest
     id: "transaction.labelNote"
     text: "swap.yaml test"
 - takeScreenshot: shared/docs/screenshots/swap/22_note_saved
+
+# Close the TransactionViewController, so the flow ends on Home.
+- tapOn:
+    id: "header.downButton"
+- assertVisible:
+    id: "home.headerLabel"
