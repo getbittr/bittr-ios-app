@@ -388,6 +388,8 @@ maestro test shared/flows/features/send_lightning.yaml
 
 The flow sets `output.clipboardText` before each paste; `set_clipboard.js` POSTs it to the helper, which copies it on the Mac and on the booted simulator, then checks that the simulator holds it. During a run, the Mac clipboard holds the pasted text; the helper puts back its earlier text when it stops. iOS may show a one-off "Allow Paste" prompt — the flow accepts it automatically.
 
+If a paste step fails with the helper's `verify` error (the simulator's clipboard still holds older text, often something the app copied itself), the simulator's clipboard has stopped taking text from the Mac. Restart the simulator (Device → Restart, or `xcrun simctl shutdown booted && xcrun simctl boot <UDID>`) and run the flow again. The restart keeps the wallet; only the app stops.
+
 ## CI
 
 Both platforms run on every PR. Both must pass; in-flight Android features are tracked on an allowlist in `../docs/parity.md`.

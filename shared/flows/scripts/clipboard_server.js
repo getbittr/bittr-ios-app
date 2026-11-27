@@ -108,6 +108,7 @@ http.createServer((req, res) => {
                     ? `clipboard doesn't hold the text after ${VERIFY_TIMEOUT_MS}ms; found: ${JSON.stringify(result.found)}${result.macStderr === undefined ? '' : `; pbcopy failed: ${result.macStderr}`}`
                     : result.stderr;
                 console.error(`setting the iOS clipboard failed at ${result.step}:`, detail);
+                if (result.step === 'verify') console.error('restarting the simulator (Device → Restart) usually fixes this');
                 respond(res, 500, result);
                 return;
             }
